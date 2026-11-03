@@ -1,0 +1,550 @@
+skill: C.3.5
+version: 1
+authors: [content-author]
+brief:
+  why: |
+    数据中心里成千上万台机器要同时说话：训练一个大模型，许多块 GPU 要反复交换梯度；一次搜索请求，要访问许多台缓存和存储服务器。普通的三层树交换机和 TCP/IP 协议栈在这里既贵又慢，于是有了胖树拓扑、RDMA、无损以太网、内核旁路和 SmartNIC。这些技术看起来分散，其实都在回答同一个问题：怎样让数据少绕路、少拷贝、少打扰 CPU。
+  outcomes:
+    - 用 k 端口交换机算出胖树的 pod、核心交换机、主机数量和等价路径数
+    - 区分 SEND/RECV 的双边语义与 RDMA READ/WRITE 的单边语义，说出 QP、CQ、MR（内存区域）各自的作用
+    - 解释 RoCEv2 为什么依赖 PFC、PFC 会带来什么麻烦，以及 DCQCN 用 ECN 做什么
+    - 说出 DPDK 的轮询驱动、大页内存和 mbuf 各解决了哪一段开销
+    - 说明 SmartNIC 把什么搬到网卡上、为什么不是所有工作都适合卸载
+    - 用 Ring AllReduce 的步骤数算出每块 GPU 要发送多少数据
+
+lessons:
+  - id: dc-topology
+    chapter: 数据中心网络拓扑
+    title: 用便宜的交换机搭出大网络
+    minutes: 10
+    warmup:
+      id: guess-hosts
+      type: choice
+      prompt: 用 48 端口的交换机搭胖树（fat-tree），你觉得最多能接多少台主机？
+      options:
+        - text: 48 台，一台交换机一个端口接一台
+          why: 一台交换机确实只有 48 个端口，但胖树用了很多台交换机，主机接在最底下一层
+        - text: 2304 台，48 × 48
+          why: 这个数只用了 pod 数和每台交换机的端口数，漏掉了每个 pod 里两层交换机和每台边缘交换机的下行端口
+        - text: 27648 台
+          correct: true
+      explain: |
+        胖树的主机数是 $k^3/4$。$k=48$ 时是 $48^3/4 = 110592/4 = 27648$。它不是把主机都挂在一台交换机上，而是让每个 pod 的边缘交换机只接 $k/2 = 24$ 台主机，再用核心层把 48 个 pod 连起来。
+    cards:
+      - title: 传统三层树：带宽被“超售”
+        body: |
+          典型的数据中心网络是三层树：核心层（core）、汇聚层（aggregation）、边缘层（edge）。边缘交换机接主机，汇聚层收拢一个区域的流量，核心层再把各个区域连起来。
+
+          问题在于**超售（oversubscription）**：所有主机同时以网卡全速通信时，网络实际能提供的带宽只是其中一部分。论文说典型设计超售 2.5:1 到 8:1；要做到 1:1，核心层必须用端口密度低、价格高的高端交换机，10 GbE 时代在单台交换机之外基本做不到。
+
+          于是规模一大，要么花很多钱，要么让任意两台主机之间的带宽远低于网卡速率。
+      - title: 胖树怎么搭
+        body: |
+          把 $k$ 端口交换机按胖树（fat-tree）组织：有 $k$ 个 **pod**，每个 pod 里两层，每层 $k/2$ 台交换机。下面那层（边缘）的每台交换机用 $k/2$ 个端口直接接主机，剩下的 $k/2$ 个端口接上面那层的 $k/2$ 台汇聚交换机。
+
+          上面还有 $(k/2)^2$ 台核心交换机，每台核心交换机用 1 个端口连一个 pod。所有交换机都是相同的 $k$ 端口商品交换机，不需要更快的上行端口。
+
+          主机数是 $k \times (k/2) \times (k/2) = k^3/4$。$k=4$ 时：4 个 pod，每个 pod 2 台边缘 + 2 台汇聚；每台边缘接 2 台主机；核心 4 台；一共 16 台主机。
+      - title: 多路径才是重点
+        body: |
+          胖树里任意两台**不同 pod** 的主机之间有 $(k/2)^2$ 条等价最短路径。但 OSPF 这类路由协议只按跳数选一条，结果可能把大量流量压到少数几台核心交换机上，其他路径闲着。
+
+          论文说胖树是**可重排无阻塞（rearrangeably non-blocking）**的：只要允许重新安排路径，任意通信模式都能用满主机带宽。它用的办法是两级路由表，先按目的 pod 选一段，再用目的 IP 的低位把流量分散到多条上行链路。
+
+          $k=48$ 时，任意两台跨 pod 主机之间有 $(48/2)^2 = 576$ 条等价路径。路径多不等于自动用得好，还要有能分散流量的路由方法。
+    items:
+      - id: hosts-k4
+        type: number
+        prompt: 用 4 端口交换机搭胖树，最多能接多少台主机？
+        answer: 16
+        unit: 台
+        hint: 先算有多少个 pod，再看每个 pod 有多少台边缘交换机、每台边缘接几台主机。
+        explain: |
+          $k=4$ 时有 4 个 pod，每个 pod 有 $k/2=2$ 台边缘交换机，每台边缘交换机接 $k/2=2$ 台主机，所以 $4 \times 2 \times 2 = 16$。也可以直接代公式 $k^3/4 = 64/4 = 16$。
+      - id: core-k48
+        type: number
+        prompt: 用 48 端口交换机搭胖树，需要多少台核心交换机？
+        answer: 576
+        unit: 台
+        hint: 核心交换机的数量是 $(k/2)^2$，不是 $k$。
+        explain: |
+          核心交换机排成 $(k/2) \times (k/2)$ 的网格，每台用 1 个端口连一个 pod。$k=48$ 时是 $24 \times 24 = 576$ 台。每台核心交换机有 48 个端口，正好对应 48 个 pod。
+      - id: why-not-tree
+        type: choice
+        prompt: 为什么规模变大时，传统三层树不如胖树？
+        options:
+          - text: 核心层要买端口密度低、价格高的高端交换机；为控制成本又通常超售，任意主机之间拿不到全速
+            correct: true
+          - text: 三层树的交换机不能做 IP 路由，只能做二层转发
+            why: 论文里的交换机同时做二层交换和三层路由；问题不在能不能路由，而在端口密度、成本和超售
+          - text: 网线太长，信号衰减得厉害
+            why: 论文讨论的是交换机端口数、成本和带宽，不是铜缆长度
+          - text: 胖树不需要核心交换机，所以更便宜
+            why: 胖树也有核心层，只是核心层由 $(k/2)^2$ 台相同的商品交换机组成
+        explain: |
+          三层树要扩大规模，就得在核心层堆更多高端交换机；这类交换机端口密度低、单价高，所以设计者往往用超售换成本。胖树把同样的事情交给大量相同的低价交换机，并用多路径把带宽摊开。
+      - id: k4-parts
+        type: match
+        prompt: 把 $k=4$ 胖树里的部件和数量连起来。
+        pairs:
+          - ["pod 的数量", "4 个"]
+          - ["每个 pod 的交换机数", "4 台（2 台边缘 + 2 台汇聚）"]
+          - ["每台边缘交换机接的主机数", "2 台"]
+          - ["核心交换机数", "4 台"]
+        explain: |
+          每个 pod 有两层、每层 $k/2=2$ 台交换机，所以每个 pod 4 台；边缘交换机的 $k=4$ 个端口里，2 个接主机、2 个接汇聚；核心交换机是 $(k/2)^2 = 4$ 台。总数 $4 \times 4 + 4 = 20$ 台交换机，接 16 台主机。
+
+  - id: rdma
+    chapter: RDMA（InfiniBand/RoCE/iWARP）
+    title: 让网卡直接读写对方内存
+    minutes: 10
+    warmup:
+      id: guess-recv
+      type: choice
+      prompt: RDMA WRITE 把数据写进对端内存时，对端 CPU 需要先执行一次 recv() 吗？
+      options:
+        - text: 需要，和 socket 编程一样
+          why: 那是 SEND/RECV 的双边语义；RDMA WRITE 是单边操作，接收端应用不参与数据搬运
+        - text: 不需要，网卡直接写进对端已经注册的内存
+          correct: true
+        - text: 需要，但只在第一次连接时
+          why: 第一次需要的是建立连接、注册内存和交换 r_key；之后每次 WRITE 都不需要接收端 CPU 参与
+      explain: |
+        RDMA WRITE 的发起方把“对端虚拟地址 + r_key + 长度”交给自己的网卡，网卡把数据直接写进对端已经注册的内存。对端 CPU 只在准备阶段参与：注册内存、授权、交换 QP 信息。数据到达时它不会收到通知，除非使用的是 WRITE with immediate。
+    cards:
+      - title: 从 socket 到通道
+        body: |
+          TCP/IP 的发送路径是：应用把数据交给内核，内核放进自己的缓冲区，再让网卡发出去；接收路径反过来，内核先收进自己的缓冲区，再拷贝到应用缓冲区。手册说 TCP/IP 的每个操作都要操作系统介入，线路两端都有缓冲区拷贝，而且字节流没有消息边界。
+
+          RDMA 换了一种分工：操作系统只负责建立通道，之后应用通过 **verbs** API 直接和网卡打交道。**QP（Queue Pair，队列对）** 可以类比 socket：它有一对发送队列和接收队列，两端都要初始化；Communication Manager 可以在真正建 QP 之前交换 QP 信息。
+
+          **CQ（Completion Queue，完成队列）** 记录已完成的工作请求。每提交一个 **WR（Work Request）**，完成后会得到一个 **CQE（Completion Queue Entry）**，应用用 `ibv_poll_cq` 取走；CQE 被取走后就从 CQ 里删除。
+      - title: 双边与单边
+        body: |
+          **SEND/RECV 是双边操作**：发送方 post send，接收方必须提前 post 接收缓冲区；发送方不能决定数据落在对端哪里。SEND 可以带 4 字节 immediate，接收方在完成通知里看到它，但它不在数据缓冲区里。带 immediate 的 RDMA WRITE 也会在接收端产生完成通知，所以同样要消耗一个接收请求；普通的 RDMA WRITE 不需要。
+
+          **RDMA READ/WRITE 是单边操作**：发起方给出对端的虚拟地址、长度和 r_key，网卡直接把数据读回或写到对端已注册内存；对端 CPU 和应用程序不参与，也不知道这次传输（除了提前授权）。WRITE with immediate 会用 immediate 值通知对端。
+
+          能这么做的前提是**内存注册（memory registration）**：把一段虚拟内存的页锁住、防止换出，把虚拟地址到物理地址的翻译表写进网卡，并设置权限（本地写、远端读、远端写、原子、绑定）。注册后得到本地 l_key 和远端 r_key；远端必须拿到 r_key 才能访问这块内存。
+      - title: 三种承载，三种传输模式
+        body: |
+          三种承载都提供 RDMA 语义，但底层不同。**InfiniBand** 是原生 RDMA，链路层用基于信用的流控防止丢包，子网管理器给每个端口分配本地标识符（LID）并计算路由。**RoCE** 把 RDMA 放到以太网上，不走 TCP，靠 PFC 做无损。**iWARP** 是 RDMAP 跑在 DDP 上，DDP 再跑在 MPA/TCP（或 SCTP）上；走 MPA 的版本就跑在 TCP 上。RFC 5040 说它也能把数据直接放进上层协议缓冲区，不需要中间拷贝。
+
+          传输模式决定可靠性。**RC（Reliable Connection）** 只连一个对端，消息可靠、按序到达，很像 TCP。**UC（Unreliable Connection）** 也只连一个对端，但可能丢包，出错不重传，要上层自己处理。**UD（Unreliable Datagram）** 可以给任意 UD QP 发单包消息，不保证顺序和送达，接收方也可能丢，但支持组播，很像 UDP。
+    items:
+      - id: send-needs-buffer
+        type: choice
+        prompt: 下面哪种操作要求接收端提前把接收缓冲区 post 到接收队列？
+        options:
+          - text: SEND/RECV，以及带 immediate 的 RDMA WRITE
+            correct: true
+          - text: 普通的 RDMA WRITE（不带 immediate）
+            why: 普通的 RDMA WRITE 直接写对端注册内存，地址和 r_key 由发起方给出，不需要接收缓冲区；带 immediate 的版本才会在接收端产生完成通知，需要接收请求
+          - text: RDMA READ
+            why: RDMA READ 从对端注册内存读数据，对端应用不参与，也不需要接收缓冲区
+          - text: 所有 RDMA 操作都需要
+            why: 只有双边语义的 SEND/RECV 和带 immediate 的 WRITE 需要；普通 WRITE/READ 靠内存注册和 r_key 授权
+        explain: |
+          SEND 把数据送到对端 QP 的接收队列，但发送方不知道对端会把数据放在哪里，所以必须由接收方提前 post 缓冲区。带 immediate 的 RDMA WRITE 也会在接收端产生一个完成通知，所以同样需要接收请求；普通的 RDMA WRITE 和 RDMA READ 由发起方指定对端虚拟地址和 r_key，直接访问已注册内存，不需要接收缓冲区。
+      - id: immediate-bytes
+        type: number
+        prompt: SEND with immediate 和 RDMA WRITE with immediate 里的 immediate 字段有多少字节？
+        answer: 4
+        unit: 字节
+        explain: |
+          手册写的是 “an immediate 4 byte value”。它随完成通知交给接收方，不放进数据缓冲区，所以常用来传一个小的标识或消息类型。
+      - id: op-semantics
+        type: match
+        prompt: 把操作和它的语义连起来。
+        pairs:
+          - ["SEND", "写到对端已经 post 的接收缓冲区，发送方不能选地址"]
+          - ["RDMA READ", "从对端注册内存读回本地，对端 CPU 不参与"]
+          - ["RDMA WRITE", "直接写对端注册内存，对端 CPU 不参与"]
+          - ["内存注册", "锁住页、把地址翻译表写进网卡，并生成 r_key 和 l_key"]
+        explain: |
+          SEND/RECV 是双边操作，接收方必须准备缓冲区；READ/WRITE 是单边操作，发起方用 r_key 直接访问对端注册内存。内存注册是单边操作的前提，它把页固定住并把翻译表交给网卡，这样网卡才能绕过 CPU 直接读写。
+      - id: qp-states
+        type: order
+        prompt: 把一个新建的 RC 队列对从初始状态带到可以发送，顺序是什么？
+        steps:
+          - "QP 处于 RESET"
+          - "改到 INIT，之后可以 post 接收缓冲区"
+          - "改到 RTR，网卡开始处理接收"
+          - "改到 RTS，可以 post 发送请求"
+        explain: |
+          手册说新建的 QP 在 RESET；先改到 INIT，此时可以 post 接收缓冲区；有接收缓冲区后改到 RTR（ready to receive），QP 开始接收处理；最后改到 RTS（ready to send），才能用 `ibv_post_send` 发请求。顺序反了，网卡就没有可用的接收资源或路径信息。
+
+  - id: lossless-congestion
+    chapter: 无损网络与拥塞控制
+    title: 不丢包的代价
+    minutes: 10
+    warmup:
+      id: guess-pfc
+      type: choice
+      prompt: RoCEv2 已经跑在以太网上了，为什么还要 PFC（Priority Flow Control）？
+      options:
+        - text: 因为 RDMA 的传输层假设网络不丢包
+          correct: true
+        - text: 因为以太网帧里没有 MAC 地址
+          why: 以太网帧当然有 MAC 地址；PFC 解决的是缓冲区溢出导致的丢包，不是寻址
+        - text: 因为 PFC 可以给 RDMA 数据加密
+          why: PFC 是链路层的暂停/恢复机制，不做加密
+      explain: |
+        InfiniBand 的链路层用逐跳信用流控保证不丢包，IB 的传输层因此可以很简单。RoCEv2 保留了 IB 的传输层，却把网络层换成 IP/UDP、链路层换成以太网；为了继续满足“不丢包”的假设，它用 PFC 在交换机缓冲区快满时让上游暂停发送。
+    cards:
+      - title: RDMA 为什么怕丢包
+        body: |
+          InfiniBand 的链路层用**基于信用的逐跳流控**：发送方先确认下游有缓冲区，再发数据，所以正常情况下不会因为缓冲区溢出而丢包。无损的二层让 IB 的传输层可以做得简单高效。
+
+          RoCEv2 保留了 IB 的传输层，但把网络层换成 IP、把链路层换成以太网。以太网默认会在拥塞时丢包，于是 RoCE 用 **PFC（Priority Flow Control）**：交换机发现某个入队列超过阈值，就向上游发 PAUSE，上游停止发送，直到收到 RESUME。PFC 最多支持 8 个优先级类别。
+
+          丢包对 RDMA 特别贵：Falcon 论文说 RoCE 最初只用 **Go-Back-N** 式恢复，丢一个包，后面已经发出去的包也可能要重发。这就是“无损”被写进部署要求的原因。
+      - title: PFC 的副作用
+        body: |
+          PFC 的 PAUSE 是**按端口（和优先级）**生效的，不是按流。一个端口被暂停，端口上所有流一起停，这就是**队头阻塞（head-of-line blocking）**。
+
+          论文用实验展示了两种后果。**不公平**：四条流共享一个瓶颈，PFC 暂停的是上行端口，而某个端口上只有一条流、另一个端口上有多条流，只有一条流的那个发送方反而拿到更多带宽（停车场地问题）。**受害者流**：PAUSE 会逐跳向上游级联，一条路径上完全没有拥塞的流，也会因为上游端口被暂停而掉速。
+
+          优先级只有 8 个，而且同一个优先级里的流仍然会互相拖累；把拓扑扩大、发送方增多，问题只会更明显。
+      - title: DCQCN：用 ECN 做逐流控制
+        body: |
+          **DCQCN（Datacenter QCN）** 是一个基于速率的端到端拥塞控制协议，建立在 QCN 和 DCTCP 的想法上，主要逻辑在网卡里。
+
+          交换机端（拥塞点，CP）只做一件事：出队列长度超过阈值时，用 RED 给包打 **ECN（Explicit Congestion Notification，显式拥塞通知）** 标记。接收端网卡（通知点，NP）看到带标记的包，就向发送端发 **CNP（Congestion Notification Packet）**；同一段时间内最多发一个。发送端（反应点，RP）收到 CNP 就降低速率，一段时间没有 CNP 再逐步把速率加回来。整个过程中，交换机只需要标准的 RED/ECN，不需要为每条流维护状态。
+
+          DCQCN **不能取代 PFC**：流启动时直接按线速发送，没有 PFC 就会丢包。所以 ECN 的标记阈值要设得比 PFC 的暂停阈值低，让交换机先给 ECN 反馈，实在不行才暂停。DCQCN 也不是终点：Meta 的 AI 网络论文说他们最初用 DCQCN，后来改为让集合通信库来管理拥塞。
+    items:
+      - id: victim-flow
+        type: choice
+        prompt: 为什么一条路径上根本没有拥塞的流，也会被 PFC 拖慢？
+        options:
+          - text: PAUSE 会逐跳向上游传播，上游端口一停，经过这个端口的其他流也一起停
+            correct: true
+          - text: PFC 会修改路由表，把这条流改到更拥塞的路径
+            why: PFC 是链路层的暂停机制，不改路由表；问题是暂停沿链路向上游级联，波及同一端口上的其他流
+          - text: RDMA READ 有固定超时，超时后所有流一起重传
+            why: 这里的原因是 PAUSE 级联造成的队头阻塞，不是读超时
+          - text: 交换机会把所有流哈希到同一条路径
+            why: ECMP 的哈希可能让多条流共享端口，但“路径上没有拥塞的流也变慢”是 PAUSE 级联造成的
+        explain: |
+          论文的“受害者流”实验里，瓶颈交换机暂停自己的上行端口，上游交换机又暂停它的上游，最后一条与瓶颈没有共同链路的流也被暂停。PFC 按端口生效，不区分流，所以一条流的拥塞会沿着端口传播给无关的流。
+      - id: dcqcn-switch
+        type: choice
+        prompt: DCQCN 要求交换机提供什么支持？
+        options:
+          - text: 只需要标准的 RED/ECN 标记，逐流状态和降速都在网卡上做
+            correct: true
+          - text: 交换机要为每条流维护发送速率
+            why: DCQCN 把逐流状态放在网卡里；交换机只按队列长度做 ECN 标记
+          - text: 交换机必须关闭 PFC
+            why: DCQCN 明确说它不能取代 PFC；流启动时仍按线速发送，没有 PFC 会丢包
+          - text: 交换机要运行一个集中式调度器
+            why: DCQCN 是端到端协议，不需要集中调度器；论文强调不要求交换机提供自定义功能
+        explain: |
+          论文说 DCQCN 只依赖交换机上标准的 RED 和 ECN，其余协议功能在端主机网卡上实现。这样不用改交换机 ASIC，才能在现有数据中心里部署。
+      - id: dcqcn-loop
+        type: order
+        prompt: 把 DCQCN 的一次反馈循环按顺序排好。
+        steps:
+          - "交换机出队列长度超过 ECN 阈值，给包打上 ECN 标记"
+          - "接收端网卡看到带标记的包，向发送端发 CNP"
+          - "发送端收到 CNP，降低发送速率"
+          - "一段时间没有收到 CNP，发送端逐步提高速率"
+        explain: |
+          交换机（CP）只在队列超过阈值时标记 ECN；接收端网卡（NP）把标记翻译成 CNP 发给发送端；发送端（RP）收到 CNP 就降速，并把当前速率记为目标速率。没有反馈时，发送端靠计时器和字节计数器慢慢加回去，避免一停就停死。
+      - id: pfc-priorities
+        type: number
+        prompt: PFC 规范最多支持几个优先级类别？
+        answer: 8
+        unit: 个
+        explain: |
+          论文写的是 “PFC specifies upto eight priority classes”。8 个类别听起来不少，但它们是按端口/优先级生效的，不是按流；同一个类别里的流仍然会互相队头阻塞。
+
+  - id: kernel-bypass
+    chapter: 内核旁路与零拷贝（DPDK）
+    title: 把数据路径搬出内核
+    minutes: 10
+    warmup:
+      id: guess-recv-cost
+      type: choice
+      prompt: 应用调用一次 recv() 收一个包，CPU 的时间主要花在哪里？
+      options:
+        - text: 进内核、走协议栈、再把数据从内核缓冲区拷贝到应用缓冲区
+          correct: true
+        - text: 网卡对每个包做一次加密解密
+          why: 加密不是每个包的固定步骤；普通网卡收包主要是 DMA、中断、协议栈处理和拷贝
+        - text: 磁盘寻道，因为 recv 要先读文件
+          why: recv 处理的是网络数据，不访问磁盘
+      explain: |
+        一次 socket 收包要经过系统调用进入内核、网卡中断、内核协议栈解析，最后把数据从内核缓冲区拷贝到应用缓冲区，再返回用户态。RDMA 手册把 TCP/IP 的开销概括为“每个操作都要操作系统介入，线路两端都有缓冲区拷贝”；阿里云的 eRDMA 文档也列出拷贝开销大、协议栈厚、上下文切换频繁。
+    cards:
+      - title: 内核路径贵在哪里
+        body: |
+          一次 socket 收包大致经过：网卡收到帧，DMA 把数据写进内核缓冲区；网卡发中断通知 CPU；内核协议栈逐层解析；内核把数据拷贝到应用缓冲区；系统调用返回用户态。发送方向反过来，应用缓冲区先拷进内核，再交给网卡。
+
+          贵的不是某一次算术，而是这些固定开销：每次调用都要在用户态和内核态之间切换并保存上下文；每个包都可能触发中断；数据要在内核缓冲区和用户缓冲区之间搬一次：接收方向是内核缓冲区 → 应用缓冲区，发送方向是应用缓冲区 → 内核缓冲区。包越小、速率越高，这些固定开销占的比例越大。
+
+          **内核旁路（kernel bypass）** 的思路就是：别让每个包都走这条路径。
+      - title: DPDK 的三件事
+        body: |
+          **DPDK（Data Plane Development Kit）** 是用户态的数据平面开发套件。**EAL（Environment Abstraction Layer）** 把内存、CPU 核、定时器、中断等环境细节包起来。它用 `mmap` 在 hugetlbfs 里分配大页，给上层提供大块连续物理内存；每个执行单元绑定到一个逻辑核，作为用户态线程运行。
+
+          **PMD（Poll Mode Driver）** 不靠中断通知：应用在一个循环里不断问网卡有没有新包，有就处理。DPDK 文档说 PMD 被设计成不依赖异步中断；轮询省掉了中断和上下文切换，但空闲时也会占着 CPU。
+
+          **mbuf（报文缓冲区）** 是固定大小的包缓冲区，放在 **mempool** 里。`rte_mbuf` 头部目前只占两个 64 字节 cache line，数据区前面留了 headroom，方便在前面加协议头；用完还回 mempool，mempool 有 per-core 缓存来减少多核争用。
+      - title: 零拷贝省的是哪一段
+        body: |
+          传统路径里，数据至少要在内核缓冲区和用户缓冲区之间搬一次。RDMA 用内存注册把应用缓冲区直接交给网卡：网卡按地址翻译表和 r_key 读写这块内存，数据路径上不再经过内核缓冲区。对应用来说，这块内存看起来还是普通的虚拟地址。
+
+          但零拷贝不等于零成本。注册内存要锁页、写翻译表；建立连接、迁移 QP 状态、处理完成仍然要 CPU；大页要提前预留，轮询会占住核。省掉的是**每个包**的拷贝和内核往返，不是所有管理开销。
+
+          DPDK 和 RDMA 是两条不同的旁路：DPDK 把收发包留在用户态，应用自己跑协议栈；RDMA 把传输协议放进网卡，主机只 post 工作请求、poll 完成队列。
+    items:
+      - id: not-removed
+        type: choice
+        prompt: DPDK 的内核旁路没有省掉下面哪一项？
+        options:
+          - text: 应用仍然要自己解析协议、管理 mbuf 的生命周期
+            correct: true
+          - text: 每个包一次系统调用
+            why: DPDK 应用在用户态轮询收发，不需要每个包都进内核
+          - text: 每个包一次中断通知
+            why: PMD 用轮询代替中断，收包不靠中断通知
+          - text: 内核缓冲区到用户缓冲区的拷贝
+            why: DPDK 把包直接收进用户态可访问的 mbuf，不再经过内核缓冲区
+        explain: |
+          内核旁路只是把数据路径从内核搬走，协议解析、缓冲区分配和释放、连接状态管理仍然要有人做。DPDK 把这些工作交给应用：应用拿到的是原始 mbuf，以太网头、IP 头、TCP 头都要自己解析，用完还要把 mbuf 还回 mempool。
+      - id: dpdk-copy-count
+        type: number
+        prompt: 在 DPDK 的收包路径上，应用直接在 mbuf 里解析数据，不再把数据从内核缓冲区拷到用户缓冲区。这一步“内核缓冲区 → 用户缓冲区”的拷贝发生几次？
+        answer: 0
+        unit: 次
+        hint: 数据从一开始就放在用户态可访问的 mbuf 里，内核缓冲区没有参与。
+        explain: |
+          DPDK 的 mbuf 由应用在用户态从 mempool 分配，网卡驱动把收到的包放进去，应用直接拿到 mbuf 指针。这条路径上没有“内核缓冲区 → 用户缓冲区”的拷贝，所以是 0 次。注意这不等于所有拷贝都消失了：应用如果要把数据搬进自己的结构，仍然要自己付这个成本。
+      - id: dpdk-rx-order
+        type: order
+        prompt: 把 DPDK 应用收一个包的处理顺序排好。
+        steps:
+          - "启动时在 mempool 里预分配一批 mbuf"
+          - "网卡把收到的包写进一个空闲 mbuf"
+          - "应用循环调用 PMD 的收包函数，主动轮询队列"
+          - "应用拿到 mbuf 指针，在用户态解析并转发"
+          - "应用把用完的 mbuf 还给 mempool"
+        explain: |
+          DPDK 的关键是“预分配 + 轮询 + 归还”。缓冲区在启动时就准备好，收包时不需要向内核申请内存；应用主动轮询，拿到的是已经在 mbuf 里的数据；处理完把 mbuf 还回池子，下一轮继续用同一批内存。这样每个包都不需要系统调用。
+      - id: hugepage-why
+        type: choice
+        prompt: DPDK 为什么用大页（hugepage）来分配包缓冲区？
+        options:
+          - text: 大页覆盖的地址范围大，页表项和 TLB 压力更小，也更容易拿到大块连续物理内存给网卡 DMA
+            correct: true
+          - text: 大页能让 CPU 的 L1 cache 变大
+            why: 大页改变的是内存页的大小和页表覆盖范围，不会让 cache 容量变大
+          - text: 大页把页大小改成 4 KB，减少碎片
+            why: 大页是比 4 KB 更大的页，方向正好相反
+          - text: 用了大页就不需要注册内存
+            why: 大页帮助分配连续内存，但 RDMA 仍然要注册内存、锁页并生成 r_key
+        explain: |
+          DPDK 文档说 EAL 用 `mmap` 在 hugetlbfs 里分配内存，并用大页来分配大块连续物理内存。大页让一个页表项覆盖更多地址，减少页表项数量和 TLB 未命中；连续物理内存也方便网卡做 DMA。它不是让 cache 变大，也不代替内存注册。
+
+  - id: smartnic
+    chapter: SmartNIC 卸载
+    title: 把传输层放进网卡
+    minutes: 9
+    warmup:
+      id: guess-offload
+      type: choice
+      prompt: 主机 CPU 已经被网络协议栈占满了，除了换更快的 CPU，还能把协议处理放到哪里？
+      options:
+        - text: 网卡上，让网卡上的硬件或可编程引擎直接处理
+          correct: true
+        - text: 内存里，让 DRAM 自己解析协议
+          why: DRAM 只存数据，不执行协议逻辑；协议处理总要在 CPU、网卡或别的处理器上跑
+        - text: 磁盘上，先把包写进磁盘再慢慢处理
+          why: 写磁盘会增加延迟和 IO，不会减少每包的处理工作
+      explain: |
+        把网络功能从主机 CPU 挪到网卡，就是 SmartNIC 卸载的思路。RDMA 网卡已经把整个 RDMA 协议放进网卡；Falcon 更进一步，把可靠传输、重传、拥塞控制都做进硬件，让主机只负责提交请求和处理完成。
+    cards:
+      - title: SmartNIC 卸载的是什么
+        body: |
+          KTH 的课程内容把 “Offloading to Smart Network Interface Cards (SmartNIC)” 单列为一个主题，和 DPDK、RDMA 放在同一门课里；它把 DPDK 这类内核旁路技术放在“超过 100 Gbps 的网络”背景下。这里的共同问题是：主机 CPU 不该为每个包做同样的固定工作。
+
+          这类网卡通常被称为 **SmartNIC**：网卡上带有可编程的处理能力，能把一部分网络功能从主机 CPU 挪走。RDMA 网卡就是一个具体例子：DCQCN 论文说 RoCE 的网络协议完全在网卡上实现，绕过主机网络栈；IB 的协议栈也有很大一部分在网卡上。
+
+          Falcon 把可靠传输整套做进硬件，并让 RDMA、NVMe 存储协议和自定义上层协议（ULP）共用同一套传输，这说明 SmartNIC 不只是“更快的网卡”，而是网卡上多了一台小计算机。
+      - title: Falcon 说明了难处
+        body: |
+          以前的硬件传输（例如 RoCE）性能好、主机 CPU 占用低，但更适合专用部署：后端网络，或者带 PFC 的以太网。RoCE 假设丢包很少，最初只用 Go-Back-N 恢复，遇到丢包和乱序时性能不好。
+
+          Falcon 的目标是让硬件传输在**通用以太网**上也能用：网络会丢包，交换机不提供 PFC 或自适应路由之类的特殊功能。它的设计包括基于延迟的拥塞控制加多路径负载均衡、分层的请求-响应事务接口、硬件重传和错误处理，以及一个可编程引擎。
+
+          这些设计说明，卸载不是把主机代码原样烧进网卡：协议状态机、缓冲区管理、重传和拥塞控制都要重新设计，才能在丢包的网络里保持性能。
+      - title: 卸载的边界
+        body: |
+          适合卸载的是数据路径上重复、固定、每个包都要做的工作：传输层的 ACK、重传、拥塞控制，或者把请求映射成硬件事务。Falcon 把这些放在网卡上，主机只提交请求、处理完成。
+
+          控制路径通常留在软件里：建立连接、配置策略、管理内存和队列。这些操作不常发生，但需要灵活和可观测；放进硬件后，改一次就要重新流片或升级固件。Falcon 因此强调可编程引擎和运营上的可维护性，Snap 则干脆把网络功能做成用户态模块，靠地址空间隔离和用户态调度获得灵活性。
+
+          两条路的共同目标都是让主机 CPU 少做每包工作。选哪条，取决于网络是否可控、工作负载是否固定，以及你能不能接受硬件更新的周期。
+    items:
+      - id: falcon-vs-roce
+        type: choice
+        prompt: 按 Falcon 论文的说法，Falcon 和 RoCE 的关键区别是什么？
+        options:
+          - text: Falcon 面向会丢包、没有 PFC 和特殊交换机的通用以太网；RoCE 假设无损，通常配 PFC 或专用网络
+            correct: true
+          - text: Falcon 只支持 NVLink，RoCE 只支持 InfiniBand
+            why: Falcon 支持 RDMA、NVMe 等 ULP，跑在以太网网卡上；RoCE 是 RDMA over Ethernet，不是 InfiniBand
+          - text: Falcon 把协议放在主机内核，RoCE 把协议放在网卡
+            why: 两者都是把传输协议放到网卡硬件里；区别在 Falcon 针对有丢包的通用以太网重新设计了传输
+          - text: 两者都必须依赖 PFC 才能工作
+            why: Falcon 明确说要支持没有 PFC、没有特殊交换机支持的通用以太网；依赖 PFC 的是 RoCE 的常见部署方式
+        explain: |
+          Falcon 论文说 RoCE 来自 InfiniBand 的 RDMA，假设丢包很少，通常配 PFC 或专用交换机；没有 PFC 时往往要部署在全预配置（fully-provisioned）、专用后端网络里。Falcon 的设计目标就是在这种限制之外，在有丢包的普通以太网上提供硬件传输。
+      - id: falcon-design
+        type: match
+        prompt: 把 Falcon 的设计和它要解决的问题连起来。
+        pairs:
+          - ["基于延迟的拥塞控制 + 多路径", "在会丢包、有多条路径的通用以太网上保持可预测的完成时间"]
+          - ["硬件重传和错误处理", "不占主机 CPU，并能随连接数扩展"]
+          - ["可编程引擎", "不用换硬件就能修性能问题、演进传输功能"]
+          - ["简单的请求-响应事务接口", "让 RDMA、NVMe 和自定义 ULP 共用同一套硬件传输"]
+        explain: |
+          Falcon 的目标是“硬件加速的性能 + 软件传输的通用性”。延迟驱动的拥塞控制适应多路径和丢包；重传放硬件里避免主机参与；可编程引擎保留修改空间；请求-响应接口把不同上层协议的差异挡在传输层之外。
+      - id: offload-leftover
+        type: choice
+        prompt: 把传输层卸载到网卡之后，主机软件还需要做下面哪件事？
+        options:
+          - text: 建立连接和队列、准备并注册内存、处理完成通知
+            correct: true
+          - text: 为每个包计算 TCP 校验和
+            why: 这类每包固定工作正是卸载的对象；网卡硬件可以校验和、封装、重传
+          - text: 为每条流维护重传计时器
+            why: Falcon 把重传和错误处理放在硬件里，主机不需要为每条流跑计时器
+          - text: 每个包都进一次内核收包
+            why: 硬件传输绕过主机网络栈，数据直接进应用注册的内存；完成通过队列通知
+        explain: |
+          卸载移走的是数据路径上的每包工作，不是整个连接管理。主机仍要创建 QP 或连接、注册内存、交换地址和密钥、处理完成和错误。控制路径不常发生，但少了它，网卡不知道把数据放到哪里，应用也不知道操作什么时候完成。
+      - id: kth-100g
+        type: number
+        prompt: KTH FIK3221 的课程内容把 DPDK 这类内核旁路技术描述为面向超过多少 Gbps 的网络？
+        answer: 100
+        unit: Gbps
+        explain: |
+          课程内容原文是 “Kernel bypass technologies (e.g. DPDK) for networks with over 100 gigabits per second”。速率越高，每包的内核开销占的比例越大，所以内核旁路和网卡卸载在这个场景里更有意义。
+
+  - id: gpu-collectives
+    chapter: GPU 互连与集合通信
+    title: 让很多块 GPU 一起算
+    minutes: 10
+    warmup:
+      id: guess-allreduce
+      type: number
+      prompt: 8 块 GPU 做 AllReduce。最直接的做法是每块 GPU 把自己的数据分别发给其他 7 块。这样每块 GPU 要发几份数据？
+      answer: 7
+      unit: 份
+      explain: |
+        直接全互发的话，每块 GPU 要向其他 7 块各发一份，总共 $8 \times 7 = 56$ 次发送。这个做法简单，但每块 GPU 的发送量和 GPU 数一起增长。Ring AllReduce 换了个办法：数据分成小块，沿环逐跳转发并顺便归约，每块 GPU 只需要发 $2(k-1)$ 个小块。
+    cards:
+      - title: 节点内与节点间是两层网络
+        body: |
+          GPU 集群通常有两条互连路径。节点内，GPU 之间用 **NVLink** 直接相连；**NVLink Switch** 把多条 NVLink 连起来，在一个机架内提供 all-to-all 连接，还带有 SHARP 引擎做网络内归约。官方页把 NVLink 描述为 GPU 之间的 scale-up 互连，把 NVLink Switch 描述为把连接扩展到整个机架。
+
+          节点间走普通网络。Meta 的 AI 网络论文说，每台训练节点装 4–8 块 GPU，节点内用 NVLink 这类高速互连，节点间用网络；他们选择了 RoCE 作为节点间传输。
+
+          所以一次 AllReduce 往往同时穿过两层：节点内走 NVLink，节点间走 RDMA 网络。集合通信算法要同时考虑这两层链路的带宽和延迟。
+      - title: Ring AllReduce 怎么走
+        body: |
+          **AllReduce** 的目标是：每块 GPU 最后都拿到所有 GPU 数据的逐元素归约结果，比如所有梯度的和。
+
+          NCCL 的 **Ring AllReduce** 把每块 GPU 的数据分成 $k$ 份（$k$ 是 GPU 数），分两个阶段走环。**ReduceScatter 阶段**：每块 GPU 把自己的一份发给下一个，收到后和本地对应份归约，再转发；$k-1$ 次发送后，每一份都有一个 GPU 持有它的完整归约结果。**AllGather 阶段**：这些已归约的份继续沿环传播，每块 GPU 收到就复制到输出缓冲区并转发；再 $k-1$ 次发送后，所有 GPU 都拿全了。
+
+          整个过程是 $2k-1$ 步，其中最后一步只接收、不发送，所以每块 GPU 一共发送 $2(k-1)$ 份，每份 $S/k$ 字节，总量是 $\frac{2(k-1)}{k}S$。$k$ 很大时这个量接近 $2S$，几乎与 GPU 数无关。
+      - title: 算法要匹配拓扑和消息大小
+        body: |
+          Ring 不是唯一选择，也不是所有时候都最好。TACCL 论文指出，常用的 Ring AllReduce 对**小输入**并不高效，因为它的延迟高；对大消息，它的带宽利用率才划算。NCCL 里还有 tree 算法，以及 Simple、LL、LL128 等不同协议：Simple 适合大消息，LL 用轻量标志同步来降低小消息的延迟。
+
+          TACCL 的办法是让算法设计者给出**通信草图（communication sketch）**，把关键约束告诉求解器，再由求解器针对具体拓扑合成集合通信算法。论文报告，在 DGX-2 和 NDv2 两种拓扑上，它合成的算法优于 NCCL。
+
+          NCCL 还会用多个 channel 并行搬运不同数据，让多条链路同时忙起来。集合通信的性能不只取决于算法，还取决于拓扑、协议、消息大小和并行度。
+    items:
+      - id: ring-bytes
+        type: number
+        prompt: 8 块 GPU 做 Ring AllReduce，每块 GPU 的数据量是 8 MB。按 Ring AllReduce 的发送方式，每块 GPU 总共要发送多少 MB？
+        answer: 14
+        unit: MB
+        hint: 数据分成 8 份，每份 1 MB；ReduceScatter 和 AllGather 各发送 7 份。
+        explain: |
+          每份是 $8/8 = 1$ MB。ReduceScatter 阶段每块 GPU 发送 $k-1 = 7$ 份，AllGather 阶段再发送 7 份，共 14 份，也就是 14 MB。公式是 $\frac{2(k-1)}{k}S = \frac{2 \times 7}{8} \times 8 = 14$ MB。
+      - id: ring-why-2s
+        type: choice
+        prompt: 为什么 Ring AllReduce 里每块 GPU 的发送量大约是 $2S$，几乎不随 GPU 数增长？
+        options:
+          - text: 每块 GPU 在 ReduceScatter 和 AllGather 阶段各把 $k-1$ 份、每份 $S/k$ 的数据沿环转发一次，合计 $\frac{2(k-1)}{k}S$，$k$ 大时接近 $2S$
+            correct: true
+          - text: 每块 GPU 都要把完整的 $S$ 发给其他每一块 GPU，所以是 $(k-1)S$
+            why: 那是直接全互发的算法，发送量随 GPU 数线性增长；Ring 让数据分块沿环转发，每块 GPU 只转发每份一次
+          - text: 只有 0 号 GPU 负责发送，其他 GPU 只接收
+            why: Ring 里每块 GPU 都既接收又发送，数据沿环逐跳前进，不是集中到一个节点再广播
+          - text: Ring 先把所有数据集中到一台 GPU 归约，再广播结果，所以是 $kS$
+            why: 集中式归约再广播会让中心 GPU 成为瓶颈；Ring 没有中心节点，归约是分布式的
+        explain: |
+          数据切成 $k$ 份后，每一份只需要沿环走一圈就能被所有 GPU 看到。ReduceScatter 走一圈完成归约，AllGather 再走一圈完成分发；每块 GPU 在每一圈里发送 $k-1$ 份，所以总量是 $2(k-1)/k \cdot S$。份数随 $k$ 增加，但每份变小，两者相消，总量稳定在 $2S$ 附近。
+      - id: collectives-match
+        type: match
+        prompt: 把集合通信操作和它的结果连起来。
+        pairs:
+          - ["AllReduce", "所有 GPU 都得到逐元素归约后的完整结果"]
+          - ["AllGather", "每块 GPU 收集到所有 GPU 贡献的数据块"]
+          - ["ReduceScatter", "先归约，再把结果的不同片段分给不同 GPU"]
+          - ["NVLink Switch", "机架内把多条 NVLink 连成 all-to-all，并可做网络内归约"]
+        explain: |
+          AllReduce 是“归约 + 广播”，每个 GPU 都要完整结果；AllGather 不改变数据，只把各家的块拼齐；ReduceScatter 只把归约结果的一块留给每个 GPU；NVLink Switch 是硬件互连，负责节点内/机架内的 all-to-all，并可借助 SHARP 在网内做归约。
+      - id: algorithm-choice
+        type: choice
+        prompt: 关于集合通信算法的选择，下面哪种说法符合论文的描述？
+        options:
+          - text: 小消息更在意延迟，Ring 对小 AllReduce 不高效；NCCL 提供 tree/ring 和不同协议，TACCL 则按拓扑合成算法
+            correct: true
+          - text: Ring 在所有消息大小上都是最优算法
+            why: TACCL 论文明确说 Ring AllReduce 对小输入不高效，因为延迟高；不同消息大小要选不同算法
+          - text: AllReduce 只能用 Ring，不能用 tree
+            why: NCCL 同时有 ring 和 tree 拓扑；不同算法适合不同消息大小和拓扑
+          - text: 集合通信的性能只取决于 GPU 算力，与网络拓扑无关
+            why: 集合通信就是把数据沿链路搬动，链路带宽、延迟和拓扑直接决定性能
+        explain: |
+          集合通信要在延迟和带宽之间取舍。小消息传得快更重要，Ring 要绕很多跳，延迟高；大消息更在意带宽，Ring 能让每条链路都忙起来。NCCL 用多种协议和算法应对不同情况，TACCL 则把拓扑信息交给求解器，针对具体硬件合成算法。
+
+boss:
+  items:
+    - id: boss-fattree-hosts
+      type: number
+      prompt: 用 48 端口交换机搭胖树，最多能接多少台主机？
+      answer: 27648
+      unit: 台
+      hint: 主机数等于 pod 数 × 每个 pod 的边缘交换机数 × 每台边缘交换机接的主机数。
+      explain: |
+        $k=48$ 时有 48 个 pod，每个 pod 有 $k/2 = 24$ 台边缘交换机，每台边缘交换机接 $k/2 = 24$ 台主机，所以主机数是 $48 \times 24 \times 24 = 27648$，也就是 $k^3/4$。整个网络还有 576 台核心交换机和每个 pod 的 24 台汇聚交换机，总交换机数是 $48 \times 48 + 576 = 2880$ 台。
+    - id: boss-rdma-semantics
+      type: choice
+      prompt: 下面哪句话正确描述了 RDMA 的单边操作？
+      options:
+        - text: RDMA WRITE 由发起方给出对端虚拟地址和 r_key，网卡直接写入对端注册内存，对端 CPU 不参与数据搬运
+          correct: true
+        - text: 普通的 RDMA WRITE 也需要接收端先 post 接收缓冲区，否则会报接收未就绪（RNR）
+          why: 普通 RDMA WRITE 直接访问对端注册内存，不需要接收缓冲区；只有带 immediate 的 WRITE 才会在接收端产生完成通知、消耗接收请求
+        - text: RDMA READ 会让对端应用收到完成通知，然后由应用把数据发回
+          why: RDMA READ 是单边操作，对端应用不参与也不被通知；对端网卡按 r_key 直接读内存并返回
+        - text: UD 模式保证消息按序到达，可以替代 RC
+          why: UD 不保证顺序和送达，接收方也可能丢包；RC 才提供可靠、按序的语义
+      explain: |
+        单边操作的关键是“发起方指定对端内存地址 + r_key，网卡直接搬数据”。SEND/RECV 是双边：接收方必须先 post 缓冲区；普通 WRITE/READ 是单边，带 immediate 的 WRITE 仍算单边，但会消耗一个接收请求来通知对端。UD 像 UDP，不保证顺序和送达；RC 像 TCP，可靠且按序。
+    - id: boss-ring-bytes
+      type: number
+      prompt: 4 块 GPU 做 Ring AllReduce，每块 GPU 的数据量是 4 MB。每块 GPU 总共要发送多少 MB？
+      answer: 6
+      unit: MB
+      hint: 数据分成 4 份，每份 1 MB；ReduceScatter 和 AllGather 各发送 3 份。
+      explain: |
+        每份 $4/4 = 1$ MB。ReduceScatter 阶段发送 $k-1 = 3$ 份，AllGather 阶段再发送 3 份，共 6 份，也就是 6 MB。公式 $\frac{2(k-1)}{k}S = \frac{2 \times 3}{4} \times 4 = 6$ MB。

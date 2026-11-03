@@ -1,0 +1,797 @@
+skill: M.1.4.1
+version: 1
+authors: [pi-prob]
+brief:
+  why: |
+    一个函数可以有好多输入：图片的每个像素、模型的每个参数、一张表的每一列。想知道“把某一个输入调一点点，输出会变多少”，这就是多元微分学要回答的问题。
+    偏导数、全微分、方向导数、梯度、雅可比矩阵、海森矩阵这几件工具连起来，就是梯度下降、反向传播和二阶优化的全部数学基础。
+    这一关只做两件事：把每个概念用具体函数算一遍，再把它翻译成一句能用的话（哪个方向上升最快、学习率多大才不震荡、这个临界点是极大还是极小）。
+  outcomes:
+    - 求偏导数与混合偏导，并说出偏导数在几何上的意思
+    - 写出全微分、用切平面做线性近似，并分清“偏导存在”“连续”“可微”三者的关系
+    - 用梯度和单位方向向量算方向导数，指出最速上升与最速下降的方向
+    - 用隐函数求导法从方程里算出 $\partial z/\partial x$
+    - 在多元函数上用梯度下降，说清负梯度方向为什么下降最快、学习率太大会怎样
+    - 写出向量映射的雅可比矩阵，用矩阵形式的链式法则求复合函数的偏导
+    - 写出海森矩阵，用二阶判别式判断临界点是极大、极小还是鞍点
+lessons:
+  - id: partial-derivatives
+    chapter: 偏导数
+    title: 一次只让一个输入动
+    minutes: 8
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        $f(x,y)=x^{2}y$。把 $y$ 当成常数，对 $x$ 求导，结果是什么？
+      options:
+        - { text: '$2xy$', correct: true }
+        - { text: '$2x$', why: '这等于偷偷把 $y$ 当成了 1；$y$ 是常数，但它要原样乘在前面' }
+        - { text: '$2xy+x^{2}$', why: '多出来的 $x^{2}$ 是 $x^{2}y$ 对 $y$ 求导的结果，可这次 $y$ 是常数' }
+      explain: |
+        把 $y$ 看成常数 $c$，函数就是 $cx^{2}$，它的导数是 $2cx$；把 $c$ 换回 $y$ 得 $2xy$。
+        求偏导数的全部操作就是：选定一个变量，把其他变量当作固定的数，用一元求导法则。
+    cards:
+      - title: 固定其他变量，只算一个方向的变化
+        body: |
+          对 $f(x,y)=x^{2}y+3y$ 求**偏导数（partial derivative）**：对 $x$ 求导时把 $y$ 当常数。$x^{2}y$ 的导数是 $y\cdot(x^{2})'=2xy$（$y$ 只是乘在前面的系数），而 $3y$ 不含 $x$，导数为 0，所以
+          $$f_x=\frac{\partial f}{\partial x}=2xy.$$
+          对 $y$ 求导时把 $x$ 当常数：
+          $$f_y=\frac{\partial f}{\partial y}=x^{2}+3.$$
+          在 $(x,y)=(2,1)$ 处，$f_x=2\cdot2\cdot1=4$，$f_y=2^{2}+3=7$。
+
+          几何上，$f_x(a,b)$ 是曲面被平面 $y=b$ 切出的那条曲线在 $(a,b)$ 处的切线斜率。这里 $y=1$ 时 $f(x,1)=x^{2}+3$，它在 $x=2$ 处的斜率正是 4。拖动下面的 $h$ 看这条一维曲线的割线。
+        sim:
+          name: plot
+          params: {mode: secant, f: "x^2+3", a: 2, hMax: 1}
+      - title: 高阶偏导与混合偏导
+        body: |
+          偏导数还是 $x,y$ 的函数，可以再求一次导。记号里下标从左往右读，**先求的那个写在前面**：
+          $$f_{xx}=\frac{\partial^{2}f}{\partial x^{2}},\qquad f_{xy}=\frac{\partial}{\partial y}\left(\frac{\partial f}{\partial x}\right).$$
+          所以 $f_{xy}$ 是“先对 $x$ 求导，再把结果对 $y$ 求导”。
+
+          例：$f(x,y)=x^{2}y+e^{xy}$。
+          $$f_x=2xy+y\,e^{xy},\qquad f_y=x^{2}+x\,e^{xy},$$
+          $$f_{xy}=\frac{\partial}{\partial y}\left(2xy+y\,e^{xy}\right)=2x+e^{xy}+xy\,e^{xy}.$$
+          另一个顺序 $f_{yx}$ 得到同样的结果。这不是巧合：只要二阶偏导数连续，就有 $f_{xy}=f_{yx}$（**混合偏导相等**，Clairaut 定理）。所以把所有二阶偏导排成一张表时，那张表总是对称的。
+    items:
+      - id: fx-at-point
+        type: number
+        prompt: |
+          $f(x,y)=x^{2}y+3y$。$f_x(2,1)$ 等于多少？
+        answer: 4
+        tolerance: 0.001
+        hint: 先把 $y$ 当常数写出 $f_x=2xy$，再代入 $(2,1)$。
+        explain: |
+          $f_x=2xy$，代入 $x=2$、$y=1$ 得 $f_x(2,1)=4$。
+          如果对 $3y$ 也求了导，就会多出一项；在偏导数里，所有只含 $y$ 的项对 $x$ 求导都是 0。
+      - id: sim-slice
+        type: sim
+        sim: plot
+        prompt: |
+          曲面 $f(x,y)=x^{2}y+3y$ 被平面 $y=1$ 切出一条曲线 $f(x,1)=x^{2}+3$。
+          拖动 $h$，让这条曲线在 $x=2$ 处的割线斜率进入 $4\pm0.05$。这个数就是 $f_x(2,1)$。
+        params: {mode: secant, f: "x^2+3", a: 2, hMax: 1}
+        goal: {slope: {target: 4, tol: 0.05}}
+        solution: {h: 0.01}
+        hint: $h=0.1$ 时斜率是 $4.1$，再把 $h$ 调小一个数量级。
+        explain: |
+          $h=0.1$ 时斜率 $\frac{2.1^{2}+3-(2^{2}+3)}{0.1}=\frac{0.41}{0.1}=4.1$；$h=0.01$ 时是 $4.01$。
+          $h\to0$ 时斜率趋于 4，正是 $f_x(2,1)=2xy\big|_{(2,1)}=4$。
+      - id: mixed-partial
+        type: number
+        prompt: |
+          $f(x,y)=x^{2}y+e^{xy}$。$f_{xy}(1,1)$ 等于多少？（保留三位小数）
+        answer: 7.437
+        tolerance: 0.01
+        hint: 先求 $f_x=2xy+y\,e^{xy}$，再对 $y$ 求导；乘积项要用乘积法则。
+        explain: |
+          $f_{xy}=2x+e^{xy}+xy\,e^{xy}$。代入 $(1,1)$ 得 $2+e+e=2+2e\approx2+5.4366=7.4366$，即 $7.437$。
+          只写 $2x+e^{xy}$ 就漏掉了乘积法则里 $y$ 求导的那一项。
+      - id: partial-meaning
+        type: choice
+        prompt: |
+          $f_x(a,b)$ 的几何意义是什么？
+        hint: 固定 $y=b$ 时，曲面被这个平面切出来的是什么曲线？偏导数就是它的斜率。
+        options:
+          - text: 用平面 $y=b$ 切出来的曲线在 $(a,b)$ 处的切线斜率
+            correct: true
+          - text: 曲面在 $(a,b)$ 处的最大坡度
+            why: 最大坡度要把所有方向一起比较，那是梯度的长度；偏导数只沿坐标轴方向
+          - text: 曲面在 $(a,b)$ 处的曲率
+            why: 曲率由二阶导数决定，偏导数是斜率
+        explain: |
+          偏导数只沿一个坐标方向看变化：$f_x$ 对应 $x$ 方向的切线斜率，$f_y$ 对应 $y$ 方向的切线斜率。
+          它没有告诉我们斜着走时变化多快，那要用方向导数（沿单位方向点乘梯度）来算。
+
+  - id: total-differential
+    chapter: 全微分
+    title: 用一个平面代替曲面
+    minutes: 8
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        不用计算器：$(1.02)^{2}+(1.97)^{2}$ 比 5 大还是小？
+      options:
+        - { text: 略小一些, correct: true }
+        - { text: 略大一些, why: '$x$ 增加了 0.02，让 $x^{2}$ 增加约 0.04；但 $y$ 减少了 0.03，让 $y^{2}$ 减少约 0.12，净效果是变小' }
+        - { text: 正好等于 5, why: '两个小变化一正一负，不会刚好抵消' }
+      explain: |
+        把 $x$ 从 1 加到 1.02，$x^{2}$ 约增加 $2\times1\times0.02=0.04$；把 $y$ 从 2 减到 1.97，$y^{2}$ 约减少 $2\times2\times0.03=0.12$。
+        净变化约 $-0.08$，所以结果比 5 小，约为 4.92。真实值 $1.0404+3.8809=4.9213$。
+    cards:
+      - title: 全微分：两个方向的变化加起来
+        body: |
+          一元时 $dy=f'(x)\,dx$。多元时每个输入都动一点，把各自的贡献加起来：
+          $$dz=\frac{\partial z}{\partial x}\,dx+\frac{\partial z}{\partial y}\,dy.$$
+          这就是**全微分（total differential）**，它对应的几何对象是曲面在这一点处的**切平面（tangent plane）**：
+          $$z\approx f(a,b)+f_x(a,b)(x-a)+f_y(a,b)(y-b).$$
+
+          例：$z=x^{2}+y^{2}$ 在 $(1,2)$ 处，$f_x=2x$、$f_y=2y$，所以 $dz=2\,dx+4\,dy$。
+          取 $dx=0.02$、$dy=-0.03$：$dz=2(0.02)+4(-0.03)=-0.08$，于是 $z\approx5-0.08=4.92$。
+          精确值 $1.02^{2}+1.97^{2}=4.9213$，误差约 $0.0013$。
+      - title: 偏导存在、连续、可微：多元里三者不一样
+        body: |
+          一元时“可导就能推出连续”。多元时这句话不成立：
+          $$f(x,y)=\begin{cases}\dfrac{xy}{x^{2}+y^{2}},&(x,y)\ne(0,0)\\ 0,&(x,y)=(0,0)\end{cases}$$
+          在原点，沿 $x$ 轴（$y=0$）函数恒为 0，沿 $y$ 轴也一样，所以 $f_x(0,0)=f_y(0,0)=0$，偏导数存在。但沿 $y=x$ 走，$f=\frac{x^{2}}{2x^{2}}=\frac12$，不趋于 0，函数在原点不连续。
+
+          **可微（differentiable）**的定义是：存在线性近似，使误差比 $\sqrt{dx^{2}+dy^{2}}$ 更高阶，
+          $$f(a+dx,b+dy)=f(a,b)+f_x\,dx+f_y\,dy+o\left(\sqrt{dx^{2}+dy^{2}}\right).$$
+          常用的充分条件是“偏导数连续”，它保证可微；可微又保证连续。反过来都不行，方向不能乱推。
+    items:
+      - id: dz-value
+        type: number
+        prompt: |
+          $z=x^{2}+y^{2}$ 在点 $(1,2)$ 处，取 $dx=0.02$、$dy=-0.03$。全微分 $dz$ 等于多少？
+        answer: -0.08
+        tolerance: 0.001
+        hint: $dz=2x\,dx+2y\,dy$，代入 $x=1$、$y=2$。
+        explain: |
+          $dz=2(1)(0.02)+2(2)(-0.03)=0.04-0.12=-0.08$。
+          两项符号相反、大小不同，所以要先各算各的贡献再相加，不能只看变化量的绝对值。
+      - id: linear-approx
+        type: number
+        prompt: |
+          以 $(1,2)$ 为基点，用 $z=x^{2}+y^{2}$ 的全微分近似 $1.02^{2}+1.97^{2}$，结果是多少？
+        answer: 4.92
+        tolerance: 0.001
+        hint: 从 $f(1,2)=5$ 出发，加上 $dz=-0.08$。
+        explain: |
+          $f(1,2)=1+4=5$，加上 $dz=-0.08$ 得 $4.92$。精确值是 $1.0404+3.8809=4.9213$。
+          误差 $0.0013$ 来自被丢掉的二阶项：$(0.02)^{2}+(-0.03)^{2}=0.0013$，正好对上。
+      - id: approx-error
+        type: number
+        review: false
+        prompt: |
+          上题里近似值与精确值相差多少？（填正数，保留四位小数）
+        answer: 0.0013
+        tolerance: 0.0002
+        hint: 精确值是 $1.0404+3.8809$，再减去 4.92。
+        explain: |
+          $4.9213-4.92=0.0013$。对 $x^{2}+y^{2}$ 来说，误差恰好是 $dx^{2}+dy^{2}=0.0004+0.0009=0.0013$，
+          它比 $dx$、$dy$ 本身小一个数量级——这就是“误差比 $\sqrt{dx^{2}+dy^{2}}$ 更高阶”的意思。
+      - id: partial-vs-continuous
+        type: choice
+        prompt: |
+          函数 $f(x,y)=\frac{xy}{x^{2}+y^{2}}$（原点处补定义为 0）在原点的情况说明什么？
+        hint: 沿 $x$ 轴、$y$ 轴走时函数值是多少？沿 $y=x$ 走又趋于多少？
+        options:
+          - { text: 偏导数在原点都存在，但函数在原点不连续, correct: true }
+          - { text: 函数在原点连续，但偏导数不存在, why: '沿两条坐标轴函数恒为 0，偏导数是存在的；不连续表现在沿直线 $y=x$ 趋于 $\frac12$' }
+          - { text: 偏导数存在就一定有全微分, why: '偏导存在只是“沿两个坐标轴”的信息；可微要求所有方向的线性近似都成立' }
+        explain: |
+          沿两条坐标轴走，函数值是 0，所以 $f_x(0,0)=f_y(0,0)=0$；可沿 $y=x$ 走极限是 $\frac12$，所以不连续，也就不可微。
+          这说明“偏导存在”是很弱的信息，必须所有方向一起看，才能谈线性近似。
+
+  - id: directional-derivative
+    chapter: 方向导数
+    title: 斜着走，变化有多快
+    minutes: 8
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        在原点，$f(x,y)=x+y$。沿哪个方向函数值增加得最快？
+      options:
+        - { text: 沿 $x$ 轴正方向, why: '沿 $x$ 轴每走单位长度只增加 1，斜着走还能同时吃到 $y$ 的贡献' }
+        - text: 沿对角线方向（$u=(1,1)/\sqrt{2}$ 那一侧）
+          correct: true
+        - { text: 所有方向一样快, why: '在斜方向上，两个变量同时增加，单位长度带来的增量更大' }
+      explain: |
+        沿单位方向 $u=(u_1,u_2)$ 走单位长度，函数变化是 $u_1+u_2$。它在 $u=\left(\frac{1}{\sqrt2},\frac{1}{\sqrt2}\right)$ 时最大，等于 $\sqrt2\approx1.414$，
+        比沿 $x$ 轴的 1 大。这个“最陡方向”就是梯度方向，最大变化率是梯度的长度。
+    cards:
+      - title: 方向导数 = 梯度点乘单位方向
+        body: |
+          从一点出发沿**单位向量（unit vector）** $u$ 走，函数的变化率叫**方向导数（directional derivative）**：
+          $$D_{u}f=\nabla f\cdot u=f_x u_1+f_y u_2+f_z u_3,\qquad |u|=1.$$
+          例：$f(x,y)=x^{2}y+3y$，则 $\nabla f=(2xy,\;x^{2}+3)$，在 $(2,1)$ 处是 $(4,7)$。
+          取 $u=\left(\frac35,\frac45\right)$（有 $\frac{9}{25}+\frac{16}{25}=1$，是单位向量），
+          $$D_uf=4\cdot\frac35+7\cdot\frac45=\frac{12}{5}+\frac{28}{5}=8.$$
+
+          两个特例：$u=(1,0)$ 时 $D_uf=f_x=4$，$u=(0,1)$ 时 $D_uf=f_y=7$。所以偏导数就是沿坐标轴方向的方向导数。
+      - title: 点积的几何：谁的方向最陡
+        body: |
+          点积可以写成 $D_uf=|\nabla f|\,\cos\theta$，其中 $\theta$ 是 $u$ 与 $\nabla f$ 的夹角。固定住 $|\nabla f|$，让 $\theta$ 变：
+
+          - $\theta=0$（沿 $\nabla f$ 方向）：$D_uf=|\nabla f|$，这是**最大变化率**，即最速上升方向；
+          - $\theta=\pi$（沿 $-\nabla f$ 方向）：$D_uf=-|\nabla f|$，最速下降；
+          - $\theta=\frac{\pi}{2}$（与 $\nabla f$ 垂直）：$D_uf=0$，函数值一阶不变，这正是沿着**等高线（level curve）**走的方向。
+
+          例：$f(x,y,z)=x^{2}y+yz^{3}$，$\nabla f=(2xy,\;x^{2}+z^{3},\;3yz^{2})$，在 $(1,2,1)$ 处为 $(4,2,6)$，
+          $|\nabla f|=\sqrt{16+4+36}=\sqrt{56}=2\sqrt{14}\approx7.48$。沿 $\frac{(4,2,6)}{\sqrt{56}}$ 上升最快，最大变化率约 7.48。
+    items:
+      - id: directional-value
+        type: number
+        prompt: |
+          $f(x,y)=x^{2}y+3y$，$\nabla f(2,1)=(4,7)$。沿 $u=\left(\frac35,\frac45\right)$ 的方向导数是多少？
+        answer: 8
+        tolerance: 0.001
+        hint: 算点积 $4\cdot\frac35+7\cdot\frac45$。
+        explain: |
+          $4\times0.6+7\times0.8=2.4+5.6=8$。这个值比两个偏导数 4 和 7 都大，因为斜方向同时利用了 $x$ 和 $y$ 两个方向的增长。
+          最大值是 $|\nabla f|=\sqrt{16+49}=\sqrt{65}\approx8.06$，出现在沿 $\nabla f$ 的方向上。
+      - id: grad-norm
+        type: number
+        prompt: |
+          $f(x,y,z)=x^{2}y+yz^{3}$ 在 $(1,2,1)$ 处的最大变化率 $|\nabla f|$ 是多少？（保留三位小数）
+        answer: 7.483
+        tolerance: 0.01
+        hint: $\nabla f=(2xy,\;x^{2}+z^{3},\;3yz^{2})$，先代入 $(1,2,1)$ 再求长度。
+        explain: |
+          $\nabla f(1,2,1)=(4,2,6)$，长度 $\sqrt{4^{2}+2^{2}+6^{2}}=\sqrt{56}=2\sqrt{14}\approx7.4833$。
+          最大变化率就是梯度的长度；沿梯度方向的单位向量是 $\frac{(4,2,6)}{\sqrt{56}}$。
+      - id: negative-grad-direction
+        type: number
+        prompt: |
+          还是 $f(x,y)=x^{2}y+3y$ 在 $(2,1)$ 处。沿**负梯度方向** $-\frac{(4,7)}{\sqrt{65}}$ 的方向导数是多少？（保留三位小数）
+        answer: -8.062
+        tolerance: 0.01
+        hint: 沿 $-\nabla f$ 时 $\cos\theta=-1$，方向导数等于 $-|\nabla f|$。
+        explain: |
+          $D_{-\nabla f}f=-|\nabla f|=-\sqrt{65}\approx-8.0623$。这是所有方向里最小的值，也是函数下降最快的地方。
+          记住这个结论：梯度下降每次朝 $-\nabla f$ 走，走的就是局部下降最快的方向。
+      - id: unit-vector-trap
+        type: choice
+        prompt: |
+          有人算方向导数时直接拿 $v=(3,4)$ 与 $\nabla f(2,1)=(4,7)$ 点乘，得到 40。错在哪？
+        hint: $(3,4)$ 的长度是多少？先把它除以长度，再与 $(4,7)$ 点乘。
+        options:
+          - text: 方向导数定义里必须用单位向量；$|v|=5$，结果被放大了 5 倍
+            correct: true
+          - text: 应该把两个向量相减而不是点乘
+            why: 方向导数是点积，不是差；问题出在方向向量没有归一化
+          - text: 没有错，方向导数本来就允许任意长度的方向向量
+            why: 方向导数衡量“每走单位长度变化多少”，用长向量会让结果依赖向量的长度
+        explain: |
+          $(3,4)$ 的长度是 5，归一的单位向量是 $\left(\frac35,\frac45\right)$，对应的方向导数是 8，正好是 40 的五分之一。
+          点积随长度线性放大，所以只有单位方向向量才能解释成“变化率”。
+
+  - id: implicit-inverse
+    chapter: 隐函数与逆函数定理
+    title: 方程里藏着的函数
+    minutes: 8
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        球面 $x^{2}+y^{2}+z^{2}=3$ 上的点 $(1,1,1)$。在它附近能把 $z$ 写成 $(x,y)$ 的函数吗？
+        （也就是把球面的一小块看成一张函数图像）
+      options:
+        - text: 能，局部可以写成 $z=\sqrt{3-x^{2}-y^{2}}$
+          correct: true
+        - text: 不能，球面是封闭的曲面
+          why: 封闭的是整个球面；只看 $(1,1,1)$ 附近的那一小块，它就是一张曲面片
+        - text: 不能，因为同一个 $(x,y)$ 对应两个 $z$
+          why: 两个 $z$ 分属上半球和下半球；在 $(1,1,1)$ 附近只有上半球这一支
+      explain: |
+        在 $(1,1,1)$ 附近取上半球 $z=\sqrt{3-x^{2}-y^{2}}$，它满足方程，而且是光滑的函数。
+        能不能解出来，关键看方程对 $z$ 的偏导是否为 0：$F_z=2z=2\ne0$，所以在这一点附近可以解出 $z$。
+    cards:
+      - title: 隐函数求导：对方程两边求导
+        body: |
+          设 $F(x,y,z)=x^{2}+y^{2}+z^{2}-3=0$ 在 $(1,1,1)$ 附近确定 $z=z(x,y)$。把 $z$ 看成 $(x,y)$ 的函数，方程两边对 $x$ 求导（$y$ 固定）：
+          $$2x+2z\,\frac{\partial z}{\partial x}=0\quad\Longrightarrow\quad\frac{\partial z}{\partial x}=-\frac{x}{z}.$$
+          代入 $(1,1,1)$ 得 $\frac{\partial z}{\partial x}=-1$；同理 $\frac{\partial z}{\partial y}=-\frac{y}{z}=-1$。
+
+          一般地，只要 $F_z\ne0$，
+          $$\frac{\partial z}{\partial x}=-\frac{F_x}{F_z},\qquad \frac{\partial z}{\partial y}=-\frac{F_y}{F_z}.$$
+          分子是“方程对 $x$ 的变化”，分母是“$z$ 每动一点方程变多少”，所以要把分母除回去并加负号。
+      - title: 定理在保证什么：局部、唯一、可微
+        body: |
+          **隐函数定理（implicit function theorem）**：若 $F(a,b)=0$ 且 $F_z(a,b)\ne0$，则在 $(a,b)$ 附近存在唯一的连续可微函数 $z=z(x,y)$，满足 $z(a,b)=b$ 且 $F(x,y,z(x,y))=0$。
+          三个词都要注意：**局部**（只在一个小邻域里）、**唯一**（这一块里只有一支）、**可微**（可以求导，所以上面的公式成立）。
+
+          条件 $F_z\ne0$ 不能去掉。看 $F(x,y)=x^{2}+y^{2}-1$ 在点 $(1,0)$：$F(x,y)=0$ 就是单位圆，$F_y=2y=0$。
+          在 $(1,0)$ 附近，每个略小于 1 的 $x$ 都对应两个 $y$（上下两支 $y=\pm\sqrt{1-x^{2}}$），而 $x$ 稍大于 1 时根本没有点，
+          所以没法用一个函数在包含 $x=1$ 的区间上表示这条曲线；几何上，这里的切线是竖直的。
+
+          **逆函数定理（inverse function theorem）** 是同一件事的另一种说法：若 $f:\mathbb{R}^{n}\to\mathbb{R}^{n}$ 在 $a$ 附近连续可微，且雅可比矩阵 $Df(a)$ 可逆（行列式不为 0），则 $f$ 在 $a$ 附近有可微的逆映射。一维时它就是“$f'(a)\ne0$ 就能在局部反解出 $x=f^{-1}(y)$”。
+    items:
+      - id: sphere-dzdx
+        type: number
+        prompt: |
+          $x^{2}+y^{2}+z^{2}=3$ 在 $(1,1,1)$ 附近确定 $z=z(x,y)$。求 $\frac{\partial z}{\partial x}$ 在该点的值。
+        answer: -1
+        tolerance: 0.001
+        hint: 方程两边对 $x$ 求导得 $2x+2z\,z_x=0$，也可以用 $z_x=-\frac{F_x}{F_z}$。
+        explain: |
+          $z_x=-\frac{x}{z}=-\frac11=-1$。几何上，上半球在 $(1,1)$ 处的切平面是 $z=3-(x-1)-(y-1)$ 的形式，$x$ 增加 1 时 $z$ 下降 1。
+          $z_y$ 同样等于 $-1$，因为球面在这一点关于 $x,y$ 是对称的。
+      - id: sphere-dzdx-scaled
+        type: number
+        prompt: |
+          换成球面 $x^{2}+y^{2}+z^{2}=9$，在点 $(1,2,2)$ 附近把 $z$ 看成 $(x,y)$ 的函数。求 $\frac{\partial z}{\partial x}$。
+        answer: -0.5
+        tolerance: 0.001
+        hint: $F_x=2x$、$F_z=2z$，所以 $z_x=-\frac{x}{z}$。
+        explain: |
+          $z_x=-\frac{x}{z}=-\frac{1}{2}=-0.5$。半径变了，公式里只出现 $x$ 和 $z$ 的比值，所以半径 9 的球面上这一点比半径 3 的球面“更平”，斜率更小。
+          这里 $F_z=2z=4\ne0$，隐函数定理的条件满足。
+      - id: why-not-solve
+        type: choice
+        prompt: |
+          单位圆 $x^{2}+y^{2}=1$ 在点 $(1,0)$ 附近，为什么不能把 $y$ 写成 $x$ 的光滑函数？
+        hint: 隐函数定理要求哪个偏导不为 0？在 $(1,0)$ 处它等于多少？
+        options:
+          - text: 因为 $F_y=2y=0$，在这一点附近有上下两支 $y=\pm\sqrt{1-x^{2}}$
+            correct: true
+          - text: 因为圆上每一点的切线都是竖直的
+            why: 在 $(1,0)$ 处切线确实是竖直的，这正是“$F_y=0$”的几何表现；换成 $(0,1)$ 处切线水平，就能解出 $y$
+          - text: 因为 $x^{2}+y^{2}=1$ 不是连续曲线
+            why: 圆当然是连续的；问题出在“能不能用 $x$ 唯一地决定 $y$”
+        explain: |
+          隐函数定理要求 $F_y\ne0$。这里 $F_y=2y$，在 $(1,0)$ 处为 0，条件失效，事实上也真的解不出唯一的支。
+          但在 $(0,1)$ 处 $F_y=2\ne0$，附近就能写成 $y=\sqrt{1-x^{2}}$。
+
+  - id: gradient
+    chapter: 标量场梯度
+    title: 最陡的那条路，以及怎么一步步走下去
+    minutes: 10
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        在一张等高线地图上，梯度 $\nabla f$ 的方向与经过该点的等高线是什么关系？
+      options:
+        - { text: 垂直, correct: true }
+        - { text: 平行, why: '沿等高线走函数值不变，方向导数是 0；而变化最快的方向不可能是这个方向' }
+        - { text: 总成 45 度, why: '夹角由 $\nabla f$ 的方向决定，没有固定的角度' }
+      explain: |
+        沿等高线切向走，函数值不变，方向导数是 0，即 $\nabla f$ 与切向的点积为 0——两者垂直。
+        梯度的方向是“穿过等高线、垂直于它”的方向，这也就是上坡最陡的方向。
+    cards:
+      - title: 梯度：方向 + 大小
+        body: |
+          标量场 $f(x,y,z)$ 的**梯度（gradient）**是把三个偏导数排成一个向量：
+          $$\nabla f=(f_x,\;f_y,\;f_z).$$
+          它同时携带两个信息：方向是函数增长最快的方向，长度是那个最大变化率。
+
+          例：$f(x,y,z)=x^{2}y+yz^{3}$，则
+          $$\nabla f=(2xy,\;x^{2}+z^{3},\;3yz^{2}),\qquad \nabla f(1,2,1)=(4,\;2,\;6).$$
+          $|\nabla f(1,2,1)|=\sqrt{16+4+36}=\sqrt{56}=2\sqrt{14}\approx7.48$：在这一点，沿 $\frac{(4,2,6)}{\sqrt{56}}$ 走，函数增长最快，每单位长度增加约 7.48。
+          垂直方向（沿等高面）变化率为 0，反方向（$-\nabla f$）下降最快。
+      - title: 梯度下降：沿负梯度走，步子别太大
+        body: |
+          **梯度下降（gradient descent）**反复做一件事：
+          $$x_{k+1}=x_k-\eta\,\nabla f(x_k),\qquad \eta>0.$$
+          负号是必须的：$D_{-\nabla f}f=-|\nabla f|$ 是所有方向里最小的方向导数，所以朝 $-\nabla f$ 走，函数值局部下降最快。
+
+          步长 $\eta$ 叫**学习率（learning rate）**。以 $f(x)=x^{2}$ 为例，$x_{k+1}=x_k-2\eta x_k=(1-2\eta)x_k$：
+          $\eta=0.1$ 时每步乘 $0.8$，稳稳收敛；$\eta=1$ 时每步乘 $-1$，在 $x_0$ 和 $-x_0$ 之间来回跳，永远不停；$\eta=1.1$ 时每步乘 $-1.2$，越跳越远，**发散**。
+
+          二维里不同方向的“弯曲程度”不一样。$f(x,y)=x^{2}+10y^{2}$ 在 $y$ 方向的二阶导数是 20，$y$ 的更新因子是 $1-20\eta$：$\eta$ 超过 $0.1$ 就会在 $y$ 方向翻着跳甚至冲出去，而 $x$ 方向还嫌步子太小。下面的演示可以亲手试。
+        sim:
+          name: descent
+          params: {f: "x^2 + 10y^2", vars: [x, y], x0: [2, 1]}
+    items:
+      - id: sim-valley
+        type: sim
+        sim: descent
+        prompt: |
+          在 $f(x,y)=x^{2}+10y^{2}$ 上，从 $(2,1)$ 出发做梯度下降。选一个合适的学习率，让点走到 $(0,0)$ 附近（距离小于 $0.05$），并且不超过 50 步。
+          注意 $y$ 方向很陡：学习率超过 $0.05$，$y$ 每步都会翻号；到 $0.1$ 就不再缩小，超过 $0.1$ 会越跳越远。
+        params: {f: "x^2 + 10y^2", vars: [x, y], x0: [2, 1], range: 3}
+        goal: {target: [0, 0], tol: 0.05, maxSteps: 50}
+        solution: {lr: 0.08, steps: 30}
+        hint: 试试 $\eta=0.05$ 或 $0.08$，每点一次走 10 步，观察 $y$ 的符号是否在正负之间跳但越来越小。
+        explain: |
+          取 $\eta=0.08$ 时，$y$ 每步乘 $1-20\times0.08=-0.6$，符号来回翻但绝对值缩小；$x$ 每步乘 $1-2\times0.08=0.84$，稳稳减小。
+          30 步后 $x\approx0.011$，$y$ 已经小到 $10^{-7}$ 量级，离原点约 $0.011$，已经进入 $0.05$ 之内。
+          如果把 $\eta$ 调到 $0.1$，$y$ 每步乘 $-1$，永远在 $\pm1$ 之间跳；调到 $0.12$，$y$ 每步乘 $-1.4$，几十步内就发散得看不到边了。
+      - id: sim-critical-lr
+        type: sim
+        sim: descent
+        prompt: |
+          换成 $f(x,y)=(x-1)^{2}+(y-2)^{2}$，从 $(4,-1)$ 出发。这个函数的两个方向曲率相同，存在一个“一步到位”的学习率；
+          找到它（或者用稍小一点的值），在 10 步内走到 $(1,2)$ 附近（距离小于 $0.05$）。
+        params: {f: "(x-1)^2 + (y-2)^2", vars: [x, y], x0: [4, -1], range: 5}
+        goal: {target: [1, 2], tol: 0.05, maxSteps: 10}
+        solution: {lr: 0.5, steps: 1}
+        hint: 更新公式是 $x\leftarrow x-\eta\cdot 2(x-1)$，要让一步就落在 $x=1$，需要 $1-2\eta=0$。
+        explain: |
+          二阶导数处处是 2，所以每步把偏差乘上 $(1-2\eta)$。取 $\eta=0.5$，因子为 0，一步就从 $(4,-1)$ 落到 $(1,2)$。
+          $\eta$ 稍小一点（比如 0.4，因子 0.2）会稳步逼近；$\eta=1$ 时因子是 $-1$，点会在 $(4,-1)$ 和 $(-2,5)$ 之间来回跳；$\eta>1$ 则越来越远。
+          学习率的“临界值”由最陡方向的曲率决定，不是凭感觉。
+      - id: max-rate
+        type: number
+        prompt: |
+          $f(x,y,z)=x^{2}y+yz^{3}$ 在 $(1,2,1)$ 处的最大变化率是多少？（保留三位小数）
+        answer: 7.483
+        tolerance: 0.01
+        hint: 先算 $\nabla f=(2xy,\;x^{2}+z^{3},\;3yz^{2})$ 在 $(1,2,1)$ 的值，再求长度。
+        explain: |
+          $\nabla f(1,2,1)=(4,2,6)$，长度 $\sqrt{56}\approx7.4833$。这就是所有方向导数中的最大值，取到它的方向是 $\frac{(4,2,6)}{\sqrt{56}}$。
+          同一个点上，最小变化率是 $-7.4833$，方向正好相反。
+      - id: why-negative-gradient
+        type: choice
+        prompt: |
+          为什么梯度下降要朝 $-\nabla f$ 走？
+        hint: 把方向导数写成 $|\nabla f|\cos\theta$，$\cos\theta$ 在什么夹角取最小值？
+        options:
+          - text: 因为 $D_uf=|\nabla f|\cos\theta$，取 $u$ 与 $\nabla f$ 反向时 $\cos\theta=-1$，方向导数最小
+            correct: true
+          - text: 因为 $-\nabla f$ 指向函数值为 0 的地方
+            why: 梯度只描述“变化最快的方向”，与函数值是否为 0 没有关系
+          - text: 因为 $-\nabla f$ 的长度比 $\nabla f$ 短，步子更安全
+            why: $-\nabla f$ 和 $\nabla f$ 长度相同，只是方向相反
+        explain: |
+          方向导数等于梯度与单位方向向量的点积，夹角为 $\pi$ 时取最小值 $-|\nabla f|$。
+          所以朝这个方向走一小步，函数值下降得最多——这就是“负梯度方向下降最快”的全部理由。
+          不过它只保证“局部最快”，步子太大会越过谷底，这也是要选小学习率的原因。
+
+  - id: jacobian
+    chapter: 向量映射导数（雅可比矩阵）
+    title: 输入是一组数，输出也是一组数
+    minutes: 8
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        $g(u,v)=(u+v,\;uv)$。从 $(u,v)=(1,1)$ 出发，只把 $u$ 增加 $0.1$、$v$ 不变，输出的第一个分量大约增加多少？
+      options:
+        - { text: '0.1', correct: true }
+        - { text: '0.2', why: '第一个分量是 $u+v$，只动 $u$ 时它的变化就等于 $u$ 的变化；乘 2 的是把两个输入都动了' }
+        - { text: 无法判断, why: '$g$ 是确定的函数，输入变化给定时输出的变化是算得出来的' }
+      explain: |
+        第一分量 $u+v$ 只随 $u$ 线性增长，$u$ 加 0.1 它就加 0.1；第二分量 $uv$ 从 1 变成 1.1，增加了 0.1。
+        把这些“每个输入对每个输出的影响”排成表，就是雅可比矩阵。
+    cards:
+      - title: 向量映射的导数是矩阵
+        body: |
+          若 $g:\mathbb{R}^{n}\to\mathbb{R}^{m}$，输入输出都是向量，那“导数”不再是一个数，而是一张表：**雅可比矩阵（Jacobian matrix）**
+          $$(Dg)_{ij}=\frac{\partial g_i}{\partial x_j},\qquad Dg=\begin{bmatrix}\dfrac{\partial g_1}{\partial x_1}&\cdots&\dfrac{\partial g_1}{\partial x_n}\\ \vdots&&\vdots\\ \dfrac{\partial g_m}{\partial x_1}&\cdots&\dfrac{\partial g_m}{\partial x_n}\end{bmatrix}.$$
+          第 $i$ 行属于第 $i$ 个输出，第 $j$ 列属于第 $j$ 个输入；它是 $m\times n$ 的矩阵。
+
+          例：$g(u,v)=(u+v,\;uv)$，
+          $$Dg=\begin{bmatrix}1&1\\ v&u\end{bmatrix},\qquad Dg(2,3)=\begin{bmatrix}1&1\\3&2\end{bmatrix}.$$
+          线性近似写成矩阵乘向量：$g(a+h)\approx g(a)+Dg(a)\,h$，其中 $h$ 是输入的小变化。
+      - title: 怎么读这张表
+        body: |
+          在 $(2,3)$ 处，取 $h=(0.1,0)$（只动 $u$）：
+          $$Dg\,h=\begin{bmatrix}1&1\\3&2\end{bmatrix}\begin{bmatrix}0.1\\0\end{bmatrix}=\begin{bmatrix}0.1\\0.3\end{bmatrix}.$$
+          第一分量增加 $0.1$（因为 $g_1=u+v$，$u$ 的系数是 1），第二分量增加 $0.3$（因为 $g_2=uv$，对 $u$ 的偏导是 $v=3$）。
+          所以矩阵的每一列就是“把这个输入推一下，输出会怎么动”。
+
+          形状要留意：2 个输出、3 个输入的映射，雅可比是 $2\times 3$。当 $m=n=2$ 时行列式 $\det Dg$ 还有几何意义——它是一小块面积被放大或缩小的倍数（换元积分时会出现）。
+          “导数是矩阵”这个写法让复合变得简单：复合两个映射，就是把两个矩阵乘起来。
+          训练一个有多层结构的模型时，每个参数对损失的偏导就是这类矩阵里的元素，把各层乘起来、从输出往回算，就是反向传播（backpropagation）做的事——这里只点到为止。
+    items:
+      - id: sim-jacobian
+        type: sim
+        sim: matrix2d
+        prompt: |
+          $g(u,v)=(u+v,\;uv)$。在点 $(u,v)=(2,3)$ 处，把它的雅可比矩阵填进下面的 2×2 表格。
+        params: {start: [[0, 0], [0, 0]]}
+        goal: {matrix: [[1, 1], [3, 2]]}
+        solution: [[1, 1], [3, 2]]
+        hint: 第一行是 $\frac{\partial g_1}{\partial u}$ 和 $\frac{\partial g_1}{\partial v}$，第二行是 $\frac{\partial g_2}{\partial u}=v$ 和 $\frac{\partial g_2}{\partial v}=u$。
+        explain: |
+          $g_1=u+v$ 的两个偏导都是 1，所以第一行是 $(1,1)$；$g_2=uv$ 对 $u$ 的偏导是 $v=3$，对 $v$ 的偏导是 $u=2$，第二行是 $(3,2)$。
+          在图上能看出这个矩阵把 $(1,0)$ 送到 $(1,3)$、把 $(0,1)$ 送到 $(1,2)$：两列就是两个输入的“影响向量”。
+      - id: jacobian-entry
+        type: number
+        prompt: |
+          还是 $g(u,v)=(u+v,\;uv)$。$\frac{\partial g_2}{\partial u}$ 在 $(u,v)=(2,3)$ 处等于多少？
+        answer: 3
+        tolerance: 0.001
+        hint: $g_2=uv$，对 $u$ 求偏导时把 $v$ 当常数。
+        explain: |
+          $g_2=uv$ 对 $u$ 的偏导是 $v$，代入 $v=3$ 得 3。它正好是雅可比矩阵第二行第一列的元素。
+          直觉上：$u$ 每增加 1，$uv$ 增加 $v$；在 $v=3$ 时就是增加 3。
+      - id: jacobian-shape
+        type: choice
+        prompt: |
+          一个映射 $g:\mathbb{R}^{3}\to\mathbb{R}^{2}$（3 个输入、2 个输出），它的雅可比矩阵是什么形状？
+        hint: 输出的变化等于 $Dg$ 乘输入的变化；矩阵形状要能完成这个乘法。
+        options:
+          - { text: '$2\times 3$', correct: true }
+          - { text: '$3\times 2$', why: '行数等于输出的个数（2），列数等于输入的个数（3）；反了就乘不起来' }
+          - { text: '$3\times 3$', why: '输入有 3 个，但输出只有 2 个，矩阵不会是方阵' }
+        explain: |
+          雅可比的作用是把输入的变化 $h\in\mathbb{R}^{3}$ 映成输出的变化 $Dg\,h\in\mathbb{R}^{2}$，所以必须是 $2\times3$ 矩阵：行数配输出，列数配输入。
+          乘法的形状规则 $2\times3$ 乘 $3\times1$ 得 $2\times1$，正好对得上。
+
+  - id: chain-rule
+    chapter: 链式法则与坐标变换
+    title: 复合函数：把两段导数乘起来
+    minutes: 9
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        $g(u,v)=(u+v,\;uv)$，$h(x,y)=x^{2}+y^{2}$。在 $(u,v)=(1,1)$ 处，$\frac{\partial (h\circ g)}{\partial u}$ 是多少？
+      options:
+        - { text: '2', why: '只算了 $h$ 对 $x$ 的偏导 $2x=2$，漏掉了 $x$ 随 $u$ 变化的那一半' }
+        - { text: '4', why: '这是把 $h$ 的梯度两个分量直接相加了；正确做法要把各自的系数也带上' }
+        - { text: '6', correct: true }
+      explain: |
+        $u$ 增加时，$x=u+v$ 和 $y=uv$ 两条路都在变，两边都要算。$g(1,1)=(2,1)$，所以 $h_x=2x=4$、$h_y=2y=2$；而 $x_u=1$、$y_u=v=1$。
+        合起来 $h_x x_u+h_y y_u=4\times1+2\times1=6$。
+    cards:
+      - title: 矩阵形式的链式法则
+        body: |
+          **链式法则（chain rule）**：复合映射的导数是两个雅可比矩阵的乘积，
+          $$D(h\circ g)(u)=Dh\big(g(u)\big)\cdot Dg(u).$$
+          顺序不能换：先算 $g$ 把输入推一下（$Dg$），再算 $h$ 拿到这个中间结果后的变化（$Dh$）。
+
+          例：$g(u,v)=(u+v,\;uv)$，$h(x,y)=x^{2}+y^{2}$。这里 $Dg=\begin{bmatrix}1&1\\ v&u\end{bmatrix}$，$Dh=\begin{bmatrix}2x&2y\end{bmatrix}$（$h$ 是标量，所以只有一行）。于是
+          $$D(h\circ g)=\begin{bmatrix}2x&2y\end{bmatrix}\begin{bmatrix}1&1\\ v&u\end{bmatrix}=\begin{bmatrix}2x+2yv&2x+2yu\end{bmatrix}.$$
+          把 $x=u+v$、$y=uv$ 代回去：
+          $$\frac{\partial(h\circ g)}{\partial u}=2(u+v)+2uv^{2},\qquad \frac{\partial(h\circ g)}{\partial v}=2(u+v)+2u^{2}v.$$
+          在 $(u,v)=(2,1)$ 处分别是 $10$ 和 $14$。
+      - title: 验算、换坐标，以及它为什么是反向传播的全部
+        body: |
+          直接代入也能验证：$h\circ g=(u+v)^{2}+u^{2}v^{2}$，对 $u$ 求偏导得 $2(u+v)+2uv^{2}$，和矩阵乘法结果一致。两种算法应当永远一致，算完可以互相检查。
+
+          **坐标变换**是链式法则最常见的用法。极坐标 $x=r\cos\theta$、$y=r\sin\theta$ 下，
+          $$\frac{\partial f}{\partial r}=f_x\cos\theta+f_y\sin\theta,\qquad \frac{\partial f}{\partial \theta}=-f_x\,r\sin\theta+f_y\,r\cos\theta.$$
+          例：$f=x^{2}+y^{2}=r^{2}$，所以 $\frac{\partial f}{\partial r}=2r$，而 $f_x\cos\theta+f_y\sin\theta=2r\cos^{2}\theta+2r\sin^{2}\theta=2r$，对上。
+
+          **反向传播（backpropagation）**就是链式法则的工程写法：把复合函数拆成一张计算图，从输出往回走，每一步乘上该处的局部导数（雅可比矩阵），同一个变量上的多条路径把贡献相加。这里只需要记住这一句：它没有新数学，只是把上面的乘法按顺序做完。
+    items:
+      - id: chain-du
+        type: number
+        prompt: |
+          $g(u,v)=(u+v,\;uv)$，$h(x,y)=x^{2}+y^{2}$。$\frac{\partial(h\circ g)}{\partial u}$ 在 $(u,v)=(2,1)$ 处等于多少？
+        answer: 10
+        tolerance: 0.001
+        hint: 用 $2(u+v)+2uv^{2}$，或者先算 $(u,v)=(2,1)$ 对应的 $x,y$ 再乘矩阵。
+        explain: |
+          $2(u+v)+2uv^{2}=2(3)+2\cdot2\cdot1=6+4=10$。
+          用矩阵看：$g(2,1)=(3,2)$，$Dh=(6,4)$；$Dg=\begin{bmatrix}1&1\\1&2\end{bmatrix}$，第一列是 $(1,1)$，点乘得 $6+4=10$。
+      - id: chain-dv
+        type: number
+        prompt: |
+          $g(u,v)=(u+v,\;uv)$，$h(x,y)=x^{2}+y^{2}$。$\frac{\partial(h\circ g)}{\partial v}$ 在 $(u,v)=(2,1)$ 处等于多少？
+        answer: 14
+        tolerance: 0.001
+        hint: 对 $v$ 的公式是 $2(u+v)+2u^{2}v$，注意最后一项是 $u^{2}$ 乘 $v$。
+        explain: |
+          $2(u+v)+2u^{2}v=2(3)+2\cdot4\cdot1=6+8=14$。
+          和上一题对比可以看出：在 $(2,1)$ 处 $v$ 的影响更大，因为 $u=2$ 让 $uv$ 对 $v$ 的敏感度翻倍了。
+      - id: polar-r
+        type: number
+        prompt: |
+          $f(x,y)=x^{2}+y^{2}$，点的极径 $r=3$。用极坐标的链式法则求 $\frac{\partial f}{\partial r}$。
+        answer: 6
+        tolerance: 0.001
+        hint: $\frac{\partial f}{\partial r}=f_x\cos\theta+f_y\sin\theta$，而 $f=x^{2}+y^{2}=r^{2}$。
+        explain: |
+          $f=r^{2}$，所以 $\frac{\partial f}{\partial r}=2r=6$；用链式法则算也一样：$2r\cos^{2}\theta+2r\sin^{2}\theta=2r=6$。
+          这个例子说明“换坐标再求导”和“先换坐标再直接求导”必须一致，链式法则保证这一点。
+      - id: chain-order
+        type: choice
+        prompt: |
+          计算 $D(h\circ g)$ 时，为什么写成 $Dh\cdot Dg$ 而不是 $Dg\cdot Dh$？
+        hint: 变化是按“先 $g$ 后 $h$”传递的：把 $Dg\,h$ 的结果再送进 $Dh$ 试试。
+        options:
+          - text: 因为要先让输入的小变化 $\Delta$ 过 $Dg$，再送进 $Dh$；矩阵乘法按这个顺序作用，形状也正好匹配
+            correct: true
+          - text: 因为矩阵乘法满足交换律，两种写法结果一样
+            why: 矩阵乘法一般不满足交换律，而且这里 $Dh$ 是 $1\times2$、$Dg$ 是 $2\times2$，反过来根本乘不了
+          - text: 因为 $Dg$ 总是方阵，可以先算
+            why: 方阵也要讲究顺序；这里的关键是“先 $g$ 后 $h$”的作用次序
+        explain: |
+          复合的顺序是先 $g$ 后 $h$，所以变化也按这个顺序传递：设输入的小变化为 $\Delta$，先算 $Dg\,\Delta$，再算 $Dh\,(Dg\,\Delta)=(Dh\,Dg)\Delta$。
+          形状上，$Dh$ 是 $m\times k$、$Dg$ 是 $k\times n$，只有 $Dh\cdot Dg$ 是合法的 $m\times n$。
+
+  - id: hessian
+    chapter: 二阶偏导矩阵（海森矩阵）
+    title: 把所有二阶偏导排成一张表
+    minutes: 8
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        $f(x,y)=x^{2}-y^{2}$ 在原点处两个偏导都为 0。这个点是极小值、极大值，还是都不是？
+      options:
+        - { text: 都不是，是鞍点, correct: true }
+        - { text: 极小值, why: '沿 $y$ 方向走，$f=-y^{2}$ 会变小，原点不是极小' }
+        - { text: 极大值, why: '沿 $x$ 方向走，$f=x^{2}$ 会变大，原点也不是极大' }
+      explain: |
+        沿 $x$ 轴函数上升、沿 $y$ 轴函数下降，原点像马鞍的中心：一个方向上它是低点，另一个方向上它是高点。
+        只看一阶导数（这里是 0）分不出来，需要看二阶导数——这就是海森矩阵的用处。
+    cards:
+      - title: 海森矩阵：二阶偏导的表格
+        body: |
+          把四个二阶偏导排成矩阵，就是**海森矩阵（Hessian matrix）**：
+          $$H=\begin{bmatrix}f_{xx}&f_{xy}\\ f_{yx}&f_{yy}\end{bmatrix}.$$
+          二阶偏导连续时 $f_{xy}=f_{yx}$，所以 $H$ 是对称矩阵。
+
+          例：$f(x,y)=x^{3}-3x+y^{2}-2y$。
+          $$f_x=3x^{2}-3,\qquad f_y=2y-2,\qquad f_{xx}=6x,\qquad f_{xy}=0,\qquad f_{yy}=2,$$
+          $$H=\begin{bmatrix}6x&0\\ 0&2\end{bmatrix}.$$
+          在 $(1,1)$ 处 $H=\begin{bmatrix}6&0\\0&2\end{bmatrix}$，在 $(-1,1)$ 处 $H=\begin{bmatrix}-6&0\\0&2\end{bmatrix}$。
+      - title: 用 H 读出“碗”还是“鞍”
+        body: |
+          二阶泰勒近似把 $H$ 直接写进公式：
+          $$f(a+h)\approx f(a)+\nabla f\cdot h+\tfrac12\,h^{\mathsf T}H(a)\,h.$$
+          因此 $H$ 决定函数在临界点附近往哪边弯。**正定（positive definite）**指对任何 $h\ne0$ 都有 $h^{\mathsf T}Hh>0$，此时是“碗口向上”；负定是“碗口向下”；不定（有的方向正、有的方向负）就是鞍面。
+
+          对 $2\times2$ 对称矩阵，用**行列式**就能判断：$\det H=f_{xx}f_{yy}-f_{xy}^{2}$。
+          若 $f_{xx}>0$ 且 $\det H>0$，两个特征值都为正，$H$ 正定；若 $\det H<0$，两个特征值一正一负，$H$ 不定。
+          例：$(1,1)$ 处 $\det H=6\cdot2-0=12>0$ 且 $f_{xx}=6>0$，是碗口向上；$(-1,1)$ 处 $\det H=(-6)\cdot2-0=-12<0$，不定，是鞍点。
+    items:
+      - id: sim-hessian
+        type: sim
+        sim: matrix2d
+        prompt: |
+          $f(x,y)=x^{3}-3x+y^{2}-2y$。把海森矩阵 $H(1,1)$ 填进下面的 2×2 表格。
+        params: {start: [[0, 0], [0, 0]]}
+        goal: {matrix: [[6, 0], [0, 2]]}
+        solution: [[6, 0], [0, 2]]
+        hint: $f_{xx}=6x$ 在 $x=1$ 处是 6；$f_{xy}=0$；$f_{yy}=2$。
+        explain: |
+          $f_{xx}=6x$ 代入 $x=1$ 得 6，$f_{xy}$ 是 $f_x=3x^{2}-3$ 对 $y$ 求导，得 0，$f_{yy}=2$，所以 $H=\begin{bmatrix}6&0\\0&2\end{bmatrix}$。
+          对角元分别是两个坐标方向的“弯曲程度”：$x$ 方向更弯（6），$y$ 方向较平（2）。
+      - id: det-hessian
+        type: number
+        prompt: |
+          还是 $f(x,y)=x^{3}-3x+y^{2}-2y$。$H(-1,1)$ 的行列式 $\det H$ 等于多少？
+        answer: -12
+        tolerance: 0.001
+        hint: $f_{xx}=6x$，把 $x=-1$ 代进去，再乘 $f_{yy}=2$。
+        explain: |
+          $f_{xx}(-1,1)=-6$，$f_{yy}=2$，$f_{xy}=0$，所以 $\det H=-6\cdot2-0=-12$。
+          行列式为负说明两个特征值一正一负：沿 $x$ 方向是“碗口向下”，沿 $y$ 方向是“碗口向上”，所以是鞍点。
+      - id: why-symmetric
+        type: choice
+        prompt: |
+          为什么海森矩阵总是对称的？
+        hint: 回想混合偏导 $f_{xy}$ 与 $f_{yx}$ 在什么条件下相等。
+        options:
+          - text: 因为二阶偏导连续时 $f_{xy}=f_{yx}$，矩阵的对称位置填的是同一个数
+            correct: true
+          - text: 因为 $f_{xx}=f_{yy}$ 总是成立
+            why: '两个纯二阶偏导一般不相等，$x^{3}-3x+y^{2}-2y$ 里就是 $6x$ 对 2'
+          - text: 因为矩阵转置后行列式不变
+            why: '行列式不变是转置的性质，但对称指的是 $H^{\mathsf T}=H$，靠的是混合偏导相等'
+        explain: |
+          对称来自混合偏导相等（Clairaut 定理），前提是这些二阶偏导连续。
+          对称的好处很大：它的特征值是实数、特征向量互相垂直，所以“碗的方向”可以选成一组正交方向，二阶判别也只需要看 $f_{xx}$ 和行列式两个数。
+
+  - id: second-order-test
+    chapter: 二阶近似与极值判别
+    title: 用一条抛物线判断极大还是极小
+    minutes: 9
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        对 $f(x,y)=x^{3}-3x+y^{2}-2y$，已经算出 $H(1,1)=\begin{bmatrix}6&0\\0&2\end{bmatrix}$、
+        $H(-1,1)=\begin{bmatrix}-6&0\\0&2\end{bmatrix}$。$(1,1)$ 和 $(-1,1)$ 各是什么点？
+      options:
+        - text: $(1,1)$ 是极小值点，$(-1,1)$ 是鞍点
+          correct: true
+        - text: 两个都是极小值点
+          why: 在 $(-1,1)$ 处沿 $x$ 方向的二阶导数是 $-6$，往两边走函数都变小
+        - text: 两个都是极大值点
+          why: 在 $(1,1)$ 处两个方向的二阶导数都是正的，往两边走函数都变大
+      explain: |
+        $H(1,1)$ 的两个对角元都为正，两个方向都是“碗口向上”，所以是极小值点；$H(-1,1)$ 一个正一个负，
+        沿 $y$ 方向上升、沿 $x$ 方向下降，是鞍点。判断只需要看二阶偏导，一阶导数为 0 只能说明“这里是平的”。
+    cards:
+      - title: 二阶泰勒近似与判别式
+        body: |
+          在临界点（$\nabla f=0$）附近，一阶项消失了，函数长什么样由二阶项决定：
+          $$f(a+h)\approx f(a)+\tfrac12\left(f_{xx}h_1^{2}+2f_{xy}h_1h_2+f_{yy}h_2^{2}\right).$$
+          括号里是 $h$ 的二次型，它的符号由海森矩阵给出。定义**判别式（discriminant）**
+          $$D=f_{xx}f_{yy}-f_{xy}^{2}=\det H.$$
+          在临界点处：
+
+          - $D>0$ 且 $f_{xx}>0$：局部**极小值**（抛物线开口向上）；
+          - $D>0$ 且 $f_{xx}<0$：局部**极大值**（开口向下）；
+          - $D<0$：**鞍点**（一个方向上升、一个方向下降）；
+          - $D=0$：判别法**失效**，要看更高阶的项。
+
+          例：$f=x^{2}-y^{2}$ 在原点，$f_{xx}=2$、$f_{yy}=-2$、$f_{xy}=0$，$D=-4<0$，鞍点。
+      - title: 一道完整的题
+        body: |
+          求 $f(x,y)=x^{3}-3x+y^{2}-2y$ 的所有临界点并判断类型。
+
+          第一步，解 $\nabla f=0$：$f_x=3x^{2}-3=0$ 得 $x=\pm1$；$f_y=2y-2=0$ 得 $y=1$。临界点是 $(1,1)$ 与 $(-1,1)$。
+          第二步，算二阶偏导：$f_{xx}=6x$、$f_{xy}=0$、$f_{yy}=2$，所以 $D=12x$。
+
+          在 $(1,1)$：$D=12>0$、$f_{xx}=6>0$，局部极小，$f(1,1)=1-3+1-2=-3$。
+          在 $(-1,1)$：$D=-12<0$，鞍点，$f(-1,1)=-1+3+1-2=1$。
+
+          注意 $D=0$ 时不能下结论：$f=x^{4}+y^{4}$ 与 $f=x^{4}-y^{4}$ 在原点都有 $D=0$，前者是极小、后者是鞍点。
+          另外，“局部极小”不等于“全局最小”，要比较边界或其他临界点上的值。
+    items:
+      - id: discriminant-value
+        type: number
+        prompt: |
+          $f(x,y)=x^{3}-3x+y^{2}-2y$。$D=f_{xx}f_{yy}-f_{xy}^{2}$ 在 $(1,1)$ 处等于多少？
+        answer: 12
+        tolerance: 0.001
+        hint: $f_{xx}=6x$、$f_{yy}=2$、$f_{xy}=0$，代入 $x=1$。
+        explain: |
+          $D=6\cdot2-0^{2}=12>0$，且 $f_{xx}=6>0$，所以 $(1,1)$ 是局部极小值点。
+          如果只算 $D$ 不看 $f_{xx}$，$D>0$ 时还可能是极大值。
+      - id: local-min-value
+        type: number
+        prompt: |
+          同一个函数 $f(x,y)=x^{3}-3x+y^{2}-2y$。它的局部极小值是多少？
+        answer: -3
+        tolerance: 0.001
+        hint: 极小值点在 $(1,1)$，把 $x=1$、$y=1$ 代入原函数。
+        explain: |
+          $f(1,1)=1-3+1-2=-3$。另一个临界点 $(-1,1)$ 处 $f=1$，但那是鞍点，不是极值。
+          注意 $-3$ 只是**局部**极小值：$x\to-\infty$ 时 $x^{3}-3x\to-\infty$，函数在整个平面上没有最小值。二阶判别只回答“附近”的问题。
+      - id: degenerate-case
+        type: choice
+        prompt: |
+          如果在某个临界点算出 $D=0$，能得出什么结论？
+        hint: 举两个 $D=0$ 的例子：$f=x^{4}+y^{4}$ 和 $f=x^{4}-y^{4}$ 在原点的行为一样吗？
+        options:
+          - text: 判别法失效，需要看更高阶的项，这个点可能是极小、极大或鞍点
+            correct: true
+          - text: 这个点一定是鞍点
+            why: '$f=x^{4}+y^{4}$ 在原点也有 $D=0$，但它是极小值点'
+          - text: 这个点一定不是极值点
+            why: '$f=x^{4}+y^{4}$ 在原点取到最小值 0，说明 $D=0$ 时完全可能仍是极值'
+        explain: |
+          $f=x^{4}+y^{4}$ 在原点 $f_{xx}=12x^{2}=0$、$f_{yy}=12y^{2}=0$、$f_{xy}=0$，所以 $D=0$，但函数在原点取最小值。
+          换成 $f=x^{4}-y^{4}$，同样 $D=0$，却是鞍点。二次近似在这一点的二阶项全为 0，必须看四阶项才能分辨。
+
+boss:
+  items:
+    - id: mixed-partial-xy
+      type: number
+      prompt: |
+        $f(x,y)=x^{2}y+e^{xy}$。求混合偏导 $f_{xy}$ 在 $(1,0)$ 处的值。
+      answer: 3
+      tolerance: 0.01
+      hint: 先求 $f_x=2xy+y\,e^{xy}$，再对 $y$ 求导（第二部分是乘积，要用乘积法则）。
+      explain: |
+        $f_{xy}=\frac{\partial}{\partial y}(2xy+y\,e^{xy})=2x+e^{xy}+xy\,e^{xy}$。
+        代入 $(1,0)$：$2\cdot1+e^{0}+0=2+1=3$。
+        如果漏掉乘积法则里的 $e^{xy}$ 那一项，就会得到 2。
+    - id: jacobian-chain
+      type: number
+      prompt: |
+        $g(u,v)=(u+v,\;uv)$，$h(x,y)=x^{2}+y^{2}$。用 $D(h\circ g)=Dh\cdot Dg$ 求 $\frac{\partial(h\circ g)}{\partial u}$ 在 $(u,v)=(1,1)$ 处的值。
+      answer: 6
+      tolerance: 0.01
+      hint: $Dh=(2x,2y)$ 在 $g(1,1)=(2,1)$ 处是 $(4,2)$；$Dg=\begin{bmatrix}1&1\\ v&u\end{bmatrix}$，取 $(1,1)$ 后它的第一列是 $(1,1)$。
+      explain: |
+        $D(h\circ g)=[2x,\,2y]\begin{bmatrix}1&1\\ v&u\end{bmatrix}=[2x+2yv,\;2x+2yu]$，代入 $x=u+v$、$y=uv$ 得 $[2(u+v)+2uv^{2},\;2(u+v)+2u^{2}v]$。
+        在 $(1,1)$ 处第一项是 $2\cdot2+2\cdot1\cdot1=6$。直接代入验证：$h\circ g=(u+v)^{2}+u^{2}v^{2}$，对 $u$ 求偏导得 $2(u+v)+2uv^{2}=6$。
+    - id: saddle-check
+      type: choice
+      prompt: |
+        $f(x,y)=x^{3}-3x+y^{2}-2y$ 的临界点是 $(1,1)$ 和 $(-1,1)$。下面哪句话正确？
+      hint: 在 $f_{xx}=6x$、$f_{yy}=2$、$f_{xy}=0$ 下分别算 $D=12x$ 和 $f_{xx}$ 的符号。
+      options:
+        - text: $(1,1)$ 是局部极小值，$(-1,1)$ 是鞍点
+          correct: true
+        - text: $(-1,1)$ 是局部极小值，$(1,1)$ 是鞍点
+          why: 代一下符号：$f_{xx}(1,1)=6>0$ 且 $D=12>0$，是极小；$f_{xx}(-1,1)=-6$ 让 $D<0$，才是鞍点
+        - text: 两个都是鞍点，因为一阶导数都为 0
+          why: 一阶导数为 0 只说明是临界点；二阶判别显示 $(1,1)$ 处两个方向都向上弯
+      explain: |
+        $f_{xx}=6x$、$f_{yy}=2$、$f_{xy}=0$，所以 $D=12x$。
+        $(1,1)$ 处 $D=12>0$、$f_{xx}=6>0$，局部极小，$f=-3$；$(-1,1)$ 处 $D=-12<0$，鞍点，$f=1$。

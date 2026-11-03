@@ -1,0 +1,446 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Content pack for one skill (data/content/<skill-id>.yaml)",
+  "type": "object",
+  "required": [
+    "skill",
+    "version",
+    "brief",
+    "lessons"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "skill": {
+      "type": "string",
+      "description": "Skill id from the tree, e.g. C.2.1"
+    },
+    "version": {
+      "const": 2,
+      "description": "2 = lessons written as a flow to the beginner standard (docs/content-authoring.md), checked by scripts/lib/beginner.mjs. The version 1 packs are archived (archive/data/content/)"
+    },
+    "brief": {
+      "type": "object",
+      "description": "Mission briefing shown before the first lesson",
+      "required": [
+        "why",
+        "outcomes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "why": {
+          "type": "string",
+          "description": "Why a beginner should care, in 2-4 sentences"
+        },
+        "outcomes": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "string"
+          },
+          "description": "学完你能… (can-do statements)"
+        },
+        "story": {
+          "type": "string"
+        }
+      }
+    },
+    "lessons": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/lesson"
+      }
+    },
+    "boss": {
+      "type": "object",
+      "description": "Auto-graded checks shown with the original exercise in the final challenge",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/item"
+          }
+        }
+      }
+    },
+    "authors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reviewedBy": {
+      "type": "string"
+    },
+    "terms": {
+      "type": "array",
+      "description": "Glossary: every technical word this pack teaches, defined in a card as **term**; [[term]] in text shows this definition on tap",
+      "items": {
+        "type": "object",
+        "required": [
+          "term",
+          "def"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "term": {
+            "type": "string"
+          },
+          "def": {
+            "type": "string",
+            "maxLength": 90
+          },
+          "en": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "assumes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Jargon this pack uses without defining because a prerequisite skill (without a pack of its own) teaches it"
+    }
+  },
+  "definitions": {
+    "lesson": {
+      "type": "object",
+      "required": [
+        "id",
+        "chapter",
+        "title",
+        "flow"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "chapter": {
+          "type": "string",
+          "description": "Must equal one chapter title of the skill (a must-learn topic)"
+        },
+        "title": {
+          "type": "string"
+        },
+        "minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 40
+        },
+        "flow": {
+          "type": "array",
+          "minItems": 3,
+          "description": "Play order, top to bottom: one-key entries { guess } (ungraded predict-first), { card } (explanation), { item } (graded practice).",
+          "items": {
+            "$ref": "#/definitions/flowStep"
+          }
+        }
+      }
+    },
+    "card": {
+      "type": "object",
+      "required": [
+        "body"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string",
+          "description": "Markdown; inline math $...$, display math $$...$$"
+        },
+        "sim": {
+          "$ref": "#/definitions/simRef",
+          "description": "Optional ungraded interactive demo"
+        },
+        "reveal": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Parts shown one at a time on the continue button: the steps of a worked example (title = the step's goal), or an answer to compare with",
+          "items": {
+            "type": "object",
+            "required": [
+              "body"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "body": {
+                "type": "string"
+              },
+              "button": {
+                "type": "string",
+                "description": "Button text that reveals this part (default 下一步)"
+              }
+            }
+          }
+        }
+      }
+    },
+    "simRef": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "params": {
+          "type": "object"
+        }
+      }
+    },
+    "item": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "prompt",
+        "explain"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "type": {
+          "enum": [
+            "choice",
+            "number",
+            "text",
+            "order",
+            "match",
+            "sim"
+          ]
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "explain": {
+          "type": "string",
+          "description": "Shown after answering, right or wrong"
+        },
+        "hint": {
+          "type": "string"
+        },
+        "review": {
+          "type": "boolean",
+          "description": "Enters the spaced-review deck (default true; sims default false)"
+        },
+        "code": {
+          "type": "string",
+          "description": "Optional code block shown under the prompt"
+        },
+        "lang": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "choice"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "options"
+            ],
+            "properties": {
+              "multi": {
+                "type": "boolean"
+              },
+              "options": {
+                "type": "array",
+                "minItems": 2,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "text"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    },
+                    "correct": {
+                      "type": "boolean"
+                    },
+                    "why": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "number"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "answer"
+            ],
+            "properties": {
+              "answer": {
+                "type": "number"
+              },
+              "tolerance": {
+                "type": "number",
+                "minimum": 0
+              },
+              "unit": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "text"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "answers"
+            ],
+            "properties": {
+              "answers": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "caseSensitive": {
+                "type": "boolean"
+              },
+              "placeholder": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "order"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "steps"
+            ],
+            "properties": {
+              "steps": {
+                "type": "array",
+                "minItems": 3,
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "match"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "pairs"
+            ],
+            "properties": {
+              "pairs": {
+                "type": "array",
+                "minItems": 2,
+                "items": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "sim"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "sim",
+              "goal"
+            ],
+            "properties": {
+              "sim": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object"
+              },
+              "goal": {
+                "type": "object"
+              },
+              "solution": {
+                "description": "A response that must pass the checker (verified by scripts/check-pack.mjs); required for graded sims except trace"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "flowStep": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "guess": {
+          "$ref": "#/definitions/item"
+        },
+        "card": {
+          "$ref": "#/definitions/card"
+        },
+        "item": {
+          "$ref": "#/definitions/item"
+        }
+      }
+    }
+  }
+}

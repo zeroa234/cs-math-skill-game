@@ -1,0 +1,470 @@
+skill: M.1.2
+version: 1
+authors: [pi-calc]
+brief:
+  why: |
+    导数衡量“一瞬间的变化率”。它把速度、斜率、边际成本这些看起来不同的问题，统一成同一个运算；后面的梯度下降、反向传播、物理仿真，核心都是求导。
+    这一关从割线斜率的极限建立直觉，再走到“局部用直线代替曲线”的微分，最后用中值定理和泰勒公式把“一点的信息”推广到整段和更高阶。
+    不需要背很多公式，重要的是知道每个公式在回答什么问题、什么时候不能用。
+  outcomes:
+    - 用割线斜率的极限解释导数，并说出可导与连续的关系
+    - 用幂、乘积、链式法则求常见函数的导数
+    - 用微分 $dy=f'(x)\,dx$ 做线性近似并估计误差
+    - 用中值定理判断单调性与极值，写出泰勒多项式并估计余项
+lessons:
+  - id: derivative
+    chapter: 导数
+    title: 从割线到切线
+    minutes: 9
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        一辆车 2 小时走了 120 km，仪表盘上某一刻显示 60 km/h。这两个 60 是同一件事吗？
+      options:
+        - text: 是，数值一样就是同一件事
+          why: 数值碰巧相同，但一个是整段的平均速度，一个是某一瞬间的速度
+        - text: 不是：一个是平均速度，一个是瞬时速度
+          correct: true
+        - text: 仪表盘一定坏了
+          why: 仪表盘测的是瞬时速度，和整段的平均速度本来就可以不同
+      explain: |
+        平均速度是“总路程除以总时间”，只用了起点和终点；瞬时速度是“让时间间隔越来越小”时平均速度的极限。
+        这一关要做的就是把这个“越来越小”写成极限，得到导数。
+    cards:
+      - title: 先算一段的平均变化率
+        body: |
+          想知道 $x=1$ 这一点的“瞬时变化率”，先算一段的平均变化率，也就是**割线（secant）**的斜率：
+          $$\frac{f(1+h)-f(1)}{h}.$$
+          对 $f(x)=x^2$：
+
+          | $h$ | 1 | 0.1 | 0.01 | 0.001 |
+          |---|---|---|---|---|
+          | 割线斜率 | 3 | 2.1 | 2.01 | 2.001 |
+
+          $h$ 越小，割线越贴近曲线在 $x=1$ 处的切线（tangent），斜率越来越靠近 2。拖动 $h$ 看这个过程。
+        sim:
+          name: plot
+          params: {mode: secant, f: "x^2", a: 1, hMax: 1}
+      - title: 导数的定义
+        body: |
+          把“$h$ 趋于 0”写成极限，就得到导数（derivative）：
+          $$f'(a)=\lim_{h\to0}\frac{f(a+h)-f(a)}{h}.$$
+          它表示曲线在 $(a,f(a))$ 处切线的斜率，也表示 $f$ 在 $a$ 处的瞬时变化率。记号还有 $\frac{dy}{dx}$ 和 $\left.\frac{df}{dx}\right|_{x=a}$。
+
+          可导一定连续：分子 $f(a+h)-f(a)\to0$ 才能让比值有极限。反过来不成立：$f(x)=|x|$ 在 0 处连续，但左侧斜率是 $-1$、右侧是 1，割线斜率没有唯一的极限，所以不可导。
+      - title: 常用求导法则
+        body: |
+          常用导数：
+          $$(C)'=0,\quad (x^n)'=nx^{n-1},\quad (e^x)'=e^x,\quad (\ln x)'=\frac1x,\quad (\sin x)'=\cos x,\quad (\cos x)'=-\sin x.$$
+
+          乘积法则（product rule）是 $(fg)'=f'g+fg'$；链式法则（chain rule）是 $\big(f(g(x))\big)'=f'(g(x))\,g'(x)$。
+
+          例如 $y=x^3e^{2x}$：$(x^3)'e^{2x}+x^3(e^{2x})'=3x^2e^{2x}+2x^3e^{2x}=x^2(2x+3)e^{2x}$。
+          再如 $y=\ln(1+x^2)$：外层 $\ln$ 的导数是 $\frac1{1+x^2}$，内层 $1+x^2$ 的导数是 $2x$，乘起来得 $\frac{2x}{1+x^2}$。
+    items:
+      - id: sim-secant
+        type: sim
+        sim: plot
+        prompt: |
+          拖动 $h$，让 $f(x)=x^2$ 在 $x=1$ 处的割线斜率进入 $2\pm0.05$。
+        params: {mode: secant, f: "x^2", a: 1, hMax: 1}
+        goal: {slope: {target: 2, tol: 0.05}}
+        solution: {h: 0.01}
+        hint: $h=0.1$ 时斜率是 2.1，再把 $h$ 调小一个数量级试试。
+        explain: |
+          $h=0.1$ 时割线斜率是 $\frac{1.1^2-1}{0.1}=2.1$，$h=0.01$ 时是 $2.01$，$h=0.001$ 时是 $2.001$。
+          $h\to0$ 时斜率趋向 $2$，这就是 $f'(1)$。割线在这个极限位置变成切线。
+      - id: power
+        type: number
+        prompt: |
+          $f(x)=x^3$，$f'(2)$ 等于多少？
+        answer: 12
+        tolerance: 0.001
+        hint: 先用幂法则写出 $f'(x)=3x^2$。
+        explain: |
+          $f'(x)=3x^2$，代入 $x=2$ 得 $3\cdot4=12$。用定义算也一样：$\frac{(2+h)^3-8}{h}=12+6h+h^2\to12$。
+      - id: chain-ln
+        type: number
+        prompt: |
+          $f(x)=\ln(1+x^2)$，$f'(1)$ 等于多少？
+        answer: 1
+        tolerance: 0.001
+        hint: 外层是 $\ln$，内层是 $1+x^2$，用链式法则。
+        explain: |
+          外层导数 $\frac1{1+x^2}$，内层导数 $2x$，所以 $f'(x)=\frac{2x}{1+x^2}$。代入 $x=1$ 得 $\frac22=1$。
+      - id: chain-sin
+        type: number
+        prompt: |
+          $f(x)=\sin(x^2)$，$f'(1)$ 等于多少？（保留三位小数）
+        answer: 1.081
+        tolerance: 0.001
+        hint: 外层是 $\sin$，内层是 $x^2$；别忘了乘内层的导数。
+        explain: |
+          链式法则：$f'(x)=\cos(x^2)\cdot2x$。代入 $x=1$ 得 $2\cos1\approx2\times0.540302=1.080604$，保留三位小数是 $1.081$。
+          如果只写 $\cos(x^2)$，就是漏掉了内层的导数 $2x$。
+      - id: abs
+        type: choice
+        prompt: |
+          $f(x)=|x|$ 在 $x=0$ 处可导吗？
+        options:
+          - text: 连续但不可导
+            correct: true
+          - text: 可导，导数是 0
+            why: 左侧割线斜率是 $-1$，右侧是 $1$，两边不相等，极限不存在
+          - text: 不连续，所以不可导
+            why: $|x|$ 在 0 处连续，问题出在左右斜率不一致
+        explain: |
+          $x>0$ 时 $f'(x)=1$，$x<0$ 时 $f'(x)=-1$，在 0 处左右导数不相等，所以导数不存在。
+          这说明“连续”只是可导的必要条件，不是充分条件；图像在 0 处有一个尖角。
+
+  - id: differential
+    chapter: 微分
+    title: 用直线代替曲线
+    minutes: 9
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        不用计算器，$\sqrt{1.01}$ 大约是多少？
+      options:
+        - text: 约 $1.005$
+          correct: true
+        - text: 约 $1.01$
+          why: 那是把 $\sqrt{1+h}$ 直接当成了 $1+h$，多算了一倍
+        - text: 约 $1.0005$
+          why: 根号下的变化会被“压缩”一半，但不会压缩到千分之一
+        - text: 约 $1.1$
+          why: $1.1^2=1.21$，比 1.01 大太多了
+      explain: |
+        在 $x=1$ 附近，$\sqrt x$ 的切线斜率是 $\frac12$，所以 $x$ 增加 $0.01$ 时，$\sqrt x$ 大约增加 $0.005$。
+        真实值 $\sqrt{1.01}=1.004987\ldots$，和 $1.005$ 只差约 $1.2\times10^{-5}$。
+    cards:
+      - title: 线性近似
+        body: |
+          在 $a$ 附近，曲线可以用它的切线代替。把 $x=a+h$ 代入切线方程：
+          $$f(a+h)\approx f(a)+f'(a)h.$$
+          这就是线性近似（linear approximation）。例如 $\sqrt{1+h}\approx1+\frac h2$：取 $h=0.01$ 得 $1.005$，真实值 $1.004987\ldots$，误差约 $1.2\times10^{-5}$。
+
+          $h$ 越小越准；$h$ 大到一定程度，曲线弯开，切线就不够用了。拖动 $h$ 看割线如何变成切线。
+        sim:
+          name: plot
+          params: {mode: secant, f: "sqrt(x)", a: 1, hMax: 0.5}
+      - title: 微分 dy 是什么
+        body: |
+          把 $h$ 改叫 $dx$，把 $f(a+h)-f(a)$ 改叫 $\Delta y$。切线给出的改变量叫微分（differential）：
+          $$dy=f'(x)\,dx.$$
+          $dy$ 是“沿切线走 $dx$ 时高度的变化”，$\Delta y$ 是“沿曲线走 $dx$ 时高度的真实变化”，两者相差一个比 $dx$ 更高阶的小量。
+
+          例：$y=x^2$ 在 $x=3$、$dx=0.1$ 时，$dy=2\cdot3\cdot0.1=0.6$，而 $\Delta y=3.1^2-3^2=0.61$。差 $0.01=(dx)^2$。
+      - title: 用微分估误差
+        body: |
+          测量有误差时，微分可以估误差：若 $y=f(x)$，$x$ 的误差为 $dx$，则 $y$ 的误差约为 $|f'(x)|\,|dx|$。
+
+          例：量出正方形边长 $3\text{ cm}$，误差不超过 $0.01\text{ cm}$。面积 $A=x^2$，$A'=2x$，所以面积误差约为 $2\cdot3\cdot0.01=0.06\text{ cm}^2$。
+
+          这正是“局部线性”在工程里的用法：不问函数整段长什么样，只问它在这一点的斜率。
+    items:
+      - id: sqrt-approx
+        type: number
+        prompt: |
+          用线性近似 $\sqrt{1+h}\approx1+\frac h2$ 估计 $\sqrt{1.02}$。
+        answer: 1.01
+        tolerance: 0.0005
+        hint: 把 $1.02$ 写成 $1+0.02$，再代公式。
+        explain: |
+          $1+\frac{0.02}{2}=1.01$。真实值 $\sqrt{1.02}=1.009950\ldots$，近似值偏高约 $4.95\times10^{-5}$；
+          $h$ 越小，这个偏差越小。
+      - id: dy
+        type: number
+        prompt: |
+          $y=x^2$，在 $x=3$ 处取 $dx=0.1$。微分 $dy$ 等于多少？
+        answer: 0.6
+        tolerance: 0.001
+        hint: $dy=2x\,dx$。
+        explain: |
+          $dy=2x\,dx=2\cdot3\cdot0.1=0.6$。真实的 $\Delta y=(3.1)^2-9=0.61$，多出的 $0.01$ 是 $(dx)^2$，属于更高阶的小量。
+      - id: sim-sqrt-secant
+        type: sim
+        sim: plot
+        prompt: |
+          拖动 $h$，让 $\sqrt x$ 在 $x=1$ 处的割线斜率进入 $0.5\pm0.01$。
+        params: {mode: secant, f: "sqrt(x)", a: 1, hMax: 0.5}
+        goal: {slope: {target: 0.5, tol: 0.01}}
+        solution: {h: 0.01}
+        hint: $h=0.1$ 时斜率约 0.488，再把 $h$ 调小。
+        explain: |
+          $h=0.01$ 时斜率是 $\frac{\sqrt{1.01}-1}{0.01}\approx0.4988$，已经进入 $0.5\pm0.01$。
+          $\sqrt x$ 在 $x=1$ 的导数是 $\frac12$，这正好对应近似公式 $\sqrt{1+h}\approx1+\frac h2$。
+      - id: dy-vs-delta
+        type: choice
+        prompt: |
+          $y=x^2$，$x$ 从 3 变到 3.1。$dy$ 和 $\Delta y$ 分别是多少？
+        options:
+          - text: $dy=0.6$，$\Delta y=0.61$
+            correct: true
+          - text: $dy=0.61$，$\Delta y=0.6$
+            why: 反了：$dy$ 是切线给出的改变量，$\Delta y$ 是真实改变量，真实值更大
+          - text: $dy=0.6$，$\Delta y=0.6$
+            why: 两者只在 $h\to0$ 时越来越接近；$h=0.1$ 时还差 $(0.1)^2=0.01$
+        explain: |
+          $dy=f'(3)\,dx=6\cdot0.1=0.6$；$\Delta y=3.1^2-3^2=9.61-9=0.61$。
+          对 $x^2$ 来说，真实改变量可以写成 $2x\,dx+(dx)^2$，微分只取了第一项。
+      - id: why-bad
+        type: choice
+        prompt: |
+          为什么 $h$ 很大时，线性近似 $f(a+h)\approx f(a)+f'(a)h$ 会变差？
+        options:
+          - text: 因为它丢掉了 $(h)^2$ 及更高阶的项
+            correct: true
+          - text: 因为 $f'(a)$ 会随 $h$ 改变
+            why: 在固定的点 $a$，$f'(a)$ 是一个固定的数，不随 $h$ 变
+          - text: 因为 $x^2$ 不可导
+            why: 多项式处处可导，问题不在可导性
+        explain: |
+          $f(a+h)=f(a)+f'(a)h+\frac12f''(a)h^2+\cdots$。线性近似只保留前两项，被丢掉的项在 $h$ 大时会变得可观。
+          对 $x^2$，误差正好是 $h^2$；$h=0.1$ 时是 $0.01$，$h=1$ 时就变成 $1$ 了。
+
+  - id: mvt
+    chapter: 微分中值定理
+    title: 平均变化率一定被某点的切线追上
+    minutes: 9
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        $f(0)=0$，$f(1)=1$，且 $f$ 在 $[0,1]$ 上连续、在 $(0,1)$ 内可导。有没有某个点的切线斜率正好等于 1？
+      options:
+        - text: 有
+          correct: true
+        - text: 不一定，可能所有切线斜率都大于 1
+          why: 整段的平均变化率就是 1，中值定理保证某点的切线斜率等于它
+        - text: 只有 $f$ 是直线时才有
+          why: 弯曲的曲线也可以有某点切线斜率等于平均变化率
+      explain: |
+        从 $(0,0)$ 到 $(1,1)$ 的割线斜率是 1。把这条割线上下平移，总能与曲线相切于某一点，那一点的切线斜率就是 1。
+        这就是拉格朗日中值定理的几何意思。
+    cards:
+      - title: 罗尔定理：两端同高
+        body: |
+          罗尔定理（Rolle's theorem）：若 $f$ 在 $[a,b]$ 上连续、在 $(a,b)$ 内可导，且 $f(a)=f(b)$，那么存在 $\xi\in(a,b)$ 使 $f'(\xi)=0$。
+
+          图像上：两端同高，中间必有一处切线水平。例如 $f(x)=x^2-1$ 在 $[-1,1]$ 上，$f(-1)=f(1)=0$，而 $f'(0)=0$。
+      - title: 拉格朗日中值定理
+        body: |
+          拉格朗日中值定理（Mean Value Theorem，MVT）：若 $f$ 在 $[a,b]$ 上连续、在 $(a,b)$ 内可导，那么存在 $\xi\in(a,b)$ 使
+          $$f(b)-f(a)=f'(\xi)(b-a).$$
+          也就是说，某一点的切线斜率等于整段的平均变化率 $\frac{f(b)-f(a)}{b-a}$，切线平行于连接两端的割线。
+
+          条件不能少：$f(x)=|x|$ 在 $[-1,1]$ 上连续，但在 0 处不可导，平均变化率是 0，却找不到 $f'(\xi)=0$ 的点。
+      - title: 用导数看单调和极值
+        body: |
+          导数的符号决定单调性：在区间上 $f'>0$ 就递增，$f'<0$ 就递减。求极值时，先解 $f'(x)=0$ 找候选点（导数不存在但函数有定义的点也要看），再看两侧符号。
+
+          例：$f(x)=x^3-3x$，$f'(x)=3x^2-3=3(x-1)(x+1)$。$f'$ 在 $(-\infty,-1)$ 和 $(1,+\infty)$ 为正、在 $(-1,1)$ 为负，所以 $x=-1$ 处取极大值 $f(-1)=2$，$x=1$ 处取极小值 $f(1)=-2$。
+
+          $f'(\xi)=0$ 不保证是极值：$f(x)=x^3$ 在 0 处导数为 0，但函数一直递增。
+    items:
+      - id: mvt-xi
+        type: number
+        prompt: |
+          对 $f(x)=x^3$ 在 $[0,2]$ 上验证拉格朗日中值定理，求定理中的 $\xi$。
+        answer: 1.1547
+        tolerance: 0.01
+        hint: 平均变化率是 $\frac{8-0}{2-0}=4$，再解 $3\xi^2=4$，取 $(0,2)$ 内的那个根。
+        explain: |
+          平均变化率 $\frac{f(2)-f(0)}{2-0}=\frac{8}{2}=4$。令 $f'(\xi)=3\xi^2=4$，得 $\xi=\pm\frac{2}{\sqrt3}$；
+          只有 $\xi=\frac{2}{\sqrt3}\approx1.1547$ 在 $(0,2)$ 内。
+      - id: max
+        type: number
+        prompt: |
+          $f(x)=x^3-3x$ 的极大值是多少？
+        answer: 2
+        tolerance: 0.001
+        hint: 先解 $f'(x)=3x^2-3=0$，得到两个候选点。
+        explain: |
+          $f'(x)=3(x-1)(x+1)$，候选点是 $x=\pm1$。$f'$ 在 $x=-1$ 两侧由正变负，所以那里是极大值，$f(-1)=(-1)^3-3(-1)=2$。
+          $x=1$ 处由负变正，是极小值 $f(1)=-2$。
+      - id: mvt-condition
+        type: choice
+        prompt: |
+          为什么 $f(x)=|x|$ 在 $[-1,1]$ 上不能直接用拉格朗日中值定理？
+        options:
+          - text: 它在 $x=0$ 不可导，不满足“在 $(-1,1)$ 内可导”
+            correct: true
+          - text: 它在 $[-1,1]$ 上不连续
+            why: $|x|$ 是连续的，问题出在 0 处的尖角，不是连续性
+          - text: 它的平均变化率不存在
+            why: 平均变化率是 $\frac{1-1}{2}=0$，当然存在
+        explain: |
+          中值定理要求开区间内处处可导。$|x|$ 在 0 处左右导数分别是 $-1$ 和 $1$，不可导，所以条件不满足。
+          这也解释了为什么结论会失败：平均斜率是 0，但曲线上没有任何一点的切线斜率为 0。
+      - id: steps
+        type: order
+        prompt: 把求单调区间和极值的步骤排成合理顺序。
+        steps:
+          - 求导数 $f'(x)$
+          - 解方程 $f'(x)=0$，找出候选点
+          - 用候选点把定义域分成若干区间，判断 $f'$ 在每个区间的符号
+          - 根据符号写出单调区间，并判断候选点是极大值还是极小值
+        explain: |
+          先求导，再找导数为零的点；这些点把定义域分段，每一段内导数符号不变。
+          符号从正变负是极大值，从负变正是极小值；符号不变就不是极值。
+      - id: not-extremum
+        type: choice
+        prompt: |
+          $f(x)=x^3$ 在 $x=0$ 处 $f'(0)=0$。下面哪个说法对？
+        options:
+          - text: 0 不是极值点，因为 $f$ 在 0 两侧都递增
+            correct: true
+          - text: 0 是极小值点
+            why: $f(-0.1)=-0.001<f(0)=0$，左边还有更小的值，不是极小值
+          - text: 0 是极大值点
+            why: $f(0.1)=0.001>f(0)=0$，右边还有更大的值，不是极大值
+        explain: |
+          $f'(x)=3x^2$ 在 0 两侧都是正的，函数一路递增，只是在 0 处“停顿”了一下。
+          导数为 0 只是极值的候选条件，还要看两侧符号是否改变。
+
+  - id: taylor
+    chapter: 泰勒公式与局部近似
+    title: 用多项式模仿函数
+    minutes: 10
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        用 $1+0.1+\frac{0.1^2}{2}+\frac{0.1^3}{6}$ 算 $e^{0.1}$，结果比真值大还是小？
+      options:
+        - text: 偏大
+          why: 被丢掉的下一项 $\frac{0.1^4}{24}$ 是正的，所以截断的多项式偏小
+        - text: 偏小
+          correct: true
+        - text: 完全相等
+          why: 有限项多项式只是近似，只有无穷级数才在极限意义下等于 $e^{0.1}$
+      explain: |
+        $e^x=1+x+\frac{x^2}{2}+\frac{x^3}{6}+\frac{x^4}{24}+\cdots$，各项都是正的。
+        只加到三次项，丢掉的都是正项，所以结果偏小：$P_3(0.1)=1.105167$，$e^{0.1}=1.105171\ldots$。
+    cards:
+      - title: 从切线到更高次多项式
+        body: |
+          一条切线只能匹配函数在某点的值和斜率。想匹配更多信息，就用更高次的多项式：
+          $$P_n(x)=\sum_{k=0}^{n}\frac{f^{(k)}(a)}{k!}(x-a)^k.$$
+          它满足 $P_n^{(k)}(a)=f^{(k)}(a)$（$k=0,1,\dots,n$），所以在这一点的值、斜率、弯曲程度都和 $f$ 一致。$n=1$ 就是切线，$n=2$ 多匹配了二阶导数。
+
+          例：$e^x$ 在 0 处各阶导数都是 1，所以 $P_3(x)=1+x+\frac{x^2}{2}+\frac{x^3}{6}$。拖动阶数看多项式怎样贴合曲线。
+        sim:
+          name: plot
+          params: {mode: taylor, series: exp, xMax: 3}
+      - title: 余项：误差有多大
+        body: |
+          多项式再好也只是近似。泰勒公式把误差写成余项（remainder）：
+          $$R_n(x)=f(x)-P_n(x)=\frac{f^{(n+1)}(\xi)}{(n+1)!}(x-a)^{n+1},$$
+          其中 $\xi$ 介于 $a$ 与 $x$ 之间（拉格朗日余项）。
+
+          例：$e^{0.1}\approx P_3(0.1)=1.105167$，真实值 $1.105171$，误差约 $4.3\times10^{-6}$。
+          用 $e^\xi<1.2$ 估上界：$|R_3(0.1)|\le\frac{1.2\cdot0.1^4}{24}=5\times10^{-6}$，确实盖住了真实误差。
+      - title: 为什么优化里到处是泰勒
+        body: |
+          优化里到处是“局部用多项式代替函数”。梯度下降（gradient descent）的一步来自一阶近似：
+          $$f(x+\Delta)\approx f(x)+f'(x)\Delta.$$
+          要让函数变小，就取 $\Delta=-\eta f'(x)$，其中 $\eta>0$ 是很小的步长；这就是沿负梯度走。
+
+          二阶近似 $f(x+\Delta)\approx f(x)+f'(x)\Delta+\frac12f''(x)\Delta^2$ 还能解释步长：$\eta$ 太大时，二次项占上风，可能越过最低点，甚至让函数值越来越大。
+          这些近似都只在 $\Delta$ 小时可靠。
+    items:
+      - id: sim-exp
+        type: sim
+        sim: plot
+        prompt: |
+          调整多项式阶数，使 $e^x$ 在 $x=0.1$ 处的误差小于 $10^{-5}$。
+        params: {mode: taylor, series: exp, xMax: 3}
+        goal: {at: 0.1, errorBelow: 0.00001}
+        solution: {order: 3}
+        hint: 二阶时误差约 $1.7\times10^{-4}$，再加一阶试试。
+        explain: |
+          $P_2(0.1)=1.105$，误差约 $1.7\times10^{-4}$；加到三阶得 $P_3(0.1)=1.105167$，误差约 $4.3\times10^{-6}$，小于 $10^{-5}$。
+          阶数越高，在固定点附近通常越准，但计算量也越大。
+      - id: p3
+        type: number
+        prompt: |
+          $e^x$ 在 $x=0$ 处的三阶泰勒多项式 $P_3(x)=1+x+\frac{x^2}{2}+\frac{x^3}{6}$。$P_3(0.1)$ 等于多少？（保留 6 位小数）
+        answer: 1.105167
+        tolerance: 0.000001
+        hint: $0.1^2=0.01$，$0.1^3=0.001$，逐项相加。
+        explain: |
+          $1+0.1+\frac{0.01}{2}+\frac{0.001}{6}=1+0.1+0.005+0.000166667=1.105166667$，保留 6 位小数是 $1.105167$。
+          真实值 $1.105171$，差约 $4.3\times10^{-6}$。
+      - id: cos-approx
+        type: number
+        prompt: |
+          用二次泰勒多项式 $1-\frac{x^2}{2}$ 近似 $\cos 0.2$。
+        answer: 0.98
+        tolerance: 0.0001
+        hint: $0.2^2=0.04$，再除以 2。
+        explain: |
+          $1-\frac{0.04}{2}=1-0.02=0.98$。真实值 $\cos0.2=0.980067\ldots$，误差约 $6.7\times10^{-5}$；
+          下一项是 $\frac{x^4}{24}\approx0.0000667$，正好补上这个差。
+      - id: coefficient
+        type: choice
+        prompt: |
+          $e^x$ 在 $x=0$ 处的泰勒多项式中，$x^2$ 的系数是多少？
+        options:
+          - text: $\frac12$
+            correct: true
+          - text: $1$
+            why: 1 是 $x$ 的系数，对应一阶导数 $f'(0)=1$
+          - text: $\frac16$
+            why: $\frac16$ 是 $x^3$ 的系数，对应三阶导数除以 $3!$
+          - text: $2$
+            why: $2! = 2$ 在分母上，系数是 $\frac{1}{2!}=\frac12$，不是 2
+        explain: |
+          $x^2$ 的系数是 $\frac{f''(0)}{2!}$。$e^x$ 的二阶导数还是 $e^x$，在 0 处等于 1，所以系数是 $\frac12$。
+          一般地，$x^k$ 的系数是 $\frac{f^{(k)}(0)}{k!}$。
+      - id: sim-cos
+        type: sim
+        sim: plot
+        prompt: |
+          调整阶数，使 $\cos x$ 在 $x=0.5$ 处的误差小于 $0.001$。
+        params: {mode: taylor, series: cos, xMax: 1}
+        goal: {at: 0.5, errorBelow: 0.001}
+        solution: {order: 4}
+        hint: 二阶时误差约 $0.0026$，再加一项；$\cos$ 是偶函数，奇数次项都是 0。
+        explain: |
+          $P_2(0.5)=1-\frac{0.25}{2}=0.875$，和 $\cos0.5=0.877583\ldots$ 差约 $0.00258$，超过 $0.001$。
+          加上 $\frac{x^4}{24}=0.002604$ 后，$P_4(0.5)=0.877604$，误差约 $2.16\times10^{-5}$。
+
+boss:
+  items:
+    - id: product-rule
+      type: number
+      prompt: |
+        $f(x)=x^3e^{2x}$，$f'(1)$ 等于多少？（保留三位小数）
+      answer: 36.945
+      tolerance: 0.01
+      hint: 先用乘积法则，再分别对 $x^3$ 和 $e^{2x}$ 用链式法则。
+      explain: |
+        $f'(x)=3x^2e^{2x}+x^3\cdot2e^{2x}=x^2(2x+3)e^{2x}$。代入 $x=1$ 得 $5e^2\approx36.945$。
+        少了第二项，就只对 $x^3$ 求了导；少了 $2$，就漏掉了 $e^{2x}$ 内层的导数。
+    - id: mvt-x2
+      type: number
+      prompt: |
+        对 $f(x)=x^2$ 在 $[1,3]$ 上验证拉格朗日中值定理，求定理中的 $\xi$。
+      answer: 2
+      tolerance: 0.001
+      hint: 平均变化率是 $\frac{9-1}{3-1}=4$，再令 $f'(\xi)=2\xi=4$。
+      explain: |
+        $\frac{f(3)-f(1)}{3-1}=\frac{9-1}{2}=4$，而 $f'(\xi)=2\xi$。令 $2\xi=4$ 得 $\xi=2$，它确实在 $(1,3)$ 内。
+        几何上，$x=2$ 处的切线斜率是 4，和两端割线平行。
+    - id: remainder-bound
+      type: number
+      prompt: |
+        对 $e^x$ 的三阶泰勒多项式，用 $e^\xi<1.2$ 估计 $|R_3(0.1)|$ 的上界（填小数）。
+      answer: 0.000005
+      tolerance: 0.000000001
+      hint: $|R_3(0.1)|\le\frac{1.2\cdot0.1^4}{4!}$，其中 $4!=24$。
+      explain: |
+        $|R_3(0.1)|\le\frac{1.2\cdot(0.1)^4}{24}=\frac{1.2\cdot0.0001}{24}=0.000005=5\times10^{-6}$。
+        真实误差约 $4.3\times10^{-6}$，确实小于这个上界。
+
+
+

@@ -1,0 +1,1973 @@
+skill: C.1.1
+version: 2
+authors: [main-agent]
+brief:
+  why: 计算机组成原理讲的是：一台电脑从电压、逻辑门开始，怎样一层层搭成一个能执行程序的 CPU，以及它怎样存取数据、和设备打交道。操作系统就站在这一层上面：它要用到中断、异常、寄存器、cache 和地址的位运算。这一关只假设你学过程序设计基础的 Python，需要计算的地方用 Python 算；课程主线照着 MIT 6.004。
+  outcomes:
+    - 用 log₂ 算信息量，在二进制、十进制、十六进制之间换算，写出负数的补码和单精度浮点数的表示
+    - 用 Huffman 算法造变长编码，用汉明距离说明奇偶校验能发现几位错误、几位能改正
+    - 说出电压门限和噪声容限，从真值表写出与或式，用卡诺图化简，看懂多路选择器和 ROM
+    - 搭出全加器和行波进位加法器，用补码做减法，判断溢出；用位运算和掩码取出一个数的某几位
+    - 说出寄存器、SRAM、DRAM、闪存、磁盘的快慢，算 cache 的 tag / index / offset 和平均访问时间，比较写直达和写回
+    - 比较轮询、中断和 DMA，说出系统调用的作用，按弱优先级和强优先级算最坏延迟
+    - 说出锁存器和寄存器的区别，用时序约束算最高时钟频率
+    - 跟着单周期数据通路走一遍 add、lw、sw、beq，写出每条指令的控制信号；说出异常时怎样保存和恢复 PC
+    - 设计一个小的有限状态机，合并等价状态，说出怎样处理异步输入
+terms:
+  - term: 位
+    def: '一个只能是 0 或 1 的格子（bit），计算机里的数据最后都是一串位'
+  - term: 编码
+    def: '给每个要表示的东西规定一串位'
+  - term: 二进制
+    def: '只用 0 和 1、每往左一位就乘 2 的写法，如 1011 = 11'
+  - term: 字节
+    def: '8 位，能表示 0 到 255'
+  - term: 十六进制
+    def: '用 0–9 和 A–F 的写法，一位对应 4 个二进制位，如 0x9C = 156'
+  - term: 汉明距离
+    def: '两串一样长的位里，有几个位置不同'
+  - term: 真值表
+    def: '列出每种输入组合和对应输出的表'
+  - term: 多路选择器
+    def: '按选择输入从几个数据输入里挑一个送到输出的电路（multiplexer）'
+  - term: 指令
+    def: 'CPU 一步执行的一个简单操作，如 add x5, x6, x7；RISC-V 的一条指令 32 位'
+  - term: 算术逻辑单元
+    def: 'ALU：做加减、与或、移位、比较的部件，做哪种由控制信号选'
+  - term: 内存
+    def: '程序运行时存放数据的地方，按地址读写，通常是 DRAM'
+  - term: 地址
+    def: '内存里每个字节的编号'
+  - term: 寄存器
+    def: 'CPU 里面最快的存储格，如 RISC-V 的 x0–x31；也指用时钟控制、每个上升沿更新一次的存储电路'
+  - term: cache
+    def: 'CPU 旁边小而快的存储，放着最近用过的内存块的副本；找到叫命中'
+  - term: 中断
+    def: '设备发给 CPU 的信号：CPU 保存 PC，跳到操作系统的处理程序，处理完再回来'
+  - term: 程序计数器
+    def: 'PC：记着下一条要执行的指令地址的寄存器'
+  - term: 系统调用
+    def: '程序用一条特殊指令请操作系统代办的操作，如读键盘、写文件'
+  - term: 数据通路
+    def: 'CPU 里执行指令的部件和它们之间的连线：PC、寄存器堆、ALU、存储器、选择器'
+  - term: 有限状态机
+    def: '有限个状态加上“当前状态 + 输入 → 下一个状态和输出”的规则，用一个寄存器存状态'
+
+lessons:
+  - id: information
+    chapter: 数据表示
+    title: 信息有多少：位和编码
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 抛一枚硬币，正面或反面。猜一猜：最少要用几个“0 或 1”才能把结果记下来？
+          answer: 1
+          explain: 正面记 0，反面记 1，一个就够。一个 0 或 1 叫一位。
+      - card:
+          title: 位：一个二选一
+          body: |
+            一个只能是 0 或 1 的格子叫一**位（bit）**。计算机里所有的数据，最后都是一串位。
+
+            信息就是“消除了多少不确定”。从 N 个**等可能**的结果里知道是哪一个，得到的信息是 log₂ N 位：抛硬币 log₂ 2 = 1 位；从 8 个里挑 1 个是 log₂ 8 = 3 位。
+      - item:
+          id: log2-16
+          type: number
+          prompt: 从 16 个等可能的结果里得知是哪一个，得到几位信息？
+          answer: 4
+          explain: log₂ 16 = 4，因为 2⁴ = 16。
+      - card:
+          title: 越意外，信息越多
+          body: |
+            结果不是等可能时，6.004 的公式是：一个概率为 p 的事件发生了，带来
+
+            $$\log_2 \frac{1}{p}$$
+
+            位信息。p = 1/2 是 1 位；p = 1/8 是 3 位。越少见的事，告诉你它发生了，信息越多：“今天太阳从东边升起”几乎没有信息。
+      - item:
+          id: info-eighth
+          type: number
+          prompt: 一个事件的概率是 1/32。得知它发生了，得到几位信息？
+          answer: 5
+          explain: log₂(1 / (1/32)) = log₂ 32 = 5。
+      - item:
+          id: more-info
+          type: choice
+          prompt: 下面哪个消息带来的信息更多？
+          options:
+            - text: 一件概率 1/1024 的事发生了
+              correct: true
+            - text: 一件概率 1/2 的事发生了
+              why: 只有 log₂ 2 = 1 位；概率越小，信息越多
+          explain: log₂ 1024 = 10 位，比 1 位多得多。
+      - card:
+          title: 编码：给每样东西一串位
+          body: |
+            给每个要表示的东西（字母、数字、颜色……）规定一串位，叫**编码（encoding）**。最简单的是定长编码：每样东西用一样多的位。
+
+            有 N 样东西，就要找最小的 k 使 2^k ≥ N：k 位一共能写出 2^k 种不同的串。6.004 的例子：10 个数字要 4 位；英文常用的 ASCII 字符用 7 位。
+      - item:
+          id: letters-bits
+          type: number
+          prompt: 用定长编码表示 26 个英文字母，每个字母至少要几位？
+          answer: 5
+          explain: 2⁴ = 16 不够，2⁵ = 32 ≥ 26，所以要 5 位。
+      - item:
+          id: thousand-bits
+          type: number
+          prompt: 有 1000 种可能的值，用定长编码至少要几位？
+          answer: 10
+          explain: 2⁹ = 512 不够，2¹⁰ = 1024 ≥ 1000。
+
+  - id: binary-hex
+    chapter: 数据表示
+    title: 二进制和十六进制
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 我们平时写的 1011 是“一千零一十一”。猜一猜：如果每一位代表的不是 1、10、100……而是 1、2、4、8……，1011 是多少？
+          answer: 11
+          explain: 8 + 0 + 2 + 1 = 11。这种每一位代表 2 的幂的写法，下面细讲。
+      - card:
+          title: 二进制
+          body: |
+            只用 0 和 1、每往左一位就乘 2 的写法叫**二进制（binary）**。从右往左，各位代表 1、2、4、8、16……
+
+            | 位 | 1 | 0 | 1 | 1 |
+            |---|---|---|---|---|
+            | 代表 | 8 | 4 | 2 | 1 |
+
+            所以 1011 = 8 + 2 + 1 = 11。Python 里写 `0b1011` 就是 11；`int("1011", 2)` 也得 11。
+      - item:
+          id: bin-to-dec
+          type: number
+          prompt: 二进制的 110101 是十进制的多少？
+          answer: 53
+          explain: 32 + 16 + 4 + 1 = 53。
+      - card:
+          title: 十进制变成二进制
+          body: |
+            从大到小，看能放下哪些 2 的幂：37 = 32 + 4 + 1，于是 32、4、1 这几位是 1，其他是 0：100101。
+
+            Python 里 `bin(37)` 得到 `'0b100101'`，前面的 0b 表示这是二进制。
+      - item:
+          id: dec-to-bin
+          type: text
+          prompt: 十进制的 37 写成二进制是什么？（不写 0b）
+          answers: ['100101']
+          explain: 37 = 32 + 4 + 1，从 32 那一位写到 1 那一位：100101。
+      - card:
+          title: n 位能表示多大的数
+          body: |
+            n 位一共有 2^n 种串，表示不带符号的整数时，范围是 0 到 2^n − 1。8 位叫一个**字节（byte）**，能表示 0 到 255。
+
+            | 位数 | 最大 |
+            |---|---|
+            | 8 | 255 |
+            | 16 | 65535 |
+            | 32 | 4294967295 |
+      - item:
+          id: max-16
+          type: number
+          prompt: 16 位能表示的最大的不带符号整数是多少？
+          answer: 65535
+          explain: 2¹⁶ − 1 = 65536 − 1 = 65535。
+      - card:
+          title: 十六进制：四位一组
+          body: |
+            二进制太长不好读，常写成**十六进制（hexadecimal）**：每一位代表 16 的幂，用 0–9 和 A–F（10–15）。一个十六进制位正好对应 4 个二进制位：
+
+            1001 1100 → 9 和 C → 写作 `0x9C`，等于 9 × 16 + 12 = 156。
+
+            Python 里 `hex(156)` 得 `'0x9c'`，`0x9C` 就是 156。
+      - item:
+          id: hex-9c
+          type: number
+          prompt: 十六进制 0x9C 作为不带符号的数，是十进制的多少？
+          answer: 156
+          explain: 9 × 16 + 12 = 144 + 12 = 156。
+      - item:
+          id: bin-to-hex
+          type: text
+          prompt: 二进制 1101 0110 写成十六进制是什么？（只写两位，不写 0x）
+          answers: [D6]
+          explain: 1101 是 13，也就是 D；0110 是 6。合起来 D6。
+      - item:
+          id: hex-ff
+          type: number
+          prompt: 0xFF 是十进制的多少？
+          answer: 255
+          explain: 15 × 16 + 15 = 255，也就是 8 位全是 1。
+
+  - id: twos-complement
+    chapter: 数据表示
+    title: 负数怎么存：补码
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 8 位只能是 0 和 1，没有“负号”。猜一猜，下面哪种做法让加法电路最简单？
+          options:
+            - text: 让最高位代表 −128，其余位照常
+              correct: true
+            - text: 最高位当负号，其余 7 位是大小
+              why: 这样会有 +0 和 −0 两个零，而且加法要先看符号再决定加还是减，电路更复杂
+          explain: 最高位带负的权重，这叫补码。正数负数都用同一个加法器相加。
+      - card:
+          title: 补码：最高位是负的
+          body: |
+            n 位的补码（two's complement）里，最高位代表 −2^(n−1)，其余各位照常是正的。8 位时最高位代表 −128：
+
+            - `01111111` = 127（最大）；
+            - `10000000` = −128（最小）；
+            - `11111111` = −128 + 127 = −1。
+
+            范围是 −2^(n−1) 到 2^(n−1) − 1：8 位是 −128 到 127。
+      - item:
+          id: neg-two
+          type: number
+          prompt: 8 位补码 11111110 表示多少？
+          answer: -2
+          explain: −128 + 64 + 32 + 16 + 8 + 4 + 2 = −128 + 126 = −2。
+      - card:
+          title: 取反加一
+          body: |
+            求 −A 的补码：把 A 的每一位取反（0 变 1，1 变 0），再加 1。
+
+            例：−37。37 = `00100101`；取反得 `11011010`；加 1 得 `11011011`，也就是 `0xDB`。
+
+            检查：−128 + 64 + 16 + 8 + 2 + 1 = −37。
+      - card:
+          title: 自己拨一拨
+          body: 点每一位把它在 0 和 1 之间切换，看它作为 8 位补码表示多少。
+          sim:
+            name: bits
+            params:
+              bits: 8
+              signed: true
+              start: 0
+      - item:
+          id: set-minus-37
+          type: sim
+          sim: bits
+          prompt: 把 8 个位拨成 −37 的补码。
+          params:
+            bits: 8
+            signed: true
+            start: 0
+          goal:
+            value: -37
+          solution: [1, 1, 0, 1, 1, 0, 1, 1]
+          explain: 37 是 00100101，取反加一得 11011011。
+      - item:
+          id: hex-signed
+          type: number
+          prompt: 8 位的 0x9C 当作补码（有符号），表示多少？
+          answer: -100
+          explain: 0x9C 不带符号是 156；最高位是 1，有符号时要减去 256：156 − 256 = −100。
+      - card:
+          title: 在 Python 里看 8 位补码
+          body: |
+            Python 的整数没有位数限制，没法直接“溢出”。想看 −37 的 8 位补码，用除以 256 的余数：`(-37) % 256` 得 219，`bin(219)` 是 `'0b11011011'`，正好就是它。
+
+            反过来，一个 8 位串当作不带符号是 u，那么它当作补码就是：u < 128 时是 u，否则是 u − 256。
+      - item:
+          id: max-16-signed
+          type: number
+          prompt: 16 位补码能表示的最大正数是多少？
+          answer: 32767
+          explain: 2¹⁵ − 1 = 32767。最小是 −32768。
+      - item:
+          id: minus-one
+          type: text
+          prompt: '`bin((-1) % 256)` 是什么？'
+          answers: ['0b11111111']
+          explain: (−1) % 256 = 255，8 位全是 1。所以 −1 的补码就是全 1。
+
+  - id: huffman
+    chapter: 数据表示
+    title: 常用的写短一点：变长编码和 Huffman
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 摩尔斯电码里，最常用的字母 E 只是一个点，少见的 Q 却是“— — · —”。猜一猜为什么这样设计？
+          options:
+            - text: 常用的写短，平均下来发得最快
+              correct: true
+            - text: 只是历史习惯，没有道理
+              why: 让常用的短、少见的长，整篇电文的平均长度就短了
+          explain: 这就是变长编码的想法。
+      - card:
+          title: 变长编码和平均长度
+          body: |
+            6.004 的例子：四个符号的概率是 A = 1/3、B = 1/2、C = 1/12、D = 1/12。定长编码每个用 2 位。
+
+            如果给常见的 B 用短的、给少见的 C、D 用长的，平均长度是
+
+            $$\sum_i p_i \times \text{第 } i \text{ 个符号的码长}$$
+
+            能比 2 位更短。
+      - card:
+          title: 必须能唯一地拆开
+          body: |
+            编码要能从一长串位里唯一地拆出每个符号。如果 A = 0、B = 1、C = 01，收到 `01` 时，是 AB 还是 C？没法分辨。
+
+            保证不出错的办法：**没有哪个码是另一个码的开头**。把码画成一棵二叉树（往左是 0、往右是 1），符号都放在叶子上，就一定满足这一条。
+      - item:
+          id: prefix-free
+          type: choice
+          prompt: 下面哪一组编码能被唯一地拆开？
+          options:
+            - text: 0、10、110、111
+              correct: true
+            - text: 0、1、01
+              why: 0 是 01 的开头，收到 01 时分不清是“0 然后 1”还是“01”
+            - text: 1、10、100
+              why: 1 是 10 的开头，10 又是 100 的开头
+          explain: 第一组里没有哪个码是另一个码的开头，从左往右读，读满一个码就能确定一个符号。
+      - card:
+          title: Huffman 算法
+          body: |
+            6.004 讲的 Huffman 算法从下往上造这棵树：
+
+            1. 每个符号是一棵只有它自己的小树，带着它的概率；
+            2. 找出概率**最小的两棵**，合成一棵新树（概率相加）；
+            3. 重复第 2 步，直到只剩一棵。
+
+            最后往左记 0、往右记 1，从根走到每个叶子经过的位就是它的码。没有别的变长编码的平均长度比它更短。
+      - card:
+          title: 例题：A = 1/3、B = 1/2、C = D = 1/12
+          body: 照着算法一步一步合并。
+          reveal:
+            - title: 第 1 步
+              body: 最小的两个是 C、D（各 1/12），合成 CD，概率 1/6。
+            - title: 第 2 步
+              body: 现在有 A（1/3）、B（1/2）、CD（1/6）。最小的两个是 CD 和 A，合成 ACD，概率 1/2。
+            - title: 第 3 步
+              body: 剩 B（1/2）和 ACD（1/2），合成根。
+            - title: 第 4 步：读出码和平均长度
+              body: B = 0，A = 11，C = 100，D = 101。平均长度 = 1/2 × 1 + 1/3 × 2 + 1/12 × 3 + 1/12 × 3 = 5/3 ≈ 1.67 位，比 2 位短。1000 个符号约 1667 位，定长要 2000 位。
+      - item:
+          id: avg-len
+          type: number
+          prompt: 四个符号的概率是 0.5、0.25、0.125、0.125，Huffman 编码的码长依次是 1、2、3、3。平均每个符号几位？
+          answer: 1.75
+          explain: 0.5 × 1 + 0.25 × 2 + 0.125 × 3 + 0.125 × 3 = 0.5 + 0.5 + 0.375 + 0.375 = 1.75。
+      - item:
+          id: decode
+          type: text
+          prompt: 用 B = 0、A = 11、C = 100、D = 101，把 011100 拆成符号。（写成字母，如 BAD）
+          answers: [BAC]
+          explain: 从左读：0 是 B；接着 11 是 A；剩下 100 是 C。
+      - item:
+          id: huffman-first
+          type: choice
+          prompt: 五个符号的概率是 0.4、0.2、0.2、0.1、0.1。Huffman 算法第一步合并哪两个？
+          options:
+            - text: 两个 0.1
+              correct: true
+            - text: 0.4 和 0.2
+              why: 每一步合并的是概率最小的两个
+          explain: 先合并最少见的，它们最后会在树的最深处，码最长。
+
+  - id: error-codes
+    chapter: 数据表示
+    title: 传错了能发现吗：检错和纠错
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一串位在传输中有一位被干扰翻转了（0 变 1）。猜一猜，接收方有什么办法发现？
+          options:
+            - text: 发送方多加一位，让 1 的个数总是偶数；收到奇数个 1 就知道错了
+              correct: true
+            - text: 没有办法，收到什么就是什么
+              why: 只要多发一点“检查用”的位，就能发现一部分错误
+          explain: 多加的这一位叫奇偶校验位。
+      - card:
+          title: 汉明距离
+          body: |
+            两串一样长的位，有几个位置不同，它们的**汉明距离（Hamming distance）**就是几。0110 和 0011 第 2、4 位不同，距离是 2。
+
+            一位出错，就是变成了一个和原来距离为 1 的串。
+      - item:
+          id: hamming
+          type: number
+          prompt: 10110 和 11100 的汉明距离是多少？
+          answer: 2
+          explain: 第 2 位（0 和 1）、第 4 位（1 和 0）不同，其余相同。
+      - card:
+          title: 奇偶校验位
+          body: |
+            在数据后面加一位，使整串里 1 的个数是偶数。只要有一位出错，1 的个数就变成奇数，接收方就能发现。
+
+            6.004 的说法：加了校验位以后，合法的码之间的最小汉明距离从 1 变成了 2。一位错误只会得到一个“不合法”的串，所以能被发现；但还不知道是哪一位错了。
+      - item:
+          id: parity
+          type: text
+          prompt: 给 1011001 加一位偶校验位（加在最后），完整的 8 位是什么？
+          answers: ['10110010']
+          explain: 1011001 里有 4 个 1，已经是偶数，校验位是 0。
+      - card:
+          title: 距离越大，能做的越多
+          body: |
+            6.004 的规律：
+
+            - 想发现最多 E 位错误，合法码之间的最小距离至少要 E + 1；
+            - 想改正最多 E 位错误，最小距离至少要 2E + 1。
+
+            例：只用 000 和 111 两个码（距离 3）。收到 001，离 000 只差 1、离 111 差 2，就改成 000：一位错误能被改正。
+      - item:
+          id: correct-110
+          type: choice
+          prompt: 只用 000 和 111 两个码。收到 110，应该改成什么？
+          options:
+            - text: '111'
+              correct: true
+            - text: '000'
+              why: 110 和 000 差 2 位，和 111 只差 1 位，最可能是 111 错了一位
+          explain: 改成离它最近的合法码。
+      - item:
+          id: correct-two
+          type: number
+          prompt: 想改正最多 2 位错误，合法码之间的最小汉明距离至少是多少？
+          answer: 5
+          explain: 2E + 1 = 2 × 2 + 1 = 5。
+      - item:
+          id: detect-three
+          type: number
+          prompt: 想发现（不要求改正）最多 3 位错误，最小汉明距离至少是多少？
+          answer: 4
+          explain: E + 1 = 3 + 1 = 4。
+
+  - id: floating-point
+    chapter: 数据表示
+    title: 小数怎么存：浮点数
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜：Python 里 `0.1 + 0.2 == 0.3` 是什么？
+          options:
+            - text: 'False'
+              correct: true
+            - text: 'True'
+              why: 0.1 和 0.2 在计算机里都存不准，加起来是 0.30000000000000004
+          explain: 浮点数用二进制存小数，很多十进制小数存不准。下面讲为什么。
+      - card:
+          title: 二进制的科学计数法
+          body: |
+            像 6.25 = 6.25 × 10⁰ 这样，二进制也能写成“1.几 × 2 的几次方”：6.25 = 110.01₂ = 1.1001₂ × 2²。
+
+            IEEE 754 单精度浮点数用 32 位存这三样：
+
+            | 符号 | 阶码 | 尾数 |
+            |---|---|---|
+            | 1 位（0 正 1 负） | 8 位，存“次方 + 127” | 23 位，存“1.”后面的部分 |
+      - card:
+          title: 例题：−6.25 的单精度表示
+          body: 一步一步拼出 32 位。
+          reveal:
+            - title: 第 1 步：符号
+              body: 负数，符号位是 1。
+            - title: 第 2 步：写成 1.几 × 2^e
+              body: 6.25 = 110.01₂ = 1.1001₂ × 2²，e = 2。
+            - title: 第 3 步：阶码
+              body: 2 + 127 = 129 = 10000001。
+            - title: 第 4 步：尾数和十六进制
+              body: “1.”后面是 1001，补 0 到 23 位。合起来 1 10000001 10010000000000000000000，四位一组写成十六进制：0xC0C80000。
+      - item:
+          id: exponent-field
+          type: number
+          prompt: 一个单精度浮点数写成 1.几 × 2³。它的 8 位阶码存的是十进制的多少？
+          answer: 130
+          explain: 3 + 127 = 130。
+      - item:
+          id: one-hex
+          type: text
+          prompt: 1.0 的单精度表示写成十六进制是什么？（8 位十六进制，不写 0x）
+          answers: [3F800000]
+          explain: 1.0 = 1.0 × 2⁰，符号 0，阶码 0 + 127 = 01111111，尾数全 0：0 01111111 000…0 = 0x3F800000。
+      - card:
+          title: 为什么 0.1 存不准
+          body: |
+            0.1 写成二进制是 0.000110011001100…，后面无限循环，尾数的位数有限，只能存一个最接近的近似值。0.2 也是。两个近似值相加，结果和 0.3 的近似值差了一点点：`0.1 + 0.2` 显示 0.30000000000000004。
+
+            Python 的 float 是 64 位的双精度：1 位符号、11 位阶码、52 位尾数，比单精度准得多，但照样不是精确的。所以比较两个浮点数要看“够不够接近”：`math.isclose(0.1 + 0.2, 0.3)` 是 True。
+      - item:
+          id: compare-floats
+          type: choice
+          prompt: 程序里要判断两个计算出来的浮点数是否“相等”，哪种写法最稳妥？
+          options:
+            - text: '`math.isclose(a, b)`'
+              correct: true
+            - text: '`a == b`'
+              why: 计算过程中的舍入误差会让本该相等的两个数差一点点，== 判成不相等
+            - text: '`int(a) == int(b)`'
+              why: 丢掉小数部分太粗糙，1.1 和 1.9 也会被当成相等
+          explain: isclose 判断两者的差是否小到可以忽略。
+      - item:
+          id: double-fraction
+          type: number
+          prompt: Python 的 float（IEEE 754 双精度）有几位尾数？
+          answer: 52
+          explain: 双精度一共 64 位：1 位符号、11 位阶码、52 位尾数。
+
+  - id: digital-abstraction
+    chapter: 运算器
+    title: 电压怎样变成 0 和 1
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 电路里传的是电压，而电压总会被干扰得高一点或低一点。猜一猜，电路怎样才能可靠地分清 0 和 1？
+          options:
+            - text: 规定“够低算 0、够高算 1”，中间留一段谁都不算
+              correct: true
+            - text: 规定恰好 0 伏是 0、恰好 5 伏是 1
+              why: 电压不可能恰好等于某个值，一点点干扰就会让判断出错
+          explain: 中间这段“禁区”加上留出的余量，让小的干扰改变不了结果。
+      - card:
+          title: 四个门限
+          body: |
+            6.004 的静态规范（static discipline）规定四个电压：
+
+            - 器件**输出** 0 时电压不超过 V_OL，输出 1 时不低于 V_OH；
+            - 器件**输入**电压不超过 V_IL 就当 0，不低于 V_IH 就当 1；V_IL 和 V_IH 之间是禁区。
+
+            而且 V_OL < V_IL < V_IH < V_OH。6.004 的例子：V_OL = 0.5 V，V_IL = 1 V，V_IH = 3 V，V_OH = 3.5 V。
+      - card:
+          title: 噪声容限
+          body: |
+            输出比输入要求得更严，中间的差叫噪声容限（noise margin）：
+
+            - 低电平的容限：V_IL − V_OL；
+            - 高电平的容限：V_OH − V_IH。
+
+            线路上的干扰只要小于容限，就改变不了下一级读到的是 0 还是 1。两个容限里较小的那个，决定这套器件能扛多大的干扰。
+      - item:
+          id: low-margin
+          type: number
+          prompt: 用 6.004 的例子（V_OL = 0.5 V，V_IL = 1 V，V_IH = 3 V，V_OH = 3.5 V），低电平的噪声容限是几伏？
+          answer: 0.5
+          explain: V_IL − V_OL = 1 − 0.5 = 0.5 V。
+      - item:
+          id: noise-ok
+          type: choice
+          prompt: 用同样的门限，一个器件输出 0，实际电压 0.4 V，线路上叠加了 0.5 V 的干扰。下一级读到什么？
+          options:
+            - text: 0，因为 0.9 V 仍然不超过 V_IL = 1 V
+              correct: true
+            - text: '1'
+              why: 0.9 V 还在 V_IL 以下，算 0；要到 3 V 以上才算 1
+            - text: 落在禁区，不确定
+              why: 禁区是 1 V 到 3 V，0.9 V 还没到
+          explain: 输出离门限留有余量，所以这点干扰被扛住了。
+      - card:
+          title: 组合器件
+          body: |
+            6.004 把满足下面四条的器件叫组合器件：
+
+            1. 输入是数字的（0 或 1）；
+            2. 输出是数字的；
+            3. 有功能说明：每种输入组合对应什么输出；
+            4. 有时间说明：输入稳定以后，最多过 t_PD（传播延迟）输出一定稳定。
+
+            几个组合器件串起来还是组合器件，总延迟是一路上的 t_PD 相加。
+      - item:
+          id: chain-delay
+          type: number
+          prompt: 信号依次经过 3 个门，每个门的 t_PD 是 2 ns。从输入稳定到最后的输出稳定，最多要几 ns？
+          answer: 6
+          explain: 串联时延迟相加：3 × 2 = 6 ns。
+      - card:
+          title: 每一级都要把信号“修好”
+          body: |
+            输入电压和输出电压的关系画成一条曲线，叫电压传输特性（VTC）。要让信号经过一级又一级以后不越来越模糊，曲线中间那段必须很陡：输入稍微变一点，输出就变很多（放大作用）。
+
+            这样，有点偏的输入经过一级以后，输出被“拉回”到远离禁区的电压。
+      - item:
+          id: restore
+          type: choice
+          prompt: 为什么每个数字器件都要把有点偏的输入“拉回”成干净的 0 或 1 电压？
+          options:
+            - text: 否则信号经过很多级以后，干扰一点点累积，最终分不清 0 和 1
+              correct: true
+            - text: 为了省电
+              why: 关键不是省电，而是让干扰不能一级级累积下去
+          explain: 每一级都恢复信号，干扰就只在一段线路上起作用，不会传下去。
+
+  - id: logic-gates
+    chapter: 运算器
+    title: 逻辑门和真值表
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一盏灯由两个开关控制，只有两个开关都打开时灯才亮。猜一猜这叫什么逻辑？
+          options:
+            - text: 与（AND）
+              correct: true
+            - text: 或（OR）
+              why: 或是任意一个打开就亮
+          explain: 两个都是 1 输出才是 1，这就是与门。
+      - card:
+          title: 真值表和几种门
+          body: |
+            把每种输入组合和对应的输出列成表，叫**真值表（truth table）**。几种常用的门：
+
+            | A | B | 与 AND | 或 OR | 异或 XOR |
+            |---|---|---|---|---|
+            | 0 | 0 | 0 | 0 | 0 |
+            | 0 | 1 | 0 | 1 | 1 |
+            | 1 | 0 | 0 | 1 | 1 |
+            | 1 | 1 | 1 | 1 | 0 |
+
+            非 NOT 把 0 变 1、1 变 0。在 Python 里，对 0 和 1 来说，`a & b` 是与，`a | b` 是或，`a ^ b` 是异或。
+      - item:
+          id: gate-match
+          type: match
+          prompt: 把门和它的规则连起来。
+          pairs:
+            - [与 AND, 两个输入都是 1 时输出 1]
+            - [或 OR, 至少一个输入是 1 时输出 1]
+            - [异或 XOR, 两个输入不同时输出 1]
+            - [非 NOT, 输出和输入相反]
+          explain: 异或也可以读成“不一样就是 1”。
+      - card:
+          title: 从真值表写出电路：与或式
+          body: |
+            任何真值表都能这样写成电路：把输出是 1 的每一行写成一个“与”（输入是 0 的地方取反），再把这些“与”全部“或”起来。这叫与或式（sum of products）。
+
+            异或的真值表里，输出是 1 的是 01 和 10 两行，于是 XOR = A′B + AB′（A′ 表示非 A，相乘表示与，相加表示或）。
+      - card:
+          title: 例题：三人表决
+          body: 三个输入 A、B、C，至少两个是 1 时输出 1。写出与或式。
+          reveal:
+            - title: 第 1 步：找出输出是 1 的行
+              body: 011、101、110、111 四行。
+            - title: 第 2 步：每行写成一个“与”
+              body: 011 → A′BC；101 → AB′C；110 → ABC′；111 → ABC。
+            - title: 第 3 步：全部或起来
+              body: 输出 = A′BC + AB′C + ABC′ + ABC。它还能化简成更短的式子。
+      - item:
+          id: sop-terms
+          type: number
+          prompt: 一个三输入函数的真值表里，有 5 行输出是 1。直接写与或式，有几个“与”项？
+          answer: 5
+          explain: 输出是 1 的每一行对应一个与项。
+      - card:
+          title: 带“非”的门：与非和或非
+          body: |
+            与非 NAND 是“与，再取反”；或非 NOR 是“或，再取反”。6.004 讲到：用晶体管做门时，天然就是这种带取反的门，所以实际电路里它们最常见。
+
+            只用与非门就能搭出所有的门：非 A = NAND(A, A)；A 与 B = NAND(NAND(A, B), NAND(A, B))。
+      - item:
+          id: nand-11
+          type: number
+          prompt: NAND(1, 1) 的输出是几？
+          answer: 0
+          explain: 1 与 1 是 1，再取反是 0。只有两个输入都是 1 时，与非才输出 0。
+      - item:
+          id: nand-not
+          type: choice
+          prompt: 怎样只用一个与非门做出“非 A”？
+          options:
+            - text: 把 A 同时接到与非门的两个输入上
+              correct: true
+            - text: 把一个输入接 A，另一个接 0
+              why: NAND(A, 0) 总是 1，和 A 无关
+          explain: NAND(A, A) = 非(A 与 A) = 非 A。
+
+  - id: simplify-mux-rom
+    chapter: 运算器
+    title: 化简、多路选择器和只读存储器
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜：A·B + A·B′（A 与 B，或者 A 与非 B）可以化成什么？
+          options:
+            - text: A
+              correct: true
+            - text: B
+              why: 不管 B 是 0 还是 1，只要 A 是 1，两项里总有一项是 1
+            - text: '1'
+              why: A 是 0 时两项都是 0，结果是 0，不是永远为 1
+          explain: B 和 B′ 总有一个是 1，所以结果只取决于 A。
+      - card:
+          title: 化简的几条规则
+          body: |
+            | 规则 | 例子 |
+            |---|---|
+            | A·B + A·B′ = A | 一个变量取 0 和取 1 的两项合并 |
+            | A + A·B = A | A 是 1 时已经是 1 |
+            | (A·B)′ = A′ + B′ | 德摩根定律 |
+            | (A + B)′ = A′·B′ | 德摩根定律 |
+
+            化简以后门更少、电路更小更快。
+      - item:
+          id: simplify-b
+          type: choice
+          prompt: A′·B + A·B 化简后是什么？
+          options:
+            - text: B
+              correct: true
+            - text: A
+              why: 两项里 A 一个是 A′ 一个是 A，被合并掉的是 A
+          explain: 和上面的规则一样：A 取 0、取 1 的两项合并，剩下 B。
+      - card:
+          title: 卡诺图：把能合并的放在一起
+          body: |
+            卡诺图（Karnaugh map）把真值表排成格子，相邻的两格只差一个变量（所以列的顺序是 00、01、11、10，不是 00、01、10、11）。
+
+            在图上把相邻的 1 圈成 1、2、4、8 个一组，每组写成一个与项：组里变化了的变量去掉，没变的留下。
+      - card:
+          title: 例题：三变量卡诺图
+          body: f(A, B, C) 在 010、011、110、111 时是 1，其余是 0。
+          reveal:
+            - title: 第 1 步：画图
+              body: 行是 A（0、1），列是 BC（00、01、11、10）。1 落在 BC = 11 和 BC = 10 这两列，两行都有，一共 4 格。
+            - title: 第 2 步：圈起来
+              body: 这 4 格挨在一起，可以圈成一组。组里 A 有 0 也有 1，C 有 0 也有 1；只有 B 一直是 1。
+            - title: 第 3 步：写结果
+              body: f = B。原来 4 个与项，化简成一个变量。
+      - item:
+          id: kmap-pair
+          type: choice
+          prompt: 卡诺图里把 A·B′·C 和 A·B·C 两格圈成一组，这组写成什么？
+          options:
+            - text: A·C
+              correct: true
+            - text: A·B
+              why: 两格里 B 一个是 0 一个是 1，变化了，要去掉
+          explain: 没变的是 A = 1 和 C = 1。
+      - card:
+          title: 多路选择器
+          body: |
+            二选一**多路选择器（multiplexer）**有两个数据输入 A、B 和一个选择输入 S：S = 0 时输出 A，S = 1 时输出 B。写成与或式是 S′·A + S·B。
+
+            有 k 个选择输入，就能从 2^k 个数据输入里选一个。数据通路里到处是它：比如决定送进运算部件的是这个数还是那个数。
+      - item:
+          id: mux-inputs
+          type: number
+          prompt: 一个多路选择器有 3 个选择输入，最多能从几个数据输入里选？
+          answer: 8
+          explain: 3 个选择位有 2³ = 8 种组合，每种选一个输入。
+      - card:
+          title: 只读存储器当真值表用
+          body: |
+            只读存储器（ROM）按编号读出事先存好的一串位。把函数的输入当作编号，把真值表的每一行存进去，ROM 就成了这个函数的电路：k 个输入的函数要 2^k 行。
+
+            6.004 后面用 ROM 来做状态机的“下一个状态”和输出，表大但很规整。
+      - item:
+          id: rom-rows
+          type: number
+          prompt: 用 ROM 实现一个 4 个输入、3 个输出的组合函数，ROM 要存多少行？
+          answer: 16
+          explain: 4 个输入有 2⁴ = 16 种组合，每种一行，每行存 3 位输出。
+
+  - id: adder
+    chapter: 运算器
+    title: 加法器：一位一位往上进
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个一位的二进制数相加，1 + 1 得多少？
+          options:
+            - text: 本位 0，向上进 1（写作 10）
+              correct: true
+            - text: '2'
+              why: 二进制里没有 2 这个数字，满 2 就进位
+          explain: 和十进制满 10 进 1 一样，二进制满 2 进 1。
+      - card:
+          title: 半加器
+          body: |
+            两个一位数 A、B 相加：
+
+            | A | B | 本位 S | 进位 C |
+            |---|---|---|---|
+            | 0 | 0 | 0 | 0 |
+            | 0 | 1 | 1 | 0 |
+            | 1 | 0 | 1 | 0 |
+            | 1 | 1 | 0 | 1 |
+
+            正好是 S = A 异或 B，C = A 与 B。这个电路叫半加器。
+      - card:
+          title: 全加器
+          body: |
+            多位数相加时，每一位还要加上低一位送来的进位 Cin。三个一位数相加的电路叫全加器：
+
+            $$S = A \oplus B \oplus C_{in},\qquad C_{out} = A B + C_{in}(A \oplus B)$$
+
+            ⊕ 是异或。Cout 的意思是：A、B 都是 1 就进位；或者 A、B 恰有一个是 1、再加上进来的 1，也进位。
+      - item:
+          id: full-111
+          type: number
+          prompt: 全加器的三个输入 A = 1、B = 1、Cin = 1。本位 S 是几？
+          answer: 1
+          explain: 1 + 1 + 1 = 3 = 二进制 11：本位 1，进位 1。
+      - card:
+          title: 行波进位加法器
+          body: |
+            把 n 个全加器串起来，每个的 Cout 接到高一位的 Cin，就是 n 位加法器。进位要从最低位一位位传到最高位，像水波一样，所以叫行波进位（ripple carry）。
+
+            它的最坏延迟和位数成正比：位数加倍，最坏延迟也大约加倍。
+      - item:
+          id: ripple-delay
+          type: number
+          prompt: 32 位行波进位加法器，进位经过每个全加器要 2 ns。最坏情况下进位从最低位传到最高位要几 ns？
+          answer: 64
+          explain: 32 个全加器串起来，32 × 2 = 64 ns。
+      - card:
+          title: 减法：加上它的相反数
+          body: |
+            补码里 −B = B 取反加一，所以 A − B = A + (B 取反) + 1。加法器不用改：把 B 的每一位取反送进去，再让最低位的 Cin = 1，就做成了减法。
+
+            例：5 − 3 = 00000101 + 11111100 + 1 = 00000101 + 11111101 = 00000010（最高位进出的 1 丢掉），等于 2。
+      - item:
+          id: sub-8bit
+          type: text
+          prompt: 用加法器做 8 位的 00001001 − 00000100（9 − 4），结果的 8 位是什么？
+          answers: ['00000101']
+          explain: 4 = 00000100，取反加一是 11111100；00001001 + 11111100 = 1 00000101，丢掉最高的进位，得 00000101 = 5。
+      - card:
+          title: 溢出：结果超出范围
+          body: |
+            8 位补码只能表示 −128 到 127。两个正数加起来超过 127，或两个负数加起来低于 −128，结果就“绕”到了另一头，这叫溢出（overflow）。
+
+            判断方法：最高位**收到的进位**和它**送出的进位**不一样，就是溢出：OF = C_in(最高位) ⊕ C_out(最高位)。也可以看符号：两个同号的数相加，结果却是异号。
+      - card:
+          title: 例题：100 + 50
+          body: 用 8 位补码算 100 + 50。
+          reveal:
+            - title: 第 1 步：写成二进制
+              body: 100 = 01100100，50 = 00110010。
+            - title: 第 2 步：相加
+              body: 01100100 + 00110010 = 10010110。
+            - title: 第 3 步：读结果
+              body: 最高位是 1，按补码是 −128 + 22 = −106。两个正数加出负数，溢出了。
+            - title: 第 4 步：用进位判断
+              body: 最高位收到的进位是 1（低 7 位 1100100 + 0110010 进上来一个 1），送出的进位是 0。1 ⊕ 0 = 1，溢出标志 OF = 1。
+      - item:
+          id: neg-overflow
+          type: number
+          prompt: 8 位补码算 (−100) + (−50)，结果按补码读出来是多少？
+          answer: 106
+          explain: 真正的和 −150 超出了 −128，绕到另一头：−150 + 256 = 106。两个负数加出正数，溢出了。
+      - item:
+          id: no-overflow
+          type: choice
+          prompt: 8 位补码算 60 + 50，会溢出吗？
+          options:
+            - text: 不会，110 在 −128 到 127 之间
+              correct: true
+            - text: 会
+              why: 和是 110，没有超过 127
+          explain: 只有结果超出范围才溢出。
+
+  - id: alu-bitwise
+    chapter: 运算器
+    title: ALU 和位运算
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: CPU 里负责“算”的部件，一次能做加法、减法、与、或、比较……猜一猜它怎么知道这次该做哪一种？
+          options:
+            - text: 另有几根“功能选择”的线告诉它
+              correct: true
+            - text: 它把所有结果都算出来，全部交出去
+              why: 交出去的只有一个结果；它内部可以都算出来，再用选择线挑一个
+          explain: 这个部件叫 ALU，做什么运算由控制信号选。
+      - card:
+          title: 指令和 ALU
+          body: |
+            CPU 一步执行的一个简单操作叫一条**指令（instruction）**，比如“把两个数相加”。专门做算术和逻辑运算的部件叫**算术逻辑单元（ALU，arithmetic logic unit）**：两个输入、一个输出，再加几根功能选择线。
+
+            6.004 的 Beta 和常见的 RISC-V 一样，ALU 至少要会：加、减、与、或、异或、左移、右移、比较大小。
+      - card:
+          title: 按位运算
+          body: |
+            与、或、异或也能对整个数一起做：每一位各算各的。
+
+            | 写法 | 二进制 | 结果 |
+            |---|---|---|
+            | `12 & 10` | 1100 与 1010 | 1000 = 8 |
+            | `12 \| 10` | 1100 或 1010 | 1110 = 14 |
+            | `12 ^ 10` | 1100 异或 1010 | 0110 = 6 |
+
+            Python、C 里都是这几个符号。
+      - item:
+          id: and-op
+          type: number
+          prompt: '`9 & 12` 是多少？'
+          answer: 8
+          explain: 1001 与 1100 = 1000 = 8：只有最高那一位两边都是 1。
+      - item:
+          id: xor-op
+          type: number
+          prompt: '`9 ^ 12` 是多少？'
+          answer: 5
+          explain: 1001 异或 1100 = 0101 = 5：不一样的位是 1。
+      - card:
+          title: 移位和掩码
+          body: |
+            - `x << k`：所有位往左挪 k 位，右边补 0，等于 x × 2^k；
+            - `x >> k`：往右挪 k 位，右边的被丢掉，对非负数等于 x // 2^k；
+            - 掩码：`x & 0xF` 只留下最低 4 位，其余清 0。
+
+            合起来就能取出中间的几位：`(x >> 4) & 0xF` 是第 4 到第 7 位（最低位算第 0 位）。
+      - card:
+          title: 例题：把一个数拆成两段
+          body: 把 16 位的 0x1234 拆成“高 4 位”和“低 12 位”两段。
+          reveal:
+            - title: 第 1 步：低 12 位
+              body: 用掩码 `0x1234 & 0xFFF`，12 位全是 1 的掩码是 0xFFF，结果 0x234。
+            - title: 第 2 步：高 4 位
+              body: 右移 12 位把低 12 位挤掉：`0x1234 >> 12` 得 1。
+            - title: 第 3 步：检查
+              body: 1 × 2¹² + 0x234 = 4096 + 564 = 4660 = 0x1234。对上了。把一个数按位拆成几段，是操作系统里天天要做的事。
+      - item:
+          id: mid-bits
+          type: number
+          prompt: '`(0x1234 >> 4) & 0x3F` 是多少？（写十进制）'
+          answer: 35
+          explain: 0x1234 >> 4 = 0x123 = 291；291 & 63 = 291 − 4 × 64 = 35。
+      - item:
+          id: set-bit
+          type: number
+          prompt: 把 1 的第 3 位（最低位是第 0 位）设成 1：`1 | (1 << 3)` 是多少？
+          answer: 9
+          explain: 1 << 3 = 8 = 1000；0001 或 1000 = 1001 = 9。
+      - item:
+          id: clear-bit
+          type: number
+          prompt: Python 里 `~5` 是 −6（整数没有位数限制）。想看 8 位的“取反”，写 `(~5) & 0xFF`。它是多少？
+          answer: 250
+          explain: 5 = 00000101，8 位取反是 11111010 = 250。& 0xFF 把结果限制在 8 位。
+
+  - id: memory-tech
+    chapter: 存储和I/O组织
+    title: 存储器：快的小、大的慢
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 为什么不把电脑里所有的存储都做成和 CPU 内部一样快？
+          options:
+            - text: 越快的存储，每一位越贵、越占地方，做不大
+              correct: true
+            - text: 技术上做不出更快的
+              why: 最快的已经在 CPU 里了，只是又贵又小，没法做到几十亿字节那么大
+          explain: 所以电脑把快的小存储和慢的大存储搭配起来用。
+      - card:
+          title: 内存、地址和寄存器
+          body: |
+            程序运行时数据放在**内存（memory）**里：一长排格子，每个字节一个编号，叫**地址（address）**。CPU 按地址读写。
+
+            CPU 里面还有几十个最快的存储格，叫**寄存器（register）**。6.004 给的数量级：寄存器约 20 ps（皮秒）就能读到，但总共只有几千位。
+      - card:
+          title: 几种存储技术
+          body: |
+            | 技术 | 用在哪 | 6.004 给的数量级 |
+            |---|---|---|
+            | 寄存器 | CPU 内部 | 约 20 ps，几千位 |
+            | SRAM | CPU 里的 cache | 最多几纳秒 |
+            | DRAM | 主内存 | 例题里一次访问 40 ns；一块芯片几十亿位 |
+            | NAND 闪存 | 固态硬盘、U 盘 | 读一次约 10 µs |
+            | 磁盘 | 机械硬盘 | 磁头定位约 10 ms，能存几 TB |
+
+            1 ns（纳秒）是十亿分之一秒，1 µs 是一千 ns，1 ms 是一百万 ns。
+      - item:
+          id: speed-order
+          type: order
+          prompt: 按访问速度从快到慢排好。
+          steps:
+            - 寄存器
+            - SRAM（cache）
+            - DRAM（主内存）
+            - 闪存
+            - 磁盘
+          explain: 从 20 ps 到 10 ms，相差五亿倍。
+      - card:
+          title: SRAM 和 DRAM
+          body: |
+            - SRAM：6.004 讲的每一位用 6 个晶体管，只要通着电就一直保持，读得快，但占地方。
+            - DRAM：每一位只有 1 个晶体管加 1 个电容，电容上的电荷会慢慢漏掉，所以要每隔大约 10 ms 把每一位读出来再写回去（刷新）。它做得密、便宜，但比 SRAM 慢。
+            - 闪存和磁盘断电也不丢数据（非易失），DRAM 和 SRAM 断电就丢。
+      - item:
+          id: tech-match
+          type: match
+          prompt: 把存储技术和它的特点连起来。
+          pairs:
+            - [SRAM, 每位 6 个晶体管，通电就一直保持]
+            - [DRAM, 每位一个晶体管加一个电容，要定期刷新]
+            - [闪存, 断电也不丢数据]
+            - [寄存器, 在 CPU 里面，最快也最少]
+          explain: 越往下的存储越大、越便宜，也越慢。
+      - card:
+          title: 存储层次和局部性
+          body: |
+            把常用的数据放进小而快的存储，不常用的留在大而慢的存储里：寄存器 → cache → 主内存 → 硬盘，这叫存储层次。
+
+            它能起作用，是因为程序有 6.004 说的“访问的局部性”（locality of reference），通常分两种：
+            - 刚用过的，很可能马上再用（比如循环里的变量）；
+            - 用了某个地址，很可能接着用它附近的地址（比如按顺序读一长串数据）。
+      - item:
+          id: locality
+          type: choice
+          prompt: 程序按顺序读一长串数据（存在相邻的地址上）里的每一个，这主要利用了哪一种局部性？
+          options:
+            - text: 用了某个地址，接着用附近的地址
+              correct: true
+            - text: 刚用过的马上再用
+              why: 每个元素只读一次；起作用的是“下一个就在旁边”
+          explain: 所以 cache 每次从内存搬一整块相邻的数据进来。
+      - item:
+          id: disk-vs-dram
+          type: number
+          prompt: 按 6.004 的数量级，一次磁盘访问（10 ms）的时间够做多少次 40 ns 的主内存访问？
+          answer: 250000
+          explain: 10 ms = 10,000,000 ns；10,000,000 / 40 = 250,000。
+
+  - id: cache-direct
+    chapter: 存储和I/O组织
+    title: cache 和直接映射
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: CPU 要读一个数时，先在小而快的 cache 里找，找不到才去主内存。猜一猜，大多数程序有多少次能在 cache 里找到？
+          options:
+            - text: 绝大多数时候都能找到
+              correct: true
+            - text: 很少能找到
+              why: 因为有局部性，刚用过的和附近的数据大多已经在 cache 里
+          explain: 常见程序的命中率能到九成以上，所以整体感觉接近 cache 的速度。
+      - card:
+          title: 命中、缺失、平均访问时间
+          body: |
+            在 cache 里找到叫命中（hit），找不到叫缺失（miss）。缺失时要去主内存取，取回来顺便放一份进 **cache（缓存）**。
+
+            平均一次访问花的时间：
+
+            $$\text{平均时间} = \text{命中时间} + \text{缺失率} \times \text{缺失代价}$$
+      - item:
+          id: amat
+          type: number
+          prompt: 命中时间 1 ns，缺失率 5%，缺失代价（去主内存取）40 ns。平均一次访问要几 ns？
+          answer: 3
+          explain: 1 + 0.05 × 40 = 1 + 2 = 3 ns。
+      - card:
+          title: 直接映射：每块只有一个位置
+          body: |
+            cache 一次从内存搬一整块（block，也叫行）相邻的字节。直接映射的 cache 里，每个内存块只能放在一个固定的行。把地址分成三段：
+
+            | 高位 | 中间 | 低位 |
+            |---|---|---|
+            | tag | index | offset |
+
+            - offset：在块里第几个字节，块有 2^k 个字节就占 k 位；
+            - index：放在第几行，有 2^m 行就占 m 位；
+            - tag：剩下的高位，存在那一行里，用来分辨“现在这一行装的是不是我要的那一块”。每行还有一个有效位。
+      - card:
+          title: 例题：1 KB cache，16 字节一块，32 位地址
+          body: 算出三段的位数，再拆开地址 0x00001234。
+          reveal:
+            - title: 第 1 步：offset
+              body: 一块 16 = 2⁴ 字节，offset 4 位。
+            - title: 第 2 步：index
+              body: 1024 / 16 = 64 = 2⁶ 行，index 6 位。
+            - title: 第 3 步：tag
+              body: 32 − 6 − 4 = 22 位。
+            - title: 第 4 步：拆开 0x1234
+              body: offset = 0x1234 & 0xF = 4；index = (0x1234 >> 4) & 63 = 35；tag = 0x1234 >> 10 = 4。
+      - item:
+          id: tag-bits
+          type: number
+          prompt: 直接映射 cache 容量 4 KB，每块 64 字节，地址 32 位。tag 有几位？
+          answer: 20
+          explain: offset 6 位（2⁶ = 64）；4096 / 64 = 64 行，index 6 位；32 − 6 − 6 = 20。
+      - item:
+          id: index-5678
+          type: number
+          prompt: 还是 1 KB、每块 16 字节、32 位地址的直接映射 cache。地址 0x5678 的 index 是多少？（写十进制）
+          answer: 39
+          explain: (0x5678 >> 4) & 63 = 0x567 & 63 = 1383 & 63 = 39。
+      - item:
+          id: hit-rule
+          type: choice
+          prompt: 直接映射 cache 怎样判断一次访问命中了？
+          options:
+            - text: 按 index 找到那一行，它的有效位是 1，而且存的 tag 等于地址的 tag
+              correct: true
+            - text: 把所有行都找一遍，看有没有这个地址
+              why: 直接映射里一个块只能放在 index 那一行，只要看那一行
+            - text: 看 offset 是不是 0
+              why: offset 只说块里第几个字节，和命中无关
+          explain: 同一行可能轮流装不同的块，所以要用 tag 核对。
+
+  - id: cache-assoc
+    chapter: 存储和I/O组织
+    title: 冲突、组相联和写策略
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两串数据的地址恰好落在直接映射 cache 的同一行，程序轮流读它们。猜一猜会怎样？
+          options:
+            - text: 两块互相挤掉对方，几乎每次都缺失
+              correct: true
+            - text: 没问题，cache 还有很多空行
+              why: 直接映射里每块只能放在固定的一行，别的行再空也用不上
+          explain: 这叫冲突缺失。组相联的 cache 就是为了缓解它。
+      - card:
+          title: 块的大小和冲突
+          body: |
+            块大一些，一次搬来更多相邻的数据，更好地利用了“附近的地址”；但容量不变时行数变少，而且每次缺失要搬的更多。
+
+            直接映射还有冲突：1 KB、每块 16 字节的 cache，地址 0x0000 和 0x0400 相差 1024，index 一样，轮流访问时互相挤掉。
+      - item:
+          id: same-index
+          type: number
+          prompt: 1 KB、每块 16 字节的直接映射 cache，地址 0x0400 的 index 是多少？
+          answer: 0
+          explain: (0x400 >> 4) & 63 = 64 & 63 = 0，和 0x0000 一样，所以会冲突。
+      - card:
+          title: 组相联
+          body: |
+            6.004 的说法：N 路组相联 cache 就是 N 个直接映射的小 cache 并排工作。index 选出一组（每个小 cache 里同一行，共 N 行），块可以放进这一组里的**任何一行**，查找时 N 行同时比较 tag。
+
+            一组满了要放新块，就挑一行换掉，常用的规则是换掉最久没用过的（LRU）。只有一组、哪里都能放的，叫全相联。
+      - item:
+          id: sets
+          type: number
+          prompt: 1 KB、每块 16 字节的 cache 改成 2 路组相联，一共有几组？
+          answer: 32
+          explain: 64 行，每组 2 行，64 / 2 = 32 组（index 5 位）。
+      - card:
+          title: 例题：一组两行，按 LRU 换
+          body: 地址 A、B、C 都落在同一组，这组能放 2 块。访问顺序 A、B、A、C、A、B，开始时 cache 是空的。
+          reveal:
+            - title: A、B
+              body: 都缺失，放进来。组里是 A、B。
+            - title: A
+              body: 命中。现在 B 是最久没用的。
+            - title: C
+              body: 缺失，换掉最久没用的 B。组里是 A、C。
+            - title: A、B
+              body: A 命中；B 缺失，换掉最久没用的 C。一共 4 次缺失、2 次命中。直接映射（每组只有 1 行）的话，6 次全部缺失。
+      - item:
+          id: lru-misses
+          type: number
+          prompt: 一组两行、按 LRU 换，开始是空的。访问顺序 A、B、C、A、B（都在同一组），一共几次缺失？
+          answer: 5
+          explain: A、B 缺失；C 缺失换掉 A；A 缺失换掉 B；B 缺失换掉 C。每次要的都恰好刚被换掉。
+          review: false
+      - card:
+          title: 写的时候怎么办
+          body: |
+            6.004 讲了三种写策略：
+
+            - 写直达（write-through）：写 cache 的同时也写主内存，简单但慢；
+            - 写缓冲（write-behind）：先放进一个缓冲区，让主内存慢慢写，CPU 不用等；
+            - 写回（write-back）：只写 cache，给这一行标上“脏位”（dirty bit）；等这一行要被换掉时，脏位是 1 才写回主内存。
+      - item:
+          id: dirty-bit
+          type: choice
+          prompt: 写回策略里，脏位有什么用？
+          options:
+            - text: 记住这一行被改过，被换掉时才需要写回主内存
+              correct: true
+            - text: 记住这一行是不是有效
+              why: 那是有效位；脏位管的是“和主内存比是不是改过了”
+          explain: 没改过的行换掉时直接扔掉就行，主内存里本来就是一样的。
+      - item:
+          id: write-back-why
+          type: choice
+          prompt: 循环里反复修改同一个变量一百万次，哪种写策略写主内存的次数最少？
+          options:
+            - text: 写回
+              correct: true
+            - text: 写直达
+              why: 每次写都要写主内存，一百万次
+          explain: 写回只在这一行被换出时写一次。
+
+  - id: io-interrupts
+    chapter: 存储和I/O组织
+    title: 和设备打交道：轮询、中断和 DMA
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你按下键盘的一个键。猜一猜，CPU 是怎么知道的？
+          options:
+            - text: 键盘发一个信号，让 CPU 暂停手头的事来处理
+              correct: true
+            - text: CPU 每隔几纳秒就去问一次键盘
+              why: 也可以这样，但太浪费：一秒钟按不了几个键，CPU 大部分时间都白问了
+          explain: 设备主动通知 CPU。下面讲这种做法叫什么、CPU 怎样处理。
+      - card:
+          title: 轮询
+          body: |
+            设备有几个寄存器：状态（准备好了没有）、数据、命令。最简单的做法是 CPU 反复读状态寄存器，直到设备准备好，叫轮询（polling）。
+
+            简单、反应快，但 CPU 在等待时什么都做不了。适合非常快、或者非常简单的设备。
+      - card:
+          title: 中断
+          body: |
+            设备准备好时发一个信号，叫**中断（interrupt）**。CPU 执行完当前这条指令，记下原来的程序执行到哪里，跳到操作系统里这个设备的处理程序（handler）。处理程序把数据取走（比如把按键放进一块缓冲区），然后回到原来的程序接着执行，那个程序察觉不到被打断过。
+
+            CPU 用一个叫**程序计数器（program counter，PC）**的寄存器记着下一条指令在哪，“记下执行到哪里”就是保存 PC。
+      - item:
+          id: interrupt-steps
+          type: order
+          prompt: 把一次中断处理的步骤排好。
+          steps:
+            - 设备发出中断信号
+            - CPU 执行完当前指令，保存 PC
+            - 跳到操作系统的处理程序，处理设备
+            - 恢复 PC，回到原来的程序接着执行
+          explain: 保存了 PC，才回得去。
+      - card:
+          title: 程序请操作系统帮忙
+          body: |
+            普通程序不能直接读写设备寄存器：大家共用一个键盘，谁都能乱读就乱套了。程序要输入输出时，执行一条特殊的指令请操作系统代办，6.004 叫它 SVC（supervisor call），现在一般叫**系统调用（system call）**。
+
+            6.004 的例子：程序请求“读一个键”，缓冲区里暂时没有按键，操作系统就让这个程序先等着、去运行别的程序；有了按键以后，再让它重新执行这次请求。
+      - item:
+          id: why-svc
+          type: choice
+          prompt: 为什么程序要通过系统调用请操作系统读键盘，而不是自己直接去读键盘的寄存器？
+          options:
+            - text: 设备是大家共用的，由操作系统统一管理才不会乱，也能保护其他程序
+              correct: true
+            - text: 系统调用比直接读寄存器更快
+              why: 系统调用要多走一趟操作系统，通常更慢；为的是安全和共享
+          explain: 只有操作系统能碰设备，程序之间就不会互相干扰。
+      - card:
+          title: DMA：让设备自己搬
+          body: |
+            磁盘一次要传几千个字节。每个字节都打断 CPU 一次，中断太多了。DMA（direct memory access，直接存储器访问）让设备的控制器自己在设备和主内存之间一整块地搬数据，搬完了只发一次中断。
+      - card:
+          title: 三种方式怎么选
+          body: |
+            | 方式 | 做法 | 适合 |
+            |---|---|---|
+            | 轮询 | CPU 反复查状态 | 极快或极简单的设备，或者 CPU 本来就没别的事 |
+            | 中断 | 设备准备好了通知 CPU | 低速、事件零星的设备，如键盘、鼠标 |
+            | DMA | 控制器整块搬，结束时中断一次 | 大量数据，如磁盘、网卡 |
+      - item:
+          id: io-match
+          type: match
+          prompt: 把设备和最合适的输入输出方式连起来。
+          pairs:
+            - [键盘, 中断]
+            - [硬盘读一大块文件, DMA]
+            - [CPU 空闲时等一个几纳秒就能准备好的信号, 轮询]
+          explain: 事件少用中断，数据多用 DMA，等待极短时轮询也无妨。
+      - item:
+          id: interrupt-count
+          type: number
+          prompt: 从设备读 1 MB（1,048,576 字节）。如果每 4 个字节中断一次，一共要中断多少次？（用 DMA 只需 1 次）
+          answer: 262144
+          explain: 1,048,576 / 4 = 262,144 次。
+
+  - id: real-time
+    chapter: 存储和I/O组织
+    title: 来得及吗：实时和中断优先级
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 汽车的安全气囊传感器发出信号后，系统必须在几毫秒内响应。猜一猜，这种系统最关心的是什么？
+          options:
+            - text: 最坏的情况下也来得及
+              correct: true
+            - text: 平均起来够快就行
+              why: 平均很快但偶尔慢一次，气囊就晚了；必须保证最坏情况
+          explain: 能保证最坏情况也在截止时间之前完成的系统，叫实时系统。
+      - card:
+          title: 延迟、服务时间和截止时间
+          body: |
+            6.004 的定义：
+
+            - 延迟 L：从设备发出请求，到它的处理程序**开始**执行，经过的时间；
+            - 服务时间 S：处理程序本身要运行多久；
+            - 截止时间 D：请求发出后，最晚什么时候必须处理完。
+
+            要保证来得及：最坏的延迟加上服务时间不超过截止时间，L_max + S ≤ D。
+      - item:
+          id: finish-time
+          type: number
+          prompt: 一个设备的最坏延迟是 300 µs，服务时间 200 µs。最坏情况下，请求发出后多少 µs 处理完？
+          answer: 500
+          explain: 300 + 200 = 500 µs。截止时间不小于 500 µs 才来得及。
+      - card:
+          title: 6.004 的例子：三个设备
+          body: |
+            | 设备 | 服务时间 S | 优先级 |
+            |---|---|---|
+            | 磁盘 | 500 µs | 最高 |
+            | 打印机 | 400 µs | 中 |
+            | 键盘 | 800 µs | 最低 |
+
+            磁盘的截止时间是 800 µs。如果不分优先级、谁先来先服务，最坏时每个设备要等另外两个都处理完：磁盘的最坏延迟是 800 + 400 = 1200 µs。
+      - card:
+          title: 弱优先级：不打断正在运行的
+          body: |
+            弱优先级：正在运行的处理程序一定运行完；它结束时，在等着的请求里挑优先级最高的。
+
+            6.004 的算法：一个设备的最坏延迟 = 其他设备里**最长的服务时间**（那个处理程序可能刚刚开始）+ 所有**比它优先级高**的设备的服务时间（它们会排到前面）。
+
+            磁盘：最高优先级，只可能在等键盘跑完：800 µs。打印机：先等键盘 800 µs，再让磁盘先走 500 µs：1300 µs。
+      - item:
+          id: weak-disk-deadline
+          type: choice
+          prompt: 用弱优先级，磁盘最坏延迟 800 µs、服务时间 500 µs、截止时间 800 µs。来得及吗？
+          options:
+            - text: 来不及：800 + 500 = 1300 µs，超过了 800 µs
+              correct: true
+            - text: 来得及：最坏延迟正好等于截止时间
+              why: 截止时间要求的是“处理完”，还要加上 500 µs 的服务时间
+          explain: 磁盘可能要等一个刚开始的、800 µs 的键盘处理程序，怎么都赶不上。
+      - card:
+          title: 强优先级：可以打断低的
+          body: |
+            强优先级：优先级更高的请求到来时，可以**打断**正在运行的、优先级更低的处理程序，等它处理完再回去继续。
+
+            6.004 的结论：高优先级设备的最坏延迟不再受低优先级处理程序的影响。例子里，磁盘的最坏延迟降到 0；打印机只可能被磁盘打断，最坏延迟是 500 µs；键盘最低，仍然是 900 µs（可能要等磁盘和打印机）。
+      - item:
+          id: strong-disk
+          type: number
+          prompt: 用强优先级，磁盘（最高优先级，服务时间 500 µs）的最坏情况下，请求发出后多少 µs 处理完？
+          answer: 500
+          explain: 延迟是 0（立刻打断别人），再加上自己的 500 µs，正好赶上 800 µs 的截止时间。
+      - item:
+          id: weak-printer
+          type: number
+          prompt: 换一组数：设备 X 服务时间 100 µs（最高优先级），Y 200 µs（中），Z 600 µs（最低）。用弱优先级，Y 的最坏延迟是多少 µs？
+          answer: 700
+          explain: 其他设备里最长的服务时间是 Z 的 600 µs，再加上比 Y 优先级高的 X 的 100 µs：700 µs。
+
+  - id: registers-clock
+    chapter: 数据通路
+    title: 记住一位：锁存器、寄存器和时钟
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 与、或、加法器这些电路，输出只由此刻的输入决定。想做一个“数一数按了几次键”的电路，还缺什么？
+          options:
+            - text: 能记住过去的部件
+              correct: true
+            - text: 更多的与门
+              why: 再多的组合电路也只看此刻的输入，记不住之前按过几次
+          explain: 要有能保存状态的部件，这一课讲它们。
+      - card:
+          title: D 锁存器
+          body: |
+            D 锁存器有一个数据输入 D、一个控制输入 G 和输出 Q。6.004 的说法：G 是 1 时锁存器“打开”，D 的值直接流到 Q；G 变成 0 时它“关上”，Q 保持关上那一刻的值，不管 D 再怎么变。
+
+            这样，电路就能把一个值记住了。
+      - item:
+          id: latch-hold
+          type: choice
+          prompt: D 锁存器的 G 是 0。这时 D 从 0 变成 1，Q 会怎样？
+          options:
+            - text: 不变，保持原来的值
+              correct: true
+            - text: 跟着变成 1
+              why: 只有 G 是 1 时 Q 才跟着 D；G 是 0 时锁存器是关着的
+          explain: 关着的锁存器只记着它关上那一刻的值。
+      - card:
+          title: D 寄存器和时钟
+          body: |
+            时钟（clock）是一个不停地 0、1、0、1 翻转的信号。6.004 把两个锁存器背靠背接起来，做成 D 寄存器：它只在时钟**从 0 变到 1 的那一刻**（上升沿）采下 D 的值，然后一直保持到下一个上升沿。
+
+            整个 CPU 里的寄存器都由同一个时钟控制，每个上升沿一起更新一次。
+      - item:
+          id: register-edge
+          type: choice
+          prompt: D 寄存器在两个上升沿之间，D 变了好几次。Q 什么时候变？
+          options:
+            - text: 到下一个上升沿，变成那一刻的 D
+              correct: true
+            - text: D 每变一次，Q 跟着变一次
+              why: 那是打开的锁存器；寄存器只在上升沿采样
+          explain: 寄存器让整个电路一拍一拍地前进。
+      - card:
+          title: 寄存器的时间要求
+          body: |
+            - 建立时间 t_SETUP：上升沿**之前**，D 必须已经稳定了这么久；
+            - 保持时间 t_HOLD：上升沿**之后**，D 还要再稳定这么久；
+            - t_PD：上升沿之后最多过多久，Q 一定是新值。
+      - card:
+          title: 时钟能有多快
+          body: |
+            一个寄存器 REG1 的输出经过组合逻辑，送到下一个寄存器 REG2。在一个时钟周期里，要来得及：REG1 出新值、逻辑算完、再满足 REG2 的建立时间。6.004 写成：
+
+            $$t_{CLK} \ge t_{PD,REG1} + t_{PD,\text{逻辑}} + t_{SETUP,REG2}$$
+
+            时钟频率 = 1 / t_CLK。逻辑越慢，时钟就只能越慢。
+      - item:
+          id: min-clock
+          type: number
+          prompt: 寄存器的 t_PD 是 1 ns，中间组合逻辑最慢 6 ns，寄存器的 t_SETUP 是 1 ns。时钟周期最短是几 ns？
+          answer: 8
+          explain: 1 + 6 + 1 = 8 ns。
+      - item:
+          id: max-freq
+          type: number
+          prompt: 时钟周期 8 ns，时钟频率是多少 MHz？
+          answer: 125
+          explain: 1 / 8 ns = 0.125 × 10⁹ 次每秒 = 125 MHz。
+      - item:
+          id: slower-logic
+          type: choice
+          prompt: 把中间的组合逻辑换成一个更慢的电路（最慢 10 ns），其他不变。会怎样？
+          options:
+            - text: 时钟周期至少要 12 ns，频率只能降下来
+              correct: true
+            - text: 没关系，寄存器会自己等
+              why: 寄存器到点就采样，不会等；逻辑没算完就采下去，采到的是错的
+          explain: 1 + 10 + 1 = 12 ns。最慢的那条路决定了整个电路的时钟。
+
+  - id: datapath-alu
+    chapter: 数据通路
+    title: 数据通路：一条加法指令怎样执行
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: CPU 一条接一条地执行指令。猜一猜，它怎么知道下一条指令在哪里？
+          options:
+            - text: 一个专门的寄存器记着下一条指令的地址，每执行完一条通常加 4
+              correct: true
+            - text: 每条指令里都写着下一条在哪
+              why: 普通指令不写；按顺序执行时下一条就在后面紧挨着，只有跳转指令才另外指定
+          explain: 这个寄存器就是程序计数器 PC。每条指令占 4 个字节，所以加 4。
+      - card:
+          title: 指令和寄存器堆
+          body: |
+            RISC-V 的一条指令是 32 位。`add x5, x6, x7` 的意思是 x5 = x6 + x7：x0 到 x31 是 32 个寄存器，合起来叫寄存器堆（register file）。x0 永远读出 0。
+
+            6.004 用的 Beta 指令集也有 32 个寄存器（R31 永远是 0），结构几乎一样。下面用 RISC-V 讲。
+      - card:
+          title: 数据通路的部件
+          body: |
+            | 部件 | 做什么 |
+            |---|---|
+            | PC | 记着当前指令的地址 |
+            | 指令存储器 | 按 PC 取出指令 |
+            | 寄存器堆 | 两个读口、一个写口：一次读两个寄存器、写一个 |
+            | ALU | 加减、与或、比较 |
+            | 加 4 的加法器 | 算出 PC + 4 |
+            | 数据存储器 | 存取数据 |
+
+            这些部件和它们之间的连线叫**数据通路（datapath）**。（6.004 的 Beta 把指令和数据放在同一个存储器里，它有两个读口。）
+      - item:
+          id: parts-match
+          type: match
+          prompt: 把部件和它的作用连起来。
+          pairs:
+            - [PC, 记着当前指令的地址]
+            - [寄存器堆, 一次读出两个寄存器、写回一个]
+            - [ALU, 做加减和逻辑运算]
+            - [指令存储器, 按地址取出指令]
+          explain: 一条指令就是在这些部件之间走一遍。
+      - card:
+          title: add 走过的路
+          body: |
+            6.004 把一条运算指令分成五步：
+
+            1. 取指：按 PC 从指令存储器取出指令；
+            2. 译码：拆出指令里的字段，哪两个寄存器做输入（rs1、rs2），结果写到哪个（rd）；
+            3. 读：从寄存器堆读出 x6、x7；
+            4. 执行：ALU 做加法；
+            5. 写回：把结果写进 x5，同时 PC 变成 PC + 4。
+      - item:
+          id: add-steps
+          type: order
+          prompt: 把 `add x5, x6, x7` 执行的步骤排好。
+          steps:
+            - 按 PC 取出指令
+            - 译码，拆出 rs1、rs2、rd
+            - 从寄存器堆读出 x6 和 x7
+            - ALU 算出 x6 + x7
+            - 结果写进 x5，PC 变成 PC + 4
+          explain: 取指、译码、读、执行、写回。
+      - card:
+          title: 带常数的指令和选择器
+          body: |
+            `addi x5, x6, -3` 的第二个数不是寄存器，而是写在指令里的常数（立即数），意思是 x5 = x6 + (−3)。
+
+            于是 ALU 的第二个输入前面放一个多路选择器：来自寄存器，还是来自指令里的立即数。控制这个选择器的信号叫 ALUSrc：0 选寄存器，1 选立即数。
+      - item:
+          id: addi-value
+          type: number
+          prompt: x6 里是 10。执行 `addi x5, x6, -3` 以后，x5 是多少？
+          answer: 7
+          explain: 10 + (−3) = 7。
+      - item:
+          id: next-pc
+          type: number
+          prompt: 当前 PC 是 256，执行的是一条加法指令（不是跳转）。执行完 PC 是多少？
+          answer: 260
+          explain: 每条指令 4 个字节，PC + 4 = 260（十六进制 0x104）。
+      - item:
+          id: x0
+          type: choice
+          prompt: 执行 `add x0, x5, x6` 之后，读 x0 得到什么？
+          options:
+            - text: '0'
+              correct: true
+            - text: x5 + x6
+              why: RISC-V 规定 x0 永远是 0，往它里面写什么都被丢掉
+          explain: 一个永远是 0 的寄存器很有用，比如 `add x5, x6, x0` 就是把 x6 复制到 x5。
+
+  - id: load-store
+    chapter: 数据通路
+    title: 读写内存：lw 和 sw
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: RISC-V 的 `lw x5, 8(x6)` 是从内存读一个数放进 x5。猜一猜从哪个地址读？
+          options:
+            - text: x6 里的值加上 8
+              correct: true
+            - text: 地址 8
+              why: 括号里的 x6 提供基地址，8 是在它上面加的偏移
+            - text: 地址 6
+              why: x6 是寄存器的名字，用的是它里面存的值
+          explain: 地址 = 寄存器的值 + 偏移，叫基址加偏移寻址。
+      - card:
+          title: lw 和 sw
+          body: |
+            - `lw rd, offset(rs1)`：ALU 算出 rs1 + offset 当作地址，从数据存储器读出 4 个字节，写进 rd。
+            - `sw rs2, offset(rs1)`：地址的算法一样，把 rs2 的值写进数据存储器那个地址；**不写**任何寄存器。
+
+            6.004 的 Beta 也是这样：地址的计算和带常数的加法一模一样，只是 ALU 的结果被送到存储器的地址口。
+      - card:
+          title: 例题：lw x5, 8(x6) 走过的路
+          body: 照着数据通路走一遍。
+          reveal:
+            - title: 取指、译码
+              body: PC → 指令存储器取出指令；译码得到 rs1 = x6、rd = x5、立即数 8。
+            - title: 读寄存器、扩展立即数
+              body: 从寄存器堆读出 x6；立即数 8 扩展成 32 位。
+            - title: ALU 算地址
+              body: ALUSrc 选立即数，ALU 算 x6 + 8。
+            - title: 读存储器、写回
+              body: 用这个地址读数据存储器，读出的值写进 x5。PC 变成 PC + 4。
+      - item:
+          id: lw-addr
+          type: number
+          prompt: x6 里是 4096。执行 `lw x5, 8(x6)` 时，从哪个地址读？（写十进制）
+          answer: 4104
+          explain: 4096 + 8 = 4104。
+      - item:
+          id: lw-path
+          type: order
+          prompt: 把 lw 用到数据的先后排好。
+          steps:
+            - 从寄存器堆读出 rs1
+            - ALU 算出 rs1 + 立即数
+            - 按这个地址读数据存储器
+            - 把读出的值写进 rd
+          explain: 先算地址，再读存储器，最后写回寄存器。
+      - item:
+          id: sw-no-write
+          type: choice
+          prompt: 执行 `sw x7, 0(x6)` 时，哪个寄存器的值被改变了？
+          options:
+            - text: 没有，sw 只写存储器
+              correct: true
+            - text: x7
+              why: x7 是要存进存储器的值，它自己不变
+            - text: x6
+              why: x6 只用来算地址，不会被改
+          explain: 所以 sw 的 RegWrite 控制信号是 0。
+      - card:
+          title: 负的偏移：符号扩展
+          body: |
+            lw 和 sw 的偏移是指令里的 12 位补码，可以是负数。送进 32 位的 ALU 之前要符号扩展：把最高位（符号位）往左复制，填满 32 位。
+
+            −4 的 12 位补码是 0xFFC（1111 1111 1100），扩展成 32 位是 0xFFFFFFFC，仍然是 −4。6.004 的 Beta 也一样：复制立即数的最高位。
+      - item:
+          id: sext
+          type: number
+          prompt: 一个 12 位的补码立即数写作 0xFFC。它表示多少？
+          answer: -4
+          explain: 0xFFC = 4092，最高位是 1，减去 2¹² = 4096：4092 − 4096 = −4。
+      - item:
+          id: sw-neg
+          type: number
+          prompt: x6 里是 4096。执行 `sw x7, -4(x6)` 时，写到哪个地址？（写十进制）
+          answer: 4092
+          explain: 4096 + (−4) = 4092。
+
+  - id: branches-exceptions
+    chapter: 数据通路
+    title: 跳转、分支和异常
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: C 或 Python 里的 if，变成机器指令以后靠什么实现“不满足就跳过一段”？
+          options:
+            - text: 一条条件分支指令：条件成立时把 PC 改成另一个地址
+              correct: true
+            - text: CPU 会自动跳过不需要的指令
+              why: CPU 只会按 PC 一条条执行；跳不跳由分支指令决定
+          explain: 改 PC，就是改“下一条执行哪里”。
+      - card:
+          title: 分支和跳转
+          body: |
+            - `beq rs1, rs2, offset`：ALU 算 rs1 − rs2，结果是 0 就说明相等，PC 变成“这条指令的 PC + offset”；不相等就照常 PC + 4。
+            - `jal rd, offset`：无条件跳到 PC + offset，并把 PC + 4 存进 rd。调用函数时用它，rd 里存的就是回来的地址。
+
+            6.004 的 Beta 算分支目标的方法稍有不同：PC + 4 + 4 × (符号扩展后的偏移)。
+      - item:
+          id: beq-taken
+          type: number
+          prompt: RISC-V 里，一条 beq 在 PC = 200 的地方，偏移是 24，两个寄存器相等。下一条指令的 PC 是多少？
+          answer: 224
+          explain: 相等，跳转：200 + 24 = 224。不相等的话是 204。
+      - item:
+          id: jal-link
+          type: number
+          prompt: 在 PC = 300 的地方执行 `jal x1, 80`。之后 x1 里是多少？
+          answer: 304
+          explain: jal 把 PC + 4 存进 x1，PC 变成 380。函数返回时跳回 x1 里的 304。
+      - card:
+          title: 异常和中断进入数据通路
+          body: |
+            出了异常（比如非法指令）或者来了中断，CPU 要先保存 PC，再跳到操作系统的处理程序。6.004 的 Beta：把 PC + 4 存进 R30（也叫 XP），然后跳到固定的地址：同步异常是 0x4，中断是 0x8。处理程序最后执行 `JMP(XP)` 回去。
+
+            被中断的那条指令其实还没执行。想让它重新执行，处理程序要先把 XP 减 4 再跳回去。RISC-V 也是这个思路：把 PC 存进一个专门的寄存器，跳到另一个寄存器指定的地址，处理完用一条专门的返回指令回去。
+      - item:
+          id: why-save-pc
+          type: choice
+          prompt: 进入异常处理程序之前，为什么一定要保存 PC？
+          options:
+            - text: 处理完要回到被打断的程序原来的位置接着执行
+              correct: true
+            - text: 为了让处理程序知道自己在哪里
+              why: 处理程序的地址是固定的；保存的是被打断程序的位置
+          explain: 不保存 PC，就再也回不去了。
+      - item:
+          id: rerun
+          type: number
+          prompt: Beta 执行地址 512 的那条指令时来了中断，这条指令还没执行，XP 里存的是 516。处理程序想让这条指令重新执行，应该跳回哪个地址？
+          answer: 512
+          explain: XP 存的是 PC + 4，减 4 才是被打断的那条指令：516 − 4 = 512。
+      - card:
+          title: 小结：一个周期执行一条指令
+          body: |
+            到这里，单周期数据通路的部件都齐了：PC、指令存储器、寄存器堆、立即数扩展、ALU、数据存储器、几个多路选择器，以及算 PC + 4 和分支目标的加法器。
+
+            每条指令在一个时钟周期里走完它需要的那部分路。走哪条路，由一组控制信号决定：哪个选择器选哪一路、写不写寄存器、读不读写不写存储器。这些信号由控制器产生。
+      - item:
+          id: branch-alu
+          type: choice
+          prompt: beq 判断两个寄存器是否相等，靠的是哪个部件？
+          options:
+            - text: ALU：做减法，看结果是不是 0
+              correct: true
+            - text: 数据存储器
+              why: beq 不读写存储器
+            - text: 寄存器堆
+              why: 寄存器堆只负责读出两个值，比较由 ALU 来做
+          explain: ALU 除了算数，还给出“结果是否为 0”这样的信号。
+
+  - id: fsm
+    chapter: 控制器
+    title: 有限状态机
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 地铁闸机：刷卡后推得动，推过去以后又推不动了。猜一猜，闸机要记住的最少的东西是什么？
+          options:
+            - text: 现在是“锁着”还是“开着”
+              correct: true
+            - text: 今天一共刷了多少次卡
+              why: 决定推不推得动，只需要知道现在是哪种状态
+          explain: 只要记住有限的几种状态，再规定每种状态下遇到什么输入变成哪种状态，就是有限状态机。
+      - card:
+          title: 有限状态机
+          body: |
+            **有限状态机（finite state machine，FSM）**有：有限个状态、一组输入、一组输出，以及“当前状态 + 输入 → 下一个状态”的规则。
+
+            6.004 的做法：用一个寄存器存当前状态，用一块组合逻辑（或者 ROM）根据当前状态和输入算出下一个状态和输出；每个时钟上升沿，寄存器换成下一个状态。
+      - card:
+          title: 状态转移图：连续两个 1
+          body: |
+            输入是一串位，每个时钟来一位。想在“最近两位都是 1”时输出 1。三个状态：
+
+            | 状态 | 意思 | 输出 | 输入 0 → | 输入 1 → |
+            |---|---|---|---|---|
+            | A | 刚开始，或最近一位是 0 | 0 | A | B |
+            | B | 最近只有一个 1 | 0 | A | C |
+            | C | 最近两位都是 1 | 1 | A | C |
+
+            画成图时，每个状态是一个圈，每条规则是一根带输入标记的箭头。
+      - item:
+          id: fsm-run
+          type: text
+          prompt: 从状态 A 开始，依次输入 0、1、1、1、0、1。每输入一位后输出一次（看进入的那个状态），六次输出连起来是什么？
+          answers: ['001100']
+          explain: 状态依次是 A、B、C、C、A、B，输出 0、0、1、1、0、0。
+      - item:
+          id: state-bits
+          type: number
+          prompt: 一个状态机有 5 个状态。状态寄存器至少要几位？
+          answer: 3
+          explain: 2 位只能编 4 个状态，3 位能编 8 个。
+      - card:
+          title: 6.004 的例子：机器蚂蚁
+          body: |
+            机器蚂蚁（roboant）有左右两根触角 L、R，碰到东西就是 1；输出 F（向前走一步）、TL（左转）、TR（右转）。它要沿着墙走出迷宫（右手扶墙）。
+
+            第一版设计有 5 个状态：迷路、逆时针转、沿墙 1、沿墙 2、拐角。后来发现“沿墙 1”和“拐角”是等价的，合并后只剩 4 个状态，状态位从 3 位降到 2 位，用来做状态机的 ROM 小了一半。
+      - card:
+          title: 等价的状态
+          body: |
+            6.004 的定义：两个状态等价，要同时满足两条：
+
+            1. 输出完全一样；
+            2. 对每一种输入，两个状态都转到等价的状态。
+
+            等价的状态可以合并成一个，状态机的行为（任何输入序列得到的输出序列）不会变。
+      - item:
+          id: merge-benefit
+          type: choice
+          prompt: 机器蚂蚁从 5 个状态合并成 4 个，最大的好处是什么？
+          options:
+            - text: 状态位从 3 位变成 2 位，ROM 的行数减半
+              correct: true
+            - text: 蚂蚁走得更快
+              why: 合并等价状态不改变行为，蚂蚁的走法完全一样
+          explain: ROM 的行数是 2 的（状态位 + 输入位）次方，少一位就少一半。
+      - card:
+          title: 外面来的信号：亚稳态
+          body: |
+            按钮这样的输入随时会变，和时钟没有关系。它恰好在上升沿附近变化时，寄存器可能停在 0 和 1 中间一个不稳定的状态，叫亚稳态（metastability），而且停多久没有上限。6.004 说：完美的同步器做不出来。
+
+            实际的做法：在后面再串一个寄存器。第一个寄存器有整整一个时钟周期去稳定下来，第二个再采它的值。出错的概率可以低到几年、几十年才一次。
+      - item:
+          id: sync
+          type: choice
+          prompt: 一个按钮信号要接进按时钟工作的电路，6.004 推荐怎么做？
+          options:
+            - text: 先经过两个串联的寄存器再使用
+              correct: true
+            - text: 直接接到电路里，它总会稳定下来的
+              why: 亚稳态持续多久没有上限，直接用可能读到既不是 0 也不是 1 的电压
+            - text: 用一个寄存器就保证不会出错
+              why: 一个寄存器本身就可能进入亚稳态；第二个寄存器让它多一整个周期去稳定
+          explain: 不能保证百分之百，但能把出错的概率压得极低。
+
+  - id: control-unit
+    chapter: 控制器
+    title: 控制器：每条指令该打开哪些开关
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同一套数据通路要执行 add、lw、sw、beq 好几种指令。猜一猜，它们之间不同的是什么？
+          options:
+            - text: 一组控制信号：选择器选哪一路、写不写寄存器和存储器
+              correct: true
+            - text: 每种指令有自己的一套部件
+              why: 部件是共用的，靠控制信号决定这一次用哪些、怎么连
+          explain: 根据指令算出这些信号的部件，就是控制器。
+      - card:
+          title: 单周期 RISC-V 的控制信号
+          body: |
+            Patterson 和 Hennessy 的教材里，单周期 RISC-V 用这几个控制信号（原技能树的练习也用这套名字）：
+
+            | 信号 | 为 1 时 |
+            |---|---|
+            | RegWrite | 把结果写进寄存器 rd |
+            | ALUSrc | ALU 第二个输入选立即数（为 0 选寄存器） |
+            | MemRead | 读数据存储器 |
+            | MemWrite | 写数据存储器 |
+            | MemtoReg | 写回寄存器的值来自存储器（为 0 来自 ALU） |
+            | Branch | 这是一条分支指令 |
+      - card:
+          title: 四种指令的控制信号
+          body: |
+            | 指令 | RegWrite | ALUSrc | MemRead | MemWrite | MemtoReg | Branch |
+            |---|---|---|---|---|---|---|
+            | add | 1 | 0 | 0 | 0 | 0 | 0 |
+            | lw | 1 | 1 | 1 | 0 | 1 | 0 |
+            | sw | 0 | 1 | 0 | 1 | 无所谓 | 0 |
+            | beq | 0 | 0 | 0 | 0 | 无所谓 | 1 |
+
+            “无所谓”是因为 sw 和 beq 不写寄存器，写回的值选哪一路都不影响结果。
+      - item:
+          id: lw-signals
+          type: choice
+          prompt: 单周期 RISC-V 执行 `lw x5, 8(x6)`，下面哪一组控制信号对？
+          options:
+            - text: RegWrite = 1、MemRead = 1、MemWrite = 0、ALUSrc = 1、MemtoReg = 1
+              correct: true
+            - text: RegWrite = 1、MemRead = 1、MemWrite = 0、ALUSrc = 0、MemtoReg = 1
+              why: 地址是 x6 + 8，ALU 的第二个输入是立即数 8，ALUSrc 要选 1
+            - text: RegWrite = 0、MemRead = 1、MemWrite = 0、ALUSrc = 1、MemtoReg = 1
+              why: lw 要把读出的值写进 x5，RegWrite 必须是 1
+          explain: 读存储器、写回寄存器、地址用立即数、写回的值来自存储器。
+      - item:
+          id: sw-regwrite
+          type: choice
+          prompt: 执行 sw 时，RegWrite 应该是几？
+          options:
+            - text: '0'
+              correct: true
+            - text: '1'
+              why: sw 只写存储器；RegWrite 为 1 会把一个无关的值写进某个寄存器，改坏它
+          explain: 不该写的时候一定要关掉写信号。
+      - card:
+          title: 硬布线和微程序
+          body: |
+            控制器根据指令里表示“这是什么指令”的那几位（操作码）算出这些信号。两种做法：
+
+            - 硬布线控制：直接用组合逻辑（或者一块 ROM）从操作码算出信号。快，但改起来要重新设计电路。
+            - 微程序控制：把每条指令要发出的信号写成一小段“微指令”，存在控制器自己的存储器里，执行时一条条读出来。容易修改和增加指令，但多了读取的步骤，通常慢一些。
+      - item:
+          id: microprogram
+          type: choice
+          prompt: 微程序控制相比硬布线控制，主要的好处是什么？
+          options:
+            - text: 改控制、加新指令时只要改存储的微程序，不用重新设计电路
+              correct: true
+            - text: 更快
+              why: 一般是硬布线更快；微程序要从控制存储器里一条条读出微指令
+          explain: 华中科技大学的教材把这两种实现方法都列为授课目标。
+      - card:
+          title: 多个周期执行一条指令时
+          body: |
+            如果一条指令要分几个时钟周期完成（第一周期取指、第二周期译码……），控制器在每个周期要发出不同的信号。这时控制器本身就是一个有限状态机：状态表示“现在是这条指令的第几步”，每个上升沿进入下一步。
+
+            把这几步重叠起来、同时处理好几条指令，就是流水线，属于计算机体系结构那一站。
+      - item:
+          id: multicycle-state
+          type: choice
+          prompt: 多周期执行指令时，控制器这个状态机的“状态”代表什么？
+          options:
+            - text: 当前这条指令执行到了第几步
+              correct: true
+            - text: 寄存器堆里存的值
+              why: 寄存器的值是数据；控制器的状态只说明现在该发哪一组控制信号
+          explain: 每一步发一组信号，下一个上升沿进入下一步。
+      - item:
+          id: beq-next
+          type: number
+          prompt: 单周期 RISC-V 执行 `beq x5, x6, 12`，x5 和 x6 相等，这条指令的 PC 是 100。下一条指令的 PC 是多少？
+          answer: 112
+          explain: Branch = 1 且 ALU 结果为 0（相等），PC 变成 100 + 12 = 112。
+
+boss:
+  items:
+    - id: twos-boss
+      type: text
+      prompt: −37 的 8 位补码写成十六进制是什么？（两位，不写 0x）
+      answers: [DB]
+      explain: 37 = 00100101，取反 11011010，加一 11011011 = 0xDB。
+    - id: signed-boss
+      type: number
+      prompt: 8 位的 0xF6 当作补码，表示多少？
+      answer: -10
+      explain: 0xF6 = 246，最高位是 1，246 − 256 = −10。
+    - id: float-boss
+      type: text
+      prompt: −6.25 的 IEEE 754 单精度表示写成十六进制是什么？（8 位，不写 0x）
+      answers: [C0C80000]
+      explain: −6.25 = −1.1001₂ × 2²：符号 1，阶码 2 + 127 = 10000001，尾数 1001 后补 0，合起来 0xC0C80000。
+    - id: overflow-boss
+      type: choice
+      prompt: 8 位补码算 100 + 50，结果和溢出标志是？
+      options:
+        - text: 结果读作 −106，溢出（最高位收到进位 1、送出进位 0）
+          correct: true
+        - text: 结果 150，不溢出
+          why: 8 位补码最大只有 127，150 放不下
+        - text: 结果读作 −106，不溢出
+          why: 两个正数加出负数就是溢出；OF = 1 ⊕ 0 = 1
+      explain: 01100100 + 00110010 = 10010110。
+    - id: huffman-boss
+      type: number
+      prompt: 四个符号的概率是 0.4、0.3、0.2、0.1。用 Huffman 算法编码，平均每个符号几位？
+      answer: 1.9
+      explain: 先合并 0.1 和 0.2 得 0.3；再合并两个 0.3 得 0.6；最后和 0.4 合并。码长依次是 1、2、3、3：0.4 × 1 + 0.3 × 2 + 0.2 × 3 + 0.1 × 3 = 1.9。
+    - id: cache-boss
+      type: number
+      prompt: 直接映射 cache 容量 2 KB，每块 32 字节，地址 32 位。tag 有几位？
+      answer: 21
+      explain: offset 5 位（2⁵ = 32）；2048 / 32 = 64 行，index 6 位；32 − 5 − 6 = 21。
+    - id: amat-boss
+      type: number
+      prompt: cache 命中时间 2 ns，缺失率 10%，缺失代价 50 ns。平均一次访问几 ns？
+      answer: 7
+      explain: 2 + 0.1 × 50 = 7 ns。
+    - id: clock-boss
+      type: number
+      prompt: 寄存器 t_PD = 2 ns，两个寄存器之间最慢的组合逻辑 15 ns，t_SETUP = 3 ns。时钟频率最高是多少 MHz？
+      answer: 50
+      explain: t_CLK ≥ 2 + 15 + 3 = 20 ns，频率 1 / 20 ns = 50 MHz。
+    - id: sw-boss
+      type: choice
+      prompt: 单周期 RISC-V 执行 sw 时，下面哪一组对？
+      options:
+        - text: RegWrite = 0、MemWrite = 1、ALUSrc = 1
+          correct: true
+        - text: RegWrite = 1、MemWrite = 1、ALUSrc = 1
+          why: sw 不写寄存器
+        - text: RegWrite = 0、MemWrite = 1、ALUSrc = 0
+          why: 地址是 rs1 + 立即数，ALU 的第二个输入要选立即数
+      explain: sw 写存储器、不写寄存器，地址用立即数偏移。
+    - id: io-boss
+      type: choice
+      prompt: 网卡每秒要收进几亿字节的数据。用哪种输入输出方式最合适？
+      options:
+        - text: DMA
+          correct: true
+        - text: 每个字节一次中断
+          why: 每秒几亿次中断，CPU 光处理中断就忙不过来了
+        - text: 轮询
+          why: CPU 一直盯着网卡，就干不了别的事
+      explain: 大块数据让控制器自己搬，搬完一批只中断一次。
+    - id: fsm-boss
+      type: number
+      prompt: 一个有限状态机有 9 个状态。状态寄存器至少要几位？
+      answer: 4
+      explain: 3 位只能编 8 个，4 位能编 16 个。

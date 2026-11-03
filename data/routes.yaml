@@ -1,0 +1,138 @@
+# 远征 (campaigns). Stops are never listed by hand: the game takes the required-prerequisite closure
+# of a route's goals in the tree and orders it (src/game/core/graph.js planRoute).
+#
+# own          the goals the author picked for themself, shown as 我的远征. They are written like any
+#              goal a player picks: id "goal:<skill>", name / tagline / story from the tree
+#              (src/game/core/route-text.js), banner from the goal's lane (src/game/app/art.js).
+#              `was` lists old ids, so a save that was on one stays on it.
+# customGoals  自己定目标 (any skill as the goal): open | dev.
+# recommended  career routes, chosen by the rule in docs/recommended-routes.md (2026-11-03):
+#              a role with at least 2 % of the Stack Overflow 2025 respondents, or a BLS occupation
+#              growing much faster than average with 100,000+ jobs; plus 算法 as the shared base.
+#              `goal` is the headline goal, `also` the other skills the role's public roadmap asks
+#              for (mapping table in docs/recommended-routes.md); `art` names a banner of its own when the goal's lane
+#              picture is already taken. status: dev shows the card greyed out as 开发中 until every
+#              stop's lessons meet the beginner standard.
+own:
+  - goal: C.2.1
+    was: [os]
+
+customGoals: dev
+
+recommended:
+  - id: web
+    status: dev
+    name: 网站开发
+    goal: P.5.1
+    also: [P.2.4, D.1.1, D.1.2, D.1.3, S.3.1, P.4.5]
+    tagline: 从第一行代码走到“一个有数据库、挡得住攻击的网站”
+    story: >-
+      你的目标是自己做出一个完整的网站：页面怎么显示，服务器怎么回应请求，数据怎么存进数据库、怎样保证一次操作要么全做完要么全不做，常用的数据怎么放进缓存，怎么自动测试，还要挡住常见的攻击。这条路先学写程序和版本管理，再学 Web、测试和数据库，最后学 Web 安全。
+    evidence:
+      line: Stack Overflow 2025 开发者调查：全栈 27%、后端 14.2%、前端 4.3%，合计 45.5% 的受访者做网站开发，是人数最多的方向。
+      sources:
+        - { name: Stack Overflow 2025 开发者角色, url: "https://survey.stackoverflow.co/2025/developers#developer-roles-dev-type-dev-type" }
+        - { name: roadmap.sh 后端（初学者版）, url: "https://roadmap.sh/backend-beginner" }
+        - { name: roadmap.sh 前端（初学者版）, url: "https://roadmap.sh/frontend-beginner" }
+
+  - id: enterprise
+    status: dev
+    name: 企业与桌面应用开发
+    goal: P.4.4
+    also: [P.1.2, P.1.3, P.4.3, D.1.1, P.5.1, P.2.4, P.4.5, P.4.1, P.5.3]
+    art: route-enterprise
+    tagline: 从第一行代码走到“很多人一起维护很多年的大型软件”
+    story: >-
+      你的目标是写公司里长期运行的业务软件：订单、库存、银行系统这类程序要很多人合作，一改就是很多年。这条路先学写程序、面向对象和函数式写法，再学软件工程的做法、测试、数据库和 Web，最后学设计模式和软件架构：怎样把一个大系统拆得好改、好测。
+    evidence:
+      line: Stack Overflow 2025 开发者调查：4.3% 的受访者开发桌面或企业应用。
+      sources:
+        - { name: Stack Overflow 2025 开发者角色, url: "https://survey.stackoverflow.co/2025/developers#developer-roles-dev-type-dev-type" }
+        - { name: roadmap.sh Java, url: "https://roadmap.sh/java" }
+        - { name: roadmap.sh 软件设计与架构, url: "https://roadmap.sh/software-design-architecture" }
+
+  - id: mobile
+    status: dev
+    name: 手机应用开发
+    goal: P.5.2
+    also: [P.1.2, P.1.4, P.2.4, P.4.3, P.4.5, P.5.1, S.2.3]
+    art: route-mobile
+    tagline: 从第一行代码走到“自己做的 App 装进手机”
+    story: >-
+      你的目标是做出能装进手机的 App：界面怎么组织，页面怎么跳转，数据存在哪里，怎样一边联网一边不卡住界面，怎么保护用户的数据，怎么测试、怎么发布。这条路先学写程序、版本管理和面向对象，再学异步、网络和移动开发，同时学测试、软件设计和移动安全。
+    evidence:
+      line: Stack Overflow 2025 开发者调查：3% 的受访者是移动开发者。
+      sources:
+        - { name: Stack Overflow 2025 开发者角色, url: "https://survey.stackoverflow.co/2025/developers#developer-roles-dev-type-dev-type" }
+        - { name: roadmap.sh Android, url: "https://roadmap.sh/android" }
+
+  - id: embedded
+    status: dev
+    name: 嵌入式开发
+    goal: H.3.2
+    also: [P.2.2, F.1.1, F.1.2, P.4.3, H.1.2, P.2.4, P.4.5, H.3.1, H.3.3, H.1.1, C.1.2]
+    tagline: 从第一行代码走到“让单片机控制真实的硬件”
+    story: >-
+      你的目标是给洗衣机、无人机、汽车里的小电脑写程序：用 C 语言直接操作硬件，按时响应传感器，在很少的内存里跑实时操作系统。这条路很长：除了写程序、C 语言、数据结构和算法，还要补数字电路、模拟电路和它们用到的微积分，看懂计算机体系结构，最后学单片机、总线接口和嵌入式实时操作系统。
+    evidence:
+      line: Stack Overflow 2025 开发者调查：2.8% 的受访者开发嵌入式应用或设备。
+      sources:
+        - { name: Stack Overflow 2025 开发者角色, url: "https://survey.stackoverflow.co/2025/developers#developer-roles-dev-type-dev-type" }
+        - { name: Embedded Engineering Roadmap（required 主题）, url: "https://m3y54m.github.io/Embedded-Engineering-Roadmap/" }
+
+  - id: devops
+    status: dev
+    name: 云与运维（DevOps）
+    goal: C.4.2
+    also: [C.2.1, C.3.2, C.2.3, P.2.4, P.5.3, P.5.1]
+    art: route-cloud
+    tagline: 从第一行代码走到“成千上万台服务器自动上线、自动扩容”
+    story: >-
+      你的目标是让软件稳定地跑在云上：服务器的操作系统、网络和容器怎么用，Web 服务器怎么配，代码提交后怎么自动测试、自动上线，服务器怎么用代码一次配好。路上会完整走过操作系统那 5 站，再学并发、网络协议、容器和云计算。
+    evidence:
+      line: Stack Overflow 2025 开发者调查：2.3% 的受访者是 DevOps 工程师（系统管理员、云基础设施工程师各约 1%）。
+      sources:
+        - { name: Stack Overflow 2025 开发者角色, url: "https://survey.stackoverflow.co/2025/developers#developer-roles-dev-type-dev-type" }
+        - { name: roadmap.sh DevOps（初学者版）, url: "https://roadmap.sh/devops-beginner" }
+
+  - id: ai
+    status: dev
+    name: 人工智能：机器学习与深度学习
+    goal: A.2.3
+    was: [dl]
+    also: [M.6.2, M.6.2.2, D.3.1, A.4.1]
+    tagline: 从极限与导数走到“神经网络是怎么学会的”
+    story: >-
+      你的目标是亲手理解神经网络为什么能“学习”：误差怎么算，梯度往哪走，为什么要很多层，训练好的模型怎么稳定地交给别人用。这条路把微积分、线性代数、概率统计、回归和 Python 一段段打通，再经过数据探索和机器学习，最后到深度学习和 MLOps。它是最长、数学最多的一条。
+    evidence:
+      line: 美国劳工统计局：数据科学家 2025 年约 27.6 万个岗位，预计 2025–2035 年增长 35%，远快于平均。Stack Overflow 2025 里 AI/机器学习工程师、数据科学家等合计 3.7%。
+      sources:
+        - { name: BLS 数据科学家, url: "https://www.bls.gov/ooh/math/data-scientists.htm" }
+        - { name: Stack Overflow 2025 开发者角色, url: "https://survey.stackoverflow.co/2025/developers#developer-roles-dev-type-dev-type" }
+        - { name: roadmap.sh AI 与数据科学家, url: "https://roadmap.sh/ai-data-scientist" }
+
+  - id: security
+    status: dev
+    name: 网络安全
+    goal: S.2.2
+    also: [C.1.1, C.2.1, C.3.2, C.4.2]
+    tagline: 从第一行代码走到“看懂攻击、守住系统”
+    story: >-
+      你的目标是看懂攻击者怎样下手，防守方怎样发现和挡住：网络里的数据怎么被截获和伪造，防火墙和入侵检测怎么工作，系统怎么加固。这条路先打好电脑硬件、操作系统、网络协议和云的底子，再进入网络安全。
+    evidence:
+      line: 美国劳工统计局：信息安全分析师 2025 年约 19.3 万个岗位，预计 2025–2035 年增长 21%，远快于平均（Stack Overflow 2025 里占 1.1%）。
+      sources:
+        - { name: BLS 信息安全分析师, url: "https://www.bls.gov/ooh/computer-and-information-technology/information-security-analysts.htm" }
+        - { name: roadmap.sh 网络安全, url: "https://roadmap.sh/cyber-security" }
+
+  - id: algo
+    status: dev
+    name: 算法
+    goal: F.1.2
+    tagline: 从第一个证明走到“同样的问题，怎样快上万倍”
+    story: >-
+      你的目标是学会设计又快又对的算法：估算一段代码要跑多久，用分治、贪心、动态规划拆解问题，亲手当一回 BFS、Dijkstra 和最大流。这条路先练证明的基本功——归纳、反证、不变式，用它们说清楚“这个算法为什么一定对、一定会停”——再学写程序和数据结构，最后进入算法分析与设计。
+    evidence:
+      line: 不是一个职业方向，而是各个方向共用的基本功：它的 9 个知识点全部属于 ACM/IEEE CS2023 计算机课程标准的核心主题。
+      sources:
+        - { name: ACM/IEEE CS2023, url: "https://csed.acm.org/final-report/" }

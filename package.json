@@ -1,0 +1,38 @@
+{
+  "name": "cs-math-skill-game",
+  "version": "1.2.0",
+  "private": true,
+  "license": "CC-BY-NC-4.0",
+  "type": "module",
+  "description": "A beginner-friendly learning game built on the cs-math-skill-tree data",
+  "scripts": {
+    "data": "node scripts/build-data.mjs",
+    "build": "node scripts/build-data.mjs && node scripts/build-web.mjs",
+    "test": "node --test tests/unit/*.test.mjs",
+    "e2e": "node tests/e2e.mjs"
+  },
+  "dependencies": {
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/share": "8.0.3",
+    "@panzoom/panzoom": "4.6.2",
+    "canvas-confetti": "1.9.4",
+    "katex": "0.18.11",
+    "marked": "18.1.3",
+    "marked-katex-extension": "5.1.13",
+    "pixelarticons": "2.4.2",
+    "preact": "10.29.8",
+    "ts-fsrs": "6.0.0",
+    "zzfx": "1.4.0"
+  },
+  "devDependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/cli": "8.5.3",
+    "ajv": "8.20.0",
+    "axe-core": "4.14.0",
+    "esbuild": "0.28.2",
+    "js-yaml": "5.5.0",
+    "playwright-core": "1.64.1"
+  }
+}

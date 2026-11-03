@@ -1,0 +1,2420 @@
+skill: F.1.1
+version: 2
+authors: [main-agent]
+brief:
+  why: 数据结构讲的是：一堆数据怎么摆放，常用的操作才快。数组、链表、栈和队列、哈希表、树、堆、图，各有擅长的操作，也各有代价。操作系统里到处是它们：等待运行的进程排成队列，空闲的内存块串成链表，页表是一棵树。这一关只假设你学过程序设计基础的 Python，代码都用 Python 写，结构的名字照着教材《Open Data Structures》。
+  outcomes:
+    - 说出数组为什么按下标一步就能找到、为什么在中间插入要挪动，用 O(1)、O(n)、O(log n) 描述快慢
+    - 写出会自动扩容的 ArrayStack，用摊还分析说明翻倍扩容为什么划算，算出 RootishArrayStack 的块号
+    - 写出单链表和带哑节点的双链表的增删，说出 SLList、DLList、SEList 各自的代价
+    - 用栈、队列、双端队列解题，看懂循环数组的下标、两栈队列和 DualArrayDeque 的平衡
+    - 手算拉链法和线性探测的哈希表，解释负载因子、删除标记和哈希码的要求
+    - 写递归遍历二叉树，手算二叉搜索树的插入、删除和高度，说出 2-4 树和红黑树怎样保证 O(log n)
+    - 手算二叉堆的上浮和下沉，用 MeldableHeap 合并两个堆
+    - 用邻接矩阵和邻接表存图，做 BFS 和 DFS，把一个结构的不变量写成检查函数
+terms:
+  - term: 内存
+    def: '程序运行时存放所有值的地方，像一长排编了号的格子'
+  - term: 地址
+    def: '内存里每个格子的编号；知道地址就能一步找到那个格子'
+  - term: 数组
+    def: '一排紧挨着、每格一样大的格子，第 i 格的地址 = 开头 + i × 每格大小'
+  - term: 大 O 记号
+    def: '描述步数怎样随元素个数 n 增长的写法，如 O(1)、O(n)、O(log n)，不管常数'
+  - term: 类
+    def: '用 class 定义的一种新东西，造出来的每一个都带着自己的成员，如 s.a、s.n'
+  - term: 不变量
+    def: '每个操作开始前和结束后都必须成立的条件，如 ArrayStack 的 n ≤ len(a)'
+  - term: 摊还
+    def: '把一长串操作的总开销平均到每一次上算出的时间，偶尔的大开销被分摊掉'
+  - term: 链表
+    def: '每个节点存一个值和指向下一个节点的 next，节点不必挨着放'
+  - term: 哑节点
+    def: '链表里一个不存数据的额外节点，让首尾连成圈，省掉空链表的特殊情况'
+  - term: 栈
+    def: '只在一头放和取的结构：后放进的先取出（push / pop）'
+  - term: 队列
+    def: '从队尾放、从队头取的结构：先放进的先取出'
+  - term: 双端队列
+    def: '两头都能放、都能取的队列（deque）'
+  - term: 哈希函数
+    def: '把键变成表里一个格子编号的函数，如 x % m'
+  - term: 哈希表
+    def: '用哈希函数算出格子、把键直接放进去的表；查找的期望时间是 O(1)'
+  - term: 冲突
+    def: '两个不同的键被哈希函数算到同一个格子'
+  - term: 负载因子
+    def: '键的个数除以格子数 n / m，表示哈希表有多满'
+  - term: 线性探测
+    def: '格子被占了就一格格往后找空位的哈希表做法，到末尾绕回 0'
+  - term: 簇
+    def: '线性探测时连成一段的被占格子；越长，新键要走得越远'
+  - term: 哈希码
+    def: '从一个值算出的整数（Python 的 hash(x)）；相等的值必须有相等的哈希码'
+  - term: 二叉树
+    def: '每个节点最多两个孩子（左、右）的树'
+  - term: 递归
+    def: '函数调用它自己去解决更小的同类问题，必须有一种不再往下调用的情况'
+  - term: 二叉搜索树
+    def: '每个节点的左子树都比它小、右子树都比它大的二叉树，中序遍历就是从小到大'
+  - term: 2-4 树
+    def: '所有叶子一样深、每个内部节点有 2 到 4 个孩子的树，高度最多 log₂ n'
+  - term: 红黑树
+    def: '节点涂红或黑的二叉搜索树：黑高相同、没有相邻的红节点，高度最多约 2 log₂ n'
+  - term: 图
+    def: '一些顶点和连接它们的边，边可以有方向'
+  - term: 邻接矩阵
+    def: '用 n × n 的表记录哪两个顶点之间有边'
+  - term: 邻接表
+    def: '给每个顶点一个列表，只记它的邻居'
+  - term: 优先队列
+    def: '只要放进和取出最小值两种操作的结构'
+  - term: 二叉堆
+    def: '按层存进数组的完全二叉树，每个节点不比父节点小，最小值在 a[0]'
+
+lessons:
+  - id: array-basics
+    chapter: 数组
+    title: 数组：一排连着的格子
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: Python 列表 a 有 1000 个元素。猜一猜：读 `a[999]` 和读 `a[0]`，哪个更快？
+          options:
+            - text: 一样快
+              correct: true
+            - text: a[0] 快，因为不用一个个数过去
+              why: 列表不是一个个数过去的，它直接算出第 999 个在哪，下面讲怎么算
+            - text: a[999] 快
+              why: 位置靠后不会更快，两者都是直接算出位置
+          explain: 列表底下是一排连着的格子，第几个在哪里能直接算出来，所以一样快。
+      - card:
+          title: 内存和地址
+          body: |
+            程序运行时，所有的值都放在**内存（memory）**里。可以把内存想成一长排格子，每个格子都有一个编号，叫**地址（address）**，就像门牌号。
+
+            知道了地址，电脑一步就能找到那个格子，不用从头数。
+      - card:
+          title: 数组：一排挨着的、一样大的格子
+          body: |
+            **数组（array）**是一排**紧挨着**、每个**一样大**的格子，个数在造它时就定好了。
+
+            既然挨着又一样大，第 i 个格子的地址能直接算出来：
+
+            $$\text{a[i] 的地址} = \text{开头的地址} + i \times \text{每格的大小}$$
+
+            开头在 1000、每格 8 个单位，a[3] 就在 1000 + 3 × 8 = 1024。不管 i 多大，都只算一次。
+      - item:
+          id: addr
+          type: number
+          prompt: 一个数组从地址 2000 开始，每格占 8 个单位。a[5] 在哪个地址？
+          answer: 2040
+          explain: 2000 + 5 × 8 = 2040。
+      - card:
+          title: 插进中间就得挪
+          body: |
+            格子是挨着的，想在下标 i 插进一个新元素，就得先把 a[i]、a[i+1]……a[n−1] 每个往后挪一格，空出 a[i]。n 个元素时要挪 n − i 个。删掉 a[i] 也一样，后面的都往前挪。
+
+            还有一个麻烦：格子数造好就定了，满了就放不下，只能换一个更大的数组。
+      - item:
+          id: shift-count
+          type: number
+          prompt: 数组里有 10 个元素（下标 0 到 9），要在下标 3 插入一个新元素。要挪动几个元素？
+          answer: 7
+          explain: 下标 3 到 9 的 7 个元素都要往后挪一格，n − i = 10 − 3 = 7。
+      - card:
+          title: 大 O：步数怎样随 n 增长
+          body: |
+            说一个操作快不快，看的是元素个数 n 变大时，步数怎样变。这种说法叫**大 O 记号（big-O notation）**，只看增长的样子，不管常数：
+
+            | 写法 | 意思 | 例子 |
+            |---|---|---|
+            | O(1) | 步数不随 n 变 | 读 a[i] |
+            | O(n) | 步数和 n 成正比 | 在开头插入 |
+            | O(log n) | n 翻倍，步数只多一步 | 后面讲的平衡树 |
+
+            n − i 次挪动就记作 O(n − i)，最坏时是 O(n)。
+      - item:
+          id: big-o-front
+          type: choice
+          prompt: 在有 n 个元素的数组**开头**插入一个元素，要几步？
+          options:
+            - text: O(n)
+              correct: true
+            - text: O(1)
+              why: 开头插入要把 n 个元素都往后挪，n 越大越慢
+            - text: O(log n)
+              why: 一个都不能少挪，是和 n 成正比，不是只多一步
+          explain: 开头插入时 i = 0，要挪 n − 0 = n 个元素。
+      - card:
+          title: Python 的列表就是数组
+          body: |
+            Python 的列表底下就是一个数组（存着各元素的位置），所以：
+
+            - `xs[i]` 是 O(1)；
+            - `xs.insert(0, x)`、`xs.pop(0)` 要挪动所有元素，是 O(n)；
+            - `xs.append(x)` 通常是 O(1)：列表会**多留一些空格子**，满了才换一个更大的数组。
+      - item:
+          id: slow-op
+          type: choice
+          prompt: 一个有一百万个元素的列表 xs，下面哪个操作最慢？
+          options:
+            - text: '`xs.insert(0, 7)`'
+              correct: true
+            - text: '`xs.append(7)`'
+              why: 末尾通常还有空格子，直接放进去，不用挪
+            - text: '`xs[500000]`'
+              why: 按下标读是直接算地址，一步就到
+          explain: 插在开头要把一百万个元素都往后挪一格。
+      - card:
+          title: 例题：连着在开头插三次
+          body: 列表里本来有 5 个元素，连着在开头插入 3 个新元素，一共挪了几次？
+          reveal:
+            - title: 第 1 次插入
+              body: 有 5 个元素，全部往后挪：5 次。之后有 6 个。
+            - title: 第 2 次插入
+              body: 6 个都要挪：6 次。之后有 7 个。
+            - title: 第 3 次插入，加起来
+              body: 挪 7 次。一共 5 + 6 + 7 = 18 次。
+      - item:
+          id: three-inserts
+          type: number
+          prompt: 列表本来有 4 个元素，连着在开头插入 3 个新元素，一共挪了几次元素？
+          answer: 15
+          explain: 4 + 5 + 6 = 15：每插一次，下一次要挪的就多一个。
+
+  - id: array-stack
+    chapter: 数组
+    title: 自己做一个会变长的数组：ArrayStack
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: Python 列表一直 append，从来不会“满”。猜一猜它是怎么做到的？
+          options:
+            - text: 满了就换一个更大的数组，把元素都搬过去
+              correct: true
+            - text: 它的数组一开始就无限大
+              why: 内存是有限的，数组造的时候就得定下格子数
+            - text: 每个元素单独放，互不挨着
+              why: 那样就不能直接算出 xs[i] 的地址了
+          explain: 这一课照着教材的 ArrayStack 自己做一个：满了就换一个两倍大的。
+      - card:
+          title: 类：自己定义一种东西
+          body: |
+            ```python
+            class ArrayStack:
+                def __init__(self):
+                    self.a = [None]    # 底下的数组，先只有 1 格
+                    self.n = 0         # 已经放了几个元素
+            ```
+
+            `class` 定义一种新的东西，这叫**类（class）**。`s = ArrayStack()` 造出一个，造的时候自动执行 `__init__`；`self` 就是正在造的这一个。之后用 `s.a`、`s.n` 取它的成员。写在 class 里面的函数叫方法，调用时写 `s.方法名(...)`，self 会自动填上。
+      - item:
+          id: new-stack
+          type: text
+          prompt: 用上面的类，执行 `s = ArrayStack()` 之后，`print(s.n, len(s.a))` 显示什么？
+          answers: [0 1]
+          explain: 刚造好时一个元素也没放（n 是 0），底下的数组有 1 格。
+          review: false
+      - card:
+          title: 元素放在哪：不变量
+          body: |
+            约定：n 个元素依次放在 `a[0]` 到 `a[n−1]`，后面的格子空着，所以总有 n ≤ len(a)。每个操作开始前和结束后都成立的条件，叫**不变量（invariant）**。写每个操作时，都要保证它不被破坏。
+
+            ```python
+                def get(self, i):
+                    return self.a[i]
+
+                def set(self, i, x):
+                    y = self.a[i]
+                    self.a[i] = x
+                    return y
+            ```
+      - item:
+          id: which-invariant
+          type: choice
+          prompt: ArrayStack 的不变量是哪一条？
+          options:
+            - text: 元素放在 a[0] 到 a[n−1]，并且 n ≤ len(a)
+              correct: true
+            - text: 数组总是正好装满，n = len(a)
+              why: 数组通常留着空格子，满了才换更大的
+            - text: 元素可以放在数组的任何位置
+              why: 那样 get(i) 就不能直接取 a[i] 了
+          explain: 靠这条约定，get(i) 一步就能取到第 i 个。
+      - card:
+          title: add(i, x)：先挪，再放
+          body: |
+            ```python
+                def add(self, i, x):
+                    if self.n == len(self.a):
+                        self.resize()
+                    for k in range(self.n, i, -1):
+                        self.a[k] = self.a[k - 1]
+                    self.a[i] = x
+                    self.n += 1
+            ```
+
+            满了先换大数组；然后从最后一个开始，把 a[i] 到 a[n−1] 往后挪一格（从后往前挪，才不会盖掉还没挪的），再放进 x。挪了 n − i 个。
+      - item:
+          id: add-moves
+          type: number
+          prompt: ArrayStack 里有 6 个元素，数组还有空格子。执行 `add(2, x)` 要挪动几个元素？
+          answer: 4
+          explain: 下标 2 到 5 的 4 个元素往后挪：n − i = 6 − 2 = 4。
+      - card:
+          title: resize 和 remove
+          body: |
+            ```python
+                def resize(self):
+                    b = [None] * max(1, 2 * self.n)
+                    for k in range(self.n):
+                        b[k] = self.a[k]
+                    self.a = b
+
+                def remove(self, i):
+                    x = self.a[i]
+                    for k in range(i, self.n - 1):
+                        self.a[k] = self.a[k + 1]
+                    self.n -= 1
+                    if len(self.a) >= 3 * self.n:
+                        self.resize()
+                    return x
+            ```
+
+            resize 换成 2n 格的新数组，把元素搬过去。remove 之后，数组长度达到 n 的 3 倍时就缩小，免得太浪费。
+      - item:
+          id: len-after-5
+          type: number
+          prompt: 从新造的 ArrayStack 开始，连续 5 次 `add(s.n, x)`（每次放在末尾）。最后 len(s.a) 是多少？
+          answer: 8
+          explain: 放第 2 个时 1 格满了，换成 2 格；放第 3 个时换成 4 格；放第 5 个时换成 8 格。
+          review: false
+      - item:
+          id: len-after-removes
+          type: number
+          prompt: 接着上一题（n = 5，len(a) = 8），连续 3 次 `remove(s.n - 1)`。最后 len(s.a) 是多少？
+          answer: 4
+          explain: n 变成 4 时 8 ≥ 12 不成立；变成 3 时 8 ≥ 9 不成立；变成 2 时 8 ≥ 6 成立，缩小成 2 × 2 = 4 格。
+          review: false
+      - card:
+          title: 当栈用：只在末尾进出
+          body: |
+            只在末尾操作：`add(n, x)` 放到最后，`remove(n − 1)` 取走最后一个。这两种都不用挪任何元素，不算 resize 的话是 O(1)。这就是教材名字里 Stack（栈）的意思。
+
+            教材的 FastArrayStack 做的事完全一样，只是挪动时不一个个复制，而是调用系统提供的“一次复制一整段”（Java 的 System.arraycopy）。步数的增长方式不变，实际快好几倍。Python 里对应的写法是切片赋值：`a[i+1:n+1] = a[i:n]`。
+      - item:
+          id: push-pop-cost
+          type: choice
+          prompt: 不算 resize 的话，在 ArrayStack 的末尾放进和取出一个元素要几步？
+          options:
+            - text: O(1)，因为不用挪任何元素
+              correct: true
+            - text: O(n)，因为要挪动所有元素
+              why: 只有在开头或中间增删才要挪；末尾后面没有元素
+          explain: i = n 时 n − i = 0，一个都不用挪。
+
+  - id: amortized
+    chapter: 数组
+    title: 翻倍为什么划算：摊还分析
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: ArrayStack 每次满了都要把所有元素搬一遍。猜一猜：从空开始在末尾放进 m 个元素，一共搬了多少个？
+          options:
+            - text: 不到 2m 个
+              correct: true
+            - text: 大约 m² 个
+              why: 只有在长度是 1、2、4、8……时才搬，搬的次数很少
+            - text: 每放一个都要搬，一共 m 个
+              why: 大多数时候还有空格子，根本不搬
+          explain: 翻倍让搬家越来越少见，加起来不到 2m。下面算一算。
+      - card:
+          title: 摊还：把偶尔的大开销分摊开
+          body: |
+            有的操作偶尔很贵（resize 要搬 n 个），大多数时候很便宜。只看一次最坏的情况会把它说得太慢，不如算**一长串操作的总开销**，再平均到每一次。这样算出的每次开销叫**摊还（amortized）**时间。
+      - card:
+          title: 例题：放进 9 个元素
+          body: 从新造的 ArrayStack（1 格）开始，在末尾放进 9 个元素。一共搬了几个元素？
+          reveal:
+            - title: 第 1 步：什么时候搬
+              body: 放第 2 个时 n = 1 满了；放第 3 个时 n = 2 满了；放第 5 个时 n = 4；放第 9 个时 n = 8。
+            - title: 第 2 步：每次搬几个
+              body: resize 把已有的 n 个都复制过去：1、2、4、8 个。
+            - title: 第 3 步：加起来
+              body: 1 + 2 + 4 + 8 = 15，不到 2 × 9 = 18。
+            - title: 第 4 步：一般的规律
+              body: 搬的个数是 1 + 2 + 4 + … + 2^k，等于 2^(k+1) − 1；而 2^k 不超过放进的个数 m，所以总数小于 2m。平均到每次放入，只多搬不到 2 个：摊还 O(1)。
+      - item:
+          id: copies-17
+          type: number
+          prompt: 从新造的 ArrayStack 开始，在末尾放进 17 个元素。resize 一共复制了几个元素？
+          answer: 31
+          explain: n = 1、2、4、8、16 时各搬一次：1 + 2 + 4 + 8 + 16 = 31，小于 2 × 17 = 34。
+      - item:
+          id: amortized-cost
+          type: choice
+          prompt: 那么在 ArrayStack 末尾放一个元素，摊还下来是几步？
+          options:
+            - text: O(1)
+              correct: true
+            - text: O(n)
+              why: 只有极少数那一次是 O(n)；分摊到所有操作上，每次只多出常数步
+            - text: O(log n)
+              why: 搬家的总数和 m 成正比，不是多出 log m 那么多
+          explain: m 次放入一共只搬不到 2m 个元素，每次平均是常数。
+      - card:
+          title: 为什么缩小要等到 3 倍
+          body: |
+            假如规则是“满了翻倍、一半空了就减半”。数组 8 格、放了 8 个：再放一个，翻成 16 格（搬 8 个）；马上删一个，又只剩 8 个、正好一半，减回 8 格（再搬 8 个）……来回放一个删一个，**每次都要搬 8 个**，摊还就不是 O(1) 了。
+
+            教材的做法：换数组时总是换成 2n 格；长度到了 3n 才缩小。刚换完以后，不管接着是放还是删，都要好多次操作才会再次换数组，这些便宜的操作正好分摊掉搬家的开销。
+      - item:
+          id: thrash
+          type: choice
+          prompt: 用“满了翻倍、一半空了就减半”的规则，在 8 个元素、8 格的数组上反复“放一个、删一个”。会怎样？
+          options:
+            - text: 每次操作都要搬 8 个元素
+              correct: true
+            - text: 只在第一次搬，以后都很快
+              why: 放一个就翻倍，删一个又正好一半，于是又减半；每次都换数组
+          explain: 两条规则的门槛挨得太近，操作在门槛上来回跳，每次都触发搬家。
+      - item:
+          id: until-shrink
+          type: number
+          prompt: 教材的 ArrayStack 刚刚 resize 完：n = 30，len(a) = 60。从现在开始只删不放，删掉几个以后会再次缩小？
+          answer: 10
+          explain: 缩小的条件是 len(a) ≥ 3n，也就是 60 ≥ 3n，n ≤ 20。从 30 删到 20，要删 10 个。而要再次变大，得先放进 30 个把数组放满。
+
+  - id: rootish
+    chapter: 数组
+    title: 少浪费一点：RootishArrayStack
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: ArrayStack 刚刚翻倍扩容完，它底下的数组里大约有多少格是空着的？
+          options:
+            - text: 一半
+              correct: true
+            - text: 几乎没有
+              why: 扩容成 2n 格，只放了 n 个，另一半空着
+            - text: 全空
+              why: 元素都搬过去了，放在前一半
+          explain: 刚扩容时浪费一半；缩小前最多空着三分之二。元素非常多时，这些空格子很占内存。
+      - card:
+          title: 一排越来越大的小块
+          body: |
+            教材的 RootishArrayStack 不用一个大数组，而是用一串小数组（块）：第 0 块 1 格，第 1 块 2 格，第 2 块 3 格……第 b 块 b + 1 格。
+
+            r 个块一共能放 1 + 2 + … + r = r(r + 1) / 2 个元素。不够了就在后面加一个更大的块，不用搬动已有的元素。空着的格子只在最后一两块里，大约只有 √n 个。
+      - item:
+          id: five-blocks
+          type: number
+          prompt: RootishArrayStack 有 5 个块（第 0 到第 4 块），一共能放几个元素？
+          answer: 15
+          explain: 1 + 2 + 3 + 4 + 5 = 15，也就是 5 × 6 / 2。
+      - card:
+          title: 第 i 个元素在哪一块
+          body: |
+            前 b 个块（第 0 到 b − 1 块）一共放 b(b + 1) / 2 个元素。所以第 i 个元素在满足下式的那个块 b 里：
+
+            $$\frac{b(b+1)}{2} \le i < \frac{(b+1)(b+2)}{2}$$
+
+            它在块里的位置是 $j = i - \frac{b(b+1)}{2}$。教材直接用公式算出 b：$b = \left\lceil \frac{-3 + \sqrt{9 + 8i}}{2} \right\rceil$，所以 get(i) 仍然是 O(1)。
+      - card:
+          title: 例题：第 7 个元素在哪
+          body: 算 i = 7 所在的块和块里的位置。
+          reveal:
+            - title: 第 1 步：前面几块放了多少
+              body: 第 0、1、2 块放 1 + 2 + 3 = 6 个（下标 0 到 5）；第 3 块有 4 格，放下标 6 到 9。
+            - title: 第 2 步：块和位置
+              body: 7 在第 3 块；位置 j = 7 − 6 = 1（块里的第 2 格）。
+            - title: 第 3 步：用公式核对
+              body: √(9 + 56) = √65 ≈ 8.06，(−3 + 8.06) / 2 ≈ 2.53，向上取整是 3。对上了。
+      - item:
+          id: block-12
+          type: number
+          prompt: RootishArrayStack 里下标 12 的元素在第几块？（从第 0 块数起）
+          answer: 4
+          explain: 第 0 到 3 块放 1 + 2 + 3 + 4 = 10 个（下标 0–9）；第 4 块放下标 10–14，12 在这里。
+      - item:
+          id: pos-12
+          type: number
+          prompt: 下标 12 的元素在它那一块里的位置 j 是几？（块里从 0 数）
+          answer: 2
+          explain: 前面的块放了 10 个，j = 12 − 10 = 2。
+      - card:
+          title: 省了多少
+          body: |
+            放 100 个元素：要 r(r + 1) / 2 ≥ 100，最小的 r 是 14（能放 105 个），只空 5 格（教材的做法可能还多留一个空块）。
+
+            同样 100 个元素，ArrayStack 底下的数组可能是 128 格（空 28 格），删过元素以后甚至可能接近 300 格。
+
+            代价：get、set 要多算一次块号；add、remove 仍然要挪动后面的元素，和 ArrayStack 一样是 O(1 + n − i)。
+      - item:
+          id: blocks-100
+          type: number
+          prompt: RootishArrayStack 放进 100 个元素，至少要几个块？
+          answer: 14
+          explain: 13 个块只能放 13 × 14 / 2 = 91 个，不够；14 个块能放 105 个。
+      - item:
+          id: rootish-tradeoff
+          type: choice
+          prompt: 和 ArrayStack 比，RootishArrayStack 换来了什么、付出了什么？
+          options:
+            - text: 空着的格子少得多；代价是 get(i) 要先算块号，稍慢一点
+              correct: true
+            - text: 在中间插入变成了 O(1)
+              why: 插入后面的元素仍然要一个个挪，还是 O(1 + n − i)
+            - text: get(i) 变成了 O(n)
+              why: 块号用公式直接算出来，get 仍然是 O(1)
+          explain: 它换掉的是浪费的空间，不是插入的速度。
+
+  - id: sllist
+    chapter: 链表
+    title: 单链表：SLList
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 数组在最前面插入要挪动所有元素。猜一猜，怎样才能让“在最前面加一个”不用挪动任何元素？
+          options:
+            - text: 不让元素挨着放，而是让每个元素记住下一个在哪
+              correct: true
+            - text: 把数组造得更大
+              why: 再大也是挨着放的，前面插入还是要挪
+            - text: 把元素倒过来放
+              why: 倒着放以后，“最前面”变成了数组末尾，可在数组真正的开头插入还是要挪
+          explain: 每个元素自己记着下一个是谁，插在最前面只要改一两个“指向”。
+      - card:
+          title: 节点和链表
+          body: |
+            ```python
+            class Node:
+                def __init__(self, x):
+                    self.x = x          # 存的值
+                    self.next = None    # 下一个节点
+            ```
+
+            每个节点存一个值 x，`next` 指向下一个节点，最后一个的 next 是 None。记住第一个节点（head），顺着 next 就能走完全部。这样串起来的结构叫**链表（linked list）**。节点各自放在内存里任何地方，不必挨着。
+      - item:
+          id: node-next
+          type: number
+          prompt: 运行下面的程序，显示的数是多少？
+          code: |
+            a = Node(1)
+            b = Node(2)
+            c = Node(3)
+            a.next = b
+            b.next = c
+            print(a.next.next.x)
+          lang: python
+          answer: 3
+          explain: a.next 是 b，b.next 是 c，c.x 是 3。
+          review: false
+      - card:
+          title: SLList：在头上放、在头上取
+          body: |
+            教材的 SLList 记着 head、tail（最后一个节点）和 n。在头上放（push）：
+
+            ```python
+                def push(self, x):
+                    u = Node(x)
+                    u.next = self.head
+                    self.head = u
+                    if self.n == 0:
+                        self.tail = u
+                    self.n += 1
+            ```
+
+            在头上取（pop）：记下 head.x，把 head 改成 head.next，n 减 1；减到 0 时 tail 也改成 None。两样都只改几个名字的指向，O(1)。
+      - card:
+          title: 在尾巴上加：靠 tail
+          body: |
+            ```python
+                def add(self, x):
+                    u = Node(x)
+                    if self.n == 0:
+                        self.head = u
+                    else:
+                        self.tail.next = u
+                    self.tail = u
+                    self.n += 1
+            ```
+
+            有 tail 记着最后一个，加到末尾也是 O(1)。所以 SLList 既能当栈（push / pop 都在头上），也能当队列（add 在尾巴加，pop 从头上取）。
+      - item:
+          id: sllist-ops
+          type: choice
+          prompt: 新造一个空的 SLList，依次 `push(1)`、`push(2)`、`add(3)`、`pop()`。现在从 head 顺着 next 走，依次是？
+          options:
+            - text: 1、3
+              correct: true
+            - text: 2、1、3
+              why: pop() 取走了头上的 2
+            - text: 1、2
+              why: add(3) 把 3 加在了尾巴上；pop() 取走的是头上的 2
+          explain: push(1) 后是 1；push(2) 后是 2、1；add(3) 后是 2、1、3；pop() 取走 2，剩 1、3。
+          review: false
+      - item:
+          id: why-tail
+          type: choice
+          prompt: SLList 为什么要专门记着 tail？
+          options:
+            - text: 不用从头走到最后，就能在末尾加节点
+              correct: true
+            - text: 为了能从尾巴往前走
+              why: 单链表只有 next，没有指回前一个节点的 prev，从 tail 也走不回去
+            - text: 为了让 pop 更快
+              why: pop 在头上取，用的是 head
+          explain: 没有 tail，每次加到末尾都要从 head 走 n 步。
+      - card:
+          title: 按位置找要一步步走
+          body: |
+            想要第 i 个，只能从 head 开始走 i 步：
+
+            ```python
+            p = self.head
+            for _ in range(i):
+                p = p.next
+            ```
+
+            所以 get(i) 是 O(1 + i)。删掉最后一个也慢：要把倒数第二个的 next 改成 None，可单链表只能往后走，得从头走到倒数第二个，O(n)。
+      - item:
+          id: walk-steps
+          type: number
+          prompt: 一个 SLList 有 5 个节点。按上面的写法找第 3 个（从 0 数），`p = p.next` 一共执行几次？
+          answer: 3
+          explain: 从 head（第 0 个）出发，走 3 步到第 3 个。
+          review: false
+      - item:
+          id: sllist-slow
+          type: choice
+          prompt: 在有 n 个节点的 SLList 上，哪个操作要 O(n)？
+          options:
+            - text: 删掉最后一个节点
+              correct: true
+            - text: 在头上放一个
+              why: push 只改 head，O(1)
+            - text: 在末尾加一个
+              why: 有 tail，直接接在后面，O(1)
+          explain: 删最后一个要找到倒数第二个，而单链表只能从头往后走。
+
+  - id: dllist
+    chapter: 链表
+    title: 双链表和哑节点：DLList
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 单链表删掉最后一个要从头走一遍。猜一猜，怎样改就能 O(1) 删掉任意一个已经找到的节点？
+          options:
+            - text: 每个节点再记住前一个节点
+              correct: true
+            - text: 每个节点记住下下个节点
+              why: 删除时要改的是前一个节点的 next，所以得找得到前一个
+          explain: 节点同时记着 prev 和 next，就叫双链表。
+      - card:
+          title: 双链表和哑节点
+          body: |
+            DLList 的每个节点有 `prev` 和 `next`。教材再多用一个不存数据的节点 dummy，叫**哑节点（dummy node）**：dummy.next 是第一个节点，dummy.prev 是最后一个，整条链连成一个圈。
+
+            空链表时 dummy.next 和 dummy.prev 都指向 dummy 自己。这样“在开头加”“在末尾删”都不用单独处理“链表是空的”或“这是第一个”的情况。
+      - item:
+          id: empty-dummy
+          type: choice
+          prompt: 空的 DLList 里，dummy.next 指向谁？
+          options:
+            - text: dummy 自己
+              correct: true
+            - text: None
+              why: 教材的 DLList 连成一个圈，没有 None；空的时候圈里只有 dummy
+          explain: 只有 dummy 一个节点的圈：它的 next 和 prev 都是它自己。
+      - card:
+          title: 插在 w 前面
+          body: |
+            ```python
+                def add_before(self, w, x):
+                    u = Node(x)
+                    u.prev = w.prev
+                    u.next = w
+                    u.next.prev = u
+                    u.prev.next = u
+                    self.n += 1
+            ```
+
+            先让 u 指好它的两个邻居，再让两个邻居指向 u。前两行用到的 `w.prev` 必须是**原来的**前一个节点，所以 `w.prev = u`（就是第三行 `u.next.prev = u`）必须排在后面。在开头插入就是 `add_before(dummy.next, x)`，在末尾就是 `add_before(dummy, x)`。
+      - item:
+          id: order-matters
+          type: choice
+          prompt: 如果把 add_before 的第三行 `u.next.prev = u`（也就是 `w.prev = u`）挪到最前面执行，会怎样？
+          options:
+            - text: 接下来的 `u.prev = w.prev` 让 u.prev 指向 u 自己，原来的前一个节点就丢了
+              correct: true
+            - text: 没有影响，顺序无所谓
+              why: u.prev = w.prev 要读原来的前一个节点；w.prev 先被改成 u 以后，就读不到了
+          explain: 改指向的顺序很重要：先用旧值，再覆盖它。
+      - card:
+          title: 删掉 w，以及按位置找
+          body: |
+            删掉 w：让它的两个邻居互相指：`w.prev.next = w.next`，`w.next.prev = w.prev`，n 减 1。已经拿到 w 时是 O(1)。
+
+            找第 i 个：i < n/2 时从 dummy.next 往后走 i 步；否则从 dummy 往前走 n − i 步。最多走一半，O(1 + min(i, n − i))。
+      - item:
+          id: back-steps
+          type: number
+          prompt: DLList 有 10 个节点（第 0 到第 9 个）。按上面的规则找第 8 个，要走几步？
+          answer: 2
+          explain: 8 ≥ 10/2，从 dummy 往前走：第 1 步到第 9 个，第 2 步到第 8 个，共 n − i = 2 步。
+          review: false
+      - item:
+          id: remove-cost
+          type: choice
+          prompt: 已经拿到了 DLList 中间的某个节点 w，删掉它要几步？
+          options:
+            - text: O(1)
+              correct: true
+            - text: O(n)
+              why: 前后两个邻居都能从 w 直接找到，不用走
+          explain: 只改两个指向。
+      - card:
+          title: 例题：删掉中间的 2
+          body: DLList 里依次是 1、2、3（加上 dummy 连成圈）。w 是存 2 的节点。
+          reveal:
+            - title: 第 1 步：前一个跳过 w
+              body: '`w.prev.next = w.next`：1 的 next 改指 3。'
+            - title: 第 2 步：后一个跳过 w
+              body: '`w.next.prev = w.prev`：3 的 prev 改指 1。'
+            - title: 第 3 步：检查
+              body: 从 dummy 往后走：1、3；往前走：3、1。w 再也走不到了。
+      - item:
+          id: after-remove
+          type: number
+          prompt: 上面的 DLList 删掉 2 以后，`dummy.next.next.x` 是多少？
+          answer: 3
+          explain: dummy.next 是 1，1 的 next 现在是 3。
+          review: false
+
+  - id: selist
+    chapter: 链表
+    title: 折中：SEList 和怎么选
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: DLList 的每个节点存一个值，外加 prev、next 两个指向。如果存的是很小的值（比如一个小整数），猜一猜空间花在哪？
+          options:
+            - text: 大部分花在 prev 和 next 上，比存数据本身还多
+              correct: true
+            - text: 几乎全花在数据上
+              why: 每个节点除了一个值，还有 prev、next 两个指向，小值时它们占的反而更多
+          explain: 教材的 SEList 让每个节点存一小块元素，把 prev、next 的开销摊开。
+      - card:
+          title: 每个节点放一小块
+          body: |
+            SEList 的每个节点放一小块元素（一个小数组，容量 b + 1），节点之间还是双链表。约定：除了最后一块，每块都有 b − 1 到 b + 1 个元素。
+
+            这样 prev、next 的份数从 n 份变成了大约 n / b 份，空间只比数据本身多 O(b + n / b)。
+      - item:
+          id: min-nodes
+          type: number
+          prompt: SEList 取 b = 4，每块最多 5 个元素。放 100 个元素，至少要几个节点？
+          answer: 20
+          explain: 每块最多 b + 1 = 5 个，100 / 5 = 20。
+      - card:
+          title: 找第 i 个：整块整块地跳
+          body: |
+            找第 i 个时，一次跳过一整块，从近的那头走，大约走 min(i, n − i) / b 个节点，再在块里直接按下标取。
+
+            在一块里插入或删除，要挪动块里的元素，最多 O(b)。某一块太满或太空时，教材从相邻的 b 块里匀一匀，摊还下来也是 O(b)。
+      - item:
+          id: jump-blocks
+          type: choice
+          prompt: SEList 里每块大约 10 个元素，一共 1000 个元素。找第 95 个元素，大约要走过几个节点？
+          options:
+            - text: 大约 10 个
+              correct: true
+            - text: 大约 95 个
+              why: 那是每个节点只存一个元素的 DLList；这里一次跳过一整块
+            - text: 1 个
+              why: 不能直接算出在哪个节点，还是要从头一块一块走
+          explain: 95 / 10 ≈ 10 个节点，然后在那一块里按下标取。
+      - card:
+          title: 三种列表怎么选
+          body: |
+            | | 按位置取 get(i) | 在位置 i 增删 | 额外空间 |
+            |---|---|---|---|
+            | ArrayStack | O(1) | O(1 + n − i)，摊还 | 最多约 2n 个空格子 |
+            | DLList | O(1 + min(i, n − i)) | 找到以后 O(1) | 每个元素两个指向 |
+            | SEList | O(1 + min(i, n − i) / b) | O(b + min(i, n − i) / b)，摊还 | O(b + n / b) |
+
+            经常按位置取、很少在中间插：用数组。手上已经拿着节点、要频繁在它旁边插删：用链表。SEList 在两者之间折中。
+      - item:
+          id: choose-b
+          type: choice
+          prompt: SEList 的 b 取得更大，会怎样？
+          options:
+            - text: 节点更少，找位置更快；但在一块里插入要挪的元素更多
+              correct: true
+            - text: 所有操作都更快
+              why: 块里插入要挪动最多 b 个元素，b 越大这一步越慢
+            - text: 所有操作都更慢
+              why: 节点数是 n / b，b 越大，找位置时要走的节点越少
+          explain: b 两头拉扯：大了跳得快、块内挪得多；小了反过来。
+      - item:
+          id: choose-list
+          type: choice
+          prompt: 一份一百万个元素的名单，程序经常要“取第 i 个”，几乎从不在中间插入。用哪种最合适？
+          options:
+            - text: 数组（ArrayStack 或 Python 列表）
+              correct: true
+            - text: DLList
+              why: DLList 取第 i 个要走 min(i, n − i) 步，最多五十万步
+          explain: 数组按下标取是 O(1)，正好是这个程序最常做的事。
+
+  - id: stack-queue-adt
+    chapter: 栈队列
+    title: 栈、队列和双端队列
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一摞盘子，你只能从最上面拿；食堂排队，先来的先打饭。这两种规矩分别叫什么？
+          options:
+            - text: 盘子：后进先出；排队：先进先出
+              correct: true
+            - text: 都是先进先出
+              why: 最后放上去的盘子最先被拿走，是后进先出
+            - text: 盘子：先进先出；排队：后进先出
+              why: 正好反了
+          explain: 后进先出的叫栈，先进先出的叫队列。
+      - card:
+          title: 只规定“能做什么”
+          body: |
+            - **栈（stack）**：push 放到顶上，pop 从顶上取。后进先出。
+            - **队列（queue）**：add 加到队尾，remove 从队头取。先进先出。
+            - **双端队列（deque）**：两头都能加、都能取。
+
+            这些只规定了能做哪些操作、结果是什么，叫接口。同一个接口可以有不同的做法：前面的 ArrayStack 和 SLList 都能当栈用，SLList 还能当队列用。
+      - card:
+          title: 自己试试
+          body: 点 push 往里放，点 pop 往外取，看栈和队列取出的顺序有什么不同。
+          sim:
+            name: stackqueue
+            params:
+              kind: stack
+              start: [1, 2]
+              pushable: [3, 4]
+      - item:
+          id: stack-puzzle
+          type: sim
+          sim: stackqueue
+          prompt: 栈里从底到顶是 1、2、3（栈顶是 3），你还能 push 4 和 5。想办法让取出的顺序是 4、5，并且最后栈里剩 1、2、3。
+          params:
+            kind: stack
+            start: [1, 2, 3]
+            pushable: [4, 5]
+          goal:
+            state: [1, 2, 3]
+            outputs: [4, 5]
+          solution:
+            ops:
+              - { op: push, v: 5 }
+              - { op: push, v: 4 }
+              - { op: pop }
+              - { op: pop }
+          explain: 想让 4 先出来，它必须比 5 更靠栈顶，所以先 push 5、再 push 4。
+      - item:
+          id: queue-puzzle
+          type: sim
+          sim: stackqueue
+          prompt: 队列里从队头到队尾是 7、8。想办法让取出的顺序是 7、8，并且最后队列里正好是 9、10（9 在队头）。
+          params:
+            kind: queue
+            start: [7, 8]
+            pushable: [9, 10]
+          goal:
+            state: [9, 10]
+            outputs: [7, 8]
+          solution:
+            ops:
+              - { op: pop }
+              - { op: pop }
+              - { op: push, v: 9 }
+              - { op: push, v: 10 }
+          explain: 队列从队头取、从队尾加：先把 7、8 取走，再依次加 9、10。
+      - card:
+          title: Python 里用什么
+          body: |
+            - 栈：列表就行，`append` 放、`pop()` 取，都是 O(1)。
+            - 队列和双端队列：用 `collections.deque`，`append` / `appendleft` 放，`pop` / `popleft` 取，两头都是 O(1)。
+
+            别用列表的 `pop(0)` 当队列：它要把后面所有元素往前挪，O(n)。
+      - item:
+          id: py-queue
+          type: choice
+          prompt: 要写一个排队系统，每秒都有人进、有人出，队伍有几万人。用什么存这个队伍最合适？
+          options:
+            - text: collections.deque，用 append 进、popleft 出
+              correct: true
+            - text: 列表，用 append 进、pop(0) 出
+              why: pop(0) 每次都要把几万个元素往前挪
+            - text: 列表，用 insert(0, x) 进、pop() 出
+              why: insert(0, x) 同样要挪动所有元素
+          explain: deque 两头进出都是 O(1)。
+      - card:
+          title: 例题：括号配不配对
+          body: 检查 `([]{})` 里的括号是否两两配对。规则：从左往右读，左括号放进栈；遇到右括号，栈顶必须是和它配对的左括号，就把它取出。
+          reveal:
+            - title: 读 ( 和 [
+              body: 都是左括号，依次放进栈：栈是 (、[（[ 在顶上）。
+            - title: 读 ]
+              body: 栈顶是 [，配对，取出。栈剩 (。
+            - title: 读 { 和 }
+              body: '{ 放进栈；} 和栈顶的 { 配对，取出。栈剩 (。'
+            - title: 读 )，读完
+              body: 和栈顶的 ( 配对，取出。读完时栈是空的：全部配对。
+      - item:
+          id: brackets
+          type: choice
+          prompt: 用同样的办法检查 `([)]`，在哪一步发现不配对？
+          options:
+            - text: 读到 ) 时，栈顶是 [
+              correct: true
+            - text: 读完时栈不空
+              why: 读到第三个字符 ) 时就已经发现栈顶的 [ 和它不配对了
+            - text: 它是配对的
+              why: '( 和 ) 中间夹着一个没关上的 [，不能算配对'
+          explain: 最后打开的括号必须最先关上，这正是后进先出。
+      - item:
+          id: py-stack
+          type: text
+          prompt: 运行下面的程序，显示什么？
+          code: |
+            s = []
+            for c in "abc":
+                s.append(c)
+            print(s.pop() + s.pop())
+          lang: python
+          answers: [cb]
+          explain: 栈里是 a、b、c，先取出 c，再取出 b，拼成 cb。
+
+  - id: array-queue
+    chapter: 栈队列
+    title: 用数组做队列：ArrayQueue 和 ArrayDeque
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用数组做队列：从末尾加、从开头取。每次从开头取都把后面的元素往前挪，太慢了。猜一猜有什么办法？
+          options:
+            - text: 不挪元素，只记住队头现在在哪个格子；到了数组末尾就绕回开头
+              correct: true
+            - text: 从末尾取、从开头加
+              why: 那样在开头加又要挪动所有元素
+          explain: 把数组想成首尾相连的一个圈，这叫循环数组。
+      - card:
+          title: ArrayQueue：首尾相连的数组
+          body: |
+            ArrayQueue 记三样：数组 a、队头所在的下标 j、元素个数 n。队列里的元素依次在 a[j]、a[j+1]……走到末尾就绕回 a[0]。第 k 个元素在 `a[(j + k) % len(a)]`。
+
+            ```python
+                def add(self, x):
+                    if self.n + 1 > len(self.a):
+                        self.resize()
+                    self.a[(self.j + self.n) % len(self.a)] = x
+                    self.n += 1
+
+                def remove(self):
+                    x = self.a[self.j]
+                    self.j = (self.j + 1) % len(self.a)
+                    self.n -= 1
+                    if len(self.a) >= 3 * self.n:
+                        self.resize()
+                    return x
+            ```
+      - item:
+          id: wrap-slot
+          type: number
+          prompt: ArrayQueue 的数组长度是 6，j = 4，n = 3。下一次 add(x) 把 x 放进哪个下标？
+          answer: 1
+          explain: (j + n) % 6 = (4 + 3) % 6 = 1：元素在 4、5、0，下一个绕到 1。
+      - item:
+          id: queue-remove-j
+          type: number
+          prompt: 数组长度 6，j = 5，n = 2（不触发缩小）。执行一次 remove() 之后，j 是多少？
+          answer: 0
+          explain: j = (5 + 1) % 6 = 0，绕回开头。
+      - card:
+          title: resize 时把圈拉直
+          body: |
+            ```python
+                def resize(self):
+                    b = [None] * max(1, 2 * self.n)
+                    for k in range(self.n):
+                        b[k] = self.a[(self.j + k) % len(self.a)]
+                    self.a = b
+                    self.j = 0
+            ```
+
+            新数组里元素从下标 0 开始按队列顺序排好，j 重新从 0 开始。add 和 remove 都不挪元素，摊还 O(1)。
+      - item:
+          id: resized-order
+          type: choice
+          prompt: 数组是 `[c, d, a, b]`，j = 2，n = 4（队头是 a）。再 add(e) 触发 resize，新数组是？
+          options:
+            - text: '`[a, b, c, d, e, None, None, None]`'
+              correct: true
+            - text: '`[c, d, a, b, e, None, None, None]`'
+              why: resize 按队列顺序从 a[j] 开始搬，队头 a 搬到新数组的下标 0
+            - text: '`[e, a, b, c, d, None, None, None]`'
+              why: e 是加到队尾的，在 d 后面
+          explain: 搬完是 a、b、c、d 放在 0–3，j = 0；e 放在 (0 + 4) % 8 = 4。
+      - card:
+          title: ArrayDeque：两头都能进出
+          body: |
+            教材的 ArrayDeque 也用循环数组，还能在任意位置 i 插入：i 靠近开头（i < n/2）时，把前面的 i 个元素往前挪一格（j 也往前一格）；靠近末尾时，把后面的 n − i 个往后挪一格。
+
+            总是挪少的那一边，所以 add(i, x) 和 remove(i) 是 O(1 + min(i, n − i))。在两头进出就是 O(1)。
+      - item:
+          id: deque-moves
+          type: number
+          prompt: ArrayDeque 里有 10 个元素，在位置 i = 8 插入一个新元素，要挪动几个元素？
+          answer: 2
+          explain: 8 不小于 10 / 2，挪后面那边：n − i = 10 − 8 = 2 个。
+      - item:
+          id: deque-moves-front
+          type: number
+          prompt: 还是 10 个元素，在位置 i = 1 插入呢？
+          answer: 1
+          explain: 1 < 5，挪前面那边：只有下标 0 的那 1 个元素往前挪一格。
+          review: false
+
+  - id: two-stacks
+    chapter: 栈队列
+    title: 两个栈拼起来：DualArrayDeque 和两栈队列
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 只能用栈（后进先出），能做出一个先进先出的队列吗？
+          options:
+            - text: 能，用两个栈，倒一次手顺序就反过来了
+              correct: true
+            - text: 不能，栈和队列的顺序正好相反
+              why: 一个栈做不到，但把一个栈里的元素依次倒进另一个栈，顺序就反过来了
+          explain: 反一次是后进先出，再反一次就是先进先出。
+      - card:
+          title: 两栈队列
+          body: |
+            用两个栈 in 和 out：
+
+            - 入队：push 到 in；
+            - 出队：如果 out 是空的，就把 in 里的元素一个个 pop 出来、push 进 out（顺序整个反过来）；然后从 out pop。
+
+            最早进来的元素压在 in 的最底下，倒进 out 以后正好在 out 的最顶上。
+      - card:
+          title: 看它怎么倒
+          body: 下面用两个列表当 in 和 out。单步运行，看第一次出队时元素怎么从 in 倒进 out。
+          sim:
+            name: trace
+            params:
+              code: |
+                inn, out = [], []
+                for x in [1, 2, 3]:
+                    inn.append(x)
+                if not out:
+                    while inn:
+                        out.append(inn.pop())
+                print(out.pop())
+      - item:
+          id: two-stack-trace
+          type: sim
+          sim: trace
+          prompt: 先在心里走一遍：最后显示什么？
+          params:
+            code: |
+              inn, out = [], []
+              for x in [1, 2, 3, 4, 5]:
+                  inn.append(x)
+              if not out:
+                  while inn:
+                      out.append(inn.pop())
+              first = out.pop()
+              print(first, len(out))
+          goal:
+            ask:
+              - { line: 8, var: "@out" }
+          explain: 1 到 5 倒进 out 后，out 从底到顶是 5、4、3、2、1；pop 出 1，out 还剩 4 个。
+      - card:
+          title: 为什么摊还 O(1)
+          body: |
+            偶尔一次出队要倒很多个，但每个元素一生中最多：push 进 in 一次、从 in pop 一次、push 进 out 一次、从 out pop 一次，**一共 4 次**。
+
+            所以 m 次入队、出队加起来，总操作不超过 4m 次，平均每次 O(1)。这和 ArrayStack 的翻倍是同一种思路：把偶尔的大开销摊到每个元素头上。
+      - item:
+          id: moves-per-element
+          type: number
+          prompt: 两栈队列里，一个元素从入队到出队，最多被 push 或 pop 几次（两个栈都算）？
+          answer: 4
+          explain: 进 in、出 in、进 out、出 out，各一次。
+      - card:
+          title: DualArrayDeque：两个 ArrayStack 背靠背
+          body: |
+            教材的 DualArrayDeque 用两个 ArrayStack 拼成一个双端队列：front 倒着存前一半，back 正着存后一半。在两头进出都只动某个栈的末尾，O(1)。
+
+            它要防止一边被取空：每次增删后，如果一边的元素个数超过另一边的 3 倍，就重新平均分成两半。这叫重新平衡，摊还下来不影响 O(1)。
+      - item:
+          id: rebalance
+          type: choice
+          prompt: DualArrayDeque 的 front 有 2 个元素，back 有 7 个。按“超过 3 倍就重新平衡”，现在会重新平衡吗？
+          options:
+            - text: 会，7 超过了 2 的 3 倍
+              correct: true
+            - text: 不会
+              why: 2 × 3 = 6 < 7，back 已经超过 front 的 3 倍
+          explain: 重新平衡后各有大约一半：9 个元素分成 4 和 5。
+      - item:
+          id: why-balance
+          type: choice
+          prompt: 如果 DualArrayDeque 从不重新平衡，一直从前面取，会出什么问题？
+          options:
+            - text: front 被取空以后，再从前面取就要去动 back 的开头，又要挪动很多元素
+              correct: true
+            - text: 不会有问题
+              why: back 是正着存的，从它的开头取要挪动它所有的元素
+          explain: 平衡保证两个栈都留着一些元素，两头取都只动栈的末尾。
+
+  - id: hash-chaining
+    chapter: 哈希
+    title: 哈希表：用键算出位置
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: Python 的字典有一百万个键，查一个键几乎和只有十个键时一样快。猜一猜靠的是什么？
+          options:
+            - text: 用键直接算出它该放在哪个格子
+              correct: true
+            - text: 把键排好序，每次从中间找
+              why: 那样要比较大约 20 次，键越多越慢；字典的做法几乎不随键数变慢
+            - text: 一个一个比过去
+              why: 一百万个键就要比一百万次
+          explain: 字典底下是一张哈希表：用键算出格子的编号，直接去那里找。
+      - card:
+          title: 哈希表和哈希函数
+          body: |
+            准备一个有 m 个格子的表 t。把键 x 交给一个函数算出 0 到 m − 1 之间的一个编号，就把 x 放进那个格子。这个函数叫**哈希函数（hash function）**，这种表叫**哈希表（hash table）**。
+
+            最简单的哈希函数是取余：`hash(x) = x % m`。m = 10 时，47 放进 7 号格子。
+
+            不同的键可能算出同一个编号，比如 17 和 47，这叫**冲突（collision）**。
+      - item:
+          id: mod-slot
+          type: number
+          prompt: 表有 m = 10 个格子，hash(x) = x % 10。键 2026 放进几号格子？
+          answer: 6
+          explain: 2026 除以 10 余 6。
+      - card:
+          title: 拉链法：每格挂一个小列表
+          body: |
+            教材的 ChainedHashTable：每个格子放一个列表，算出编号后，把键加进那个格子的列表；查找时只在那一个列表里找。冲突的键挂在同一个列表里就行。
+
+            下面的演示里，表长 7，hash(x) = x % 7。点一点，看每个键挂到哪一格。
+          sim:
+            name: hash
+            params:
+              size: 7
+              keys: [3, 10, 17, 5]
+              probe: chain
+      - item:
+          id: chain-sim
+          type: sim
+          sim: hash
+          prompt: 表长 5，h(k) = k % 5，用拉链法。依次放进 12、7、22、9，点出每个键所在的格子。
+          params:
+            size: 5
+            keys: [12, 7, 22, 9]
+            probe: chain
+          goal: {}
+          solution: [2, 2, 2, 4]
+          explain: 12、7、22 除以 5 都余 2，挂在 2 号格子的同一个列表里；9 余 4。
+      - card:
+          title: 负载因子：表有多满
+          body: |
+            n 个键放进 m 个格子，平均每格 n / m 个。这个比值叫**负载因子（load factor）**，记作 α。哈希函数把键分得够均匀时，每个列表的平均长度大约是 α。
+
+            教材让 n 永远不超过 m（放不下时把表换成两倍大，所有键重新算一遍再放进去），于是 α ≤ 1，查找、插入、删除的**期望**时间都是 O(1)。
+      - item:
+          id: alpha
+          type: number
+          prompt: 一张哈希表有 8 个格子，放了 6 个键。负载因子 α 是多少？
+          answer: 0.75
+          explain: α = n / m = 6 / 8 = 0.75。
+      - item:
+          id: bad-hash
+          type: choice
+          prompt: 如果哈希函数写成对所有键都交回 0，用拉链法的哈希表会怎样？
+          options:
+            - text: 所有键都挂在 0 号格子，查找要一个个比，变成 O(n)
+              correct: true
+            - text: 照样 O(1)
+              why: O(1) 的前提是键被分散到各个格子；全挤在一格就退化成一个列表
+          explain: 哈希表快不快，全看哈希函数能不能把键分散开。
+      - card:
+          title: 教材的乘法哈希
+          body: |
+            取余在 m 是 2 的幂时分得不好（只看了键的最后几位）。教材用乘法哈希：表长 m = 2^d，选一个奇数 z，
+
+            $$\text{hash}(x) = \left\lfloor \frac{(z \cdot x) \bmod 2^w}{2^{w-d}} \right\rfloor$$
+
+            意思是：乘上 z，只留结果的最后 w 位，再取其中最高的 d 位。用小的数算一次：w = 8、d = 3（8 个格子）、z = 157，hash(5) = ⌊(785 mod 256) / 32⌋ = ⌊17 / 32⌋ = 0。
+      - item:
+          id: mult-hash
+          type: number
+          prompt: 用同样的参数（w = 8、d = 3、z = 157），hash(3) 是多少？
+          answer: 6
+          explain: 157 × 3 = 471；471 mod 256 = 215；⌊215 / 32⌋ = 6。
+      - item:
+          id: why-resize
+          type: choice
+          prompt: 拉链法的哈希表为什么在 n 超过 m 时要换成更大的表？
+          options:
+            - text: 让每个列表保持很短，查找才是 O(1)
+              correct: true
+            - text: 因为格子放满了，放不下了
+              why: 拉链法每格是列表，永远放得下；问题是列表会越来越长
+          explain: n 越多、m 不变，α 越大，每次查找要比的就越多。
+
+  - id: linear-probing
+    chapter: 哈希
+    title: 线性探测：撞了就往后找
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 不想给每个格子挂列表，每格只放一个键。算出的格子已经被占了，猜一猜最简单的办法？
+          options:
+            - text: 往后一格一格找，找到空格子就放
+              correct: true
+            - text: 把原来的键挤走
+              why: 原来的键也要能找到，不能扔掉
+          explain: 这就是线性探测：一路往后找空位，走到表尾就绕回 0。
+      - card:
+          title: 线性探测
+          body: |
+            教材的 LinearHashTable 每格最多一个键。放入 x：从 i = hash(x) 开始看 t[i]，被占了就看 t[i + 1]、t[i + 2]……走到末尾绕回 0，直到遇见空格子。这叫**线性探测（linear probing）**。
+
+            查找 x 也走同样的路：遇到 x 就找到了；遇到空格子就说明 x 不在表里。
+          sim:
+            name: hash
+            params:
+              size: 7
+              keys: [8, 15, 22, 1]
+              probe: linear
+      - item:
+          id: linear-sim
+          type: sim
+          sim: hash
+          prompt: 表长 7，h(k) = k % 7，线性探测。依次放进 10、22、31、4、15，点出每个键最终落在哪个格子。
+          params:
+            size: 7
+            keys: [10, 22, 31, 4, 15]
+            probe: linear
+          goal: {}
+          solution: [3, 1, 4, 5, 2]
+          explain: 10→3；22→1；31 算出 3 被占，到 4；4 算出 4 被占，到 5；15 算出 1 被占，到 2。
+      - card:
+          title: 例题：再放进 28
+          body: 接着上一题的表 `[空, 22, 15, 10, 31, 4, 空]`，再放进 28，然后查找 4。
+          reveal:
+            - title: 第 1 步：放 28
+              body: 28 % 7 = 0，0 号格子是空的，直接放进去。表变成 `[28, 22, 15, 10, 31, 4, 空]`。
+            - title: 第 2 步：查找 4
+              body: 4 % 7 = 4，4 号是 31，不是；往后看 5 号，是 4，找到了。一共看了 2 个格子。
+            - title: 第 3 步：查找 11（不在表里）
+              body: 11 % 7 = 4：4 号 31、5 号 4、6 号空。看了 3 个格子才确定不在。
+      - item:
+          id: probes-3
+          type: number
+          prompt: 表是 `[28, 22, 15, 10, 31, 4, 空]`（表长 7，线性探测）。查找键 22，一共看几个格子？
+          answer: 1
+          explain: 22 % 7 = 1，1 号正好是 22，看 1 个就找到了。
+          review: false
+      - card:
+          title: 删除：不能直接清空
+          body: |
+            在上面的表里删掉 31，如果把 4 号直接改成空，再查找 4 时：算出 4 号，看到空格子，就以为 4 不在表里，可它明明在 5 号。
+
+            所以删除时放一个特殊的“已删除”记号（教材叫 del）。查找时遇到 del 继续往后走；放入时 del 的格子可以重新用。教材还要求表里“有键的格子加 del 格子”不超过一半，超过就换一张表重新放，顺便清掉所有 del。
+      - item:
+          id: tombstone
+          type: choice
+          prompt: 线性探测的表里删除一个键，为什么不能直接把它的格子改成空的？
+          options:
+            - text: 后面因为冲突挪过去的键会查不到：查找走到空格子就停了
+              correct: true
+            - text: 因为空格子不能再放新的键
+              why: 空格子当然能放；问题在查找，会提前停下
+            - text: 因为删除以后表要变小
+              why: 删除不改变表的大小
+          explain: 留一个 del 记号，查找就会接着往后走，不会错过后面的键。
+      - card:
+          title: 簇：一挤就越来越挤
+          body: |
+            线性探测会把键挤成一段段连着被占的格子，叫**簇（cluster）**。新键算到簇里，就要走到簇的尽头，簇又长了一格。
+
+            按经典的分析，负载因子为 α 时，一次没找到的查找平均要看大约
+
+            $$\frac{1}{2}\left(1 + \frac{1}{(1 - \alpha)^2}\right)$$
+
+            个格子：α = 0.5 时是 2.5 个，α = 0.9 时是 50.5 个。所以要在表接近满之前就扩容；教材让表一直至少一半是空的。
+      - item:
+          id: probes-alpha
+          type: number
+          prompt: '线性探测里，负载因子为 α 时，一次没找到的查找平均要看大约 $\frac{1}{2}\left(1 + \frac{1}{(1 - \alpha)^2}\right)$ 个格子。α = 0.8 时是几个？'
+          answer: 13
+          explain: 1 − 0.8 = 0.2，0.2² = 0.04，1 / 0.04 = 25；(1 + 25) / 2 = 13。
+      - item:
+          id: when-resize
+          type: choice
+          prompt: 用线性探测时，什么时候扩容最合适？
+          options:
+            - text: 在表还远没满（比如一半）的时候
+              correct: true
+            - text: 等到一个空格子都没有了再扩
+              why: α 接近 1 时，每次查找都要走很长的簇，早就慢得不能用了
+          explain: 线性探测在 α 小的时候很快，α 一大就急剧变慢。
+
+  - id: hash-codes
+    chapter: 哈希
+    title: 哈希码：什么都能变成一个数
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 哈希函数要拿一个数来算格子编号。可字典的键常常是字符串、元组。猜一猜怎么办？
+          options:
+            - text: 先用一个规则把它变成一个整数
+              correct: true
+            - text: 字符串不能当键
+              why: 字符串当然能当字典的键，Python 先把它变成一个整数
+          explain: 这个整数叫哈希码，再交给哈希函数去算格子。
+      - card:
+          title: 哈希码
+          body: |
+            从一个值算出的整数叫**哈希码（hash code）**，Python 里用 `hash(x)` 得到。小整数的哈希码就是它自己：`hash(5)` 是 5。
+
+            两条要求：
+
+            1. **相等的值，哈希码必须相等**。否则同一个键放进去和查找时会去不同的格子，找不到。
+            2. 不相等的值，哈希码最好不相等，这样才分得散。
+      - item:
+          id: must-hold
+          type: choice
+          prompt: 哈希码**必须**满足哪一条？
+          options:
+            - text: 如果 x == y，那么 hash(x) == hash(y)
+              correct: true
+            - text: 如果 x != y，那么 hash(x) != hash(y)
+              why: 这条只是“最好”，做不到也可以（冲突本来就有办法处理）；反过来那条才是必须的
+          explain: 相等的键必须去同一个格子，否则查找会落空。
+      - card:
+          title: 字符串的哈希码
+          body: |
+            字符串要把每个字符都算进去，而且顺序不同结果也该不同。常见的做法（Java 的字符串就是这样）：
+
+            ```python
+            h = 0
+            for c in s:
+                h = h * 31 + ord(c)
+            ```
+
+            `ord(c)` 是字符的编号，ord("a") 是 97。教材第 5.3 节也用这种“多项式”的思路，只是系数 z 随机挑选，并且对一个质数（2^32 − 5）取余，让结果分得更均匀。
+      - item:
+          id: str-code
+          type: number
+          prompt: 用上面的写法，字符串 "ab" 的 h 是多少？（ord("a") = 97，ord("b") = 98）
+          answer: 3105
+          explain: 先 h = 0 × 31 + 97 = 97；再 h = 97 × 31 + 98 = 3007 + 98 = 3105。
+          review: false
+      - item:
+          id: order-matters
+          type: choice
+          prompt: 用同样的写法，"ba" 的 h 和 "ab" 的一样吗？
+          options:
+            - text: 不一样，"ba" 是 3135
+              correct: true
+            - text: 一样，因为字母相同
+              why: 先出现的字符被乘了 31，位置不同贡献不同：98 × 31 + 97 = 3135
+          explain: 把位置也算进去，"ab" 和 "ba" 才不会总是撞在一起。
+      - card:
+          title: 能改的东西不能当键
+          body: |
+            列表放进字典以后要是被改了，它的哈希码也变了，就再也去不到原来那个格子。所以 Python 干脆不给列表哈希码：`hash([1, 2])` 报 `TypeError: unhashable type: 'list'`。
+
+            元组不能改，可以当键：它的哈希码由每个元素的哈希码组合而成。
+
+            另外，Python 每次启动会给字符串的哈希换一个随机的“种子”：同一次运行里 hash("abc") 不变，换一次运行就不同了。这是为了防止有人故意造一堆撞在一起的键来拖慢程序。
+      - item:
+          id: unhashable
+          type: choice
+          prompt: 为什么 Python 不让列表当字典的键？
+          options:
+            - text: 列表能被改动，改了以后哈希码就变了，键会找不到
+              correct: true
+            - text: 列表太长，算不出哈希码
+              why: 长短不是问题，元组再长也能当键；问题在于列表能改
+          explain: 当键的值必须在它待在表里的整个期间保持不变。
+      - item:
+          id: str-seed
+          type: choice
+          prompt: 分别运行两次同一个程序，都显示 `hash("abc")`。结果会怎样？
+          options:
+            - text: 通常不一样
+              correct: true
+            - text: 一定一样
+              why: 字符串的哈希每次启动都会换一个随机种子（除非设置了 PYTHONHASHSEED）
+          explain: 同一次运行里不变就够用了；不同次运行故意不同，是为了安全。
+      - item:
+          id: tuple-key
+          type: text
+          prompt: '`{(1, 2): "A", (2, 1): "B"}[(2, 1)]` 是什么？'
+          answers: [B]
+          explain: 元组可以当键；(2, 1) 和 (1, 2) 是不同的键。
+
+  - id: binary-trees
+    chapter: 树
+    title: 二叉树和递归
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个文件夹里有子文件夹，子文件夹里又有子文件夹……想数出一共有多少个文件夹，最自然的想法是？
+          options:
+            - text: 自己算 1 个，再把每个子文件夹“各有多少”加起来
+              correct: true
+            - text: 只数最外面一层
+              why: 里面一层层的子文件夹也要算进去
+          explain: “大问题 = 自己 + 几个一样的小问题”。下面把这种想法写成代码。
+      - card:
+          title: 二叉树
+          body: |
+            每个节点最多有两个孩子（左孩子、右孩子）的树叫**二叉树（binary tree）**。最上面的节点叫根，没有孩子的叫叶子。
+
+            - 深度：从根走到这个节点要几条边（根的深度是 0）；
+            - 高度：从这个节点往下走到最远的叶子要几条边（叶子的高度是 0，教材把空树的高度算作 −1）；
+            - 大小：这棵树一共几个节点。
+      - item:
+          id: tree-terms
+          type: number
+          prompt: 根 A 有两个孩子 B、C；B 有一个孩子 D；D 没有孩子。A 这棵树的高度是几？
+          answer: 2
+          explain: 最远的叶子是 D：A → B → D 有 2 条边。
+      - card:
+          title: 递归：函数调用它自己
+          body: |
+            一棵树的大小 = 1（根）+ 左子树的大小 + 右子树的大小。左右子树也是树，就用同一个函数去算：
+
+            ```python
+            def size(t):
+                if t is None:
+                    return 0
+                return 1 + size(t[0]) + size(t[2])
+            ```
+
+            这里用元组 `(左子树, 值, 右子树)` 表示一棵树，None 是空树。函数调用它自己叫**递归（recursion）**。一定要有一种不再往下调用的情况（这里是 t 是 None），否则会无穷无尽地调下去。
+      - card:
+          title: 看递归一层层展开
+          body: 单步运行，注意右边的调用栈：每进一层子树就多一层 size，算完一层就少一层。
+          sim:
+            name: trace
+            params:
+              code: |
+                def size(t):
+                    if t is None:
+                        return 0
+                    return 1 + size(t[0]) + size(t[2])
+
+                tree = ((None, "B", None), "A", (None, "C", None))
+                print(size(tree))
+      - item:
+          id: trace-height
+          type: sim
+          sim: trace
+          prompt: 先在心里走一遍：最后显示什么？
+          params:
+            code: |
+              def height(t):
+                  if t is None:
+                      return -1
+                  return 1 + max(height(t[0]), height(t[2]))
+
+              d = (None, "D", None)
+              tree = (((d, "B", None)), "A", (None, "C", None))
+              print(height(tree))
+          goal:
+            ask:
+              - { line: 8, var: "@out" }
+          explain: 叶子 D 的高度是 1 + max(−1, −1) = 0；B 是 1；C 是 0；A 是 1 + max(1, 0) = 2。
+      - card:
+          title: 三种遍历
+          body: |
+            把每个节点都访问一遍，常用三种顺序，区别只在“访问自己”放在哪：
+
+            | 名字 | 顺序 |
+            |---|---|
+            | 前序 | 自己 → 左子树 → 右子树 |
+            | 中序 | 左子树 → 自己 → 右子树 |
+            | 后序 | 左子树 → 右子树 → 自己 |
+
+            ```python
+            def inorder(t):
+                if t is None:
+                    return []
+                return inorder(t[0]) + [t[1]] + inorder(t[2])
+            ```
+      - item:
+          id: preorder
+          type: text
+          prompt: 根是 1，左孩子 2，右孩子 3；2 有一个左孩子 4。前序遍历的结果是？（用空格隔开）
+          answers: [1 2 4 3]
+          explain: 先 1；再整棵左子树（2，然后 2 的左孩子 4）；最后右子树 3。
+      - item:
+          id: inorder
+          type: text
+          prompt: 同一棵树（根 1，左 2，右 3，2 的左孩子 4），中序遍历的结果是？（用空格隔开）
+          answers: [4 2 1 3]
+          explain: 左子树的中序是 4 2，然后根 1，然后右子树 3。
+      - card:
+          title: 一层一层：用队列
+          body: |
+            按层从上到下、每层从左到右访问，叫层序遍历（广度优先）。用一个队列：先放进根；每次从队头取出一个节点，访问它，再把它的左、右孩子放到队尾。
+
+            ```python
+            from collections import deque
+            q = deque([tree])
+            while q:
+                t = q.popleft()
+                if t is not None:
+                    print(t[1])
+                    q.append(t[0])
+                    q.append(t[2])
+            ```
+      - item:
+          id: bfs-tree
+          type: text
+          prompt: 还是那棵树（根 1，左 2，右 3，2 的左孩子 4），层序遍历的结果是？（用空格隔开）
+          answers: [1 2 3 4]
+          explain: 第 0 层 1；第 1 层 2、3；第 2 层 4。
+          review: false
+
+  - id: bst
+    chapter: 树
+    title: 二叉搜索树
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一棵二叉树，每个节点都满足“左边的都比我小、右边的都比我大”。猜一猜对它做中序遍历会得到什么？
+          options:
+            - text: 从小到大排好序的序列
+              correct: true
+            - text: 插入的顺序
+              why: 中序是“左、自己、右”，正好是从小到大
+          explain: 左边都小、右边都大，中序遍历就把它们从小到大排出来。
+      - card:
+          title: 二叉搜索树
+          body: |
+            每个节点 u 都满足：u 的左子树里的值都比 u.x 小，右子树里的值都比 u.x 大。这样的二叉树叫**二叉搜索树（binary search tree）**。这条性质就是它的不变量。
+
+            找 x：从根开始，x 比当前节点小就往左走，大就往右走，相等就找到了；走到空的地方，说明不在树里。
+      - item:
+          id: search-steps
+          type: number
+          prompt: 一棵二叉搜索树：根 5；5 的左孩子 3、右孩子 8；3 的左右是 1 和 4；8 的左右是 7 和 9。查找 4，一共要和几个节点比较（算上找到的那个）？
+          answer: 3
+          explain: 4 < 5 往左到 3；4 > 3 往右到 4，找到。比较了 5、3、4 三个。
+      - card:
+          title: 例题：依次插入 5, 3, 8, 1, 4, 7, 9
+          body: 插入 x：像查找一样往下走，走到空的地方，就把 x 挂在那里，当成一个新叶子。
+          reveal:
+            - title: 插 5、3、8
+              body: 5 成为根；3 < 5，挂在 5 的左边；8 > 5，挂在右边。
+            - title: 插 1、4
+              body: 1 < 5 往左，1 < 3 再往左，挂在 3 的左边；4 < 5 往左，4 > 3 往右，挂在 3 的右边。
+            - title: 插 7、9
+              body: 7 > 5 往右，7 < 8 挂在 8 的左边；9 挂在 8 的右边。
+            - title: 结果
+              body: 根 5；左子树 3（1、4）；右子树 8（7、9）。中序遍历是 1 3 4 5 7 8 9，高度是 2。
+      - item:
+          id: insert-inorder
+          type: text
+          prompt: 把 6, 2, 9, 4, 8 依次插入一棵空的二叉搜索树，中序遍历的结果是？（用空格隔开）
+          answers: [2 4 6 8 9]
+          explain: 中序遍历总是从小到大，不管插入的顺序。
+      - item:
+          id: insert-height
+          type: number
+          prompt: 把 6, 2, 9, 4, 8 依次插入空的二叉搜索树，树的高度（按边数）是几？
+          answer: 2
+          explain: 6 是根；2 在左、9 在右；4 挂在 2 的右边，8 挂在 9 的左边。最深的叶子在第 2 层。
+      - card:
+          title: 删除：三种情况
+          body: |
+            删掉节点 u：
+
+            1. u 是叶子：直接去掉。
+            2. u 只有一个孩子：让这个孩子顶替 u 的位置。
+            3. u 有两个孩子：找到右子树里**最小**的节点 w（从 u.right 一路往左走到头），把 w.x 抄到 u 里，再删掉 w。w 没有左孩子，属于前两种情况。
+
+            这样删完，“左小右大”的不变量仍然成立。
+      - item:
+          id: remove-root
+          type: choice
+          prompt: 在“根 5；左子树 3（1、4）；右子树 8（7、9）”这棵树里删掉 5。删完以后根是几？
+          options:
+            - text: '7'
+              correct: true
+            - text: '8'
+              why: 根有两个孩子，要用右子树里最小的节点顶替，右子树 {7, 8, 9} 里最小的是 7
+            - text: '4'
+              why: 教材的做法用右子树里最小的；左子树里最大的 4 也能保持性质，但这不是教材的规则
+          explain: 7 被抄到根上，原来的 7 那个叶子被删掉。左边的都 < 7，右边的 8、9 都 > 7。
+          review: false
+      - card:
+          title: 最坏的情况
+          body: |
+            依次插入 1, 2, 3, 4, 5：每个都比前面的大，一直往右挂，树变成一条斜线，高度是 n − 1。这时查找要走过所有节点，O(n)，和链表一样慢。
+
+            查找、插入、删除都要从根走到某个节点，所以花的时间和树的高度成正比。想保证快，就要让高度保持在 O(log n)：接下来的 2-4 树和红黑树就是这样做的。
+      - item:
+          id: degenerate
+          type: number
+          prompt: 把 1, 2, 3, 4, 5 依次插入一棵空的二叉搜索树，高度（按边数）是几？
+          answer: 4
+          explain: 每个都挂在前一个的右边，5 个节点排成一条线，有 4 条边。
+      - item:
+          id: worst-case
+          type: choice
+          prompt: 不做任何平衡的二叉搜索树，查找的最坏情况是几步？
+          options:
+            - text: O(n)
+              correct: true
+            - text: O(log n)
+              why: 只有树平衡时才是；按顺序插入会让树变成一条线
+          explain: 高度最坏是 n − 1，查找要从根走到最底下。
+
+  - id: two-four
+    chapter: 树
+    title: 2-4 树：所有叶子一样深
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 如果一棵树能保证“所有叶子都在同一层”，而且每个节点至少有 2 个孩子，它的高度会怎样？
+          options:
+            - text: 很矮：每往下一层，节点数至少翻一倍
+              correct: true
+            - text: 可能很高，像一条线
+              why: 每个节点至少 2 个孩子，不会出现一条线的情况
+          explain: 层数增加一层，叶子至少翻一倍，所以高度只有 log n 那么多。
+      - card:
+          title: 2-4 树的两条性质
+          body: |
+            **2-4 树**是这样的一种树：
+
+            - 高度性质：所有叶子的深度都一样；
+            - 度数性质：每个不是叶子的节点，有 2 个、3 个或 4 个孩子。
+
+            高度为 h 时，叶子至少有 2^h 个（每层都只有 2 个孩子的时候最少）。反过来，有 n 个叶子的 2-4 树，高度最多是 log₂ n。
+      - item:
+          id: min-leaves
+          type: number
+          prompt: 一棵高度为 3 的 2-4 树，至少有几个叶子？
+          answer: 8
+          explain: 每层每个节点至少 2 个孩子：1 → 2 → 4 → 8。
+      - item:
+          id: max-height
+          type: number
+          prompt: 一棵 2-4 树有 1000 个叶子。它的高度最多是几？（高度是整数）
+          answer: 9
+          explain: 高度 h 时至少 2^h 个叶子，2^h ≤ 1000，2^9 = 512 ≤ 1000，而 2^10 = 1024 > 1000，所以 h 最多是 9。
+      - card:
+          title: 加一个叶子：满了就分裂
+          body: |
+            新叶子加到最底下那层的某个父节点 w 下面。如果 w 因此有了 5 个孩子，就把 w **分裂**成两个节点：一个带 2 个孩子，一个带 3 个孩子；新分出来的节点成为 w 的父节点的又一个孩子。
+
+            父节点可能也因此有了 5 个孩子，就接着往上分裂。如果连根都分裂了，就造一个新根，带着这两个节点：树长高一层，但所有叶子一起变深，高度性质仍然成立。
+      - card:
+          title: 例题：一次分裂
+          body: 父节点 w 已经有 4 个孩子，w 的父节点 p 有 3 个孩子。在 w 下面再加一个叶子。
+          reveal:
+            - title: 第 1 步：w 有了 5 个孩子
+              body: 违反了度数性质（最多 4 个）。
+            - title: 第 2 步：分裂 w
+              body: w 留下 2 个孩子，新节点 w′ 带走另外 3 个。
+            - title: 第 3 步：交给 p
+              body: w′ 成为 p 的孩子，p 从 3 个孩子变成 4 个，没有超过 4，到这里就结束了。
+      - item:
+          id: split-sizes
+          type: number
+          prompt: 2-4 树里一个节点有了 5 个孩子，分裂成两个节点，一个带 2 个孩子，另一个带几个？
+          answer: 3
+          explain: 5 = 2 + 3，两个都满足“2 到 4 个孩子”。
+      - item:
+          id: when-taller
+          type: choice
+          prompt: 在 2-4 树里加叶子时，树的高度什么时候会变高？
+          options:
+            - text: 只有分裂一路传到根、根也分裂的时候
+              correct: true
+            - text: 每加一个叶子都会变高
+              why: 大多数时候新叶子只是加在已有的那一层
+            - text: 某个节点有了 5 个孩子的时候
+              why: 那只会让它分裂，分裂停在根以下时高度不变
+          explain: 根分裂造出新根，所有叶子一起深一层。
+      - card:
+          title: 删一个叶子：借或者合并
+          body: |
+            删掉一个叶子后，它的父节点 u 可能只剩 1 个孩子（违反度数性质）。这时看 u 旁边的兄弟 w：
+
+            - w 有 3 或 4 个孩子：借一个给 u，两边都满足了；
+            - w 只有 2 个孩子：把 u 和 w 合并成一个有 3 个孩子的节点，它们的父节点少了一个孩子，可能接着往上处理。
+
+            如果最后根只剩一个孩子，就去掉根，树矮一层。
+      - item:
+          id: merge-case
+          type: choice
+          prompt: 删叶子以后，节点 u 只剩 1 个孩子，它的兄弟 w 有 2 个孩子。怎么办？
+          options:
+            - text: 把 u 和 w 合并成一个有 3 个孩子的节点
+              correct: true
+            - text: 从 w 借一个孩子
+              why: w 借出一个就只剩 1 个，它自己又违反了性质；w 有 3 或 4 个时才能借
+          explain: 1 + 2 = 3，合并后正好满足“2 到 4 个孩子”。
+
+  - id: red-black
+    chapter: 树
+    title: 红黑树：用二叉树模拟 2-4 树
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 2-4 树的节点有 2 到 4 个孩子，写代码不方便。猜一猜，能不能只用二叉树来表示它？
+          options:
+            - text: 能：给节点涂上颜色，把几个二叉节点“粘”成一个 2-4 节点
+              correct: true
+            - text: 不能，二叉树最多只有 2 个孩子
+              why: 两三个二叉节点合起来，就能有 3 或 4 个孩子
+          explain: 红黑树就是这样做的：红色节点和它的黑色父节点算作同一个 2-4 节点。
+      - card:
+          title: 红黑树的两条性质
+          body: |
+            **红黑树（red-black tree）**是一棵二叉搜索树，每个节点涂成红色或黑色，根是黑的。教材要求：
+
+            - 黑高性质：从根到任何一个空位置（叶子下面的 None），路上的**黑色节点个数都一样**；
+            - 没有红边：红色节点的孩子不能是红色。
+      - card:
+          title: 和 2-4 树一一对应
+          body: |
+            把每个红色节点“并进”它的黑色父节点：一个黑节点带 0、1、2 个红孩子，就是一个有 2、3、4 个孩子的 2-4 节点。
+
+            这样看，只数黑色节点，红黑树就是一棵 2-4 树；黑高相同，正是 2-4 树“所有叶子一样深”。
+      - item:
+          id: red-red
+          type: choice
+          prompt: 一棵树：根 10（黑），左孩子 5（红），右孩子 15（红），5 的左孩子 3（红）。它是合格的红黑树吗？
+          options:
+            - text: 不是，红色的 5 有红色的孩子 3
+              correct: true
+            - text: 是
+              why: 违反了“没有红边”：红节点的孩子不能是红的
+          explain: 两个红节点相连，就不对应任何合格的 2-4 节点。
+      - item:
+          id: black-height
+          type: number
+          prompt: 一棵红黑树：根 20（黑）；孩子 10（黑）和 30（黑）；10 的孩子 5（红）。从根走到 5 下面的空位置，路上有几个黑色节点？
+          answer: 2
+          explain: 20 黑、10 黑、5 红，黑色的有 2 个。到 30 下面的空位置也是 20、30 两个黑色，黑高一致。
+      - card:
+          title: 为什么高度只有 2 log n
+          body: |
+            设黑高是 b，任何一条从根往下的路上都正好有 b 个黑色节点。红色不能挨着，所以红色最多和黑色一样多：路的长度最多 2b。
+
+            只数黑色，它是一棵 2-4 树，高度 b 最多大约是 log₂ n。所以红黑树的高度最多大约 2 log₂ n，查找、插入、删除都是 O(log n)，而且是**最坏情况**也如此。
+      - item:
+          id: rb-height
+          type: number
+          prompt: 一棵红黑树有 100 万个节点。按“高度最多约 2 log₂ n”，高度大约最多是多少？（取整）
+          answer: 40
+          tolerance: 1
+          explain: log₂(10^6) ≈ 19.9，乘 2 约 39.9，大约 40。100 万个元素，最多走 40 步左右。
+      - card:
+          title: 教材的左倾红黑树
+          body: |
+            教材还加了一条左倾性质：一个节点的左孩子是黑的，右孩子就必须也是黑的。也就是说，只有一个红孩子时，它必须在左边。
+
+            这样一个 2-4 节点只有一种画法，插入和删除时要处理的情况少了一半。插入时新节点先涂成红色，再通过换颜色和旋转把性质修好，这里不展开。
+      - item:
+          id: left-leaning
+          type: choice
+          prompt: 按教材的左倾性质，下面哪种情况不允许？
+          options:
+            - text: 一个节点的左孩子是黑的，右孩子是红的
+              correct: true
+            - text: 一个节点的左孩子是红的，右孩子是黑的
+              why: 红孩子在左边，正是左倾要求的样子
+            - text: 一个节点的两个孩子都是黑的
+              why: 左黑右黑，满足“左黑则右黑”
+          explain: 左倾要求“左黑则右黑”：唯一的红孩子只能在左边。
+      - card:
+          title: 小结：各种树怎么选
+          body: |
+            | 结构 | 查找、插入、删除 |
+            |---|---|
+            | 不平衡的二叉搜索树 | 平均快，最坏 O(n) |
+            | 红黑树（2-4 树） | 最坏也是 O(log n) |
+            | 哈希表 | 期望 O(1)，但键没有顺序 |
+
+            需要“按顺序”的操作（找比 x 大的最小键、按顺序列出）时用平衡树。Java 的 TreeMap 就是红黑树；Linux 决定下一个让哪个程序运行时，也用红黑树给等着运行的任务排队。
+      - item:
+          id: choose-tree
+          type: choice
+          prompt: 程序要存很多带时间戳的事件，经常要问“某个时刻之后最早的事件是哪个”，还要求最坏情况也不能慢。用哪种最合适？
+          options:
+            - text: 红黑树
+              correct: true
+            - text: 哈希表
+              why: 哈希表只能按键精确查找，不知道“比某个时刻大的最小键”在哪
+            - text: 不平衡的二叉搜索树
+              why: 时间戳往往按顺序到来，会把树插成一条线，最坏 O(n)
+          explain: 红黑树保持有序，又保证最坏 O(log n)。
+
+  - id: graph-storage
+    chapter: 图存储与不变量
+    title: 图怎么存：邻接矩阵和邻接表
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 5 个城市，想用一张表记录“任意两个城市之间有没有直达的路”：行是出发城市，列是到达城市，每格写有或没有。这张表一共有多少格？
+          answer: 25
+          explain: 5 行 × 5 列 = 25 格。这就是邻接矩阵。
+      - card:
+          title: 图
+          body: |
+            一些点，加上点和点之间的连线，叫**图（graph）**。点叫顶点，连线叫边。边有方向（像单行道、网页之间的跳转）的叫有向图；没有方向（像朋友关系）的叫无向图，无向的一条边可以看成两个方向各一条。
+
+            顶点一般编号 0 到 n − 1，边数记作 m。
+      - card:
+          title: 邻接矩阵
+          body: |
+            用一个 n × n 的表 a：有 i → j 这条边，a[i][j] 就是 True。这叫**邻接矩阵（adjacency matrix）**。无向图里 a[i][j] 和 a[j][i] 总是一样。
+
+            - 判断 i、j 之间有没有边：直接看 a[i][j]，O(1)；
+            - 列出 i 的所有邻居：要看一整行，O(n)；
+            - 占用空间：n² 格，不管边多不多。
+      - item:
+          id: matrix-ones
+          type: number
+          prompt: 无向图有 5 个顶点（0–4），边是 0-1、0-2、1-3、2-3、3-4。邻接矩阵里一共有几个 True？
+          answer: 10
+          explain: 每条无向边在矩阵里占两格（a[i][j] 和 a[j][i]），5 条边是 10 格。
+      - item:
+          id: matrix-row
+          type: text
+          prompt: 同一张图（边 0-1、0-2、1-3、2-3、3-4），邻接矩阵第 3 行哪几列是 True？（从小到大，用空格隔开）
+          answers: [1 2 4]
+          explain: 和 3 相连的是 1、2、4。
+          review: false
+      - card:
+          title: 邻接表
+          body: |
+            给每个顶点一个列表，只记它的邻居，叫**邻接表（adjacency list）**：
+
+            ```python
+            adj = [[1, 2], [0, 3], [0, 3], [1, 2, 4], [3]]
+            ```
+
+            - 列出 i 的所有邻居：就是 adj[i]，有几个邻居就花几步；
+            - 判断有没有 i → j：要在 adj[i] 里找，O(i 的邻居数)；
+            - 占用空间：O(n + m)，边少时比矩阵省得多。
+      - item:
+          id: list-entries
+          type: number
+          prompt: 无向图有 5 个顶点、5 条边，用邻接表存，所有列表加起来一共几项？
+          answer: 10
+          explain: 无向边 i-j 在 adj[i] 和 adj[j] 里各出现一次，5 条边是 10 项。
+      - card:
+          title: 例题：比一比两种存法
+          body: 还是那张图：5 个顶点，边 0-1、0-2、1-3、2-3、3-4。
+          reveal:
+            - title: 邻接表
+              body: '0: [1, 2]，1: [0, 3]，2: [0, 3]，3: [1, 2, 4]，4: [3]。一共 5 + 10 = 15 样东西（5 个列表、10 项）。'
+            - title: 邻接矩阵
+              body: 5 × 5 = 25 格，其中 10 格是 True。
+            - title: 判断 3 和 4 相不相邻
+              body: 矩阵看 a[3][4]，一步；邻接表要在 adj[3] = [1, 2, 4] 里找，最多 3 步。
+            - title: 结论
+              body: 边少（稀疏）的图用邻接表；边很多（稠密）或者要频繁判断两点相不相邻，用邻接矩阵。
+      - item:
+          id: cost-match
+          type: match
+          prompt: 把操作和它的代价连起来。（n 个顶点、m 条边，deg(i) 是 i 的邻居数）
+          pairs:
+            - [邻接矩阵判断 i、j 是否相邻, O(1)]
+            - [邻接表判断 i、j 是否相邻, O(deg(i))]
+            - [邻接矩阵占的空间, O(n²)]
+            - [邻接表占的空间, O(n + m)]
+          explain: 矩阵用空间换来 O(1) 的查询；邻接表只存真有的边。
+      - item:
+          id: sparse-choice
+          type: choice
+          prompt: 一张社交网络有 10000 个用户，平均每人 4 个好友（约 20000 条边），常常要列出某个人的所有好友。用哪种存法？
+          options:
+            - text: 邻接表
+              correct: true
+            - text: 邻接矩阵
+              why: 矩阵要 10000 × 10000 = 一亿格，几乎全是 False；列出好友还要扫一整行一万格
+          explain: 稀疏图用邻接表，空间 O(n + m)，列出邻居只花邻居个数那么多步。
+
+  - id: graph-traversal
+    chapter: 图存储与不变量
+    title: 走遍一张图：BFS 和 DFS
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 从一个顶点出发，想走到所有能走到的顶点。图里可能有圈，猜一猜怎样才不会绕着圈一直走？
+          options:
+            - text: 记住哪些顶点已经去过，去过的不再去
+              correct: true
+            - text: 每次都走编号最小的邻居
+              why: 遇到圈照样会回到走过的地方，然后一直绕下去
+          explain: 用一个 seen 记下去过的顶点，每个顶点只处理一次。
+      - card:
+          title: 广度优先搜索（BFS）
+          body: |
+            ```python
+            from collections import deque
+            def bfs(adj, r):
+                seen = [False] * len(adj)
+                seen[r] = True
+                q = deque([r])
+                while q:
+                    i = q.popleft()
+                    for j in adj[i]:
+                        if not seen[j]:
+                            seen[j] = True
+                            q.append(j)
+            ```
+
+            用队列：先处理离起点近的，再一层层往外。先被发现的先处理，所以访问的顺序是按“离起点几条边”排的。
+      - card:
+          title: 你来当 BFS
+          body: 从 a 出发，按 BFS 的规矩，点出每个顶点被第一次发现的顺序。打开下面的提示可以看到队列。
+          sim:
+            name: graph
+            params:
+              mode: bfs
+              start: a
+              directed: false
+              help: true
+              nodes:
+                - { id: a, x: 40, y: 100 }
+                - { id: b, x: 130, y: 40 }
+                - { id: c, x: 130, y: 160 }
+                - { id: d, x: 230, y: 100 }
+                - { id: e, x: 320, y: 100 }
+              edges: [[a, b], [a, c], [b, d], [c, d], [d, e]]
+      - item:
+          id: bfs-sim
+          type: sim
+          sim: graph
+          prompt: 从 s 出发做 BFS，点出每个顶点第一次被发现的顺序。
+          params:
+            mode: bfs
+            start: s
+            directed: false
+            nodes:
+              - { id: s, x: 30, y: 100 }
+              - { id: p, x: 110, y: 40 }
+              - { id: q, x: 110, y: 160 }
+              - { id: r, x: 200, y: 40 }
+              - { id: t, x: 200, y: 160 }
+              - { id: u, x: 300, y: 100 }
+            edges: [[s, p], [s, q], [p, r], [q, t], [r, u], [t, u]]
+          goal: {}
+          solution: [s, p, q, r, t, u]
+          explain: s 的邻居 p、q 先发现；再从 p 发现 r，从 q 发现 t；最后从 r 发现 u。
+      - card:
+          title: 深度优先搜索（DFS）
+          body: |
+            ```python
+            def dfs(adj, i, seen):
+                seen[i] = True
+                for j in adj[i]:
+                    if not seen[j]:
+                        dfs(adj, j, seen)
+            ```
+
+            一条路走到底，走不下去了再退回来换一条。它用的是递归（也可以自己用一个栈）。
+      - item:
+          id: dfs-sim
+          type: sim
+          sim: graph
+          prompt: 在同一张图上从 s 出发做 DFS，点出每个顶点第一次到达的顺序。
+          params:
+            mode: dfs
+            start: s
+            directed: false
+            nodes:
+              - { id: s, x: 30, y: 100 }
+              - { id: p, x: 110, y: 40 }
+              - { id: q, x: 110, y: 160 }
+              - { id: r, x: 200, y: 40 }
+              - { id: t, x: 200, y: 160 }
+              - { id: u, x: 300, y: 100 }
+            edges: [[s, p], [s, q], [p, r], [q, t], [r, u], [t, u]]
+          goal: {}
+          solution: [s, p, r, u, t, q]
+          explain: s → p → r → u，u 的邻居 t 还没去过，接着到 t，t 的邻居 q 也没去过，到 q。一条路一直走到底。
+      - card:
+          title: 要花多少步
+          body: |
+            每个顶点只会被处理一次；处理时把它的邻居都看一遍。用邻接表时，所有顶点的邻居加起来就是边数（无向图是两倍），所以 BFS 和 DFS 都是 O(n + m)。
+
+            用邻接矩阵时，看一个顶点的邻居要扫一整行 n 格，总共 O(n²)。
+      - item:
+          id: matrix-cost
+          type: choice
+          prompt: 用邻接矩阵存的图，n 个顶点，做一次 BFS 要几步？
+          options:
+            - text: O(n²)
+              correct: true
+            - text: O(n + m)
+              why: 那是邻接表的情况；矩阵列出每个顶点的邻居都要扫 n 格
+          explain: n 个顶点各扫一行 n 格，一共 n²。
+      - item:
+          id: bfs-shortest
+          type: choice
+          prompt: BFS 第一次发现一个顶点 v 时，从起点到 v 经过的边数有什么特点？
+          options:
+            - text: 是最少的边数
+              correct: true
+            - text: 是最多的边数
+              why: BFS 一层层往外，近的先被发现，所以第一次发现时走的就是最近的路
+          explain: 这让 BFS 能算出“最少几步能到”（每条边一样长时）。
+
+  - id: invariants
+    chapter: 图存储与不变量
+    title: 守住不变量：让程序自己检查
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 二叉搜索树的删除写错了，删完以后“左小右大”被破坏了，但程序没报错。猜一猜，你最可能在什么时候发现？
+          options:
+            - text: 很久以后某次查找结果不对，很难追到是哪次删除弄坏的
+              correct: true
+            - text: 删除的那一刻就会报错
+              why: Python 不知道你的树应该满足什么条件，坏了也不会报错
+          explain: 所以要把不变量写成检查，每次操作后跑一遍，坏了马上就知道是哪一步。
+      - card:
+          title: 前面每个结构的不变量
+          body: |
+            | 结构 | 不变量 |
+            |---|---|
+            | ArrayStack | 元素在 a[0..n−1]，n ≤ len(a) |
+            | ArrayQueue | 0 ≤ j < len(a)，n ≤ len(a) |
+            | DLList | 每个节点 u 都有 u.next.prev 就是 u |
+            | 二叉搜索树 | 每个节点：左子树都比它小，右子树都比它大 |
+            | 红黑树 | 黑高相同，没有红边，根是黑的 |
+
+            每个操作都必须从“不变量成立”走到“不变量仍然成立”。
+      - item:
+          id: queue-invariant
+          type: choice
+          prompt: ArrayQueue 的 remove 里写了 `self.j = self.j + 1`，忘了 `% len(self.a)`。哪条不变量会被破坏？
+          options:
+            - text: 0 ≤ j < len(a)
+              correct: true
+            - text: n ≤ len(a)
+              why: remove 让 n 变小，这条不会坏；坏的是 j 会一直加到超出数组
+          explain: j 走到 len(a) 时不绕回 0，下一次读 a[j] 就超出了数组的范围。
+      - card:
+          title: 把不变量写成检查
+          body: |
+            ```python
+            def check_bst(t, lo=None, hi=None):
+                if t is None:
+                    return True
+                left, x, right = t
+                if lo is not None and x <= lo:
+                    return False
+                if hi is not None and x >= hi:
+                    return False
+                return check_bst(left, lo, x) and check_bst(right, x, hi)
+            ```
+
+            往左走时，下面的值都必须小于 x（上限变成 x）；往右走时都必须大于 x（下限变成 x）。测试里每次操作后写 `assert check_bst(tree)`。
+      - card:
+          title: 看它查出一个坏树
+          body: 这棵树里，每对父子看起来都对，可 6 在 5 的左子树里。单步运行，看 6 被哪个上限拦住。
+          sim:
+            name: trace
+            params:
+              code: |
+                def check_bst(t, lo=None, hi=None):
+                    if t is None:
+                        return True
+                    left, x, right = t
+                    if lo is not None and x <= lo:
+                        return False
+                    if hi is not None and x >= hi:
+                        return False
+                    return check_bst(left, lo, x) and check_bst(right, x, hi)
+
+                bad = ((None, 3, (None, 6, None)), 5, None)
+                print(check_bst(bad))
+      - item:
+          id: parent-child-not-enough
+          type: choice
+          prompt: 只检查“每个节点的左孩子比它小、右孩子比它大”，够不够判断一棵树是二叉搜索树？
+          options:
+            - text: 不够：根 5、左孩子 3、3 的右孩子 6，每对父子都对，但 6 在 5 的左边
+              correct: true
+            - text: 够了
+              why: 不变量说的是整棵左子树都比根小，不只是左孩子；要像 check_bst 那样把上下限一路带下去
+          explain: 检查时要带着祖先给的上下限，不能只看父子。
+      - item:
+          id: trace-check
+          type: sim
+          sim: trace
+          prompt: 先在心里走一遍：这棵树合格吗？最后显示什么？
+          params:
+            code: |
+              def check_bst(t, lo=None, hi=None):
+                  if t is None:
+                      return True
+                  left, x, right = t
+                  if lo is not None and x <= lo:
+                      return False
+                  if hi is not None and x >= hi:
+                      return False
+                  return check_bst(left, lo, x) and check_bst(right, x, hi)
+
+              tree = ((None, 2, None), 4, ((None, 5, None), 7, None))
+              print(check_bst(tree))
+          goal:
+            ask:
+              - { line: 12, var: "@out" }
+          explain: 2 < 4；7 > 4；5 在 7 的左边，必须在 4 和 7 之间，它是。合格，显示 True。
+      - item:
+          id: who-fails
+          type: number
+          prompt: 一棵树：根 10，左孩子 5，5 的右孩子 12。用 check_bst 检查，是哪一个值让它返回 False？
+          answer: 12
+          explain: 12 在 10 的左子树里，上限是 10，12 ≥ 10，不合格。
+
+  - id: binary-heap
+    chapter: 堆
+    title: 二叉堆：藏在数组里的树
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 医院急诊总是先处理最危急的病人，新病人随时会来。猜一猜，什么样的结构最合适？
+          options:
+            - text: 随时能取出“最紧急的那个”的结构，放进新的也很快
+              correct: true
+            - text: 普通的队列，先来先处理
+              why: 后来的病人可能更危急，不能只按先来后到
+            - text: 每来一个病人就把整个名单重新排序
+              why: 每次都全排一遍太慢了，只需要随时知道最紧急的是谁
+          explain: 这叫优先队列，常用二叉堆来做。
+      - card:
+          title: 优先队列和二叉堆
+          body: |
+            **优先队列（priority queue）**只要两种操作：add(x) 放进一个，remove() 取出最小的那个（“最小”代表优先级最高）。
+
+            教材的 BinaryHeap 用一棵**完全二叉树**做：除了最后一层，每层都排满，最后一层从左往右排。这样的树可以不用节点和 next 那样的指向，按层从上到下、从左到右直接放进一个数组，这叫**二叉堆（binary heap）**。（它和 C 语言里分配内存的“堆”只是同名，没有关系。）
+      - card:
+          title: 数组里的父子关系
+          body: |
+            下标为 i 的节点：
+
+            $$\text{左孩子} = 2i + 1,\quad \text{右孩子} = 2i + 2,\quad \text{父节点} = \left\lfloor \frac{i - 1}{2} \right\rfloor$$
+
+            堆的不变量（堆序性质）：每个节点都不比它的父节点小，`a[(i - 1) // 2] <= a[i]`。所以最小的一定在根，也就是 a[0]。
+      - item:
+          id: parent-index
+          type: number
+          prompt: 堆数组里下标 6 的节点，父节点的下标是多少？
+          answer: 2
+          explain: (6 − 1) // 2 = 2。
+      - item:
+          id: left-index
+          type: number
+          prompt: 下标 4 的节点，左孩子的下标是多少？
+          answer: 9
+          explain: 2 × 4 + 1 = 9。
+      - card:
+          title: add：放到最后，往上冒
+          body: |
+            新元素先放在数组末尾 a[n]（完全二叉树的下一个空位）。如果它比父节点小，就和父节点交换；一直往上，直到不比父节点小或者到了根。这一步叫上浮（bubble up）。
+      - card:
+          title: 例题：依次放入 5, 3, 8, 1, 4, 7, 9
+          body: 从空堆开始，每放一个就上浮。
+          reveal:
+            - title: 放 5、3、8
+              body: '[5]；放 3，3 < 父节点 5，交换 → [3, 5]；放 8，8 > 3 → [3, 5, 8]。'
+            - title: 放 1
+              body: 1 在下标 3，父节点下标 1（5），交换 → [3, 1, 8, 5]；再和下标 0 的 3 比，交换 → [1, 3, 8, 5]。
+            - title: 放 4、7
+              body: 4 在下标 4，父节点下标 1（3），4 > 3 不动 → [1, 3, 8, 5, 4]；7 在下标 5，父节点下标 2（8），交换 → [1, 3, 7, 5, 4, 8]。
+            - title: 放 9
+              body: 9 在下标 6，父节点下标 2（7），不动。结果 [1, 3, 7, 5, 4, 8, 9]。
+      - item:
+          id: heap-build
+          type: text
+          prompt: 从空的最小堆开始，依次放入 4, 2, 6, 1。最后的数组是什么？（写成 [a, b, c, d] 的样子）
+          answers: ['[1, 2, 6, 4]']
+          explain: '[4] → 放 2 交换得 [2, 4] → 放 6 得 [2, 4, 6] → 放 1 在下标 3，先和 4 交换得 [2, 1, 6, 4]，再和 2 交换得 [1, 2, 6, 4]。'
+      - card:
+          title: remove：拿走根，末尾补上，往下沉
+          body: |
+            根 a[0] 是最小的，拿走它。把数组最后一个元素搬到根，n 减 1。它多半太大了：和两个孩子里**较小的那个**比，比它大就交换，一直往下，直到不比孩子大或者到了叶子。这一步叫下沉（trickle down）。
+
+            要和较小的孩子换：换上来的那个要当另一个孩子的父节点，必须是两个里小的。
+      - item:
+          id: extract-min
+          type: text
+          prompt: 对最小堆 [1, 3, 7, 5, 4, 8, 9] 执行一次 remove()，之后的数组是什么？
+          answers: ['[3, 4, 7, 5, 9, 8]']
+          explain: 拿走 1，末尾的 9 搬到根：[9, 3, 7, 5, 4, 8]；和较小的孩子 3 换：[3, 9, 7, 5, 4, 8]；9 的孩子是 5 和 4，和 4 换：[3, 4, 7, 5, 9, 8]。
+      - item:
+          id: smaller-child
+          type: choice
+          prompt: 下沉时，为什么要和两个孩子中**较小**的那个交换？
+          options:
+            - text: 换上来的会成为另一个孩子的父节点，只有较小的那个才不比另一个大
+              correct: true
+            - text: 为了少换几次
+              why: 和次数无关；和较大的换，较大的当了父节点，就比另一个孩子大，堆序被破坏
+          explain: 和较小的换，才能保证新的父节点不大于两个孩子。
+      - card:
+          title: 快在哪里
+          body: |
+            有 n 个节点的完全二叉树，高度是 ⌊log₂ n⌋。上浮、下沉最多走一个高度，所以 add 和 remove 都是 O(log n)，看最小值是 O(1)。
+
+            Python 自带 `heapq`：在普通列表上 `heapq.heappush(h, x)`、`heapq.heappop(h)`，就是一个最小堆。要找最小的 k 个，用 `heapq.nsmallest(k, xs)`。
+      - item:
+          id: max-swaps
+          type: number
+          prompt: 一个最小堆有 1000 个元素。放进一个新元素，最多交换几次？
+          answer: 9
+          explain: 高度 ⌊log₂ 1000⌋ = 9（2⁹ = 512 ≤ 1000 < 1024），上浮最多走 9 层。
+      - item:
+          id: heapq-out
+          type: text
+          prompt: 运行下面的程序，显示什么？
+          code: |
+            import heapq
+            h = []
+            for x in [5, 1, 4, 2]:
+                heapq.heappush(h, x)
+            print(heapq.heappop(h), heapq.heappop(h))
+          lang: python
+          answers: [1 2]
+          explain: 每次 heappop 取出当前最小的：先 1，再 2。
+
+  - id: meldable-heap
+    chapter: 堆
+    title: 能合并的堆：MeldableHeap
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个用数组存的二叉堆，各有一百万个元素，想合并成一个。猜一猜最直接的做法要花多少工夫？
+          options:
+            - text: 把一个堆的元素一个个放进另一个，很费时间
+              correct: true
+            - text: 把两个数组接起来就行
+              why: 接起来以后父子关系全乱了，堆序性质不再成立
+          explain: 教材的 MeldableHeap 用节点存树，可以用递归很快地合并。
+      - card:
+          title: MeldableHeap 和 merge
+          body: |
+            MeldableHeap 是一棵用节点存的二叉树，只要求堆序（每个节点不比它的孩子大），**形状随便**。所有操作都靠一个 merge(h1, h2)：
+
+            1. 有一个是空的，交回另一个；
+            2. 让根比较小的那个当 h1；
+            3. **随机**选 h1 的左边或右边，把 h2 合并进那一边。
+
+            放入 x：把只有一个节点 x 的堆和原来的堆合并。取出最小：根就是最小的，把根的左右两棵子树合并起来当新的堆。
+      - card:
+          title: 代码
+          body: |
+            ```python
+            import random
+            def merge(h1, h2):
+                if h1 is None:
+                    return h2
+                if h2 is None:
+                    return h1
+                if h2.x < h1.x:
+                    h1, h2 = h2, h1
+                if random.random() < 0.5:
+                    h1.left = merge(h1.left, h2)
+                else:
+                    h1.right = merge(h1.right, h2)
+                return h1
+            ```
+      - item:
+          id: merge-root
+          type: choice
+          prompt: merge 两个堆以后，新堆的根是什么？
+          options:
+            - text: 两个根里较小的那个
+              correct: true
+            - text: 随机选一个根
+              why: 随机的只是往左还是往右合并；根总是较小的那个，这样堆序才成立
+          explain: 第 2 步保证了较小的根留在最上面。
+      - card:
+          title: 例题：照着硬币合并一次
+          body: h1 是根 2（左孩子 5、右孩子 7），h2 是根 3（左孩子 4）。假设两次抛硬币依次是“左”“右”。
+          reveal:
+            - title: 第 1 层
+              body: 2 < 3，h1 是根 2 的那棵。硬币“左”：把 h2 合并进 2 的左子树（根 5）。
+            - title: 第 2 层
+              body: merge(根 5, 根 3)：3 < 5，交换，让根 3 的那棵当 h1。硬币“右”：把根 5 合并进 3 的右边，3 的右边是空的，直接接上 5。
+            - title: 结果
+              body: 根 2；2 的左孩子 3（3 的左孩子 4、右孩子 5）；2 的右孩子 7。每个节点都不比孩子大。
+      - item:
+          id: merge-preorder
+          type: text
+          prompt: 上面例题合并出的堆，前序遍历（自己 → 左 → 右）是什么？（用空格隔开）
+          answers: [2 3 4 5 7]
+          explain: 2，然后左子树 3、4、5，然后右子树 7。
+          review: false
+      - card:
+          title: 为什么要随机
+          body: |
+            merge 每一层往下走一步，所花的时间就是它走的路有多长。教材证明：从根随机往左或往右走，走到空位置之前，期望只走不到 log₂(n + 1) 步。所以 merge、add、remove 的期望时间都是 O(log n)。
+
+            好处是完全不用像红黑树那样记颜色、做旋转，代码只有十几行。
+      - item:
+          id: remove-cost
+          type: choice
+          prompt: MeldableHeap 取出最小值的期望时间是多少？
+          options:
+            - text: O(log n)
+              correct: true
+            - text: O(1)
+              why: 拿走根是 O(1)，但还要把左右两棵子树 merge 起来，期望 O(log n)
+            - text: O(n)
+              why: 随机选边让 merge 的路径期望很短，不会走遍所有节点
+          explain: 时间都花在 merge 上，期望 O(log n)。
+      - item:
+          id: when-meldable
+          type: choice
+          prompt: 什么时候用 MeldableHeap 比 BinaryHeap 更合适？
+          options:
+            - text: 经常要把两个优先队列合并成一个
+              correct: true
+            - text: 只需要放进和取出最小值
+              why: 那样 BinaryHeap 就够了，数组存储还更省空间、更快
+          explain: 合并是 MeldableHeap 的长处：期望 O(log n)，而数组堆合并要一个个放。
+
+boss:
+  items:
+    - id: array-boss
+      type: number
+      prompt: 从新造的 ArrayStack（底下数组 1 格）开始，在末尾连续放进 10 个元素。最后 len(a) 是多少？
+      answer: 16
+      explain: 在 n = 1、2、4、8 时满了，依次换成 2、4、8、16 格；放第 9、10 个时还有空位。
+    - id: rootish-boss
+      type: number
+      prompt: RootishArrayStack 的第 b 块有 b + 1 格。下标 20 的元素在第几块？（从第 0 块数起）
+      answer: 5
+      explain: 第 0 到 4 块放 1 + 2 + 3 + 4 + 5 = 15 个（下标 0–14），第 5 块放下标 15–20。
+    - id: dllist-boss
+      type: number
+      prompt: DLList 有 20 个节点。用“i 小于 n/2 就从前往后走，否则从哑节点往回走”的规则找第 17 个，要走几步？
+      answer: 3
+      explain: 17 ≥ 10，从哑节点往回走 n − i = 20 − 17 = 3 步。
+    - id: queue-boss
+      type: number
+      prompt: 用两个栈 in、out 做队列（出队时 out 空了才把 in 全部倒进 out）。依次入队 1、2、3、4，出队一次，入队 5，再出队一次。第二次出队得到的是几？
+      answer: 2
+      explain: 第一次出队把 1–4 倒进 out，取出 1；5 进 in；第二次出队 out 不空，直接取出 2。先进先出没有被打乱。
+    - id: hash-boss
+      type: number
+      prompt: 表长 7，h(k) = k % 7，线性探测。依次放进 7、14、3、21。21 最后在几号格子？
+      answer: 2
+      explain: 7→0；14 算出 0 被占，到 1；3→3；21 算出 0，0、1 都被占，到 2。
+    - id: bst-boss
+      type: number
+      prompt: 把 8, 3, 10, 1, 6, 14, 4 依次插入一棵空的二叉搜索树。树的高度（按边数）是几？
+      answer: 3
+      explain: 8 是根；3、10 在第 1 层；1、6、14 在第 2 层；4 挂在 6 的左边，在第 3 层。
+    - id: rb-boss
+      type: choice
+      prompt: 下面哪一条对**所有**合格的红黑树都成立？
+      options:
+        - text: 从根到任何一个空位置，路上的黑色节点个数都一样
+          correct: true
+        - text: 所有叶子都在同一层
+          why: 那是 2-4 树的性质；红黑树里红节点会让有的路长一些，最多是另一条的两倍
+        - text: 红色节点和黑色节点一样多
+          why: 红黑树没有这种要求，甚至可以一个红节点都没有
+      explain: 黑高相同对应 2-4 树里“所有叶子一样深”。
+    - id: graph-boss
+      type: number
+      prompt: 一张无向图有 6 个顶点、7 条边，用邻接表存。所有顶点的邻居列表加起来一共几项？
+      answer: 14
+      explain: 每条无向边在两个端点的列表里各出现一次：7 × 2 = 14。
+    - id: heap-boss
+      type: text
+      prompt: 对最小堆 [1, 3, 7, 5, 4, 8, 9] 连续执行两次 remove()，之后的数组是什么？
+      answers: ['[4, 5, 7, 8, 9]']
+      explain: 第一次后是 [3, 4, 7, 5, 9, 8]。第二次拿走 3，末尾的 8 搬到根：[8, 4, 7, 5, 9]；和较小的孩子 4 换：[4, 8, 7, 5, 9]；8 的孩子是 5 和 9，和 5 换：[4, 5, 7, 8, 9]。
+    - id: amortized-boss
+      type: choice
+      prompt: 两栈队列偶尔一次出队要倒很多个元素，为什么还说它摊还 O(1)？
+      options:
+        - text: 每个元素一生最多进出两个栈各一次，m 次操作总共不超过 4m 步
+          correct: true
+        - text: 因为倒元素的那一次很少发生，可以忽略不计
+          why: 不是忽略，而是把它的开销算到被倒的那些元素头上，每个元素最多被倒一次
+        - text: 因为栈的 push 和 pop 都是 O(1)，所以什么都是 O(1)
+          why: 一次出队可能要做 n 次 pop 和 push，单看这一次是 O(n)；要看总数才能说 O(1)
+      explain: 摊还看总开销：每个元素被搬动的次数有上限。

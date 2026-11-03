@@ -1,0 +1,8 @@
+{
+  "appId": "local.csmathskillgame.app",
+  "appName": "点亮之路",
+  "webDir": "output/web",
+  "android": {
+    "path": "src/android"
+  }
+}

@@ -1,0 +1,4180 @@
+skill: P.1.1
+version: 2
+authors: [main-agent]
+brief:
+  why: 写程序，就是用一种非常死板的语言给电脑下命令。后面的 C 语言、数据结构、操作系统、机器学习，都要先会写小程序才学得动。这一关用 Python：它要记的规矩最少，你可以把注意力放在“程序怎么一步步执行”上。从“程序是什么”讲起，不需要任何基础。
+  outcomes:
+    - 看懂一行 print，知道带引号和不带引号有什么不同
+    - 用 Python 做四则运算、整除和取余，预测 7 / 2、"3" + "4" 这类写法的结果
+    - 用列表按编号取值，用字典按名字取值
+    - 给值起名字（变量），一行一行追踪每个名字指向什么
+    - 用 if 让程序做选择，用 for 和 while 让程序重复，写出求和、计数的小程序
+    - 把重复的代码写成函数，分清 return 和 print
+    - 用切片取一段字符串或列表，用字符串的方法清理文字，用元组、集合和字典装数据
+    - 用 continue、循环的 else、match、enumerate、zip 和列表推导式写更短更清楚的循环
+    - 写能收任意多个参数的函数，用 lambda 指定排序依据，按小目标写出一个数单词的函数
+    - 用 import 使用现成的模块和包，读懂报错的最后一行，找到并修好一个 bug
+    - 读写文本文件和 JSON 文件，用 try / except 接住异常，用 raise 报出异常，读懂调用栈
+terms:
+  - term: 程序
+    def: '写给电脑的一串命令，电脑从上到下一行一行照做'
+  - term: 字符串
+    def: '一段文字，写在一对引号里，如 "你好"；类型叫 str'
+  - term: 报错
+    def: 'Python 遇到看不懂或做不到的写法时停下来，显示一段错误说明'
+  - term: 运算符
+    def: '表示一种计算的符号，如 + - * / // % **'
+  - term: 表达式
+    def: '能算出一个结果的写法，如 3 * 4 + 1'
+  - term: 运算优先级
+    def: '先算哪个后算哪个的规矩：先乘除后加减，括号最先'
+  - term: 整数
+    def: '没有小数点的数，如 7、-3、0；类型叫 int'
+  - term: 浮点数
+    def: '带小数点的数，如 3.5、2.0；类型叫 float。/ 的结果总是浮点数'
+  - term: 值
+    def: '一个具体的数据，比如 7、3.5、"hi"、True'
+  - term: 类型
+    def: '值的种类（int、float、str、bool……），决定它能做哪些运算'
+  - term: 布尔
+    def: '布尔值只有两个：True（真）和 False（假），比较的结果就是布尔值；类型叫 bool'
+  - term: 类型转换
+    def: '把一种类型的值变成另一种，如 int("3") 得 3，str(4) 得 "4"'
+  - term: 列表
+    def: '用方括号写的一串按顺序排好的值，如 [3, 8, 5]；类型叫 list'
+  - term: 元素
+    def: '列表（或其他容器）里装的每一个值'
+  - term: 下标
+    def: '元素在列表里的编号，从 0 开始；列表[下标] 取出元素'
+  - term: 字典
+    def: '用花括号写的一组“键: 值”，按键查值，如 {"梨": 3}["梨"] 得 3；类型叫 dict'
+  - term: 键值对
+    def: '字典里的一对“键: 值”，键是查找用的名字，值是查到的东西'
+  - term: 变量
+    def: '指向一个值的名字。price = 8 之后，写 price 就是用 8'
+  - term: 赋值
+    def: '用 = 让左边的名字指向右边算出的值：先算右边，再贴名字'
+  - term: 别名
+    def: '同一个东西的另一个名字。b = a 之后 a 和 b 指向同一个列表'
+  - term: 可变
+    def: '能被原地改动的值，如列表、字典（append 会改动它本身）'
+  - term: 不可变
+    def: '不能被原地改动的值，如整数、浮点数、字符串；“改”其实是算出一个新值'
+  - term: 缩进
+    def: '行首空出来的空格（通常 4 个）。Python 靠缩进判断哪几行属于 if、for 等'
+  - term: 分支
+    def: 'if / elif / else 里的每一条路；一次只走其中一条'
+  - term: 循环
+    def: '把同一段代码重复执行，for 和 while 都是循环'
+  - term: 死循环
+    def: '条件永远成立、永远停不下来的循环'
+  - term: 函数
+    def: '起了名字的一段代码，用 def 定义，写名字加括号就能执行它'
+  - term: 参数
+    def: '函数括号里的名字，调用时填进来的值会交给它'
+  - term: 调用
+    def: '写 函数名(值) 让函数用这些值执行一遍'
+  - term: 返回值
+    def: '函数用 return 交回给调用处的值；没有 return 时是 None'
+  - term: 局部变量
+    def: '在函数里赋值的名字（包括参数），只在这次调用里有效'
+  - term: 全局变量
+    def: '在所有函数外面赋值的名字；函数里要改它得先写 global 名字'
+  - term: 默认参数
+    def: '带默认值的参数，调用时不填就用默认值，如 def f(a, b=10)'
+  - term: 关键字参数
+    def: '调用时按名字填的参数，如 f(b=1, a=5)，顺序可以随意'
+  - term: 模块
+    def: '装着现成函数的 Python 文件，用 import 导入后使用，如 math'
+  - term: 标准库
+    def: '随 Python 一起安装好的模块，如 math、random'
+  - term: 第三方库
+    def: '别人写好发布在网上的模块，用 pip install 安装，如 numpy'
+  - term: 调试
+    def: '找出并改正程序错误（bug）的过程'
+  - term: 报错信息
+    def: '报错时显示的那几行（traceback）；最后一行是错误种类和原因'
+  - term: 语法
+    def: '代码的书写规矩，如 if 后面要有冒号、括号要配对'
+  - term: 断言
+    def: 'assert 条件：条件为 True 什么都不发生，为 False 立刻报 AssertionError'
+  - term: 测试用例
+    def: '一个具体的输入和它应得的结果，用来检查程序对不对'
+  - term: 切片
+    def: '用 [开始:结束] 取出一段，不包括结束那个下标，如 "Python"[0:2] 得 "Py"'
+  - term: 元组
+    def: '用逗号（通常加圆括号）写的一串值，如 (3, 4)；能取值但造好以后不能改；类型叫 tuple'
+  - term: 集合
+    def: '花括号里只写值的一堆不重复、没有顺序的值，如 {1, 2, 3}；类型叫 set'
+  - term: 列表推导式
+    def: '一行造列表的写法，如 [x * x for x in range(5)]，可以带 if 筛选'
+  - term: 注释
+    def: '# 后面的文字，Python 不执行，写给人看'
+  - term: 包
+    def: '装着几个模块的文件夹（里面通常有 __init__.py），如 import shapes.circle'
+  - term: 异常
+    def: '运行到一半才发现的错误，如 ZeroDivisionError；可以用 try / except 接住'
+  - term: 调用栈
+    def: '还没执行完的函数调用叠成的一摞，最上面是正在执行的那个；报错信息就是按它写的'
+
+lessons:
+  # ---------------------------------------------------------------- 基本数据类型
+  - id: first-program
+    chapter: 基本数据类型
+    title: 第一行程序
+    minutes: 10
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 电脑运行一个程序时，最接近下面哪种情况？
+          options:
+            - text: 从第一行开始，按顺序一条一条照做写好的命令
+              correct: true
+            - text: 先理解你想干什么，再自己想办法做到
+              why: 电脑不会猜你的意图，只照字面一条条执行
+            - text: 随便挑一条命令先做
+              why: 普通的程序从上到下按顺序执行
+          explain: 电脑非常听话，也非常死板：写的是什么，它就做什么，一个符号都不会替你改。
+      - card:
+          title: 程序是一串命令
+          body: |
+            **程序（program）**是写给电脑的一串命令。电脑运行程序时，从第一行开始，**一行一行**往下照做。
+
+            我们用的语言叫 Python。下面就是一个完整的 Python 程序，只有一行：
+
+            ```python
+            print("你好")
+            ```
+
+            运行它，屏幕上会出现两个字：你好
+      - card:
+          title: print：把东西显示出来
+          body: |
+            `print( )` 是 Python 自带的一个命令：括号里放什么，它就在屏幕上显示什么。这个动作也常叫“打印”（print 的直译）。
+
+            ```python
+            print("早上好")
+            print("晚上好")
+            ```
+
+            两行命令按顺序执行：先显示“早上好”，再显示“晚上好”。每个 print 显示完会自动换到下一行。
+      - item:
+          id: order-of-lines
+          type: choice
+          prompt: 运行下面的程序，屏幕上的**第一行**是什么？
+          code: |
+            print("一")
+            print("二")
+            print("三")
+          lang: python
+          options:
+            - text: 一
+              correct: true
+            - text: 三
+              why: 程序从上往下执行，第一行的 print 最先执行
+            - text: 一二三（挤在同一行）
+              why: 每个 print 显示完都会换行，所以是三行
+          explain: 电脑按顺序执行，先执行 `print("一")`，屏幕第一行就是“一”；接着是“二”、“三”，各占一行。
+      - card:
+          title: 引号里的是文字
+          body: |
+            `print("你好")` 里，两边的双引号告诉 Python：中间这段是**文字**，原样显示就行。Python 把写在引号里的一段文字叫作**字符串（string）**，意思是“一串字符”。
+
+            引号本身不会显示出来。单引号 `'你好'` 和双引号 `"你好"` 意思一样，只要左右配对。
+      - card:
+          title: 不加引号，就会先计算
+          body: |
+            ```python
+            print(3 + 4)
+            print("3 + 4")
+            ```
+
+            显示：
+
+            ```
+            7
+            3 + 4
+            ```
+
+            第一行没有引号，Python 先算出 3 + 4 = 7，再显示 7。第二行有引号，是一个字符串，原样显示。
+      - item:
+          id: no-quotes
+          type: choice
+          prompt: "`print(2 + 2)` 显示什么？"
+          options:
+            - text: "4"
+              correct: true
+            - text: 2 + 2
+              why: 没有引号，Python 会先把 2 + 2 算出来
+            - text: '"4"'
+              why: 显示的是算出来的数，引号不会凭空出现
+          explain: 括号里没有引号，Python 把它当成要计算的东西，算出 4 再显示。
+      - item:
+          id: with-quotes
+          type: choice
+          prompt: "`print(\"2 + 2\")` 显示什么？"
+          options:
+            - text: 2 + 2
+              correct: true
+            - text: "4"
+              why: 有引号，这是一个字符串，Python 不会去计算它
+            - text: '"2 + 2"'
+              why: 引号只是告诉 Python“这是文字”，它本身不显示
+          explain: 引号里的内容是字符串，原样显示：2 + 2。
+      - card:
+          title: Python 只认它的写法
+          body: |
+            电脑不会猜。下面每一行都会让 Python 停下来，显示一段错误说明，这叫**报错**：
+
+            - `Print("你好")`：大写的 P，Python 不认识 `Print`
+            - `print("你好)`：引号没有配对
+            - `print（"你好"）`：用了中文括号
+
+            报错不可怕，它在告诉你哪里写得不对。后面会专门学怎么读懂它。
+      - item:
+          id: which-run
+          type: choice
+          multi: true
+          prompt: 下面哪几行能正常显示 hello？（可多选）
+          options:
+            - text: '`print("hello")`'
+              correct: true
+            - text: "`print('hello')`"
+              correct: true
+            - text: '`Print("hello")`'
+              why: Python 区分大小写，Print 和 print 是两个不同的名字
+            - text: '`print("hello)`'
+              why: 引号要配对，右边少了一个引号
+            - text: '`print（"hello"）`'
+              why: 括号必须是英文半角的 ( )，中文括号 （ ） Python 不认识
+          explain: 单引号和双引号都可以，只要配对；大小写、引号、括号写错任何一处都会报错。
+      - card:
+          title: 自己动手试
+          body: |
+            想在自己的电脑上运行：到 python.org 下载安装 Python，它自带一个叫 IDLE 的小窗口。打开后输入 `print("你好")`，按回车，就能看到结果。
+
+            不装也没关系：这个游戏里点“下一步”看到的单步运行，就是真实的 Python 运行时一步一步记录下来的。
+      - item:
+          id: order-print
+          type: order
+          prompt: 想让屏幕依次显示“开始”、3 + 4 算出来的结果、“结束”。把三行排好。
+          steps:
+            - print("开始")
+            - print(3 + 4)
+            - print("结束")
+          explain: 程序从上往下执行，所以按想显示的顺序写。中间那行不加引号，显示的是 7。
+      - item:
+          id: subtract
+          type: number
+          prompt: "`print(10 - 4)` 显示的数是多少？"
+          answer: 6
+          explain: 没有引号，先算 10 − 4 = 6，再显示 6。
+
+  - id: numbers
+    chapter: 基本数据类型
+    title: 数字和计算
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 猜一猜：`print(7 / 2)` 显示的数是多少？
+          answer: 3.5
+          explain: 和计算器一样，7 除以 2 等于 3.5。
+      - card:
+          title: 把 Python 当计算器
+          body: |
+            加、减、乘、除在 Python 里写作 `+`、`-`、`*`、`/`。注意乘号是星号 `*`，不是 ×。这些表示计算的符号叫**运算符（operator）**。
+
+            像 `3 * 4 + 1` 这样，能算出一个结果的写法叫**表达式（expression）**。print 遇到表达式，会先把它算成一个结果，再显示这个结果。
+      - item:
+          id: arith
+          type: number
+          prompt: "`print(3 * 4 + 1)` 显示的数是多少？"
+          answer: 13
+          explain: 3 * 4 = 12，再加 1 得 13。
+      - card:
+          title: 先乘除，后加减
+          body: |
+            和数学课一样：先算乘除，后算加减；想先算哪一部分，就给它加括号。这个“先算谁”的规矩叫**运算优先级**。
+
+            - `2 + 3 * 4`：先算 3 * 4 = 12，再 2 + 12，得 14
+            - `(2 + 3) * 4`：先算括号 2 + 3 = 5，再 5 * 4，得 20
+      - item:
+          id: parens
+          type: number
+          prompt: "`(10 - 4) * 2 + 1` 等于多少？"
+          answer: 13
+          hint: 括号里的先算，然后乘，最后加。
+          explain: 括号里 10 − 4 = 6；6 * 2 = 12；12 + 1 = 13。
+      - card:
+          title: 两种数：整数和浮点数
+          body: |
+            Python 把数分成两种：
+
+            - **整数（integer）**：没有小数点的数，如 `7`、`-3`、`0`。Python 里写作 int。
+            - **浮点数（float）**：带小数点的数，如 `3.5`、`2.0`。“浮点数”是计算机里对小数的叫法。
+
+            除法 `/` 的结果**总是浮点数**，哪怕正好除尽：`6 / 2` 得 `3.0`，而不是 `3`。
+      - item:
+          id: div-float
+          type: choice
+          prompt: "`print(6 / 2)` 显示什么？"
+          options:
+            - text: "3.0"
+              correct: true
+            - text: "3"
+              why: "`/` 的结果总是浮点数，正好除尽也带 .0"
+            - text: "3.00"
+              why: Python 显示浮点数时不会多补 0，3.0 就是 3.0
+          explain: "`/` 永远得到浮点数，所以是 3.0。"
+      - card:
+          title: 整除、余数、乘方
+          body: |
+            有时只想要整数结果，比如“7 个苹果分给 2 个人，每人几个、还剩几个”：
+
+            - `7 // 2` 是**整除**：只要商的整数部分，得 `3`
+            - `7 % 2` 是**余数**：分完剩下的，得 `1`
+            - `2 ** 3` 是**乘方**：2 的 3 次方，得 `8`
+      - item:
+          id: match-ops
+          type: match
+          prompt: 把每个表达式和它的结果连起来。
+          pairs:
+            - ["`17 // 5`", "3"]
+            - ["`17 % 5`", "2"]
+            - ["`17 / 5`", "3.4"]
+            - ["`2 ** 4`", "16"]
+          explain: 17 里有 3 个完整的 5（3 × 5 = 15），剩 2；普通除法得 3.4；2 的 4 次方是 16。
+      - card:
+          title: 例题：装鸡蛋
+          body: 有 23 个鸡蛋，每盒装 6 个。能装满几盒？还剩几个？一步一步来，每一步先想好再点“下一步”。
+          reveal:
+            - title: 第 1 步：想清楚要算什么
+              body: “装满几盒”是 23 里有几个完整的 6，要的是整数；“还剩几个”是装完以后的零头。
+            - title: 第 2 步：选运算符
+              body: 只要整数的商，用 `//`；要零头，用 `%`。
+            - title: 第 3 步：写出表达式并算
+              body: "`23 // 6` 得 3（3 盒用掉 18 个）；`23 % 6` 得 5（23 − 18 = 5）。"
+            - title: 第 4 步：检查
+              body: 3 盒 × 6 个 + 剩下 5 个 = 23 个，对上了。
+      - item:
+          id: bus-full
+          type: number
+          prompt: 50 个人坐车，每辆车坐 12 人。能坐满几辆车？（`50 // 12`）
+          answer: 4
+          explain: 4 辆车坐 48 人，第 5 辆坐不满。50 // 12 = 4。
+      - item:
+          id: bus-left
+          type: number
+          prompt: 50 个人坐车，每辆车坐 12 人。坐满的车开走后，还剩几个人？
+          answer: 2
+          hint: 要的是“零头”，用哪个运算符？
+          explain: 50 % 12 = 2：4 辆满车坐了 48 人，剩 50 − 48 = 2 人。
+      - item:
+          id: minutes
+          type: number
+          prompt: 200 分钟 = 3 小时零多少分钟？（想想用哪个运算符算这个“零头”）
+          answer: 20
+          explain: 一小时 60 分钟。200 // 60 = 3 是小时数，200 % 60 = 20 是剩下的分钟数。
+
+  - id: text-and-truth
+    chapter: 基本数据类型
+    title: 文字、真假和类型
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜：`print("3" + "4")` 显示什么？
+          options:
+            - text: "7"
+              why: 加了引号就是字符串，不是数字，不会做加法
+            - text: "34"
+              correct: true
+            - text: 报错
+              why: 两个字符串相加是允许的
+          explain: 两边都是字符串，`+` 对字符串的意思是“首尾接起来”，所以显示 34。
+      - card:
+          title: 字符串也能“加”和“乘”
+          body: |
+            同一个符号，用在不同的东西上，意思不一样：
+
+            - 数字 + 数字：相加，`3 + 4` 得 `7`
+            - 字符串 + 字符串：首尾接起来，叫**拼接**，`"3" + "4"` 得 `"34"`
+            - 字符串 * 整数：重复几遍，`"ha" * 3` 得 `"hahaha"`
+
+            `len("hello")` 得 `5`：len 数一数字符串里有几个字符。
+      - item:
+          id: repeat
+          type: text
+          prompt: "`print(\"ab\" * 3)` 显示什么？"
+          answers: [ababab]
+          explain: 字符串乘以 3，就是把它重复 3 遍：ababab。
+      - item:
+          id: len-word
+          type: number
+          prompt: "`len(\"Python\")` 等于多少？"
+          answer: 6
+          explain: P、y、t、h、o、n，一共 6 个字符。
+      - card:
+          title: 值和类型
+          body: |
+            像 `7`、`3.5`、`"hi"` 这样一个个具体的数据，叫**值（value）**。7 和 "7" 看着像，在 Python 里却是两种不同的东西：一个是整数，一个是字符串。
+
+            每个值都有自己的**类型（type）**，类型决定它能做哪些运算。用 `type( )` 可以查看：`print(type(7))` 显示 `<class 'int'>`，意思是“int 这一类”。
+      - item:
+          id: same-or-not
+          type: choice
+          prompt: "`7` 和 `\"7\"` 是什么关系？"
+          options:
+            - text: 一个是整数，一个是字符串，类型不同
+              correct: true
+            - text: 完全一样，只是写法不同
+              why: 引号让它变成了字符串，能做的运算不一样，比如 "7" * 2 是 "77"
+          explain: 有没有引号决定了类型。整数 7 能做算术，字符串 "7" 只能拼接、重复。
+      - card:
+          title: 真和假
+          body: |
+            比较两个值，结果不是数，而是“对”或“不对”：
+
+            - `3 > 2` 得 `True`（真）
+            - `3 == 2` 得 `False`（假）。**两个等号**表示“是否相等”
+            - `3 != 2` 得 `True`。`!=` 表示“不相等”
+
+            `True` 和 `False` 叫**布尔值（boolean）**，类型写作 bool。后面让程序“做选择”全靠它。
+      - item:
+          id: compare
+          type: choice
+          prompt: "`print(10 >= 10)` 显示什么？"
+          options:
+            - text: "True"
+              correct: true
+            - text: "False"
+              why: ">= 是“大于或等于”，10 等于 10，条件成立"
+            - text: "10"
+              why: 比较的结果是 True 或 False，不是数
+          explain: "`>=` 读作“大于或等于”。10 等于 10，所以是 True。"
+      - item:
+          id: match-types
+          type: match
+          prompt: 把每个值和它的类型连起来。
+          pairs:
+            - ["`42`", int]
+            - ["`4.0`", float]
+            - ["`\"42\"`", str]
+            - ["`4 > 2`", bool]
+          explain: 有没有小数点决定 int 还是 float；有引号就是 str（字符串）；比较的结果是 bool（布尔值）。
+      - card:
+          title: 类型不对，Python 不猜
+          body: |
+            `"3" + 4` 会报错，最后一行写着 `TypeError`（类型错误）：一边是字符串，一边是整数，Python 不知道你想拼接还是相加，干脆不猜。
+
+            想相加，先把字符串变成整数：`int("3") + 4` 得 `7`。想拼接，先把整数变成字符串：`"3" + str(4)` 得 `"34"`。这样把一种类型的值变成另一种，叫**类型转换**。
+      - item:
+          id: int-plus
+          type: choice
+          prompt: "`int(\"12\") + 3` 的结果是什么？"
+          options:
+            - text: "15"
+              correct: true
+            - text: '"123"'
+              why: int( ) 已经把 "12" 变成了整数 12，做的是加法
+            - text: 报错
+              why: 转换以后两边都是整数，可以相加
+          explain: int("12") 得到整数 12，12 + 3 = 15。
+      - item:
+          id: str-plus
+          type: choice
+          prompt: "`\"12\" + str(3)` 的结果是什么？"
+          options:
+            - text: '"123"'
+              correct: true
+            - text: "15"
+              why: str(3) 得到字符串 "3"，两个字符串相加是拼接
+            - text: 报错
+              why: 两边都是字符串，可以拼接
+          explain: str(3) 把整数 3 变成字符串 "3"，"12" + "3" 拼接成 "123"。
+      - item:
+          id: age-line
+          type: choice
+          prompt: 想显示 `我今年 18 岁`，年龄是整数 18。哪一行能做到？
+          options:
+            - text: '`print("我今年 " + str(18) + " 岁")`'
+              correct: true
+            - text: '`print("我今年 " + 18 + " 岁")`'
+              why: 字符串加整数会报 TypeError
+            - text: '`print("我今年 " + int("18") + " 岁")`'
+              why: int("18") 得到的是整数，字符串加整数还是 TypeError
+          explain: 要拼接就要两边都是字符串，所以用 str(18) 把整数变成 "18"。
+
+  - id: lists-dicts
+    chapter: 基本数据类型
+    title: 一次装很多：列表和字典
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 排队时，排第一个的人是“第 1 个”。在 Python 写的 `["甲", "乙", "丙"]` 里，你猜“甲”的编号是几？
+          options:
+            - text: "1"
+              why: Python 从 0 开始编号
+            - text: "0"
+              correct: true
+          explain: Python 的编号从 0 开始：甲是 0，乙是 1，丙是 2。马上细讲。
+      - card:
+          title: 列表：排好队的一串值
+          body: |
+            想一次存好几个值，可以用**列表（list）**：方括号里放几个值，用逗号隔开。
+
+            ```python
+            print([3, 8, 5])
+            print(["甲", "乙", "丙"])
+            ```
+
+            列表里的每一个值叫一个**元素（element）**。`len([3, 8, 5])` 得 3：这个列表有 3 个元素。
+      - item:
+          id: len-list
+          type: number
+          prompt: "`len([10, 20, 30, 40])` 等于多少？"
+          answer: 4
+          explain: 有 10、20、30、40 四个元素。
+      - card:
+          title: 用编号取元素
+          body: |
+            列表里的元素按顺序编号，这个编号叫**下标（index）**，**从 0 开始**：
+
+            | 下标 | 0 | 1 | 2 |
+            |---|---|---|---|
+            | 元素 | 3 | 8 | 5 |
+
+            在列表后面加 `[下标]` 就能取出那个元素：`[3, 8, 5][0]` 是 3，`[3, 8, 5][2]` 是 5。
+
+            `[3, 8, 5][3]` 会报错 `IndexError`（下标错误）：这个列表没有下标 3，最大只到 2。
+      - item:
+          id: index-1
+          type: number
+          prompt: "`[7, 9, 4, 6][1]` 是多少？"
+          answer: 9
+          explain: 下标从 0 开始：7 是 0 号，9 是 1 号。
+      - item:
+          id: index-out
+          type: choice
+          prompt: "`[7, 9, 4, 6][4]` 会怎样？"
+          options:
+            - text: 报错 IndexError
+              correct: true
+            - text: 得到 6
+              why: 6 的下标是 3；4 个元素的下标是 0、1、2、3
+            - text: 从头绕回来，得到 7
+              why: 列表不会绕回来，超出范围就报错
+          explain: 4 个元素的下标是 0 到 3，没有 4，所以报 IndexError。
+      - card:
+          title: 例题：最后一个元素的下标
+          body: 一个列表有 n 个元素，最后一个元素的下标是几？拿 `["春", "夏", "秋", "冬"]` 来想。
+          reveal:
+            - title: 第 1 步：数元素个数
+              body: len 是 4，一共 4 个。
+            - title: 第 2 步：列出每个下标
+              body: 春 0、夏 1、秋 2、冬 3。
+            - title: 第 3 步：找规律
+              body: 下标从 0 开始，所以总比“第几个”少 1。最后一个是第 4 个，下标是 3。一般地，n 个元素，最后一个的下标是 n − 1。
+      - item:
+          id: last-index
+          type: number
+          prompt: 一个列表有 10 个元素，最后一个元素的下标是几？
+          answer: 9
+          explain: 下标从 0 数到 9，正好 10 个。最后一个是 10 − 1 = 9。
+      - card:
+          title: 字典：用名字查东西
+          body: |
+            列表靠编号找元素。有时用名字找更方便，比如用水果名查价格。这时用**字典（dictionary，写作 dict）**：花括号里写一对对“名字: 值”。
+
+            ```python
+            print({"苹果": 5, "梨": 3}["梨"])
+            ```
+
+            显示 3。冒号左边的叫“键”（key），右边的叫“值”，一对合起来叫一个**键值对**。在字典后面写 `[键]`，就取出对应的值。
+      - item:
+          id: dict-get
+          type: number
+          prompt: "`{\"a\": 1, \"b\": 2, \"c\": 3}[\"c\"]` 是多少？"
+          answer: 3
+          explain: 键 "c" 对应的值是 3。
+      - item:
+          id: dict-missing
+          type: choice
+          prompt: "`{\"苹果\": 5}[\"香蕉\"]` 会怎样？"
+          options:
+            - text: 报错 KeyError
+              correct: true
+            - text: 得到 0
+              why: 字典不会替你编一个值，没有这个键就报错
+            - text: 得到 5
+              why: 5 是“苹果”的值，和“香蕉”无关
+          explain: 字典里没有“香蕉”这个键，Python 报 KeyError（键错误）。
+      - item:
+          id: list-or-dict
+          type: choice
+          prompt: 要记录全班每个同学的身高，并且经常要“按名字查身高”。用哪种更合适？
+          options:
+            - text: 字典：键是名字，值是身高
+              correct: true
+            - text: 列表：按顺序放身高
+              why: 列表只能按编号找，你得先知道这个人排第几
+            - text: 一个很长的字符串
+              why: 字符串只是文字，不能按名字取出某个人的身高
+          explain: '“按名字查”正是字典的用处：`{"小明": 150, "小红": 147}["小红"]` 得 147。'
+
+  # ---------------------------------------------------------------- 变量
+  - id: slicing
+    chapter: 基本数据类型
+    title: 一次取一段：切片和字符串的方法
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜：`print("Python"[-1])` 显示什么？
+          options:
+            - text: 'n'
+              correct: true
+            - text: P
+              why: P 是下标 0。负数下标从末尾往前数
+            - text: 报错，下标不能是负数
+              why: Python 允许负数下标，下一张卡细讲
+          explain: -1 表示“倒数第 1 个”，所以是最后一个字母 n。
+      - card:
+          title: 从后往前数
+          body: |
+            字符串和列表一样，可以按下标取出一个字符。下标也可以是负数，表示从末尾往前数：-1 是倒数第 1 个，-2 是倒数第 2 个。
+
+            | 字符 | P | y | t | h | o | n |
+            |---|---|---|---|---|---|---|
+            | 下标 | 0 | 1 | 2 | 3 | 4 | 5 |
+            | 负数下标 | -6 | -5 | -4 | -3 | -2 | -1 |
+      - item:
+          id: neg-index
+          type: text
+          prompt: '`"Python"[-2]` 是哪个字符？'
+          answers: [o]
+          explain: 从末尾往前数：n 是 -1，o 是 -2。
+      - card:
+          title: 切片：取一段
+          body: |
+            方括号里写两个下标，中间用冒号隔开，就取出一段，这叫**切片（slice）**：
+
+            ```python
+            print("Python"[0:2])
+            print("Python"[2:5])
+            ```
+
+            显示 `Py` 和 `tho`。`[a:b]` 从下标 a 开始，到 b **之前**为止，不包括 b，和 range 的规矩一样。所以取出的长度正好是 b − a。
+      - item:
+          id: slice-mid
+          type: text
+          prompt: '`"Python"[1:4]` 是什么？'
+          answers: [yth]
+          explain: 从下标 1（y）开始，到下标 4（o）之前为止：y、t、h。
+      - card:
+          title: 省掉开头或结尾
+          body: |
+            冒号左边不写，表示从头开始；右边不写，表示一直到末尾：
+
+            | 写法 | 结果 |
+            |---|---|
+            | `"Python"[:2]` | `Py` |
+            | `"Python"[2:]` | `thon` |
+            | `"Python"[-3:]` | `hon` |
+            | `"Python"[:]` | `Python`（整个） |
+
+            切片超出范围不会报错，只取到末尾为止：`"Python"[4:42]` 是 `on`。
+      - item:
+          id: slice-tail
+          type: choice
+          prompt: '`"hello"[1:]` 是什么？'
+          options:
+            - text: ello
+              correct: true
+            - text: h
+              why: '[1:] 是从下标 1 一直到末尾，不是只取下标 1'
+            - text: hell
+              why: 去掉最后一个字母要写 [:-1] 或 [:4]
+          explain: 从下标 1（e）开始取到末尾：ello。
+      - item:
+          id: slice-len
+          type: number
+          prompt: '`len("abcdefgh"[2:6])` 是多少？'
+          answer: 4
+          explain: 取的是下标 2、3、4、5，共 6 − 2 = 4 个字符（cdef）。
+      - card:
+          title: 列表也能切片
+          body: |
+            列表的切片得到一个新的列表：`[10, 20, 30, 40, 50][1:3]` 是 `[20, 30]`。
+
+            两个列表可以用 `+` 接起来：`[1, 2] + [3]` 是 `[1, 2, 3]`。
+
+            列表里还可以放列表：`[[1, 2], [3, 4]][1]` 是 `[3, 4]`，再取 `[0]` 就是 3。
+      - item:
+          id: nested
+          type: number
+          prompt: '`[[1, 2], [3, 4]][1][0]` 是多少？'
+          answer: 3
+          explain: 先取 [1] 得到第二个小列表 [3, 4]，再取它的 [0] 得到 3。
+      - card:
+          title: 字符串造好以后不能改
+          body: |
+            列表可以改掉其中一个元素，字符串不行：`"Python"[0] = "J"` 会报错 `TypeError: 'str' object does not support item assignment`（字符串不支持给其中一项赋新值）。
+
+            想要一个改过的字符串，就造一个新的：`"J" + "Python"[1:]` 得到 `Jython`。
+      - item:
+          id: str-assign
+          type: choice
+          prompt: '`"cat"[0] = "b"` 会怎样？'
+          options:
+            - text: 报错 TypeError
+              correct: true
+            - text: 变成 "bat"
+              why: 字符串不能改其中的字符，要得到 "bat" 得写 "b" + "cat"[1:]
+            - text: 什么也不发生
+              why: Python 不会悄悄忽略，它会报错告诉你不能这样做
+          explain: 字符串不支持给其中一个字符赋新值，报 TypeError。
+      - card:
+          title: 字符串自带的方法
+          body: |
+            字符串后面加点和名字，可以对它做一些常用的处理，这叫“方法”。每个方法都**造出一个新字符串**，原来的不变。
+
+            | 写法 | 结果 |
+            |---|---|
+            | `"Hello".lower()` | `hello` |
+            | `"Hello".upper()` | `HELLO` |
+            | `"  hi  ".strip()` | `hi`（去掉两头的空白） |
+            | `"a,b,c".split(",")` | `['a', 'b', 'c']` |
+            | `"one two  three".split()` | `['one', 'two', 'three']` |
+            | `"a-b".replace("-", "+")` | `a+b` |
+
+            `split()` 括号里不写东西时，按空格（连着几个也算一处）切开。另外，`"th" in "Python"` 是 True：in 检查一段文字在不在里面。
+      - item:
+          id: str-methods
+          type: match
+          prompt: 把写法和结果连起来。
+          pairs:
+            - ['`"Hi".upper()`', HI]
+            - ['`" ok ".strip()`', ok]
+            - ['`"a b".split()`', "['a', 'b']"]
+            - ['`"2026-11".replace("-", "/")`', 2026/11]
+          explain: upper 变大写，strip 去掉两头空白，split 按空格切成列表，replace 把 - 换成 /。
+      - card:
+          title: 例题：取出文件的后缀
+          body: 文件名 `"photo.png"`，想取出点后面的 `png`。几个写法可以连起来用，一步一步来。
+          reveal:
+            - title: 第 1 步：按点切开
+              body: '`"photo.png".split(".")` 得到列表 `[''photo'', ''png'']`。'
+            - title: 第 2 步：取最后一段
+              body: '列表的 `[-1]` 是最后一个元素：`"photo.png".split(".")[-1]` 得到 `png`。'
+            - title: 第 3 步：换一个名字检查
+              body: '`"a.tar.gz".split(".")` 是 `[''a'', ''tar'', ''gz'']`，最后一段是 `gz`，也对。用 [-1] 而不是 [1]，有好几个点时才不会取错。'
+      - item:
+          id: suffix
+          type: text
+          prompt: '`"report.final.pdf".split(".")[-1]` 是什么？'
+          answers: [pdf]
+          explain: 按点切成 ['report', 'final', 'pdf']，最后一段是 pdf。
+      - item:
+          id: split-punct
+          type: choice
+          prompt: '`"Hello, World!".lower().split()` 是什么？'
+          options:
+            - text: "['hello,', 'world!']"
+              correct: true
+            - text: "['hello', 'world']"
+              why: split() 只按空格切开，逗号和感叹号还粘在单词上
+            - text: "['Hello,', 'World!']"
+              why: 先做了 lower()，字母都变成了小写
+          explain: 先 lower() 得到 "hello, world!"，再按空格切成两段，标点还粘在单词上。想数单词，还得先去掉标点。
+
+  - id: tuples-sets
+    chapter: 基本数据类型
+    title: 元组和集合
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: '`(3, 4)` 用圆括号，`[3, 4]` 用方括号。你猜它们最大的不同是什么？'
+          options:
+            - text: 圆括号的那个造好以后就不能改
+              correct: true
+            - text: 圆括号里只能放数字
+              why: 圆括号里也能放字符串等任何值，比如 ("小明", 12)
+            - text: 没有区别，只是写法不同
+              why: 它们是两种类型，能做的事不一样，下一张卡讲
+          explain: 圆括号的那种和列表很像，只是造好以后不能改。下一张卡讲它叫什么、怎么用。
+      - card:
+          title: 元组：不能改的一串值
+          body: |
+            用圆括号、逗号隔开写的一串值叫**元组（tuple）**：`(3, 4)`、`("小明", 12)`。
+
+            它和列表一样能按下标取值、切片、求 len：`(10, 20, 30)[1]` 是 20。但不能改：`(3, 4)[0] = 5` 会报 `TypeError: 'tuple' object does not support item assignment`。
+      - item:
+          id: tuple-index
+          type: number
+          prompt: '`(10, 20, 30)[-1]` 是多少？'
+          answer: 30
+          explain: -1 是最后一个元素，30。
+      - item:
+          id: tuple-assign
+          type: choice
+          prompt: '`(1, 2)[0] = 5` 会怎样？'
+          options:
+            - text: 报错 TypeError
+              correct: true
+            - text: 变成 (5, 2)
+              why: 元组造好以后不能改，想改就用列表
+            - text: 变成 (5, 1, 2)
+              why: 这样写不会插入新元素，而且元组根本不能改
+          explain: 元组不支持给其中一项赋新值，报 TypeError。
+      - card:
+          title: 是逗号造出了元组
+          body: |
+            其实造出元组的是**逗号**，圆括号只是为了看清楚：`3, 4` 也是元组 `(3, 4)`。
+
+            所以只有一个元素的元组要写 `(5,)`，后面带一个逗号。`(5)` 只是带括号的 5，还是整数。`()` 是空元组。
+      - item:
+          id: one-tuple
+          type: choice
+          prompt: '`type((7,))` 是什么？'
+          options:
+            - text: tuple
+              correct: true
+            - text: int
+              why: 有逗号就是元组；只有 (7) 才是整数 7
+            - text: list
+              why: 列表用方括号，这里是圆括号加逗号
+          explain: (7,) 带着逗号，是只有一个元素的元组。
+      - card:
+          title: 元组用在哪
+          body: |
+            一组固定在一起的值适合用元组：坐标 `(x, y)`、日期 `(2026, 11, 3)`。
+
+            还有一个用处：元组可以当字典的键，列表不行。`{(0, 0): "原点"}[(0, 0)]` 得 `原点`；写 `{[0, 0]: "原点"}` 会报 `TypeError: cannot use 'list' as a dict key`（列表不能当字典的键）。字典的键必须是不能改的值。
+      - item:
+          id: key-type
+          type: choice
+          prompt: 想用一对坐标查地图上的地名，哪一种能当字典的键？
+          options:
+            - text: '`(3, 5)`'
+              correct: true
+            - text: '`[3, 5]`'
+              why: 列表能被改动，不能当字典的键，会报 TypeError
+          explain: '元组不能改，可以当键：{(3, 5): "学校"}[(3, 5)] 得“学校”。'
+      - guess:
+          id: guess-set
+          type: number
+          prompt: 猜一猜：`len({3, 1, 3, 2, 1})` 是多少？（花括号里只有值，没有冒号）
+          answer: 3
+          explain: 这是一个集合，重复的值只留一个，剩下 1、2、3 三个。马上细讲。
+      - card:
+          title: 集合：不重复的一堆值
+          body: |
+            花括号里只写值（没有冒号），是**集合（set）**：里面的值不重复，也没有顺序。`{3, 1, 3, 2, 1}` 就是 `{1, 2, 3}`。
+
+            没有顺序，所以不能按下标取：`{1, 2}[0]` 报 TypeError。能做的是问“在不在”：`2 in {1, 2, 3}` 是 True。
+
+            `set("hello")` 把字符串拆成字母的集合，重复的 l 只留一个，所以 `len(set("hello"))` 是 4。
+      - item:
+          id: set-len
+          type: number
+          prompt: '`len(set("banana"))` 是多少？'
+          answer: 3
+          explain: banana 里只有 b、a、n 三种字母。
+      - card:
+          title: 集合的运算
+          body: |
+            | 写法 | 意思 | 结果 |
+            |---|---|---|
+            | `{1, 2, 3} \| {3, 4}` | 并：两边所有的 | `{1, 2, 3, 4}` |
+            | `{1, 2, 3} & {3, 4}` | 交：两边都有的 | `{3}` |
+            | `{1, 2, 3} - {3, 4}` | 差：左边有、右边没有的 | `{1, 2}` |
+
+            注意：空集合要写 `set()`。`{}` 是一个空的**字典**，`type({})` 是 dict。
+      - item:
+          id: set-ops
+          type: match
+          prompt: A = `{1, 2, 3}`，B = `{2, 3, 4}`。把运算和结果连起来。（集合没有顺序，这里都按大小写出来）
+          pairs:
+            - ['`A & B`', '{2, 3}']
+            - ['`A | B`', '{1, 2, 3, 4}']
+            - ['`A - B`', '{1}']
+            - ['`B - A`', '{4}']
+          explain: 交是两边都有的 2、3；并是全部；A − B 是 A 有而 B 没有的 1；B − A 是 4。
+      - item:
+          id: empty-braces
+          type: choice
+          prompt: '`type({})` 是什么？'
+          options:
+            - text: dict
+              correct: true
+            - text: set
+              why: 空的花括号留给了字典；空集合要写 set()
+          explain: 字典比集合更早出现在 Python 里，{} 一直表示空字典。
+      - card:
+          title: 字典的几个常用写法
+          body: |
+            | 写法 | 结果 |
+            |---|---|
+            | `"梨" in {"苹果": 5, "梨": 3}` | `True`（in 查的是键） |
+            | `{"苹果": 5}.get("香蕉", 0)` | `0`（没有这个键时，交出第二个值） |
+            | `len({"a": 1, "b": 2})` | `2`（几个键值对） |
+            | `list({"a": 1, "b": 2})` | `['a', 'b']`（所有的键，按放进去的顺序） |
+
+            用 `[键]` 取一个不存在的键会报 KeyError；用 `.get(键, 默认值)` 就不会。
+      - item:
+          id: dict-get
+          type: choice
+          prompt: '`{"a": 1}.get("b", 0)` 是什么？'
+          options:
+            - text: '0'
+              correct: true
+            - text: 报错 KeyError
+              why: get 找不到键时不报错，交出括号里的第二个值
+            - text: None
+              why: 写了第二个值 0，就交出 0；不写第二个值才是 None
+          explain: 字典里没有 "b"，get 交出默认值 0。
+      - item:
+          id: in-dict
+          type: choice
+          prompt: '`5 in {"a": 5}` 是什么？'
+          options:
+            - text: 'False'
+              correct: true
+            - text: 'True'
+              why: in 查的是键，这个字典唯一的键是 "a"，5 只是值
+          explain: 对字典用 in，问的是“有没有这个键”。想查值要写 5 in d.values()。
+
+  - id: naming
+    chapter: 变量
+    title: 给值起个名字
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 先执行 `x = 5`，再执行 `print(x + 1)`。你猜显示什么？
+          options:
+            - text: "6"
+              correct: true
+            - text: x + 1
+              why: x 没有引号，不是文字；Python 会用 x 代表的数来算
+            - text: 报错
+              why: 前一行已经说了 x 是 5，Python 认识它
+          explain: 第一行让名字 x 代表 5，所以 x + 1 就是 5 + 1 = 6。
+      - card:
+          title: 变量：贴在值上的名字
+          body: |
+            算到一半的结果，常常要先存起来、后面再用。做法是给值起个名字：
+
+            ```python
+            price = 8
+            ```
+
+            意思是：让名字 `price` 指向值 8。这个名字叫**变量（variable）**，这一行叫**赋值（assignment）**。之后写 `price`，Python 就用它指向的值：`print(price * 3)` 显示 24。
+      - item:
+          id: use-var
+          type: number
+          prompt: 执行 `a = 7` 以后，`a * 2` 是多少？
+          answer: 14
+          explain: a 指向 7，7 * 2 = 14。
+      - card:
+          title: "= 不是“等于”"
+          body: |
+            程序里的 `=` 不是数学里的“相等”，而是一个动作：**先算出右边的值，再让左边的名字指向它**。所以
+
+            ```python
+            count = 10
+            count = count + 1
+            ```
+
+            在数学里不成立，在程序里很常见：右边用 count 现在的值 10 算出 11，再让 count 改指 11。判断“是否相等”用两个等号 `==`。
+      - item:
+          id: reassign
+          type: number
+          prompt: 依次执行 `n = 3`、`n = n * 2`、`n = n + 1`。n 最后是多少？
+          answer: 7
+          explain: 3 → 3 * 2 = 6 → 6 + 1 = 7。每一行都用 n 当时的值算右边。
+      - card:
+          title: 一步一步看
+          body: 点“下一步”，看每执行一行，右边的名字表怎么变。注意 price 改成 10 以后，total 不会跟着变：它在第 3 行已经算好了。
+          sim:
+            name: trace
+            params:
+              code: |
+                price = 8
+                count = 3
+                total = price * count
+                price = 10
+                print(total)
+      - item:
+          id: trace-later
+          type: sim
+          sim: trace
+          prompt: 先在心里一行一行走一遍，再填答案。答完可以单步看实际过程。
+          params:
+            code: |
+              a = 2
+              b = a + 3
+              a = 10
+              print(a, b)
+          goal:
+            ask:
+              - { line: 3, var: a }
+              - { line: 3, var: b }
+          explain: 第 2 行算 b 时 a 是 2，所以 b = 5。第 3 行让 a 改指 10，b 不受影响，还是 5。
+      - card:
+          title: 起名字的规矩
+          body: |
+            - 只能用字母、数字、下划线 `_`，不能以数字开头：`age2` 可以，`2age` 不行
+            - 大小写不同就是不同的名字：`Age` 和 `age` 是两个变量
+            - 不能用 Python 自己占用的词，比如 `if`、`for`
+
+            好名字让人一看就懂：`price` 比 `p` 好。用了一个从没赋值过的名字，Python 报 `NameError`（名字错误）：它不认识这个名字。
+      - item:
+          id: valid-names
+          type: choice
+          multi: true
+          prompt: 哪些可以当变量名？（可多选）
+          options:
+            - text: total_price
+              correct: true
+            - text: price2
+              correct: true
+            - text: 2price
+              why: 不能以数字开头
+            - text: my-price
+              why: 减号会被当成减法：my 减 price
+            - text: for
+              why: for 是 Python 自己占用的词
+          explain: 字母、数字、下划线可以用，但不能以数字开头，也不能用 Python 占用的词。
+      - item:
+          id: area-after
+          type: number
+          prompt: 依次执行 `w = 4`、`h = 3`、`area = w * h`、`w = 10`。现在 `area` 是多少？
+          answer: 12
+          explain: area 在第 3 行就算好了，是 4 * 3 = 12。之后 w 改指 10，不会回头去改 area。
+
+  - id: aliasing
+    chapter: 变量
+    title: 两个名字，同一个列表
+    minutes: 11
+    flow:
+      - card:
+          title: 往列表里添东西
+          body: |
+            列表可以被改动。`列表.append(值)` 把一个值加到列表末尾：
+
+            ```python
+            nums = [1, 2]
+            nums.append(3)
+            print(nums)
+            ```
+
+            显示 `[1, 2, 3]`。中间的点 `.` 读作“的”：“nums 的 append”，意思是对 nums 这个列表做“添到末尾”。
+      - item:
+          id: append
+          type: choice
+          prompt: 执行 `xs = ["a"]`，再执行 `xs.append("b")`。xs 现在是什么？
+          options:
+            - text: '`["a", "b"]`'
+              correct: true
+            - text: '`["b", "a"]`'
+              why: append 加在末尾，不是开头
+            - text: '`["b"]`'
+              why: append 是添加，原来的 "a" 还在
+          explain: '"b" 被加到了末尾。'
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜：依次执行 `a = [1, 2]`、`b = a`、`b.append(3)`，然后 `print(a)` 显示什么？
+          options:
+            - text: "[1, 2]"
+              why: 下一张卡会解释：b = a 并没有复制出一个新列表
+            - text: "[1, 2, 3]"
+              correct: true
+          explain: a 和 b 其实指着同一个列表，下一张卡细讲。
+      - card:
+          title: b = a 没有复制
+          body: |
+            `b = a` 的意思是：让名字 b 指向 a **正指着的那个列表**。现在一个列表身上贴着两个名字，这叫**别名（alias）**：同一个东西的另一个名字。
+
+            通过 b 往列表里加 3，a 指的也是这个列表，所以 `print(a)` 显示 `[1, 2, 3]`。想要一份独立的副本，写 `b = a.copy()`。
+      - card:
+          title: 看一看副本
+          body: 单步运行，看 c 是副本：往 c 里加 4，不影响 a 和 b。
+          sim:
+            name: trace
+            params:
+              code: |
+                a = [1, 2]
+                b = a
+                b.append(3)
+                c = a.copy()
+                c.append(4)
+                print(a, b, c)
+      - item:
+          id: copy-indep
+          type: choice
+          prompt: 依次执行 `x = [5]`、`y = x.copy()`、`y.append(6)`。`print(x)` 显示什么？
+          options:
+            - text: "[5]"
+              correct: true
+            - text: "[5, 6]"
+              why: y 是用 copy() 复制出来的另一个列表，改 y 不影响 x
+          explain: copy() 做了一个新列表给 y，之后 y 和 x 各是各的。
+      - card:
+          title: 数和字符串没有这个问题
+          body: |
+            列表、字典能被原地改动，叫**可变**的；整数、浮点数、字符串不能被原地改动，叫**不可变**的。
+
+            对整数，`b = a` 之后再 `b = b + 1`，只是算出一个新值 2，让 b 改指它，a 不受影响：
+
+            ```python
+            a = 1
+            b = a
+            b = b + 1
+            print(a, b)
+            ```
+
+            显示 `1 2`（print 里用逗号隔开几个值，显示时中间空一格）。
+      - item:
+          id: str-immutable
+          type: choice
+          prompt: 依次执行 `s = "hi"`、`t = s`、`t = t + "!"`。`print(s)` 显示什么？
+          options:
+            - text: hi
+              correct: true
+            - text: hi!
+              why: 字符串不可变：t + "!" 算出一个新字符串，只有 t 改指了它
+          explain: s 还指着原来的 "hi"。t 改指了新算出来的 "hi!"。
+      - card:
+          title: 一次给两个名字赋值
+          body: |
+            `a, b = 1, 2` 一次给两个名字赋值：a 是 1，b 是 2。规则还是“先算右边”：右边**全部算完**，再一起交给左边。
+
+            所以交换两个变量只要一行：`a, b = b, a`。
+      - item:
+          id: trace-swap
+          type: sim
+          sim: trace
+          prompt: 先在心里走一遍：第 3 行执行完时，a 和 b 各是多少？
+          params:
+            code: |
+              a = 3
+              b = 4
+              a, b = b, a + b
+              print(a, b)
+          goal:
+            ask:
+              - { line: 3, var: a }
+              - { line: 3, var: b }
+          explain: 第 3 行先把右边全算好：b 是 4，a + b 是 3 + 4 = 7；再同时交给左边，a 得 4，b 得 7。不是先改 a、再用新的 a 去算。
+
+  # ---------------------------------------------------------------- 控制流
+  - id: list-methods
+    chapter: 变量
+    title: 改动列表和字典
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜：依次执行 `nums = [10, 20, 30]` 和 `nums.pop()`，nums 变成什么？
+          options:
+            - text: '`[10, 20]`'
+              correct: true
+            - text: '`[20, 30]`'
+              why: pop() 括号里不写下标时，取走的是最后一个
+            - text: '`[10, 20, 30]`'
+              why: pop 会把取走的元素从列表里拿掉，列表本身变了
+          explain: pop() 取走最后一个元素 30，并把它交出来。下一张卡细讲。
+      - card:
+          title: 改动列表的几种写法
+          body: |
+            除了 append，列表还有这些常用的方法。它们都**原地改动**同一个列表：
+
+            | 写法 | 做什么 |
+            |---|---|
+            | `xs.insert(i, v)` | 把 v 插到下标 i 的位置，后面的往后挪 |
+            | `xs.pop()` | 取走最后一个，并交出它 |
+            | `xs.pop(0)` | 取走下标 0 的那个，并交出它 |
+            | `xs.remove(v)` | 删掉第一个等于 v 的元素 |
+            | `xs.index(v)` | 第一个 v 的下标（不改列表） |
+            | `xs.count(v)` | v 出现了几次（不改列表） |
+      - item:
+          id: methods-trace
+          type: choice
+          prompt: 运行下面的程序，显示什么？
+          code: |
+            xs = [1, 2, 3]
+            xs.insert(0, 9)
+            xs.remove(2)
+            last = xs.pop()
+            print(xs, last)
+          lang: python
+          options:
+            - text: '`[9, 1] 3`'
+              correct: true
+            - text: '`[9, 1, 3] 3`'
+              why: pop 不只是看一眼，它把 3 从列表里拿走了
+            - text: '`[1, 3] 9`'
+              why: insert(0, 9) 把 9 插在最前面；pop() 取的是最后一个
+          explain: insert 后是 [9, 1, 2, 3]；remove(2) 后是 [9, 1, 3]；pop() 取走 3，剩 [9, 1]。
+      - card:
+          title: sort 和 sorted
+          body: |
+            - `xs.sort()` 把 xs **原地**排好，它本身交出的是 None（Python 里表示“什么都没有”的值）；
+            - `sorted(xs)` 交出一个排好的**新列表**，xs 不变。
+
+            两种都可以加 `reverse=True`，从大到小排。字符串按字母顺序排。
+
+            ```python
+            xs = [3, 1, 2]
+            ys = sorted(xs)
+            print(xs, ys)
+            ```
+
+            显示 `[3, 1, 2] [1, 2, 3]`。
+      - item:
+          id: sort-none
+          type: choice
+          prompt: 依次执行 `xs = [3, 1, 2]`、`ys = xs.sort()`，再 `print(ys)`。显示什么？
+          options:
+            - text: None
+              correct: true
+            - text: '`[1, 2, 3]`'
+              why: 排好的是 xs 本身；sort() 交出的是 None，ys 得到的就是 None
+            - text: '`[3, 1, 2]`'
+              why: ys 不是 xs 的别名，它得到的是 sort() 交出的 None
+          explain: sort() 原地改动 xs，自己交出 None。想要一个新的排好的列表，用 sorted(xs)。
+      - item:
+          id: sorted-rev
+          type: text
+          prompt: '`sorted([5, 2, 9], reverse=True)` 是什么？'
+          answers: ['[9, 5, 2]']
+          explain: reverse=True 从大到小排。
+      - card:
+          title: del：删掉
+          body: |
+            `del` 能删掉列表里的一个元素或一段：`del xs[0]`、`del xs[1:3]`。也能删掉字典里的一个键：`del prices["梨"]`。
+
+            `del x` 删掉的是**名字 x 本身**：之后再用 x，会报 NameError。
+      - item:
+          id: del-slice
+          type: choice
+          prompt: 依次执行 `xs = [1, 2, 3, 4]` 和 `del xs[1:3]`，xs 是什么？
+          options:
+            - text: '`[1, 4]`'
+              correct: true
+            - text: '`[1]`'
+              why: '[1:3] 是下标 1 和 2，不包括 3，所以 4 还在'
+            - text: '`[4]`'
+              why: 下标 0 的 1 不在 [1:3] 里，没有被删
+          explain: '[1:3] 是下标 1、2（元素 2 和 3），删掉后剩 [1, 4]。'
+      - card:
+          title: 字典也能改
+          body: |
+            ```python
+            prices = {"苹果": 5}
+            prices["梨"] = 3
+            prices["苹果"] = 6
+            print(prices)
+            ```
+
+            显示 `{'苹果': 6, '梨': 3}`：给一个新键赋值就是添加，给已有的键赋值就是修改，一个键只会出现一次。
+
+            数东西时最常用的一行：`counts[w] = counts.get(w, 0) + 1`。w 第一次出现时 get 交出 0，加 1 得 1；以后每次在原来的数上加 1。
+      - item:
+          id: count-dict
+          type: number
+          prompt: 运行下面的程序，显示的数是多少？
+          code: |
+            counts = {}
+            for w in ["a", "b", "a", "a"]:
+                counts[w] = counts.get(w, 0) + 1
+            print(counts["a"])
+          lang: python
+          answer: 3
+          explain: '"a" 出现了 3 次：第一次 get 交出 0，0 + 1 = 1；之后变成 2、3。'
+      - card:
+          title: 列表当成一摞盘子
+          body: |
+            只用 `append` 往末尾放、只用 `pop()` 从末尾拿，后放进去的先被拿出来，像一摞盘子。这种用法叫“栈”。
+
+            想先放进去的先出来（像排队），可以用 `pop(0)` 从开头拿。不过列表很长时，从开头拿要把后面的元素全部往前挪，很慢；以后会学一个专门排队用的工具 deque。
+      - item:
+          id: stack-pop
+          type: number
+          prompt: 运行下面的程序，显示的数是多少？
+          code: |
+            s = []
+            s.append(1)
+            s.append(2)
+            s.append(3)
+            s.pop()
+            print(s.pop())
+          lang: python
+          answer: 2
+          explain: 放进 1、2、3；第一次 pop() 拿走 3，第二次拿走 2，显示 2。
+      - card:
+          title: a, b = 1, 2 是元组在帮忙
+          body: |
+            `a, b = 1, 2` 的右边，逗号先造出元组 `(1, 2)`；左边再把它**拆开**，按顺序交给 a 和 b。
+
+            拆开时个数必须对上：`a, b = [1, 2, 3]` 会报 `ValueError: too many values to unpack (expected 2, got 3)`（要拆的值太多：只要 2 个，来了 3 个）。
+      - item:
+          id: unpack-error
+          type: choice
+          prompt: '`a, b = [1, 2, 3]` 会怎样？'
+          options:
+            - text: 报错 ValueError
+              correct: true
+            - text: a 是 1，b 是 2，3 被扔掉
+              why: Python 不会悄悄扔掉多出来的值，个数对不上就报错
+            - text: a 是 1，b 是 [2, 3]
+              why: 不会自动把剩下的打包，个数对不上就报错
+          explain: 左边 2 个名字，右边 3 个值，对不上，报 ValueError。
+
+  - id: if-else
+    chapter: 控制流
+    title: 让程序做选择
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜这个程序显示什么。
+          code: |
+            score = 75
+            if score >= 60:
+                print("及格")
+            print("结束")
+          lang: python
+          options:
+            - text: 先显示“及格”，再显示“结束”
+              correct: true
+            - text: 只显示“结束”
+              why: 75 >= 60 成立，所以“及格”那一行会执行
+            - text: 只显示“及格”
+              why: 最后一行前面没有空格，不归 if 管，总会执行
+          explain: 条件 75 >= 60 成立，执行往右空了几格的那一行；最后一行不受 if 影响，照常执行。
+      - card:
+          title: if：条件成立才做
+          body: |
+            ```python
+            if 条件:
+                要做的事
+            ```
+
+            **条件**是一个结果为 True 或 False 的表达式，比如 `score >= 60`。条件是 True，就执行下面往右空出几格的那几行；是 False，就跳过它们。
+
+            if 这一行末尾的冒号 `:` 不能省。
+      - card:
+          title: 缩进：哪几行归 if 管
+          body: |
+            行首空出来的空格（通常是 4 个）叫**缩进**。Python 靠缩进判断哪几行归 if 管：缩进了的属于 if；没缩进的不属于，不管条件真假都会执行。
+
+            ```python
+            if score >= 60:
+                print("及格")
+                print("恭喜")
+            print("结束")
+            ```
+
+            score 是 50 时，只显示“结束”。
+      - item:
+          id: indent
+          type: choice
+          prompt: 运行下面的程序，显示什么？
+          code: |
+            t = 30
+            if t > 35:
+                print("很热")
+                print("开空调")
+            print("看温度")
+          lang: python
+          options:
+            - text: 只显示“看温度”
+              correct: true
+            - text: 显示“很热”“开空调”“看温度”
+              why: 30 > 35 不成立，缩进的两行都被跳过
+            - text: 显示“开空调”“看温度”
+              why: 缩进的两行都归 if 管，条件不成立时一起跳过
+          explain: 30 > 35 是 False，缩进的两行都不执行；最后一行没缩进，照常显示“看温度”。
+      - card:
+          title: 否则：else
+          body: |
+            条件不成立时想做另一件事，用 else：
+
+            ```python
+            if score >= 60:
+                print("及格")
+            else:
+                print("不及格")
+            ```
+
+            两条路一定走一条，而且只走一条。这样的每一条路叫一个**分支**。
+      - item:
+          id: odd-even
+          type: choice
+          prompt: 运行下面的程序，显示什么？
+          code: |
+            n = 7
+            if n % 2 == 0:
+                print("偶数")
+            else:
+                print("奇数")
+          lang: python
+          options:
+            - text: 奇数
+              correct: true
+            - text: 偶数
+              why: 7 % 2 是 1，不等于 0
+          explain: 7 除以 2 余 1，条件 1 == 0 是 False，走 else 分支，显示“奇数”。
+      - card:
+          title: 好几种情况：elif
+          body: |
+            不止两种情况时，用 elif（else if 的缩写）接着判断：
+
+            ```python
+            if score >= 90:
+                grade = "A"
+            elif score >= 80:
+                grade = "B"
+            else:
+                grade = "C"
+            ```
+
+            从上往下检查，**第一个成立的分支执行，其余全部跳过**。
+      - card:
+          title: 例题：score 是 85 时
+          body: 用上一张卡的代码，score = 85 时 grade 是什么？一步一步来。
+          reveal:
+            - title: 第 1 步：检查 if 的条件
+              body: 85 >= 90？不成立，跳过这个分支。
+            - title: 第 2 步：检查 elif 的条件
+              body: 85 >= 80？成立，执行 `grade = "B"`。
+            - title: 第 3 步：后面全部跳过
+              body: 已经有一个分支执行了，else 不再看。grade 是 "B"。
+      - item:
+          id: grade-92
+          type: choice
+          prompt: 运行下面的程序，score = 92 时 grade 是什么？
+          code: |
+            score = 92
+            if score >= 90:
+                grade = "A"
+            elif score >= 80:
+                grade = "B"
+            else:
+                grade = "C"
+          lang: python
+          options:
+            - text: A
+              correct: true
+            - text: B
+              why: 92 >= 80 也成立，但第一个成立的是 >= 90，执行后其余跳过
+            - text: C
+              why: 前面已经有条件成立了，else 不会执行
+          explain: 第一个条件 92 >= 90 就成立了，grade = "A"，后面不再检查。
+      - item:
+          id: grade-59
+          type: choice
+          prompt: 同样的分级代码（>= 90 是 A，>= 80 是 B，否则 C），score = 59 时 grade 是什么？
+          options:
+            - text: C
+              correct: true
+            - text: B
+              why: 59 >= 80 不成立
+          explain: 两个条件都不成立，走 else，grade 是 "C"。
+      - card:
+          title: 组合条件：and、or、not
+          body: |
+            - `a and b`：两个都成立，才是 True
+            - `a or b`：有一个成立，就是 True
+            - `not a`：反过来，True 变 False，False 变 True
+
+            例如“周末而且晴天才去爬山”：`is_weekend and is_sunny`。
+      - item:
+          id: and-range
+          type: choice
+          prompt: "`age = 15` 时，`age >= 12 and age < 18` 的结果是什么？"
+          options:
+            - text: "True"
+              correct: true
+            - text: "False"
+              why: 15 >= 12 成立，15 < 18 也成立，两个都成立
+          explain: and 要求两边都成立：15 >= 12 是 True，15 < 18 是 True，所以是 True。
+      - item:
+          id: order-ifelse
+          type: order
+          prompt: 把这几行排成一个程序：温度 t 高于 30 显示“热”，否则显示“不热”。
+          steps:
+            - t = 33
+            - 'if t > 30:'
+            - '    print("热")'
+            - 'else:'
+            - '    print("不热")'
+          explain: 先给 t 一个值，再写 if；每个分支下面的那一行要缩进。
+
+  - id: for-loops
+    chapter: 控制流
+    title: 重复做：for
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 猜一猜：运行下面的程序，屏幕上会显示几行“嗨”？
+          code: |
+            for i in range(5):
+                print("嗨")
+          lang: python
+          answer: 5
+          explain: range(5) 产生 5 个数，缩进的那一行就执行 5 次。马上细讲。
+      - card:
+          title: for：对每一个都做一遍
+          body: |
+            ```python
+            for x in [3, 1, 4]:
+                print(x)
+            ```
+
+            让 x 依次指向列表里的每个元素，每指向一个，就执行一遍下面缩进的部分：先显示 3，再显示 1，再显示 4。
+
+            这种“同样的步骤重复做”的结构叫**循环（loop）**，缩进的部分叫循环体。
+      - item:
+          id: for-list
+          type: choice
+          prompt: 运行下面的程序，显示什么？
+          code: |
+            for c in ["红", "绿"]:
+                print(c + "灯")
+          lang: python
+          options:
+            - text: 两行：红灯、绿灯
+              correct: true
+            - text: 一行：红绿灯
+              why: 每轮循环都执行一次 print，每个 print 占一行
+            - text: 只有一行：红灯
+              why: for 会走遍列表里的每一个元素
+          explain: c 先是 "红"，显示“红灯”；再是 "绿"，显示“绿灯”。
+      - card:
+          title: range：一串整数
+          body: |
+            `range(5)` 产生 0, 1, 2, 3, 4：从 0 开始，**不包括 5**，正好 5 个数。
+
+            `range(1, 5)` 是 1, 2, 3, 4；`range(0, 10, 3)` 每次加 3：0, 3, 6, 9。
+
+            所以 `for i in range(5):` 就是“重复 5 次”，i 依次是 0 到 4。
+      - item:
+          id: range-step
+          type: number
+          prompt: "`for i in range(2, 10, 3):` 的循环体执行几次？"
+          answer: 3
+          hint: 把 i 的值一个个写出来，到 10 之前停。
+          explain: i 依次是 2、5、8；下一个是 11，已经不小于 10，停止。一共 3 次。
+      - card:
+          title: 累加：一边走一边加
+          body: 求 1 + 2 + 3 + 4：先准备一个从 0 开始的“总数” total，每轮把 i 加进去。点“下一步”，看 total 怎么一点点变大。
+          sim:
+            name: trace
+            params:
+              code: |
+                total = 0
+                for i in range(1, 5):
+                    total = total + i
+                print(total)
+      - card:
+          title: 例题：求列表里所有数的和
+          body: 求 `[5, 2, 8]` 里所有数的和。这是写循环最常用的套路，一步一步来。
+          reveal:
+            - title: 第 1 步：准备一个总数，从 0 开始
+              body: "`total = 0`"
+            - title: 第 2 步：让 for 依次拿到每个数
+              body: "`for x in [5, 2, 8]:`"
+            - title: 第 3 步：每轮把它加进总数（这一行要缩进）
+              body: "`    total = total + x`"
+            - title: 第 4 步：循环结束后显示（不缩进）
+              body: "`print(total)` 显示 15。"
+            - title: 第 5 步：检查
+              body: 0 + 5 = 5，5 + 2 = 7，7 + 8 = 15，对上了。
+      - item:
+          id: order-sum
+          type: order
+          prompt: 把这几行排成“求 [4, 6, 1] 所有数的和并显示”的程序。
+          steps:
+            - total = 0
+            - 'for x in [4, 6, 1]:'
+            - '    total = total + x'
+            - print(total)
+          explain: 先准备总数，再循环累加，最后（不缩进）显示。显示 11。
+      - item:
+          id: trace-sum
+          type: sim
+          sim: trace
+          prompt: 先在心里走一遍，再填答案。
+          params:
+            code: |
+              total = 0
+              for x in [3, 5, 2, 6]:
+                  total = total + x
+              print(total)
+          goal:
+            ask:
+              - { line: 3, var: total, hit: 3 }
+              - { line: 4, var: "@out" }
+          explain: 第 3 行第 1 次后 total = 3，第 2 次 3 + 5 = 8，第 3 次 8 + 2 = 10。四个数都加完是 16，最后显示 16。
+      - item:
+          id: sum-100
+          type: number
+          prompt: 用同样的办法求 1 + 2 + … + 100：`total = 0`，`for i in range(1, 101):` 每轮 `total = total + i`。最后 total 是多少？
+          answer: 5050
+          hint: range(1, 101) 是 1 到 100。可以用“首项加末项乘项数除以 2”验算。
+          explain: 1 到 100 的和是 (1 + 100) × 100 ÷ 2 = 5050。注意 range(1, 101) 不包括 101。
+      - card:
+          title: 数一数：计数器
+          body: |
+            把“加 x”换成“加 1”，就能数个数。数一数 `[3, 8, 5, 10]` 里有几个数大于 4：
+
+            ```python
+            count = 0
+            for x in [3, 8, 5, 10]:
+                if x > 4:
+                    count = count + 1
+            print(count)
+            ```
+
+            显示 3（8、5、10）。if 写在 for 里面，所以要再多缩进一层。
+      - item:
+          id: count-even
+          type: number
+          prompt: 用计数器数一数：`[3, 8, 5, 10]` 里有几个偶数？（偶数就是 `x % 2 == 0`）
+          answer: 2
+          explain: 8 和 10 是偶数，一共 2 个。
+
+  - id: while-loops
+    chapter: 控制流
+    title: 不知道要几次：while
+    minutes: 11
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜这个程序显示什么。
+          code: |
+            n = 3
+            while n > 0:
+                print(n)
+                n = n - 1
+          lang: python
+          options:
+            - text: 3、2、1（三行）
+              correct: true
+            - text: 3、2、1、0（四行）
+              why: n 变成 0 以后，n > 0 不成立，就不再执行
+            - text: 一直显示 3，停不下来
+              why: 每一轮 n 都减 1，最终会让条件不成立
+          explain: 每一轮先看 n > 0，成立就显示 n 再减 1。n 变成 0 时条件不成立，结束。
+      - card:
+          title: while：条件成立就继续
+          body: |
+            ```python
+            while 条件:
+                循环体
+            ```
+
+            每一轮开始前检查条件：True 就执行一遍循环体，再回来检查；False 就结束，接着执行后面的代码。
+
+            和 for 的区别：for 事先知道要走哪些元素；while 只知道“什么时候停”。
+      - item:
+          id: doubling
+          type: number
+          prompt: 运行下面的程序，显示的数是多少？
+          code: |
+            x = 1
+            while x < 50:
+                x = x * 2
+            print(x)
+          lang: python
+          answer: 64
+          hint: 把 x 每一轮的值写下来：1、2、4、……
+          explain: x 依次是 1、2、4、8、16、32、64。到 64 时 64 < 50 不成立，循环结束，显示 64。
+      - card:
+          title: 记得让它停下来
+          body: |
+            循环体里必须有东西让条件最终变成 False。下面的程序永远停不下来，因为 n 从来没变过：
+
+            ```python
+            n = 3
+            while n > 0:
+                print(n)
+            ```
+
+            这叫**死循环**。真遇到了，按 Ctrl+C 可以让 Python 停下来。
+      - item:
+          id: which-forever
+          type: choice
+          prompt: 下面三段，哪一段是死循环？
+          options:
+            - text: "`i = 0`，`while i < 3:` 循环体只有一行 `print(i)`"
+              correct: true
+            - text: "`i = 0`，`while i < 3:` 循环体是 `i = i + 1`"
+              why: i 每轮加 1，加到 3 时 i < 3 不成立，停下来
+            - text: "`i = 10`，`while i > 0:` 循环体是 `i = i - 3`"
+              why: i 依次是 10、7、4、1、-2，到 -2 时 i > 0 不成立，停下来
+          explain: 第一段的循环体从不改变 i，i < 3 永远成立，停不下来。
+      - card:
+          title: break：马上跳出
+          body: |
+            在循环体里写 `break`，会立刻结束整个循环。常见写法是“一直试，直到找到为止”：找平方大于 50 的最小正整数。`while True` 的条件永远成立，只能靠 break 出来。点“下一步”看看。
+          sim:
+            name: trace
+            params:
+              code: |
+                n = 1
+                while True:
+                    if n * n > 50:
+                        break
+                    n = n + 1
+                print(n)
+      - item:
+          id: trace-break
+          type: sim
+          sim: trace
+          prompt: 和上面同样的写法，只是把 50 换成了 20。先在心里走一遍：最后显示什么？
+          params:
+            code: |
+              n = 1
+              while True:
+                  if n * n > 20:
+                      break
+                  n = n + 1
+              print(n)
+          goal:
+            ask:
+              - { line: 6, var: "@out" }
+          explain: 4 × 4 = 16 不大于 20，n 加到 5；5 × 5 = 25 > 20，break 跳出，显示 5。
+      - item:
+          id: which-loop
+          type: choice
+          prompt: 要“反复让用户输入密码，直到输入正确为止”，用哪种循环更合适？
+          options:
+            - text: while
+              correct: true
+            - text: for i in range(3)
+              why: 这样只给 3 次机会；“直到正确为止”事先不知道要几次
+          explain: 事先不知道要重复几次、只知道什么时候停，用 while。
+
+  # ---------------------------------------------------------------- 函数
+  - id: loop-control
+    chapter: 控制流
+    title: 跳过、没找到、先空着：continue、else、pass
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜这个程序显示什么。
+          code: |
+            for n in range(1, 6):
+                if n % 2 == 0:
+                    continue
+                print(n)
+          lang: python
+          options:
+            - text: 1、3、5（三行）
+              correct: true
+            - text: 只有 1
+              why: continue 只跳过这一轮剩下的部分，循环还会继续；整个结束的是 break
+            - text: 2、4（两行）
+              why: 偶数时执行 continue，跳过了 print，所以偶数不显示
+          explain: 遇到偶数就 continue：跳过本轮剩下的 print，直接进入下一轮。
+      - card:
+          title: continue：跳过这一轮
+          body: 循环体里遇到 `continue`，这一轮剩下的部分不做了，直接开始下一轮。点“下一步”，看偶数时 print 怎么被跳过。
+          sim:
+            name: trace
+            params:
+              code: |
+                for n in range(1, 6):
+                    if n % 2 == 0:
+                        continue
+                    print(n)
+      - item:
+          id: trace-continue
+          type: sim
+          sim: trace
+          prompt: 先在心里走一遍，再填答案。
+          params:
+            code: |
+              total = 0
+              for n in range(1, 8):
+                  if n % 3 == 0:
+                      continue
+                  total = total + n
+              print(total)
+          goal:
+            ask:
+              - { line: 6, var: "@out" }
+          explain: 3 和 6 被跳过，加上的是 1 + 2 + 4 + 5 + 7 = 19。
+      - card:
+          title: break 和 continue
+          body: |
+            - `break`：整个循环马上结束；
+            - `continue`：只结束这一轮，进入下一轮。
+
+            两个都能用在 for 和 while 里。循环里面还套着循环时，它们只管自己所在的最里面那一层。
+      - item:
+          id: break-or-continue
+          type: choice
+          prompt: 运行下面的程序，显示什么？
+          code: |
+            for n in [1, 2, 3, 4]:
+                if n == 3:
+                    break
+                print(n)
+          lang: python
+          options:
+            - text: 1、2（两行）
+              correct: true
+            - text: 1、2、4（三行）
+              why: 那是 continue 的效果；break 让整个循环结束，4 不会再处理
+            - text: 1、2、3（三行）
+              why: n 是 3 时先执行了 break，print 没机会执行
+          explain: n 是 3 时 break，循环结束，后面的 3 和 4 都不显示。
+      - card:
+          title: 循环的 else：一次都没 break 才执行
+          body: |
+            for 和 while 后面可以跟一个 `else`。循环**正常走完**（没有被 break 打断）时执行它：
+
+            ```python
+            n = 7
+            for d in range(2, n):
+                if n % d == 0:
+                    print("不是素数，能被", d, "整除")
+                    break
+            else:
+                print(n, "是素数")
+            ```
+
+            显示 `7 是素数`。注意 else 和 for 对齐，它属于 for，不属于 if。
+      - item:
+          id: loop-else
+          type: choice
+          prompt: 把上面程序的第一行改成 `n = 9`，显示什么？
+          options:
+            - text: 不是素数，能被 3 整除
+              correct: true
+            - text: 9 是素数
+              why: 9 能被 3 整除，循环被 break 打断了，else 不执行
+            - text: 两行都显示
+              why: break 打断了循环，就不会执行 else
+          explain: d 是 2 时不整除；d 是 3 时整除，显示后 break。被 break 打断，else 不执行。
+          review: false
+      - item:
+          id: else-empty
+          type: choice
+          prompt: 运行下面的程序，显示什么？
+          code: |
+            for x in []:
+                print(x)
+            else:
+                print("完")
+          lang: python
+          options:
+            - text: 完
+              correct: true
+            - text: 什么也不显示
+              why: 循环体一次也没执行，但也没有 break，所以 else 照样执行
+          explain: 空列表让循环体一次都不执行；没有 break，就执行 else。
+      - card:
+          title: pass：先空着
+          body: |
+            冒号后面至少要有一行缩进的代码。暂时什么都不想做，就写 `pass`，它什么也不做，只是占个位置：
+
+            ```python
+            for x in range(3):
+                pass
+            ```
+
+            如果冒号后面什么都不写，会报 `IndentationError: expected an indented block after 'if' statement on line 1`（第 1 行的 if 后面应该有一段缩进的代码）。
+      - item:
+          id: need-pass
+          type: choice
+          prompt: 程序只有一行 `if 3 > 2:`，后面什么也没有。运行会怎样？
+          options:
+            - text: 报错 IndentationError
+              correct: true
+            - text: 什么也不做，正常结束
+              why: 冒号后面必须有缩进的代码；什么也不想做要写 pass
+            - text: 显示 True
+              why: if 只是判断，不会显示条件的结果
+          explain: Python 要求冒号后面有缩进的一段，空着就报 IndentationError。写上 pass 就好了。
+      - card:
+          title: 例题：找第一个负数
+          body: 在列表 xs 里找第一个负数并显示它；一个都没有就显示“没有负数”。
+          reveal:
+            - title: 第 1 步：一个一个看
+              body: '`for x in xs:`'
+            - title: 第 2 步：找到就显示，并停下
+              body: |
+                ```python
+                    if x < 0:
+                        print(x)
+                        break
+                ```
+                找到第一个就够了，break 让后面的不再看。
+            - title: 第 3 步：一个都没找到
+              body: |
+                ```python
+                else:
+                    print("没有负数")
+                ```
+                和 for 对齐。只有循环走完都没有 break，才会到这里。
+      - item:
+          id: first-big
+          type: number
+          prompt: 运行下面的程序，显示的数是多少？
+          code: |
+            xs = [4, 15, 7, 22]
+            for x in xs:
+                if x > 10:
+                    print(x)
+                    break
+            else:
+                print(0)
+          lang: python
+          answer: 15
+          explain: 4 不大于 10；15 大于 10，显示 15 后 break，22 不再看，else 也不执行。
+
+  - id: loop-techniques
+    chapter: 控制流
+    title: 循环的好帮手：enumerate、zip 和推导式
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜这个程序显示什么。
+          code: |
+            for i, c in enumerate("ab"):
+                print(i, c)
+          lang: python
+          options:
+            - text: 两行：0 a、1 b
+              correct: true
+            - text: 两行：1 a、2 b
+              why: 编号和下标一样，从 0 开始
+            - text: 一行：ab
+              why: for 每一轮显示一行，"ab" 有两个字母，就有两轮
+          explain: enumerate 给每个元素配上它的编号（从 0 开始），每一轮得到一对。
+      - card:
+          title: enumerate：同时拿到编号和元素
+          body: |
+            ```python
+            for i, x in enumerate(["甲", "乙"]):
+                print(i, x)
+            ```
+
+            显示 `0 甲` 和 `1 乙`。每一轮，enumerate 交出一个元组 (编号, 元素)，`i, x` 把它拆开。
+
+            想从 1 开始编号，写 `enumerate(xs, 1)`。
+      - item:
+          id: enum-start
+          type: number
+          prompt: 运行下面的程序，最后一行显示的数是多少？
+          code: |
+            for i, x in enumerate([5, 7, 9], 1):
+                print(i * x)
+          lang: python
+          answer: 27
+          explain: 编号从 1 开始：1 × 5、2 × 7、3 × 9。最后一行是 27。
+      - card:
+          title: zip：两串一起走
+          body: |
+            ```python
+            for name, score in zip(["小明", "小红"], [90, 85]):
+                print(name, score)
+            ```
+
+            显示 `小明 90` 和 `小红 85`。zip 每次从两串里各拿一个，配成一对。两串不一样长时，走到短的那串用完为止。
+      - item:
+          id: zip-short
+          type: number
+          prompt: 运行下面的程序，一共显示几行？
+          code: |
+            for a, b in zip([1, 2, 3], [10, 20]):
+                print(a + b)
+          lang: python
+          answer: 2
+          explain: 第二串只有 2 个，zip 只配出 2 对：11 和 22。
+      - card:
+          title: 遍历字典、倒着走、排好序再走
+          body: |
+            - `for k, v in d.items():` 每一轮拿到一对键和值；只写 `for k in d:` 拿到的是键。顺序就是放进去的顺序。
+            - `for x in reversed(xs):` 从后往前走，xs 本身不变。
+            - `for x in sorted(xs):` 按从小到大的顺序走。
+            - `sorted(set(xs))`：先去掉重复，再排好。
+      - item:
+          id: sorted-set
+          type: text
+          prompt: '`sorted(set([3, 1, 3, 2]))` 是什么？'
+          answers: ['[1, 2, 3]']
+          explain: set 去掉重复的 3，得到 {1, 2, 3}；sorted 排好交出列表 [1, 2, 3]。
+      - card:
+          title: 列表推导式：一行造一个列表
+          body: |
+            “对每个元素算一下，收进新列表”很常见，Python 有一种一行的写法，叫**列表推导式（list comprehension）**：
+
+            ```python
+            print([x * x for x in range(5)])
+            print([x for x in range(10) if x % 3 == 0])
+            ```
+
+            显示 `[0, 1, 4, 9, 16]` 和 `[0, 3, 6, 9]`。读法：“对 range(5) 里的每个 x，收下 x * x”；后面的 if 只收下满足条件的。
+      - item:
+          id: comp-double
+          type: text
+          prompt: '`[x * 2 for x in [1, 2, 3]]` 是什么？'
+          answers: ['[2, 4, 6]']
+          explain: 对每个 x 收下 x * 2。
+      - item:
+          id: comp-filter
+          type: number
+          prompt: '`len([x for x in range(1, 21) if x % 4 == 0])` 是多少？'
+          answer: 5
+          explain: 1 到 20 里 4 的倍数是 4、8、12、16、20，共 5 个。
+      - card:
+          title: 例题：每个单词有几个字母
+          body: 把句子 `"I love Python"` 里每个单词的字母数做成一个列表。一步一步来。
+          reveal:
+            - title: 第 1 步：切成单词
+              body: '`"I love Python".split()` 得 `[''I'', ''love'', ''Python'']`。'
+            - title: 第 2 步：对每个单词求长度
+              body: '`[len(w) for w in "I love Python".split()]`'
+            - title: 第 3 步：检查
+              body: 得 `[1, 4, 6]`：I 是 1 个字母，love 是 4 个，Python 是 6 个。
+      - item:
+          id: comp-upper
+          type: text
+          prompt: '`[w.upper() for w in "a bc".split()]` 是什么？'
+          answers: ["['A', 'BC']"]
+          explain: split 得 ['a', 'bc']，每个变大写。
+      - card:
+          title: 别一边走一边删
+          body: |
+            ```python
+            xs = [1, 2, 2, 3]
+            for x in xs:
+                if x == 2:
+                    xs.remove(x)
+            print(xs)
+            ```
+
+            想删掉所有的 2，却显示 `[1, 2, 3]`：删掉第一个 2 以后，后面的元素往前挪了一格，for 下一轮看的是下一个位置，正好跳过了第二个 2。
+      - item:
+          id: no-remove-while-loop
+          type: choice
+          prompt: 想得到去掉所有 2 的列表，下面哪种写法可靠？
+          options:
+            - text: '`[x for x in xs if x != 2]`'
+              correct: true
+            - text: 在 for x in xs 里遇到 2 就 xs.remove(x)
+              why: 一边遍历一边删，后面的元素会往前挪，连着的 2 会被跳过
+          explain: 不要改正在遍历的列表；造一个新列表，只收下不等于 2 的元素。
+
+  - id: conditions-more
+    chapter: 控制流
+    title: 条件的更多写法
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜：`print(1 < 3 < 5)` 显示什么？
+          options:
+            - text: 'True'
+              correct: true
+            - text: 报错，不能连着比较
+              why: Python 允许连着写比较，意思和数学里一样
+            - text: 'False'
+              why: 1 < 3 成立，3 < 5 也成立，整个是 True
+          explain: '`1 < 3 < 5` 的意思是“1 < 3 而且 3 < 5”。'
+      - card:
+          title: 连着比较，和 in
+          body: |
+            `a < b < c` 就是 `a < b and b < c`。判断分数在不在 60 到 100 之间，写 `60 <= score <= 100`。
+
+            `in` 和 `not in` 问“在不在里面”：`"py" in "python"` 是 True，`3 not in [1, 2]` 也是 True。
+      - item:
+          id: chained
+          type: choice
+          prompt: '`0 < 10 < 5` 是什么？'
+          options:
+            - text: 'False'
+              correct: true
+            - text: 'True'
+              why: 它要求 0 < 10 并且 10 < 5，后一半不成立
+          explain: 相当于 0 < 10 and 10 < 5，10 < 5 是 False，所以整个是 False。
+      - card:
+          title: is 和 ==
+          body: |
+            `==` 问两个值**一样不一样**；`is` 问它们**是不是同一个**：
+
+            ```python
+            a = [1, 2]
+            b = [1, 2]
+            c = a
+            print(a == b, a is b, a is c)
+            ```
+
+            显示 `True False True`：a 和 b 内容一样，却是两个列表；c 是 a 的别名。平时比较用 `==`；`is` 一般只用来问 `x is None`。
+      - item:
+          id: is-eq
+          type: choice
+          prompt: 依次执行 `x = [5]` 和 `y = [5]`，`print(x == y, x is y)` 显示什么？
+          options:
+            - text: True False
+              correct: true
+            - text: True True
+              why: 两次写 [5] 造出了两个列表，内容一样但不是同一个
+            - text: False False
+              why: == 只比内容，两个列表都只有 5，内容一样
+          explain: 内容一样，所以 == 是 True；是分别造出的两个列表，所以 is 是 False。
+      - card:
+          title: and、or 会提前停
+          body: |
+            `A and B`：A 已经是假的，结果一定是假，B 就**不再计算**。`A or B`：A 已经是真的，B 也不再计算。
+
+            所以 `x != 0 and 10 / x > 1` 在 x 是 0 时不会除以 0。
+
+            or 交出的是第一个“算真”的值：`"" or "无名"` 是 `无名`，常用来给空值一个默认值。
+      - item:
+          id: short-circuit
+          type: choice
+          prompt: 执行 `x = 0`，再执行 `print(x != 0 and 10 / x > 1)`。会怎样？
+          options:
+            - text: 显示 False
+              correct: true
+            - text: 报错 ZeroDivisionError
+              why: and 左边 x != 0 已经是 False，右边的除法根本不会计算
+          explain: 左边是 False，and 直接得 False，不去算 10 / x。
+      - item:
+          id: or-default
+          type: text
+          prompt: '`print("" or "无名")` 显示什么？'
+          answers: [无名]
+          explain: 空字符串算假，or 接着看右边，交出“无名”。
+      - card:
+          title: 空的就当假
+          body: |
+            写在 if 和 while 后面的不一定是比较。数字 0、空字符串 `""`、空列表 `[]`、空字典 `{}`、`None` 都当作假；其他的值当作真。
+
+            所以 `if xs:` 的意思是“xs 不是空的”，`if not xs:` 是“xs 是空的”。`bool(值)` 能看出它算真还是假：`bool([])` 是 False，`bool("0")` 是 True（里面有一个字符，不空）。
+      - item:
+          id: truthy
+          type: choice
+          multi: true
+          prompt: 下面哪几个是 False？（可多选）
+          options:
+            - text: '`bool(0)`'
+              correct: true
+            - text: '`bool([])`'
+              correct: true
+            - text: '`bool("0")`'
+              why: '"0" 是有一个字符的字符串，不空，算真'
+            - text: '`bool(" ")`'
+              why: 空格也是一个字符，这个字符串不空
+          explain: 0 和空列表算假；只要字符串里有字符（哪怕是 "0" 或空格），就算真。
+      - card:
+          title: 比较两个列表或字符串
+          body: |
+            两个列表（或元组、字符串）比大小时，从第一个元素开始**一个一个比**，第一个不同的地方决定结果：
+
+            - `[1, 2, 3] < [1, 2, 4]` 是 True（前两个一样，3 < 4）；
+            - `(1, 2) < (1, 2, 0)` 是 True（前面都一样，短的那个小）；
+            - `"apple" < "banana"` 是 True。字符按编码比，大写字母都排在小写字母前面，所以 `"Zebra" < "apple"` 也是 True。
+
+            数和字符串不能比大小：`1 < "2"` 报 TypeError。
+      - item:
+          id: seq-compare
+          type: choice
+          prompt: '`[2, 1] < [1, 9, 9]` 是什么？'
+          options:
+            - text: 'False'
+              correct: true
+            - text: 'True'
+              why: 不是比长短，也不是比总和；第一个元素 2 > 1 就已经决定了
+          explain: 先比第一个元素：2 大于 1，所以左边大，结果是 False。
+      - item:
+          id: str-compare
+          type: choice
+          prompt: '`"Zoo" < "apple"` 是什么？'
+          options:
+            - text: 'True'
+              correct: true
+            - text: 'False'
+              why: 不是按字典里的先后看，而是按字符编码；大写 Z 排在所有小写字母前面
+          explain: 先比第一个字符：大写 "Z" 的编码比小写 "a" 小，所以 "Zoo" 更小。
+
+  - id: match
+    chapter: 控制流
+    title: match：按样子分情况
+    minutes: 11
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜这个程序显示什么。
+          code: |
+            status = 404
+            match status:
+                case 200:
+                    print("成功")
+                case 404:
+                    print("找不到页面")
+                case _:
+                    print("其他")
+          lang: python
+          options:
+            - text: 找不到页面
+              correct: true
+            - text: 找不到页面、其他（两行）
+              why: 只执行第一个对得上的 case，之后的都不看
+            - text: 其他
+              why: 404 正好对上了 case 404
+          explain: match 从上往下找第一个对得上的 case，只执行它那一段。
+      - card:
+          title: match 和 case
+          body: |
+            `match 值:` 下面写好几个 `case`。Python 从上往下，找**第一个对得上**的 case，执行它下面的代码，然后整个 match 结束。
+
+            `case _:` 的 `_` 什么都能对上，相当于“其他情况”，一般放在最后。没有 `case _`、也一个都没对上时，什么都不做。
+      - item:
+          id: match-default
+          type: choice
+          prompt: 上面的程序里，把第一行改成 `status = 500`，显示什么？
+          options:
+            - text: 其他
+              correct: true
+            - text: 什么也不显示
+              why: 最后有 case _，它什么都能对上
+            - text: 成功
+              why: 500 不等于 200
+          explain: 500 既不是 200 也不是 404，落到 case _。
+          review: false
+      - card:
+          title: 一个 case 写几种：|
+          body: |
+            ```python
+            match cmd:
+                case "quit" | "q":
+                    print("退出")
+                case _:
+                    print("继续")
+            ```
+
+            `|` 读作“或者”：cmd 是 "quit" 或者 "q"，都对得上这一个 case。
+      - item:
+          id: match-or
+          type: choice
+          prompt: 对上面的程序，`cmd = "q"` 时显示什么？
+          options:
+            - text: 退出
+              correct: true
+            - text: 继续
+              why: '"q" 是 "quit" | "q" 里的一种，对上了第一个 case'
+          explain: '"q" 对上了 case "quit" | "q"。'
+          review: false
+      - card:
+          title: 按形状拆开
+          body: |
+            case 后面还能写一个“形状”，对上了就顺便把里面的值交给名字：
+
+            ```python
+            point = (0, 5)
+            match point:
+                case (0, 0):
+                    print("原点")
+                case (0, y):
+                    print("在 y 轴上", y)
+                case (x, 0):
+                    print("在 x 轴上", x)
+                case (x, y):
+                    print("别处", x, y)
+            ```
+
+            (0, 5) 对不上 (0, 0)，对得上 (0, y)，y 得到 5，显示 `在 y 轴上 5`。
+      - item:
+          id: match-shape
+          type: choice
+          prompt: 对上面的程序，`point = (3, 0)` 时显示什么？
+          options:
+            - text: 在 x 轴上 3
+              correct: true
+            - text: 别处 3 0
+              why: 从上往下找，(x, 0) 先对上了，就不会再看后面的 (x, y)
+            - text: 在 y 轴上 0
+              why: (0, y) 要求第一个值是 0，这里第一个值是 3
+          explain: (0, 0) 和 (0, y) 都要求第一个值是 0，对不上；(x, 0) 对上了，x 得 3。
+          review: false
+      - card:
+          title: case 后面加条件
+          body: |
+            `case x if x > 0:` 先对形状，再看 if 后面的条件，两样都满足才算对上。
+
+            要按范围分情况（比如分数 90 以上、60 以上），用 if / elif 更直接；要按固定的几个值或形状分情况，match 更清楚。
+      - item:
+          id: match-guard
+          type: number
+          prompt: 运行下面的程序，显示的数是多少？
+          code: |
+            n = -7
+            match n:
+                case 0:
+                    r = 0
+                case x if x > 0:
+                    r = 1
+                case _:
+                    r = -1
+            print(r)
+          lang: python
+          answer: -1
+          explain: -7 不是 0；x 得 -7，但 x > 0 不成立，这个 case 不算对上；落到 case _，r 是 -1。
+
+  - id: functions
+    chapter: 函数
+    title: 把一段代码起个名字：函数
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜这个程序显示什么。
+          code: |
+            def double(x):
+                return x * 2
+
+            print(double(5) + 1)
+          lang: python
+          options:
+            - text: "11"
+              correct: true
+            - text: "10"
+              why: double(5) 得 10，后面还要加 1
+            - text: 报错
+              why: 前两行定义了 double，后面可以用
+          explain: double(5) 把 5 交给 x，算出 10 交回来；10 + 1 = 11。马上细讲。
+      - card:
+          title: 函数：起了名字的一段代码
+          body: |
+            同样的计算要做很多次，就把它写一遍、起个名字，要用时喊名字。这叫**函数（function）**：
+
+            ```python
+            def square(n):
+                return n * n
+            ```
+
+            `def` 表示“定义一个函数”，`square` 是名字，括号里的 `n` 叫**参数**：使用时填进来的值会交给它。缩进的部分是函数要做的事。
+      - card:
+          title: 调用和 return
+          body: |
+            写 `square(3)`，就是让 square 以 n = 3 执行一遍，这叫**调用（call）**。
+
+            `return n * n` 把算出的 9 交回到调用的地方，这个交回来的值叫**返回值**。所以 `square(3)` 就是 9，可以接着用：`square(3) + 1` 得 10，`square(square(2))` 得 16。一执行到 return，这次调用就结束了。
+      - item:
+          id: call-f
+          type: number
+          prompt: 下面定义了函数 f。`f(4)` 是多少？
+          code: |
+            def f(x):
+                return x * 3 - 1
+          lang: python
+          answer: 11
+          explain: 调用 f(4) 时 x 是 4：4 * 3 − 1 = 11。
+      - card:
+          title: 参数可以有好几个
+          body: |
+            ```python
+            def area(w, h):
+                return w * h
+            ```
+
+            调用 `area(3, 4)` 时，按位置一一对应：w 是 3，h 是 4，返回 12。
+      - card:
+          title: 调用时发生了什么
+          body: 单步运行看看：每次调用，参数都换成这次填进来的值，函数里的名字也是这次新建的。
+          sim:
+            name: trace
+            params:
+              code: |
+                def area(w, h):
+                    s = w * h
+                    return s
+
+                a = area(3, 4)
+                b = area(a, 2)
+                print(b)
+      - item:
+          id: trace-calls
+          type: sim
+          sim: trace
+          prompt: 先在心里走一遍，再填答案。
+          params:
+            code: |
+              def area(w, h):
+                  s = w * h
+                  return s
+
+              a = area(2, 5)
+              b = area(a, 3)
+              print(b)
+          goal:
+            ask:
+              - { line: 2, var: s, hit: 1 }
+              - { line: 7, var: "@out" }
+          explain: 第一次调用 w = 2、h = 5，s = 10，交回给 a。第二次 w = a = 10、h = 3，s = 30，交回给 b，显示 30。
+      - card:
+          title: print 和 return 不一样
+          body: |
+            print 只是把东西**显示给人看**；return 才是把值**交回给程序**继续用。
+
+            ```python
+            def f(x):
+                print(x * 2)
+
+            y = f(3)
+            ```
+
+            屏幕上显示 6，但 f 没有 return，什么也没交回来，y 得到的是 `None`：Python 里表示“没有值”的特殊值。
+      - item:
+          id: print-none
+          type: choice
+          prompt: '定义 `def f(x): print(x * 2)`，然后执行 `y = f(3)`。y 是什么？'
+          options:
+            - text: None
+              correct: true
+            - text: "6"
+              why: 6 只是被显示在屏幕上，函数没有用 return 把它交回来
+          explain: 没有 return 的函数，返回值是 None。
+      - item:
+          id: return-or-print
+          type: choice
+          prompt: 写一个算平均分的函数，算出来还要拿去和 60 比较。函数最后应该写什么？
+          options:
+            - text: return 平均分
+              correct: true
+            - text: print(平均分)
+              why: 显示出来只是给人看，调用的地方拿不到这个值，没法和 60 比较
+          explain: 要被别的代码继续使用的结果，用 return 交回。
+      - card:
+          title: 例题：判断偶数的函数
+          body: 写一个函数 is_even(n)：n 是偶数就返回 True，否则返回 False。一步一步来。
+          reveal:
+            - title: 第 1 步：想清楚输入和输出
+              body: 输入一个整数 n，输出 True 或 False。
+            - title: 第 2 步：找到判断方法
+              body: 偶数除以 2 余 0：`n % 2 == 0`。
+            - title: 第 3 步：写成函数
+              body: |
+                ```python
+                def is_even(n):
+                    return n % 2 == 0
+                ```
+
+                `n % 2 == 0` 本身就是 True 或 False，直接 return 它。
+            - title: 第 4 步：试几个值
+              body: is_even(4) 是 True，is_even(7) 是 False。
+      - item:
+          id: multiple-of-3
+          type: choice
+          prompt: 下面哪个函数能在 n 是 3 的倍数时返回 True？
+          options:
+            - text: "`def f(n): return n % 3 == 0`"
+              correct: true
+            - text: "`def f(n): return n / 3 == 0`"
+              why: n / 3 是商，只有 n 是 0 时才等于 0
+            - text: "`def f(n): print(n % 3 == 0)`"
+              why: 这样只是显示，返回值是 None，不是 True
+          explain: 3 的倍数除以 3 余 0，所以判断 n % 3 == 0，并用 return 交回。
+      - item:
+          id: bigger
+          type: number
+          prompt: 下面定义了 bigger。`bigger(4, 9) + bigger(7, 2)` 是多少？
+          code: |
+            def bigger(a, b):
+                if a > b:
+                    return a
+                return b
+          lang: python
+          answer: 16
+          explain: bigger(4, 9)：4 > 9 不成立，返回 9。bigger(7, 2)：7 > 2 成立，返回 7。9 + 7 = 16。
+
+  - id: scope-defaults
+    chapter: 函数
+    title: 函数里的名字和默认值
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜这个程序显示什么。
+          code: |
+            x = 1
+            def f():
+                x = 2
+            f()
+            print(x)
+          lang: python
+          options:
+            - text: "1"
+              correct: true
+            - text: "2"
+              why: 函数里的 x = 2 建了一个只属于 f 的新名字，外面的 x 没变
+          explain: 函数里的名字和外面同名的名字互不相干。下一张卡细讲。
+      - card:
+          title: 函数里的名字只在函数里有效
+          body: |
+            在函数里赋值的名字（参数也算）叫**局部变量**：每次调用时新建，这次调用结束就没了，和外面同名的名字互不相干。
+
+            上面的例子里，f 里面的 `x = 2` 建了一个只属于 f 的新 x；外面的 x 还是 1。
+      - item:
+          id: local-gone
+          type: choice
+          prompt: 运行下面的程序，会怎样？
+          code: |
+            def g():
+                y = 5
+            g()
+            print(y)
+          lang: python
+          options:
+            - text: 报错 NameError
+              correct: true
+            - text: 显示 5
+              why: y 是 g 的局部变量，g 结束后就没了，外面没有叫 y 的名字
+          explain: y 只在 g 执行时存在，外面的 print(y) 找不到这个名字。
+      - card:
+          title: 真要改外面的名字
+          body: |
+            在所有函数外面赋值的名字叫**全局变量**。函数里想改它，要先写一行 `global 名字`：
+
+            ```python
+            count = 0
+            def add():
+                global count
+                count = count + 1
+            ```
+
+            不过更清楚的写法是把新值 return 出来，让调用的人自己赋值：`count = add_one(count)`。这样一眼就能看出谁改了 count。
+      - item:
+          id: global-count
+          type: number
+          prompt: 运行下面的程序，显示的数是多少？
+          code: |
+            count = 0
+            def add():
+                global count
+                count = count + 1
+            add()
+            add()
+            print(count)
+          lang: python
+          answer: 2
+          explain: global 让函数改的是外面那个 count。调用两次，0 → 1 → 2。
+      - card:
+          title: 默认参数和按名字填
+          body: |
+            参数可以带一个默认值，这叫**默认参数**：
+
+            ```python
+            def greet(name, word="你好"):
+                return word + "，" + name
+            ```
+
+            `greet("小明")` 没填 word，就用默认的 "你好"，得 "你好，小明"。也可以按名字填：`greet("小明", word="早")` 得 "早，小明"。按名字填的叫**关键字参数**，顺序可以随意。
+      - item:
+          id: default-used
+          type: number
+          prompt: '定义 `def f(a, b=10): return a - b`。`f(3)` 是多少？'
+          answer: -7
+          explain: 没填 b，用默认值 10：3 − 10 = −7。
+      - item:
+          id: keyword
+          type: number
+          prompt: '定义 `def f(a, b=10): return a - b`。`f(b=1, a=5)` 是多少？'
+          answer: 4
+          explain: 按名字填，顺序无所谓：a = 5，b = 1，5 − 1 = 4。
+      - card:
+          title: 默认值的陷阱
+          body: |
+            默认值只在 def 那一行**算一次**。如果默认值是列表这种可变的值，每次调用用的都是同一个列表：
+
+            ```python
+            def add(x, box=[]):
+                box.append(x)
+                return box
+            ```
+
+            先 `add(1)` 得 `[1]`，再 `add(2)` 得 `[1, 2]`！改法：默认值写 None，在函数里判断 `if box is None:`（box 是不是 None），是就新建 `box = []`。
+      - item:
+          id: default-trap
+          type: choice
+          prompt: '定义 `def add(x, box=[]): box.append(x); return box`。先调用 add(1)，再调用 add(2)，第二次返回什么？'
+          options:
+            - text: "[1, 2]"
+              correct: true
+            - text: "[2]"
+              why: 默认的 [] 只在 def 时建了一次，两次调用用的是同一个列表
+          explain: 第一次往那个共用的列表里放了 1，第二次又放 2，所以是 [1, 2]。
+
+  # ---------------------------------------------------------------- 模块
+  - id: more-functions
+    chapter: 函数
+    title: 函数的更多写法：*args、lambda 和说明文字
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 猜一猜：`max(3, 9, 4, 7)` 是多少？（max 交出最大的那个）
+          answer: 9
+          explain: max 能接收任意多个值。你自己写的函数也能这样，下一张卡讲怎么写。
+      - card:
+          title: '*args：收下任意多个值'
+          body: |
+            ```python
+            def total(*nums):
+                return sum(nums)
+
+            print(total(1, 2, 3))
+            print(total())
+            ```
+
+            显示 6 和 0。参数名前面加一个 `*`，调用时填进来的所有值会被打包成一个元组交给它：第一次 nums 是 `(1, 2, 3)`，第二次是空元组 `()`。习惯上这个名字写作 args。
+      - item:
+          id: star-count
+          type: number
+          prompt: '定义 `def count(*xs): return len(xs)` 之后，`count(5, 6, 7, 8)` 是多少？'
+          answer: 4
+          explain: 四个值被打包成元组 (5, 6, 7, 8)，长度是 4。
+      - card:
+          title: '**kwargs：收下任意多个关键字参数'
+          body: |
+            ```python
+            def info(**kw):
+                return kw
+
+            print(info(name="小明", age=12))
+            ```
+
+            显示 `{'name': '小明', 'age': 12}`。两个 `*` 把按名字填的参数打包成一个字典。一个函数可以同时有普通参数、`*args` 和 `**kwargs`，顺序就是这样：先普通的，再 `*args`，最后 `**kwargs`。
+      - item:
+          id: kwargs-len
+          type: number
+          prompt: '定义 `def f(**kw): return len(kw)` 之后，`f(a=1, b=2, c=3)` 是多少？'
+          answer: 3
+          explain: 三个关键字参数被打包成有 3 个键的字典。
+      - card:
+          title: 反过来：用 * 把列表拆开填进去
+          body: |
+            调用时在列表前面加 `*`，会把它拆成一个一个的值：`range(*[3, 7])` 就是 `range(3, 7)`；`print(*[1, 2, 3])` 就是 `print(1, 2, 3)`，显示 `1 2 3`。
+
+            字典前面加 `**`，拆成关键字参数：`f(**{"a": 1})` 就是 `f(a=1)`。
+      - item:
+          id: unpack-call
+          type: text
+          prompt: '`print(*["a", "b"], sep="-")` 显示什么？'
+          answers: [a-b]
+          explain: 列表被拆成 "a" 和 "b" 两个值，用 - 隔开。
+      - card:
+          title: lambda：一行写的小函数
+          body: |
+            `lambda x: x * 2` 是一个没有名字的小函数，相当于 `def f(x): return x * 2`。冒号前是参数，冒号后是要交出的结果。
+
+            它最常用在 sorted 的 `key=` 里：key 是一个函数，sorted 先用它给每个元素算出一个“排序依据”，再按依据排。
+
+            - `sorted(words, key=len)`：按长度排；
+            - `sorted(pairs, key=lambda p: p[1])`：按每一对的第二个值排。
+      - item:
+          id: key-len
+          type: text
+          prompt: '`sorted(["ccc", "a", "bb"], key=len)` 是什么？'
+          answers: ["['a', 'bb', 'ccc']"]
+          explain: 按长度 1、2、3 排。
+      - item:
+          id: key-lambda
+          type: choice
+          prompt: '`sorted([("甲", 3), ("乙", 1), ("丙", 2)], key=lambda p: p[1])` 是什么？'
+          options:
+            - text: "[('乙', 1), ('丙', 2), ('甲', 3)]"
+              correct: true
+            - text: "[('丙', 2), ('乙', 1), ('甲', 3)]"
+              why: 这是不写 key、按第一个字的编码排的结果；key 取的是 p[1]，也就是每一对里的数
+            - text: "[('甲', 3), ('丙', 2), ('乙', 1)]"
+              why: 这是从大到小，要加 reverse=True 才会这样
+          explain: 每一对的排序依据是 p[1]，也就是 3、1、2，从小到大排。
+      - card:
+          title: 写给人看的说明
+          body: |
+            ```python
+            def area(w: float, h: float) -> float:
+                """长方形的面积：宽 w 乘高 h。"""
+                return w * h
+            ```
+
+            函数体第一行的三引号字符串叫文档字符串（docstring），写这个函数做什么；`help(area)` 会把它显示出来。三个引号的字符串可以跨好几行。
+
+            `w: float` 和 `-> float` 是注解，提示参数和结果应该是什么类型。Python **不检查**它们。
+      - item:
+          id: annotation
+          type: choice
+          prompt: '定义 `def double(x: int) -> int: return x * 2` 之后，`double("ab")` 会怎样？'
+          options:
+            - text: 得到 "abab"
+              correct: true
+            - text: 报错 TypeError，因为注解写了 int
+              why: 注解只是给人看的提示，Python 运行时不检查
+          explain: 注解不影响运行。"ab" * 2 得 "abab"。
+      - card:
+          title: 写得让别人看得懂
+          body: |
+            Python 社区有一份写法约定 PEP 8，最常用的几条：
+
+            - 缩进用 4 个空格；一行不超过 79 个字符；
+            - 函数和变量的名字用小写，单词之间用下划线：`total_price`；
+            - 逗号后面、运算符两边加空格：`f(a, b)`、`x = y + 1`；
+            - `#` 后面的文字 Python 不执行，叫**注释（comment）**，用来写“为什么这样做”。
+      - item:
+          id: pep8
+          type: choice
+          prompt: 下面哪一行符合 PEP 8 的写法？
+          options:
+            - text: '`def total_price(items):`'
+              correct: true
+            - text: '`def TotalPrice( items ):`'
+              why: 函数名应该小写加下划线，括号里面不加多余的空格
+            - text: '`def totalprice(items) :`'
+              why: 两个单词之间要用下划线隔开，冒号前不加空格
+          explain: 小写、下划线隔开单词、括号里不留多余空格。
+      - card:
+          title: 认得出：参数列表里的 / 和 *
+          body: |
+            有时会看到 `def f(a, /, b, *, c):`：
+
+            - `/` 前面的参数只能按位置填（不能写 `a=1`）；
+            - `*` 后面的参数只能按名字填（必须写 `c=3`）；
+            - 中间的两种都行。
+
+            所以 `f(1, 2, c=3)` 和 `f(1, b=2, c=3)` 都可以；`f(1, 2, 3)` 报 TypeError。
+      - item:
+          id: kw-only
+          type: choice
+          prompt: '定义了 `def g(a, *, b): return a + b`。哪种调用可以？'
+          options:
+            - text: '`g(1, b=2)`'
+              correct: true
+            - text: '`g(1, 2)`'
+              why: '* 后面的 b 只能按名字填，按位置填会报 TypeError'
+          explain: b 在 * 后面，必须写 b=2。
+
+  - id: word-count
+    chapter: 函数
+    title: 例题课：数一数单词
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: '`"Hi, hi!".lower().split()` 得到 `[''hi,'', ''hi!'']`。猜一猜：Python 会不会把这两个当成同一个单词？'
+          options:
+            - text: 不会，它们是两个不同的字符串
+              correct: true
+            - text: 会，因为都是 hi
+              why: 字符串要每个字符都一样才相等，"hi," 多了一个逗号
+          explain: '"hi," 和 "hi!" 不相等。要数单词，先得把标点去掉。'
+      - card:
+          title: 要写的函数
+          body: |
+            写 `top_words(text, k=3)`：数一数 text 里每个英文单词出现几次（不分大小写，不算标点），交出次数最多的 k 个单词和次数。
+
+            一个大问题先拆成几个小目标：① 去掉大小写和标点；② 切成单词；③ 数每个单词；④ 按次数排序；⑤ 取前 k 个。
+      - item:
+          id: plan-order
+          type: order
+          prompt: 把这几个小目标排成正确的先后顺序。
+          steps:
+            - 变小写、去掉标点
+            - 切成一个个单词
+            - 用字典数每个单词出现几次
+            - 按次数从多到少排序
+            - 取前 k 个
+          explain: 后一步要用前一步的结果：先清理，才切得准；数完才能排；排好才能取前几个。
+      - card:
+          title: 第 1、2 步：清理，再切开
+          body: 逐个字符看：字母和撇号 ' 留下，其他的（标点）换成空格，最后用 split() 切开。
+          reveal:
+            - title: 第 1 步：只留字母和撇号
+              body: |
+                ```python
+                clean = ""
+                for c in text.lower():
+                    if c.isalpha() or c == "'":
+                        clean = clean + c
+                    else:
+                        clean = clean + " "
+                ```
+                `c.isalpha()` 在 c 是字母时为 True。留着撇号，是为了让 don't 这样的词不被切断。
+            - title: 第 2 步：切开
+              body: '`words = clean.split()`。标点变成了空格，split() 又把连着的空格当成一处，所以不会切出空字符串。'
+      - item:
+          id: clean-split
+          type: choice
+          prompt: 用上面两步处理 `"Hi, hi!"`，words 是什么？
+          options:
+            - text: "['hi', 'hi']"
+              correct: true
+            - text: "['hi,', 'hi!']"
+              why: 逗号和感叹号不是字母，已经被换成了空格
+            - text: "['hi', '', 'hi', '']"
+              why: split() 不写括号里的东西时，连着的空格算一处，不会切出空字符串
+          explain: 清理后是 "hi  hi "，split() 得到 ['hi', 'hi']。
+      - card:
+          title: 第 3 步：用字典数
+          body: |
+            ```python
+            counts = {}
+            for w in words:
+                counts[w] = counts.get(w, 0) + 1
+            ```
+
+            第一次见到一个词，get 交出 0，记成 1；以后每见一次加 1。
+      - item:
+          id: trace-count
+          type: sim
+          sim: trace
+          prompt: 先在心里走一遍：最后显示什么？
+          params:
+            code: |
+              words = "to be or not to be".split()
+              counts = {}
+              for w in words:
+                  counts[w] = counts.get(w, 0) + 1
+              print(counts["be"], counts["or"])
+          goal:
+            ask:
+              - { line: 5, var: "@out" }
+          explain: be 出现 2 次，or 出现 1 次，显示 2 1。
+      - card:
+          title: 第 4、5 步：排序，取前 k 个
+          body: |
+            `counts.items()` 是一对对 (单词, 次数)。按次数从多到少排：
+
+            ```python
+            pairs = sorted(counts.items(), key=lambda kv: kv[1], reverse=True)
+            return pairs[:k]
+            ```
+
+            次数一样的两个词，sorted 会保留它们原来的先后（先出现的在前），加了 reverse=True 也一样。
+      - item:
+          id: stable-sort
+          type: choice
+          prompt: '`sorted([("a", 1), ("b", 3), ("c", 3)], key=lambda kv: kv[1], reverse=True)` 是什么？'
+          options:
+            - text: "[('b', 3), ('c', 3), ('a', 1)]"
+              correct: true
+            - text: "[('c', 3), ('b', 3), ('a', 1)]"
+              why: 次数相同的 b 和 c 保留原来的先后，b 本来在 c 前面
+            - text: "[('a', 1), ('b', 3), ('c', 3)]"
+              why: 这是从小到大；reverse=True 让它从大到小
+          explain: 按次数从大到小，b 和 c 都是 3，保留原来的顺序 b 在前。
+      - card:
+          title: 合起来
+          body: |
+            ```python
+            def top_words(text, k=3):
+                clean = ""
+                for c in text.lower():
+                    if c.isalpha() or c == "'":
+                        clean = clean + c
+                    else:
+                        clean = clean + " "
+                counts = {}
+                for w in clean.split():
+                    counts[w] = counts.get(w, 0) + 1
+                pairs = sorted(counts.items(), key=lambda kv: kv[1], reverse=True)
+                return pairs[:k]
+            ```
+      - item:
+          id: run-top
+          type: choice
+          prompt: '用上面的函数，`top_words("The cat and the hat. The end!", 1)` 交出什么？'
+          options:
+            - text: "[('the', 3)]"
+              correct: true
+            - text: "[('The', 2)]"
+              why: 先变成了小写，The 和 the 算同一个词，一共 3 次
+            - text: "('the', 3)"
+              why: pairs[:1] 是切片，交出的是只有一个元素的列表，不是那一对本身
+          explain: 变小写后 the 出现 3 次，最多；k = 1 只取前一个，切片得到一个列表。
+          review: false
+      - item:
+          id: modify-min-len
+          type: choice
+          prompt: 想让 top_words 不数少于 3 个字母的词（比如 a、an、to），改哪里最合适？
+          options:
+            - text: 在数数的 for 里加 `if len(w) >= 3:`，满足才计数
+              correct: true
+            - text: 把 k 改大一点
+              why: k 只决定取前几个，短词照样会被数进去
+            - text: 删掉 lower()
+              why: 大小写和字母个数无关，删掉反而让 The 和 the 分开数
+          explain: 在第 3 步过滤掉短词：只有 len(w) >= 3 的词才进字典。
+      - item:
+          id: top-len
+          type: number
+          prompt: '用上面的函数，`len(top_words("a b c d", 3))` 是多少？'
+          answer: 3
+          explain: 四个词各出现 1 次，排好后取前 3 个，列表长度是 3。
+          review: false
+
+  - id: modules
+    chapter: 模块
+    title: 用别人写好的：模块
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 想算 16 的平方根，你猜最省事的办法是？
+          options:
+            - text: 用 Python 自带、别人已经写好的开方函数
+              correct: true
+            - text: 自己写一个开方的算法
+              why: 可以，但 Python 早就带了现成的
+          explain: Python 自带的 math 里就有开方的 sqrt。会找现成的工具，是写程序的重要本领。
+      - card:
+          title: 模块：一包现成的函数
+          body: |
+            Python 自带了很多写好的函数，按用途分装在不同的**模块（module）**里：数学相关的在 math，随机数相关的在 random。这些随 Python 一起安装好的模块合称**标准库**。
+
+            用之前先 `import`（导入）：
+
+            ```python
+            import math
+            print(math.sqrt(16))
+            ```
+
+            显示 4.0。`math.sqrt` 读作“math 里的 sqrt”。
+      - item:
+          id: sqrt-81
+          type: number
+          prompt: 写了 `import math` 之后，`math.sqrt(81)` 是多少？
+          answer: 9
+          explain: 81 的平方根是 9，sqrt 返回浮点数 9.0。
+      - card:
+          title: 导入的三种写法
+          body: |
+            - `import math`：用的时候写 `math.sqrt(16)`
+            - `from math import sqrt`：之后直接写 `sqrt(16)`
+            - `import math as m`：起个短名字，写 `m.sqrt(16)`
+
+            只写了 `import math`，却直接写 `sqrt(16)`，会报 NameError：sqrt 装在 math 里，Python 在外面找不到这个名字。
+      - item:
+          id: which-sqrt
+          type: choice
+          prompt: 只写了 `import math`。哪一行能算出 4.0？
+          options:
+            - text: "`math.sqrt(16)`"
+              correct: true
+            - text: "`sqrt(16)`"
+              why: sqrt 在 math 里面，要写 math.sqrt；直接写会报 NameError
+            - text: "`math(sqrt(16))`"
+              why: math 是模块，不是函数，不能这样调用
+          explain: import math 只引入了名字 math，里面的东西用“math.名字”来取。
+      - item:
+          id: from-import
+          type: text
+          prompt: 只想从 random 模块里导入 randint 这一个函数。这一行怎么写？
+          answers: [from random import randint]
+          explain: from 模块 import 名字。之后可以直接写 randint(1, 6)。
+      - card:
+          title: 几个常用的
+          body: |
+            - `math.gcd(12, 18)` 得 6：最大公约数
+            - `math.floor(3.7)` 得 3：向下取整
+            - `random.randint(1, 6)`：1 到 6 之间随机一个整数，包括 1 和 6，像掷骰子
+
+            想知道一个模块里还有什么，查 Python 官方文档 docs.python.org（有中文版）。
+      - item:
+          id: floor
+          type: number
+          prompt: 写了 `import math` 之后，`math.floor(9.99)` 是多少？
+          answer: 9
+          explain: floor 向下取整：不超过 9.99 的最大整数是 9。
+      - card:
+          title: 你自己的文件也是模块
+          body: |
+            你写的 `tools.py`，同一个文件夹里的其他程序可以 `import tools`，然后写 `tools.函数名(...)` 来用。
+
+            别人写好、发布在网上的模块叫**第三方库**，用 `pip install 名字` 安装后就能 import，比如做数据计算常用的 numpy。
+      - item:
+          id: own-module
+          type: choice
+          prompt: 你写了 `shapes.py`，里面有函数 `area(w, h)`。在同一个文件夹的另一个程序里，怎么用它？
+          options:
+            - text: 先 `import shapes`，再写 `shapes.area(3, 4)`
+              correct: true
+            - text: 什么都不写，直接 `area(3, 4)`
+              why: 不导入，Python 不知道 area 在哪个文件里，会报 NameError
+            - text: "`import area`"
+              why: import 后面写的是模块（文件）名 shapes，不是函数名
+          explain: 文件名去掉 .py 就是模块名。导入后用“模块名.函数名”。
+
+  # ---------------------------------------------------------------- 输入输出与调试
+  - id: modules-packages
+    chapter: 模块
+    title: 模块的更多用法：__name__、dir 和包
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: '`tools.py` 的第一行是 `print("tools 被运行了")`。另一个程序写了 `import tools`。猜一猜：运行这个程序时，会显示“tools 被运行了”吗？'
+          options:
+            - text: 会
+              correct: true
+            - text: 不会，import 只是拿到里面的函数
+              why: import 会把 tools.py 从头到尾执行一遍，函数就是这样定义出来的
+          explain: import 一个模块，就是把它的文件执行一遍，里面的 print 也会执行。
+      - card:
+          title: import 会执行那个文件
+          body: |
+            `import tools` 时，Python 把 tools.py 从头执行一遍：遇到 def 就定义出函数，遇到 print 就显示。
+
+            同一个程序里再写一次 `import tools`，不会再执行：Python 记得它已经导入过了。
+      - item:
+          id: import-once
+          type: number
+          prompt: tools.py 里有一行 `print("hi")`。另一个程序连写了两行 `import tools`。运行它，hi 显示几次？
+          answer: 1
+          explain: 第二次 import 时 Python 发现已经导入过，直接用上次的结果，不再执行文件。
+      - card:
+          title: if __name__ == "__main__"
+          body: |
+            每个模块都有一个名字 `__name__`：直接运行它（`python tools.py`）时是 `"__main__"`；被别人 import 时，是它的模块名 `"tools"`。
+
+            所以把只想在“直接运行”时做的事（比如演示、自测）写在下面，被 import 时就不会执行：
+
+            ```python
+            if __name__ == "__main__":
+                print(add(2, 3))
+            ```
+      - item:
+          id: name-main
+          type: choice
+          prompt: tools.py 里有一行 `print(__name__)`。在另一个程序里 `import tools`，这一行显示什么？
+          options:
+            - text: tools
+              correct: true
+            - text: __main__
+              why: 只有直接运行 tools.py 时才是 __main__；被导入时是模块名
+          explain: 被导入时，__name__ 是模块自己的名字 tools。
+      - card:
+          title: Python 去哪里找模块
+          body: |
+            import 一个名字时，Python 先在**你运行的那个程序所在的文件夹**里找，找不到再去标准库和装好的第三方库里找。
+
+            所以别把自己的文件起名叫 `random.py` 这样和标准库相同的名字：import random 会先找到你的文件。
+
+            导入过的模块，Python 会在旁边的 `__pycache__` 文件夹里存一份翻译好的版本，下次更快。这个文件夹可以不用管。
+      - item:
+          id: shadow
+          type: choice
+          prompt: 你写了一个文件叫 `random.py`，里面是 `import random` 和 `print(random.randint(1, 6))`。运行它，最可能怎样？
+          options:
+            - text: 报错，说 random 里没有 randint
+              correct: true
+            - text: 正常显示一个 1 到 6 的数
+              why: import random 先在同一个文件夹里找，找到的是你自己的 random.py，它里面没有 randint
+          explain: 你的文件挡住了标准库的 random。把文件改个名字（比如 dice.py）就好了。
+      - card:
+          title: dir()：看看里面有什么
+          body: |
+            `dir(math)` 列出 math 模块里的所有名字：`['acos', …, 'sqrt', …]`。忘了一个函数叫什么时，先 dir 一下。
+
+            `help(math.sqrt)` 显示这个函数的说明文字。
+      - item:
+          id: dir-in
+          type: choice
+          prompt: 写了 `import math` 之后，`"sqrt" in dir(math)` 是什么？
+          options:
+            - text: 'True'
+              correct: true
+            - text: 'False'
+              why: dir 列出的是名字字符串，"sqrt" 正好在里面
+          explain: dir(math) 是一个名字的列表，里面有 "sqrt"。
+      - card:
+          title: 包：装模块的文件夹
+          body: |
+            模块多了，可以放进一个文件夹，这样的文件夹叫**包（package）**。文件夹里放一个 `__init__.py`（可以是空文件），表示这是一个包：
+
+            ```text
+            shapes/
+                __init__.py
+                circle.py      （里面有 area 函数）
+            ```
+
+            用法：`import shapes.circle` 之后写 `shapes.circle.area(2)`；或者 `from shapes import circle`，之后写 `circle.area(2)`；或者 `from shapes.circle import area`。
+      - item:
+          id: package-import
+          type: choice
+          prompt: 文件夹 game 里有 `__init__.py` 和 `sound.py`，sound.py 里有函数 play()。哪种写法能用上 play？
+          options:
+            - text: '先 `from game import sound`，再 `sound.play()`'
+              correct: true
+            - text: '`import sound`'
+              why: sound.py 在 game 文件夹里，要写 game.sound
+            - text: '`import game.sound.play`'
+              why: import 后面只能写模块或包；play 是函数，要用 from game.sound import play
+          explain: 包名.模块名 才能找到 sound.py；from 包 import 模块 之后，用 模块.函数。
+      - card:
+          title: 标准库里的两个好帮手
+          body: |
+            `collections` 模块里：
+
+            - `Counter` 帮你数数：`Counter("banana").most_common(2)` 得 `[('a', 3), ('n', 2)]`，就是“出现最多的 2 个和次数”。
+            - `deque` 是专门排队用的：`append` 放到末尾，`popleft()` 从开头取，不管多长都很快。
+
+            ```python
+            from collections import Counter, deque
+            ```
+      - item:
+          id: counter
+          type: text
+          prompt: 写了 `from collections import Counter` 之后，`Counter("hello").most_common(1)` 是什么？
+          answers: ["[('l', 2)]"]
+          explain: hello 里 l 出现 2 次，最多。
+      - item:
+          id: deque
+          type: number
+          prompt: 运行下面的程序，显示的数是多少？
+          code: |
+            from collections import deque
+            q = deque([5, 6])
+            q.append(7)
+            q.popleft()
+            print(q.popleft())
+          lang: python
+          answer: 6
+          explain: 队伍是 5、6，再排进 7；先从开头取走 5，再取走 6，显示 6。
+
+  - id: input-output
+    chapter: 输入输出与调试
+    title: 和用户说话：输入和输出
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜：运行 `x = input()`，你输入 5 并回车。接着算 `x + 1` 会怎样？
+          options:
+            - text: 报错 TypeError
+              correct: true
+            - text: 得到 6
+              why: input 读进来的永远是字符串，"5" 不是数
+            - text: 得到 "51"
+              why: 字符串只能和字符串拼接，和整数相加会报错
+          explain: input 交回来的是字符串 "5"，"5" + 1 是字符串加整数，报 TypeError。
+      - card:
+          title: input：等用户打字
+          body: |
+            `input("提示文字")` 先显示提示，然后等用户输入一行、按回车，再把输入的内容交回来。
+
+            不管用户输入的是什么，交回来的**都是字符串**：输入 5，得到的是 "5"。要当数用，先转换：`age = int(input("年龄："))`。
+      - item:
+          id: input-times
+          type: choice
+          prompt: 执行 `n = input()`，用户输入 12。`n * 2` 是什么？
+          options:
+            - text: '"1212"'
+              correct: true
+            - text: "24"
+              why: n 是字符串 "12"，字符串乘 2 是重复
+          explain: input 得到字符串 "12"，字符串 * 2 是重复两遍："1212"。要得 24 得先 int(n)。
+      - card:
+          title: print 的几个用法
+          body: |
+            - `print(a, b)`：几个值之间自动空一格
+            - `print(a, b, sep="-")`：改用 - 隔开
+            - `print("a", end="")`：显示完不换行（平时显示完会换行）
+      - item:
+          id: sep
+          type: text
+          prompt: "`print(1, 2, 3, sep=\"-\")` 显示什么？"
+          answers: [1-2-3]
+          explain: sep 是值与值之间的分隔，默认是一个空格，这里改成了 -。
+      - card:
+          title: f-string：把值填进文字里
+          body: |
+            在字符串前面加一个 f，花括号里放表达式，Python 会把算出的值填进去：
+
+            ```python
+            name = "小明"
+            age = 12
+            print(f"{name}今年{age}岁，明年{age + 1}岁")
+            ```
+
+            显示：小明今年12岁，明年13岁。比用 + 和 str( ) 一段段拼接简单得多。
+      - item:
+          id: fstring
+          type: text
+          prompt: 执行 `n = 3`，再执行 `print(f"{n}的平方是{n * n}")`。显示什么？
+          answers: [3的平方是9]
+          explain: 花括号里的 n 填 3，n * n 填 9。
+      - card:
+          title: 控制格式：小数位、宽度、对齐
+          body: |
+            花括号里，表达式后面加冒号，再写格式：
+
+            | 写法 | 显示 |
+            |---|---|
+            | `f"{3.14159:.2f}"` | `3.14`（保留 2 位小数） |
+            | `f"{42:5}"` | `   42`（占 5 格，数字靠右） |
+            | `f"{'ab':<5}"` / `f"{'ab':>5}"` / `f"{'ab':^6}"` | 靠左 / 靠右 / 居中占格 |
+            | `f"{1234567:,}"` | `1,234,567`（千位分隔） |
+            | `f"{0.25:.0%}"` | `25%` |
+            | `f"{x=}"` | `x=3`（连名字带值，找错时好用） |
+      - item:
+          id: fmt-2f
+          type: text
+          prompt: '`print(f"{2 / 3:.3f}")` 显示什么？'
+          answers: ['0.667']
+          explain: 2 / 3 = 0.6666…，保留 3 位小数，四舍五入得 0.667。
+      - card:
+          title: str.format、str() 和 repr()
+          body: |
+            老一点的代码常用 `"{} 加 {} 等于 {}".format(1, 2, 3)`，效果和 f-string 一样；更老的 `"%d 岁" % 18` 也能认出来。
+
+            `str(x)` 是给人看的样子，`repr(x)` 是给程序员看的样子：`str("hi")` 是 `hi`，`repr("hi")` 是 `'hi'`，带着引号，一眼看出它是字符串。print 列表时，里面的元素用的就是 repr：`print(["hi"])` 显示 `['hi']`。
+      - item:
+          id: repr-str
+          type: choice
+          prompt: '`print(repr("5"))` 显示什么？'
+          options:
+            - text: "'5'"
+              correct: true
+            - text: '5'
+              why: 这是 str 的样子；repr 会带上引号，表明它是字符串
+          explain: repr 给出带引号的写法，一看就知道它是字符串 "5"，不是整数 5。
+
+      - card:
+          title: 例题：问名字，再打招呼
+          body: 写一个程序：问用户叫什么、几岁，然后显示“你好，名字！10 年后你 X 岁。”一步一步来。
+          reveal:
+            - title: 第 1 步：读名字
+              body: "`name = input(\"名字：\")`。名字本来就是文字，不用转换。"
+            - title: 第 2 步：读年龄，转成整数
+              body: "`age = int(input(\"年龄：\"))`。后面要做加法，所以转成整数。"
+            - title: 第 3 步：算好并显示
+              body: "`print(f\"你好，{name}！10 年后你 {age + 10} 岁。\")`"
+            - title: 第 4 步：试一次
+              body: 输入 小红 和 9，显示：你好，小红！10 年后你 19 岁。
+      - item:
+          id: forgot-int
+          type: choice
+          prompt: 执行 `age = input("年龄：")`（没有 int），用户输入 9。接着算 `age + 10` 会怎样？
+          options:
+            - text: 报错 TypeError
+              correct: true
+            - text: 得到 19
+              why: age 是字符串 "9"，不能和整数相加
+            - text: 得到 "910"
+              why: 要拼接得两边都是字符串，10 是整数
+          explain: 忘了 int( ) 是最常见的错误之一：input 得到的永远是字符串。
+
+  - id: files
+    chapter: 输入输出与调试
+    title: 读写文件
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个程序把一句话写进了文件 note.txt，然后结束了。猜一猜：过一天再打开 note.txt，那句话还在吗？
+          options:
+            - text: 还在
+              correct: true
+            - text: 不在了，程序结束什么都没了
+              why: 变量会随程序结束消失，但写进文件的内容存在硬盘上，会一直留着
+          explain: 程序里的变量，程序一结束就没了；文件存在硬盘上，下次还能读。想让数据留下来，就写进文件。
+      - card:
+          title: 写一个文件
+          body: |
+            ```python
+            with open("note.txt", "w", encoding="utf-8") as f:
+                f.write("第一行\n")
+                f.write("第二行\n")
+            ```
+
+            `open(文件名, 模式, encoding=...)` 打开文件，`as f` 给打开的文件起名 f。`"w"` 表示写：文件不存在就新建，存在就**先清空**。`with` 下面缩进的部分执行完，文件会被自动关上。
+
+            注意 write 不会自动换行，要自己写 `\n`。
+      - item:
+          id: write-no-newline
+          type: choice
+          prompt: '在 `with open("a.txt", "w", encoding="utf-8") as f:` 下面依次写 `f.write("a")` 和 `f.write("b")`。a.txt 里是什么？'
+          options:
+            - text: 一行 ab
+              correct: true
+            - text: 两行：a 和 b
+              why: write 原样写入，不会自动加换行；想换行要写 "a\n"
+          explain: 两次 write 紧挨着写进去，得到 ab。
+      - card:
+          title: 读一个文件
+          body: |
+            ```python
+            with open("note.txt", encoding="utf-8") as f:
+                for line in f:
+                    print(line.strip())
+            ```
+
+            不写模式时就是 `"r"`（读）。`for line in f` 每一轮读出一行，**行尾带着 \n**，所以常用 `strip()` 去掉。
+
+            也可以 `f.read()` 一次读出全部内容（一个字符串），或 `f.readlines()` 得到每一行组成的列表。
+      - item:
+          id: count-lines
+          type: number
+          prompt: note.txt 的内容是“第一行”换行“第二行”换行（共两行）。`with open("note.txt", encoding="utf-8") as f:` 下面写 `print(len(f.readlines()))`，显示的数是多少？
+          answer: 2
+          explain: readlines 得到 ['第一行\n', '第二行\n']，两个元素。
+      - card:
+          title: 三种常用的模式
+          body: |
+            | 模式 | 意思 | 文件已经存在时 | 文件不存在时 |
+            |---|---|---|---|
+            | `"r"` | 读 | 从头读 | 报错 FileNotFoundError |
+            | `"w"` | 写 | **先清空**再写 | 新建 |
+            | `"a"` | 追加 | 写在原来内容的后面 | 新建 |
+
+            用 "w" 之前想清楚：原来的内容会全部丢掉。
+      - item:
+          id: mode-w
+          type: choice
+          prompt: log.txt 里原来有一行“旧”。用 "w" 模式打开，写入“新\n”，关上。现在 log.txt 里是什么？
+          options:
+            - text: 只有一行“新”
+              correct: true
+            - text: 两行：“旧”和“新”
+              why: 那是 "a"（追加）模式的效果；"w" 会先清空
+            - text: 只有一行“旧”
+              why: 写进去的内容会保存；而且 "w" 已经把“旧”清掉了
+          explain: '"w" 打开时先清空文件，所以只剩“新”。'
+      - item:
+          id: no-file
+          type: choice
+          prompt: '运行 `open("没有这个文件.txt", encoding="utf-8")`，文件确实不存在。会怎样？'
+          options:
+            - text: 报错 FileNotFoundError
+              correct: true
+            - text: 自动新建一个空文件
+              why: 只有 "w" 和 "a" 模式会新建；默认的 "r" 模式找不到文件就报错
+            - text: 得到一个空字符串
+              why: 文件都没有，没法读出任何东西，Python 会报错
+          explain: 读模式要求文件已经存在。
+      - card:
+          title: 为什么总写 with 和 encoding
+          body: |
+            - **with**：块结束时自动关上文件，中途报错也会关。不用 with，就得自己写 `f.close()`；写入的内容有时要等到关上文件才真正存进硬盘。
+            - **encoding="utf-8"**：文件里存的是编码后的文字。有些电脑默认的编码不是 UTF-8，不写的话，中文可能读成乱码，或者读的时候报 UnicodeDecodeError。
+      - item:
+          id: why-encoding
+          type: choice
+          prompt: 打开含中文的文本文件时，为什么最好写上 `encoding="utf-8"`？
+          options:
+            - text: 不同电脑的默认编码可能不同，写明了到哪台电脑上都能正确读写
+              correct: true
+            - text: 不写就不能打开文件
+              why: 不写也能打开，只是会用这台电脑的默认编码，可能和文件实际的编码对不上
+            - text: 写了以后文件会变小
+              why: encoding 决定怎样把文字变成存储的内容，写它是为了读对，不是为了省空间
+          explain: 写明编码，程序在哪台电脑上都按同一种方式读写，不会乱码。
+      - card:
+          title: 例题：数一数有几行含“错误”
+          body: 文件 run.log 每行是一条记录，数一数有几行里含有“错误”两个字。
+          reveal:
+            - title: 第 1 步：打开文件
+              body: '`with open("run.log", encoding="utf-8") as f:`'
+            - title: 第 2 步：准备计数器，逐行看
+              body: |
+                ```python
+                    count = 0
+                    for line in f:
+                ```
+            - title: 第 3 步：含有就加 1
+              body: |
+                ```python
+                        if "错误" in line:
+                            count = count + 1
+                ```
+                最后在 with 外面 `print(count)`。
+      - card:
+          title: json：把列表和字典存进文件
+          body: |
+            write 只能写字符串。想把列表、字典原样存起来，下次读回来还是列表、字典，用标准库的 `json`：
+
+            ```python
+            import json
+            with open("data.json", "w", encoding="utf-8") as f:
+                json.dump({"name": "小明", "scores": [90, 85]}, f, ensure_ascii=False)
+            with open("data.json", encoding="utf-8") as f:
+                data = json.load(f)
+            print(data["scores"][0])
+            ```
+
+            显示 90。`ensure_ascii=False` 让中文按原样存，不写成 `小` 这种样子。`json.dumps(值)` 不写文件，直接得到那个字符串。
+      - item:
+          id: json-dumps
+          type: text
+          prompt: 写了 `import json` 之后，`print(json.dumps([1, "a", True]))` 显示什么？
+          answers: ['[1, "a", true]']
+          explain: JSON 的写法和 Python 稍有不同：字符串一律用双引号，True 写成小写的 true。
+      - item:
+          id: json-tuple
+          type: choice
+          prompt: 写了 `import json` 之后，`json.loads(json.dumps((1, 2)))` 是什么？（loads 把字符串读回成值）
+          options:
+            - text: '`[1, 2]`'
+              correct: true
+            - text: '`(1, 2)`'
+              why: JSON 里没有元组，元组被存成了列表，读回来就是列表
+          explain: JSON 里的序列只有方括号写的那一种，读回 Python 就是列表。
+
+  - id: debugging
+    chapter: 输入输出与调试
+    title: 和 bug 打交道
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 程序报错了，屏幕上出现好几行英文。你猜最该先看哪里？
+          options:
+            - text: 最后一行
+              correct: true
+            - text: 第一行
+              why: 第一行通常只是固定的开头 Traceback，原因写在最后
+            - text: 都不看，直接改代码
+              why: 不看报错就改，等于闭着眼睛猜
+          explain: 最后一行写着错了什么、为什么错。下一张卡细讲。
+      - card:
+          title: 读报错：先看最后一行
+          body: |
+            程序里的错误叫 bug，找出并改正它叫**调试（debug）**。
+
+            Python 报错时显示的那几行叫**报错信息（traceback）**。**最后一行**写着错误的种类和原因，比如 `NameError: name 'prnt' is not defined`（名字 prnt 没有定义）；往上几行写着出错的位置，比如 `line 3` 就是第 3 行。
+      - card:
+          title: 常见的几种错误
+          body: |
+            | 错误 | 常见原因 |
+            |---|---|
+            | SyntaxError | **语法**错误：写法不合规矩，比如少了冒号、引号或括号没配对 |
+            | NameError | 名字没赋值过，或者拼错了 |
+            | TypeError | 类型不对，比如字符串加整数 |
+            | IndexError | 列表下标超出范围 |
+            | KeyError | 字典里没有这个键 |
+            | ZeroDivisionError | 除以 0 |
+      - item:
+          id: match-errors
+          type: match
+          prompt: 把代码和它会引发的错误连起来。
+          pairs:
+            - ["`1 / 0`", ZeroDivisionError]
+            - ["`[1, 2][5]`", IndexError]
+            - ["`\"a\" + 1`", TypeError]
+            - ["`prnt(\"hi\")`", NameError]
+            - ["`{\"a\": 1}[\"b\"]`", KeyError]
+          explain: 除以 0、下标超出、字符串加整数、名字拼错、字典里没有这个键，分别对应这五种错误。
+      - card:
+          title: 没报错，但结果不对
+          body: |
+            这种 bug 最难找。办法是：**先自己算出每一步应该是什么，再看程序实际是什么**，第一个对不上的地方就是 bug 所在。
+
+            可以在中间加几行 print 显示变量，或者像这个游戏里一样单步运行。
+      - card:
+          title: 找一个 bug
+          body: 这段想求 [2, 4, 6] 的平均数（应该是 4），却显示 3.33…。单步运行，看第一次加进 total 的是哪个数。
+          sim:
+            name: trace
+            params:
+              code: |
+                xs = [2, 4, 6]
+                total = 0
+                for i in range(1, len(xs)):
+                    total = total + xs[i]
+                print(total / len(xs))
+      - item:
+          id: trace-bug
+          type: sim
+          sim: trace
+          prompt: 同一段代码。第 4 行第一次执行完时，total 是多少？
+          params:
+            code: |
+              xs = [2, 4, 6]
+              total = 0
+              for i in range(1, len(xs)):
+                  total = total + xs[i]
+              print(total / len(xs))
+          goal:
+            ask:
+              - { line: 4, var: total, hit: 1 }
+          explain: range(1, len(xs)) 从 1 开始，第一轮 i 是 1，加的是 xs[1] = 4，下标 0 的 2 被跳过了。所以 total 最后是 10，不是 12。
+      - item:
+          id: fix
+          type: choice
+          prompt: '代码 `for i in range(1, len(xs)): total = total + xs[i]` 想把 xs 里所有数加起来，却漏掉了一个。怎么修最好？'
+          options:
+            - text: 改成 `range(len(xs))`，从下标 0 开始
+              correct: true
+            - text: 把最后改成 `total / (len(xs) - 1)`
+              why: 这样分母对上了加进去的个数，但平均数里还是少了第一个数
+            - text: 把 `total = 0` 改成 `total = 2`
+              why: 只对 [2, 4, 6] 这一个例子碰巧对，换个列表就错
+          explain: 下标从 0 开始，循环也要从 0 开始。修 bug 要修原因，不能凑答案。
+      - card:
+          title: 断言：让程序自己检查
+          body: |
+            修好以后，写几行检查，防止它以后又坏：`assert 条件`。条件是 True 时什么也不发生；是 False，就立刻报 AssertionError。这叫**断言（assert）**。
+
+            ```python
+            assert average([2, 4, 6]) == 4
+            assert average([5]) == 5
+            ```
+
+            每一行检查一个具体的输入和它应得的结果，这样一组输入和结果叫一个**测试用例**。
+      - item:
+          id: assert-false
+          type: choice
+          prompt: 运行 `assert 2 + 2 == 5` 会怎样？
+          options:
+            - text: 报错 AssertionError
+              correct: true
+            - text: 什么也不发生
+              why: 只有条件为 True 时才什么也不发生；2 + 2 == 5 是 False
+            - text: 显示 False
+              why: assert 不显示结果，条件不成立就直接报错
+          explain: 2 + 2 == 5 是 False，assert 立刻报 AssertionError，提醒你“这里不对”。
+      - item:
+          id: empty-average
+          type: choice
+          prompt: '函数 `def average(xs): return sum(xs) / len(xs)`（sum(xs) 是 xs 里所有数的和）。`average([])` 会怎样？'
+          options:
+            - text: 报错 ZeroDivisionError
+              correct: true
+            - text: 返回 0
+              why: 空列表的 len 是 0，除以 0 会报错，不会得 0
+            - text: 返回 None
+              why: 函数有 return，会去算 sum([]) / 0，除以 0 就报错
+          explain: 空列表的 sum 是 0，len 也是 0，0 / 0 是除以 0，报 ZeroDivisionError。好的写法是先检查 `if len(xs) == 0:` 再决定怎么办。
+
+  - id: exceptions
+    chapter: 输入输出与调试
+    title: 出了错也不崩：try 和 except
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜：`int("abc")` 会怎样？
+          options:
+            - text: 报错 ValueError
+              correct: true
+            - text: 得到 0
+              why: Python 不会替你猜一个数，"abc" 根本不是整数的写法
+            - text: 报错 TypeError
+              why: 类型没错（int 本来就接收字符串），错的是这个字符串的内容，所以是 ValueError
+          explain: 类型对、但值不合适，就是 ValueError（值错误）。
+      - card:
+          title: 异常：运行时发现的错
+          body: |
+            少了冒号这种语法错误，Python 在运行之前就发现了。写法没问题、运行到一半才出的错，叫**异常（exception）**：除以 0、下标超出、`int("abc")`……
+
+            异常没人处理，程序就在那一行停下，显示报错信息。但很多异常是可以预料的，比如用户输错了，这时我们希望程序接住它，而不是直接崩掉。
+      - item:
+          id: match-exc
+          type: match
+          prompt: 把代码和它引发的异常连起来。
+          pairs:
+            - ['`int("abc")`', ValueError]
+            - ['`open("无.txt")`（文件不存在）', FileNotFoundError]
+            - ['`10 / 0`', ZeroDivisionError]
+            - ['`[1][3]`', IndexError]
+          explain: 值不合适、文件不存在、除以 0、下标超出，各有各的异常种类。
+      - card:
+          title: try / except：接住它
+          body: |
+            ```python
+            try:
+                n = int(input("数字："))
+                print("两倍是", n * 2)
+            except ValueError:
+                print("这不是整数")
+            ```
+
+            先执行 try 里的代码。某一行出了 ValueError，**try 里剩下的不再执行**，跳到 except 执行；没出错，except 就跳过。
+
+            如果出的是 except 后面没写的种类，它照样没人接，程序还是会停下。
+      - card:
+          title: 看它怎么跳
+          body: 第二个字符串 "x" 转不成整数。点“下一步”，看程序怎样跳进 except，又怎样接着处理下一个。
+          sim:
+            name: trace
+            params:
+              code: |
+                total = 0
+                for s in ["3", "x", "5"]:
+                    try:
+                        total = total + int(s)
+                    except ValueError:
+                        print("跳过", s)
+                print(total)
+      - item:
+          id: trace-except
+          type: sim
+          sim: trace
+          prompt: 先在心里走一遍，再填答案。
+          params:
+            code: |
+              total = 0
+              for s in ["10", "", "2", "a"]:
+                  try:
+                      total = total + int(s)
+                  except ValueError:
+                      total = total - 1
+              print(total)
+          goal:
+            ask:
+              - { line: 7, var: "@out" }
+          explain: '"10" 和 "2" 能转成整数，加上 12；空字符串和 "a" 都会出 ValueError，各减 1。12 − 2 = 10。'
+      - card:
+          title: 几个 except、as、else
+          body: |
+            - 可以写好几个 except，按种类分别处理；也可以一次写几种：`except (ValueError, TypeError):`。
+            - `except ValueError as e:` 把异常交给名字 e，`print(e)` 显示原因，比如 `invalid literal for int() with base 10: 'abc'`。
+            - `else:` 写在所有 except 后面，try 里**没出错**时才执行。
+
+            不要只写 `except:` 接住一切还什么都不做：真正的 bug 也会被悄悄吞掉。
+      - item:
+          id: try-else
+          type: choice
+          prompt: 运行下面的程序，显示什么？
+          code: |
+            try:
+                x = 1 / 0
+                print("a")
+            except ZeroDivisionError:
+                print("b")
+            else:
+                print("c")
+          lang: python
+          options:
+            - text: b
+              correct: true
+            - text: a 和 b
+              why: 1 / 0 那一行就出错了，try 里后面的 print("a") 不再执行
+            - text: b 和 c
+              why: else 只在 try 没出错时执行
+          explain: 1 / 0 出错，跳到 except 显示 b；出过错，else 不执行。
+      - item:
+          id: uncaught
+          type: choice
+          prompt: 运行下面的程序，会怎样？
+          code: |
+            try:
+                print([1, 2][5])
+            except ValueError:
+                print("出错了")
+          lang: python
+          options:
+            - text: 报错 IndexError，程序停下
+              correct: true
+            - text: 显示“出错了”
+              why: 出的是 IndexError，except 只接 ValueError，接不住
+          explain: except 只接住写明的种类。IndexError 没人接，程序照样停下。
+      - card:
+          title: raise：自己报出异常
+          body: |
+            你写的函数遇到没法处理的情况，可以用 `raise` 报出一个异常，交给调用它的人决定怎么办：
+
+            ```python
+            def average(xs):
+                if not xs:
+                    raise ValueError("空列表没有平均数")
+                return sum(xs) / len(xs)
+            ```
+
+            比起悄悄返回 0，这样调用的人马上知道出了什么事；他也可以用 try / except 接住。
+      - card:
+          title: 例题：修好 average，并写测试
+          body: 原来的 average 写的是 `for i in range(1, len(xs))`，漏了第一个数，空列表还会除以 0。一步一步修。
+          reveal:
+            - title: 第 1 步：找到 bug 的原因
+              body: range(1, …) 从下标 1 开始，xs[0] 没被加进去。改成直接 `sum(xs) / len(xs)`。
+            - title: 第 2 步：处理空列表
+              body: '空列表的 len 是 0，会除以 0。在开头 `if not xs: raise ValueError("空列表没有平均数")`。'
+            - title: 第 3 步：测正常的情况
+              body: |
+                ```python
+                assert average([2, 4, 6]) == 4
+                assert average([5]) == 5
+                ```
+            - title: 第 4 步：测空列表确实报错
+              body: |
+                ```python
+                try:
+                    average([])
+                    assert False, "应该报 ValueError"
+                except ValueError:
+                    pass
+                ```
+                如果 average([]) 没报错，就会执行到 assert False，测试失败。
+      - item:
+          id: raise-msg
+          type: choice
+          prompt: '定义 `def check_age(a):`，函数里是 `if a < 0: raise ValueError("年龄不能是负数")` 和 `return a`。调用 `check_age(-1)` 会怎样？'
+          options:
+            - text: 报错，最后一行是 ValueError：年龄不能是负数
+              correct: true
+            - text: 返回 -1
+              why: a < 0 成立，raise 先执行，return 就执行不到了
+            - text: 显示“年龄不能是负数”，然后返回 None
+              why: raise 不是 print，它让函数立刻停下并报出异常
+          explain: raise 让函数马上停下，异常往外传；没人接住，程序停下并显示这个原因。
+      - item:
+          id: raise-why
+          type: choice
+          prompt: 函数遇到处理不了的输入时，为什么 raise 一个异常通常比 print 一句提示更好？
+          options:
+            - text: 调用的人能知道出了错，并用 try / except 决定怎么办
+              correct: true
+            - text: raise 显示的文字更好看
+              why: 不在于显示；print 之后函数还会接着往下执行，调用的人拿到一个错的结果却不知道
+          explain: print 只是给人看，程序本身不知道出错了；raise 让出错这件事传给调用者。
+
+  - id: cleanup
+    chapter: 输入输出与调试
+    title: 收尾：finally、with 和自己的异常
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜这个程序显示什么。
+          code: |
+            try:
+                print("a")
+                x = 1 / 0
+            finally:
+                print("b")
+          lang: python
+          options:
+            - text: 显示 a 和 b，然后报 ZeroDivisionError
+              correct: true
+            - text: 只显示 a，然后报错
+              why: finally 里的代码不管出没出错都会执行
+            - text: 显示 a 和 b，不报错
+              why: finally 不会接住异常；没有 except，执行完 finally 后异常照样往外传
+          explain: finally 一定执行，但它不接住异常：执行完 finally，程序照样报错停下。
+      - card:
+          title: finally：无论如何都执行
+          body: |
+            try 后面可以跟 `finally:`。不管 try 里出没出错、有没有 return，最后都会执行它。用来做“收尾”：关文件、释放占着的东西。
+
+            顺序：try → 出错时对应的 except → 没出错时的 else → 最后总是 finally。
+      - item:
+          id: finally-return
+          type: choice
+          prompt: 运行下面的程序，显示什么？
+          code: |
+            def f():
+                try:
+                    return "try"
+                finally:
+                    print("finally")
+
+            print(f())
+          lang: python
+          options:
+            - text: 先显示 finally，再显示 try
+              correct: true
+            - text: 只显示 try
+              why: return 之前，finally 也要执行
+            - text: 先显示 try，再显示 finally
+              why: print(f()) 要等 f 返回才显示；而 f 返回之前先执行了 finally
+          explain: return 准备交出 "try"，但离开函数前先执行 finally；之后 print 才拿到 "try"。
+      - card:
+          title: with 是写好了的收尾
+          body: |
+            `with open(...) as f:` 相当于：打开文件，`try:` 执行块里的代码，`finally:` 关上文件。所以块里出错，文件也会被关上。
+
+            文件是最常见的例子；以后学到的锁、网络连接，也常用 with 保证用完一定会还回去。
+      - item:
+          id: with-closed
+          type: choice
+          prompt: '`with open("a.txt", "w", encoding="utf-8") as f:` 的块里执行了 `1 / 0`。之后检查 `f.closed`（文件关上了没有），是什么？'
+          options:
+            - text: True，已经关上了
+              correct: true
+            - text: False，出错了来不及关
+              why: with 在块结束时一定关文件，出错也一样，这正是它的用处
+          explain: with 保证收尾一定执行。
+      - card:
+          title: 自己定义一种异常
+          body: |
+            ```python
+            class NotEnoughMoney(Exception):
+                pass
+
+            def pay(balance, price):
+                if price > balance:
+                    raise NotEnoughMoney(f"还差 {price - balance} 元")
+                return balance - price
+            ```
+
+            `class 名字(Exception): pass` 造出一种新的异常。class 是下一门课（面向对象）的内容，这里当成固定写法就好。名字一般以 Error 结尾或者说清楚出了什么事，调用的人可以单独 `except NotEnoughMoney`。
+      - item:
+          id: custom-exc
+          type: choice
+          prompt: 用上面的 pay，运行下面的程序，显示什么？
+          code: |
+            try:
+                pay(50, 80)
+            except NotEnoughMoney as e:
+                print("付不了：", e)
+          lang: python
+          options:
+            - text: 付不了： 还差 30 元
+              correct: true
+            - text: 报错 NotEnoughMoney，程序停下
+              why: except NotEnoughMoney 正好接住了它
+            - text: 什么也不显示
+              why: 80 > 50，raise 执行了，被 except 接住后显示原因
+          explain: 80 > 50，raise 报出 NotEnoughMoney("还差 30 元")；except 接住，e 的内容就是这句话。
+          review: false
+      - card:
+          title: raise … from …：说明原因
+          body: |
+            接住一个异常以后，有时要换成一个更好懂的异常再报出去：
+
+            ```python
+            try:
+                port = int(text)
+            except ValueError as e:
+                raise RuntimeError("配置里的端口不是数字") from e
+            ```
+
+            `from e` 把两个异常连起来，报错信息里会先显示原来的 ValueError，再写一句 “The above exception was the direct cause of the following exception”（上面的异常是下面这个的直接原因），最后是 RuntimeError。
+      - item:
+          id: chain
+          type: choice
+          prompt: '`raise RuntimeError("…") from e` 里的 `from e` 起什么作用？'
+          options:
+            - text: 报错信息里两个异常都显示，并标明 e 是直接原因
+              correct: true
+            - text: 只显示 RuntimeError，把原来的 e 藏起来
+              why: 正好相反，from e 让原来的异常也显示出来，方便找根源
+            - text: 把 RuntimeError 变成 ValueError
+              why: 报出的仍然是 RuntimeError，e 只是被记成它的原因
+          explain: 新的异常更好懂，原来的异常留着当线索，两个都在报错信息里。
+
+  - id: call-stack
+    chapter: 输入输出与调试
+    title: 调用栈：程序现在在哪一层
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          multi: true
+          prompt: 主程序调用 a()，a() 里调用 b()，b() 里调用 c()。c 正在执行的那一刻，哪些函数**还没执行完**？（可多选）
+          options:
+            - text: a
+              correct: true
+            - text: b
+              correct: true
+            - text: c
+              correct: true
+          explain: a 在等 b 返回，b 在等 c 返回，c 正在执行：三个都没结束。
+      - card:
+          title: 调用栈
+          body: |
+            每调用一次函数，Python 就在一摞记录的**最上面**放一张：记着这次调用的局部变量，以及执行完要回到哪里。函数返回时，最上面那张被拿走，回到下面那张记着的地方接着执行。
+
+            这一摞记录叫**调用栈（call stack）**。最上面的永远是正在执行的函数。
+      - card:
+          title: 看调用栈长高又变矮
+          body: 单步运行，注意右边的“调用栈”：进入 sum_squares 时多一层，进入 square 时再多一层，square 返回后又少一层。
+          sim:
+            name: trace
+            params:
+              code: |
+                def square(x):
+                    return x * x
+
+                def sum_squares(a, b):
+                    return square(a) + square(b)
+
+                print(sum_squares(3, 4))
+      - item:
+          id: stack-order
+          type: choice
+          prompt: 上面的程序执行到 square(3) 里面时，调用栈从最早的一层到最新的一层是？
+          options:
+            - text: 主程序 → sum_squares → square
+              correct: true
+            - text: square → sum_squares → 主程序
+              why: 这是从最新到最早；最早的是主程序，它最先开始
+            - text: 主程序 → square
+              why: square 是被 sum_squares 调用的，sum_squares 还在等它，也在栈里
+          explain: 主程序调用 sum_squares，sum_squares 又调用 square：一层压一层。
+          review: false
+      - card:
+          title: 报错信息就是调用栈
+          body: |
+            ```text
+            Traceback (most recent call last):
+              File "report.py", line 7, in <module>
+                print(report([]))
+                      ~~~~~~^^^^
+              File "report.py", line 5, in report
+                return "平均 " + str(average(xs))
+                                     ~~~~~~~^^^^
+              File "report.py", line 2, in average
+                return sum(xs) / len(xs)
+                       ~~~~~~~~^~~~~~~~~
+            ZeroDivisionError: division by zero
+            ```
+
+            “most recent call last”：从最早的一层写起，**最后一层是出错的地方**。每一层写着文件、行号、在哪个函数里；`~` 和 `^` 标出这一行里正在算的那一部分。
+      - item:
+          id: tb-where
+          type: number
+          prompt: 上面的报错信息里，真正除以 0 的那一行是 report.py 的第几行？
+          answer: 2
+          explain: 最后一层是 average 里的第 2 行 `return sum(xs) / len(xs)`。
+          review: false
+      - item:
+          id: tb-cause
+          type: choice
+          prompt: 还是那份报错信息。除以 0 发生在 average 里，但空列表是从哪里来的？
+          options:
+            - text: 第 7 行的主程序调用了 report([])，空列表一路传了下来
+              correct: true
+            - text: average 自己造出了空列表
+              why: average 只是用了传给它的 xs；往上一层层看，xs 来自 report，再来自第 7 行的 []
+          explain: 出错的地方在最内层，但原因可能在外面某一层。顺着调用栈往上看，就能找到 [] 是谁传进来的。
+          review: false
+      - card:
+          title: 调试器：单步进入、单步跳过
+          body: |
+            VS Code、Thonny 这些编辑器都带调试器；在代码里写一行 `breakpoint()`，程序运行到这里也会停下，进入 Python 自带的调试器。
+
+            | 按钮 | 做什么 |
+            |---|---|
+            | 单步跳过（Step Over） | 执行当前这一行；行里调用的函数整个执行完，不进去 |
+            | 单步进入（Step Into） | 当前行调用了函数，就进到函数里面，停在它的第一行 |
+            | 单步跳出（Step Out） | 执行完当前函数剩下的部分，回到调用它的地方 |
+
+            在想停的行上设一个断点（breakpoint），程序运行到那里就会停下，等你一步步看。
+      - item:
+          id: step-into
+          type: choice
+          prompt: 程序停在 `total = square(a) + square(b)` 这一行。你想看 square 里面是怎么算的，该按哪个？
+          options:
+            - text: 单步进入
+              correct: true
+            - text: 单步跳过
+              why: 单步跳过会把两次 square 调用整个执行完，直接停到下一行，看不到里面
+            - text: 单步跳出
+              why: 单步跳出是离开当前函数，回到调用它的地方
+          explain: 单步进入会进到 square 里面，停在它的第一行，调用栈多一层。
+      - item:
+          id: step-over
+          type: choice
+          prompt: 你已经确定 square 没有问题，不想每次都进去看。停在 `total = square(a) + square(b)` 时该按哪个？
+          options:
+            - text: 单步跳过
+              correct: true
+            - text: 单步进入
+              why: 单步进入会进到 square 里一行行走，你已经知道它没问题，这样浪费时间
+          explain: 单步跳过把这一行（包括里面的函数调用）当成一步执行完。
+
+boss:
+  items:
+    - id: mixed-ops
+      type: number
+      prompt: "`len(\"abc\" * 2) + 7 // 2` 是多少？"
+      answer: 9
+      explain: '"abc" * 2 是 "abcabc"，长度 6；7 // 2 是 3；6 + 3 = 9。'
+    - id: names
+      type: number
+      prompt: 运行下面的程序，显示的数是多少？
+      code: |
+        a = 4
+        b = a
+        a = a + 3
+        b = b * 2
+        print(a + b)
+      lang: python
+      answer: 15
+      explain: b = a 时 b 得 4。之后 a 改指 7，b 改指 8，不会互相影响。7 + 8 = 15。
+    - id: count-multiples
+      type: number
+      prompt: 运行下面的程序，显示的数是多少？
+      code: |
+        count = 0
+        for n in range(1, 21):
+            if n % 3 == 0:
+                count = count + 1
+        print(count)
+      lang: python
+      answer: 6
+      explain: 1 到 20 里 3 的倍数是 3、6、9、12、15、18，一共 6 个。
+    - id: halving
+      type: number
+      prompt: 运行下面的程序，显示的数是多少？
+      code: |
+        n = 100
+        steps = 0
+        while n > 1:
+            n = n // 2
+            steps = steps + 1
+        print(steps)
+      lang: python
+      answer: 6
+      explain: n 依次是 100、50、25、12、6、3、1，一共整除了 6 次。
+    - id: primes
+      type: number
+      prompt: 运行下面的程序，显示的数是多少？（is_prime 判断 n 是不是素数：只能被 1 和它自己整除的、大于 1 的整数）
+      code: |
+        def is_prime(n):
+            if n < 2:
+                return False
+            d = 2
+            while d * d <= n:
+                if n % d == 0:
+                    return False
+                d = d + 1
+            return True
+
+        count = 0
+        for n in range(1, 51):
+            if is_prime(n):
+                count = count + 1
+        print(count)
+      lang: python
+      answer: 15
+      explain: 1 到 50 的素数是 2、3、5、7、11、13、17、19、23、29、31、37、41、43、47，一共 15 个。1 不是素数。
+    - id: default-fix
+      type: choice
+      prompt: "`def add(x, box=[])` 每次调用会共用同一个列表。怎么改？"
+      options:
+        - text: '写成 `def add(x, box=None)`，函数里 `if box is None: box = []`'
+          correct: true
+        - text: 写成 `def add(x, box=list())`
+          why: list() 一样只在 def 那一行执行一次，还是同一个列表
+        - text: 在函数最后写 `box = []`
+          why: 函数结束前改局部变量，不会影响下一次调用的默认值
+      explain: 用 None 当“没填”的记号，每次调用时在函数里新建列表。
+    - id: gcd
+      type: number
+      prompt: 写了 `from math import gcd` 之后，`gcd(24, 36)` 是多少？
+      answer: 12
+      explain: 24 和 36 的公约数有 1、2、3、4、6、12，最大的是 12。
+    - id: buggy-average
+      type: number
+      prompt: 下面的 average 有 bug。`average([2, 4, 6])` 实际返回多少？（保留两位小数）
+      code: |
+        def average(xs):
+            total = 0
+            for i in range(1, len(xs)):
+                total = total + xs[i]
+            return total / len(xs)
+      lang: python
+      answer: 3.3333
+      tolerance: 0.01
+      explain: 循环从下标 1 开始，漏掉了 2，total 是 4 + 6 = 10，10 / 3 ≈ 3.33。
+    - id: sqrt-reason
+      type: choice
+      prompt: 判断 n 是不是素数时，为什么只要试除到 √n（试到 d * d > n 就停）？
+      options:
+        - text: 如果 n = a × b 且 a ≤ b，那么 a ≤ √n；有因子就一定有一个不超过 √n
+          correct: true
+        - text: 因为大于 √n 的数都不是 n 的因子
+          why: 反例：10 的因子 5 大于 √10 ≈ 3.16；只是它的搭档 2 已经 ≤ √n，早被试到了
+        - text: 只是为了更快，结果可能会错
+          why: 这是有证明的，不会漏掉
+      explain: 因子总是成对出现，一对里较小的那个不超过 √n。试到 √n 还没找到，就不会有。
+    - id: slice-boss
+      type: text
+      prompt: '`"Python"[1:-1]` 是什么？'
+      answers: [ytho]
+      explain: 从下标 1（y）开始，到 -1（最后的 n）之前为止：ytho。
+    - id: set-boss
+      type: number
+      prompt: '`len({1, 2, 3} | {3, 4, 5})` 是多少？'
+      answer: 5
+      explain: 并集是 {1, 2, 3, 4, 5}，3 只算一次，共 5 个。
+    - id: comp-boss
+      type: number
+      prompt: '`sum([x * x for x in range(4)])` 是多少？'
+      answer: 14
+      explain: range(4) 是 0、1、2、3，平方是 0、1、4、9，和是 14。
+    - id: except-boss
+      type: number
+      prompt: 运行下面的程序，显示的数是多少？
+      code: |
+        count = 0
+        for s in ["7", "seven", "0", "3.5"]:
+            try:
+                int(s)
+                count = count + 1
+            except ValueError:
+                pass
+        print(count)
+      lang: python
+      answer: 2
+      explain: '"7" 和 "0" 能转成整数；"seven" 不是数，"3.5" 带小数点，int() 都转不了，报 ValueError 被接住。'
+    - id: count-boss
+      type: choice
+      prompt: '想数出列表 words 里每个词出现的次数，循环体里写哪一行？（counts 一开始是空字典 {}）'
+      options:
+        - text: '`counts[w] = counts.get(w, 0) + 1`'
+          correct: true
+        - text: '`counts[w] = counts[w] + 1`'
+          why: 第一次见到 w 时字典里还没有这个键，counts[w] 会报 KeyError
+        - text: '`counts[w] = 1`'
+          why: 每次都记成 1，出现几次都只是 1
+      explain: get(w, 0) 在第一次见到 w 时交出 0，以后交出已经数到的次数。
+    - id: mode-boss
+      type: choice
+      prompt: 想在日志文件末尾再加一行，不动原来的内容，open 用哪种模式？
+      options:
+        - text: '"a"'
+          correct: true
+        - text: '"w"'
+          why: '"w" 打开时先清空文件，原来的日志就没了'
+        - text: '"r"'
+          why: '"r" 只能读，不能写'
+      explain: '"a" 是追加：写在原来内容的后面。'

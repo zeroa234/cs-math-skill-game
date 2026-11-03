@@ -1,0 +1,3100 @@
+skill: P.2.2
+version: 2
+authors: [main-agent]
+brief:
+  why: Python 替你管着内存：变量放在哪、用完什么时候收回，你都不用想。C 让你自己管，所以写得出又快又省的程序，也写得出 Python 里不会出现的错误。操作系统本身就是用 C 写的，这条路后面的数据结构和操作系统，课里的代码也都是 C。这一关只假设你学过上一关的 Python，从“C 程序怎么变成能运行的程序”讲起。
+  outcomes:
+    - 写一个 C 程序，用 gcc 编译、运行，读懂编译器的报错
+    - 给变量写上类型，预测 7 / 2、printf 的占位符这类写法的结果
+    - 把程序拆成几个文件，分清编译报错和链接报错
+    - 说出 printf、write 和操作系统的关系，用 echo $? 看程序的退出状态
+    - 用 & 取地址、用 * 通过指针读写变量，让函数改动调用者的变量
+    - 用数组和指针运算访问一串元素，读懂以 '\0' 结尾的 C 字符串
+    - 说出一个变量住在内存的哪一块：代码区、全局数据区、堆、栈
+    - 用 malloc 和 free 管理内存，认出悬垂指针、内存泄漏和缓冲区溢出
+    - 用 nm 读符号表，分清 static 和 extern，说出静态库和共享库的区别，读懂 ldd 和找不到共享库的报错
+    - 用 open、read、write、close 读写文件，检查 -1 并用 perror 说明原因，解释 printf 和 write 的输出顺序
+    - 用结构体、void *、函数指针写通用的代码，比如给 qsort 写比较函数
+    - 读懂一段简单的 x86-64 汇编，说出 call 和 ret 怎样用栈上的返回地址
+    - 用 realloc 写会长大的数组，用 malloc 串起一个链表，说出分配器怎样用块头记账
+terms:
+  - term: 源代码
+    def: '人写的程序文本，C 的源代码文件以 .c 结尾'
+  - term: 编译器
+    def: '把源代码整个翻译成可执行文件的程序，如 gcc'
+  - term: 编译
+    def: '用编译器把源代码翻译成电脑能直接运行的文件；有错就不生成文件'
+  - term: 可执行文件
+    def: '编译、链接后得到的文件，能直接运行，如 ./hello'
+  - term: main 函数
+    def: 'C 程序的起点：运行时从 main 的第一行开始执行'
+  - term: 声明
+    def: '告诉编译器一个名字的类型：变量如 int n;，函数如 int add(int a, int b);（没有函数体）'
+  - term: 注释
+    def: '写给人看的说明，编译器跳过。C 里 // 到行尾，或 /* 和 */ 之间'
+  - term: 定义
+    def: '真正给出内容的地方：函数的定义带着 { } 里的函数体'
+  - term: 头文件
+    def: '以 .h 结尾、放声明的文件，用 #include 拿进来，如 stdio.h'
+  - term: 预处理
+    def: '编译前的一步：处理 #include 等以 # 开头的行，比如把头文件的文字原样复制进来'
+  - term: 目标文件
+    def: 'gcc -c 编译一个 .c 得到的 .o 文件，还缺别的文件里的函数'
+  - term: 链接
+    def: '把几个目标文件和库拼成一个可执行文件，并给每个用到的函数找到定义'
+  - term: 链接器
+    def: '做链接的程序；找不到函数定义时报 undefined reference'
+  - term: 内核
+    def: '操作系统里真正管理硬件、替程序办事的核心部分'
+  - term: 系统调用
+    def: '程序请内核办事的方式，如 Linux 的 write'
+  - term: 库函数
+    def: '标准库里写好的函数，如 printf、strlen；有的最后会用到系统调用'
+  - term: 文件描述符
+    def: '内核给打开的文件发的小整数编号：0 标准输入、1 标准输出、2 标准错误'
+  - term: 退出状态
+    def: 'main 的返回值交给系统的数，0 表示成功；终端里 echo $? 可以看'
+  - term: 内存
+    def: '程序运行时放数据的地方，像一长排编了号的小格子'
+  - term: 字节
+    def: '内存里的一个小格子，能存 256 种不同的值（如 0 到 255）'
+  - term: 地址
+    def: '内存格子的编号；一个变量的地址是它第一个字节的编号'
+  - term: 十六进制
+    def: '逢 16 进 1 的写法，以 0x 开头，a 到 f 表示 10 到 15，如 0x10 = 16'
+  - term: 指针
+    def: '存着地址的变量；int *p 表示 p 指向一个 int'
+  - term: 解引用
+    def: '在指针前写 *：*p 就是 p 指向的那个变量，能读也能写'
+  - term: 按值传递
+    def: 'C 调用函数时把参数的值复制一份给函数，函数改副本不影响调用处'
+  - term: 空指针
+    def: '值为 NULL、不指向任何东西的指针；对它解引用会让程序崩溃'
+  - term: 段错误
+    def: '程序访问了不允许访问的内存，被系统强制终止，显示 Segmentation fault'
+  - term: 数组
+    def: '一排类型相同、在内存里紧挨着的元素，长度创建时定死，如 int a[5]'
+  - term: 越界
+    def: '用超出数组范围的下标读写，C 不检查，会碰到别的内存'
+  - term: 未定义行为
+    def: 'C 标准不规定结果的操作（如越界）：可能看起来正常，也可能出错或崩溃'
+  - term: 字符串
+    def: 'C 里是以 \0（值为 0 的字符）结尾的 char 数组，如 "cat" 占 4 个字节'
+  - term: 缓冲区溢出
+    def: '往数组里写的比它能装的多，多出的部分覆盖相邻的内存'
+  - term: 栈
+    def: '内存里放函数局部变量和参数的区域，每次调用占一块，返回时收回'
+  - term: 堆
+    def: '内存里放 malloc 要来的内存的区域，要用 free 还回去'
+  - term: 栈帧
+    def: '一次函数调用在栈上占的那块地方，放这次调用的参数和局部变量'
+  - term: 递归
+    def: '函数调用它自己；每一层调用都有自己的栈帧'
+  - term: 栈溢出
+    def: '栈用完了（如递归停不下来），程序崩溃'
+  - term: 生命周期
+    def: '一块内存从存在到被收回的这段时间'
+  - term: 静态变量
+    def: '全局变量和加了 static 的变量：整个程序运行期间都在，只初始化一次'
+  - term: 作用域
+    def: '一个名字在哪些代码里能用；和生命周期是两回事'
+  - term: 内存泄漏
+    def: 'malloc 来的内存没 free，指向它的指针又丢了，再也还不回去'
+  - term: 悬垂指针
+    def: '指向已经收回的内存的指针（函数已返回、或已 free），再用它是未定义行为'
+  - term: 符号表
+    def: '目标文件里列出它定义了、又用到了哪些函数名和全局变量名的表，用 nm 查看'
+  - term: 符号
+    def: '链接器眼里的名字：函数名和全局变量名'
+  - term: 内部链接
+    def: '加了 static 的函数或全局变量只属于本文件，别的文件链接不到'
+  - term: 外部链接
+    def: '不加 static 的函数和全局变量，别的文件用 extern 声明后就能用'
+  - term: 库
+    def: '别人编译好的一包函数，如 libc、libm；链接时用 -l 点名'
+  - term: 静态库
+    def: '.a 文件：链接时把用到的代码复制进可执行文件'
+  - term: 共享库
+    def: '.so 文件：不复制进可执行文件，程序启动时由动态链接器装进来'
+  - term: 动态链接器
+    def: 'Linux 上的 ld-linux：程序启动时找到并装进共享库，再接好调用'
+  - term: 动态链接
+    def: '程序启动（或运行中）才把共享库接进来，而不是链接时复制进去'
+  - term: 缓冲区
+    def: '先把数据攒在程序里的一块内存，攒够了再一起交出去，如 printf 的输出'
+  - term: 结构体
+    def: '用 struct 把几个成员打成一包的类型，如 struct point { int x; int y; }'
+  - term: 函数指针
+    def: '存着函数地址的变量，如 int (*op)(int, int)；可以当参数交给别的函数'
+  - term: 指令
+    def: 'CPU 一步能做的一件很小的事，如搬一个数、做一次加法、跳到某处'
+  - term: 汇编
+    def: '机器指令的文字写法，如 movq %rdi, %rax；gcc -S 能输出'
+  - term: 寄存器
+    def: 'CPU 里面又小又快的存储格，如 x86-64 的 %rax、%rdi、%rsp'
+  - term: 程序计数器
+    def: '存着下一条要执行的指令地址的寄存器，x86-64 上叫 %rip'
+  - term: 返回地址
+    def: 'call 压到栈上的“回来以后接着执行哪条指令”的地址，ret 时弹出'
+  - term: 链表
+    def: '每个节点存着下一个节点地址的结构，节点各自 malloc，可以不挨着'
+  - term: 分配器
+    def: 'malloc 和 free 背后的代码：把堆切成块交出去、收回来，并在块头里记账'
+
+lessons:
+  # ---------------------------------------------------------------- 链接与系统接口
+  - id: hello-c
+    chapter: 链接与系统接口
+    title: 第一个 C 程序
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 运行一个 Python 程序，只要 `python hi.py`。猜一猜：一个 C 程序写好以后，通常要怎样才能运行？
+          options:
+            - text: 先用一个专门的程序把它整个翻译成电脑能直接运行的文件，再运行那个文件
+              correct: true
+            - text: 和 Python 一样，让一个程序边读边执行写好的文本
+              why: C 的通常做法是先把整个程序翻译好，再运行翻译出来的文件
+            - text: 上传到网站，由网站替你运行
+              why: 不需要联网，翻译和运行都在你自己的电脑上
+          explain: C 程序要先整体翻译一遍，翻译出来的文件才能运行。“先翻译、再运行”是 C 和 Python 最大的不同。
+      - card:
+          title: 先翻译，再运行
+          body: |
+            你写的程序文本叫**源代码（source code）**，C 的源代码文件以 `.c` 结尾。
+
+            电脑不能直接运行 `.c` 文件。要先用**编译器（compiler）**把整个源代码翻译成电脑能直接运行的文件，这一步叫**编译（compile）**，翻译出来的文件叫**可执行文件（executable）**。最常用的 C 编译器叫 gcc。
+
+            ```
+            gcc hello.c -o hello     编译：把 hello.c 翻译成可执行文件 hello
+            ./hello                  运行它
+            ```
+
+            `-o hello` 的意思是“输出的文件叫 hello”。
+      - item:
+          id: build-run
+          type: order
+          prompt: 把“写一个 C 程序到看到结果”的三步排好。
+          steps:
+            - 用文本编辑器写好 hello.c
+            - 运行 gcc hello.c -o hello，得到可执行文件 hello
+            - 运行 ./hello，看到输出
+          explain: 先有源代码，编译器才能翻译；翻译出可执行文件以后，才能运行它。
+      - card:
+          title: 最小的 C 程序
+          body: |
+            ```c
+            #include <stdio.h>
+
+            int main(void) {
+                printf("你好\n");
+                return 0;
+            }
+            ```
+
+            每个 C 程序都有一个叫 `main` 的函数，运行时从它的第一行开始执行，所以叫 **main 函数**。
+
+            `{` 和 `}` 之间是函数里要做的事：Python 靠缩进分块，C 靠一对花括号。每一条语句以分号 `;` 结尾。
+      - card:
+          title: 一行一行看
+          body: |
+            - `#include <stdio.h>`：把标准库里“输入输出”那部分的说明拿进来，有了它才能用 `printf`。
+            - `printf("你好\n");`：显示文字。`\n` 表示换行。和 Python 的 print 不同，printf **不会**自动换行。
+            - `return 0;`：main 结束，告诉系统“正常结束”。
+
+            `int main(void)` 里的 `int` 表示 main 结束时交回一个整数，`void` 表示它不需要参数。
+      - item:
+          id: no-newline
+          type: choice
+          prompt: 运行下面的程序，屏幕上显示什么？
+          code: |
+            #include <stdio.h>
+
+            int main(void) {
+                printf("A");
+                printf("B\n");
+                printf("C\n");
+                return 0;
+            }
+          lang: c
+          options:
+            - text: 第一行 AB，第二行 C
+              correct: true
+            - text: A、B、C 各占一行
+              why: printf 只在遇到 \n 时换行，"A" 后面没有 \n
+            - text: 第一行 A，第二行 BC
+              why: 换行发生在 B 的后面，不在 A 的后面
+          explain: printf("A") 显示 A 后不换行，接着显示 B 和换行，再显示 C 和换行。
+      - item:
+          id: start-main
+          type: choice
+          prompt: C 程序运行时，从哪里开始执行？
+          options:
+            - text: main 函数的第一行
+              correct: true
+            - text: 文件的第一行
+              why: "#include 是给编译器看的说明，不是运行时执行的语句；执行从 main 开始"
+            - text: 写在最后面的那个函数
+              why: 函数写在哪里不影响起点，起点永远是 main
+          explain: 不管 main 写在文件的哪个位置，运行时都从 main 的第一行开始。
+      - card:
+          title: 编译器先检查整个程序
+          body: |
+            Python 运行到出错的那一行才停，前面的行已经执行了。C 不一样：编译时，编译器先检查**整个**源代码，只要有一处写错，就报错，不生成可执行文件，一行都不会运行。
+
+            ```
+            c.c:4:20: error: expected ‘;’ before ‘return’
+            ```
+
+            这条报错说：c.c 第 4 行第 20 个字符处，`return` 前面少了一个分号。
+      - item:
+          id: compile-error
+          type: choice
+          prompt: 编译下面的程序，会怎样？
+          code: |
+            #include <stdio.h>
+            int main(void) {
+                printf("one\n");
+                printf("two\n")
+                return 0;
+            }
+          lang: c
+          options:
+            - text: 编译报错，不生成可执行文件，one 也不会显示
+              correct: true
+            - text: 先显示 one，然后在第 4 行报错
+              why: 那是 Python 的做法；C 在编译时就发现错误，程序根本没运行
+            - text: 编译器自动补上分号，正常显示 one 和 two
+              why: 编译器只会指出错误，不会替你改
+          explain: 第 4 行末尾少了分号。编译器报 `expected ‘;’ before ‘return’`，可执行文件不会生成。
+      - item:
+          id: error-line
+          type: number
+          prompt: "报错 `c.c:4:20: error: expected ‘;’ before ‘return’` 说问题出在第几行？"
+          answer: 4
+          explain: 冒号分开的三段是文件名、行号、列号：c.c 的第 4 行第 20 列。
+
+  - id: c-basics
+    chapter: 链接与系统接口
+    title: C 的写法：类型、if 和 for
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 猜一猜：C 里写 `int x = 7 / 2;` 之后，x 是多少？
+          answer: 3
+          explain: x 的类型是整数，7 / 2 两边也都是整数，C 只保留整数部分，得 3。Python 的 7 / 2 会得 3.5，这里不一样。
+      - card:
+          title: 变量要先写类型
+          body: |
+            ```c
+            int count = 0;        // 整数
+            double price = 9.5;   // 浮点数
+            char grade = 'A';     // 一个字符
+            ```
+
+            C 的变量第一次出现时要写明类型，这叫**声明（declaration）**。声明以后，这个变量只能放这种类型的值。Python 的名字可以先指向整数、再指向字符串，C 不行。
+
+            `//` 后面到行尾是**注释（comment）**：写给人看的说明，编译器会跳过。
+      - item:
+          id: pick-type
+          type: choice
+          prompt: 想用一个变量存 3.14，应该声明成哪种类型？
+          options:
+            - text: double
+              correct: true
+            - text: int
+              why: int 只能放整数，3.14 放进去会只剩 3
+            - text: char
+              why: char 放一个字符，比如 'A'
+          explain: 带小数的数用 double（浮点数）。
+      - card:
+          title: 整数除以整数，还是整数
+          body: |
+            ```c
+            printf("%d\n", 7 / 2);     // 3
+            printf("%f\n", 7.0 / 2);   // 3.500000
+            ```
+
+            两个整数相除，C 直接丢掉小数部分。只要有一边是浮点数（7.0），结果就是浮点数。
+
+            `%d`、`%f` 叫占位符：printf 把后面的值按这种格式填到这个位置。`%d` 填整数，`%f` 填浮点数，默认显示 6 位小数。
+      - item:
+          id: percent-f
+          type: choice
+          prompt: "`printf(\"%f\\n\", 7.0 / 2);` 显示什么？"
+          options:
+            - text: "3.500000"
+              correct: true
+            - text: "3.5"
+              why: "%f 默认显示 6 位小数"
+            - text: "3"
+              why: 7.0 是浮点数，所以结果是浮点数 3.5，不会丢掉小数
+          explain: 7.0 / 2 = 3.5，%f 按 6 位小数显示，得 3.500000。
+      - item:
+          id: div-mod
+          type: number
+          prompt: 运行下面的程序，显示的数是多少？
+          code: |
+            int a = 17, b = 5;
+            printf("%d\n", a / b + a % b);
+          lang: c
+          answer: 5
+          explain: 17 / 5 是整数相除，得 3；17 % 5 是余数，得 2（和 Python 一样）。3 + 2 = 5。
+      - card:
+          title: if 和 while
+          body: |
+            ```c
+            if (score >= 60) {
+                printf("及格\n");
+            } else if (score >= 50) {
+                printf("补考\n");
+            } else {
+                printf("不及格\n");
+            }
+            ```
+
+            和 Python 比：条件放在圆括号里；每一块用花括号括起来；没有冒号；elif 写作 `else if`。while 也一样：`while (n > 1) { ... }`。
+
+            “并且、或者、不是”写作 `&&`、`||`、`!`（Python 是 and、or、not）。
+      - item:
+          id: py-to-c
+          type: match
+          prompt: 把 Python 的写法和 C 的写法连起来。
+          pairs:
+            - ["and", "&&"]
+            - ["or", "||"]
+            - ["not", "!"]
+            - ["elif", "else if"]
+          explain: 意思完全一样，只是写法不同。
+      - card:
+          title: for 循环的三部分
+          body: |
+            ```c
+            for (int i = 0; i < 5; i++) {
+                printf("%d ", i);
+            }
+            ```
+
+            显示 `0 1 2 3 4`。括号里用分号分成三部分：开始前做一次 `int i = 0`；每一轮先检查 `i < 5`，成立才执行花括号里的内容；每一轮结束后做 `i++`（就是 i = i + 1）。
+
+            它相当于 Python 的 `for i in range(5)`。
+      - card:
+          title: 例题：跟着 for 走一遍
+          body: |
+            ```c
+            int sum = 0;
+            for (int i = 1; i <= 3; i++) {
+                sum = sum + i;
+            }
+            ```
+
+            循环结束后 sum 是多少？每一步先自己想，再点“下一步”。
+          reveal:
+            - title: 第 1 步：开始
+              body: 做 `int i = 1`。这时 i = 1，sum = 0。
+            - title: 第 2 步：第一轮
+              body: 1 <= 3 成立，sum = 0 + 1 = 1。这一轮结束，i++，i 变成 2。
+            - title: 第 3 步：第二轮
+              body: 2 <= 3 成立，sum = 1 + 2 = 3。i 变成 3。
+            - title: 第 4 步：第三轮
+              body: 3 <= 3 成立，sum = 3 + 3 = 6。i 变成 4。
+            - title: 第 5 步：结束
+              body: 4 <= 3 不成立，循环结束。sum 是 6。
+      - item:
+          id: sum-squares
+          type: number
+          prompt: 循环结束后，sum 是多少？
+          code: |
+            int sum = 0;
+            for (int i = 1; i <= 4; i++) {
+                sum = sum + i * i;
+            }
+          lang: c
+          answer: 30
+          explain: i 取 1、2、3、4，加上 1 + 4 + 9 + 16 = 30。
+      - item:
+          id: count-steps
+          type: number
+          prompt: 循环结束后，count 是多少？
+          code: |
+            int count = 0;
+            for (int i = 10; i > 0; i = i - 3) {
+                count++;
+            }
+          lang: c
+          answer: 4
+          hint: 把 i 每一轮的值列出来，直到 i > 0 不成立。
+          explain: i 依次是 10、7、4、1，都大于 0，各执行一次；下一个 -2 不满足 i > 0。一共 4 次。
+
+  - id: multi-file
+    chapter: 链接与系统接口
+    title: 拆成几个文件：声明、定义和链接
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: a.c 里写好了函数 helper，b.c 里调用了它。猜一猜：只运行 `gcc b.c -o b`，会怎样？
+          options:
+            - text: 翻译 b.c 没问题，但最后拼成可执行文件时报错：找不到 helper
+              correct: true
+            - text: 翻译 b.c 时就报错
+              why: b.c 只要知道 helper 的名字和参数类型，就能检查调用写得对不对
+            - text: 正常生成 b，运行时自己去 a.c 里找 helper
+              why: a.c 根本没参与这次构建，helper 的函数体不在任何地方
+          explain: 这一课就讲为什么会这样：翻译每个文件和把它们拼起来是两步，错误可能出在任何一步。
+      - card:
+          title: 声明和定义
+          body: |
+            ```c
+            int add(int a, int b);          // 声明：只说名字、参数和返回值的类型
+            int add(int a, int b) {         // 定义：带着函数体
+                return a + b;
+            }
+            ```
+
+            函数也要先声明再用：编译器检查 `add(2, 3)` 写得对不对，只需要知道它的名字、参数类型和返回类型。真正带函数体的那一份叫**定义（definition）**，它可以写在后面，甚至写在别的文件里。
+      - item:
+          id: decl-or-def
+          type: choice
+          prompt: 下面哪一行是声明，而不是定义？
+          options:
+            - text: "`double area(double r);`"
+              correct: true
+            - text: "`double area(double r) { return 3.14 * r * r; }`"
+              why: 带着花括号里的函数体，这是定义
+            - text: "`area(2.0);`"
+              why: 这是调用
+          explain: 以分号结尾、没有函数体的是声明；有函数体的是定义。
+      - card:
+          title: 头文件：把声明放在一起
+          body: |
+            好几个文件都要用 `add`，就把它的声明写进一个以 `.h` 结尾的**头文件（header file）**，比如 `mathx.h`。`#include "mathx.h"` 的意思是：把这个文件的文字原样复制到这一行。
+
+            处理 `#include` 这类以 `#` 开头的行，是编译之前的一步，叫**预处理（preprocessing）**。
+
+            `#include <stdio.h>` 也一样：stdio.h 里有 printf 的声明。尖括号是系统自带的头文件，双引号是你自己的。
+      - item:
+          id: include-copies
+          type: choice
+          prompt: "`#include \"mathx.h\"` 做了什么？"
+          options:
+            - text: 把 mathx.h 的文字原样复制到这一行
+              correct: true
+            - text: 运行 mathx.h 里的代码
+              why: 预处理只是复制文字，什么都不运行
+            - text: 把 mathx.c 也一起编译进来
+              why: 只复制 .h 的文字；mathx.c 要在命令里单独写上
+          explain: include 就是复制粘贴。头文件里通常只有声明，所以复制进来后，编译器就认识这些函数了。
+      - card:
+          title: 每个 .c 单独编译，最后链接
+          body: |
+            ```
+            gcc -c main.c                 得到 main.o
+            gcc -c mathx.c                得到 mathx.o
+            gcc main.o mathx.o -o app     拼成可执行文件 app
+            ```
+
+            `-c` 表示只编译、先不拼，得到**目标文件（object file）**（`.o`）：每个文件各自翻译好了，但还缺别的文件里的函数。
+
+            最后一步把所有 `.o` 和用到的库拼成一个可执行文件，并给每个调用找到函数的定义，这一步叫**链接（linking）**，做这件事的程序叫**链接器（linker）**。
+      - card:
+          title: 例题：报错出在哪一步
+          body: main.c 调用了 add，并写了 `#include "mathx.h"`；add 的定义在 mathx.c 里。如果只运行 `gcc main.c -o app`，会怎样？一步一步看。
+          reveal:
+            - title: 第 1 步：预处理
+              body: mathx.h 里 add 的声明被复制进 main.c。
+            - title: 第 2 步：编译 main.c
+              body: 有声明，`add(2, 3)` 的名字、参数个数和类型都对得上，通过。
+            - title: 第 3 步：链接
+              body: 只有 main.c 翻译出来的部分，mathx.c 没参加，找不到 add 的函数体。
+            - title: 第 4 步：结果
+              body: "链接器报 `undefined reference to 'add'`，不生成 app。改成 `gcc main.c mathx.c -o app`，把两个文件一起编译、链接，就好了。"
+      - item:
+          id: undefined-ref
+          type: choice
+          prompt: "报错 `undefined reference to 'helper'` 出现在哪一步？"
+          options:
+            - text: 链接
+              correct: true
+            - text: 编译
+              why: 编译一个文件时只看声明，不会去别处找函数体
+            - text: 运行
+              why: 链接失败就没有可执行文件，谈不上运行
+          explain: 链接器拼文件时要给每个调用找到定义，找不到就报 undefined reference。
+      - item:
+          id: expected-semicolon
+          type: choice
+          prompt: "报错 `error: expected ‘;’ before ‘return’` 出现在哪一步？"
+          options:
+            - text: 编译
+              correct: true
+            - text: 链接
+              why: 链接器只负责拼接，不检查每一行的写法
+            - text: 预处理
+              why: '预处理只处理以 # 开头的行'
+          explain: 少了分号是写法错误，编译器翻译这个文件时就会发现。
+      - item:
+          id: build-stages
+          type: order
+          prompt: 把 C 程序从源代码到运行的四步排好。
+          steps:
+            - 预处理：把 #include 的头文件复制进来
+            - 编译：把每个 .c 翻译成目标文件
+            - 链接：把目标文件和库拼成可执行文件
+            - 运行可执行文件
+          explain: 不加 -c 时，gcc 会一口气做完前三步；分开做能看清每一步干了什么。
+      - item:
+          id: obj-name
+          type: text
+          prompt: "`gcc -c hello.c` 得到的目标文件叫什么？（写完整文件名）"
+          answers: ["hello.o"]
+          explain: -c 只编译不链接，产物是同名的 .o 文件。
+
+  - id: symbols
+    chapter: 链接与系统接口
+    title: 符号表：链接器眼里的名字
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: a.c 里写了 `int count = 3;`，c.c 里也写了 `int count = 5;`，两个都在所有函数外面。猜一猜：`gcc a.c b.c c.c -o app` 会怎样？
+          options:
+            - text: 链接时报错：count 定义了两次
+              correct: true
+            - text: 正常生成，count 用先写的那个 3
+              why: 链接器不会替你挑一个，两份定义冲突就报错
+            - text: 编译 c.c 时报错
+              why: 每个文件单独编译时都没问题，冲突要等把它们拼在一起才看得出
+          explain: 两个文件各自定义了同一个全局变量，链接器不知道该用哪个，报 multiple definition。
+      - card:
+          title: 目标文件里有一张名字表
+          body: |
+            每个 `.o` 里除了翻译好的机器码，还有一张表：这个文件**定义了**哪些函数和全局变量，又**用到了**哪些别处定义的。这些函数名和全局变量名叫**符号（symbol）**，这张表叫**符号表（symbol table）**。
+
+            链接器就是靠符号表把几个 `.o` 对上号的。用 `nm` 命令可以看到它。
+      - card:
+          title: nm 看到的样子
+          body: |
+            ```c
+            // a.c
+            int count = 3;
+            int total;
+            static int hidden = 7;
+            static int helper(int x) { return x * 2; }
+            int twice(int x) { return helper(x) + hidden; }
+            ```
+
+            `gcc -c a.c` 之后 `nm a.o` 显示（左边一列数字先不管）：
+
+            | 符号 | 字母 | 意思 |
+            |---|---|---|
+            | count | D | 有初始值的全局变量 |
+            | total | B | 没给初始值的全局变量 |
+            | hidden | d | 同上一种，但只有本文件能用 |
+            | helper | t | 函数，只有本文件能用 |
+            | twice | T | 函数，别的文件也能用 |
+
+            大写表示别的文件也能用，小写表示只在本文件里。
+      - item:
+          id: nm-letters
+          type: match
+          prompt: 把 nm 显示的字母和它的意思连起来。
+          pairs:
+            - [T, 定义在这个文件里的函数，别的文件也能用]
+            - [D, 定义在这个文件里、有初始值的全局变量]
+            - [U, 这个文件用到了，但定义在别处]
+            - [t, 定义在这个文件里的函数，只有本文件能用]
+          explain: T 是代码，D 是有初始值的数据；U 表示“没定义，等链接器去别处找”；小写表示只在本文件里。
+      - item:
+          id: nm-undefined
+          type: choice
+          prompt: b.c 调用了 twice，但没有定义它。`nm b.o` 里 twice 那一行是什么字母？
+          options:
+            - text: U
+              correct: true
+            - text: T
+              why: T 表示 twice 的函数体就在这个文件里；b.c 只调用了它
+            - text: 根本不出现
+              why: 用到了的名字也会列出来，标成 U，提醒链接器去别处找
+          explain: U 是 undefined：b.o 需要 twice，等链接时从别的 .o 里找到它的定义。
+      - card:
+          title: 链接器做的两件事
+          body: |
+            1. **对名字**：每个 U 都要在所有 `.o` 和库里找到**正好一个**定义。一个都没有，报 `undefined reference`；有两个，报 `multiple definition`。
+            2. **定位置**：把所有 `.o` 的代码和数据排进同一个可执行文件，定下每个函数、每个全局变量最终的位置，再回到每一处用到它们的地方，把这个位置填进去。这一步叫重定位（relocation）。
+      - item:
+          id: multiple-def
+          type: choice
+          prompt: 两个 .c 文件都在函数外面写了 `int count = …;`。链接时报什么？
+          options:
+            - text: multiple definition of `count'
+              correct: true
+            - text: undefined reference to `count'
+              why: undefined reference 是“一个定义都找不到”；这里是找到了两个
+          explain: 'gcc 的原话是 `multiple definition of ''count''; …: first defined here`：同一个名字有两份定义。'
+      - card:
+          title: static 和 extern
+          body: |
+            - 函数或全局变量前面加 `static`，它就只属于这个文件：nm 里显示成小写，别的文件链接不到它，两个文件也可以各有一个同名的 static 函数而不冲突。这叫**内部链接（internal linkage）**。
+            - 不加 static 的全局变量和函数，别的文件都能用，叫**外部链接（external linkage）**。
+            - 别的文件要用 a.c 的 count，写 `extern int count;`：这只是声明，说“count 定义在别处”，不会再造一个。
+      - item:
+          id: static-hidden
+          type: choice
+          prompt: a.c 里写的是 `static int helper(int x) { … }`。b.c 里声明了 `int helper(int x);` 并调用它。一起构建会怎样？
+          options:
+            - text: 链接时报 undefined reference to `helper'
+              correct: true
+            - text: 正常运行，调用 a.c 里的 helper
+              why: static 让 helper 只属于 a.c，b.c 链接不到它
+            - text: 编译 b.c 时报错
+              why: b.c 有声明，编译这一步能通过；问题在链接时才暴露
+          explain: static 把 helper 藏在了 a.c 里，b.o 的 U helper 找不到外部可见的定义。
+      - item:
+          id: extern-meaning
+          type: choice
+          prompt: b.c 里写 `extern int count;`，这一行做了什么？
+          options:
+            - text: 声明 count 定义在别的文件里，这里只是借用
+              correct: true
+            - text: 新定义一个 count，初始值是 0
+              why: extern 只是声明，不会再造一个 count；否则就成了两个定义
+            - text: 把 count 变成只有 b.c 能用
+              why: 那是 static 的作用
+          explain: extern 告诉编译器“有这么一个 int 叫 count”，真正的那一份在别处，由链接器去对上。
+      - card:
+          title: 例题：两个文件都想要一个 helper
+          body: x.c 和 y.c 各自需要一个小函数，都起名 helper，而且都不需要给别人用。一步一步看。
+          reveal:
+            - title: 第 1 步：都写成普通函数
+              body: 两个 .o 里都有 `T helper`。链接时同一个名字有两份对外的定义，报 multiple definition。
+            - title: 第 2 步：都加上 static
+              body: nm 里变成小写 `t helper`，各自只在本文件可见，不再参与“对名字”。
+            - title: 第 3 步：重新构建
+              body: 链接通过。x.c 里的调用用的是 x.c 的 helper，y.c 用的是 y.c 的。只给自己用的函数加 static，是 C 里避免撞名的好习惯。
+      - item:
+          id: run-ab
+          type: number
+          prompt: 用上面 nm 例子里的 a.c，再加上下面的 b.c，`gcc a.c b.c -o ab` 后运行，显示的数是多少？
+          code: |
+            #include <stdio.h>
+            extern int count;
+            int twice(int x);
+            int main(void) {
+                printf("%d\n", twice(count));
+                return 0;
+            }
+          lang: c
+          answer: 13
+          explain: count 是 3；twice(3) = helper(3) + hidden = 3 × 2 + 7 = 13。b.c 用不了 helper 和 hidden，但 twice 在 a.c 里面，可以用。
+          review: false
+
+  - id: shared-libs
+    chapter: 链接与系统接口
+    title: 库：静态库和共享库
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 程序里 `#include <math.h>` 并调用了 `sqrt(x)`（x 是运行时才知道的数）。猜一猜：只写 `gcc m.c -o m` 会怎样？
+          options:
+            - text: 链接时报 undefined reference to `sqrt'
+              correct: true
+            - text: 正常生成，因为已经 include 了 math.h
+              why: math.h 里只有声明；sqrt 的定义在数学库里，要另外告诉链接器
+            - text: 编译时就报错
+              why: 有 math.h 里的声明，编译这一步能通过
+          explain: 头文件只给声明，定义在库里。数学库要用 `-lm` 告诉链接器。
+      - card:
+          title: 库：别人编译好的一包函数
+          body: |
+            **库（library）**是别人写好、编译好的一包函数。printf 在 C 标准库 libc 里，gcc 每次都会自动链接它；sqrt、cbrt 这些数学函数在 libm 里，要加 `-l` 选项点名：`gcc m.c -o m -lm`。
+
+            `-lm` 的意思是“去找名叫 libm 的库”：`-l` 后面写库名去掉开头的 lib。头文件 `math.h` 管声明，`-lm` 管定义，两样都要。
+      - item:
+          id: which-step-lm
+          type: choice
+          prompt: 用了 sqrt 却忘了写 `-lm`，构建失败在哪一步？
+          options:
+            - text: 链接
+              correct: true
+            - text: 预处理
+              why: 预处理只是把 math.h 复制进来，这一步没问题
+            - text: 编译
+              why: math.h 里有 sqrt 的声明，编译这一步能通过
+          explain: 链接器要给 sqrt 找定义，没被告知去 libm 里找，就报 undefined reference。
+      - card:
+          title: 静态库：拼进可执行文件
+          body: |
+            ```
+            gcc -c mylib.c                     得到 mylib.o
+            ar rcs libmylib.a mylib.o          打包成 libmylib.a
+            gcc app.c -L. -lmylib -o app       链接
+            ```
+
+            `.a` 文件叫**静态库（static library）**，就是几个 `.o` 打成的一个包。链接时，链接器把用到的那部分代码**复制进** app。`-L.` 表示“也在当前文件夹里找库”。
+
+            链接完以后，app 自己带着这份代码，删掉 libmylib.a 也照样能运行。
+      - card:
+          title: 共享库：运行时再装进来
+          body: |
+            ```
+            gcc -shared -fPIC mylib.c -o libmylib.so
+            gcc app.c -L. -lmylib -o app
+            ```
+
+            `.so` 文件叫**共享库（shared library）**。同一个文件夹里 .a 和 .so 都有时，`-lmylib` 优先用 .so。这次链接器**不复制**代码，只在 app 里记一笔“运行时需要 libmylib.so”。app 启动时，由**动态链接器（dynamic linker）** `ld-linux` 找到这个库，装进来，再把 app 里对 square 的调用接上。这种做法叫**动态链接（dynamic linking）**。
+      - item:
+          id: delete-static
+          type: choice
+          prompt: app 是用静态库 libmylib.a 链接的。之后删掉 libmylib.a，再运行 app，会怎样？
+          options:
+            - text: 照常运行
+              correct: true
+            - text: 启动时报错，找不到库
+              why: 静态链接时代码已经复制进 app 了，运行时不再需要 .a 文件
+          explain: 静态库只在链接时用一次，用到的代码已经进了可执行文件。
+      - item:
+          id: missing-so
+          type: choice
+          prompt: libmylib.so 放在当前文件夹，app 用 `-L. -lmylib` 链接成功。直接运行 `./app`，最可能看到什么？
+          options:
+            - text: 'error while loading shared libraries: libmylib.so: cannot open shared object file'
+              correct: true
+            - text: 正常运行
+              why: -L. 只管链接时去哪里找；运行时动态链接器只在系统的库文件夹里找，不找当前文件夹
+            - text: undefined reference to `square'
+              why: 那是链接时的报错；这里链接已经成功，问题出在启动时
+          explain: 启动时动态链接器找不到 libmylib.so，程序根本没开始运行。
+      - card:
+          title: ldd：它运行时要哪些共享库
+          body: |
+            `ldd m` 列出 m 启动时要装进来的共享库（下面是这台 64 位 Linux 上的结果，省略了括号里的数）：
+
+            ```
+            linux-vdso.so.1
+            libm.so.6 => /usr/lib/x86_64-linux-gnu/libm.so.6
+            libc.so.6 => /usr/lib/x86_64-linux-gnu/libc.so.6
+            /lib64/ld-linux-x86-64.so.2
+            ```
+
+            动态链接器在系统的库文件夹里找，也会看环境变量 `LD_LIBRARY_PATH` 列出的文件夹。所以上一题写成 `LD_LIBRARY_PATH=. ./app` 就能运行。
+      - item:
+          id: ldd-shows
+          type: choice
+          prompt: '`ldd 程序名` 告诉你什么？'
+          options:
+            - text: 这个程序启动时要装进来的共享库，以及每个找到的位置
+              correct: true
+            - text: 这个程序用到的所有头文件
+              why: 头文件只在编译时用，运行时早就不需要了
+            - text: 静态链接进去的库
+              why: 静态库的代码已经在程序里面了，运行时不需要再找，ldd 不会列出它
+          explain: ldd 列出的是运行时依赖：少了其中一个，程序就启动不了。
+      - card:
+          title: 为什么要共享库
+          body: |
+            同一个求平方根的程序，在这台电脑上用 `ls -l` 看文件大小：动态链接的是 15952，加 `-static` 全部静态链接的是 816880，大了五十多倍，因为 libc 的一大块被复制了进去。
+
+            用共享库的好处：每个程序的文件小；很多程序同时运行时，共享库只需要装进来一份；libc 修了 bug，所有动态链接它的程序重启后就用上新版本，不用重新链接。代价是：运行时必须找得到、并且是兼容的版本。
+      - item:
+          id: update-libc
+          type: choice
+          prompt: 系统更新了 libc，修好了里面一个函数的 bug。哪些程序不用重新链接，重启后就用上了修好的版本？
+          options:
+            - text: 动态链接 libc 的程序
+              correct: true
+            - text: 静态链接 libc 的程序
+              why: 它们链接时就把旧版本的代码复制进去了，不重新链接就还是旧的
+          explain: 动态链接的程序每次启动都去装系统里的 libc，装到的就是新版本。
+      - card:
+          title: 程序是怎么启动的
+          body: |
+            可执行文件里分好了几段：代码、有初始值的数据，以及“需要多大一块全填 0 的数据”。运行它时，操作系统按这些说明把各段准备好。
+
+            动态链接的程序还写着由谁接手：`file m` 会显示 `interpreter /lib64/ld-linux-x86-64.so.2`。操作系统先启动这个动态链接器，它装好所有共享库、接好调用，最后才跳到程序的入口，再由入口调用 main。
+      - item:
+          id: who-first
+          type: order
+          prompt: 动态链接的程序启动时，下面几件事的先后顺序是？
+          steps:
+            - 操作系统按可执行文件的说明准备好代码和数据
+            - 动态链接器 ld-linux 开始运行
+            - 装进 libc 等共享库，接好对它们的调用
+            - 跳到程序的入口，开始执行 main
+          explain: main 不是第一个运行的代码：在它之前，动态链接器已经把共享库都准备好了。
+      - card:
+          title: -fPIC 和 dlopen
+          body: |
+            - **-fPIC**：同一个共享库，在不同程序里会被装到不同的位置。所以编译共享库时要生成“和位置无关的代码”（position-independent code），放在哪里都能直接运行。
+            - **dlopen**：程序运行到一半，也能按文件名装进一个共享库，再按名字找到里面的函数。很多软件的“插件”就是这样装进来的。
+      - item:
+          id: why-fpic
+          type: choice
+          prompt: 为什么编译共享库时要加 `-fPIC`？
+          options:
+            - text: 共享库在不同程序里会被装到不同的位置，代码要放在哪里都能运行
+              correct: true
+            - text: 为了让库运行得更快
+              why: -fPIC 是为了放在任何位置都能用，不是为了加速
+            - text: 为了把库的代码复制进可执行文件
+              why: 复制进可执行文件是静态链接；共享库恰恰不复制
+          explain: 位置事先定不下来，代码就不能写死自己在哪里。
+      - item:
+          id: plugin
+          type: choice
+          prompt: 一个绘图软件允许用户放进新的 .so 文件来增加“滤镜”，软件运行中就能用上，不用重新链接。它多半用了什么？
+          options:
+            - text: dlopen：运行中按文件名装进共享库
+              correct: true
+            - text: 静态库
+              why: 静态库要在链接时就拼进去，运行中加不进来
+            - text: '#include 新的头文件'
+              why: 头文件只在编译时起作用，软件已经编译好了
+          explain: dlopen 让程序自己决定在运行的什么时候、装进哪个共享库。
+
+  - id: syscalls
+    chapter: 链接与系统接口
+    title: 系统调用：程序请操作系统帮忙
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜：printf 把文字显示到屏幕上，最后真正去操作屏幕的是谁？
+          options:
+            - text: 操作系统
+              correct: true
+            - text: printf 自己
+              why: 普通程序不能直接操作屏幕、键盘、硬盘这些设备
+            - text: 编译器
+              why: 编译器只在运行之前翻译程序，运行时它已经不在了
+          explain: printf 只负责把要显示的文字准备好，真正送到屏幕上的是操作系统。
+      - card:
+          title: 程序请操作系统代办
+          body: |
+            电脑上同时跑着很多程序，它们共用屏幕、键盘、硬盘。为了不乱，普通程序不能直接操作这些设备，要请操作系统（Windows、Linux、macOS）代办。
+
+            操作系统里真正管理硬件、替程序办事的核心部分叫**内核（kernel）**。程序请内核办事的方式叫**系统调用（system call）**。
+      - card:
+          title: printf 和 write
+          body: |
+            printf 是 C 标准库里写好的函数，这类函数叫**库函数**。它先把 `%d` 这些占位符填好，拼出要显示的文字，再通过系统调用把这些字交给内核。在 Linux 上，这个系统调用叫 `write`，也能直接用：
+
+            ```c
+            write(1, "hi\n", 3);
+            ```
+
+            意思是：把从 `"hi\n"` 开始的 3 个字符，写到编号为 1 的地方（屏幕）。
+      - item:
+          id: write-three
+          type: choice
+          prompt: "`write(1, \"hello\\n\", 3);` 显示什么？"
+          options:
+            - text: hel
+              correct: true
+            - text: hello
+              why: 最后一个参数 3 表示只写 3 个字符
+            - text: hello 再换行
+              why: 只写前 3 个字符，后面的 lo 和换行都没写
+          explain: write 不看字符串有多长，只按你给的个数写：h、e、l 三个字符。
+      - card:
+          title: 文件描述符
+          body: |
+            内核给程序打开的每个“文件”（真的文件、屏幕、键盘都算）发一个小整数编号，叫**文件描述符（file descriptor）**。每个程序一开始就有三个：
+
+            | 编号 | 名字 | 平时连着 |
+            |---|---|---|
+            | 0 | 标准输入 | 键盘 |
+            | 1 | 标准输出 | 屏幕 |
+            | 2 | 标准错误 | 屏幕（专门放错误信息） |
+      - item:
+          id: fds
+          type: match
+          prompt: 把文件描述符的编号和它的名字连起来。
+          pairs:
+            - ["0", "标准输入"]
+            - ["1", "标准输出"]
+            - ["2", "标准错误"]
+          explain: 这三个编号在类 Unix 系统（Linux、macOS）上是固定的，write(1, ...) 就是写到标准输出。
+      - card:
+          title: main 的返回值去了哪里
+          body: |
+            `return 0;` 的 0 交给了操作系统，叫程序的**退出状态（exit status）**：0 表示成功，其他数表示出了问题。
+
+            在 Linux 终端里，程序运行完以后输入 `echo $?`，能看到上一个程序的退出状态。写脚本时就靠它判断上一步是否成功。
+      - item:
+          id: exit-code
+          type: number
+          prompt: 一个程序的 main 最后是 `return 3;`。运行它以后，终端里输入 `echo $?`，显示的数是多少？
+          answer: 3
+          explain: main 的返回值就是退出状态，echo $? 显示的正是它。
+      - item:
+          id: library-vs-syscall
+          type: choice
+          prompt: 下面哪种说法对？
+          options:
+            - text: printf 是库函数，它把文字准备好以后，通过系统调用让内核输出
+              correct: true
+            - text: printf 本身就是一个系统调用
+              why: printf 属于标准库，负责填格式；真正请内核办事的是 write 这类系统调用
+            - text: write 是 C 标准规定的、所有系统上都一样的函数
+              why: write 来自 Linux 这类系统；Windows 上请内核办事的方式完全不同，C 标准只规定 printf 这类库函数
+          explain: 库函数在你的程序里运行，系统调用才进到内核里。这就是为什么同一个 printf 能在不同系统上用，write 却不行。
+
+  - id: file-io
+    chapter: 链接与系统接口
+    title: 打开、读、写、关上文件
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个刚启动的程序第一次成功调用 `open` 打开文件，得到一个文件描述符。猜一猜它是几？
+          options:
+            - text: '3'
+              correct: true
+            - text: '0'
+              why: 0、1、2 一开始就被标准输入、标准输出、标准错误占着
+            - text: '1'
+              why: 1 是标准输出，早就被占用了
+          explain: open 交回当前没被占用的最小编号。0、1、2 一开始就有了，所以通常是 3。
+      - card:
+          title: open：拿到一个文件描述符
+          body: |
+            ```c
+            #include <fcntl.h>
+            #include <unistd.h>
+            int fd = open("note.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            ```
+
+            open 是系统调用：请内核打开文件，交回一个文件描述符；失败时交回 -1。第二个参数说怎么打开：
+
+            | 选项 | 意思 |
+            |---|---|
+            | `O_RDONLY` / `O_WRONLY` / `O_RDWR` | 只读 / 只写 / 又读又写 |
+            | `O_CREAT` | 文件不存在就新建 |
+            | `O_TRUNC` | 清空原来的内容 |
+            | `O_APPEND` | 每次都写在末尾 |
+
+            用 `|` 把几个选项合在一起：每个选项是一个单独的开关，`|` 把它们一起打开。
+      - item:
+          id: open-flags
+          type: match
+          prompt: 把选项和它的意思连起来。
+          pairs:
+            - [O_RDONLY, 只读]
+            - [O_CREAT, 不存在就新建]
+            - [O_TRUNC, 清空原来的内容]
+            - [O_APPEND, 每次写在末尾]
+          explain: 想“新建或清空后写入”，就写 O_WRONLY | O_CREAT | O_TRUNC。
+      - card:
+          title: 第三个参数：权限
+          body: |
+            用了 O_CREAT 时，第三个参数是新文件的权限。`0644` 开头的 0 表示八进制写法，后面三位依次是：文件主人、同组的人、其他人。
+
+            每一位是三个数相加：读 r = 4，写 w = 2，执行 x = 1。6 = 4 + 2 是能读能写，4 是只能读。所以 0644 是“自己能读写，别人只能读”。
+      - item:
+          id: mode-600
+          type: text
+          prompt: 想让新文件只有自己能读写、别人什么都不能做，第三个参数写成什么？（写成 0 开头的四位）
+          answers: ['0600']
+          explain: 自己 4 + 2 = 6，同组 0，其他人 0，写成 0600。
+      - card:
+          title: read 和 write
+          body: |
+            ```c
+            char buf[64];
+            ssize_t n = read(fd, buf, 64);
+            ```
+
+            `char buf[64];` 准备好能放 64 个字符的空位。read 最多读 64 个字符放进 buf，交回**实际读到的个数**；读到文件末尾交回 0；出错交回 -1。write 同理：`write(fd, buf, n)` 写 n 个字符，交回实际写了几个。
+
+            把一个文件原样显示到屏幕上，就是反复读、反复写：
+
+            ```c
+            while ((n = read(fd, buf, sizeof buf)) > 0)
+                write(1, buf, n);
+            ```
+      - item:
+          id: read-eof
+          type: number
+          prompt: note.txt 里只有 3 个字符 "hi\n"。打开后第一次 `read(fd, buf, 64)` 交回 3。紧接着第二次 `read(fd, buf, 64)` 交回几？
+          answer: 0
+          explain: 第一次已经读到了末尾，再读就交回 0，表示“没有了”。
+      - card:
+          title: 读到的可能比要的少
+          body: |
+            `read(fd, buf, 64)` 不保证读满 64 个：快到文件末尾时只剩几个；从键盘、网络读时，此刻有多少就先交回多少。CS:APP 管这叫 short count（不足值）。
+
+            所以永远用 read 交回的数，不要假设读满了；想读满就像上面那样循环，直到交回 0。
+      - item:
+          id: short-count
+          type: choice
+          prompt: 为什么读文件要写成 while 循环，而不是只调用一次 `read(fd, buf, 64)`？
+          options:
+            - text: 一次 read 可能只读到一部分，要一直读到它交回 0
+              correct: true
+            - text: 因为 read 每次只能读一个字符
+              why: read 一次可以读很多个，最多是你给的个数；只是不保证读满
+            - text: 因为第一次 read 总是交回 0
+              why: 第一次通常就能读到内容；交回 0 表示已经到了末尾
+          explain: read 交回的个数可能比要的少，循环到 0 才算读完。
+      - card:
+          title: 出错了：-1 和 perror
+          body: |
+            ```c
+            int fd = open("nope.txt", O_RDONLY);
+            if (fd == -1) {
+                perror("open");
+                return 1;
+            }
+            ```
+
+            文件不存在时 open 交回 -1，原因记在一个叫 errno 的变量里。`perror("open")` 把它翻译成文字，写到标准错误：`open: No such file or directory`。系统调用都可能失败，每次都要检查交回值。
+
+            用完要 `close(fd)`：一个程序能同时打开的文件有上限，只开不关，迟早用光编号。
+      - item:
+          id: perror-text
+          type: text
+          prompt: 打开一个不存在的文件，open 交回 -1 后调用 `perror("open")`。屏幕上显示什么？（英文原样）
+          answers: ['open: No such file or directory']
+          explain: perror 先写你给的文字和冒号，再写 errno 对应的原因。
+      - card:
+          title: 重定向：> 让 1 号指向文件
+          body: |
+            在终端里运行 `./app > out.txt`：终端（shell）先打开 out.txt，让 app 的 1 号文件描述符指向它，再启动 app。app 里的 `write(1, …)` 和 printf 就都写进了文件，app 自己并不知道。
+
+            `2>` 重定向的是 2 号（标准错误）。所以只写 `>` 时，错误信息照样出现在屏幕上。
+      - item:
+          id: redirect-stderr
+          type: choice
+          prompt: 运行 `./app > out.txt`。app 里调用了 `perror("open")`。这句错误信息出现在哪里？
+          options:
+            - text: 屏幕上
+              correct: true
+            - text: out.txt 里
+              why: perror 写的是 2 号标准错误；> 只把 1 号指向了文件
+          explain: 错误信息走 2 号，它还连着屏幕，所以你能马上看到出错了。
+      - card:
+          title: printf 和 write：缓冲区
+          body: |
+            printf 属于标准 I/O 库：它先把文字攒在程序里的一块**缓冲区（buffer）**，攒到一定程度（或者程序结束）才调用一次 write。这样系统调用的次数少，快得多。write 则直接交给内核。
+
+            输出到终端时，printf 遇到换行就交出去；输出到文件时，要攒满或程序结束才交。所以混着用会乱序：
+
+            ```c
+            printf("a\n");
+            write(1, "b\n", 2);
+            ```
+
+            在终端里显示 a、b；`./pw > pw.txt` 后，文件里却是 b、a。
+      - item:
+          id: buffer-order
+          type: choice
+          prompt: 上面的程序运行 `./pw > pw.txt`。为什么文件里 b 在 a 前面？
+          options:
+            - text: printf 的 a 还攒在缓冲区里，程序结束时才写出去；write 的 b 是直接写的
+              correct: true
+            - text: write 比 printf 跑得快
+              why: 不是谁快；是 printf 在输出到文件时，先把 a 攒着，直到程序结束才真正交给内核
+            - text: 文件是倒着写的
+              why: 文件按写入的先后存放；是 a 被真正写入的时间更晚
+          explain: 写文本、要格式时用 printf 这一族；要精确控制每次写什么、写到哪个文件描述符时用 write。两种别混着写同一个地方。
+          review: false
+
+  # ---------------------------------------------------------------- 指针
+  - id: bytes-addresses
+    chapter: 指针
+    title: 内存：字节和地址
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一栋大楼有几千个房间，每个房间门上都有号码。快递员只要知道什么，就能把包裹送到你手上？
+          options:
+            - text: 你的房间号
+              correct: true
+            - text: 你长什么样
+              why: 楼里几千个房间，靠长相一间间找太慢了；有房间号就能直接走过去
+            - text: 包裹有多重
+              why: 重量说明不了包裹该送到哪里
+          explain: 电脑也是这样：变量放在一个个编了号的小格子里，知道编号就能直接找到它。这一课就讲这些格子和编号。
+      - card:
+          title: 内存是一长排小格子
+          body: |
+            程序运行时，变量的值放在**内存（memory）**里。内存可以想成一长排小格子，每个格子能存 256 种不同的值（比如 0 到 255 之间的一个整数），这样一个格子叫一个**字节（byte）**。
+
+            每个格子都有一个编号，从 0 开始往上数，这个编号叫**地址（address）**。一个变量占连续的几个格子，它的地址就是第一个格子的编号。
+      - item:
+          id: byte-range
+          type: choice
+          prompt: 一个字节能放下下面哪个数？
+          options:
+            - text: "200"
+              correct: true
+            - text: "300"
+              why: 一个字节只有 256 种值，按 0 到 255 算，放不下 300
+            - text: "-1000"
+              why: 256 种值不够表示这么大范围的数
+          explain: 一个字节有 256 种值。存比这大的数，要用连续的好几个字节。
+      - card:
+          title: sizeof：占几个字节
+          body: |
+            ```c
+            printf("%zu\n", sizeof(char));    // 1
+            printf("%zu\n", sizeof(int));     // 4
+            printf("%zu\n", sizeof(double));  // 8
+            ```
+
+            `sizeof` 给出一种类型占几个字节，`%zu` 是显示它的占位符。上面是常见的 64 位电脑（Windows、Linux、macOS）上的结果；C 标准只规定了最小值，别的机器上可能不同。本关都按这组数算。
+      - item:
+          id: sizes-sum
+          type: number
+          prompt: 3 个 int 变量加 1 个 double 变量，一共占几个字节？
+          answer: 20
+          explain: 每个 int 4 个字节，3 个是 12；double 8 个字节。12 + 8 = 20。
+      - card:
+          title: "& 取地址"
+          body: |
+            ```c
+            int x = 42;
+            printf("%p\n", (void *)&x);   // 显示类似 0x7ffd0105ad44
+            ```
+
+            在变量前写 `&`，得到它的地址。`%p` 用来显示地址，`(void *)` 是 printf 要求的写法，先照抄。每次运行，地址可能不一样：系统每次把程序放在不同的位置。
+
+            地址通常写成**十六进制（hexadecimal）**：以 `0x` 开头，逢 16 进 1，用 a 到 f 表示 10 到 15。
+      - item:
+          id: hex-16
+          type: number
+          prompt: 十六进制的 `0x1F` 是十进制的多少？
+          answer: 31
+          hint: 十位上的 1 表示 1 个 16，F 表示 15。
+          explain: 0x1F = 1 × 16 + 15 = 31。
+      - card:
+          title: 例题：紧挨着的两个 int
+          body: 两个 int 紧挨着放在内存里，第一个的地址是 1000（为了好算，这里用十进制）。第二个从哪个地址开始？
+          reveal:
+            - title: 第 1 步：一个 int 占几个格子
+              body: sizeof(int) 是 4，占 4 个字节。
+            - title: 第 2 步：第一个 int 占了哪几个
+              body: 从 1000 开始数 4 个：1000、1001、1002、1003。
+            - title: 第 3 步：第二个从哪里开始
+              body: 紧挨着的下一个格子是 1004，所以第二个 int 的地址是 1004。一般地，下一个 = 地址 + 这种类型的字节数。
+      - item:
+          id: next-double
+          type: number
+          prompt: 两个 double 紧挨着放，第一个的地址是 2000（十进制）。第二个 double 的地址是多少？
+          answer: 2008
+          explain: double 占 8 个字节，第一个占 2000 到 2007，第二个从 2008 开始。
+
+  - id: pointers
+    chapter: 指针
+    title: 指针：存地址的变量
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜：`int x = 42; int *p = &x;` 之后，p 里装的是什么？
+          options:
+            - text: x 的地址
+              correct: true
+            - text: "42"
+              why: 42 放在 x 里；p 装的是 x 在哪里
+            - text: 名字 x
+              why: 名字只给人和编译器看，运行时找变量靠的是地址
+          explain: "&x 取出 x 的地址，p 把这个地址存起来。存地址的变量就是这一课的主角。"
+      - card:
+          title: 指针变量
+          body: |
+            ```c
+            int x = 42;
+            int *p = &x;    // p 存着 x 的地址
+            ```
+
+            专门用来存地址的变量叫**指针（pointer）**。`int *p` 读作“p 是指向 int 的指针”：p 里放的是某个 int 的地址。我们常说“p 指向 x”。
+
+            p 自己也是一个变量，也占内存：在 64 位电脑上，一个指针占 8 个字节，不管它指向什么类型。
+      - item:
+          id: pointer-size
+          type: number
+          prompt: 在 64 位电脑上，`double *q;` 这个指针变量自己占几个字节？
+          answer: 8
+          explain: 指针存的是地址，64 位电脑上地址占 8 个字节。指向 int 还是 double 都一样大。
+      - card:
+          title: "* 解引用：顺着地址找到变量"
+          body: |
+            ```c
+            int x = 42;
+            int *p = &x;
+            *p = 7;
+            printf("%d\n", x);   // 7
+            ```
+
+            在指针前面写 `*`，表示“p 指向的那个变量”，这叫**解引用（dereference）**。`*p = 7` 就是把 7 放进 p 指向的变量，也就是 x。`*p` 能读也能写。
+
+            注意 `int *p` 里的 `*` 只是说明 p 的类型；后面单独写 `*p` 才是解引用。
+      - item:
+          id: deref-add
+          type: number
+          prompt: 运行下面的程序，显示的数是多少？
+          code: |
+            int a = 5;
+            int *p = &a;
+            *p = *p + 10;
+            printf("%d\n", a);
+          lang: c
+          answer: 15
+          explain: "*p 就是 a。*p = *p + 10 等于 a = a + 10，a 变成 15。"
+      - card:
+          title: 例题：指针换了指向
+          body: |
+            ```c
+            int a = 1, b = 2;
+            int *p = &a;
+            *p = 10;
+            p = &b;
+            *p = 20;
+            ```
+
+            最后 a、b 各是多少？
+          reveal:
+            - title: 第 1 步
+              body: "`int *p = &a;`：p 指向 a。"
+            - title: 第 2 步
+              body: "`*p = 10;`：把 10 放进 p 指向的变量，a 变成 10。"
+            - title: 第 3 步
+              body: "`p = &b;`：前面没有 *，改的是 p 自己：p 现在指向 b。a 不受影响，还是 10。"
+            - title: 第 4 步
+              body: "`*p = 20;`：p 指向 b，b 变成 20。最后 a = 10，b = 20。"
+      - item:
+          id: retarget
+          type: number
+          prompt: 运行下面的程序，显示的数是多少？
+          code: |
+            int a = 3, b = 4;
+            int *p = &b;
+            *p = a;
+            p = &a;
+            *p = 9;
+            printf("%d\n", a + b);
+          lang: c
+          answer: 12
+          hint: 分清哪一行改的是 p 指向的变量（有 *），哪一行改的是 p 自己（没有 *）。
+          explain: "*p = a 时 p 指向 b，b 变成 3；p = &a 让 p 改指 a；*p = 9 让 a 变成 9。9 + 3 = 12。"
+      - card:
+          title: 函数拿到的是副本
+          body: |
+            ```c
+            void add_one(int n) { n = n + 1; }
+            int x = 5;
+            add_one(x);      // x 还是 5
+            ```
+
+            调用函数时，C 把参数的值复制一份交给函数，这叫**按值传递**。函数改的是副本，调用处的 x 不受影响。想让函数改动 x，就把 x 的地址交给它：
+
+            ```c
+            void add_one(int *n) { *n = *n + 1; }
+            add_one(&x);     // x 变成 6
+            ```
+      - item:
+          id: swap-right
+          type: choice
+          prompt: 想写一个交换两个 int 的函数，调用后 x 和 y 的值真的互换。哪个写法对？
+          options:
+            - text: "`void swap(int *a, int *b) { int t = *a; *a = *b; *b = t; }`，调用 `swap(&x, &y);`"
+              correct: true
+            - text: "`void swap(int a, int b) { int t = a; a = b; b = t; }`，调用 `swap(x, y);`"
+              why: 按值传递：函数交换的只是 x、y 的副本，调用处的 x、y 不变
+          explain: 拿到地址，函数才能通过解引用改到调用处的变量。
+      - item:
+          id: triple-twice
+          type: number
+          prompt: 运行下面的程序，显示的数是多少？
+          code: |
+            void triple(int *n) { *n = *n * 3; }
+
+            int main(void) {
+                int x = 4;
+                triple(&x);
+                triple(&x);
+                printf("%d\n", x);
+                return 0;
+            }
+          lang: c
+          answer: 36
+          explain: 每次调用都通过地址改到 x：4 × 3 = 12，12 × 3 = 36。
+      - card:
+          title: 空指针和段错误
+          body: |
+            不指向任何东西的指针写作 `NULL`，叫**空指针**。对空指针解引用（`*p`），程序在 Linux 上通常会被系统立刻终止，显示 `Segmentation fault`，这叫**段错误**：程序碰了不允许它碰的内存。
+
+            声明了指针却没给它赋值就用，同样危险：它里面是一个随便的地址。
+      - item:
+          id: null-deref
+          type: choice
+          prompt: 运行下面这两行，最可能发生什么？
+          code: |
+            int *p = NULL;
+            *p = 5;
+          lang: c
+          options:
+            - text: 程序被系统终止，显示 Segmentation fault
+              correct: true
+            - text: p 变成指向 5
+              why: "*p = 5 是往 p 指向的地方写 5，而 p 不指向任何地方"
+            - text: 编译时报错
+              why: 编译器一般不会拦住它，问题在运行时才出现
+          explain: 空指针不指向任何合法的内存，往那里写，系统会直接终止程序。
+
+  - id: arrays
+    chapter: 指针
+    title: 数组和指针运算
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 猜一猜下面的程序显示几？
+          code: |
+            int a[3] = {10, 20, 30};
+            int *p = a;
+            printf("%d\n", *(p + 1));
+          lang: c
+          answer: 20
+          explain: p 指向第一个元素 10，p + 1 指向下一个元素 20。这一课就讲为什么。
+      - card:
+          title: 数组：一排同类型的格子
+          body: |
+            ```c
+            int a[5] = {3, 8, 5, 2, 9};
+            printf("%d\n", a[0]);   // 3
+            a[4] = 7;
+            ```
+
+            **数组（array）**是一排类型相同的元素，在内存里紧挨着放。`int a[5]` 表示 a 有 5 个 int。下标和 Python 的列表一样从 0 开始。
+
+            区别：数组的长度在创建时就定死了，不能 append；C 也没有 len，长度要自己记住。
+      - item:
+          id: array-index
+          type: number
+          prompt: "`int a[5] = {3, 8, 5, 2, 9};`，`a[1] + a[4]` 是多少？"
+          answer: 17
+          explain: a[1] 是 8，a[4] 是 9，8 + 9 = 17。
+      - card:
+          title: 数组名就是第一个元素的地址
+          body: |
+            在表达式里，数组名 `a` 会变成第一个元素的地址 `&a[0]`，所以能交给指针：`int *p = a;`。
+
+            指针加 1 不是地址加 1，而是**往后跳一个元素**：p 指向 int 时，p + 1 的地址比 p 大 4。于是 `a[i]` 和 `*(a + i)` 是一回事：都是“从开头往后数 i 个元素”。
+      - item:
+          id: ptr-plus-two
+          type: number
+          prompt: "`int a[4];` 的第一个元素地址是 1000（十进制）。`int *p = a + 2;` 之后，p 里的地址是多少？"
+          answer: 1008
+          explain: a + 2 往后跳 2 个 int，每个 4 字节：1000 + 2 × 4 = 1008，也就是 a[2] 的地址。
+      - card:
+          title: 例题：用指针走过数组
+          body: |
+            ```c
+            int a[4] = {5, 1, 4, 2};
+            int *p = a;
+            p = p + 2;
+            printf("%d\n", *p);
+            p = p - 1;
+            printf("%d\n", *p + *(p + 2));
+            ```
+
+            两行分别显示什么？
+          reveal:
+            - title: 第 1 步
+              body: p = a，p 指向 a[0]，也就是 5。
+            - title: 第 2 步
+              body: p = p + 2，p 指向 a[2]。*p 是 4，第一行显示 4。
+            - title: 第 3 步
+              body: p = p - 1，p 指向 a[1]，*p 是 1。
+            - title: 第 4 步
+              body: p + 2 指向 a[3]，*(p + 2) 是 2。1 + 2 = 3，第二行显示 3。
+      - item:
+          id: ptr-walk
+          type: number
+          prompt: 运行下面的程序，显示的数是多少？
+          code: |
+            int a[5] = {2, 4, 6, 8, 10};
+            int *p = a + 1;
+            printf("%d\n", *(p + 2) - *p);
+          lang: c
+          answer: 4
+          explain: p 指向 a[1]（4）；p + 2 指向 a[3]（8）。8 − 4 = 4。
+      - card:
+          title: 越界：C 不替你检查
+          body: |
+            Python 的列表下标超出范围会报 IndexError。C 不检查：a 只有 5 个元素，`a[5]`、`a[100]` 照样能编译，运行时会读写数组后面别人的内存。这叫**越界**。
+
+            它的结果是**未定义行为（undefined behavior）**：C 标准对它不做任何规定，可能显示一个奇怪的数，可能悄悄改坏别的变量，也可能崩溃。最麻烦的是“看起来没事”，错误要很久以后才冒出来。
+      - item:
+          id: out-of-bounds
+          type: choice
+          prompt: "`int a[5];` 之后写 `a[5] = 1;`，会怎样？"
+          options:
+            - text: 通常能编译，运行时往数组后面的内存里写了 1，结果无法预料
+              correct: true
+            - text: 运行时报 IndexError
+              why: C 没有这种检查，那是 Python 的做法
+            - text: a 自动变长，多出一个元素
+              why: 数组长度创建时就定死了，不会变
+          explain: 下标 0 到 4 才属于 a。a[5] 是越界，属于未定义行为；编译器最多给一个警告。
+      - card:
+          title: 把数组交给函数
+          body: |
+            ```c
+            int sum(int *a, int n) {
+                int s = 0;
+                for (int i = 0; i < n; i++) s = s + a[i];
+                return s;
+            }
+
+            int b[3] = {3, 5, 7};
+            printf("%d\n", sum(b, 3));   // 15
+            ```
+
+            把数组传给函数，传过去的只是第一个元素的地址，函数不知道一共有几个。所以 C 的习惯是另外传一个长度 n。
+      - item:
+          id: sum-from-middle
+          type: number
+          prompt: "`sum(b + 1, 2)` 是多少？"
+          code: |
+            int sum(int *a, int n) {
+                int s = 0;
+                for (int i = 0; i < n; i++) s = s + a[i];
+                return s;
+            }
+
+            int b[3] = {3, 5, 7};
+          lang: c
+          answer: 12
+          hint: b + 1 指向哪个元素？从它开始数几个？
+          explain: b + 1 指向 b[1]（5），从它开始加 2 个元素：5 + 7 = 12。
+
+  - id: c-strings
+    chapter: 指针
+    title: C 的字符串
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 猜一猜：`char s[] = "cat";` 之后，`sizeof(s)` 是几？（提示：不是 3）
+          answer: 4
+          explain: 三个字母之外，C 还在最后悄悄放了一个结束标记。这一课就讲它。
+      - card:
+          title: 字符串就是 char 数组
+          body: |
+            C 没有 Python 那样的 str 类型。C 的**字符串**就是一个 char 数组，最后多放一个值为 0 的字符 `'\0'`，标出“到这里结束”。
+
+            ```c
+            char s[] = "cat";   // 内存里是 'c' 'a' 't' '\0'，共 4 个字节
+            ```
+
+            一个 char 占 1 个字节，里面存的其实是字符的编号：'A' 是 65，'a' 是 97。
+      - item:
+          id: sizeof-hello
+          type: number
+          prompt: "`char s[] = \"hello\";` 之后，`sizeof(s)` 是几？"
+          answer: 6
+          explain: 5 个字母加结尾的 '\0'，一共 6 个字节。
+      - item:
+          id: char-math
+          type: choice
+          prompt: "`printf(\"%c\\n\", 'A' + 2);` 显示什么？（`%c` 把一个编号按字符显示）"
+          options:
+            - text: C
+              correct: true
+            - text: A2
+              why: "'A' 是编号 65，加 2 是做加法，不是拼接文字"
+            - text: "67"
+              why: "%c 把编号按字符显示；用 %d 才会显示 67"
+          explain: "'A' 是 65，65 + 2 = 67，67 号字符是 'C'。"
+      - card:
+          title: strlen 数到 '\0' 为止
+          body: |
+            `strlen(s)`（要先 `#include <string.h>`）从第一个字符开始数，数到 `'\0'` 停下，不算 '\0' 本身。所以 `strlen("hello")` 是 5，而 `sizeof` 是 6。
+
+            如果一串字符少了结尾的 '\0'，strlen 不知道在哪里停，会一直数到后面的内存里去，这就越界了。
+      - item:
+          id: strlen-space
+          type: number
+          prompt: "`strlen(\"hi there\")` 是几？"
+          answer: 8
+          explain: h、i、空格、t、h、e、r、e，空格也是一个字符，一共 8 个；结尾的 '\0' 不算。
+      - card:
+          title: 比较和复制要用函数
+          body: |
+            - `s == t` 比较的是两个地址，不是内容。比较内容用 `strcmp(s, t)`，内容相同时得 0。
+            - 复制用 `strcpy(dst, src)`：把 src 连同结尾的 '\0' 一起复制到 dst。dst 必须够大，C 不会替你检查。
+      - item:
+          id: compare-strings
+          type: choice
+          prompt: "`char a[] = \"abc\"; char b[] = \"abc\";` 下面哪个表达式能判断 a、b 的内容相同？"
+          options:
+            - text: "`strcmp(a, b) == 0`"
+              correct: true
+            - text: "`a == b`"
+              why: a、b 是两个不同的数组，== 比较的是它们的地址，结果是假
+            - text: "`strlen(a) == strlen(b)`"
+              why: 长度相同不代表内容相同，比如 "abc" 和 "xyz"
+          explain: 比较内容只能一个字符一个字符地比，strcmp 就是做这件事的。
+      - card:
+          title: 缓冲区溢出
+          body: |
+            ```c
+            char buf[4];
+            strcpy(buf, "hello");   // 要写 6 个字节，buf 只有 4 个
+            ```
+
+            用来暂存数据的数组常叫缓冲区。往里写的比它能装的多，多出来的字节会覆盖紧挨着的内存，这叫**缓冲区溢出（buffer overflow）**。它是越界的一种，也是历史上很多安全漏洞的来源：攻击者故意塞进超长的输入，改写程序里的数据。
+      - item:
+          id: buf-size
+          type: number
+          prompt: 要用 strcpy 存下字符串 "world"，char 数组至少要有几个元素？
+          answer: 6
+          explain: 5 个字母，再加结尾的 '\0'，一共 6 个。
+
+  - id: structs
+    chapter: 指针
+    title: 结构体：把几样东西打成一包
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 猜一猜：`struct point { int x; int y; };` 之后，`sizeof(struct point)` 是几？（int 占 4 个字节）
+          answer: 8
+          explain: 一个 point 里放着两个 int，紧挨着，一共 8 个字节。
+      - card:
+          title: struct：自己造一种类型
+          body: |
+            想把一个点的 x 和 y 放在一起，C 里用**结构体（struct）**：
+
+            ```c
+            struct point { int x; int y; };
+
+            struct point p = {3, 4};
+            printf("%d\n", p.x + p.y);
+            ```
+
+            显示 7。`struct point` 是一种新类型，x、y 叫它的成员，用 `.` 取：`p.x`。成员在内存里按写的顺序挨着放。
+      - item:
+          id: struct-dot
+          type: number
+          prompt: 运行下面的程序，显示的数是多少？
+          code: |
+            struct point { int x; int y; };
+            int main(void) {
+                struct point p = {3, 4};
+                p.y = 10;
+                printf("%d\n", p.x * p.y);
+                return 0;
+            }
+          lang: c
+          answer: 30
+          explain: p.y 被改成 10，p.x 还是 3，3 × 10 = 30。
+      - card:
+          title: typedef 和整体复制
+          body: |
+            ```c
+            typedef struct {
+                char name[16];
+                int age;
+            } Student;
+
+            Student s = {"Ann", 20};
+            Student t = s;
+            ```
+
+            `typedef` 给类型起个短名字，之后写 `Student` 就行，不用每次写 struct。
+
+            `t = s` 把 s 的**所有成员复制**一份给 t（连 name 数组也整个复制）。之后改 t，s 不变。
+      - item:
+          id: struct-copy
+          type: choice
+          prompt: 运行下面的程序，显示什么？
+          code: |
+            struct point { int x; int y; };
+            int main(void) {
+                struct point a = {1, 2};
+                struct point b = a;
+                b.x = 9;
+                printf("%d\n", a.x);
+                return 0;
+            }
+          lang: c
+          options:
+            - text: '1'
+              correct: true
+            - text: '9'
+              why: b = a 复制出了独立的一份；改 b.x 不影响 a
+          explain: 结构体赋值是整体复制，a 和 b 是两块不同的内存。
+      - card:
+          title: 交给函数：传指针，用 ->
+          body: |
+            结构体和 int 一样**按值传递**：函数拿到的是副本。要改调用者的结构体，就传它的地址：
+
+            ```c
+            void move_right(struct point *p) {
+                p->x = p->x + 1;
+            }
+            ```
+
+            `p->x` 就是 `(*p).x`：顺着指针找到结构体，再取成员 x。有了指针，用 `->`；手上是结构体本身，用 `.`。结构体很大时，传指针也省得整个复制。
+      - item:
+          id: arrow
+          type: number
+          prompt: 用上面的 move_right，运行下面的程序，显示的数是多少？
+          code: |
+            int main(void) {
+                struct point q = {5, 0};
+                move_right(&q);
+                move_right(&q);
+                printf("%d\n", q.x);
+                return 0;
+            }
+          lang: c
+          answer: 7
+          explain: 两次都是通过指针改 q 本身，x 从 5 变成 7。
+          review: false
+      - item:
+          id: dot-or-arrow
+          type: choice
+          prompt: '`struct point *pp = &q;` 之后，想取 q 的 y，下面哪个对？'
+          options:
+            - text: '`pp->y`'
+              correct: true
+            - text: '`pp.y`'
+              why: pp 是指针，不是结构体；用 . 会编译报错
+            - text: '`*pp.y`'
+              why: . 比 * 先算，这等于 *(pp.y)；要写 (*pp).y，也就是 pp->y
+          explain: 手上是指针，用 ->。
+      - card:
+          title: 成员之间可能有空隙
+          body: |
+            ```c
+            struct rec { char c; int n; };
+            ```
+
+            c 占 1 个字节，n 占 4 个，可 `sizeof(struct rec)` 是 8，不是 5。因为 int 要放在 4 的倍数的地址上（叫对齐），编译器在 c 后面空了 3 个字节，n 从第 4 个字节开始（`offsetof(struct rec, n)` 是 4）。
+
+            所以结构体的大小别自己加，用 sizeof。
+      - item:
+          id: padding
+          type: number
+          prompt: 在 64 位 Linux 上（double 占 8 个字节，要对齐到 8），`struct student { char name[16]; int age; double score; };` 的 sizeof 是多少？
+          answer: 32
+          explain: name 占 0–15，age 占 16–19；score 要从 8 的倍数开始，空出 20–23，放在 24–31。一共 32。
+      - card:
+          title: 例题：找出年纪最大的学生
+          body: 有一个 Student 数组 `class_[3]`，找出 age 最大的那个，显示他的名字。一步一步来。
+          reveal:
+            - title: 第 1 步：先假设第一个最大
+              body: '`Student *best = &class_[0];`：用指针记住“目前最大的是谁”，不用复制整个结构体。'
+            - title: 第 2 步：和后面的逐个比
+              body: |
+                ```c
+                for (int i = 1; i < 3; i++)
+                    if (class_[i].age > best->age)
+                        best = &class_[i];
+                ```
+            - title: 第 3 步：显示
+              body: '`printf("%s\n", best->name);`。best 是指针，所以用 ->。'
+      - item:
+          id: avg-age
+          type: number
+          prompt: 运行下面的程序，显示的数是多少？
+          code: |
+            typedef struct { char name[16]; int age; } Student;
+            int main(void) {
+                Student c[3] = {{"Ann", 20}, {"Bo", 23}, {"Cy", 17}};
+                int total = 0;
+                for (int i = 0; i < 3; i++)
+                    total += c[i].age;
+                printf("%d\n", total / 3);
+                return 0;
+            }
+          lang: c
+          answer: 20
+          explain: 20 + 23 + 17 = 60，60 / 3 = 20（整数相除）。
+      - item:
+          id: self-ref
+          type: choice
+          prompt: 想让每个节点记住“下一个节点”，下面哪种写法能编译？
+          options:
+            - text: '`struct node { int value; struct node *next; };`'
+              correct: true
+            - text: '`struct node { int value; struct node next; };`'
+              why: 一个 node 里面再装一个完整的 node，它就要无限大；gcc 报 field ‘next’ has incomplete type
+          explain: 结构体里可以放指向同类型的指针（大小固定是 8 个字节），不能放它自己。有了这样的 next，就能把很多节点一个接一个串起来。
+
+  - id: void-pointers
+    chapter: 指针
+    title: void * 和 const：不管是什么类型的指针
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 想只写一个 swap，既能交换两个 int，也能交换两个 double、两个结构体。猜一猜在 C 里能做到吗？
+          options:
+            - text: 能：只要知道两块内存在哪、各有几个字节，逐个字节交换就行
+              correct: true
+            - text: 不能，每种类型必须单独写一个
+              why: C 没有 Python 那样的“什么都能放”的变量，但可以绕开类型，直接按字节搬
+          explain: 交换就是把两块内存里的字节对调，和里面装的是什么类型无关。这一课讲怎么写。
+      - card:
+          title: void *：只有地址，没有类型
+          body: |
+            `void *p` 是一种只记地址、不说类型的指针。任何类型的指针都能直接交给它，它也能交回去：malloc 交回的就是 `void *`。
+
+            代价是：编译器不知道 p 指向什么，所以**不能直接** `*p`。先转换成具体的类型：
+
+            ```c
+            int x = 5;
+            void *p = &x;
+            printf("%d\n", *(int *)p);
+            ```
+
+            `(int *)p` 表示“把 p 当作指向 int 的指针”，再 `*` 取值，显示 5。
+      - item:
+          id: void-deref
+          type: choice
+          prompt: '`int x = 5; void *p = &x; printf("%d\n", *p);` 编译时会怎样？'
+          options:
+            - text: 报错 invalid use of void expression
+              correct: true
+            - text: 显示 5
+              why: void * 没说指向什么类型，编译器不知道该读几个字节，只能报错
+          explain: gcc 先警告“dereferencing ‘void *’ pointer”，再报错。要写 *(int *)p。
+      - card:
+          title: memcpy：按字节复制
+          body: |
+            `memcpy(dst, src, n)` 把 src 开始的 n 个字节复制到 dst，不管里面是什么类型。用它写一个通用的 swap：
+
+            ```c
+            void swap(void *a, void *b, size_t n) {
+                char tmp[n];
+                memcpy(tmp, a, n);
+                memcpy(a, b, n);
+                memcpy(b, tmp, n);
+            }
+            ```
+
+            调用：`swap(&x, &y, sizeof x)`。n 必须由调用者给：void * 自己不带大小。
+      - item:
+          id: generic-swap
+          type: number
+          prompt: 用上面的 swap，运行下面的程序，显示的数是多少？
+          code: |
+            int main(void) {
+                double x = 1.5, y = 4.0;
+                swap(&x, &y, sizeof x);
+                printf("%.1f\n", x - y);
+                return 0;
+            }
+          lang: c
+          answer: 2.5
+          explain: 交换后 x 是 4.0，y 是 1.5，4.0 − 1.5 = 2.5。sizeof x 是 8，整个 double 都换了。
+          review: false
+      - card:
+          title: 例题：大小给错了会怎样
+          body: 两个 double 用 `swap(&x, &y, sizeof(int))` 交换，只给了 4。一步一步看。
+          reveal:
+            - title: 第 1 步：只换了一半
+              body: double 占 8 个字节，swap 只对调了前 4 个，后 4 个没动。
+            - title: 第 2 步：结果
+              body: 在 x86-64 上，一个 double 的前 4 个字节只管最末尾那几位。所以 x 还是几乎原来的 x，y 还是几乎原来的 y：根本没有交换。x = 1.5、y = 4.0 时，换完显示的仍然是 1.5 和 4。编译器不会有任何警告。
+            - title: 第 3 步：教训
+              body: void * 把类型检查交给了你自己。大小一律写 `sizeof x`，别手写数字。
+      - item:
+          id: wrong-size
+          type: choice
+          prompt: 用 void * 写的通用函数，最容易出什么错？
+          options:
+            - text: 大小或类型给错了，编译器查不出来，结果悄悄就错了
+              correct: true
+            - text: 编译器会把每次调用都检查得更严
+              why: 恰好相反：void * 不带类型，编译器没法替你检查
+          explain: 通用的代价是失去类型检查。
+      - card:
+          title: const 和指针
+          body: |
+            - `const int *p`：不能**通过 p** 改它指向的值（`*p = 5` 报错），但 p 可以改指别处。
+            - `int *const q`：q 一直指着同一个地方（`q = &y` 报错），但能通过 q 改那里的值。
+
+            从右往左读：`const int *p` 是“p 是指针，指向 const int”。库函数常这样承诺不改你的数据，比如 `size_t strlen(const char *s)`。
+      - item:
+          id: const-ptr
+          type: choice
+          prompt: '`int x = 1; const int *p = &x; *p = 5;` 编译时会怎样？'
+          options:
+            - text: 报错 assignment of read-only location ‘*p’
+              correct: true
+            - text: 正常，x 变成 5
+              why: const int *p 承诺不通过 p 改值，*p = 5 违反了承诺
+            - text: 正常，但只是 p 变了
+              why: '*p = 5 改的是 p 指向的值，不是 p 本身'
+          explain: 通过 p 只能读，不能写。直接写 x = 5 倒是可以，因为 x 本身不是 const。
+      - item:
+          id: const-q
+          type: choice
+          prompt: '`int x = 1, y = 2; int *const q = &x; q = &y;` 编译时会怎样？'
+          options:
+            - text: 报错 assignment of read-only variable ‘q’
+              correct: true
+            - text: 正常，q 改指 y
+              why: int *const q 表示 q 本身不能改指别处
+          explain: const 写在 * 右边，管的是指针变量 q 自己。
+
+  - id: function-pointers
+    chapter: 指针
+    title: 函数指针：把函数当参数交出去
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: C 标准库的 qsort 能给任何类型的数组排序：int、double、结构体都行。猜一猜它怎么知道两个元素谁该排在前面？
+          options:
+            - text: 由你写一个“比较两个元素”的函数交给它
+              correct: true
+            - text: qsort 自己判断元素的类型
+              why: qsort 拿到的是 void *，根本不知道元素是什么类型
+          explain: 排序的步骤都一样，只有“比较”因类型而不同，于是让调用者把比较的函数交进来。
+      - card:
+          title: 函数也有地址
+          body: |
+            函数的代码也放在内存里，函数名就代表它的地址。存这个地址的变量叫**函数指针（function pointer）**：
+
+            ```c
+            int add(int a, int b) { return a + b; }
+            int mul(int a, int b) { return a * b; }
+
+            int (*op)(int, int) = add;
+            printf("%d\n", op(2, 3));
+            ```
+
+            显示 5。`int (*op)(int, int)` 读作：op 是一个指针，指向“接收两个 int、返回 int”的函数。之后 `op = mul;`，`op(2, 3)` 就得 6。
+      - item:
+          id: fp-call
+          type: number
+          prompt: 用上面的 add 和 mul，执行 `int (*op)(int, int) = mul;` 之后，`op(4, 5) + add(1, 1)` 是多少？
+          answer: 22
+          explain: op 指向 mul，op(4, 5) = 20；add(1, 1) = 2；合计 22。
+          review: false
+      - card:
+          title: qsort 和比较函数
+          body: |
+            ```c
+            int cmp_int(const void *a, const void *b) {
+                int x = *(const int *)a, y = *(const int *)b;
+                return (x > y) - (x < y);
+            }
+
+            int v[4] = {5, 2, 9, 1};
+            qsort(v, 4, sizeof v[0], cmp_int);
+            ```
+
+            qsort 的四个参数：数组、元素个数、每个元素几个字节、比较函数。比较函数拿到两个元素的地址，a 该排前面就交回负数，一样交回 0，a 该排后面交回正数。`(x > y) - (x < y)` 正好交回 -1、0 或 1。
+      - item:
+          id: qsort-result
+          type: text
+          prompt: 上面的 qsort 排完后，依次显示 v 的四个元素（用空格隔开），是什么？
+          answers: [1 2 5 9]
+          explain: cmp_int 在 x < y 时交回负数，所以小的排前面：1 2 5 9。
+          review: false
+      - card:
+          title: 例题：换一种排法
+          body: 同一个 qsort，只换比较函数，就能换排法。
+          reveal:
+            - title: 第 1 步：从大到小
+              body: 把交回值反过来：`return (x < y) - (x > y);`，大的排前面。
+            - title: 第 2 步：给字符串排序
+              body: |
+                数组是 `char *words[3] = {"pear", "apple", "fig"};`，每个元素是一个 `char *`。比较函数拿到的是**元素的地址**，也就是指向 `char *` 的指针：
+                ```c
+                int cmp_str(const void *a, const void *b) {
+                    return strcmp(*(char *const *)a, *(char *const *)b);
+                }
+                ```
+            - title: 第 3 步：结果
+              body: '`qsort(words, 3, sizeof words[0], cmp_str);` 之后是 apple、fig、pear。'
+      - item:
+          id: descending
+          type: choice
+          prompt: 想让 `qsort(v, 4, sizeof v[0], cmp)` 把 {5, 2, 9, 1} 排成 9 5 2 1，比较函数最后一行写什么？（x、y 是两个元素的值）
+          options:
+            - text: '`return (x < y) - (x > y);`'
+              correct: true
+            - text: '`return (x > y) - (x < y);`'
+              why: 这是从小到大：x 大时交回正数，x 排到后面
+            - text: '`return x > y;`'
+              why: 只交回 0 或 1，x < y 时也是 0，qsort 会以为它们一样大
+          explain: 想让大的排前面，就在 x > y 时交回负数。
+      - item:
+          id: str-cmp-arg
+          type: choice
+          prompt: 给 `char *words[]` 排序时，比较函数里为什么不能直接写 `strcmp(a, b)`？
+          options:
+            - text: a、b 是元素的地址，元素本身才是 char *；要先 `*(char *const *)a` 取出元素
+              correct: true
+            - text: strcmp 不能比较字符串
+              why: strcmp 就是比较字符串的；问题在于 a 指向的不是字符串本身，而是存着字符串地址的那个格子
+          explain: qsort 总是把“元素的地址”交给比较函数。元素是 char *，它的地址就是 char **。
+      - card:
+          title: 回调：等一下再叫你
+          body: |
+            把函数交给另一个函数，让对方在合适的时候调用它，这叫回调（callback）。
+
+            ```c
+            void apply(int *a, int n, int (*f)(int)) {
+                for (int i = 0; i < n; i++)
+                    a[i] = f(a[i]);
+            }
+            int square(int x) { return x * x; }
+            ```
+
+            `apply(v, 3, square)` 把 v 的每个元素换成它的平方。操作系统里常见这种写法：你把一个函数交给系统，系统开出一条新的执行路线，从这个函数开始跑。
+      - item:
+          id: apply-sum
+          type: number
+          prompt: 用上面的 apply 和 square，运行下面的程序，显示的数是多少？
+          code: |
+            int main(void) {
+                int v[3] = {1, 2, 3};
+                apply(v, 3, square);
+                printf("%d\n", v[0] + v[1] + v[2]);
+                return 0;
+            }
+          lang: c
+          answer: 14
+          explain: v 变成 1、4、9，和是 14。
+          review: false
+
+  # ---------------------------------------------------------------- 内存布局
+  - id: memory-map
+    chapter: 内存布局
+    title: 程序的内存地图
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜：一个函数里的普通变量，在函数结束以后还在吗？
+          options:
+            - text: 不在了，它占的地方会被收回
+              correct: true
+            - text: 一直都在，直到关机
+              why: 程序结束时它占的内存就会还给系统，何况函数结束得更早
+            - text: 要等整个程序结束才收回
+              why: 函数里的普通变量随这次调用结束就收回了
+          explain: 不同的变量放在内存的不同区域，收回的时间也不同。这一课先认识这些区域。
+      - card:
+          title: 程序的几块内存
+          body: |
+            程序运行时，它的内存分成几块，地址从小到大大致是：
+
+            | 区域 | 放什么 |
+            |---|---|
+            | 代码区 | 编译出来的函数本身 |
+            | 全局数据区 | 写在所有函数外面的变量、static 变量 |
+            | 堆 | 程序运行中用 malloc 要来的内存 |
+            | 栈 | 函数里的普通变量和参数 |
+
+            **栈（stack）**和**堆（heap）**在这里是内存区域的名字，和数据结构课里的“栈”“堆”不是一回事。
+      - item:
+          id: where-lives
+          type: match
+          prompt: 把每样东西和它所在的区域连起来。
+          pairs:
+            - ["写在所有函数外面的 `int g = 1;`", "全局数据区"]
+            - ["main 里的 `int n = 3;`", "栈"]
+            - ["`malloc(100)` 要来的 100 个字节", "堆"]
+            - ["main 函数编译出来的内容", "代码区"]
+          explain: 函数外面的变量放全局数据区，函数里的普通变量放栈，malloc 的放堆，函数本身放代码区。
+      - card:
+          title: 全局变量一开始是 0
+          body: |
+            全局数据区里又分两块：有初始值的（`int g = 1;`）放在叫 data 的一块；没给初始值的（`int z;`）放在叫 BSS 的一块，程序开始前全部填成 0。所以没赋值的全局变量一定是 0。
+
+            函数里的普通变量没有这个待遇：不赋值就读它，读到的是那块栈内存里原来剩下的东西，无法预料。
+      - item:
+          id: global-zero
+          type: number
+          prompt: 运行下面的程序，显示的数是多少？
+          code: |
+            #include <stdio.h>
+            int count;
+
+            int main(void) {
+                printf("%d\n", count);
+                return 0;
+            }
+          lang: c
+          answer: 0
+          explain: count 写在函数外面、没有初始值，放在 BSS，程序开始前就被填成 0。
+      - item:
+          id: local-garbage
+          type: choice
+          prompt: main 里写 `int n; printf("%d\n", n);`，显示什么？
+          options:
+            - text: 无法预料，是那块内存里原来剩下的值
+              correct: true
+            - text: 一定是 0
+              why: 只有全局变量和 static 变量会被填成 0
+            - text: 编译报错
+              why: 编译器一般只给警告，照样能编译
+          explain: 函数里的普通变量放在栈上，不会自动清零。养成习惯：声明时就赋值。
+      - card:
+          title: 例题：一台真实电脑上的地址
+          body: |
+            在一台 64 位 Linux 电脑上，打印 main 函数、全局变量 g（有初始值）、全局变量 s（没初始值）、一块 malloc 来的内存、main 里的变量 a 的地址：
+
+            ```
+            main   0x631c1065e1e9
+            g      0x631c10661010
+            s      0x631c10661028
+            malloc 0x631c4f559010
+            a      0x7ffd0105ad44
+            ```
+
+            从小到大排一排。
+          reveal:
+            - title: 第 1 步：先看开头
+              body: 前四个都以 0x631c 开头，a 以 0x7ffd 开头。7 比 6 大，所以 a（栈）最大。
+            - title: 第 2 步：比前三个
+              body: main 是 0x631c1065…，g 是 0x631c1066…，s 也是 0x631c1066… 但后面 1028 比 1010 大。所以 main < g < s。
+            - title: 第 3 步：再看 malloc 的
+              body: 0x631c4f… 比 0x631c10… 大，所以它在 s 后面、a 前面。
+            - title: 第 4 步：对上区域
+              body: 代码区（main）< 全局数据区（g 在 data，s 在 BSS）< 堆（malloc）< 栈（a），和上面的表一致。
+      - item:
+          id: region-order
+          type: order
+          prompt: 按地址从小到大，把这四个区域排好。
+          steps:
+            - 代码区
+            - 全局数据区
+            - 堆
+            - 栈
+          explain: 这是常见的 64 位 Linux 上的排法：代码在最低处，栈在最高处，堆和栈之间留着一大片空地。
+
+  - id: stack-frames
+    chapter: 内存布局
+    title: 函数调用和栈帧
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜：同一个函数被调用了两次，两次调用里的局部变量 n 是同一个吗？
+          options:
+            - text: 不是，每次调用都有自己的一份 n
+              correct: true
+            - text: 是同一个，第二次调用接着用第一次的值
+              why: 那是 static 变量的行为；普通的局部变量每次调用都是新的一份
+          explain: 每次调用都在栈上划出一块新地方，放这次调用自己的变量。
+      - card:
+          title: 每次调用，一块栈帧
+          body: |
+            每调用一次函数，就在栈上给这次调用划出一块地方，放它的参数和局部变量，这块地方叫**栈帧（stack frame）**。函数 return 时，它的栈帧就被收回。所以局部变量只在这次调用期间存在。
+
+            栈像一摞盘子：新的调用放在最上面，最先结束的总是最上面那个。
+      - card:
+          title: 例题：main → f → g
+          body: |
+            ```c
+            void g(void) { int c = 3; }
+            void f(void) { int b = 2; g(); }
+            int main(void) { int a = 1; f(); return 0; }
+            ```
+
+            一步步看栈上有哪些栈帧。
+          reveal:
+            - title: 第 1 步
+              body: main 开始。栈上只有 main 的栈帧，里面有 a。
+            - title: 第 2 步
+              body: main 调用 f。f 的栈帧压在上面，里面有 b。
+            - title: 第 3 步
+              body: f 调用 g。g 的栈帧再压上去，里面有 c。这时一共 3 个栈帧。
+            - title: 第 4 步
+              body: g 结束，它的栈帧收回，c 没了，回到 f。f 再结束，回到 main，只剩 main 的栈帧。
+      - item:
+          id: frames-in-g
+          type: number
+          prompt: g 正在执行时，栈上一共有几个栈帧？
+          code: |
+            void g(void) { int c = 3; }
+            void f(void) { int b = 2; g(); }
+            int main(void) { int a = 1; f(); return 0; }
+          lang: c
+          answer: 3
+          explain: main 调用 f，f 调用 g，三个调用都还没结束：main、f、g 各一个。
+      - card:
+          title: 递归：函数调用它自己
+          body: |
+            ```c
+            int fact(int n) {
+                if (n <= 1) return 1;
+                return n * fact(n - 1);
+            }
+            ```
+
+            函数在函数体里调用它自己，叫**递归（recursion）**。fact(4) 调用 fact(3)，fact(3) 调用 fact(2)……每一层都是一次新的调用，有自己的栈帧和自己的 n。到 n <= 1 时不再往下调用，然后一层层 return 回去。
+      - item:
+          id: fact-frames
+          type: number
+          prompt: main 里调用 fact(4)。fact(1) 正在执行时，栈上一共有几个栈帧（算上 main）？
+          answer: 5
+          explain: main、fact(4)、fact(3)、fact(2)、fact(1) 都还没结束，一共 5 个。
+      - item:
+          id: fact-value
+          type: number
+          prompt: fact(4) 的结果是多少？
+          answer: 24
+          explain: fact(1) = 1，fact(2) = 2 × 1 = 2，fact(3) = 3 × 2 = 6，fact(4) = 4 × 6 = 24。
+      - card:
+          title: 栈的大小有限
+          body: |
+            栈只有固定的一块，Linux 上常见的默认大小是 8 MB。递归停不下来，或者在函数里开一个特别大的数组，栈就会用完，程序崩溃，这叫**栈溢出（stack overflow）**。
+
+            用前面的方法编译（gcc 不加优化选项），下面这个函数每调用一次就多占一块栈帧，很快就会用完：
+
+            ```c
+            int f(int n) { return 1 + f(n + 1); }
+            ```
+      - item:
+          id: no-base-case
+          type: choice
+          prompt: 用 gcc 不加优化选项编译，调用 f(0)，会怎样？
+          code: |
+            int f(int n) { return 1 + f(n + 1); }
+          lang: c
+          options:
+            - text: 栈帧越压越多，栈用完，程序崩溃
+              correct: true
+            - text: 永远运行下去，但不出错
+              why: 每次调用都要占一块新的栈帧，栈很快就满了
+            - text: 编译时报错
+              why: 写法完全合法，问题在运行时才出现
+          explain: f 没有“停下来”的条件，每层都在等下一层返回，栈帧只增不减，直到栈溢出。
+
+  - id: machine-stack
+    chapter: 内存布局
+    title: 机器眼里的函数调用：寄存器、call 和 ret
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: main 调用 f，f 执行完要回到 main 里调用它的下一行。猜一猜：CPU 是怎么记住“回到哪里”的？
+          options:
+            - text: 调用时把“回来的位置”存在栈上，返回时取出来
+              correct: true
+            - text: 编译器在 f 的最后写死了 main 的位置
+              why: f 可能被很多地方调用，每次要回去的地方都不一样，写不死
+            - text: 操作系统替程序记着
+              why: 函数调用非常频繁，全由 CPU 自己完成，不用麻烦操作系统
+          explain: 这个“回来的位置”具体放在栈上哪里、为什么缓冲区溢出能改掉它，下面细讲。
+      - card:
+          title: 指令和寄存器
+          body: |
+            编译好的机器码是一串**指令（instruction）**：每条只做一件很小的事，比如“把一个数搬到某处”“两个数相加”“跳到某个地址”。指令的文字写法叫**汇编（assembly）**，`gcc -S` 能输出它。
+
+            CPU 里面有十几个又小又快的存储格，叫**寄存器（register）**。x86-64 有 16 个 64 位的通用寄存器，名字像 `%rax`、`%rdi`、`%rsi`、`%rsp`。还有一个特别的 `%rip`，存着下一条要执行的指令的地址，这种寄存器叫**程序计数器（program counter）**。
+      - card:
+          title: 看一个函数的汇编
+          body: |
+            ```c
+            long sub(long a, long b) { return a - b; }
+            ```
+
+            在这台 64 位 Linux 上用 `gcc -S -O1` 编译，得到下面几行（省略了以 . 开头的说明行，以及 Ubuntu 的 gcc 在每个函数开头加的一条安全检查指令 endbr64）：
+
+            ```
+            sub:
+                movq  %rdi, %rax
+                subq  %rsi, %rax
+                ret
+            ```
+
+            按约定，第一个参数放在 `%rdi`，第二个在 `%rsi`，返回值放在 `%rax`。所以这三条是：把 a 搬进 %rax，再减去 b，返回。
+      - item:
+          id: regs
+          type: match
+          prompt: 在 x86-64 Linux 上，把寄存器和它的用途连起来。
+          pairs:
+            - ['%rdi', 第一个参数]
+            - ['%rsi', 第二个参数]
+            - ['%rax', 返回值]
+            - ['%rsp', 栈顶的地址]
+          explain: 参数按 %rdi、%rsi……的顺序放，返回值放 %rax；%rsp 永远指着栈顶。
+      - card:
+          title: call 和 ret
+          body: |
+            ```c
+            long twice_sub(long a, long b) { return sub(a, b) * 2; }
+            ```
+
+            ```
+            twice_sub:
+                call  sub
+                addq  %rax, %rax
+                ret
+            ```
+
+            （这次加了 `-fno-inline`，否则编译器会把 sub 的两条指令直接并进来，看不到 call。）a、b 已经在 %rdi、%rsi 里了，直接 `call sub`。`call` 做两件事：把**下一条指令的地址**（这里是 addq 那一行）压到栈顶，再跳到 sub。sub 最后的 `ret` 从栈顶弹出这个地址，跳回去。这个地址叫**返回地址（return address）**。
+      - item:
+          id: call-order
+          type: order
+          prompt: 一次函数调用在机器里依次发生什么？排好顺序。
+          steps:
+            - 把参数放进 %rdi、%rsi
+            - call：把返回地址压到栈顶，跳到函数
+            - 函数算出结果，放进 %rax
+            - ret：从栈顶弹出返回地址，跳回去
+          explain: 返回地址在 call 时压入，在 ret 时弹出；调用者接着从 %rax 拿结果。
+      - item:
+          id: rsp-after-call
+          type: number
+          prompt: x86-64 的栈往小地址长，返回地址占 8 个字节。执行 call 之前 %rsp 是 1000（十进制），刚跳进函数时 %rsp 是多少？
+          answer: 992
+          explain: call 把 8 个字节的返回地址压到栈顶：栈顶往小地址挪 8，1000 − 8 = 992。ret 弹出后又回到 1000。
+      - card:
+          title: 栈帧里有什么
+          body: |
+            从大地址往小地址看，一次调用的栈上依次是：
+
+            | 位置 | 内容 |
+            |---|---|
+            | 大地址 | 调用者自己的栈帧 |
+            | ↓ | 返回地址（call 压入） |
+            | ↓ | 函数保存的寄存器 |
+            | 小地址 | 函数的局部变量，比如 `char buf[16]` |
+
+            注意：数组 buf 自己是从小地址往大地址排的，buf[15] 后面再往上，就是返回地址。
+      - card:
+          title: 为什么缓冲区溢出很危险
+          body: |
+            ```c
+            void greet(const char *name) {
+                char buf[16];
+                strcpy(buf, name);
+                printf("%s\n", buf);
+            }
+            ```
+
+            name 超过 15 个字符时，strcpy 会一直往大地址写，越过 buf，盖掉返回地址。函数 ret 时就跳到了被改写的地址：程序崩溃，或者跳进攻击者准备好的代码。
+
+            现在的 gcc 默认在返回地址下面放一个“哨兵值”（canary），ret 之前检查它变了没有。在这台 Linux 上传一个 40 个字符的名字，程序先显示名字，接着显示 `*** stack smashing detected ***: terminated` 并终止。
+      - item:
+          id: why-hijack
+          type: choice
+          prompt: 为什么栈上的缓冲区溢出能让程序跳到别处执行？
+          options:
+            - text: 返回地址就存在局部数组上方，写出数组的边界就会盖掉它，ret 时跳到被改写的地址
+              correct: true
+            - text: 溢出会修改程序文件里的机器码
+              why: 溢出改的是运行时栈上的数据，不是磁盘上的程序文件
+            - text: 溢出会让操作系统重启这个程序
+              why: 操作系统不会因为溢出主动做什么；真正的问题是 ret 用了被改写的返回地址
+          explain: 局部数组和返回地址挨着放在栈上，这就是缓冲区溢出最出名的利用方式。
+      - item:
+          id: canary
+          type: choice
+          prompt: 用 Ubuntu 上默认设置的 gcc 编译上面的 greet，传进一个很长的名字。最可能看到什么？
+          options:
+            - text: '*** stack smashing detected ***: terminated'
+              correct: true
+            - text: 名字被自动截到 15 个字符
+              why: strcpy 不会截断，C 也不检查边界；是 gcc 加的哨兵检查发现了覆盖
+            - text: 编译时就报错
+              why: 编译器不知道运行时传进来的名字有多长，编译能通过
+          explain: 哨兵值被覆盖，函数返回前检查到了，于是立刻终止程序，而不是跳到被改写的返回地址。
+          review: false
+      - item:
+          id: stack-grows
+          type: choice
+          prompt: 在 x86-64 上，main 调用 f，f 再调用 g。g 的局部变量的地址和 main 的局部变量相比？
+          options:
+            - text: 更小
+              correct: true
+            - text: 更大
+              why: x86-64 的栈从大地址往小地址长，越晚调用的函数，栈帧越靠下（地址越小）
+          explain: 每次 call 和分配局部变量，%rsp 都往小地址挪。
+          review: false
+
+  # ---------------------------------------------------------------- 生命周期
+  - id: lifetime
+    chapter: 生命周期
+    title: 变量能活多久
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 猜一猜：调用 tick() 三次，第三次显示几？
+          code: |
+            void tick(void) {
+                static int n = 0;
+                n = n + 1;
+                printf("%d\n", n);
+            }
+          lang: c
+          answer: 3
+          explain: 加了 static 的变量不会随着函数结束而消失，所以三次调用依次显示 1、2、3。
+      - card:
+          title: 三种生命周期
+          body: |
+            一块内存从存在到被收回的这段时间，叫它的**生命周期（lifetime）**。C 里有三种：
+
+            | 种类 | 例子 | 活多久 |
+            |---|---|---|
+            | 自动 | 函数里的普通变量 | 从调用开始到 return（栈帧收回） |
+            | 静态 | 函数外的变量、static 变量 | 整个程序运行期间 |
+            | 动态 | malloc 要来的内存 | 从 malloc 到 free |
+      - item:
+          id: lifetime-kinds
+          type: match
+          prompt: 把变量和它能活多久连起来。
+          pairs:
+            - ["main 里的 `int i = 0;`", "到这次调用 return"]
+            - ["函数外面的 `int total;`", "整个程序运行期间"]
+            - ["`malloc(40)` 要来的内存", "直到 free 它"]
+          explain: 普通局部变量跟着栈帧走，全局和 static 变量跟着整个程序，malloc 的内存跟着你什么时候 free。
+      - card:
+          title: static 局部变量
+          body: |
+            在函数里的变量前加 `static`，它就不放在栈上，而放在全局数据区：整个程序只有一份，只在程序开始时初始化一次，函数结束后值还留着。全局变量和这种变量都叫**静态变量**。
+
+            前面的 tick 依次显示 1、2、3。去掉 static，每次调用都是一个新的 n，从 0 开始，三次都显示 1。
+      - item:
+          id: no-static
+          type: number
+          prompt: 把 tick 里的 `static int n = 0;` 改成 `int n = 0;`，第三次调用显示几？
+          answer: 1
+          explain: 普通局部变量每次调用都重新创建、重新赋成 0，加 1 后总是 1。
+      - card:
+          title: 作用域和生命周期不是一回事
+          body: |
+            **作用域（scope）**说的是“在哪些代码里能用这个名字”；生命周期说的是“这块内存什么时候存在”。
+
+            static 局部变量就是两者不同的例子：它的作用域只在这个函数里（在函数外面写 n 会编译报错），生命周期却是整个程序。
+      - item:
+          id: static-scope
+          type: choice
+          prompt: tick 里的 `static int n` 的作用域和生命周期分别是什么？
+          options:
+            - text: 作用域：只在 tick 里；生命周期：整个程序运行期间
+              correct: true
+            - text: 作用域：整个程序；生命周期：整个程序运行期间
+              why: 名字 n 只在 tick 里能用，main 里写 n 会编译报错
+            - text: 作用域：只在 tick 里；生命周期：到 tick 这次调用 return
+              why: 加了 static，内存放在全局数据区，不会随调用结束而收回
+          explain: static 改变的是生命周期，名字能在哪里用没变。
+      - item:
+          id: mixed-static
+          type: number
+          prompt: main 里调用三次 f()，第三次调用返回几？
+          code: |
+            int f(void) {
+                static int s = 0;
+                int t = 0;
+                s = s + 1;
+                t = t + 1;
+                return s + t;
+            }
+          lang: c
+          answer: 4
+          explain: s 在三次调用之间累加，第三次时是 3；t 每次都是新的，总是 1。3 + 1 = 4。
+
+  - id: heap
+    chapter: 生命周期
+    title: 堆：malloc 和 free
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜：用 malloc 要来的内存，什么时候还回去？
+          options:
+            - text: 程序员自己调用 free 的时候
+              correct: true
+            - text: 要它的函数结束的时候
+              why: 那是普通局部变量；malloc 来的内存不跟着函数走
+            - text: C 会自动发现没人用了，替你还
+              why: C 没有这种自动回收，Python 才有
+          explain: malloc 来的内存要你亲手 free。这给了你自由，也带来了这一课和下一课的那些错误。
+      - card:
+          title: malloc：在堆上要一块内存
+          body: |
+            ```c
+            #include <stdlib.h>
+
+            int n = 5;
+            int *a = malloc(n * sizeof(int));   // 要 5 个 int 那么大的地方
+            a[0] = 1;                           // 像数组一样用
+            free(a);                            // 用完还回去
+            ```
+
+            `malloc(字节数)` 在堆上划出一块内存，返回它的地址；内存不够时返回 NULL。和数组不同，要多大可以等程序运行时再决定，这里的 n 可以是用户输入的。
+      - item:
+          id: malloc-bytes
+          type: number
+          prompt: "`double *d = malloc(10 * sizeof(double));` 要了几个字节？"
+          answer: 80
+          explain: 一个 double 8 个字节，10 个就是 80 个字节。
+      - card:
+          title: free：还回去
+          body: |
+            `free(a)` 把这块内存还给系统，之后就不能再用 a 指向的内容了。
+
+            堆上的内存不会自动收回：要它的函数结束了，它还在，一直等你 free。这正是它的用处：函数可以 malloc 一块内存，把地址 return 出去，调用的人接着用。
+      - card:
+          title: 例题：返回一块平方数
+          body: |
+            ```c
+            int *make_squares(int n) {
+                int *a = malloc(n * sizeof(int));
+                for (int i = 0; i < n; i++) a[i] = i * i;
+                return a;
+            }
+
+            int main(void) {
+                int *s = make_squares(4);
+                printf("%d\n", s[3]);
+                free(s);
+                return 0;
+            }
+            ```
+          reveal:
+            - title: 第 1 步
+              body: make_squares(4) 在堆上要了 4 个 int，一共 16 个字节。
+            - title: 第 2 步
+              body: 循环写入 0、1、4、9。
+            - title: 第 3 步
+              body: return a 时，make_squares 的栈帧收回了（a 这个指针变量没了），但堆上那 16 个字节还在，地址交给了 main 里的 s。
+            - title: 第 4 步
+              body: s[3] 是 9，显示 9。用完 free(s)，把内存还回去。
+      - item:
+          id: squares-sum
+          type: number
+          prompt: 把 main 改成 `int *s = make_squares(5);`，`s[2] + s[4]` 是多少？
+          answer: 20
+          explain: 五个元素是 0、1、4、9、16。s[2] = 4，s[4] = 16，4 + 16 = 20。
+      - card:
+          title: 内存泄漏
+          body: |
+            如果指向一块堆内存的最后一个指针丢了（变量改指别处，或者它所在的函数结束了），又没有 free，这块内存就再也还不回去了，叫**内存泄漏（memory leak）**。
+
+            短程序结束时系统会全部收回，看不出问题；服务器这种一直运行的程序，泄漏会越积越多，最后把内存耗光。
+      - item:
+          id: leak-bytes
+          type: number
+          prompt: 循环结束后，有多少个字节再也还不回去？
+          code: |
+            for (int i = 0; i < 3; i++) {
+                int *p = malloc(100);
+                p[0] = i;
+            }
+          lang: c
+          answer: 300
+          explain: 每一轮 malloc 100 个字节；一轮结束，p 就没了，那 100 个字节没人能 free。三轮共 300 个字节。
+      - item:
+          id: fix-leak
+          type: choice
+          prompt: 下面的循环有内存泄漏。怎样改掉？
+          code: |
+            for (int i = 0; i < 3; i++) {
+                int *p = malloc(100);
+                p[0] = i;
+            }
+          lang: c
+          options:
+            - text: 在循环体最后加一行 `free(p);`
+              correct: true
+            - text: 在循环结束后加一行 `free(p);`
+              why: 循环外面已经没有 p 了，而且就算有，也只能还最后一块
+            - text: 把 malloc(100) 改成 malloc(50)
+              why: 泄漏得少了一半，但还是泄漏
+          explain: 每一块 malloc 的内存都要 free 一次。在 p 还在的时候（这一轮里）free 它。
+
+  - id: growing-arrays
+    chapter: 生命周期
+    title: 会长大的数组：realloc
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 程序要读进用户输入的一串数，事先不知道有多少个。猜一猜，下面哪种做法最合理？
+          options:
+            - text: 先 malloc 一小块，不够了再换一块更大的，把旧的内容搬过去
+              correct: true
+            - text: 一开始就开一个一百万个元素的数组
+              why: 大多数时候浪费，而且万一超过一百万还是不够
+            - text: 每读一个数就单独 malloc 一个 int
+              why: 这些 int 散落在堆的各处，没法再用下标 a[i] 访问
+          explain: 这就是“可变数组”：用完了就换一块更大的。C 有现成的 realloc 帮你换。
+      - card:
+          title: realloc：换一块更大的
+          body: |
+            ```c
+            int *a = malloc(4 * sizeof(int));
+            ...
+            int *bigger = realloc(a, 8 * sizeof(int));
+            ```
+
+            realloc 交回一块新大小的内存，原来的内容已经复制过去。它**可能搬家**：交回的地址可以和 a 不同，旧的那块已经被释放。所以之后只能用 bigger，不能再用 a。
+
+            要不到内存时 realloc 交回 NULL，原来那块还在、没被释放。
+      - item:
+          id: realloc-old
+          type: choice
+          prompt: 执行 `q = realloc(p, 100);` 成功以后，还能接着用 p 吗？
+          options:
+            - text: 不能：内存可能已经搬到 q，原来 p 指的那块已被释放
+              correct: true
+            - text: 能，p 和 q 永远是同一个地址
+              why: 原地扩大不了时，realloc 会换到别处，p 指着的已经是还回去的内存
+          explain: realloc 成功后，一律改用它交回的指针。
+      - card:
+          title: 每次翻倍
+          body: |
+            ```c
+            typedef struct { int *data; int size; int cap; } Vec;
+
+            void push(Vec *v, int x) {
+                if (v->size == v->cap) {
+                    v->cap = v->cap * 2;
+                    v->data = realloc(v->data, v->cap * sizeof(int));
+                }
+                v->data[v->size++] = x;
+            }
+            ```
+
+            size 是已经放了几个，cap 是这块内存能放几个。满了就把 cap 翻倍。（这里为了短，没有检查 realloc 交回 NULL 的情况。）
+      - item:
+          id: resizes
+          type: number
+          prompt: Vec 一开始 cap = 1、size = 0，用上面的 push 依次放进 9 个数。一共调用了几次 realloc？
+          answer: 4
+          explain: 放第 2 个时 cap 1 → 2，第 3 个时 2 → 4，第 5 个时 4 → 8，第 9 个时 8 → 16。一共 4 次。
+          review: false
+      - card:
+          title: 例题：为什么是翻倍，而不是每次加 1
+          body: 比一比两种做法放进 9 个数时，一共要搬几个元素（每次 realloc 都要把已有的元素复制过去）。
+          reveal:
+            - title: 第 1 步：翻倍
+              body: 4 次 realloc 时分别已有 1、2、4、8 个元素，一共搬 1 + 2 + 4 + 8 = 15 个。
+            - title: 第 2 步：每次加 1
+              body: 从第 2 个数开始每放一个都要 realloc，已有 1、2、……、8 个，一共搬 1 + 2 + … + 8 = 36 个。
+            - title: 第 3 步：规律
+              body: 放进 n 个数，翻倍一共搬的少于 2n 个；每次加 1 却要搬大约 n² / 2 个。n 越大，差得越多。
+      - item:
+          id: final-cap
+          type: number
+          prompt: 还是一开始 cap = 1，翻倍地 push 了 9 个数。最后 cap 是多少？
+          answer: 16
+          explain: 1 → 2 → 4 → 8 → 16。现在能放 16 个，已经放了 9 个。
+      - item:
+          id: realloc-null
+          type: choice
+          prompt: 为什么 `p = realloc(p, n);` 这样直接写回 p 是有风险的？
+          options:
+            - text: realloc 失败时交回 NULL，p 被改成 NULL，原来那块就再也找不到、还不回去了
+              correct: true
+            - text: realloc 不能把结果交给原来的指针
+              why: 语法上完全可以；风险只在失败的那一次
+          explain: 稳妥的写法是 `int *t = realloc(p, n); if (t) p = t;`，失败时 p 还指着原来那块。
+
+  - id: linked-lists
+    chapter: 生命周期
+    title: 链表：用 malloc 一个一个串起来
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个有 100 万个元素的数组，想在最前面插入一个新元素。猜一猜要做多少事？
+          options:
+            - text: 要把 100 万个元素都往后挪一格
+              correct: true
+            - text: 只要改一个元素
+              why: 数组的元素在内存里紧挨着排，前面要空出一格，后面全得挪
+          explain: 数组插在前面很费事。下面讲一种插在前面只要改两个指针的结构。
+      - card:
+          title: 链表：每个节点指着下一个
+          body: |
+            ```c
+            struct node {
+                int value;
+                struct node *next;
+            };
+            ```
+
+            每个节点用 malloc 单独要一块，next 存着下一个节点的地址；最后一个的 next 是 NULL。只要记住第一个节点（叫 head），就能顺着 next 走完全部。这样串起来的结构叫**链表（linked list）**。
+
+            节点散在堆的各处，不必挨着；它们什么时候创建、什么时候释放，全由你的 malloc 和 free 决定。
+      - card:
+          title: 插在最前面
+          body: |
+            ```c
+            struct node *push_front(struct node *head, int v) {
+                struct node *n = malloc(sizeof *n);
+                n->value = v;
+                n->next = head;
+                return n;
+            }
+            ```
+
+            新节点的 next 指向原来的第一个，然后它自己成为新的 head。不管链表多长，都只做这几步。调用：`head = push_front(head, 5);`。
+      - item:
+          id: push-steps
+          type: order
+          prompt: 把“在链表最前面插入 v”的步骤排好。
+          steps:
+            - 用 malloc 要一个新节点
+            - 把 v 存进新节点的 value
+            - 让新节点的 next 指向原来的 head
+            - 把 head 改成新节点
+          explain: 先接上原来的链表，再改 head；顺序反了，原来的链表就丢了。
+      - card:
+          title: 顺着 next 走一遍
+          body: |
+            ```c
+            int sum = 0;
+            for (struct node *p = head; p != NULL; p = p->next)
+                sum += p->value;
+            ```
+
+            p 从 head 出发，每轮走到下一个节点，遇到 NULL 停下。想找第 k 个节点，也只能这样从头走 k 步：链表不能像数组那样用下标直接跳过去。
+      - item:
+          id: front-order
+          type: text
+          prompt: 从空链表（head 是 NULL）开始，依次 `head = push_front(head, 1);`、`push_front(head, 2)`、`push_front(head, 3)`（每次都写回 head）。然后从 head 走一遍，依次显示的 value 是什么？（用空格隔开）
+          answers: [3 2 1]
+          explain: 每次都插在最前面，最后插的 3 在第一个。
+      - card:
+          title: 全部释放：先记住下一个
+          body: |
+            ```c
+            while (head != NULL) {
+                struct node *next = head->next;
+                free(head);
+                head = next;
+            }
+            ```
+
+            必须先把 next 存下来再 free：free 之后这个节点的内存就不归你了，再读 `head->next` 就是“释放后还在用”。用 AddressSanitizer 编译，会报 heap-use-after-free。
+      - item:
+          id: free-loop
+          type: choice
+          prompt: 下面哪种释放整个链表的写法是对的？
+          options:
+            - text: '先 `next = p->next;`，再 `free(p);`，再 `p = next;`'
+              correct: true
+            - text: '`for (p = head; p != NULL; p = p->next) free(p);`'
+              why: free(p) 之后，循环的 p = p->next 还在读已经释放的节点
+            - text: 只写 `free(head);`
+              why: 只还了第一个节点，后面的全都泄漏了
+          explain: 每个节点都是单独 malloc 的，要一个一个 free；而且释放之前先取出 next。
+      - card:
+          title: 删掉中间的一个节点
+          body: |
+            要删 cur，先找到它前面的 prev，让 prev 直接指向 cur 的下一个，再 free cur：
+
+            ```c
+            prev->next = cur->next;
+            free(cur);
+            ```
+
+            如果要删的就是 head，没有 prev：改成 `head = head->next;` 再 free 原来的 head。
+      - item:
+          id: delete-mid
+          type: choice
+          prompt: 链表是 3 → 2 → 1。prev 指向 3 那个节点，cur 指向 2。执行 `prev->next = cur->next; free(cur);` 之后，链表是？
+          options:
+            - text: 3 → 1
+              correct: true
+            - text: 3 → 2 → 1
+              why: prev->next 已经跳过了 2，2 那个节点也被还回去了
+            - text: '2 → 1'
+              why: 删掉的是 cur（2），不是 prev（3）
+          explain: 3 的 next 改成指向 1，2 被跳过并释放。
+      - item:
+          id: list-vs-array
+          type: choice
+          prompt: 想取第 1000 个元素，数组和链表各要做什么？
+          options:
+            - text: 数组用下标直接算出位置；链表要从 head 顺着 next 走 999 步
+              correct: true
+            - text: 两个都要从头走 999 步
+              why: 数组元素紧挨着，a[999] 的地址直接用“开头 + 999 × 元素大小”算出来
+          explain: 链表插入删除方便，按位置找慢；数组正好相反。数据结构那一站会细讲这种取舍。
+
+  - id: memory-bugs
+    chapter: 生命周期
+    title: 常见的内存错误
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 猜一猜：下面这个函数有什么问题？（sprintf 和 printf 一样填格式，只是把结果写进 buf 而不显示）
+          code: |
+            char *make_greeting(char *name) {
+                char buf[64];
+                sprintf(buf, "Hello, %s!", name);
+                return buf;
+            }
+          lang: c
+          options:
+            - text: buf 在函数结束后就被收回了，返回的地址指向已经不属于它的内存
+              correct: true
+            - text: 函数不能返回指针
+              why: 函数可以返回指针，问题在于返回的是谁的地址
+            - text: sprintf 不能用在 char 数组上
+              why: sprintf 正是往 char 数组里写
+          explain: buf 是普通局部变量，放在 make_greeting 的栈帧里。return 之后栈帧收回，返回的地址还在，那块内存却已经不归它了。
+      - card:
+          title: 悬垂指针
+          body: |
+            指针还存着地址，但那块内存已经收回了（函数已经 return，或者已经 free），这样的指针叫**悬垂指针（dangling pointer）**。通过它读写是未定义行为：可能看起来没问题，可能读到别的东西，也可能崩溃。
+
+            gcc 遇到“返回局部变量的地址”会警告：
+
+            ```
+            warning: function returns address of local variable
+            ```
+      - item:
+          id: which-dangles
+          type: choice
+          prompt: 下面哪个函数返回的是悬垂指针？
+          options:
+            - text: "`int *f(void) { int x = 1; return &x; }`"
+              correct: true
+            - text: "`int *f(void) { static int x = 1; return &x; }`"
+              why: static 变量活到程序结束，返回它的地址没问题
+            - text: "`int *f(void) { int *p = malloc(sizeof(int)); *p = 1; return p; }`"
+              why: 堆上的内存一直在，直到有人 free
+          explain: x 是普通局部变量，f 一返回它就没了；另外两个的内存都还活着。
+      - card:
+          title: free 之后
+          body: |
+            - free 之后继续用这块内存（use after free）
+            - 同一块内存 free 两次（double free）
+
+            这两种都是悬垂指针的问题。一个好习惯：`free(p);` 之后立刻写 `p = NULL;`。再误用 p，就是一个明确的空指针错误（立刻段错误），比悄悄改坏别的数据好查得多。
+      - item:
+          id: bug-names
+          type: match
+          prompt: 把代码和它的错误连起来。
+          pairs:
+            - ["`free(p); printf(\"%d\", *p);`", "free 之后还在用"]
+            - ["`free(p); free(p);`", "同一块内存 free 两次"]
+            - ["`char b[4]; strcpy(b, \"hello\");`", "缓冲区溢出"]
+            - ["malloc 以后一直不 free，指针也丢了", "内存泄漏"]
+          explain: 前两个是悬垂指针，第三个是越界写，第四个是忘了还内存。
+      - card:
+          title: 例题：修好 make_greeting
+          body: 回到开头的 make_greeting。它其实有两个问题，一步一步找出来再修。
+          reveal:
+            - title: 第 1 步：第一个问题
+              body: buf 是局部数组，在栈帧里。return 之后栈帧收回，返回的是悬垂指针。
+            - title: 第 2 步：修法
+              body: "改成 `char *buf = malloc(64);`，内存在堆上，return 之后还在；调用的人用完要 free。"
+            - title: 第 3 步：第二个问题
+              body: buf 只有 64 个字节。"Hello, " 占 7 个，"!" 占 1 个，结尾 '\0' 占 1 个；name 一长，就写出界了，这是缓冲区溢出。
+            - title: 第 4 步：修法
+              body: "把 sprintf 换成 `snprintf(buf, 64, \"Hello, %s!\", name);`：它最多写 64 个字节（算上 '\\0'），多出来的部分直接截掉。"
+      - item:
+          id: greeting-bytes
+          type: number
+          prompt: name 是 "Alice" 时，写进 buf 的一共几个字节（算上结尾的 '\0'）？
+          answer: 14
+          explain: "\"Hello, Alice!\" 有 13 个字符：Hello 5 个、逗号、空格、Alice 5 个、感叹号。再加 '\\0'，一共 14 个。"
+      - item:
+          id: longest-name
+          type: number
+          prompt: buf 是 64 个字节。用 sprintf 写 "Hello, " + name + "!"，name 最长几个字符还不会溢出？
+          answer: 55
+          hint: 7 + name 的长度 + 1 + 1（'\0'）不能超过 64。
+          explain: 7 + n + 1 + 1 ≤ 64，所以 n ≤ 55。
+      - card:
+          title: 让工具帮你查
+          body: |
+            这些错误编译时往往看不出来。两个工具：
+
+            - 编译时加 `-Wall`：打开更多警告，比如“返回局部变量的地址”。
+            - 加 `-fsanitize=address`（叫 AddressSanitizer）：程序运行时一旦越界、free 之后再用、double free，就立刻停下，报告出错的那一行。
+
+            写 C 时养成习惯：`gcc -Wall -fsanitize=address prog.c -o prog`。
+      - item:
+          id: asan
+          type: choice
+          prompt: 想让程序在运行时一旦“free 之后还在用”就立刻停下并报告，编译时加哪个选项？
+          options:
+            - text: "`-fsanitize=address`"
+              correct: true
+            - text: "`-Wall`"
+              why: -Wall 只在编译时给警告，不会在运行时检查
+            - text: "`-c`"
+              why: -c 只是“只编译不链接”
+          explain: AddressSanitizer 在运行时检查每一次内存访问，抓到错误就报告具体位置。
+      - card:
+          title: C++ 怎样减少这些错误
+          body: |
+            C++ 是在 C 的基础上发展出来的语言，大部分 C 的写法在 C++ 里也能用。它多了会自己管理内存的工具：
+
+            - `std::string`：字符串，自己扩容、自己释放；
+            - `std::vector`：能 push_back 的数组，像 Python 的列表；
+            - `std::unique_ptr`：离开作用域时自动释放它管的内存。
+
+            “变量离开作用域，它管的资源就自动释放”，C++ 把这个做法叫 RAII。
+      - item:
+          id: cpp-vector
+          type: choice
+          prompt: C++ 里哪一个最像 Python 的列表：能往后添加元素，用完自动释放？
+          options:
+            - text: std::vector
+              correct: true
+            - text: std::unique_ptr
+              why: unique_ptr 管一个对象的释放，不是一串能添加的元素
+            - text: char 数组
+              why: 数组长度定死，也不会自动扩容
+          explain: vector 自己管理一块会变大的堆内存，离开作用域时自动释放。
+
+  - id: allocator
+    chapter: 生命周期
+    title: malloc 背后：分配器怎么记账
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: '`free(p)` 只拿到一个指针，没有告诉它这块有多大。猜一猜它怎么知道要还回去多少？'
+          options:
+            - text: 这块内存前面藏着一个小记录，写着它有多大
+              correct: true
+            - text: free 不需要知道大小
+              why: 要把这块重新交给以后的 malloc，就得知道它从哪到哪
+            - text: 操作系统替每一块记着
+              why: malloc 和 free 是 C 库里的代码，自己在堆里记账，不用每次都问操作系统
+          explain: 每块前面都有一个头，记着大小。下面用 CS107 作业里的简化模型来讲。
+      - card:
+          title: 堆被切成一块一块
+          body: |
+            malloc 背后是一段叫**分配器（allocator）**的代码：它向操作系统要来一大片堆，自己切成一块一块交给你，也负责收回。
+
+            在 CS107 作业的模型里，每一块是这样：
+
+            | 8 个字节的头 | 你拿到的部分（payload） |
+            |---|---|
+
+            malloc 交给你的是 payload 的开头，头就在它前面 8 个字节。free(p) 往前看 8 个字节，就知道这块多大。
+      - card:
+          title: 头里记着什么
+          body: |
+            这个模型里，payload 的大小总是 8 的倍数：malloc(13) 实际给 16。
+
+            既然大小一定是 8 的倍数，头里就存“大小 + 标记”：正在用的块加 1，空闲的加 0。比如 25 表示一块 24 个字节、正在用的块。读的时候，除以 8 的余数就是标记，减掉它就是大小。这样标记不用另外占地方。
+      - item:
+          id: round-up
+          type: number
+          prompt: 在这个模型里，malloc(20) 实际给你的 payload 有几个字节？
+          answer: 24
+          explain: 往上取到 8 的倍数：20 → 24。多出来的 4 个字节你用不上，叫内部碎片。
+      - card:
+          title: 找一块：隐式空闲链表和首次适配
+          body: |
+            malloc(n) 从堆的第一块开始，看头里的大小，跳到下一块，再下一块……把所有块（用着的和空闲的）都走一遍。这种“靠大小一块跳到下一块”的结构叫隐式空闲链表。
+
+            遇到第一块够大的空闲块就用它，叫首次适配（first fit）。如果它比需要的大很多，就切成两块：前面给你，后面剩下的成为新的空闲块。
+      - card:
+          title: 例题：在 64 个字节的堆里分配
+          body: 堆一共 64 个字节，一开始是一整个空闲块：头 8 + payload 56。依次 malloc(10)、malloc(20)。
+          reveal:
+            - title: 第 1 步：malloc(10)
+              body: 取到 8 的倍数是 16，要 8 + 16 = 24 个字节。第一块够大，切开：0–23 给你（payload 从第 8 个字节开始），24–63 剩下 40 个字节，成为新的空闲块：头 8 + payload 32。
+            - title: 第 2 步：malloc(20)
+              body: 取到 24，要 8 + 24 = 32 个字节。第一块正在用，跳过；第二块 payload 32，够。
+            - title: 第 3 步：切还是不切
+              body: 切开的话剩 40 − 32 = 8 个字节，只够一个头，payload 是 0，成不了一块。所以不切，整块给你：你拿到 32 个字节的 payload，比要的 20 多 12。
+      - item:
+          id: second-payload
+          type: number
+          prompt: 上面的例题里，第二次 malloc(20) 交给你的地址，离堆的开头多少个字节？
+          answer: 32
+          explain: 第二块从第 24 个字节开始，头占 24–31，payload 从 32 开始。
+          review: false
+      - card:
+          title: free 和合并
+          body: |
+            free(p) 把头里的标记改成 0。可如果只改标记，堆会被切得越来越碎：两块挨着的 16 个字节的空闲块，却满足不了 malloc(24)。
+
+            所以 free 时会看看后面那一块是不是也空闲，是就把两块**合并**成一块（头里写上合起来的大小）。总空闲够、却没有一块够大，这种浪费叫外部碎片。
+      - item:
+          id: coalesce
+          type: choice
+          prompt: 堆里有两块挨着的空闲块，payload 各 16 个字节。不合并的话，malloc(24) 能不能在这里分到？合并成一块后呢？（头 8 个字节）
+          options:
+            - text: 不合并分不到；合并后的 payload 是 16 + 8 + 16 = 40，能分到
+              correct: true
+            - text: 不合并也能分到，16 + 16 = 32 够了
+              why: 不合并时它们是两块，每块只有 16，没有一块够 24
+            - text: 合并后 payload 是 32，还是不够
+              why: 合并后少了一个头，那 8 个字节也归 payload 了：16 + 8 + 16 = 40
+          explain: 合并既把两块连起来，也省下了后一块的头。
+      - card:
+          title: 显式空闲链表
+          body: |
+            隐式链表每次 malloc 都要走过所有块，包括正在用的，很慢。
+
+            改进：空闲块的 payload 反正没人用，就在里面存两个指针，指向前一个和后一个**空闲块**，把空闲块单独串成一条链表。malloc 只在这条链表上找。代价是每块 payload 至少要放得下两个指针（16 个字节）。
+      - item:
+          id: explicit-why
+          type: choice
+          prompt: 显式空闲链表为什么比隐式的快？
+          options:
+            - text: malloc 只看空闲块，不用走过正在使用的块
+              correct: true
+            - text: 它不需要头
+              why: 每块还是有头，free 仍然靠它知道大小
+            - text: 它把所有块都合并成一块
+              why: 合并只发生在挨着的空闲块之间，和快不快的原因无关
+          explain: 堆里大多是正在用的块时，只走空闲块能省下大部分工夫。
+      - card:
+          title: 真实的 malloc 也记账
+          body: |
+            Linux 上 glibc 的 malloc 比这个模型复杂（按大小分好几组空闲链表），但思路相同：每块前面有记录。在这台 64 位 Linux 上，连续两次 malloc(10) 交回的地址相差 32。
+
+            所以写出一块的边界，会改坏下一块的记录，错误常常要到后来 free 或 malloc 时才暴露。同一块 free 两次，glibc 会发现并终止程序：`free(): double free detected in tcache 2`。
+      - item:
+          id: double-free
+          type: choice
+          prompt: 在这台 Linux 上，对同一个指针连续调用两次 free，最可能发生什么？
+          options:
+            - text: '程序终止，显示 free(): double free detected in tcache 2'
+              correct: true
+            - text: 第二次什么也不做
+              why: free 不会记得“这块已经还过了”的所有情况；glibc 检查到了就直接终止，检查不到的会把记账弄乱
+            - text: 编译时报错
+              why: 编译器不知道运行时会不会 free 两次
+          explain: 同一块被登记成两次空闲，以后可能被两个 malloc 同时分走，所以 glibc 一发现就终止。
+
+boss:
+  items:
+    - id: ptr-into-array
+      type: number
+      prompt: 运行下面的程序，显示的数是多少？
+      code: |
+        int a[4] = {1, 2, 3, 4};
+        int *p = a + 1;
+        *p = *p * 10;
+        printf("%d\n", a[0] + a[1]);
+      lang: c
+      answer: 21
+      explain: p 指向 a[1]，把它改成 2 × 10 = 20。a[0] + a[1] = 1 + 20 = 21。
+    - id: link-cause
+      type: choice
+      prompt: "构建时出现 `undefined reference to 'area'`。最可能的原因是什么？"
+      options:
+        - text: 定义 area 的那个 .c 文件没有一起编译、链接
+          correct: true
+        - text: 调用 area 的那一行少了分号
+          why: 少分号是编译时的写法错误，报的是 expected ‘;’
+        - text: area 返回了一个悬垂指针
+          why: 那是运行时的问题，构建阶段看不出来
+      explain: undefined reference 是链接器找不到函数定义，把定义它的文件加进 gcc 命令就好了。
+    - id: sizes
+      type: number
+      prompt: "`char s[] = \"abc\"; int n[3];`，`sizeof(s) + sizeof(n)` 是多少？"
+      answer: 16
+      explain: s 是 3 个字母加 '\0'，4 个字节；n 是 3 个 int，12 个字节。4 + 12 = 16。
+    - id: static-counter
+      type: number
+      prompt: 调用 next() 四次，第四次返回几？
+      code: |
+        int next(void) {
+            static int c = 10;
+            c = c + 5;
+            return c;
+        }
+      lang: c
+      answer: 30
+      explain: c 是静态变量，在调用之间保留：15、20、25、30。
+    - id: by-value
+      type: number
+      prompt: 运行下面的程序，显示的数是多少？
+      code: |
+        void step(int *x, int y) {
+            *x = *x + y;
+            y = 0;
+        }
+
+        int main(void) {
+            int a = 2, b = 5;
+            step(&a, b);
+            step(&a, b);
+            printf("%d\n", a + b);
+            return 0;
+        }
+      lang: c
+      answer: 17
+      explain: a 通过地址被改了两次：2 + 5 + 5 = 12。b 是按值传递，函数里把副本改成 0，main 里的 b 还是 5。12 + 5 = 17。
+    - id: where-p
+      type: choice
+      prompt: main 里写 `int *p = malloc(sizeof(int));`。p 这个变量自己在哪里？p 指向的那块内存在哪里？
+      options:
+        - text: p 在栈上，它指向的内存在堆上
+          correct: true
+        - text: 两个都在堆上
+          why: p 是 main 里的普通局部变量，放在 main 的栈帧里
+        - text: p 在堆上，它指向的内存在栈上
+          why: 正好反了：malloc 给的是堆上的内存
+      explain: 指针变量和它指向的东西是两回事，可以在不同的区域。
+    - id: leak-loop
+      type: number
+      prompt: 运行完下面的循环，有多少个字节再也还不回去？
+      code: |
+        for (int i = 0; i < 5; i++) {
+            char *s = malloc(20);
+            s[0] = 'x';
+        }
+      lang: c
+      answer: 100
+      explain: 每轮 malloc 20 个字节又丢了指针，5 轮共 100 个字节。
+    - id: sizeof-vs-strlen
+      type: number
+      prompt: "`char w[10] = \"hey\";`，`sizeof(w) - strlen(w)` 是多少？"
+      answer: 7
+      explain: sizeof 是数组本身的 10 个字节；strlen 数到 '\0' 为止，是 3。10 − 3 = 7。
+    - id: dangling
+      type: choice
+      prompt: 下面哪一段在读一个悬垂指针？
+      options:
+        - text: "`int *p = malloc(sizeof(int)); free(p); printf(\"%d\", *p);`"
+          correct: true
+        - text: "`int x = 5; int *p = &x; printf(\"%d\", *p);`"
+          why: x 还活着，p 指向的是有效的内存
+        - text: "`int *p = malloc(sizeof(int)); *p = 3; printf(\"%d\", *p); free(p);`"
+          why: 先用再 free，用的时候内存还在
+      explain: free 之后 p 指向的内存已经还回去了，再读它就是悬垂指针。

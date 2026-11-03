@@ -1,0 +1,985 @@
+skill: F.1.2
+version: 1
+authors: [main-agent]
+brief:
+  why: 数据结构告诉你东西怎么放，算法告诉你事情怎么做得快。同一个问题，n² 的做法和 n log n 的做法在一百万个数据上差上万倍。这一关学怎么估算快慢，以及几种反复出现的解题套路：递归、分治、贪心、动态规划，还有图上的搜索、最短路、网络流和字符串匹配。
+  outcomes:
+    - 数出一段代码的基本操作次数，用大 O 比较算法快慢，用主定理解分治递推
+    - 写出递归函数并估算调用次数，用分治、贪心或动态规划设计算法，并说明贪心为什么对或不对
+    - 亲手执行 BFS、DFS、Dijkstra 和 Ford–Fulkerson，知道它们各自的适用条件和代价
+    - 算出 KMP 的前缀函数，知道字典树和后缀数组用来做什么
+lessons:
+  - id: asymptotic
+    chapter: 渐近分析
+    title: 算法有多快：数操作，看增长
+    minutes: 9
+    warmup:
+      id: guess
+      type: choice
+      prompt: 一台电脑每秒做 $10^9$ 次基本操作。输入规模 $n = 10^6$ 时，一个要做 $n^2$ 次操作的算法大约要跑多久？
+      options:
+        - text: 大约 1000 秒（十几分钟）
+          correct: true
+        - text: 大约 1 秒
+          why: $n^2 = 10^{12}$，是 $10^9$ 的一千倍
+        - text: 大约 1 毫秒
+          why: 1 毫秒只够做 $10^6$ 次操作，那是 $n$ 次而不是 $n^2$ 次
+      explain: $n^2 = 10^{12}$ 次操作，除以每秒 $10^9$ 次，是 1000 秒。同样的输入，$n \log_2 n \approx 2 \times 10^7$ 次只要 0.02 秒。快慢主要由增长方式决定，而不是电脑快一点慢一点。
+    cards:
+      - title: 数基本操作
+        body: |
+          衡量算法不看秒数（换台电脑就变），而是数**基本操作**（一次比较、一次加法、一次赋值）的次数，写成输入规模 $n$ 的函数。
+
+          | $n$ | $\log_2 n$ | $n \log_2 n$ | $n^2$ | $2^n$ |
+          |---|---|---|---|---|
+          | 10 | 3.3 | 33 | 100 | 1024 |
+          | 1000 | 10 | $10^4$ | $10^6$ | 约 $10^{301}$ |
+          | $10^6$ | 20 | $2 \times 10^7$ | $10^{12}$ | 天文数字 |
+
+          $n$ 一大，增长慢的函数远远胜出，常数倍数和低次项都不重要了。
+      - title: 大 O、Ω、Θ
+        body: |
+          - $f(n) = O(g(n))$：存在常数 $c > 0$ 和 $n_0$，使所有 $n \ge n_0$ 都有 $f(n) \le c \cdot g(n)$。**上界**：“不比 $g$ 增长得快”。
+          - $f(n) = \Omega(g(n))$：同样的定义把 $\le$ 换成 $\ge$。**下界**。
+          - $f(n) = \Theta(g(n))$：既是 $O$ 又是 $\Omega$。**同阶**。
+
+          例：$3n^2 + 100n + 5 = \Theta(n^2)$。它也是 $O(n^3)$（上界可以放宽），但不是 $\Theta(n^3)$。
+      - title: 从代码看出阶
+        body: |
+          - 一层循环跑 $n$ 次：$\Theta(n)$。
+          - 两层嵌套，内层跑 $i$ 次：$0 + 1 + \cdots + (n-1) = \frac{n(n-1)}{2} = \Theta(n^2)$。
+          - 每次把 $n$ 减半直到 1：约 $\log_2 n$ 次，$\Theta(\log n)$。
+
+          常见的阶从慢到快：$1 < \log n < \sqrt{n} < n < n \log n < n^2 < 2^n < n!$。
+    items:
+      - id: growth-order
+        type: order
+        prompt: 把这些函数按 $n$ 很大时**增长从慢到快**排列。
+        steps:
+          - $\log_2 n$
+          - $\sqrt{n}$
+          - $n$
+          - $n \log_2 n$
+          - $n^2$
+          - $2^n$
+        explain: 对数比任何正次幂都慢（$\log_2 n$ 比 $\sqrt{n} = n^{0.5}$ 慢）；$n \log n$ 只比 $n$ 多一个对数因子；指数 $2^n$ 比任何多项式都快。
+      - id: nested-count
+        type: number
+        prompt: 下面的代码在 n = 100 时，`count` 最后是多少？
+        code: |
+          count = 0
+          for i in range(n):
+              for j in range(i):
+                  count = count + 1
+        lang: python
+        answer: 4950
+        hint: i = 0 时内层跑 0 次，i = 1 时跑 1 次……i = 99 时跑几次？
+        explain: 总次数是 $0 + 1 + \cdots + 99 = \frac{99 \times 100}{2} = 4950$。一般地是 $\frac{n(n-1)}{2} = \Theta(n^2)$：只有一半的 $n^2$，但阶还是 $n^2$。
+      - id: halving
+        type: sim
+        sim: trace
+        prompt: 这段代码每轮把 n 整除 2。单步运行，回答最后打印出的 `steps`。
+        params:
+          code: |
+            n = 1000
+            steps = 0
+            while n > 1:
+                n = n // 2
+                steps = steps + 1
+            print(steps)
+        goal:
+          ask:
+            - { line: 6, var: "@out" }
+        explain: 1000 → 500 → 250 → 125 → 62 → 31 → 15 → 7 → 3 → 1，共 9 次，即 $\lfloor \log_2 1000 \rfloor = 9$。输入从 1000 涨到 100 万，次数只从 9 涨到 19：这就是 $\Theta(\log n)$。
+      - id: big-o-true
+        type: choice
+        multi: true
+        prompt: 设 $f(n) = 3n^2 + 100n + 5$。下面哪些说法**正确**？（多选）
+        options:
+          - text: $f(n) = O(n^2)$
+            correct: true
+          - text: $f(n) = O(n^3)$
+            correct: true
+          - text: $f(n) = \Theta(n^2)$
+            correct: true
+          - text: $f(n) = \Omega(n^3)$
+            why: $\Omega$ 是下界，$f$ 增长得比 $n^3$ 慢，不可能有 $f(n) \ge c n^3$ 对所有大 $n$ 成立
+          - text: $f(n) = \Theta(n)$
+            why: $3n^2$ 这一项最终压倒 $100n$，$f$ 的阶是 $n^2$
+        explain: 取 $c = 4$，$n \ge 101$ 时 $3n^2 + 100n + 5 \le 4n^2$，所以是 $O(n^2)$；比 $n^2$ 更大的上界 $O(n^3)$ 当然也对，只是不紧。同时 $f(n) \ge 3n^2$，所以也是 $\Omega(n^2)$，合起来 $\Theta(n^2)$。
+      - id: crossover
+        type: number
+        prompt: 算法 A 做 $100 \, n \log_2 n$ 次操作，算法 B 做 $n^2$ 次。n 取 2 的幂（2, 4, 8, …），从哪个 n 开始 A 比 B 做的操作少？
+        answer: 1024
+        hint: 比较 $100 \log_2 n$ 和 $n$。$n = 512$ 时 $\log_2 n = 9$。
+        explain: A 比 B 少 ⇔ $100 \log_2 n < n$。$n = 512$：$900 > 512$，B 更少；$n = 1024$：$1000 < 1024$，A 更少。小规模时常数 100 让 A 吃亏，规模一大阶低的一定赢。所以实际库里常常是“规模小用简单算法，规模大换渐近更快的”。
+
+  - id: recursion
+    chapter: 递归
+    title: 递归：相信小一号的自己
+    minutes: 9
+    warmup:
+      id: guess
+      type: number
+      prompt: 下面的函数，`f(4)` 返回多少？
+      code: |
+        def f(n):
+            if n == 0:
+                return 0
+            return n + f(n - 1)
+      lang: python
+      answer: 10
+      explain: f(4) = 4 + f(3) = 4 + 3 + f(2) = … = 4 + 3 + 2 + 1 + 0 = 10。函数在自己的定义里调用自己，这就是递归。
+    cards:
+      - title: 两个部分
+        body: |
+          一个**递归（recursion）**函数有两部分：
+
+          1. **基础情形（base case）**：小到可以直接回答，不再调用自己；
+          2. **递归情形**：把问题变成**更小的同类问题**，调用自己解决，再用它的答案拼出原问题的答案。
+
+          写递归时不要在脑子里展开每一层。只要相信“小一号的问题会被正确解决”（这其实就是归纳假设），检查这一层怎么用它，以及基础情形对不对。
+      - title: 调用栈
+        body: |
+          每次调用都会在**调用栈（call stack）**上放一个新的“帧”，记着这一次的参数和局部变量；返回时这一帧被拿掉。所以 `f(4)` 运行时，`f(4)`、`f(3)`、……、`f(0)` 的帧同时在栈上。
+
+          递归太深栈会用完。Python 默认最多大约 1000 层，超过就报 `RecursionError`。忘了写基础情形，就会一直调用到这个上限。
+      - title: 递归的代价：用递推式算
+        body: |
+          调用次数和时间也能写成递推式：
+          - `f(n)` 调用 `f(n-1)` 一次：$T(n) = T(n-1) + O(1)$，所以 $\Theta(n)$。
+          - 快速幂 `power(x, n)` 只调用 `power(x, n // 2)` 一次：$T(n) = T(n/2) + O(1)$，所以 $\Theta(\log n)$。
+          - 朴素斐波那契 `fib(n) = fib(n-1) + fib(n-2)` 调用两次：调用次数和 `fib(n)` 本身一样指数增长。
+
+          同样是递归，调用一次还是两次、规模减 1 还是减半，差别巨大。
+    items:
+      - id: power-trace
+        type: sim
+        sim: trace
+        prompt: 快速幂：$x^n$ 用 $x^{n/2}$ 算。单步运行，回答最后打印出什么。
+        params:
+          code: |
+            def power(x, n):
+                if n == 0:
+                    return 1
+                half = power(x, n // 2)
+                if n % 2 == 0:
+                    return half * half
+                return half * half * x
+
+            print(power(3, 5))
+        goal:
+          ask:
+            - { line: 9, var: "@out" }
+        explain: power(3, 5) 要 power(3, 2)，它要 power(3, 1)，它要 power(3, 0) = 1。返回时：power(3, 1) = 1·1·3 = 3，power(3, 2) = 3·3 = 9，power(3, 5) = 9·9·3 = 243。只调用了 4 次，而不是乘 5 次 3。
+      - id: power-calls
+        type: number
+        prompt: 用下面这个快速幂函数算 `power(2, 1000)`，函数 `power` 一共被调用几次（包括最外面那一次）？
+        code: |
+          def power(x, n):
+              if n == 0:
+                  return 1
+              half = power(x, n // 2)
+              if n % 2 == 0:
+                  return half * half
+              return half * half * x
+        lang: python
+        answer: 11
+        hint: 每次调用 n 变成 n // 2，直到 0。把 n 的值依次写出来。
+        explain: n 依次是 1000、500、250、125、62、31、15、7、3、1、0，共 11 次。这是 $\lfloor \log_2 1000 \rfloor + 2$，阶是 $\Theta(\log n)$；直接连乘要 1000 次乘法。
+      - id: fib-calls
+        type: number
+        prompt: 朴素递归 `fib(n) = fib(n-1) + fib(n-2)`（`fib(0) = 0`，`fib(1) = 1`）。算 `fib(10)` 时，函数 `fib` 一共被调用几次（包括最外面那一次）？
+        answer: 177
+        hint: 设调用次数是 $C(n)$，则 $C(0) = C(1) = 1$，$C(n) = 1 + C(n-1) + C(n-2)$。
+        explain: 按递推算：C(2) = 3，C(3) = 5，C(4) = 9，C(5) = 15，C(6) = 25，C(7) = 41，C(8) = 67，C(9) = 109，C(10) = 177。而 fib(10) 才 55。同一个 fib(k) 被重复算了很多遍，这正是动态规划要解决的。
+      - id: no-base
+        type: choice
+        prompt: 运行下面的代码会发生什么？
+        code: |
+          def count(n):
+              return count(n - 1) + 1
+
+          print(count(5))
+        lang: python
+        options:
+          - text: 报 RecursionError（超过最大递归深度）
+            correct: true
+          - text: 打印 5
+            why: 没有基础情形，`count` 永远不会停下来返回一个数
+          - text: 永远运行下去，不会报错
+            why: 每层调用都占一个栈帧，Python 在大约 1000 层时就会停止并报错
+        explain: 缺了基础情形，count(5) → count(4) → … → count(−995) …… 一直往下调用，直到超过 Python 的递归深度上限（默认 1000），抛出 RecursionError。
+      - id: list-len
+        type: choice
+        prompt: 用递归求一个 Python 列表的长度：`length(xs) = 1 + length(xs[1:])`。基础情形应该是什么？
+        options:
+          - text: 空列表的长度是 0
+            correct: true
+          - text: 只有一个元素的列表长度是 1
+            why: 这样空列表本身会一直递归下去（`[][1:]` 还是空列表），出错
+          - text: 不需要基础情形，`xs[1:]` 会自己变短
+            why: 列表变短了，但总要有一处直接返回答案，否则调用永远不停
+        explain: 每次去掉第一个元素，最终一定会到空列表，所以基础情形选“空列表 → 0”能覆盖所有输入。选“一个元素”时，对空列表的调用会无限递归。
+
+  - id: divide-conquer
+    chapter: 分治
+    title: 分治：切成两半各自解决
+    minutes: 10
+    warmup:
+      id: guess
+      type: choice
+      prompt: 我在 1 到 1000 之间想了一个整数。你每猜一次，我告诉你“大了”或“小了”。用最好的策略，最多猜几次一定能猜中？
+      options:
+        - text: "10"
+          correct: true
+        - text: "500"
+          why: 一个个试才要这么多；每次猜中间能把范围砍掉一半
+        - text: "32"
+          why: 32 约是 $\sqrt{1000}$；每次砍一半，次数是 $\log_2$ 而不是平方根
+      explain: 每次猜区间正中间，剩下的范围减半：1000 → 500 → 250 → … → 1，大约 $\log_2 1000 \approx 10$ 次。因为 $2^{10} = 1024 \ge 1000$，10 次一定够。这就是二分查找。
+    cards:
+      - title: 分、治、合
+        body: |
+          **分治（divide and conquer）**三步：把问题**分**成几个规模更小的同类子问题；递归地**治**好每个子问题；把子问题的答案**合**起来。
+
+          **归并排序（merge sort）**：把数组分成两半，分别排好序，再把两个有序数组**归并**成一个——每次比较两边最前面的元素，取小的。归并长度共 $n$ 的两个数组只需线性时间。
+          $$T(n) = 2T(n/2) + \Theta(n) \quad\Rightarrow\quad T(n) = \Theta(n \log n)$$
+          递归树有 $\log_2 n$ 层，每层合起来做 $\Theta(n)$ 的归并。
+      - title: 二分查找
+        body: |
+          在**有序**数组里找一个数：看中间的元素，相等就找到；比目标小，就只在右半边找；比目标大，就只在左半边找。每次扔掉一半：
+          $$T(n) = T(n/2) + O(1) \quad\Rightarrow\quad T(n) = \Theta(\log n)$$
+          点“下一步”，看 `lo`、`hi`、`mid` 怎样收缩。
+        sim:
+          name: trace
+          params:
+            code: |
+              a = [2, 5, 8, 12, 16, 23, 38, 56, 72, 91]
+              target = 23
+              lo, hi = 0, len(a) - 1
+              while lo <= hi:
+                  mid = (lo + hi) // 2
+                  if a[mid] == target:
+                      break
+                  elif a[mid] < target:
+                      lo = mid + 1
+                  else:
+                      hi = mid - 1
+              print(mid)
+      - title: 主定理
+        body: |
+          分治的递推大多长成 $T(n) = a\,T(n/b) + \Theta(n^d)$：分成 $a$ 个子问题，每个规模 $n/b$，分和合要 $\Theta(n^d)$。比较 $d$ 和 $\log_b a$：
+
+          | 情况 | 结果 | 直观 |
+          |---|---|---|
+          | $d < \log_b a$ | $\Theta(n^{\log_b a})$ | 叶子（子问题数量）占主导 |
+          | $d = \log_b a$ | $\Theta(n^d \log n)$ | 每层一样多，乘层数 |
+          | $d > \log_b a$ | $\Theta(n^d)$ | 最上面一层占主导 |
+
+          例：归并排序 $a = 2, b = 2, d = 1$，$\log_2 2 = 1 = d$，得 $\Theta(n \log n)$。Karatsuba 大整数乘法 $T(n) = 3T(n/2) + \Theta(n)$，$\log_2 3 \approx 1.585 > 1$，得 $\Theta(n^{1.585})$，比小学竖式的 $\Theta(n^2)$ 快。
+    items:
+      - id: bsearch-trace
+        type: sim
+        sim: trace
+        prompt: 在有序数组里二分查找 23。单步运行，回答：第 5 行**第 2 次**执行完时 `mid` 是多少？最后打印出什么？
+        params:
+          code: |
+            a = [2, 5, 8, 12, 16, 23, 38, 56, 72, 91]
+            target = 23
+            lo, hi = 0, len(a) - 1
+            while lo <= hi:
+                mid = (lo + hi) // 2
+                if a[mid] == target:
+                    break
+                elif a[mid] < target:
+                    lo = mid + 1
+                else:
+                    hi = mid - 1
+            print(mid)
+        goal:
+          ask:
+            - { line: 5, var: mid, hit: 2 }
+            - { line: 12, var: "@out" }
+        explain: 第 1 轮 lo = 0、hi = 9，mid = 4，a[4] = 16 < 23，lo = 5；第 2 轮 mid = (5 + 9) // 2 = 7，a[7] = 56 > 23，hi = 6；第 3 轮 mid = 5，a[5] = 23，找到。10 个数只比较了 3 次。
+      - id: bsearch-million
+        type: number
+        prompt: 在一个有 $10^6$ 个元素的有序数组里二分查找，最坏情况下要和数组元素比较多少次？
+        answer: 20
+        hint: 每次比较后剩下的范围最多是原来的一半。$2^{20} = 1048576$。
+        explain: 比较 $k$ 次最多能区分约 $2^k$ 种情况。$2^{19} = 524288 < 10^6 \le 2^{20}$，所以最坏 20 次。顺序查找最坏要 $10^6$ 次。
+      - id: merge-count
+        type: number
+        prompt: 归并两个有序数组 [1, 4, 7, 10] 和 [2, 3, 9, 11]：每次比较两边最前面的数，取小的放进结果；一边取完后，另一边剩下的直接接上，不再比较。一共比较几次？
+        answer: 7
+        hint: 一个个写出来：1 和 2 比，取 1；4 和 2 比……
+        explain: 比较 1|2、4|2、4|3、4|9、7|9、10|9、10|11，每次放出一个数，共 7 次；这时左边取完，11 直接接上。长度 $m$ 和 $n$ 的归并最多比较 $m + n - 1$ 次，所以归并是线性时间。
+      - id: master-case1
+        type: choice
+        prompt: 用主定理求 $T(n) = 8T(n/2) + \Theta(n^2)$。
+        options:
+          - text: $\Theta(n^3)$
+            correct: true
+          - text: $\Theta(n^2 \log n)$
+            why: 那是 $d = \log_b a$ 的情况；这里 $\log_2 8 = 3$，而 $d = 2$
+          - text: $\Theta(n^2)$
+            why: 那是 $d > \log_b a$ 的情况；这里子问题的数量 8 增长得更快
+        explain: $a = 8$，$b = 2$，$\log_2 8 = 3 > d = 2$，叶子占主导，$T(n) = \Theta(n^{3})$。把 $n \times n$ 矩阵分成 4 块、做 8 次块乘法，就是这个递推，所以朴素的分块并不比三重循环快。
+      - id: master-case3
+        type: choice
+        prompt: 用主定理求 $T(n) = 2T(n/2) + \Theta(n^2)$。
+        options:
+          - text: $\Theta(n^2)$
+            correct: true
+          - text: $\Theta(n \log n)$
+            why: 那是合并只要 $\Theta(n)$ 时的结果；这里每次合并要 $\Theta(n^2)$
+          - text: $\Theta(n^2 \log n)$
+            why: 每往下一层，工作量变成上一层的一半，不是每层一样多
+        explain: $\log_2 2 = 1 < d = 2$，最顶层的 $n^2$ 占主导：各层工作量是 $n^2, n^2/2, n^2/4, \dots$，等比数列和是 $2n^2$，所以 $\Theta(n^2)$。
+
+  - id: greedy
+    chapter: 贪心
+    title: 贪心：每步选眼前最好的
+    minutes: 10
+    warmup:
+      id: guess
+      type: choice
+      prompt: 硬币面值只有 1 元、3 元、4 元。凑出 6 元，最少要几枚？
+      options:
+        - text: 2 枚
+          correct: true
+        - text: 3 枚
+          why: 先拿最大的 4 元再补 1 + 1 是 3 枚，但 3 + 3 只要 2 枚
+        - text: 6 枚
+          why: 用 6 个 1 元能凑出来，但不是最少
+      explain: 3 + 3 = 6，两枚。“每次先拿最大面值”是一种**贪心**，它在这里得到 4 + 1 + 1，三枚，不是最优。贪心很快，但不是每个问题都对。
+    cards:
+      - title: 贪心算法
+        body: |
+          **贪心（greedy）**：每一步都做当下看起来最好的选择，选了就不再反悔。它通常又简单又快。
+
+          但“每步最好”不保证“整体最好”。用贪心之前一定要证明它对，或者找到反例说明它不对。用 1、5、10、25 分硬币找零，先拿最大面值总是最优；换成 1、3、4 就不一定。
+      - title: 活动安排：选最早结束的
+        body: |
+          很多活动各有开始和结束时间（左闭右开，不能重叠），最多能参加几个？
+
+          贪心规则：**按结束时间从早到晚**，能选就选（和已选的不冲突就选）。
+
+          为什么对（**交换论证**）：设最优解的第一个活动是 $x$，贪心选的是结束最早的 $g$。把 $x$ 换成 $g$——$g$ 结束得不比 $x$ 晚，后面的活动照样不冲突，数量不变。所以存在一个以 $g$ 开头的最优解；对剩下的活动重复这个论证，贪心解就和最优解一样多。
+      - title: 选错规则就会错
+        body: |
+          看起来合理的贪心规则也可能是错的：
+          - **选最短的**：[0, 5)、[4, 7)、[6, 11) 里最短的 [4, 7) 和另外两个都冲突，只能选 1 个；最优是 [0, 5) 和 [6, 11) 两个。
+          - **选最早开始的**：[0, 10) 最早开始，选了它就挡住了 [1, 2) 和 [3, 4)。
+
+          一个反例就足以推翻一条贪心规则。
+    items:
+      - id: activities
+        type: number
+        prompt: 活动（左闭右开，不能重叠）：[0, 6)、[1, 4)、[3, 5)、[3, 8)、[4, 7)、[5, 9)、[6, 10)、[8, 11)。按“最早结束”贪心，能选几个？
+        answer: 3
+        hint: 按结束时间排序：[1, 4) 结束最早。选了它之后，下一个要从 4 或更晚开始。
+        explain: 选 [1, 4)；之后从 4 起最早结束的是 [4, 7)；之后从 7 起只有 [8, 11)。共 3 个。逐一检查所有组合也找不到 4 个互不冲突的，贪心确实是最优。
+      - id: which-rule
+        type: choice
+        prompt: 要选出最多个互不冲突的活动，下面哪条贪心规则**总是**能得到最优解？
+        options:
+          - text: 每次选结束时间最早的
+            correct: true
+          - text: 每次选持续时间最短的
+            why: 反例：[0, 5)、[4, 7)、[6, 11)。最短的 [4, 7) 挡住了另外两个
+          - text: 每次选开始时间最早的
+            why: 反例：[0, 10)、[1, 2)、[3, 4)。最早开始的 [0, 10) 一个就挡住了两个
+        explain: 最早结束的活动给后面留下的时间最多，交换论证可以证明它总不比最优解差。其他两条规则都能找到反例。
+      - id: coins-greedy
+        type: number
+        prompt: 硬币面值 1 元、3 元、4 元。“每次先拿能拿的最大面值”的贪心找零 10 元，会用几枚硬币？
+        answer: 4
+        explain: 贪心：4 + 4 = 8，剩 2，只能 1 + 1，共 4 枚。最优是 3 + 3 + 4，3 枚。面值组合决定了贪心对不对；这类问题要用动态规划。
+      - id: fractional
+        type: number
+        prompt: 背包容量 10 千克。物品（重量, 价值）：(5 千克, 10 元)、(4 千克, 40 元)、(6 千克, 30 元)、(3 千克, 50 元)。物品**可以切开**按比例拿。最多能装多少元？
+        answer: 105
+        hint: 按“每千克价值”从高到低拿。
+        explain: 每千克价值：50/3 ≈ 16.7、40/4 = 10、30/6 = 5、10/5 = 2。拿 3 千克那件（50 元）、4 千克那件（40 元），还剩 3 千克，拿 6 千克那件的一半（15 元），共 105 元。可以切开时，按单位价值贪心是最优的。
+      - id: knapsack01
+        type: choice
+        prompt: 背包容量 50。物品（重量, 价值）：(10, 60)、(20, 100)、(30, 120)，**不能切开**，每件要么整拿要么不拿。按“单位价值从高到低，装得下就拿”的贪心能拿到多少？最优是多少？
+        options:
+          - text: 贪心 160，最优 220
+            correct: true
+          - text: 贪心 220，最优 220
+            why: 单位价值是 6、5、4。贪心先拿 (10, 60) 和 (20, 100)，剩 20 装不下 (30, 120)
+          - text: 贪心 160，最优 160
+            why: 拿 (20, 100) 和 (30, 120) 正好 50，价值 220
+        explain: 贪心拿 10 + 20 = 30 的重量，价值 160，剩下的 20 放不下第三件。最优是 20 + 30，价值 220。不能切开时，单位价值贪心会浪费容量；这个“0-1 背包”要用动态规划。
+
+  - id: dp-amortized
+    chapter: 动态规划与摊还分析
+    title: 动态规划：算过的不再算
+    minutes: 11
+    warmup:
+      id: guess
+      type: number
+      prompt: 爬 5 级台阶，每步上 1 级或 2 级。一共有多少种不同的走法？
+      answer: 8
+      explain: 设 $W(n)$ 是爬 $n$ 级的走法数。最后一步要么是 1 级（之前爬了 $n-1$ 级），要么是 2 级（之前爬了 $n-2$ 级），所以 $W(n) = W(n-1) + W(n-2)$。$W(0) = W(1) = 1$，于是 1, 1, 2, 3, 5, 8。
+    cards:
+      - title: 动态规划
+        body: |
+          朴素递归算 fib(10) 要调用 177 次，因为 fib(8)、fib(7)…… 被反复计算。**动态规划（dynamic programming）**的想法很简单：**每个子问题只算一次，把答案存进表里**，下次直接查。
+
+          适用的条件：
+          - **重叠子问题**：不同的分支会用到同一个子问题；
+          - **最优子结构**：大问题的最优解由子问题的最优解拼成。
+
+          两种写法：递归加“备忘录”（记忆化）；或者从小到大**填表**。fib 填表只要 $n$ 步。
+      - title: 例：最少硬币
+        body: |
+          面值 1、3、4 元，凑 $x$ 元最少几枚？设 $\mathrm{dp}[x]$ 为答案，最后一枚是 1、3 或 4：
+          $$\mathrm{dp}[x] = 1 + \min\big(\mathrm{dp}[x-1],\ \mathrm{dp}[x-3],\ \mathrm{dp}[x-4]\big),\quad \mathrm{dp}[0] = 0$$
+          （不存在的项不参加 min。）从小到大填：
+
+          | x | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
+          |---|---|---|---|---|---|---|---|
+          | dp | 0 | 1 | 2 | 1 | 1 | 2 | 2 |
+
+          dp[6] = 2，正是贪心错过的 3 + 3。设计 DP 最关键的是写出“状态是什么”和“最后一步有哪几种”。
+      - title: 摊还分析：平均到每一次
+        body: |
+          有的操作偶尔很贵、平时很便宜。**摊还分析（amortized analysis）**看一长串操作的**总代价**，再平均到每一次。
+
+          例：二进制计数器从 0 加 1 加 $n$ 次。一次加 1 可能翻转很多位（0111 → 1000 翻 4 位），但最低位每次都翻，次低位每 2 次翻一次，再高一位每 4 次……总翻转次数 $< n + n/2 + n/4 + \cdots < 2n$。所以每次加 1 的**摊还代价**是 $O(1)$，虽然最坏的一次是 $O(\log n)$。
+
+          这是**聚合分析**；另外还有记账法和势能法，结论相同，算法不同。
+    items:
+      - id: coins-dp
+        type: number
+        prompt: 面值 1、3、4 元，用动态规划求凑出 10 元最少要几枚硬币。
+        answer: 3
+        hint: 接着讲解卡里的表往下填：dp[7]、dp[8]、dp[9]、dp[10]。
+        explain: dp[7] = 1 + min(dp[6], dp[4], dp[3]) = 2，dp[8] = 2，dp[9] = 1 + min(dp[8], dp[6], dp[5]) = 3，dp[10] = 1 + min(dp[9], dp[7], dp[6]) = 3。例如 3 + 3 + 4。贪心会得到 4 + 4 + 1 + 1，4 枚。
+      - id: stairs-trace
+        type: sim
+        sim: trace
+        prompt: 用填表的方法算爬 6 级台阶（每步 1 或 2 级）的走法数。单步运行，回答最后打印的数。
+        params:
+          code: |
+            n = 6
+            ways = [0] * (n + 1)
+            ways[0] = 1
+            ways[1] = 1
+            for i in range(2, n + 1):
+                ways[i] = ways[i - 1] + ways[i - 2]
+            print(ways[n])
+        goal:
+          ask:
+            - { line: 7, var: "@out" }
+        explain: 表依次填成 1, 1, 2, 3, 5, 8, 13，答案 13。每一格只算一次，总共 $n$ 步；朴素递归则会重复计算同样的格子，次数指数增长。
+      - id: counter-flips
+        type: number
+        prompt: 一个二进制计数器从 0 开始，连续加 1 共 8 次（最后是 1000）。所有这 8 次加 1 一共翻转了多少个二进制位？
+        answer: 15
+        hint: 每次加 1 翻转的位数：0→1 翻 1 位，1→10 翻 2 位，10→11 翻 1 位，11→100 翻 3 位……
+        explain: 8 次分别翻 1、2、1、3、1、2、1、4 位，共 15 位。小于 $2 \times 8 = 16$，和摊还分析的上界 $2n$ 一致：平均每次不到 2 位，尽管最后一次翻了 4 位。
+      - id: dynarray
+        type: number
+        prompt: 一个动态数组初始容量为 1。每次 append 时如果数组已满，就申请两倍容量的新空间，把**已有的全部元素**复制过去，再放入新元素。从空数组开始连续 append 17 次，一共复制了多少次元素？
+        answer: 31
+        hint: 什么时候会满？容量依次是 1、2、4、8、16、32。
+        explain: 第 2、3、5、9、17 次 append 时数组是满的，分别复制 1、2、4、8、16 个元素，共 31 次。加上 17 次写入，总代价 48，小于 $3 \times 17$。一般地复制总数小于 $2n$，所以每次 append 的摊还代价是 $O(1)$。
+      - id: overlap
+        type: choice
+        prompt: 为什么朴素递归的斐波那契加上“备忘录”会快很多，而归并排序加备忘录几乎没有用？
+        options:
+          - text: 斐波那契的子问题大量重叠，归并排序的两个子问题互不重叠
+            correct: true
+          - text: 归并排序已经是 $O(n \log n)$，不可能再快了
+            why: 这不是原因；关键是备忘录只有在同一个子问题被重复求解时才省时间
+          - text: 斐波那契是数学问题，归并排序是排序问题
+            why: 能不能用动态规划看的是子问题结构，不看问题属于哪个领域
+        explain: fib(n) 的两个分支都会用到 fib(n − 2) 等等，记下来能省掉指数多的重复计算。归并排序把数组切成不相交的两半，每段只排一次，没有可以复用的答案。重叠子问题是动态规划起作用的前提。
+
+  - id: traversal
+    chapter: 图的遍历
+    title: 图的遍历：一层层，还是一路到底
+    minutes: 11
+    warmup:
+      id: guess
+      type: choice
+      prompt: 在迷宫里找离入口最近的出口。一种办法是：先探索所有走 1 步能到的格子，再探索所有走 2 步能到的，依此类推。这种搜索方式叫什么？
+      options:
+        - text: 广度优先搜索（BFS）
+          correct: true
+        - text: 深度优先搜索（DFS）
+          why: DFS 是沿一条路一直走到底，走不通再退回来，不是按步数一层层扩展
+        - text: 二分查找
+          why: 二分查找用在有序数组上，不是图的搜索
+      explain: 按距离一层层往外扩展，就是**广度优先搜索**。它第一次到达某个点时走的就是最少的步数，所以能找到最近的出口。
+    cards:
+      - title: 广度优先搜索（BFS）
+        body: |
+          **BFS（breadth-first search）**用一个**队列**：把起点放进队列；反复从队头取出一个点，把它**还没发现过的**邻居都放到队尾。
+
+          因为先进先出，离起点 1 步的点全部处理完，才轮到 2 步的点。所以在**不带权**的图里，BFS 第一次发现一个点时，经过的边数就是最短距离。
+
+          下面这张图：点“让算法走一步”，看队列；再自己按 BFS 的顺序点一遍。
+        sim:
+          name: graph
+          params:
+            mode: bfs
+            start: a
+            nodes:
+              - { id: a, x: 40, y: 100 }
+              - { id: b, x: 140, y: 40 }
+              - { id: c, x: 140, y: 160 }
+              - { id: d, x: 240, y: 100 }
+              - { id: e, x: 240, y: 220 }
+              - { id: f, x: 340, y: 160 }
+            edges: [[a, b], [a, c], [b, d], [c, d], [c, e], [d, f], [e, f]]
+      - title: 深度优先搜索（DFS）
+        body: |
+          **DFS（depth-first search）**：从当前点走到一个没去过的邻居，再从那里继续往深处走；走到一个所有邻居都去过的点，就**退回**上一个点，看它还有没有别的路。用递归写最自然，相当于用一个**栈**记住来时的路。
+
+          同一张图，换成 DFS：
+        sim:
+          name: graph
+          params:
+            mode: dfs
+            start: a
+            nodes:
+              - { id: a, x: 40, y: 100 }
+              - { id: b, x: 140, y: 40 }
+              - { id: c, x: 140, y: 160 }
+              - { id: d, x: 240, y: 100 }
+              - { id: e, x: 240, y: 220 }
+              - { id: f, x: 340, y: 160 }
+            edges: [[a, b], [a, c], [b, d], [c, d], [c, e], [d, f], [e, f]]
+      - title: 遍历能做什么
+        body: |
+          - 从一个点出发能到达哪些点；无向图有几个**连通分量**（每次从一个没访问的点开始搜一遍）。
+          - BFS：不带权图的最短路。
+          - DFS：判断有向图有没有环；**拓扑排序**——按 DFS 中“结束”（所有后代都探索完）的先后，倒过来排。
+
+          用邻接表存图时，每个点进出一次、每条边看一到两次，BFS 和 DFS 都是 $O(V + E)$（$V$ 个点、$E$ 条边）。
+    items:
+      - id: bfs-sim
+        type: sim
+        sim: graph
+        prompt: 从 a 出发做 BFS。按每个点**第一次被发现**的顺序依次点击（同一个点的几个新邻居，谁先入队都可以）。
+        params:
+          mode: bfs
+          start: a
+          nodes:
+            - { id: a, x: 20, y: 100 }
+            - { id: b, x: 110, y: 30 }
+            - { id: c, x: 110, y: 170 }
+            - { id: d, x: 200, y: 30 }
+            - { id: e, x: 200, y: 170 }
+            - { id: f, x: 290, y: 100 }
+            - { id: g, x: 290, y: 240 }
+          edges: [[a, b], [a, c], [b, d], [b, e], [c, e], [d, f], [e, f], [e, g]]
+        goal: {}
+        solution: [a, b, c, d, e, f, g]
+        explain: 展开 a 发现 b、c；展开 b 发现 d、e；展开 c 时 e 已经发现过；展开 d 发现 f；展开 e 发现 g（f 已发现）。所以 a b c d e f g。如果先让 c 入队，也可以是 a c b e d g f 等：同层的顺序由入队顺序决定。
+      - id: dfs-sim
+        type: sim
+        sim: graph
+        prompt: 从 a 出发做 DFS。按每个点**第一次被访问**的顺序依次点击（一个点有几个没去过的邻居时，先去哪个都可以）。
+        params:
+          mode: dfs
+          start: a
+          nodes:
+            - { id: a, x: 20, y: 100 }
+            - { id: b, x: 110, y: 30 }
+            - { id: c, x: 110, y: 170 }
+            - { id: d, x: 200, y: 30 }
+            - { id: e, x: 200, y: 170 }
+            - { id: f, x: 290, y: 100 }
+            - { id: g, x: 290, y: 240 }
+          edges: [[a, b], [a, c], [b, d], [b, e], [c, e], [d, f], [e, f], [e, g]]
+        goal: {}
+        solution: [a, b, d, f, e, c, g]
+        explain: a → b → d → f → e（一路往深处走）→ c；c 的邻居 a、e 都访问过，退回 e；e 还有 g 没去过 → g。所以 a b d f e c g。BFS 先把近的点都找完，DFS 先钻到最深处，两者的顺序很不一样。
+      - id: bfs-dist
+        type: number
+        prompt: 无向图的边：a–b、a–c、b–d、b–e、c–e、d–f、e–f、e–g。从 a 到 g 最少经过几条边？
+        answer: 3
+        hint: 用 BFS 一层层算：距离 1 的点是哪些？距离 2 的呢？
+        explain: 距离 0：a；距离 1：b、c；距离 2：d、e；距离 3：f、g。所以 a 到 g 最少 3 条边，例如 a–b–e–g。在不带权的图里，BFS 的层数就是最短距离。
+      - id: structures
+        type: match
+        prompt: 把每种搜索和它依靠的数据结构连起来。
+        pairs:
+          - [广度优先搜索, 队列（先进先出）]
+          - [深度优先搜索, 栈（后进先出），或者递归]
+          - [Dijkstra 最短路, 优先队列（每次取出最小的）]
+        explain: 换一个“下一个处理谁”的容器，就换了一种搜索：队列让近的先出来，栈让最新的先出来，优先队列让暂定距离最小的先出来。
+      - id: matrix-bfs
+        type: choice
+        prompt: 一个图有 $V$ 个点、$E$ 条边，用**邻接矩阵**（$V \times V$ 的 0/1 表）存。BFS 的时间复杂度是多少？
+        options:
+          - text: $O(V^2)$
+            correct: true
+          - text: $O(V + E)$
+            why: 这是邻接表的复杂度；邻接矩阵找一个点的邻居要扫完它那一整行
+          - text: $O(E \log V)$
+            why: BFS 不需要排序或优先队列，没有 $\log$ 因子
+        explain: 每个点出队时，要在矩阵里扫一整行 $V$ 个格子才能找到它的邻居，共 $V \times V$。边很少的稀疏图（$E$ 远小于 $V^2$）用邻接表会快得多。
+
+  - id: shortest-paths
+    chapter: 最短路
+    title: 最短路：每次确定一个最近的点
+    minutes: 12
+    warmup:
+      id: guess
+      type: choice
+      prompt: 在**带权**图（每条边有长度）里，经过边数最少的路，一定是总长度最短的路吗？
+      options:
+        - text: 不一定
+          correct: true
+        - text: 一定
+          why: 反例：s 直接到 t 长 10；s→a→t 两条边各长 1，总长 2
+      explain: 边数少不代表总长短。带权图要按长度来算：BFS 只数边数，不够用，需要 Dijkstra 这样的算法。
+    cards:
+      - title: 松弛
+        body: |
+          给每个点记一个**暂定距离** $d[v]$：起点是 0，其余是 ∞。所有最短路算法都在反复做同一件事——**松弛（relaxation）**：
+          $$\text{如果 } d[u] + w(u, v) < d[v] \text{，就令 } d[v] = d[u] + w(u, v)$$
+          意思是：先到 $u$ 再走边 $(u, v)$，比目前知道的到 $v$ 的路更短，就更新。不同算法的区别只是“按什么顺序松弛哪些边”。
+      - title: Dijkstra 算法
+        body: |
+          边长都**不是负数**时：
+
+          1. 在还没确定的点里，取暂定距离**最小**的点 $u$，宣布它的距离**确定**了；
+          2. 用 $u$ 松弛它的所有出边；
+          3. 重复，直到所有能到的点都确定。
+
+          为什么取最小的就能确定：其他路都要先经过某个暂定距离不比它小的点，再加上非负的边长，不可能更短。用二叉堆做优先队列时，时间是 $O((V + E)\log V)$。
+        sim:
+          name: graph
+          params:
+            mode: dijkstra
+            directed: true
+            start: s
+            nodes:
+              - { id: s, x: 20, y: 90 }
+              - { id: x, x: 130, y: 20 }
+              - { id: y, x: 130, y: 160 }
+              - { id: z, x: 240, y: 90 }
+              - { id: t, x: 340, y: 90 }
+            edges: [[s, x, 1], [s, y, 4], [x, y, 2], [x, z, 6], [y, z, 3], [z, t, 1]]
+      - title: 负权边：Dijkstra 会错
+        body: |
+          下图里 b→a 的长度是 −4。Dijkstra 先确定 a（距离 2）和 t（距离 3），之后才确定 b，而经过 b 到 a 其实只要 $5 - 4 = 1$，但 a 已经“确定”了，不会再改。把整个过程走完，看下面的对比。
+
+          有负权边要用 **Bellman–Ford**：把**所有边**松弛一遍，重复 $V - 1$ 轮，$O(VE)$。如果第 $V$ 轮还能松弛，说明有**负环**，最短路不存在。（求所有点对之间的最短路可以用 Floyd–Warshall，$O(V^3)$。）
+        sim:
+          name: graph
+          params:
+            mode: dijkstra
+            directed: true
+            start: s
+            nodes:
+              - { id: s, x: 20, y: 100 }
+              - { id: a, x: 150, y: 30 }
+              - { id: b, x: 150, y: 170 }
+              - { id: t, x: 280, y: 30 }
+            edges: [[s, a, 2], [s, b, 5], [b, a, -4], [a, t, 1]]
+    items:
+      - id: dijkstra-sim
+        type: sim
+        sim: graph
+        prompt: 从 s 出发运行 Dijkstra。这次不显示暂定距离，请自己在心里（或纸上）记着，按点被**确定**的顺序依次点击。
+        params:
+          mode: dijkstra
+          directed: true
+          hideDist: true
+          start: s
+          nodes:
+            - { id: s, x: 20, y: 110 }
+            - { id: a, x: 130, y: 30 }
+            - { id: b, x: 130, y: 190 }
+            - { id: c, x: 240, y: 110 }
+            - { id: d, x: 330, y: 30 }
+            - { id: t, x: 330, y: 190 }
+          edges: [[s, a, 7], [s, b, 2], [b, a, 3], [b, c, 8], [a, c, 1], [a, d, 6], [c, d, 2], [c, t, 9], [d, t, 3]]
+        goal: {}
+        solution: [s, b, a, c, d, t]
+        explain: 确定 s(0)，松弛得 a = 7、b = 2；确定 b(2)，a 改成 2 + 3 = 5，c = 10；确定 a(5)，c 改成 6，d = 11；确定 c(6)，d 改成 8，t = 15；确定 d(8)，t 改成 11；最后确定 t(11)。
+      - id: dijkstra-dist
+        type: number
+        prompt: 有向图的边（长度）：s→a 7、s→b 2、b→a 3、b→c 8、a→c 1、a→d 6、c→d 2、c→t 9、d→t 3。s 到 t 的最短距离是多少？
+        answer: 11
+        hint: 用 Dijkstra：先确定离 s 最近的点，再用它更新邻居。
+        explain: 最短路是 s→b→a→c→d→t：$2 + 3 + 1 + 2 + 3 = 11$。边数最少的 s→a→d→t 长 $7 + 6 + 3 = 16$，反而更长。
+      - id: negative
+        type: choice
+        prompt: 有向图：s→a 长 2，s→b 长 5，b→a 长 −4。用 Dijkstra 从 s 出发，算出的 $d(a)$ 是多少？真正的最短距离是多少？
+        options:
+          - text: Dijkstra 得 2，真正是 1
+            correct: true
+          - text: 都是 2
+            why: s→b→a 长 $5 + (-4) = 1$，比 2 短
+          - text: 都是 1
+            why: Dijkstra 在处理 b 之前就已经把 a 确定为 2，之后不会再改
+        explain: Dijkstra 先确定 s，然后 a（2）比 b（5）小，于是确定 a = 2。等到处理 b 时发现 5 − 4 = 1 更短，但 a 已经确定了。“取出最小的就是最终答案”依赖边长非负。
+      - id: bf-rounds
+        type: number
+        prompt: Bellman–Ford 在一个有 6 个点、没有负环的图上，最多需要把所有边松弛几轮，才能保证得到所有最短距离？
+        answer: 5
+        hint: 一条最短路最多经过几条边？
+        explain: 没有负环时，最短路不会重复经过同一个点，最多 $V - 1 = 5$ 条边。第 $k$ 轮之后，所有“最多 $k$ 条边”的最短路都已经算对了，所以 5 轮足够。
+      - id: dijkstra-cost
+        type: choice
+        prompt: 用二叉堆做优先队列，Dijkstra 的时间复杂度是多少？（$V$ 个点、$E$ 条边）
+        options:
+          - text: $O((V + E) \log V)$
+            correct: true
+          - text: $O(V + E)$
+            why: 那是 BFS 的复杂度；Dijkstra 每次要从堆里取最小值、更新距离，各要 $O(\log V)$
+          - text: $O(VE)$
+            why: 那是 Bellman–Ford 的复杂度
+        explain: 每个点出堆一次（$V$ 次取最小），每条边最多引起一次距离更新（$E$ 次调整堆），每次堆操作 $O(\log V)$。
+
+  - id: flow-matching
+    chapter: 网络流与匹配
+    title: 网络流：最多能送多少
+    minutes: 12
+    warmup:
+      id: guess
+      type: choice
+      prompt: 下图中每条管道容量都是 1。已经沿 s→a→b→t 送了 1 个单位，s→a 和 b→t 都满了。还能再送吗？
+      options:
+        - text: 能，把 a→b 上的流“退回去”，改走 s→b、a→t
+          correct: true
+        - text: 不能，从 s 出发的路都走不通了
+          why: s→b 还空着；从 b 沿 a→b 反着走，等于取消原来 a→b 的那份流
+        - text: 不能，因为 a→b 只能单向流
+          why: 流确实只能沿 a→b 方向，但“取消一部分已有的流”是允许的
+      explain: 把原来 a→b 的流取消，原先的那 1 个单位改走 s→a→t，新的 1 个单位走 s→b→t，总共 2 个单位。能“退回”已有的流，是最大流算法的关键。
+    cards:
+      - title: 流网络与增广路
+        body: |
+          **流网络**：有向图，每条边有**容量**，一个源点 $s$，一个汇点 $t$。**流**要满足：每条边的流量不超过容量；除 $s$、$t$ 外，每个点流进多少就流出多少。流的值是从 $s$ 流出的总量。
+
+          **残量网络**：边 $u \to v$ 还能再送 容量 − 流量；如果它上面已经有流量 $f$，还可以反着从 $v$“退回” $f$ 到 $u$。在残量网络里找一条 $s$ 到 $t$ 的路（**增广路**），沿它送出路上最小的剩余量（**瓶颈**）。
+
+          **Ford–Fulkerson**：反复找增广路、推流，直到找不到为止。下图先走 s→a→b→t，再试试沿 a→b 反着走。
+        sim:
+          name: graph
+          params:
+            mode: flow
+            directed: true
+            start: s
+            sink: t
+            nodes:
+              - { id: s, x: 40, y: 100 }
+              - { id: a, x: 160, y: 30 }
+              - { id: b, x: 160, y: 170 }
+              - { id: t, x: 280, y: 100 }
+            edges: [[s, a, 1], [s, b, 1], [a, b, 1], [a, t, 1], [b, t, 1]]
+      - title: 最大流 = 最小割
+        body: |
+          把点分成两组，$s$ 在 $S$ 组、$t$ 在 $T$ 组，从 $S$ 指向 $T$ 的边的容量之和叫这个**割**的容量。任何流都得穿过这些边，所以**流的值 ≤ 任何割的容量**。
+
+          **最大流最小割定理**：最大流的值**等于**最小割的容量。找不到增广路时，从 $s$ 在残量网络里能走到的点就组成 $S$，它恰好是一个最小割——这同时证明了 Ford–Fulkerson 停下时得到的就是最大流。
+
+          每次用 BFS 找边数最少的增广路（**Edmonds–Karp**），总时间是 $O(VE^2)$。
+      - title: 二分图匹配就是网络流
+        body: |
+          几个人、几份工作，每人只会做其中几份。最多能让多少人各分到一份（一人一份、一份一人）？这是**二分图最大匹配**。
+
+          把它变成流：新加源点连到每个人、每份工作连到汇点，人连到他会做的工作，**所有容量都是 1**。最大流的值就是最大匹配数，流量为 1 的“人→工作”边就是配对。
+    items:
+      - id: flow-sim
+        type: sim
+        sim: graph
+        prompt: 从 s 到 t 送尽量多的流。从 s 起依次点出一条增广路，按“推流”，重复，直到送不动为止。
+        params:
+          mode: flow
+          directed: true
+          start: s
+          sink: t
+          nodes:
+            - { id: s, x: 20, y: 110 }
+            - { id: a, x: 120, y: 30 }
+            - { id: c, x: 120, y: 190 }
+            - { id: b, x: 240, y: 30 }
+            - { id: d, x: 240, y: 190 }
+            - { id: t, x: 340, y: 110 }
+          edges: [[s, a, 10], [s, c, 10], [a, b, 4], [a, c, 2], [a, d, 8], [c, d, 9], [d, b, 6], [b, t, 10], [d, t, 10]]
+        goal: {}
+        solution:
+          paths: [[s, a, b, t], [s, a, d, t], [s, c, d, t], [s, c, d, b, t]]
+        explain: 一种做法：s→a→b→t 送 4，s→a→d→t 送 6（s→a 满了），s→c→d→t 送 4（d→t 满了），s→c→d→b→t 送 5（c→d 满了），共 19。这时从 s 只能走到 c，割 {s, c} 的出边是 s→a（10）和 c→d（9），容量 19，等于流的值，所以 19 就是最大流。
+      - id: min-cut
+        type: number
+        prompt: |
+          流网络（容量）：s→a 10、s→c 10、a→b 4、a→c 2、a→d 8、c→d 9、d→b 6、b→t 10、d→t 10。最小割的容量是多少？
+        answer: 19
+        hint: 最小割等于最大流。也可以直接试几种割：只把 s 放一边是 20，把 s、c 放一边呢？
+        explain: 割 {s, c} | {a, b, d, t} 的出边是 s→a（10）和 c→d（9），容量 19。由最大流最小割定理，最大流也是 19；任何割的容量都不会小于 19。
+      - id: matching
+        type: number
+        prompt: 四个人、四份工作。W1 会做 J1、J2；W2 只会 J1；W3 会做 J2、J3、J4；W4 只会 J2。每人最多一份、每份最多一人，最多能安排几个人？
+        answer: 3
+        hint: 看 W1、W2、W4 三个人，他们一共只会哪几份工作？
+        explain: W1、W2、W4 三个人会做的工作合起来只有 J1、J2 两份，他们里最多 2 人有工作；加上 W3，最多 3 人。例如 W2–J1、W4–J2、W3–J3。（“一组人会做的工作比人数少就配不满”，这是霍尔定理的条件。）
+      - id: mfmc
+        type: choice
+        prompt: 关于最大流最小割定理，下面哪句话对？
+        options:
+          - text: 最大流的值等于所有割中容量最小的那个
+            correct: true
+          - text: 最大流的值等于所有割中容量最大的那个
+            why: 每个割都是流的上限，所以流只能受最小的那个限制
+          - text: 最大流的值等于从 s 出发所有边的容量之和
+            why: 这只是一个割（只把 s 放一边）的容量，未必最小
+        explain: 任何流 ≤ 任何割，所以最大流 ≤ 最小割；定理说两者相等。找不到增广路时，能从 s 到达的点就给出一个容量恰好等于当前流的割。
+      - id: why-reverse
+        type: choice
+        prompt: Ford–Fulkerson 为什么允许在残量网络里沿已有流量的边**反着走**？
+        options:
+          - text: 为了能撤销早先选得不好的路，否则可能停在不是最大的流上
+            correct: true
+          - text: 为了让水真的倒流回源点
+            why: 反向边不代表真的有反向的流，它表示把原来那条边上的流量减少一些
+          - text: 为了让算法更快，结果不变
+            why: 没有反向边，算法可能卡在比最大流小的值上，结果会错
+        explain: 只沿正向找路的贪心，先选了 s→a→b→t 就再也送不出第二个单位。反向边让后面的增广路“改道”早先的流，保证最后一定得到最大流。
+
+  - id: strings
+    chapter: 字符串匹配与索引
+    title: 字符串匹配：失配了不回头
+    minutes: 12
+    warmup:
+      id: guess
+      type: number
+      prompt: 在文本“aaaaaaaaaa”（10 个 a）里找模式“aaab”。朴素做法：模式依次对齐文本的每个起点，从左往右逐个比较字符，遇到不相等就换下一个起点。一共比较多少次字符？
+      answer: 28
+      hint: 有几个起点？每个起点比较几次才发现不对？
+      explain: 起点 0 到 6 共 7 个，每个起点前 3 个 a 都相等，第 4 次比 a 和 b 不等，所以每个起点 4 次，共 28 次。一般最坏是 $O(nm)$：文本长 $n$、模式长 $m$。前面比对过的信息每次都被扔掉了。
+    cards:
+      - title: 前缀函数
+        body: |
+          KMP 算法先预处理模式串 $P$，算出**前缀函数** $\pi$：$\pi[i]$ 是 $P[0..i]$ 的最长的、**既是真前缀又是后缀**的子串长度（“真”表示不能是整个串）。
+
+          例：$P$ = AABAAB。
+          - $i = 1$：AA，前缀 A = 后缀 A，$\pi = 1$；
+          - $i = 2$：AAB，没有，$\pi = 0$；
+          - $i = 5$：AABAAB，前缀 AAB = 后缀 AAB，$\pi = 3$。
+
+          全部是 $\pi = [0, 1, 0, 1, 2, 3]$。
+      - title: KMP：文本指针不后退
+        body: |
+          匹配到模式的第 $j$ 个字符时失配了，说明前面 $j$ 个字符 $P[0..j-1]$ 已经和文本对上。它的后缀里，长度为 $\pi[j-1]$ 的那一段同时也是模式的前缀，所以直接让模式从第 $\pi[j-1]$ 个字符接着比，**文本指针不回退**。
+
+          这样文本的每个字符只往前扫一遍，总时间 $O(n + m)$。前缀函数本身也是用同样的“失配就跳”的方法算出来的，见下面的代码。
+        sim:
+          name: trace
+          params:
+            code: |
+              p = "AABAAB"
+              pi = [0] * len(p)
+              k = 0
+              for i in range(1, len(p)):
+                  while k > 0 and p[i] != p[k]:
+                      k = pi[k - 1]
+                  if p[i] == p[k]:
+                      k = k + 1
+                  pi[i] = k
+              print(pi)
+      - title: 索引：字典树与后缀数组
+        body: |
+          如果要在**同一段文本**里反复查很多模式，或者在一大堆词里查前缀，就先建**索引**：
+
+          - **字典树（trie）**：每条边一个字符，从根往下读出的路径就是一个词的前缀，共享前缀的词共享路径。查一个长 $m$ 的前缀只要 $O(m)$。自动补全、拼写检查常用它。
+          - **后缀数组（suffix array）**：把文本的所有后缀按字典序排好，记下它们的起始位置。banana 的后缀数组是 [5, 3, 1, 0, 4, 2]（a、ana、anana、banana、na、nana）。以某个模式开头的后缀在数组里**挨在一起**，可以二分查找，$O(m \log n)$。
+    items:
+      - id: pi-text
+        type: text
+        prompt: 求模式串 AABAAAB 的前缀函数 $\pi$。按顺序写 7 个数，用英文逗号隔开（例如 0,1,0,…）。
+        answers: ["0,1,0,1,2,2,3", "0, 1, 0, 1, 2, 2, 3", "0 1 0 1 2 2 3"]
+        hint: 前 5 位 AABAA 和讲解卡里的例子一样；第 6 位 A 之前的 π 是 2，比较 P[5] = A 和 P[2] = B。
+        explain: |
+          前 5 位是 [0, 1, 0, 1, 2]。i = 5：P[5] = A 和 P[2] = B 不等，跳到 k = π[1] = 1；P[5] = A 和 P[1] = A 相等，k = 2，π[5] = 2（AABAAA 的最长前后缀是 AA）。i = 6：P[6] = B 和 P[2] = B 相等，k = 3，π[6] = 3（AAB）。答案 0,1,0,1,2,2,3。
+      - id: pi-trace
+        type: sim
+        sim: trace
+        prompt: 下面的代码计算模式 ABACABAB 的前缀函数。单步运行，回答：第 6 行（失配时往回跳）**第 2 次**执行完后 `k` 是多少？第 9 行**第 7 次**（最后一次）执行完后 `k` 是多少？
+        params:
+          code: |
+            p = "ABACABAB"
+            pi = [0] * len(p)
+            k = 0
+            for i in range(1, len(p)):
+                while k > 0 and p[i] != p[k]:
+                    k = pi[k - 1]
+                if p[i] == p[k]:
+                    k = k + 1
+                pi[i] = k
+            print(pi)
+        goal:
+          ask:
+            - { line: 6, var: k, hit: 2 }
+            - { line: 9, var: k, hit: 7 }
+        explain: |
+          到 i = 6 时 ABACABA 的 π 是 3（ABA）。i = 7：P[7] = B 和 P[3] = C 不等，跳到 k = π[2] = 1（这是第 6 行第 2 次执行）；P[7] = B 和 P[1] = B 相等，k = 2，π[7] = 2（AB）。完整结果 [0, 0, 1, 0, 1, 2, 3, 2]。
+      - id: kmp-cost
+        type: choice
+        prompt: 文本长 $n$，模式长 $m$。KMP（含计算前缀函数）的总时间是多少？
+        options:
+          - text: $O(n + m)$
+            correct: true
+          - text: $O(nm)$
+            why: 那是朴素算法的最坏情况；KMP 失配时文本指针不回退
+          - text: $O(n \log m)$
+            why: KMP 不需要排序或二分，没有对数因子
+        explain: 预处理模式要 $O(m)$；匹配时文本指针只前进不后退，模式指针每次回跳都抵消之前的前进，总共 $O(n)$。
+      - id: suffix-array
+        type: number
+        prompt: 文本 banana（下标从 0 开始）的后缀数组是 [5, 3, 1, 0, 4, 2]。以 “ana” 开头的后缀有几个？
+        answer: 2
+        hint: 从位置 3 和位置 1 开始的后缀分别是什么？
+        explain: 以 ana 开头的是起始位置 3 的 ana 和起始位置 1 的 anana，在后缀数组里正好相邻（紧跟在 5 后面的 3、1）。所以 ana 在 banana 里出现 2 次，位置是 1 和 3。查任何模式，都是在后缀数组里二分找到这样一段连续的区间。
+      - id: trie-nodes
+        type: number
+        prompt: 把单词 tea、ten、to、inn 放进一棵字典树（每个节点代表一个前缀，根节点代表空串）。除根以外一共有几个节点？
+        answer: 8
+        hint: 列出所有不同的非空前缀：t、te、tea……
+        explain: 不同的非空前缀是 t、te、tea、ten、to、i、in、inn，共 8 个。tea 和 ten 共用 t、te，to 也共用 t。共享前缀让字典树查前缀很快，也省空间。
+boss:
+  items:
+    - id: boss-master
+      type: choice
+      prompt: 用主定理求 $T(n) = 4T(n/2) + \Theta(n)$。
+      options:
+        - text: $\Theta(n^2)$
+          correct: true
+        - text: $\Theta(n \log n)$
+          why: 那需要 $\log_b a = d$；这里 $\log_2 4 = 2 > 1$
+        - text: $\Theta(n)$
+          why: 4 个子问题让叶子数量增长成 $n^2$，比每层的 $\Theta(n)$ 快
+      explain: $a = 4$，$b = 2$，$\log_2 4 = 2 > d = 1$，叶子占主导，$\Theta(n^2)$。
+    - id: boss-lcs
+      type: number
+      prompt: 字符串 ABCBDAB 和 BDCABA 的最长公共子序列（不要求连续）有多长？
+      answer: 4
+      hint: $L[i][j] = L[i-1][j-1] + 1$（两字符相等），否则 $\max(L[i-1][j], L[i][j-1])$。
+      explain: 例如 BCBA、BDAB 都是长度 4 的公共子序列，填表可知没有长度 5 的。
+    - id: boss-activities
+      type: number
+      prompt: 活动（左闭右开）：[1,3)、[2,5)、[4,7)、[1,8)、[5,9)、[8,10)、[9,11)、[11,14)、[13,16)。按最早结束贪心，最多能选几个？
+      answer: 4
+      explain: 依次选 [1,3)、[4,7)、[8,10)、[11,14)，共 4 个。
+    - id: boss-dijkstra
+      type: number
+      prompt: 有向图：s→a 4、s→b 1、b→a 2、a→c 1、b→c 5、c→t 3、a→t 6。s 到 t 的最短距离是多少？
+      answer: 7
+      explain: 出队顺序 s(0)、b(1)、a(3)、c(4)、t(7)，最短路 s→b→a→c→t。
+    - id: boss-kmp
+      type: text
+      prompt: 模式 P = ABABCABAB 在文本 T = ABABDABABCABABCABAB 中出现在哪些位置（从 0 开始）？按从小到大写，用英文逗号隔开。
+      answers: ["5,10", "5, 10", "5 10"]
+      explain: P 的前缀函数是 [0, 0, 1, 2, 0, 1, 2, 3, 4]。匹配时在位置 5 和 10 各完整匹配一次；第二次是利用 π[8] = 4 接着第一次的末尾继续比出来的，两次出现重叠了 4 个字符。

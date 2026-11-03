@@ -1,0 +1,151 @@
+# Background music. Every pack is CC0 (public domain), checked on its OpenGameArt page 2026-11-03.
+# scripts/music/encode-music.mjs downloads each pack (or uses temp/music-src/ if it is already there),
+# matches loudness and writes assets/music/<track>.ogg; scripts/build-data.mjs turns this file into
+# src/gen/music.json for the game (src/game/app/music.js). See assets/music/README.md.
+#
+# Scenes: title (the intro), explore (camp, routes, map, skill pages, profile, lab), focus (lessons and
+# review), challenge (final challenges). A scene plays its tracks one after another, starting at a
+# random one; a scene with one track loops it.
+
+packs:
+  jrpg-exploration:
+    name: "JRPG Music Pack #1 [Exploration]"
+    author: Juhani Junkala (SubspaceAudio)
+    page: https://opengameart.org/content/jrpg-pack-1-exploration
+    license: CC0
+    url: https://opengameart.org/sites/default/files/JRPG%20Music%20Pack%20%231%20%5BExploration%5D%20by%20Juhani%20Junkala.zip
+  jrpg-towns:
+    name: "JRPG Music Pack #2 [Towns]"
+    author: Juhani Junkala (SubspaceAudio)
+    page: https://opengameart.org/content/jrpg-pack-2-towns
+    license: CC0
+    url: https://opengameart.org/sites/default/files/JRPG%20Music%20Pack%20%232%20%5BTowns%5D%20by%20Juhani%20Junkala.zip
+  jrpg-calm:
+    name: "JRPG Music Pack #4 [Calm]"
+    author: Juhani Junkala (SubspaceAudio)
+    page: https://opengameart.org/content/jrpg-pack-4-calm
+    license: CC0
+    url: https://opengameart.org/sites/default/files/JRPG%20Music%20Pack%20%234%20%5BCalm%5D%20by%20Juhani%20Junkala_0.zip
+  jrpg-action:
+    name: "JRPG Music Pack #5 [Action]"
+    author: Juhani Junkala (SubspaceAudio)
+    page: https://opengameart.org/content/jrpg-pack-5-action
+    license: CC0
+    url: https://opengameart.org/sites/default/files/JRPG%20Music%20Pack%20%235%20%5BAction%5D%20by%20Juhani%20Junkala.zip
+  chiptune-adventures:
+    name: 4 Chiptunes (Adventure)
+    author: Juhani Junkala (SubspaceAudio)
+    page: https://opengameart.org/content/4-chiptunes-adventure
+    license: CC0
+    url: https://opengameart.org/sites/default/files/Juhani%20Junkala%20%5BChiptune%20Adventures%5D%20OGG.zip
+  retro-game-music:
+    name: 5 Chiptunes (Action) — Retro Game Music Pack
+    author: Juhani Junkala (SubspaceAudio)
+    page: https://opengameart.org/content/5-chiptunes-action
+    license: CC0
+    url: https://opengameart.org/sites/default/files/5%20Action%20Chiptunes%20By%20Juhani%20Junkala.zip
+  old-tower-inn-chiptune:
+    name: "[Chiptune] Medieval: The Old Tower Inn"
+    author: RandomMind
+    page: https://opengameart.org/content/chiptune-medieval-the-old-tower-inn
+    license: CC0
+    url: https://opengameart.org/sites/default/files/CHIPTUNE_Loop_The_Old_Tower_Inn.wav
+  bards-tale:
+    name: "Medieval: The Bard's Tale"
+    author: RandomMind
+    page: https://opengameart.org/content/medieval-the-bards-tale
+    license: CC0
+    url: https://opengameart.org/sites/default/files/Loop_The_Bards_Tale.wav
+  old-tower-inn:
+    name: "Medieval: The Old Tower Inn"
+    author: RandomMind
+    page: https://opengameart.org/content/medieval-the-old-tower-inn
+    license: CC0
+    url: https://opengameart.org/sites/default/files/Loop_The_Old_Tower_Inn.wav
+  minstrel-dance:
+    name: "Medieval: Minstrel Dance"
+    author: RandomMind
+    page: https://opengameart.org/content/medieval-minstrel-dance
+    license: CC0
+    url: https://opengameart.org/sites/default/files/Loop_Minstrel_Dance_0.wav
+  kings-feast:
+    name: "Medieval: King's Feast"
+    author: RandomMind
+    page: https://opengameart.org/content/medieval-kings-feast
+    license: CC0
+    url: https://opengameart.org/sites/default/files/Loop_Kings_Feast_0.wav
+  medieval-battle:
+    name: "Medieval: Battle"
+    author: RandomMind
+    page: https://opengameart.org/content/medieval-battle
+    license: CC0
+    url: https://opengameart.org/sites/default/files/battle_1.wav
+  chill-beats:
+    name: Chill Beats (Collection)
+    author: HoliznaCC0
+    page: https://opengameart.org/content/chill-beats-collection
+    license: CC0
+    url: https://opengameart.org/sites/default/files/chill_beats.zip
+
+# id: { pack, file (inside the zip; omitted for a single-file pack), title }
+tracks:
+  grasslands: { pack: jrpg-exploration, file: Exploration1 - Grasslands.ogg, title: Grasslands }
+  prairie-nights: { pack: jrpg-exploration, file: Exploration4 - Prairie Nights.ogg, title: Prairie Nights }
+  home-town: { pack: jrpg-towns, file: Town1 - Home Town.ogg, title: Home Town }
+  where-time-stands-still: { pack: jrpg-towns, file: Town2 - Where Time Stands Still.ogg, title: Where Time Stands Still }
+  peaceful-days: { pack: jrpg-calm, file: Calm3 - Peaceful Days.ogg, title: Peaceful Days }
+  innocence: { pack: jrpg-calm, file: Calm6 - Innocence.ogg, title: Innocence }
+  childhood-friends: { pack: jrpg-calm, file: Calm2 - Childhood Friends.ogg, title: Childhood Friends }
+  preparing-for-battle: { pack: jrpg-action, file: Action3 - Preparing For Battle.ogg, title: Preparing For Battle }
+  encounter-with-the-witches: { pack: jrpg-action, file: Action1 - Encounter With The Witches.ogg, title: Encounter With The Witches }
+  chip-title: { pack: retro-game-music, file: "Juhani Junkala [Retro Game Music Pack] Title Screen.wav", title: Title Screen }
+  chip-level-1: { pack: retro-game-music, file: "Juhani Junkala [Retro Game Music Pack] Level 1.wav", title: Level 1 }
+  chip-level-3: { pack: retro-game-music, file: "Juhani Junkala [Retro Game Music Pack] Level 3.wav", title: Level 3 }
+  chip-stage-1: { pack: chiptune-adventures, file: "Juhani Junkala [Chiptune Adventures] 1. Stage 1.ogg", title: Stage 1 }
+  chip-stage-2: { pack: chiptune-adventures, file: "Juhani Junkala [Chiptune Adventures] 2. Stage 2.ogg", title: Stage 2 }
+  chip-stage-select: { pack: chiptune-adventures, file: "Juhani Junkala [Chiptune Adventures] 4. Stage Select.ogg", title: Stage Select }
+  chip-boss-fight: { pack: chiptune-adventures, file: "Juhani Junkala [Chiptune Adventures] 3. Boss Fight.ogg", title: Boss Fight }
+  chip-old-tower-inn: { pack: old-tower-inn-chiptune, title: The Old Tower Inn (chiptune) }
+  bards-tale: { pack: bards-tale, title: The Bard's Tale }
+  old-tower-inn: { pack: old-tower-inn, title: The Old Tower Inn }
+  minstrel-dance: { pack: minstrel-dance, title: Minstrel Dance }
+  kings-feast: { pack: kings-feast, title: King's Feast }
+  medieval-battle: { pack: medieval-battle, title: Battle }
+  families: { pack: chill-beats, file: Chill Beats/03 HoliznaCC0 - Families.ogg, title: Families }
+  opinions: { pack: chill-beats, file: Chill Beats/05 HoliznaCC0 - Opinions.ogg, title: Opinions }
+  autumn: { pack: chill-beats, file: Chill Beats/28 HoliznaCC0 - Autumn.ogg, title: Autumn }
+
+# The first style is the default.
+styles:
+  - id: rpg
+    name: 像素 RPG
+    desc: 日式 RPG 风格的小编制配乐
+    scenes:
+      title: [grasslands]
+      explore: [home-town, where-time-stands-still, prairie-nights]
+      focus: [peaceful-days, innocence, childhood-friends]
+      challenge: [preparing-for-battle, encounter-with-the-witches]
+  - id: chip
+    name: 8-bit 芯片
+    desc: 红白机风格的芯片音乐
+    scenes:
+      title: [chip-title]
+      explore: [chip-stage-1, chip-stage-2, chip-level-1]
+      focus: [chip-old-tower-inn, chip-stage-select]
+      challenge: [chip-boss-fight, chip-level-3]
+  - id: medieval
+    name: 中世纪奇幻
+    desc: 鲁特琴、长笛和鼓的酒馆与城堡
+    scenes:
+      title: [bards-tale]
+      explore: [bards-tale, minstrel-dance, kings-feast]
+      focus: [old-tower-inn, bards-tale]
+      challenge: [medieval-battle]
+  - id: lofi
+    name: Lo-fi 学习
+    desc: 放松的 lo-fi 节拍，适合专心做题
+    scenes:
+      title: [families]
+      explore: [families, opinions, autumn]
+      focus: [autumn, families, opinions]
+      challenge: [opinions]

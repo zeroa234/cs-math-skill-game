@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">点亮之路</string>
+    <string name="title_activity_main">点亮之路</string>
+    <string name="package_name">local.csmathskillgame.app</string>
+    <string name="custom_url_scheme">local.csmathskillgame.app</string>
+</resources>

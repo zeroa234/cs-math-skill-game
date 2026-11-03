@@ -1,0 +1,414 @@
+skill: M.1.3
+version: 1
+authors: [pi-calc2]
+brief:
+  why: |
+    导数把一段变化压缩成一点的变化率；积分反过来，把无数个微小的变化累加成一个总量。
+    路程、面积、概率、总收益，都是“把很多小片加起来”的量。
+    这一关先用矩形面积建立“逼近”的直觉，再把积分和导数接起来，最后学会处理无穷区间和无界函数。
+  outcomes:
+    - 用矩形和（Riemann sum）估计面积，并说清 n 增大时误差怎样变小
+    - 用定积分表示带符号的面积，分清“面积”和“积分值”
+    - 用微积分基本定理把积分变成原函数求值，并处理变上限积分
+    - 判断无穷区间或无界函数的反常积分是否收敛，收敛时求出值
+    - 用换元法和分部积分求不定积分，并记得写 +C
+lessons:
+  - id: definite-integral
+    chapter: 定积分
+    title: 用很多小矩形量面积
+    minutes: 9
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        用 4 个等宽矩形估计 $y=x^2$ 在 $[0,1]$ 下方的面积，每个矩形的高度取**左端点**的函数值。
+        这个估计比真实面积大还是小？
+      options:
+        - text: 偏大
+          why: 左端点是每个小区间上 $x^2$ 的最小值，矩形整个落在曲线下方
+        - text: 偏小
+          correct: true
+        - text: 正好相等
+          why: 矩形顶边是水平的，曲线是弯的，只有矩形取得足够多才会逼近
+      explain: |
+        $x^2$ 在 $[0,1]$ 上递增，左端点给出每个小区间的最低高度，所以 4 个矩形都落在曲线下方，和偏小。把高度改取右端点，矩形就会盖住曲线，和偏大；真值被夹在两者之间。
+    cards:
+      - title: 把面积切成条
+        body: |
+          要求曲线 $y=f(x)$ 与 $x$ 轴之间在 $[a,b]$ 上的面积，先把 $[a,b]$ 等分成 $n$ 段，每段宽
+          $$\Delta x=\frac{b-a}{n}.$$
+          每段上用一个矩形代替曲边条：高度可以取左端点 $f(x_{i-1})$、右端点 $f(x_i)$ 或中点。
+
+          对 $f(x)=x^2$、$[a,b]=[0,1]$，三种取法得到的和是：
+
+          | $n$ | 左端点和 | 右端点和 | 中点和 |
+          |---|---|---|---|
+          | 2 | 0.125 | 0.625 | 0.3125 |
+          | 4 | 0.21875 | 0.46875 | 0.328125 |
+          | 10 | 0.285 | 0.385 | 0.3325 |
+
+          真实面积是 $\frac13\approx0.3333$。左端点总在曲线下方、右端点总在上方，真值被夹在两者之间；中点法的误差小得多。
+      - title: 矩形越多，误差越小
+        body: |
+          对 $f(x)=x^2$ 在 $[0,1]$ 上，左端点和可以写成
+          $$L_n=\frac{1}{n}\sum_{i=0}^{n-1}\left(\frac{i}{n}\right)^2=\frac13-\frac{1}{2n}+\frac{1}{6n^2}.$$
+          所以误差大约是 $\frac{1}{2n}$：$n=10$ 时约 $0.048$，$n=100$ 时约 $0.005$。每把 $n$ 乘 10，误差大约缩小到十分之一。
+
+          中点法的误差大约按 $\frac{1}{n^2}$ 缩小，$n=10$ 时只有约 $0.00083$。同样多的矩形，中点通常更准。
+
+          拖动 $n$，看矩形怎样越来越贴合曲线。
+        sim:
+          name: plot
+          params: {mode: riemann, f: "x^2", a: 0, b: 1, rule: left, nMax: 200}
+      - title: 取极限，就得到定积分
+        body: |
+          让 $n\to\infty$（同时每段宽度 $\Delta x\to0$），如果这些和趋向同一个数，就把它叫做 $f$ 在 $[a,b]$ 上的**定积分（definite integral）**：
+          $$\int_a^b f(x)\,dx=\lim_{n\to\infty}\sum_{i=1}^{n}f(\xi_i)\,\Delta x.$$
+          这里 $\xi_i$ 是第 $i$ 段里的任意一点。连续函数在闭区间上一定可积，所以日常遇到的函数不用为“极限存不存在”担心。
+
+          定积分给出的是**带符号面积**：曲线在 $x$ 轴上方算正，下方算负。例如
+          $$\int_{-1}^{1}x\,dx=0,$$
+          因为左边三角形的面积是 $-\frac12$，右边是 $+\frac12$，正好抵消；但两块区域的实际面积之和是 $1$。
+
+          积分对加减和常数倍都线性，区间也可以拼接：$\int_a^c f=\int_a^b f+\int_b^c f$。
+    items:
+      - id: sim-left
+        type: sim
+        sim: plot
+        prompt: |
+          拖动 $n$，使左端点矩形和与 $\int_0^1 x^2\,dx$ 的误差小于 $0.01$。
+        params: {mode: riemann, f: "x^2", a: 0, b: 1, rule: left, nMax: 200}
+        goal: {errorBelow: 0.01}
+        solution: {n: 50}
+        hint: 左端点误差大约是 $\frac{1}{2n}$。要让 $\frac{1}{2n}<0.01$，$n$ 大约要超过多少？
+        explain: |
+          左端点和与真值的差是 $\frac{1}{2n}-\frac{1}{6n^2}$。$n=49$ 时约 $0.01013$，还差一点；
+          $n=50$ 时约 $0.00993$，第一次进入 $0.01$ 以内。此时左端点和是 $0.3234$，真值是 $0.3333$。
+      - id: left-sum-8
+        type: number
+        prompt: |
+          用 8 个等宽矩形、每个取左端点，估计 $\int_0^1 x^2\,dx$。估计值是多少？
+        answer: 0.2734375
+        tolerance: 0.0001
+        hint: 每段宽 $\frac18$，八个高度从 $0^2$ 到 $\left(\frac78\right)^2$。
+        explain: |
+          八个矩形的高是 $0,\frac{1}{64},\frac{4}{64},\dots,\frac{49}{64}$，平方和是 $\frac{140}{64}$，再乘宽 $\frac18$：
+          $$\frac18\cdot\frac{140}{64}=\frac{35}{128}=0.2734375.$$
+          它比真值 $\frac13$ 小，因为左端点让每个矩形都落在曲线下方。
+      - id: signed-area
+        type: choice
+        prompt: |
+          $\int_{-1}^{1}x\,dx$ 等于多少？
+        options:
+          - text: '0'
+            correct: true
+          - text: '1'
+            why: 1 是两块三角形的面积之和；定积分带符号，左右两块符号相反
+          - text: '$-1$'
+            why: 左边那块确实是负的，但右边那块是正的，不能只算一半
+          - text: 不存在
+            why: $x$ 在 $[-1,1]$ 上连续，定积分一定存在
+        explain: |
+          在 $[-1,0]$ 上 $x<0$，曲线在 $x$ 轴下方，这块的积分是 $-\frac12$；在 $[0,1]$ 上是 $+\frac12$。
+          两段相加得 $0$。定积分算的是“带符号面积”，不是几何面积；如果要几何面积，应该算 $\int_{-1}^{1}|x|\,dx=1$。
+      - id: sim-mid
+        type: sim
+        sim: plot
+        prompt: |
+          改用中点法，让矩形和与 $\int_0^1 x^2\,dx$ 的误差小于 $0.001$。
+        params: {mode: riemann, f: "x^2", a: 0, b: 1, rule: mid, nMax: 200}
+        goal: {errorBelow: 0.001}
+        solution: {n: 10}
+        hint: 中点误差大约是 $\frac{1}{12n^2}$。要使它小于 $0.001$，$n^2$ 要大于多少？
+        explain: |
+          中点法的误差是 $\frac{1}{12n^2}$。$n=9$ 时约 $0.001029$，仍然大于 $0.001$；
+          $n=10$ 时约 $0.000833$，满足要求。中点和是 $0.3325$，比左端点和更接近 $\frac13$。
+      - id: average-left-right
+        type: number
+        prompt: |
+          还是 $\int_0^1 x^2\,dx$，取 $n=8$。把左端点和与右端点和取平均，得到多少？
+        answer: 0.3359375
+        tolerance: 0.0001
+        hint: 先分别算 $n=8$ 的左端点和与右端点和，再取平均。
+        explain: |
+          左端点和是 $\frac{35}{128}$，右端点和是 $\frac{51}{128}$，平均是
+          $$\frac12\left(\frac{35}{128}+\frac{51}{128}\right)=\frac{43}{128}=0.3359375.$$
+          真值 $\frac13\approx0.3333$ 被夹在左右两个估计之间，所以平均也更靠近真值。这正是梯形法的雏形。
+
+  - id: ftc-improper
+    chapter: 微积分基本定理与反常积分
+    title: 累积量的变化率就是被积函数
+    minutes: 10
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        水龙头以速度 $f(t)$ 升/分钟出水，从时刻 0 到 $x$ 累积的水量记作 $F(x)$。
+        如果某一刻 $f(t)=3$ 升/分钟，那么 $F$ 在这一刻增加得多快？
+      options:
+        - text: 每分钟 3 升
+          correct: true
+        - text: 每分钟 0 升
+          why: 水流一直在进，累积水量不会停住不动
+        - text: 无法判断，还要知道已经接了多少水
+          why: 已经接了多少水是 $F$ 的大小，问的是它此刻的变化率，由当前流速决定
+      explain: |
+        累积水量 $F$ 的变化率就是此刻的进水速度：$F'(x)=f(x)$。已经接了多少水不影响“现在增加得多快”。
+        把“速度”换成任意函数，这条关系就是微积分基本定理的第一部分。
+    cards:
+      - title: 先看累积函数
+        body: |
+          固定下限 $a$，让上限变化，定义
+          $$F(x)=\int_a^x f(t)\,dt.$$
+          它表示从 $a$ 到 $x$ 累积的带符号面积。$x$ 往右挪一点点 $dx$，新增的是一条宽 $dx$、高约 $f(x)$ 的细条，所以
+          $$F'(x)=f(x).$$
+          这就是**微积分基本定理（Fundamental Theorem of Calculus）**的第一部分：累积量的变化率就是被积函数。
+
+          例：$F(x)=\int_0^x t^2\,dt=\frac{x^3}{3}$，而 $\frac{d}{dx}\frac{x^3}{3}=x^2$，正好是被积函数。
+          如果上限本身是 $u(x)$，还要乘上链式法则的因子：$\frac{d}{dx}\int_a^{u(x)}f(t)\,dt=f(u(x))\,u'(x)$。
+      - title: 用原函数算定积分
+        body: |
+          微积分基本定理的第二部分，也就是**牛顿–莱布尼茨公式（Newton–Leibniz formula）**：
+          $$\int_a^b f(x)\,dx=F(b)-F(a),$$
+          其中 $F$ 是 $f$ 的任意一个原函数，即 $F'=f$。习惯上写成 $\left[F(x)\right]_a^b$。
+
+          为什么任意一个原函数都行？因为两个原函数只差一个常数，相减时这个常数抵消了。
+
+          例：
+          $$\int_0^\pi \sin x\,dx=\left[-\cos x\right]_0^\pi=(-\cos\pi)-(-\cos0)=1+1=2.$$
+          几何上，这正是 $y=\sin x$ 与 $x$ 轴在 $[0,\pi]$ 之间那块区域的面积。
+      - title: 面积会不会无限增长
+        body: |
+          **反常积分（improper integral）**出现在两种情形：积分区间无限长，或者被积函数在端点附近无界。
+          处理办法都是先换成有限范围，再取极限。
+
+          - 无穷区间：$\int_1^\infty \frac{1}{x^2}\,dx=\lim_{b\to\infty}\left[-\frac1x\right]_1^b=\lim_{b\to\infty}\left(1-\frac1b\right)=1$，**收敛**。
+          - 同样是无穷区间：$\int_1^\infty \frac1x\,dx=\lim_{b\to\infty}\ln b=\infty$，**发散**。
+          - 被积函数无界：$\int_0^1 \frac{1}{\sqrt x}\,dx=\lim_{a\to0^+}\left[2\sqrt x\right]_a^1=2$，**收敛**。
+
+          一般地，$\int_1^\infty \frac{1}{x^p}\,dx$ 在 $p>1$ 时收敛、$p\le1$ 时发散；
+          $\int_0^1 \frac{1}{x^p}\,dx$ 在 $p<1$ 时收敛、$p\ge1$ 时发散；无穷区间要“衰减得够快”，端点无界要“增长得不够快”。
+    items:
+      - id: sin-area
+        type: number
+        prompt: |
+          用牛顿–莱布尼茨公式计算 $\int_0^\pi \sin x\,dx$。
+        answer: 2
+        tolerance: 0.001
+        hint: $\sin x$ 的一个原函数是 $-\cos x$，再代入上下限相减。
+        explain: |
+          $$\int_0^\pi \sin x\,dx=\left[-\cos x\right]_0^\pi=-\cos\pi+\cos0=1+1=2.$$
+          在 $[0,\pi]$ 上 $\sin x\ge0$，所以这个积分也等于曲线与 $x$ 轴围成的面积。
+      - id: ftc-chain
+        type: number
+        prompt: |
+          设 $F(x)=\int_0^{x^2}e^{-t^2}\,dt$，求 $F'(1)$。（保留三位小数）
+        answer: 0.736
+        tolerance: 0.001
+        hint: 先用基本定理把上限 $x^2$ 代进被积函数，再乘上限的导数 $2x$。
+        explain: |
+          上限是 $u(x)=x^2$，所以
+          $$F'(x)=e^{-(x^2)^2}\cdot 2x=2x\,e^{-x^4}.$$
+          代入 $x=1$ 得 $2e^{-1}=\frac{2}{e}\approx0.735759$，保留三位小数是 $0.736$。
+          漏掉 $2x$ 是常见错误：那只对上限求了“代入”，没有用链式法则。
+      - id: improper-p2
+        type: number
+        prompt: |
+          计算 $\int_1^\infty \frac{1}{x^2}\,dx$。如果收敛，填它的值。
+        answer: 1
+        tolerance: 0.001
+        hint: 先算 $\int_1^b x^{-2}dx$，再令 $b\to\infty$。
+        explain: |
+          $$\int_1^b x^{-2}\,dx=\left[-\frac1x\right]_1^b=1-\frac1b.$$
+          当 $b\to\infty$ 时 $\frac1b\to0$，所以积分收敛到 $1$。曲线下的面积虽然延伸到无穷远，但总面积极限是有限的。
+      - id: which-converges
+        type: choice
+        prompt: |
+          下面哪个反常积分收敛？
+        options:
+          - text: '$\int_1^\infty \frac{1}{x}\,dx$'
+            why: 原函数是 $\ln x$，$b\to\infty$ 时 $\ln b\to\infty$，发散
+          - text: '$\int_1^\infty \frac{1}{x^2}\,dx$'
+            correct: true
+          - text: '$\int_1^\infty \frac{1}{\sqrt{x}}\,dx$'
+            why: 这是 $p=\frac12\le1$ 的情形，原函数 $2\sqrt b$ 随 $b$ 无限增长，发散
+          - text: '$\int_0^1 \frac{1}{x}\,dx$'
+            why: 原函数 $\ln x$ 在 $0$ 附近趋向 $-\infty$，积分发散
+        explain: |
+          对无穷区间上的 $\frac{1}{x^p}$，只有 $p>1$ 才收敛。$\frac{1}{x^2}$ 的 $p=2>1$，收敛到 1；
+          $\frac1x$ 和 $\frac{1}{\sqrt x}$ 的 $p$ 分别等于 1 和 $\frac12$，都发散。
+          $\int_0^1\frac1x dx$ 的区间虽然有限，但函数在 0 附近无界，同样发散。
+      - id: improper-steps
+        type: order
+        prompt: 把判断并计算一个无穷区间反常积分的步骤排成合理顺序。
+        steps:
+          - 把无穷上限换成有限数 $b$，写成 $\int_a^b f(x)\,dx$
+          - 用原函数算出这个有限积分，结果通常含 $b$
+          - 令 $b\to\infty$，求这个结果的极限
+          - 极限存在就是收敛，极限不存在（或为无穷）就是发散
+        explain: |
+          反常积分不是直接“代无穷”，而是有限积分的极限。先算含 $b$ 的表达式，再看 $b$ 变大时它趋向哪里；
+          只有极限是有限数时才说收敛。
+
+  - id: antiderivatives
+    chapter: 不定积分
+    title: 把求导倒过来做
+    minutes: 9
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        $\int 2x\,dx$ 的答案只有一个 $x^2$ 吗？
+      options:
+        - text: 是，只有 $x^2$
+          why: $x^2+1$、$x^2-5$ 求导也都是 $2x$，所以答案不止一个
+        - text: 不是，所有 $x^2+C$ 都是答案
+          correct: true
+        - text: 不是，所有 $2x^2+C$ 都是答案
+          why: $2x^2$ 求导是 $4x$，不是 $2x$
+      explain: |
+        求导会把常数项消掉，所以知道导数以后，原函数只能确定到“差一个常数”。
+        $x^2$、$x^2+1$、$x^2-5$ 的导数都是 $2x$，它们都属于同一个原函数族 $x^2+C$。
+    cards:
+      - title: 原函数与不定积分
+        body: |
+          若 $F'(x)=f(x)$，就称 $F$ 是 $f$ 的一个**原函数（antiderivative）**。所有原函数组成**不定积分（indefinite integral）**：
+          $$\int f(x)\,dx=F(x)+C,$$
+          其中 $C$ 是任意常数。不定积分的结果是一个函数族，不是某一个数。
+
+          常用的原函数：
+
+          | $f(x)$ | $\int f(x)\,dx$ |
+          |---|---|
+          | $x^n$（$n\ne-1$） | $\frac{x^{n+1}}{n+1}+C$ |
+          | $\frac1x$ | $\ln|x|+C$ |
+          | $e^x$ | $e^x+C$ |
+          | $\cos x$ | $\sin x+C$ |
+          | $\sin x$ | $-\cos x+C$ |
+      - title: 换元法：把链式法则倒过来
+        body: |
+          求导时链式法则会多乘一个内层导数；积分时就要把它“收回去”，这叫**换元法（substitution）**。
+
+          例：
+          $$\int\frac{2x}{1+x^2}\,dx.$$
+          令 $u=1+x^2$，则 $du=2x\,dx$，积分变成
+          $$\int\frac{1}{u}\,du=\ln|u|+C=\ln(1+x^2)+C.$$
+          因为 $1+x^2>0$，绝对值可以去掉。
+
+          关键是把 $du=u'(x)\,dx$ 整体替换掉，最后再把 $u$ 换回 $x$。定积分用换元时，也可以同时把上下限换成 $u$ 的值。
+      - title: 分部积分：把乘积法则倒过来
+        body: |
+          乘积法则 $(uv)'=u'v+uv'$ 两边积分，移项得到**分部积分（integration by parts）**：
+          $$\int u\,dv=uv-\int v\,du.$$
+          它适合被积函数是“两种东西相乘”、其中一种容易积分的情形。
+
+          例：
+          $$\int x e^x\,dx.$$
+          取 $u=x$、$dv=e^x dx$，则 $du=dx$、$v=e^x$，于是
+          $$\int x e^x\,dx=x e^x-\int e^x\,dx=(x-1)e^x+C.$$
+          验证一下：对 $(x-1)e^x$ 求导，得 $e^x+(x-1)e^x=x e^x$，正确。
+    items:
+      - id: parts-definite
+        type: number
+        prompt: |
+          用分部积分计算 $\int_0^1 x e^x\,dx$。
+        answer: 1
+        tolerance: 0.001
+        hint: 把上下限代进 $(x-1)e^x$：先算 $x=1$，再减去 $x=0$ 的值。
+        explain: |
+          先按分部积分得到原函数 $(x-1)e^x$，再代上下限：
+          $$\int_0^1 x e^x\,dx=\left[(x-1)e^x\right]_0^1=(0\cdot e)-(-1\cdot1)=1.$$
+          注意下限代入时 $(0-1)e^0=-1$，减去它才变成加 1。
+      - id: substitution-definite
+        type: number
+        prompt: |
+          计算 $\int_0^1\frac{2x}{1+x^2}\,dx$。（保留三位小数）
+        answer: 0.693
+        tolerance: 0.001
+        hint: 令 $u=1+x^2$，则 $du=2x\,dx$；$x=0$ 时 $u=1$，$x=1$ 时 $u=2$。
+        explain: |
+          换元后积分变成 $\int_1^2\frac{1}{u}\,du=\left[\ln u\right]_1^2=\ln2\approx0.693147$。
+          也可以先写出原函数 $\ln(1+x^2)$，再代上下限，结果一样。
+      - id: match-antiderivatives
+        type: match
+        prompt: 把每个被积函数和它的一个原函数连起来（都省略 $+C$）。
+        pairs:
+          - ["2x", "x^2"]
+          - ["1/x", "ln|x|"]
+          - ["e^x", "e^x"]
+          - ["cos x", "sin x"]
+        explain: |
+          逐个求导检查：$(x^2)'=2x$，$(\ln|x|)'=\frac1x$，$(e^x)'=e^x$，$(\sin x)'=\cos x$。
+          连接时只要对右边的结果求导，看能不能得到左边。
+      - id: plus-c
+        type: choice
+        prompt: |
+          为什么不定积分的结果后面要写 $+C$？
+        options:
+          - text: 因为常数求导为 0，所有原函数只差一个常数
+            correct: true
+          - text: 因为积分会让函数值变大，要补一个常数
+            why: 积分不保证结果变大；$+C$ 和大小无关
+          - text: 因为 $C$ 是被积函数的系数
+            why: $C$ 是任意常数，不是系数，也不由被积函数唯一确定
+        explain: |
+          若 $F'(x)=f(x)$，那么 $(F(x)+C)'=F'(x)+0=f(x)$，所以加任何常数都还是原函数。
+          反过来，两个原函数之差求导为 0，只能是一个常数，因此 $F(x)+C$ 就包含了全部原函数。
+      - id: parts-order
+        type: order
+        prompt: 把用分部积分计算 $\int x e^x\,dx$ 的步骤排成合理顺序。
+        steps:
+          - 选 $u=x$、$dv=e^x\,dx$
+          - 算出 $du=dx$、$v=e^x$
+          - 代入公式 $\int u\,dv=uv-\int v\,du$，得到 $x e^x-\int e^x\,dx$
+          - 算出结果 $(x-1)e^x+C$
+        explain: |
+          分部积分的关键是选对 $u$ 和 $dv$：$u=x$ 求导后变成 1，更简单；$dv=e^x dx$ 很容易积分。
+          代公式后剩下的 $\int e^x dx$ 也是基本积分，整个问题就化成了查表。
+
+boss:
+  items:
+    - id: boss-parts
+      type: choice
+      prompt: |
+        $\int x e^x\,dx$ 等于什么？
+      options:
+        - text: '$(x-1)e^x+C$'
+          correct: true
+        - text: '$(x+1)e^x+C$'
+          why: 对 $(x+1)e^x$ 求导得 $(x+2)e^x$，多了一个 $e^x$
+        - text: '$x e^x+C$'
+          why: 对 $x e^x$ 求导得 $(x+1)e^x$，不是 $x e^x$
+        - text: '$\frac{x^2}{2}e^x+C$'
+          why: 乘积不能分开各自积分再相乘；对它求导得 $\left(x+\frac{x^2}{2}\right)e^x$，不是 $x e^x$
+      explain: |
+        取 $u=x$、$dv=e^x dx$，则 $du=dx$、$v=e^x$：
+        $$\int x e^x\,dx=x e^x-\int e^x\,dx=x e^x-e^x+C=(x-1)e^x+C.$$
+        最可靠的检查方法是对结果求导，看是否回到 $x e^x$。
+    - id: boss-sin
+      type: number
+      prompt: |
+        计算 $\int_0^\pi \sin x\,dx$，填积分值。
+      answer: 2
+      tolerance: 0.001
+      hint: 原函数是 $-\cos x$。
+      explain: |
+        $$\int_0^\pi \sin x\,dx=\left[-\cos x\right]_0^\pi=-\cos\pi+\cos0=1+1=2.$$
+        在 $[0,\pi]$ 上 $\sin x\ge0$，所以积分值正好等于曲线与 $x$ 轴围成的面积。
+    - id: boss-improper
+      type: choice
+      multi: true
+      prompt: 选出所有正确的说法。
+      options:
+        - text: '$\int_1^\infty \frac{1}{x^2}\,dx=1$'
+          correct: true
+        - text: '$\int_1^\infty \frac{1}{x}\,dx$ 发散'
+          correct: true
+        - text: '$\int_0^1 \frac{1}{\sqrt{x}}\,dx=2$'
+          correct: true
+        - text: '$\int_0^1 \frac{1}{x}\,dx=1$'
+          why: 原函数 $\ln x$ 在 $0$ 附近趋向 $-\infty$，这个积分发散，没有有限值
+      explain: |
+        $\int_1^\infty x^{-2}dx=\lim_{b\to\infty}(1-\frac1b)=1$；$\int_1^\infty \frac1x dx=\lim_{b\to\infty}\ln b=\infty$。
+        $\int_0^1 x^{-1/2}dx=\lim_{a\to0^+}(2-2\sqrt a)=2$；而 $\int_0^1\frac1x dx=\lim_{a\to0^+}(-\ln a)=\infty$。
+        同样是端点无界，$x^{-1/2}$ 增长得足够慢，面积有限；$\frac1x$ 增长得太快，面积无限。

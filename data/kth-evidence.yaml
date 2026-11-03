@@ -1,0 +1,139 @@
+# KTH course prerequisites used as a second, independent check of the skill tree's required edges.
+# A viewer pointed to https://www.kth.se/student/kurser/sokkurs?l=en ("KTH spells out prerequisites").
+# Quotes: the "Specific prerequisites" section of each course page, verbatim, read on 2026-11-03 by
+# loading https://www.kth.se/student/kurser/kurs/<code>?l=en (first located by a pi research run,
+# reports/research/kth-and-hpn.md, then re-read by the main agent; where the two differed the page wins,
+# e.g. IK1552 says "General entry requirements…", not "No information inserted").
+#
+# skill: the tree skill whose content the course matches (a judgement, stated in `fit`).
+# needs: the course's prerequisite courses, each mapped to the tree skill it corresponds to.
+# scripts/build-data.mjs checks every `needs` skill lies in the required closure of `skill`.
+fetched: 2026-11-03
+courses:
+  - code: DD1337
+    name: Programming
+    credits: 7.0
+    skill: P.1.1
+    fit: 入门程序设计课，对应“程序设计基础”
+    quote: "No information inserted"
+    needs: []
+  - code: DD1338
+    name: Algorithms and Data Structures
+    credits: 6.0
+    skill: F.1.1
+    fit: 数据结构与算法入门课，对应“数据结构”
+    quote: "Knowledge and skills in object-oriented programming, 7 credits, corresponding to completed course DD1337 alternatively both courses DD1310 and DD1380. Active participation in DD1337 or DD1380 during study period 1 of the same academic year is equated with completed course. Anyone who is registered is expected and considered to be actively participating."
+    needs:
+      - { courses: "DD1337", skill: P.1.1 }
+  - code: ID1021
+    name: Algorithms and Data Structures
+    credits: 7.5
+    skill: F.1.1
+    fit: 数据结构与算法入门课（另一个专业的版本）
+    quote: "Knowledge and skills in programming, 7,5 credits, corresponding to completed course ID1022/ID1018. Active participation in ID1022 during study period 2 of the same academic year is considered equivalent to completed course. Registered students are expected and considered to be actively participating."
+    needs:
+      - { courses: "ID1022/ID1018", skill: P.1.1 }
+  - code: IS1500
+    name: Computer Organization and Components
+    credits: 9.0
+    skill: C.1.1
+    fit: 计算机组成课，对应“计算机组成原理”
+    quote: "Knowledge and skills in programming, 6 credits, equivalent to completed course DD1337/DD1310-DD1319/DD1321/DD1331/DD1333/DD100N/ID1018/ID1022."
+    needs:
+      - { courses: "DD1337/…", skill: P.1.1 }
+  - code: IS1200
+    name: Computer Hardware Engineering
+    credits: 7.5
+    skill: C.1.1
+    fit: 计算机硬件工程课，对应“计算机组成原理”
+    quote: "No information inserted"
+    needs: []
+  - code: ID1206
+    name: Operating Systems
+    credits: 7.5
+    skill: C.2.1
+    fit: 操作系统课
+    quote: "Knowledge and skills in programming, 6 credits, equivalent to completed course DD1337/DD1310-DD1319/DD1321/DD1331/DD1333/DD100N/ID1018/ID1022. Knowledge in algorithms and data structures, 6 credits, equivalent to completed course DD1338/DD1320-DD1328/DD2325/ID1020/ID1021 or completed exam modules KONT and LABD in DD1326. Knowledge in computer technology equivalent to completed course IS1200/IS1500/EP1200 or completed exam module LAB1 in IS1200."
+    needs:
+      - { courses: "DD1337/…", skill: P.1.1 }
+      - { courses: "DD1338/…/ID1021", skill: F.1.1 }
+      - { courses: "IS1200/IS1500/EP1200", skill: C.1.1 }
+    note: KTH 只写“programming”，没有指定 C 语言；技能树要求 P.2.2（C/C++ 与底层编程）的依据是 Berkeley CS 162 的先修 61C，见技能详情。
+  - code: SF1625
+    name: Calculus in One Variable
+    credits: 7.5
+    skill: M.1.1
+    fit: 一元微积分整门课，覆盖“极限与连续”“一元微分学”“一元积分学”三个技能
+    covers: [M.1.1, M.1.2, M.1.3]
+    quote: "Basic requirements."
+    needs: []
+  - code: SF1672
+    name: Linear Algebra
+    credits: 7.5
+    skill: M.3.1
+    fit: 线性代数课
+    quote: "Basic requirements."
+    needs: []
+  - code: SF1624
+    name: Algebra and Geometry
+    credits: 7.5
+    skill: M.3.1
+    fit: 代数与几何（含线性代数）课
+    quote: "Basic requirements."
+    needs: []
+  - code: SF1626
+    name: Calculus in Several Variables
+    credits: 7.5
+    skill: M.1.4.1
+    fit: 多元微积分课（多元微分学部分）
+    quote: "Active participation in SF1625 Calculus in one variable."
+    needs:
+      - { courses: "SF1625", skill: M.1.2 }
+  - code: SF1922
+    name: Probability Theory and Statistics
+    credits: 6.0
+    skill: M.6.1
+    fit: 概率论与数理统计课（概率论部分）
+    quote: "Active participation in SF1673 Analysis in one variable or SF1625 Calculus in one variable."
+    needs:
+      - { courses: "SF1673/SF1625", skill: M.1.3 }
+  - code: DD2421
+    name: Machine Learning
+    credits: 7.5
+    skill: A.2.1
+    fit: 机器学习入门课，对应“监督、无监督与半监督学习”
+    quote: "Knowledge and skills in programming, 6 credits, equivalent to completed course DD1337/DD1310-DD1319/DD1321/DD1331/DD100N/ID1018. Knowledge in linear algebra, 7,5 credits, equivalent to completed course SF1624/SF1672/SF1684. Knowledge in multivariable calculus, 7,5 credits, equivalent to completed course SF1626/SF1674. Knowledge in probability theory and statistics, 6 credits, equivalent to completed course SF1910-SF1924/SF1935."
+    needs:
+      - { courses: "DD1337/…", skill: P.1.1 }
+      - { courses: "SF1624/SF1672/SF1684", skill: M.3.1 }
+      - { courses: "SF1626/SF1674", skill: M.1.4.1 }
+      - { courses: "SF1910-SF1924/SF1935", skill: M.6.1 }
+  - code: DD2424
+    name: Deep Learning in Data Science
+    credits: 7.5
+    skill: A.2.3
+    fit: 深度学习课
+    quote: "Knowledge and skills in programming, 6 credits, equivalent to completed course DD1337/DD1310-DD1319/DD1321/DD1331/DD100N/ID1018. Knowledge in linear algebra, 7,5 higher education credits, equivalent to completed course SF1624/SF1672/SF1684. Knowledge in multivariable analysis, 7,5 higher education credits, equivalent to completed course SF1626/SF1674. Knowledge in probability theory and statistics, 6 higher education credits, equivalent to completed course SF1910-SF1924/SF1935. Knowledge in machine learning or artificial intelligence, 6 higher education credits, equivalent to completed course DD1420/DD2421 or DD2380/ID1214."
+    needs:
+      - { courses: "DD1337/…", skill: P.1.1 }
+      - { courses: "SF1624/SF1672/SF1684", skill: M.3.1 }
+      - { courses: "SF1626/SF1674", skill: M.1.4.1 }
+      - { courses: "SF1910-SF1924/SF1935", skill: M.6.1 }
+      - { courses: "DD1420/DD2421/DD2380/ID1214", skill: A.2.1 }
+  - code: IK2215
+    name: Advanced Internetworking
+    credits: 7.5
+    skill: C.3.2
+    fit: 高级互联网技术课，对应“网络协议、路由与传输”
+    quote: "Knowledge in Internet technique, 6 higher education credits, equivalent completed course IK1552."
+    needs: []
+    note: IK1552（Internetworking）的先修是 "General entry requirements and Mathematics D, Physics B and Chemistry A"，不对应技能树里的技能。
+  - code: FIK3221
+    name: Networked Systems for Machine Learning
+    credits: 7.5
+    skill: C.3.5
+    fit: 博士课；课程内容含 kernel bypass（DPDK）、SmartNIC 卸载、RDMA、GPU 推理的网络问题，对应游戏新增的“数据中心与高性能网络”
+    quote: "Knowledge in advanced Internet technique, 7.5 higher education credits, equivalent completed course IK2215. Knowledge and skills in programming in C++, Java or Python, 6 higher education credits, equivalent completed course DD1310-DD1319/DD1331/DD1337/DD100N/ID1018."
+    needs:
+      - { courses: "IK2215", skill: C.3.2 }
+      - { courses: "DD1310-…/DD1337", skill: P.1.1 }

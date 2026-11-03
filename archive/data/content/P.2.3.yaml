@@ -1,0 +1,544 @@
+skill: P.2.3
+version: 1
+authors: [pi-ml]
+brief:
+  why: |
+    真正的 Python 工作很少在交互窗口里一行行敲：脚本要从命令行拿参数，数据动辄几万行，
+    还要画图给别人看，并且让同事在自己的机器上跑出同样的结果。这一关补齐科学计算栈最常用的几件工具：
+    命令行脚本、NumPy 数组、pandas 数据框、matplotlib 和虚拟环境。
+  outcomes:
+    - 写带命令行参数的脚本，并用 `if __name__ == "__main__"` 区分直接运行与被导入
+    - 用 NumPy 建数组，读懂 shape，做索引、切片和广播运算
+    - 用 pandas 选列、按条件筛选、用 groupby 分组统计
+    - 用 matplotlib 画出带标签和图例的图并存成文件
+    - 用 venv 建独立环境、用 pip 安装依赖并导出 requirements.txt
+    - 用 pathlib 批量改名这类自动化脚本处理文件
+lessons:
+  - id: scripts
+    chapter: 脚本
+    title: 让脚本从命令行拿参数
+    minutes: 9
+    warmup:
+      id: guess
+      type: choice
+      prompt: 运行 `python report.py 3 5`，脚本里的 `sys.argv` 一共有几个元素？
+      options:
+        - { text: "2", why: "3 和 5 是两个参数，但列表开头还有脚本自己的名字" }
+        - { text: "3", correct: true }
+        - { text: "只有 3 和 5 两个数字", why: "sys.argv 里的元素都是字符串，而且第一个是脚本名" }
+      explain: |
+        `sys.argv` 是一个字符串列表：`["report.py", "3", "5"]`。`argv[0]` 是脚本名，
+        从 `argv[1]` 开始才是你敲在后面的参数。因为它们都是字符串，想当数字用要自己转换。
+    cards:
+      - title: 脚本就是从上往下执行的文件
+        body: |
+          把代码存进 `report.py`，在终端运行 `python report.py 3 5`，Python 就从第一行执行到最后一行。
+          命令行里多写的 `3 5` 不会自动变成变量，需要脚本自己去读 `sys.argv`：
+
+          ```python
+          import sys
+          print(sys.argv)        # ['report.py', '3', '5']
+          n = int(sys.argv[1])   # 3，注意要转换
+          ```
+
+          `sys.argv[0]` 是脚本名，`sys.argv[1:]` 是全部参数。忘记转换就会踩到
+          `"3" + "5"` 得到 `"35"` 这种坑。
+      - title: argparse：给参数起名字
+        body: |
+          参数一多，靠数下标很容易错。标准库 `argparse` 让你按名字取参数，还会自动生成 `--help`：
+
+          ```python
+          import argparse
+          parser = argparse.ArgumentParser()
+          parser.add_argument("n", type=int)                    # 必填的位置参数
+          parser.add_argument("--repeat", type=int, default=1)   # 可选，带默认值
+          args = parser.parse_args()
+          print(args.n * args.repeat)
+          ```
+
+          运行 `python run.py 5 --repeat 3` 打印 15；不写 `--repeat` 时用默认值 1。
+          `type=int` 让 argparse 在解析时就完成转换，并替你报出“不是整数”的错误。
+      - title: 这段代码什么时候执行？
+        body: |
+          每个模块都有一个 `__name__`。直接运行文件时它是 `"__main__"`；被别的文件 `import` 时它是模块名。
+
+          ```python
+          def main():
+              print("干活")
+
+          if __name__ == "__main__":
+              main()
+          ```
+
+          这样写的好处：别人 import 你的模块、复用里面的函数时，不会顺手把整个脚本跑一遍；
+          你自己运行时又一切照旧。测试代码也常放在这个判断下面。
+    items:
+      - id: trace-argv
+        type: sim
+        sim: trace
+        prompt: |
+          这是一个手动模拟命令行参数的小脚本。第 4 行第 2 次执行完时 `total` 是多少？程序最后打印什么？
+        params:
+          code: |
+            args = ["sum.py", "3", "4", "5"]
+            total = 0
+            for a in args[1:]:
+                total = total + int(a)
+            print(total)
+        goal:
+          ask:
+            - { line: 4, var: total, hit: 2 }
+            - { line: 5, var: "@out" }
+        explain: |
+          `args[1:]` 跳过脚本名，依次取到字符串 `"3"`、`"4"`、`"5"`，`int(a)` 把它们变成数字。
+          第 2 次执行后 `total` 是 3 + 4 = 7；三次加完是 12，所以打印 12。
+      - id: default-value
+        type: number
+        prompt: |
+          脚本里有 `parser.add_argument("--n", type=int, default=3)`，后面打印 `args.n * 2`。
+          命令行只写 `python s.py`、不传 `--n` 时，打印多少？
+        answer: 6
+        explain: |
+          没给可选参数就用 `default` 指定的 3，所以打印 6。
+          这也说明默认值让参数变成“可以不写”，脚本在缺参数时仍能运行。
+      - id: imported-name
+        type: choice
+        prompt: 另一个文件执行 `import tools` 后，tools.py 里的 `__name__` 是什么？
+        options:
+          - { text: '"__main__"', why: 只有直接运行 tools.py 时它才是 "__main__" }
+          - { text: '"tools"', correct: true }
+          - { text: '"__tools__"', why: 导入时 __name__ 是模块名本身，不会加上下划线 }
+        explain: |
+          Python 在导入时把 `__name__` 设成模块名，所以 `if __name__ == "__main__"` 不成立，
+          文件里的演示代码不会执行；直接运行 tools.py 时它才是 `"__main__"`。
+      - id: argparse-order
+        type: order
+        prompt: 把用 argparse 读一个整数参数的步骤排成正确顺序。
+        steps:
+          - "import argparse"
+          - "parser = argparse.ArgumentParser()"
+          - "parser.add_argument(\"n\", type=int)"
+          - "args = parser.parse_args()"
+          - "使用 args.n 进行计算"
+        explain: |
+          先引入模块、创建解析器，再声明有哪些参数；`parse_args()` 才真正读命令行并转换类型，
+          解析完才能用 `args.n`。顺序错了（比如先 parse 再 add_argument）新参数不会被识别。
+
+  - id: arrays-frames
+    chapter: 数组与数据框
+    title: 一张表就是一个数组
+    minutes: 10
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        一个 3 行 4 列的数组，取它的第 2 列（下标 1），得到的东西是什么形状？
+      options:
+        - { text: "3 行 1 列，形状 (3, 1)", why: 用切片选一列时，列这个维度会消失，不是保留成列向量 }
+        - { text: "长度 3 的一维数组，形状 (3,)", correct: true }
+        - { text: "长度 4 的一维数组，形状 (4,)", why: 那是在取某一行，不是某一列 }
+      explain: |
+        `a[:, 1]` 选取所有行的第 1 列；行用冒号保留，列只给了一个下标，于是结果只剩行这一维，形状是 `(3,)`。
+        想要 `(3, 1)` 得写 `a[:, [1]]` 或 `a[:, 1:2]`，保留列方向。
+    cards:
+      - title: ndarray：形状、下标、切片
+        body: |
+          NumPy 的核心是 `ndarray`：一块连续存放同类型数字的内存，外加一个形状。
+
+          ```python
+          import numpy as np
+          a = np.arange(12).reshape(3, 4)   # shape (3, 4)
+          a[1, 2]      # 6，先行后列
+          a[0]         # 第 0 行：[0, 1, 2, 3]
+          a[:, 1]      # 第 1 列：[1, 5, 9]
+          a[1:, 2:]    # 右下角 2×2
+          ```
+
+          维度叫轴（axis）：`axis=0` 沿行方向（跨行），`axis=1` 沿列方向。`a.shape` 是 `(3, 4)`，
+          `a.sum(axis=0)` 会得到长度 4 的结果——每一列的和。下面用普通列表走一遍同样的下标：
+        sim:
+          name: trace
+          params:
+            code: |
+              a = [[0, 1, 2], [3, 4, 5]]
+              row = a[1]
+              x = row[2]
+              print(x)
+      - title: DataFrame：带列名的表
+        body: |
+          pandas 的 `DataFrame` 是一张表：每列有名字、可以类型不同，底层每列是一个 NumPy 数组。
+
+          ```python
+          import pandas as pd
+          df = pd.read_csv("temps.csv")     # 列：date, city, temp
+          df["temp"]                        # 选一列，得到 Series
+          df[["city", "temp"]]              # 选多列，还是 DataFrame
+          df[df["temp"] > 30]               # 布尔筛选：只留条件为真的行
+          ```
+
+          `df["temp"] > 30` 先算出一个 True/False 的 Series，再用它当“筛子”挑行（布尔筛选，boolean indexing）。
+          `df.loc[df["temp"] > 30, ["city", "temp"]]` 是另一种写法，行列都能按名字取。
+      - title: groupby：先分组，再对每组算
+        body: |
+          “每个城市每月的平均温度”这类问题用 `groupby`：分组键 + 要算的列 + 统计函数。
+
+          ```python
+          df["month"] = pd.to_datetime(df["date"]).dt.month
+          monthly = df.groupby(["city", "month"])["temp"].mean()
+          hottest = df.loc[df.groupby("city")["temp"].idxmax()]
+          ```
+
+          第二行给每个（城市，月份）组合算一个平均值，结果是一个带多层索引的 Series。
+          第三行 `idxmax()` 给出每组最大值所在的行号，`df.loc[...]` 再把这些行取出来，
+          就得到每个城市温度最高的那一天。
+    items:
+      - id: slice-sum
+        type: number
+        prompt: |
+          执行 `a = np.arange(12).reshape(3, 4)` 后，`a[:, 1].sum()` 等于多少？
+        answer: 15
+        hint: 把三行四列写出来，第 1 列是哪些数？
+        explain: |
+          `a` 是 `[[0,1,2,3],[4,5,6,7],[8,9,10,11]]`，第 1 列是 1、5、9，和是 15。
+          切片 `:` 表示“这一维全要”，所以 `a[:, 1]` 取的是整列。
+      - id: column-shape
+        type: text
+        prompt: "`a` 的形状是 `(3, 4)`。`a[:, 1]` 的形状是什么？"
+        answers: ["(3,)", "(3)"]
+        explain: |
+          选一列会把列这个维度去掉，剩下一维长度 3，所以形状是 `(3,)`。
+          如果写成 `a[:, 1:2]`，切片保留了列方向，形状才是 `(3, 1)`。
+      - id: filter-rows
+        type: number
+        prompt: |
+          用下面的表，`len(df[df["temp"] > 10])` 等于多少？
+        code: |
+          import pandas as pd
+          df = pd.DataFrame({
+              "city": ["A", "B", "A", "B", "A"],
+              "temp": [10, 12, 14, 9, 20],
+          })
+        lang: python
+        answer: 3
+        hint: 先逐行判断 temp > 10 是真是假，再数 True 的个数。
+        explain: |
+          五行的判断结果是 False、True、True、False、True，留下 3 行。
+          `df["temp"] > 10` 本身是一列布尔值，`df[...]` 用它筛行，不会改动原表。
+      - id: groupby-mean
+        type: number
+        prompt: |
+          用下面的表，`df.groupby("city")["temp"].mean()["A"]` 等于多少？（保留两位小数）
+        code: |
+          import pandas as pd
+          df = pd.DataFrame({
+              "city": ["A", "B", "A", "B", "A"],
+              "temp": [10, 12, 14, 9, 20],
+          })
+        lang: python
+        answer: 14.67
+        tolerance: 0.01
+        hint: 城市 A 有哪几行？只对这几行的 temp 求平均。
+        explain: |
+          A 的三行温度是 10、14、20，平均 $(10+14+20)/3=44/3\approx14.67$。
+          groupby 先按 city 把行分开，`["temp"]` 选出要算的列，`.mean()` 对每组各算一次。
+      - id: trace-groupby
+        type: sim
+        sim: trace
+        prompt: |
+          没有 pandas 时，可以用循环和累加做同样的事。第 6 行第 2 次执行完时 `total` 是多少？最后打印什么？
+        params:
+          code: |
+            rows = [("A", 10), ("B", 12), ("A", 15)]
+            total = 0
+            n = 0
+            for city, t in rows:
+                if city == "A":
+                    total = total + t
+                    n = n + 1
+            print(total / n)
+        goal:
+          ask:
+            - { line: 6, var: total, hit: 2 }
+            - { line: 8, var: "@out" }
+        explain: |
+          循环筛出城市 A 的两行，温度 10 和 15。第 2 次执行后 total = 10 + 15 = 25，n = 2，
+          所以最后打印 25 / 2 = 12.5。这正是 `groupby("city")["temp"].mean()` 对 A 组做的事。
+
+  - id: scientific
+    chapter: 科学计算
+    title: 整块地算，而不是一个一个算
+    minutes: 10
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        一个形状 `(3, 1)` 的数组加上一个形状 `(4,)` 的数组，结果的形状是什么？
+      options:
+        - { text: "报错，形状不一样不能相加", why: 广播会在长度为 1 的维度上“复制”，这两个形状其实相容 }
+        - { text: "(3, 4)", correct: true }
+        - { text: "(3, 1)", why: 结果每一维取两个输入中较大的那个，不是照抄左边 }
+      explain: |
+        把形状从右往左对齐：`(3, 1)` 和 `(4,)` 比，最后一维是 1 和 4，1 可以扩展成 4；
+        再往左只有 3，另一边没有，就当成 3。结果形状是 `(3, 4)`：每个数都会和另一边的 4 个数各算一次。
+    cards:
+      - title: 向量化：把循环交给 NumPy
+        body: |
+          对一百万个元素逐个平方，Python 的 `for` 要执行一百万次解释器循环；NumPy 把整个数组交给编译好的 C 循环：
+
+          ```python
+          import numpy as np
+          n = np.arange(1, 10**6 + 1, dtype=np.int64)
+          print((n * n).sum())     # 333333833333500000
+          ```
+
+          `n * n`、`np.sqrt(n)`、`np.exp(n)` 都是**逐元素（element-wise）**运算，写法像标量，作用在整个数组上，这叫**向量化（vectorization）**。
+          整数的 dtype 要留意：默认可能是 32 位，平方和会溢出，所以要写 `int64`。
+          SciPy 在 NumPy 数组之上提供优化、插值、显著性检验、稀疏矩阵等现成算法，需要时再查对应模块。
+      - title: 广播：形状不同也能一起算
+        body: |
+          **广播（broadcasting）**的规则只有两条：
+
+          1. 把两个形状从右往左对齐，缺的维度当作 1。
+          2. 每一维要么相等，要么其中一个是 1；是 1 的那边会被“复制”到另一边的大小。
+
+          所以 `(1000, 3)` 和 `(3,)` 可以相减，得到 `(1000, 3)`——每一行都减去同一组列均值；
+          `(3, 1)` 和 `(4,)` 得到 `(3, 4)`；而 `(2, 3)` 和 `(2,)` 对不上：最后一维是 3 和 2，既不等也没有 1，直接报错。
+          这就是为什么标准化每一列可以写成 `(X - mu) / sd`，不用写循环。
+      - title: 画图：先有数据，再画，再装饰
+        body: |
+          matplotlib 的套路很固定：
+
+          ```python
+          import numpy as np, matplotlib.pyplot as plt
+          x = np.linspace(0, 2 * np.pi, 200)   # 200 个均匀的点
+          plt.plot(x, np.sin(x), label="sin")
+          plt.plot(x, np.cos(x), label="cos")
+          plt.xlabel("x"); plt.ylabel("y"); plt.title("sin and cos")
+          plt.legend()
+          plt.savefig("trig.png", dpi=150)
+          ```
+
+          一条曲线就是“x 数组 + 同样长度的 y 数组”。`label` 是给图例用的名字，`legend()` 把图例画出来；
+          `savefig` 把当前图存成文件。画多条线时，每条线都要有自己的 `label`。
+    items:
+      - id: broadcast-choice
+        type: choice
+        prompt: 下面哪一组形状可以直接相加（广播成功）？
+        options:
+          - { text: "(2, 3) 与 (3,)", correct: true }
+          - { text: "(2, 3) 与 (2,)", why: 从右对齐后最后一维是 3 和 2，既不等也不是 1 }
+          - { text: "(3,) 与 (2,)", why: 两个一维数组长度必须相同，或者其中一个是 1 }
+        explain: |
+          `(2, 3)` 与 `(3,)`：右对齐后是 `3` 对 `3`，右边缺的那一维当作 1，扩展成 2，结果是 `(2, 3)`。
+          另一组 `(2, 3)` 与 `(2,)` 在最后一维就冲突了，NumPy 会报 broadcast 错误，而不是猜测你想怎么对齐。
+      - id: standardize-shape
+        type: text
+        prompt: |
+          `X` 的形状是 `(1000, 3)`，`mu` 是每列的均值、形状 `(3,)`。`X - mu` 的形状是什么？
+        answers: ["(1000, 3)", "(1000,3)"]
+        explain: |
+          `(3,)` 被广播到每一行：第 0 列减 mu[0]、第 1 列减 mu[1]、第 2 列减 mu[2]。
+          形状不变，仍是 `(1000, 3)`。这也是“按列标准化”不用循环的原因。
+      - id: sum-squares
+        type: number
+        prompt: |
+          用 NumPy 算 1² + 2² + … + 1000²，答案是多少？
+        code: |
+          import numpy as np
+          n = np.arange(1, 1001, dtype=np.int64)
+          total = (n * n).sum()
+        lang: python
+        answer: 333833500
+        hint: 先算 n * n 得到每个数的平方，再整体求和；不用写循环。
+        explain: |
+          `n * n` 一次算出 1000 个平方，`.sum()` 再求和，结果是 333833500。
+          这个公式也有闭式解 $n(n+1)(2n+1)/6$，代 $n=1000$ 得到同一个数，可以用来自查。
+      - id: plot-order
+        type: order
+        prompt: 把用 matplotlib 画一张带图例的图并保存的步骤排成顺序。
+        steps:
+          - "准备 x 和 y 两个等长的数组"
+          - "plt.plot(x, y, label=\"曲线名\") 画出曲线"
+          - "设置 xlabel、ylabel、title 和 legend"
+          - "plt.savefig(\"fig.png\") 保存到文件"
+        explain: |
+          没有数据画不出线；`label` 要在 plot 时给，`legend()` 才能显示；标题、轴标签是画完之后的装饰。
+          `savefig` 保存的是当前这张图，所以放在最后（如果要同时 show，就先 savefig 再 show）。
+      - id: trace-dot
+        type: sim
+        sim: trace
+        prompt: |
+          这是用普通循环算两个向量点积的代码。第 5 行第 2 次执行完时 `total` 是多少？最后打印什么？
+        params:
+          code: |
+            a = [1, 2, 3]
+            b = [4, 5, 6]
+            total = 0
+            for x, y in zip(a, b):
+                total = total + x * y
+            print(total)
+        goal:
+          ask:
+            - { line: 5, var: total, hit: 2 }
+            - { line: 6, var: "@out" }
+        explain: |
+          `zip` 把两个列表按位置配成 (1,4)、(2,5)、(3,6)。第 2 次执行后 total = 4 + 10 = 12；
+          三次加完是 4 + 10 + 18 = 32。
+          在 NumPy 里同样的事写成 `(a * b).sum()`：先逐元素相乘，再求和。
+
+  - id: env-automation
+    chapter: 环境管理与自动化
+    title: 让别人的机器也能跑
+    minutes: 9
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        项目甲需要 pandas 2.x，项目乙需要 pandas 3.x。最稳妥的做法是什么？
+      options:
+        - { text: 给两个项目各建一个虚拟环境，各装各的版本, correct: true }
+        - { text: 在系统 Python 里装两遍，后装的覆盖先装的, why: 同一个环境里一个包只能有一个版本，后装的会把前一个换掉 }
+        - { text: 把两个项目合并成一个, why: 两个项目的依赖仍然冲突，合并解决不了版本问题 }
+      explain: |
+        虚拟环境（virtual environment）是一个独立的目录，里面有自己的 Python 和 `site-packages`。
+        两个项目各用各的环境，同一个库可以共存不同版本，互不干扰。
+    cards:
+      - title: venv + pip：给项目一个自己的工具箱
+        body: |
+          ```text
+          python -m venv .venv                 # 创建，得到 .venv 目录
+          source .venv/bin/activate            # Linux / macOS 激活
+          .venv\Scripts\activate               # Windows（cmd）激活
+          pip install numpy pandas             # 装进这个环境
+          pip freeze > requirements.txt        # 记下确切的版本
+          pip install -r requirements.txt      # 别人按清单复原
+          ```
+
+          激活后命令行前面通常出现 `(.venv)`，此后的 `python`、`pip` 都指向这个环境。
+          环境只是一个目录，删掉就没了；不要把它提交进 git，提交 `requirements.txt` 就够了。
+      - title: pathlib：文件名也是可以计算的
+        body: |
+          批量处理文件不需要拼字符串，`pathlib` 的 `Path` 会处理分隔符和扩展名：
+
+          ```python
+          from pathlib import Path
+          from datetime import date
+
+          folder = Path("notes")
+          prefix = date.today().isoformat()          # 例如 "2026-10-31"
+          for f in folder.glob("*.txt"):
+              if not f.name.startswith(prefix):
+                  f.rename(f.with_name(f"{prefix}_{f.name}"))
+          ```
+
+          `glob("*.txt")` 只列出匹配的文件，`f.name` 是文件名，`f.with_name(...)` 换掉文件名、保留目录。
+          `startswith` 的判断让脚本可以重复运行：已经加过前缀的文件会被跳过。
+      - title: 自动化的关键是“能重复跑”
+        body: |
+          自动化的脚本要满足三点：输入从参数或固定目录来，不靠人临时改代码；重复运行结果一样（幂等，idempotent）；
+          出错时给出清楚的报错，而不是悄悄跳过。
+
+          把上面的改名脚本存成 `add_prefix.py`，以后只要运行 `python add_prefix.py` 就行，
+          也可以交给系统的定时任务定期执行。先用一两个测试文件跑一遍，确认无误再对整个目录动手。
+    items:
+      - id: venv-order
+        type: order
+        prompt: 把一个新项目从零配好依赖并交给别人的步骤排成顺序。
+        steps:
+          - "python -m venv .venv 创建虚拟环境"
+          - "激活虚拟环境"
+          - "pip install numpy pandas 安装依赖"
+          - "pip freeze > requirements.txt 记录版本"
+        explain: |
+          先有环境再往里装包，否则包装进了系统 Python；装完立刻导出清单，别人才能用
+          `pip install -r requirements.txt` 装出一样的版本。激活只是让当前终端使用这个环境，不激活也能用
+          `.venv/bin/python -m pip` 这样的完整路径。
+      - id: activate-linux
+        type: text
+        prompt: 在 Linux 或 macOS 的 bash 里，激活当前目录下 `.venv` 虚拟环境的命令是什么？
+        answers: ["source .venv/bin/activate", ". .venv/bin/activate"]
+        placeholder: source …
+        explain: |
+          Linux / macOS 的激活脚本在 `.venv/bin/activate`，用 `source` 让它在当前 shell 里生效。
+          Windows 的对应文件是 `.venv\Scripts\activate`，直接运行它即可。
+      - id: why-venv
+        type: choice
+        prompt: 为什么每个项目要用独立的虚拟环境？
+        options:
+          - { text: 不同项目可能依赖同一个库的不同版本，独立环境避免互相覆盖，也方便按 requirements.txt 复现, correct: true }
+          - { text: 虚拟环境能让程序运行得更快, why: 它只是隔离依赖，不会改变代码的执行速度 }
+          - { text: 不建虚拟环境就无法安装第三方库, why: 系统 Python 也能 pip install，只是会污染全局环境、容易冲突 }
+        explain: |
+          一个环境里同一个包只能有一个版本。项目甲要 pandas 2、项目乙要 pandas 3，共用环境必然有一个跑不起来；
+          分开后各自锁定版本，还能把清单写进 `requirements.txt`，让别人复现同样的环境。
+      - id: trace-rename
+        type: sim
+        sim: trace
+        prompt: |
+          这是改名脚本的核心逻辑（用固定前缀代替今天的日期）。第 4 行第 3 次执行完时 `name` 是什么？最后打印什么？
+        params:
+          code: |
+            names = ["notes.txt", "todo.txt", "data.csv"]
+            prefix = "2026-10-31"
+            out = []
+            for name in names:
+                if name.endswith(".txt"):
+                    out.append(prefix + "_" + name)
+            print(len(out))
+        goal:
+          ask:
+            - { line: 4, var: name, hit: 3 }
+            - { line: 7, var: "@out" }
+        explain: |
+          循环第 3 次拿到的是 `"data.csv"`，`endswith(".txt")` 为假，所以不进入 if。
+          三个文件里只有两个 .txt 被改名，`len(out)` 是 2。
+          真实脚本里再加上 `not name.startswith(prefix)`，就能防止重复运行把前缀加两次。
+      - id: idempotent-count
+        type: number
+        prompt: |
+          一个目录里有 7 个 `.txt` 文件，其中 2 个的文件名已经带上了今天的前缀。
+          用“已带前缀就跳过”的脚本运行一次，会重命名几个文件？
+        answer: 5
+        hint: 带前缀的那两个会被 `startswith` 判断拦住。
+        explain: |
+          7 个里跳过 2 个已经处理过的，剩下 5 个会被改名。
+          这个判断就是幂等性：同样的脚本再跑一次，不会把 `2026-10-31_2026-10-31_notes.txt` 造出来。
+
+boss:
+  items:
+    - id: boss-vector-sum
+      type: number
+      prompt: |
+        用 NumPy 的向量化写法算 1² + 2² + … + 1000²，结果是多少？
+      answer: 333833500
+      explain: |
+        `n = np.arange(1, 1001, dtype=np.int64)`，`(n * n).sum()` 得到 333833500。
+        循环被 NumPy 放到编译好的代码里执行，写法还是“整个数组一起算”。
+    - id: boss-freeze
+      type: text
+      prompt: 把当前虚拟环境里已安装的包和版本导出到 `requirements.txt`，命令怎么写？
+      answers: ["pip freeze > requirements.txt", "pip freeze>requirements.txt", "pip freeze >requirements.txt"]
+      explain: |
+        `pip freeze` 列出所有包及确切版本，`>` 把输出写进文件。别人拿到这个文件后运行
+        `pip install -r requirements.txt`，就能装出同一套版本。
+    - id: boss-rename
+      type: sim
+      sim: trace
+      prompt: |
+        给目录里的 .txt 文件加日期前缀，已经带前缀的跳过。第 5 行第 4 次执行完时 `name` 是什么？最后会改名几个文件？
+      params:
+        code: |
+          names = ["notes.txt", "2026-10-31_todo.txt", "data.csv", "memo.txt"]
+          prefix = "2026-10-31"
+          renamed = []
+          for name in names:
+              if name.endswith(".txt") and not name.startswith(prefix):
+                  renamed.append(prefix + "_" + name)
+          print(len(renamed))
+      goal:
+        ask:
+          - { line: 5, var: name, hit: 4 }
+          - { line: 7, var: "@out" }
+      explain: |
+        第 4 次循环拿到 `"memo.txt"`。四个名字里，`notes.txt` 和 `memo.txt` 符合条件，
+        `todo.txt` 已有前缀被跳过，`data.csv` 不是 .txt，所以只改名 2 个。

@@ -1,0 +1,350 @@
+skill: A.2.3
+version: 1
+authors: [main-agent]
+brief:
+  why: 前面学的导数、链式法则、矩阵乘向量和梯度下降，在这里拼成一台能“自己学”的机器。神经网络就是一层层“加权求和再弯一下”，训练就是沿着负梯度一点点改权重，反向传播是用链式法则把梯度一次算完。这一关让你亲手调出一个能分开 XOR 的网络，再手算一遍反向传播。
+  outcomes:
+    - 说明单个神经元为什么分不开 XOR，以及隐藏层和非线性激活解决了什么
+    - 写出训练循环的四步（前向、损失、反向、更新），判断学习率过大或过小时会发生什么
+    - 分清过拟合和欠拟合，说出权重衰减、dropout、早停各自对付什么问题，解释梯度消失与 ReLU
+    - 对一个两层小网络手算前向传播和反向传播，得到每个参数的梯度
+lessons:
+  - id: networks
+    chapter: 神经网络
+    title: 一层不够，就再加一层
+    minutes: 10
+    warmup:
+      id: guess
+      type: choice
+      prompt: 一个神经元算 $w_1x_1+w_2x_2+b$，大于 0 就输出 1。它能不能学会 XOR（两个输入不同时输出 1）？
+      options:
+        - { text: 能，调好权重就行, why: "输出 1 的点 (0,1)、(1,0) 和输出 0 的点 (0,0)、(1,1) 交叉摆放，任何一条直线都分不开" }
+        - { text: 不能，一条直线分不开这四个点, correct: true }
+        - { text: 只要把阈值从 0 改成别的数就能, why: 改阈值等于平移那条直线，直线还是直线 }
+      explain: 单个神经元的判定边界 $w_1x_1+w_2x_2+b=0$ 是一条直线。XOR 的两类点在正方形的对角上，没有直线能把它们分到两边。下面的组件里可以亲手试：最多分对 3 个。
+    cards:
+      - title: 神经元：加权求和，再弯一下
+        body: |
+          一个**神经元（neuron）**把输入乘上权重加起来，再加偏置 $b$，最后过一个**激活函数（activation）**：
+
+          $$a=\sigma(w_1x_1+w_2x_2+b)$$
+
+          最简单的激活是“大于 0 输出 1，否则 0”。下面是 XOR 的四个点，拖动三个滑块，看浅色区域（输出 1）怎么变：它永远是直线的一侧。
+        sim:
+          name: neuron
+          params: { gate: xor }
+      - title: 隐藏层 + 非线性 = 能弯的边界
+        body: |
+          把几个神经元排成一层（**隐藏层**，hidden layer），它们的输出再送进下一层，就是**多层感知机（MLP）**。
+
+          关键是中间的激活函数必须是**非线性**的（如 ReLU：$\max(0,z)$、tanh）。如果去掉它，两层线性变换 $W_2(W_1x)=(W_2W_1)x$ 还是一个线性变换，再多层也只能画直线。
+
+          有了非线性，每个隐藏单元先画一条直线，输出层再把这些“半平面”组合起来，就能拼出弯曲的边界。
+      - title: 参数就是要学的东西
+        body: |
+          一层从 $n$ 个输入到 $m$ 个输出，有 $n\times m$ 个权重和 $m$ 个偏置。输入 2、隐藏 3、输出 1 的网络共有 $2\cdot3+3+3\cdot1+1=13$ 个参数。
+
+          识别 28×28 手写数字的网络，输入 784、隐藏 256、输出 10，参数就有 $784\cdot256+256+256\cdot10+10=203530$ 个。手调不可能，所以要“训练”：让数据告诉我们每个参数该往哪改。
+    items:
+      - id: and-gate
+        type: sim
+        sim: neuron
+        prompt: 调出一个实现 AND 的神经元：只有两个输入都是 1 时输出 1。
+        params: { gate: and }
+        goal: { accuracy: 1 }
+        solution: { w1: 1, w2: 1, b: -1.5 }
+        hint: 只有 (1,1) 的加权和要大于 0，(0,1)、(1,0) 都要小于 0。
+        explain: 例如 $w_1=w_2=1,\ b=-1.5$：$(1,1)$ 得 $0.5>0$，$(1,0)$ 和 $(0,1)$ 得 $-0.5$，$(0,0)$ 得 $-1.5$。边界是直线 $x_1+x_2=1.5$，AND 可以被一条直线分开。
+      - id: or-gate
+        type: sim
+        sim: neuron
+        prompt: 再调出 OR：至少一个输入是 1 就输出 1。
+        params: { gate: or }
+        goal: { accuracy: 1 }
+        solution: { w1: 1, w2: 1, b: -0.5 }
+        explain: "$w_1=w_2=1,\\ b=-0.5$：只有 $(0,0)$ 得到 $-0.5<0$。和 AND 相比只是把直线往左下平移了。"
+      - id: circle
+        type: sim
+        sim: mlp
+        prompt: 这些点一圈套一圈。先不加隐藏层训练一次看看，再调结构，让训练后的准确率至少 90%。
+        params: { dataset: circle, hidden: 0, epochs: 400, lr: 1 }
+        goal: { accuracy: 0.9 }
+        solution: { hidden: 6, activation: tanh, lr: 1, epochs: 600, seed: 1 }
+        hint: 没有隐藏层只能画一条直线。圆圈需要几条直线围起来？
+        explain: 没有隐藏层时网络就是一个神经元，准确率在一半左右。加上 4–6 个 tanh 隐藏单元，每个单元贡献一条直线，输出层把它们组合成一个近似的圆，准确率能到 90% 以上。
+      - id: params
+        type: number
+        prompt: 输入 2 个数、隐藏层 3 个神经元、输出 1 个数的全连接网络，一共有多少个参数（权重加偏置）？
+        answer: 13
+        explain: 第一层 $2\times3=6$ 个权重 + 3 个偏置，第二层 $3\times1=3$ 个权重 + 1 个偏置，共 13 个。
+      - id: no-activation
+        type: choice
+        prompt: 把一个三层网络里所有的激活函数都去掉（只剩矩阵乘法和加偏置），它的表达能力相当于什么？
+        options:
+          - { text: 仍然是三层网络，只是训练慢一点, why: 线性变换的复合还是线性变换，层数再多也能合并成一层 }
+          - { text: 一个线性模型（一层）, correct: true }
+          - { text: 更强，因为少了激活函数的限制, why: 恰恰相反，非线性才是多层网络能拟合弯曲边界的原因 }
+        explain: $W_3(W_2(W_1x+b_1)+b_2)+b_3$ 展开后就是 $Wx+b$ 的形式。没有非线性，加深网络不增加任何表达能力。
+
+  - id: training
+    chapter: 训练
+    title: 训练：沿着负梯度一小步一小步走
+    minutes: 10
+    warmup:
+      id: guess
+      type: choice
+      prompt: 用梯度下降最小化 $f(x)=(x-3)^2$，从 $x=0$ 出发，学习率取得越大越好吗？
+      options:
+        - { text: 越大越好，走得快, why: 步子太大会越过最低点，甚至越跳越远 }
+        - { text: 不是，太大会来回震荡甚至发散, correct: true }
+        - { text: 越小越好，越稳, why: 太小虽然稳，但要走很多很多步才能到 }
+      explain: 每步是 $x\leftarrow x-\eta f'(x)$。$\eta$ 太大时一步迈过了谷底，落到对面更高的地方；$\eta$ 太小则进展极慢。下面亲手试。
+    cards:
+      - title: 损失函数：错得有多离谱
+        body: |
+          训练先要有一个数衡量“预测得多差”，叫**损失（loss）**。回归常用均方误差 $\frac12(\hat y-y)^2$；分类常用交叉熵 $-\log \hat p_{\text{正确类}}$：正确类的概率越接近 1，损失越接近 0。
+
+          训练的目标就是找一组参数，让训练数据上的平均损失尽量小。
+      - title: 梯度下降与训练循环
+        body: |
+          对每个参数求损失的偏导，得到**梯度** $g$，然后往反方向走一小步：$\theta\leftarrow\theta-\eta g$，$\eta$ 是**学习率**。
+
+          实际训练每次只取一小批（mini-batch）数据估计梯度，这叫**随机梯度下降（SGD）**。一轮循环四步：
+
+          1. 前向：用当前参数算出预测
+          2. 损失：和真实值比较
+          3. 反向：求损失对所有参数的梯度
+          4. 更新：参数减去 $\eta\times$ 梯度
+
+          PyTorch 里还要在每步开头 `optimizer.zero_grad()`：它默认把梯度累加到 `.grad` 上，不清零就会混进上一步的梯度。
+        sim:
+          name: descent
+          params: { f: "(x-3)^2", x0: 0, lr: 0.1 }
+      - title: 动量和 Adam
+        body: |
+          **动量（momentum）**：$v\leftarrow\beta v+g,\ \theta\leftarrow\theta-\eta v$。像滚下山的球，保留之前的速度，狭长山谷里不容易来回抖。
+
+          **Adam**：同时维护梯度的滑动平均 $m$ 和梯度平方的滑动平均 $v$，经偏差修正后更新 $\theta\leftarrow\theta-\eta\,\hat m/(\sqrt{\hat v}+\epsilon)$。每个参数相当于有了自己的步长，深度学习里最常用的默认选择之一。
+    items:
+      - id: converge
+        type: sim
+        sim: descent
+        prompt: 在 $f(x)=(x-3)^2$ 上从 $x=0$ 出发，选一个学习率，在 30 步以内走到离 3 不超过 0.01 的地方。
+        params: { f: "(x-3)^2", x0: 0, lr: 0.01 }
+        goal: { target: 3, tol: 0.01, maxSteps: 30 }
+        solution: { lr: 0.3, steps: 10 }
+        hint: 试试 0.1、0.3、0.5 和 1.1，各走 10 步看看。
+        explain: 每步误差乘以 $|1-2\eta|$。$\eta=0.3$ 时每步缩到 0.4 倍，7 步就进入 0.01 以内；$\eta=0.5$ 一步到位；$\eta>1$ 时 $|1-2\eta|>1$，越走越远。
+      - id: one-step
+        type: number
+        prompt: "$f(x)=(x-3)^2$，从 $x=0$ 出发，学习率 $\\eta=0.1$。走一步梯度下降后 $x$ 是多少？"
+        answer: 0.6
+        tolerance: 0.001
+        explain: $f'(x)=2(x-3)$，$f'(0)=-6$，所以 $x\leftarrow0-0.1\times(-6)=0.6$。梯度是负的，说明往右走 $f$ 会变小。
+      - id: diverge
+        type: choice
+        prompt: 同一个函数，学习率取 1.1，会发生什么？
+        options:
+          - { text: 每一步都越过 3，而且离 3 越来越远, correct: true }
+          - { text: 比 0.3 收敛得更快, why: "误差每步乘以 $|1-2.2|=1.2>1$，会被放大" }
+          - { text: 停在 0 不动, why: 梯度不为 0，参数每步都在变 }
+        explain: "误差变成原来的 $1-2\\times1.1=-1.2$ 倍：符号翻转（越过谷底），绝对值变大。5 步后 $x$ 约为 10.46，离 3 越来越远。训练时损失变成 NaN 往往就是这个原因。"
+      - id: loop-order
+        type: order
+        prompt: 把 PyTorch 训练循环里一个 batch 的步骤排好。
+        steps:
+          - "optimizer.zero_grad()"
+          - "loss = loss_fn(model(xb), yb)"
+          - "loss.backward()"
+          - "optimizer.step()"
+        explain: 先清零上一步的梯度；前向并算损失；backward 把梯度算出来存进每个参数的 `.grad`；最后 step 用这些梯度更新参数。
+      - id: match-optim
+        type: match
+        prompt: 把优化方法和它的特点连起来。
+        pairs:
+          - [SGD, 每步用一小批数据估计梯度，沿负梯度走]
+          - [动量, 累积之前的梯度方向，减少来回震荡]
+          - [Adam, 按梯度平方的滑动平均给每个参数调整步长]
+        explain: 三者的更新方向都来自梯度，区别在于“历史梯度用不用、怎么用”。
+
+  - id: regularization
+    chapter: 正则化和深层表示
+    title: 别死记训练集，也别让梯度消失
+    minutes: 10
+    warmup:
+      id: guess
+      type: choice
+      prompt: 一个模型在训练集上准确率 99%，在没见过的验证集上只有 70%。它最可能怎么了？
+      options:
+        - { text: 过拟合：把训练集的细节甚至噪声都记住了, correct: true }
+        - { text: 欠拟合：模型太简单, why: 欠拟合时训练集上也做不好；这里训练集几乎全对 }
+        - { text: 验证集出错了, why: 训练好、验证差正是过拟合的典型信号，不能先怪数据 }
+      explain: 训练误差低、验证误差高，说明模型学到的东西不能推广到新数据，这叫**过拟合（overfitting）**。下面几种办法都是在限制模型“死记”的能力。
+    cards:
+      - title: 正则化：限制模型的“死记”能力
+        body: |
+          - **权重衰减（weight decay，L2 正则）**：损失里加上 $\lambda\lVert w\rVert^2$，梯度多出 $2\lambda w$，每步把权重往 0 拉一点，模型变“平滑”。
+          - **暂退法（dropout）**：训练时每个隐藏单元以概率 $p$ 被临时置 0，其余单元乘以 $\frac1{1-p}$ 保持期望不变；测试时不丢。网络不能依赖某几个单元的配合。
+          - **早停（early stopping）**：盯着验证集误差，不再下降就停。
+          - **批归一化（batch normalization）**：把每层输入按小批的均值和方差标准化，训练更稳定、能用更大的学习率。
+      - title: 越深越难训：梯度消失
+        body: |
+          反向传播时，梯度要一层层乘上每层激活函数的导数。sigmoid 的导数最大只有 $0.25$（在 0 处），两端饱和时接近 0。10 层连乘：$0.25^{10}\approx9.5\times10^{-7}$，靠近输入的层几乎学不动，这叫**梯度消失（vanishing gradient）**。
+
+          **ReLU** $\max(0,z)$ 在正区间导数恒为 1，不会这样一层层缩小，计算也便宜，所以深层网络普遍用它。
+      - title: 初始化也要讲究
+        body: |
+          权重初始值太大或太小，信号在前向传播中会一层层放大或缩小。**He 初始化**针对 ReLU：让权重方差为 $\frac{2}{n_{\text{in}}}$（$n_{\text{in}}$ 是输入个数）。ReLU 大约把一半输入置零，方差取 2 倍才能让各层输出的方差大致保持不变。
+
+          深层网络能学到一层层更抽象的特征（边缘 → 形状 → 物体），前提是梯度能顺利传到每一层：激活函数、初始化、归一化都在为此服务。
+    items:
+      - id: vanish
+        type: number
+        prompt: 每层都用 sigmoid，假设每层的导数都取最大值 0.25。梯度穿过 10 层后被乘上多少？（可以写成 0.25^10 这样的式子）
+        answer: 9.5367431640625e-7
+        tolerance: 1e-9
+        explain: $0.25^{10}=9.54\times10^{-7}$，不到百万分之一。这还是最好的情况，饱和时导数更接近 0。
+      - id: he-std
+        type: number
+        prompt: 用 He 初始化，一层有 $n_{\text{in}}=50$ 个输入。权重的标准差是多少？
+        answer: 0.2
+        tolerance: 0.001
+        explain: 方差 $=2/50=0.04$，标准差 $=\sqrt{0.04}=0.2$。
+      - id: dropout-scale
+        type: number
+        prompt: 训练时 dropout 概率 $p=0.5$。为了让输出的期望不变，没被丢弃的单元要乘以几？
+        answer: 2
+        explain: 每个单元有一半概率被置 0，期望变成原来的 $1-p=0.5$ 倍，所以留下的乘以 $\frac{1}{1-p}=2$。这样测试时可以直接用完整网络，不必再缩放。
+      - id: match-reg
+        type: match
+        prompt: 把技巧和它主要解决的问题连起来。
+        pairs:
+          - [权重衰减, 权重太大、模型过于复杂导致过拟合]
+          - [dropout, 隐藏单元互相依赖、死记训练数据]
+          - [早停, 训练太久，验证误差开始回升]
+          - [ReLU, sigmoid 饱和导致的梯度消失]
+        explain: 前三个都是正则化，对付过拟合；ReLU 解决的是深层网络可训练性的问题。
+      - id: wd-step
+        type: number
+        prompt: 某个权重 $w=2$，这一步数据给出的梯度恰好是 0，权重衰减系数 $\lambda=0.1$（损失里加 $\lambda w^2$），学习率 $0.5$。更新后 $w$ 是多少？
+        answer: 1.8
+        tolerance: 0.001
+        explain: 正则项的梯度是 $2\lambda w=0.4$，所以 $w\leftarrow2-0.5\times0.4=1.8$。即使数据没有推动它，权重衰减也会把它往 0 拉。
+
+  - id: backprop
+    chapter: 反向传播
+    title: 反向传播：把链式法则从后往前算一遍
+    minutes: 12
+    warmup:
+      id: guess
+      type: choice
+      prompt: 一个网络有一百万个参数。要得到损失对每个参数的偏导，大约需要做几次“像前向传播那么大”的计算？
+      options:
+        - { text: 大约一百万次，每个参数单独算一次, why: 那是逐个参数做数值差分的代价；反向传播把共享的中间结果复用了 }
+        - { text: 大约一两次：一次前向、一次反向, correct: true }
+        - { text: 算不出来，只能估计, why: 链式法则给出的是精确导数，不是估计 }
+      explain: 反向传播从损失出发，沿计算图往回走一遍，每一步都复用后面已经算好的梯度，总代价和一次前向传播是同一个量级。这就是它能训练大网络的原因。
+    cards:
+      - title: 计算图与链式法则
+        body: |
+          把计算拆成一串小步骤：$z=W_1x+b_1$，$h=\mathrm{ReLU}(z)$，$\hat y=w_2^\top h+b_2$，$L=\frac12(\hat y-y)^2$。
+
+          链式法则说：$\frac{\partial L}{\partial z}=\frac{\partial L}{\partial h}\cdot\frac{\partial h}{\partial z}$。反向传播就是从 $L$ 开始，按相反顺序把每一步的局部导数乘上去：
+
+          $$\frac{\partial L}{\partial \hat y}=\hat y-y,\quad \frac{\partial L}{\partial w_2}=\frac{\partial L}{\partial \hat y}h,\quad \frac{\partial L}{\partial h}=\frac{\partial L}{\partial \hat y}w_2,\quad \frac{\partial L}{\partial z}=\frac{\partial L}{\partial h}\odot\mathrm{ReLU}'(z),\quad \frac{\partial L}{\partial W_1}=\frac{\partial L}{\partial z}x^\top$$
+
+          ReLU 的导数在 $z>0$ 时是 1，否则是 0：没被激活的单元，梯度在这里被截断。
+      - title: 一步一步跑一遍
+        body: 下面用普通 Python 把一个两层小网络的前向和反向写出来（数字来自原技能树的综合练习）。点“下一步”看每个中间量。
+        sim:
+          name: trace
+          params:
+            code: |
+              x = [1, 2]
+              W1 = [[1, -1], [0.5, 1]]
+              w2 = [1, -2]
+              b2 = 0.5
+              y = 1
+              z = [W1[0][0]*x[0] + W1[0][1]*x[1], W1[1][0]*x[0] + W1[1][1]*x[1]]
+              h = [max(0, z[0]), max(0, z[1])]
+              yhat = w2[0]*h[0] + w2[1]*h[1] + b2
+              L = 0.5 * (yhat - y) ** 2
+              d_yhat = yhat - y
+              d_w2 = [d_yhat * h[0], d_yhat * h[1]]
+              d_h = [d_yhat * w2[0], d_yhat * w2[1]]
+              print(L, d_w2, d_h)
+    items:
+      - id: trace-forward
+        type: sim
+        sim: trace
+        prompt: 先别看运行过程，手算预测：第 8 行执行完 yhat 是多少？第 9 行执行完损失 L 是多少？第 10 行的 d_yhat 呢？
+        params:
+          code: |
+            x = [1, 2]
+            W1 = [[1, -1], [0.5, 1]]
+            w2 = [1, -2]
+            b2 = 0.5
+            y = 1
+            z = [W1[0][0]*x[0] + W1[0][1]*x[1], W1[1][0]*x[0] + W1[1][1]*x[1]]
+            h = [max(0, z[0]), max(0, z[1])]
+            yhat = w2[0]*h[0] + w2[1]*h[1] + b2
+            L = 0.5 * (yhat - y) ** 2
+            d_yhat = yhat - y
+        goal:
+          ask:
+            - { line: 8, var: yhat }
+            - { line: 9, var: L }
+            - { line: 10, var: d_yhat }
+        hint: 先算 z = (1·1 + (−1)·2, 0.5·1 + 1·2)，再过 ReLU。
+        explain: $z=(-1,\,2.5)$，ReLU 后 $h=(0,\,2.5)$；$\hat y=1\cdot0+(-2)\cdot2.5+0.5=-4.5$；$L=\frac12(-5.5)^2=15.125$；$\frac{\partial L}{\partial\hat y}=\hat y-y=-5.5$。
+      - id: dw2
+        type: text
+        prompt: 两层网络里已经算出 $\frac{\partial L}{\partial \hat y}=-5.5$，隐藏层输出 $h=(0,\,2.5)$。$\frac{\partial L}{\partial w_2}=\frac{\partial L}{\partial \hat y}\,h$ 是多少？写成 [a, b]。
+        answers: ["[0, -13.75]"]
+        explain: $-5.5\times(0,\,2.5)=(0,\,-13.75)$。第一个隐藏单元没被激活（$h_1=0$），它到输出的权重这一步得不到梯度。
+      - id: dz
+        type: choice
+        prompt: "隐藏层加权和 $z=(-1,\\,2.5)$，$h=\\mathrm{ReLU}(z)$，已经算出 $\\frac{\\partial L}{\\partial h}=(-5.5,\\,11)$。再乘上 ReLU 的导数，$\\frac{\\partial L}{\\partial z}$ 是多少？"
+        options:
+          - { text: '$(0,\ 11)$', correct: true }
+          - { text: '$(-5.5,\ 11)$', why: "$z_1=-1<0$，ReLU 在那里导数为 0，梯度被截断" }
+          - { text: '$(0,\ 0)$', why: "$z_2=2.5>0$，导数是 1，梯度原样通过" }
+        explain: ReLU 的导数在 $z_1=-1$ 处是 0，在 $z_2=2.5$ 处是 1，所以 $\frac{\partial L}{\partial z}=(0,\ 11)$。
+      - id: dw1
+        type: number
+        prompt: "已知 $\\frac{\\partial L}{\\partial z}=(0,\\,11)$，输入 $x=(1,\\,2)$。第一层权重的梯度 $\\frac{\\partial L}{\\partial W_1}=\\frac{\\partial L}{\\partial z}\\,x^\\top$ 右下角那一项（第 2 行第 2 列）是多少？"
+        answer: 22
+        explain: "$\\frac{\\partial L}{\\partial W_1}=\\begin{bmatrix}0\\\\11\\end{bmatrix}\\begin{bmatrix}1&2\\end{bmatrix}=\\begin{bmatrix}0&0\\\\11&22\\end{bmatrix}$，右下角是 $11\\times2=22$。"
+      - id: bp-order
+        type: order
+        prompt: 把反向传播的计算顺序排好。
+        steps:
+          - 由损失求出对输出的梯度
+          - 求出对最后一层参数的梯度
+          - 把梯度传到隐藏层输出
+          - 乘上激活函数的导数，得到对隐藏层加权和的梯度
+          - 求出对第一层参数的梯度
+        explain: 和前向传播方向相反：从损失往输入走，每一步都用到后面刚算好的梯度。这就是“反向”的含义。
+
+boss:
+  items:
+    - id: boss-loss
+      type: number
+      prompt: 综合练习第 (1) 题：前向传播得到的损失 $L$ 是多少？
+      answer: 15.125
+      tolerance: 0.001
+      explain: $\hat y=-4.5$，$L=\frac12(-4.5-1)^2=15.125$。
+    - id: boss-db2
+      type: number
+      prompt: 同一题里 $\frac{\partial L}{\partial b_2}$ 是多少？
+      answer: -5.5
+      tolerance: 0.001
+      explain: $b_2$ 直接加在输出上，$\frac{\partial\hat y}{\partial b_2}=1$，所以 $\frac{\partial L}{\partial b_2}=\hat y-y=-5.5$。
+    - id: boss-relu
+      type: choice
+      prompt: 深层网络为什么普遍用 ReLU 而不用 sigmoid？
+      options:
+        - { text: sigmoid 的导数最大只有 0.25、两端饱和，多层连乘后梯度消失；ReLU 正区间导数恒为 1, correct: true }
+        - { text: ReLU 的输出范围是 0 到 1，更像概率, why: "ReLU 的输出是 $[0,+\\infty)$；输出在 0 到 1 之间的是 sigmoid" }
+        - { text: sigmoid 不可导，没法做反向传播, why: sigmoid 处处可导，问题在于导数太小 }
+      explain: 梯度要一层层乘上激活函数的导数。sigmoid 每层至少缩小 4 倍，ReLU 在激活的单元上不缩小，计算也更便宜。

@@ -1,0 +1,717 @@
+skill: M.3.1
+version: 1
+authors: [pi-calc2]
+brief:
+  why: |
+    线性代数是“把许多数一起处理”的语言。一张数据表、一张图片、一个线性方程组，都可以写成矩阵；
+    机器学习里的矩阵乘向量、点积、最小二乘和特征值，全部建立在这几个基本想法上。
+    这一关不追求抽象证明，而是先把矩阵看成对平面的变换，再学会消元、投影和特征值这些真正会用到的工具。
+  outcomes:
+    - 用高斯消元解线性方程组，并判断无解、唯一解还是无穷多解
+    - 把矩阵看成平面的线性变换，算行列式并判断是否可逆
+    - 用线性组合、张成、基、维数、秩和零空间描述解的结构
+    - 写出线性映射的矩阵，理解复合与可逆
+    - 用点积算长度、夹角、正交投影和最小二乘的残差
+    - 求 2×2 矩阵的特征值与特征向量，写出对称矩阵的正交对角化
+lessons:
+  - id: linear-systems
+    chapter: 线性方程组
+    title: 把未知数一次解出来
+    minutes: 9
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        两个未知数、两个方程，一定恰好有一个解吗？
+      options:
+        - text: 一定
+          why: 两条直线可能平行而永远不相交，也可能完全重合而有无穷多个交点
+        - text: 不一定，可能无解，也可能有无穷多解
+          correct: true
+        - text: 一定有无穷多解
+          why: 两条不平行的直线只交于一点，这时解是唯一的
+      explain: |
+        每个方程在平面上是一条直线，解就是交点。两条直线有三种关系：交于一点（唯一解）、平行（无解）、重合（无穷多解）。
+        方程个数和未知数个数相同，并不能保证解唯一；关键是这些方程给出的约束是不是“独立”的。
+    cards:
+      - title: 方程是约束，解是交点
+        body: |
+          二元一次方程 $ax+by=c$ 在平面上是一条直线；三元一次方程在空间里是一个平面。
+          方程组的解就是所有约束同时成立的点。
+
+          例如
+          $$\begin{cases}2x+y=5\\ x-y=1\end{cases}$$
+          两条直线交于 $(2,1)$，代回两个方程都成立。
+
+          再看 $x+y=1$ 与 $2x+2y=3$：第二个方程左边是第一个的两倍，右边却不是，两条直线平行，**无解**。
+          如果改成 $2x+2y=2$，两个方程表示同一条直线，直线上的每个点都是解，**无穷多解**。
+      - title: 高斯消元：用行变换化简
+        body: |
+          把方程组的系数和常数写成**增广矩阵（augmented matrix）**，例如
+          $$\left[\begin{array}{ccc|c}1&2&1&4\\2&5&3&9\\1&3&3&6\end{array}\right].$$
+          允许的行变换有三种：交换两行、把某行乘一个非零数、把某行的倍数加到另一行。它们都不改变方程组的解。
+
+          用第二行减第一行的 2 倍，第三行减第一行：
+          $$\left[\begin{array}{ccc|c}1&2&1&4\\0&1&1&1\\0&1&2&2\end{array}\right].$$
+          再用第三行减第二行，得到上三角形式：
+          $$\left[\begin{array}{ccc|c}1&2&1&4\\0&1&1&1\\0&0&1&1\end{array}\right].$$
+          从最后一行回代：$z=1$，$y=1-z=0$，$x=4-2y-z=3$。解是 $(3,0,1)$。
+      - title: 主元、秩与自由变量
+        body: |
+          消元后每行第一个非零元素叫**主元（pivot）**，主元的个数叫矩阵的**秩（rank）**，等于独立约束的个数。
+
+          - 出现一行 $\left[0\ 0\ 0\mid c\right]$ 且 $c\ne0$，就是 $0=c$，方程组**无解**。
+          - 没有这种行，且秩等于未知数个数，解**唯一**。
+          - 没有这种行，但秩小于未知数个数，就有**自由变量（free variable）**，解**无穷多**。
+
+          例如 $x+y+z=3$ 与 $2x+2y+2z=6$ 只有一条独立约束，秩为 1，$y,z$ 可以自由取，解集是整个平面 $x+y+z=3$。
+          自由变量的个数等于“未知数个数减秩”。
+    items:
+      - id: solve-original
+        type: number
+        prompt: |
+          解方程组
+          $$\begin{cases}x+2y+z=4\\2x+5y+3z=9\\x+3y+3z=6\end{cases}$$
+          求出 $x$ 的值。
+        answer: 3
+        tolerance: 0.001
+        hint: 先把增广矩阵化成上三角，再从 $z=1$ 往回代。
+        explain: |
+          消元后得到 $z=1$、$y=1-z=0$、$x=4-2y-z=3$，完整解是 $(3,0,1)$。
+          代回三式：$3+0+1=4$，$6+0+3=9$，$3+0+3=6$，都成立。
+      - id: solve-2x2
+        type: number
+        prompt: |
+          解方程组
+          $$\begin{cases}2x+y=5\\ x-y=1\end{cases}$$
+          求出 $xy$ 的值。
+        answer: 2
+        tolerance: 0.001
+        hint: 两个方程相加，可以消去 $y$。
+        explain: |
+          相加得 $3x=6$，所以 $x=2$；代回 $x-y=1$ 得 $y=1$。于是 $xy=2$。
+          从图像看，两条直线的交点是 $(2,1)$。
+      - id: no-solution
+        type: choice
+        prompt: |
+          方程组 $x+y=1$、$2x+2y=3$ 有多少个解？
+        options:
+          - text: 无解
+            correct: true
+          - text: 恰好一个解
+            why: 第二个方程左边是第一个的两倍，若 $x+y=1$，左边应是 2，不可能是 3
+          - text: 无穷多解
+            why: 两个方程表示的是两条平行直线，不是同一条直线
+        explain: |
+          把第一个方程乘 2 得 $2x+2y=2$，与 $2x+2y=3$ 矛盾。用消元的话，会得到一行 $0=1$，所以无解。
+          几何上，两条直线的斜率都是 $-1$，但截距不同，永远不相交。
+      - id: elimination-order
+        type: order
+        prompt: 把用高斯消元解线性方程组的步骤排成合理顺序。
+        steps:
+          - 写出方程组的增广矩阵
+          - 用行变换把主元下方消成 0，化成上三角（阶梯形）
+          - 从最后一个主元开始，逐个回代求出未知数
+          - 把解代回原方程检查
+        explain: |
+          先消元再回代，是高斯消元的两段：前段把矩阵变简单，后段从最后一个方程往上解。
+          最后代回检查能抓住大部分算术错误。
+      - id: zero-equals-zero
+        type: choice
+        prompt: |
+          消元后出现一整行 $0=0$，说明什么？
+        options:
+          - text: 这条方程没有提供新约束，可能有自由变量
+            correct: true
+          - text: 方程组一定无解
+            why: $0=0$ 永远成立，不矛盾；无解要出现 $0$ 等于非零数
+          - text: 方程组一定有唯一解
+            why: 少了独立约束，通常会有自由变量，解不唯一
+        explain: |
+          $0=0$ 表示这一行是其他行的组合，没有增加信息。独立约束变少，秩变小，可能出现自由变量；
+          如果剩下的约束仍足够，也可能还是唯一解（例如未知数本来就更少），要看自由变量的个数。
+
+  - id: matrices
+    chapter: 矩阵
+    title: 矩阵是在搬动整个平面
+    minutes: 10
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        矩阵 $A=\begin{bmatrix}0&-1\\1&0\end{bmatrix}$ 把点 $(1,0)$ 送到哪里？
+      options:
+        - text: '$(0,1)$'
+          correct: true
+        - text: '$(-1,0)$'
+          why: 那是把 $(1,0)$ 转了 $180^\circ$，不是 $90^\circ$
+        - text: '$(1,0)$'
+          why: 只有单位矩阵才让 $(1,0)$ 原地不动
+      explain: |
+        矩阵乘向量：第一行与 $(1,0)$ 做点积得 $0\cdot1+(-1)\cdot0=0$，第二行得 $1\cdot1+0\cdot0=1$。
+        所以结果是 $(0,1)$，这正好是逆时针旋转 $90^\circ$。
+    cards:
+      - title: 矩阵的列就是基向量被送到的地方
+        body: |
+          2×2 矩阵 $A=\begin{bmatrix}a&b\\c&d\end{bmatrix}$ 把平面上的点 $(x,y)$ 送到
+          $$A\begin{bmatrix}x\\y\end{bmatrix}=\begin{bmatrix}ax+by\\cx+dy\end{bmatrix}.$$
+          把 $(1,0)$ 和 $(0,1)$ 代进去，得到 $A$ 的两列：第一列是 $(1,0)$ 的像，第二列是 $(0,1)$ 的像。
+          任意点 $(x,y)=x(1,0)+y(0,1)$，所以它的像就是 $x$ 倍第一列加 $y$ 倍第二列。
+
+          例：旋转 $90^\circ$ 的矩阵是 $\begin{bmatrix}0&-1\\1&0\end{bmatrix}$，两列 $(0,1)$、$(-1,0)$ 正是两个基向量转过去的位置。
+          矩阵乘向量，本质上是“把输入拆成基向量的组合，再把每个基向量换成它的像”。
+      - title: 矩阵乘法就是先做一次、再做一次
+        body: |
+          若 $A$、$B$ 都是变换，那么 $(AB)x=A(Bx)$：**先作用 $B$，再作用 $A$**。所以矩阵乘法不是按位置逐个相乘，而是“行乘列”：
+          $$(AB)_{ij}=(\text{$A$ 的第 $i$ 行})\cdot(\text{$B$ 的第 $j$ 列}).$$
+          维度也要对得上：$(m\times n)(n\times p)=m\times p$。
+
+          单位矩阵（identity matrix）$I=\begin{bmatrix}1&0\\0&1\end{bmatrix}$ 表示“什么都不做”，所以 $IA=AI=A$。
+          顺序一般不能交换：先旋转再反射，和先反射再旋转，结果通常不同。
+          数据表的一行乘一个权重向量，就是把这个样本的各个特征加权求和；这是矩阵乘向量最常见的用法。
+      - title: 行列式：面积被放大多少倍
+        body: |
+          2×2 矩阵的行列式（determinant）是
+          $$\det A=ad-bc.$$
+          它表示这个变换把面积放大（或缩小）的倍数，绝对值是倍数，符号表示是否把平面翻转。
+          单位正方形的像是一个平行四边形，面积正好是 $|\det A|$。
+
+          如果 $\det A=0$，平行四边形被压扁成一条线或一个点，不同的输入会撞到同一个输出，信息丢了，**矩阵不可逆**。
+          如果 $\det A\ne0$，变换可以撤销，逆矩阵是
+          $$A^{-1}=\frac{1}{ad-bc}\begin{bmatrix}d&-b\\-c&a\end{bmatrix}.$$
+    items:
+      - id: sim-rotation
+        type: sim
+        sim: matrix2d
+        prompt: |
+          调整矩阵，使它表示逆时针旋转 $90^\circ$：把 $(1,0)$ 送到 $(0,1)$，把 $(0,1)$ 送到 $(-1,0)$。
+        params: {start: [[1, 0], [0, 1]]}
+        goal:
+          maps:
+            - [[1, 0], [0, 1]]
+            - [[0, 1], [-1, 0]]
+        solution: [[0, -1], [1, 0]]
+        hint: 矩阵的两列就是两个基向量的像，直接把目标点填进两列。
+        explain: |
+          第一列填 $(1,0)$ 的像 $(0,1)$，第二列填 $(0,1)$ 的像 $(-1,0)$，得到
+          $$\begin{bmatrix}0&-1\\1&0\end{bmatrix}.$$
+          它的行列式是 $0\cdot0-(-1)\cdot1=1$，面积不变，也没有翻转，符合旋转。
+      - id: sim-squash
+        type: sim
+        sim: matrix2d
+        prompt: |
+          调整矩阵，使它的行列式为 $0$。这时整个平面会被压成一条线或一个点。
+        params: {start: [[1, 0], [0, 1]]}
+        goal: {det: 0}
+        solution: [[1, 2], [2, 4]]
+        hint: 让两列成比例，例如第二列是第一列的 2 倍。
+        explain: |
+          解有很多，例如 $\begin{bmatrix}1&2\\2&4\end{bmatrix}$ 的行列式是 $1\cdot4-2\cdot2=0$。
+          它的两列 $(1,2)$ 和 $(2,4)$ 在同一条直线上，整个平面被压到这条直线上，所以不可逆。
+      - id: det-2x2
+        type: number
+        prompt: |
+          计算 $\det\begin{bmatrix}1&2\\3&4\end{bmatrix}$。
+        answer: -2
+        tolerance: 0.001
+        hint: 用 $ad-bc$，注意 $b$ 和 $c$ 的位置。
+        explain: |
+          $a=1,b=2,c=3,d=4$，所以 $ad-bc=1\cdot4-2\cdot3=4-6=-2$。
+          负号表示这个变换把平面翻转了；面积放大倍数是 $|-2|=2$。
+      - id: matvec
+        type: number
+        prompt: |
+          计算 $\begin{bmatrix}1&2\\3&4\end{bmatrix}\begin{bmatrix}1\\1\end{bmatrix}$，填结果的第二个分量。
+        answer: 7
+        tolerance: 0.001
+        hint: 第二行与 $(1,1)$ 做点积：$3\cdot1+4\cdot1$。
+        explain: |
+          第一个分量是 $1\cdot1+2\cdot1=3$，第二个分量是 $3\cdot1+4\cdot1=7$，结果是 $(3,7)$。
+          也可以看成 $1$ 倍第一列 $(1,3)$ 加 $1$ 倍第二列 $(2,4)$，得到 $(3,7)$。
+      - id: det-zero-meaning
+        type: choice
+        prompt: |
+          一个 2×2 矩阵的行列式为 $0$，下面哪个说法对？
+        options:
+          - text: 它不可逆，平面被压扁了
+            correct: true
+          - text: 它可逆，只是逆矩阵是零矩阵
+            why: 零矩阵没有逆；行列式为 0 正是不可逆的判据
+          - text: 它一定是单位矩阵
+            why: 单位矩阵的行列式是 1，不是 0
+        explain: |
+          行列式为 0 意味着两列线性相关，变换把平面压到更低维的集合上，多个输入会有同一个输出，无法唯一还原。
+          所以逆矩阵不存在；反过来，行列式非零时变换才能撤销。
+
+  - id: vector-spaces
+    chapter: 向量空间
+    title: 所有能拼出来的方向
+    minutes: 10
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        用 $(1,0)$ 和 $(0,1)$ 的线性组合 $c_1(1,0)+c_2(0,1)$，能填满什么？
+      options:
+        - text: 整个平面
+          correct: true
+        - text: 只有 $x$ 轴
+          why: 让 $c_2\ne0$ 就能得到 $y\ne0$ 的点
+        - text: 只有第一象限
+          why: $c_1,c_2$ 可以取负数，所以能到任何象限
+      explain: |
+        $c_1(1,0)+c_2(0,1)=(c_1,c_2)$，而 $c_1,c_2$ 可以取任意实数，所以平面上的每个点都能表示出来。
+        这就是“这两个向量张成整个平面”的意思。
+    cards:
+      - title: 线性组合与张成
+        body: |
+          给定向量 $v_1,\dots,v_k$，形如
+          $$c_1v_1+c_2v_2+\cdots+c_kv_k$$
+          的向量叫它们的**线性组合（linear combination）**，其中 $c_i$ 是任意实数。
+          所有线性组合组成的集合叫这些向量的**张成（span）**。
+
+          一个非零向量只能张成一条过原点的直线；两个不平行（不成比例）的向量张成整个平面。
+          例如 $(1,1)$ 和 $(2,2)$ 成比例，它们的线性组合都落在直线 $y=x$ 上，张不成平面。
+      - title: 子空间、列空间、零空间
+        body: |
+          一个集合若包含零向量，并且对加法和数乘都封闭，就叫**子空间（subspace）**。平面里的子空间只有三种：原点、过原点的直线、整个平面。
+          不过原点的直线不是子空间，因为它不含零向量。
+
+          矩阵 $A$ 的**列空间（column space）**是所有 $Ax$ 组成的集合，也就是各列的张成；**零空间（nullspace）**是所有满足 $Ax=0$ 的 $x$。
+          两者都是子空间。若 $Ax=b$ 有解 $x_p$，那么全部解可以写成 $x_p+$（零空间里的任意向量）。
+      - title: 基、维数、秩
+        body: |
+          一组向量如果线性无关、又能张成整个空间，就叫**基（basis）**；基里向量的个数叫**维数（dimension）**，它不随基的选择改变。
+          矩阵的**秩（rank）**是列空间的维数，也等于消元后主元的个数；“零空间的维数”等于自由变量的个数。
+
+          对 $m\times n$ 的矩阵 $A$，有
+          $$\operatorname{rank}(A)+\dim N(A)=n.$$
+          例如
+          $$A=\begin{bmatrix}1&2&3\\2&4&6\\1&0&1\end{bmatrix}$$
+          的第二行是第一行的 2 倍，消元后剩两个主元，所以秩为 2；未知数有 3 个，零空间维数是 $3-2=1$。
+    items:
+      - id: rank
+        type: number
+        prompt: |
+          求矩阵
+          $$A=\begin{bmatrix}1&2&3\\2&4&6\\1&0&1\end{bmatrix}$$
+          的秩。
+        answer: 2
+        tolerance: 0.001
+        hint: 第二行是不是第一行的倍数？把它消掉，再看还剩几个主元。
+        explain: |
+          第二行等于第一行的 2 倍，消去后得到两行 $[1,2,3]$ 和 $[1,0,1]$，它们不成比例，所以有两个主元，秩为 2。
+          秩也是列空间的维数：三列都落在两个独立方向张成的平面里。
+      - id: nullity
+        type: number
+        prompt: |
+          对 $A=\begin{bmatrix}1&2&3\\2&4&6\\1&0&1\end{bmatrix}$，求零空间 $N(A)$ 的维数。
+        answer: 1
+        tolerance: 0.001
+        hint: 未知数有 3 个，秩是 2，用“秩加零空间维数等于列数”。
+        explain: |
+          $3-2=1$。具体解一下：$x+2y+3z=0$ 且 $x+z=0$，得 $x=-z$、$y=-z$，所以
+          $$N(A)=\left\{z(-1,-1,1):z\in\mathbb R\right\},$$
+          一组基是 $(-1,-1,1)$，维数为 1。
+      - id: span-line
+        type: choice
+        prompt: |
+          $(1,1)$ 和 $(2,2)$ 的张成是什么？
+        options:
+          - text: 直线 $y=x$
+            correct: true
+          - text: 整个平面
+            why: 两个向量成比例，只有一个独立方向，张不出平面
+          - text: 只有原点
+            why: 取系数 $(1,0)$ 就得到 $(1,1)$，张成里不只有原点
+        explain: |
+          $(2,2)=2(1,1)$，所以任何线性组合都是 $c_1(1,1)+c_2(2,2)=(c_1+2c_2)(1,1)$，仍然在直线 $y=x$ 上。
+          要张成平面，需要两个不成比例的向量。
+      - id: match-space-terms
+        type: match
+        prompt: 把概念和它的意思连起来。
+        pairs:
+          - ["线性组合", "c_1v_1+...+c_kv_k"]
+          - ["张成", "所有线性组合组成的集合"]
+          - ["基", "线性无关且张成整个空间的一组向量"]
+          - ["维数", "基中向量的个数"]
+        explain: |
+          线性组合是“拼”的方式；把所有拼法收集起来就是张成；基是张成里最精简的一组；基的元素个数就是维数。
+          这四个概念连起来，才能说清“一个空间有多大”。
+      - id: subspace
+        type: choice
+        prompt: |
+          下面哪个集合是 $\mathbb R^2$ 的子空间？
+        options:
+          - text: 过原点的直线
+            correct: true
+          - text: 不过原点的直线
+            why: 它不含零向量，不满足子空间必须含 0 的条件
+          - text: 第一象限
+            why: 对负数倍不封闭：$(1,1)$ 在第一象限，$-1\cdot(1,1)$ 却不在
+        explain: |
+          子空间要对加法和数乘都封闭，并且包含零向量。过原点的直线满足这些条件；
+          不过原点的直线缺零向量，第一象限则挡不住负数倍。
+
+  - id: linear-maps
+    chapter: 线性映射
+    title: 保持加法和数乘的变换
+    minutes: 9
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        先把平面逆时针旋转 $90^\circ$，再旋转 $90^\circ$，总共相当于转了多少度？
+      options:
+        - text: '$180^\circ$'
+          correct: true
+        - text: '$90^\circ$'
+          why: 两次 $90^\circ$ 会叠加，不是只转一次
+        - text: '$0^\circ$'
+          why: 两次同方向旋转不会互相抵消；要抵消得一次顺时针、一次逆时针
+      explain: |
+        角度会相加：$90^\circ+90^\circ=180^\circ$。用矩阵表示，就是旋转矩阵自己乘自己，得到
+        $\begin{bmatrix}-1&0\\0&-1\end{bmatrix}$，它把每个点 $(x,y)$ 送到 $(-x,-y)$。
+    cards:
+      - title: 线性映射保加法、保数乘
+        body: |
+          变换 $T$ 若满足
+          $$T(u+v)=T(u)+T(v),\qquad T(cu)=cT(u),$$
+          就叫**线性映射（linear map）**。旋转、缩放、关于直线的反射、投影都是线性的；平移 $T(x)=x+(1,0)$ 不是，因为 $T(0)\ne0$。
+
+          线性映射由它在基向量上的取值完全决定。把 $T(1,0)$、$T(0,1)$ 作为两列排成矩阵 $A$，就有 $T(x)=Ax$。
+          选定基之后，“线性映射”和“矩阵”是同一件事的两种说法。
+      - title: 复合就是矩阵相乘
+        body: |
+          先做 $B$ 再做 $A$，合起来是 $A(Bx)=(AB)x$。注意顺序：写在左边的矩阵是**后做**的那个。
+
+          例：$R=\begin{bmatrix}0&-1\\1&0\end{bmatrix}$ 是逆时针转 $90^\circ$，$S=\begin{bmatrix}1&0\\0&-1\end{bmatrix}$ 是关于 $x$ 轴反射。
+          先反射再旋转：$RS=\begin{bmatrix}0&1\\1&0\end{bmatrix}$，它交换两个坐标；先旋转再反射：$SR=\begin{bmatrix}0&-1\\-1&0\end{bmatrix}$，是关于 $y=-x$ 的反射。
+          两个结果不同，说明矩阵乘法一般不能交换顺序。
+      - title: 可逆：能不能把变换撤回去
+        body: |
+          若存在矩阵 $A^{-1}$ 使 $A^{-1}A=AA^{-1}=I$，就说 $A$ **可逆（invertible）**。2×2 矩阵可逆当且仅当 $\det A\ne0$。
+          可逆的映射是一一对应的：每个输出都恰好来自一个输入，所以能唯一地还原。
+
+          若 $\det A=0$，就有非零向量被送到 $0$（零空间不止含零向量），不同的输入会撞到同一个输出，无法撤回。
+          这也解释了为什么“行列式为 0”和“不可逆”是同一件事。
+    items:
+      - id: rotate-twice
+        type: number
+        prompt: |
+          把点 $(2,0)$ 先逆时针旋转 $90^\circ$，再旋转 $90^\circ$。最后结果的第一个分量是多少？
+        answer: -2
+        tolerance: 0.001
+        hint: 两次 $90^\circ$ 等于 $180^\circ$，$(x,y)$ 会变成 $(-x,-y)$。
+        explain: |
+          第一次：$(2,0)\to(0,2)$；第二次：$(0,2)\to(-2,0)$。所以第一个分量是 $-2$。
+          用矩阵表示就是 $\begin{bmatrix}0&-1\\1&0\end{bmatrix}^2=\begin{bmatrix}-1&0\\0&-1\end{bmatrix}$。
+      - id: sim-represent
+        type: sim
+        sim: matrix2d
+        prompt: |
+          找一个矩阵表示这个线性变换：把 $(1,0)$ 送到 $(0,2)$，把 $(0,1)$ 送到 $(2,0)$。
+        params: {start: [[1, 0], [0, 1]]}
+        goal:
+          maps:
+            - [[1, 0], [0, 2]]
+            - [[0, 1], [2, 0]]
+        solution: [[0, 2], [2, 0]]
+        hint: 矩阵的第一列是 $(1,0)$ 的像，第二列是 $(0,1)$ 的像。
+        explain: |
+          直接把两个像填成两列：第一列 $(0,2)$，第二列 $(2,0)$，得到
+          $$\begin{bmatrix}0&2\\2&0\end{bmatrix}.$$
+          它先交换两个坐标，再把长度乘 2；行列式是 $-4$，面积放大 4 倍并翻转。
+      - id: not-invertible
+        type: choice
+        prompt: |
+          下面哪个矩阵不可逆？
+        options:
+          - text: '$\begin{bmatrix}1&2\\2&4\end{bmatrix}$'
+            correct: true
+          - text: '$\begin{bmatrix}1&0\\0&1\end{bmatrix}$'
+            why: 单位矩阵的逆就是它自己，行列式为 1
+          - text: '$\begin{bmatrix}0&-1\\1&0\end{bmatrix}$'
+            why: 旋转矩阵的逆是反向旋转，行列式为 1
+          - text: '$\begin{bmatrix}2&0\\0&3\end{bmatrix}$'
+            why: 对角矩阵行列式为 6，逆是 $\begin{bmatrix}1/2&0\\0&1/3\end{bmatrix}$
+        explain: |
+          第一个矩阵的行列式是 $1\cdot4-2\cdot2=0$，两列成比例，平面被压扁，所以不可逆。
+          其余三个行列式都非零，逆矩阵都存在。
+      - id: det-product
+        type: number
+        prompt: |
+          两个 2×2 矩阵 $A$、$B$ 满足 $\det A=2$、$\det B=3$。$\det(AB)$ 等于多少？
+        answer: 6
+        tolerance: 0.001
+        hint: 行列式的乘法性质：先做 $B$ 再 $A$，面积倍数会相乘。
+        explain: |
+          $\det(AB)=\det A\cdot\det B=2\cdot3=6$。$B$ 把面积放大 3 倍，$A$ 再放大 2 倍，合起来就是 6 倍。
+          这条性质对任意同阶方阵都成立。
+      - id: composition-order
+        type: choice
+        prompt: |
+          对矩阵乘积 $(AB)x$，应该先做哪个变换？
+        options:
+          - text: 先做 $B$，再做 $A$
+            correct: true
+          - text: 先做 $A$，再做 $B$
+            why: 括号写的是 $A(Bx)$，$B$ 先作用在 $x$ 上
+        explain: |
+          $(AB)x=A(Bx)$：先把 $x$ 交给 $B$，得到 $Bx$，再交给 $A$。所以写在左边的矩阵是后做的。
+          这也是为什么 $AB\ne BA$：交换顺序通常得到不同的变换。
+
+  - id: inner-product
+    chapter: 内积与正交分解
+    title: 投影：把向量拆成两截
+    minutes: 10
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        把向量 $b$ 正交投影到一条过原点的直线上，得到 $p$。$p$ 一定不比 $b$ 长吗？
+      options:
+        - text: 一定，$|p|\le|b|$
+          correct: true
+        - text: 不一定，投影可能更长
+          why: 投影只是 $b$ 的一部分，直角三角形里斜边 $b$ 最长
+        - text: 只有 $b$ 与直线垂直时才成立
+          why: 那时 $p=0$，当然更短；但其他方向也成立，只要 $b$ 不在直线上
+      explain: |
+        投影把 $b$ 拆成沿直线的 $p$ 和垂直直线的 $e$，三者构成直角三角形，$b$ 是斜边，所以 $|b|^2=|p|^2+|e|^2$。
+        因此 $|p|\le|b|$，等号只在 $b$ 本来就沿这条直线时成立。
+    cards:
+      - title: 点积给出长度和夹角
+        body: |
+          两个向量的**点积（dot product）**是对应分量相乘再相加：
+          $$u\cdot v=u_1v_1+\cdots+u_nv_n.$$
+          向量的长度是 $|u|=\sqrt{u\cdot u}$，夹角 $\theta$ 满足
+          $$\cos\theta=\frac{u\cdot v}{|u|\,|v|}.$$
+          所以 $u\cdot v=0$ 等价于两个非零向量垂直，也叫**正交（orthogonal）**。柯西–施瓦茨不等式说 $|u\cdot v|\le|u|\,|v|$，它保证夹角的余弦不会超出 $[-1,1]$。
+
+          例：$(1,2,2)\cdot(1,0,1)=1+0+2=3$。
+      - title: 正交投影的公式
+        body: |
+          要把 $b$ 投影到 $u$ 的方向上，先找倍数 $cu$，让残差 $b-cu$ 与 $u$ 垂直：
+          $$(b-cu)\cdot u=0\quad\Longrightarrow\quad c=\frac{b\cdot u}{u\cdot u}.$$
+          投影向量和残差分别是
+          $$p=\frac{b\cdot u}{u\cdot u}\,u,\qquad e=b-p.$$
+          $e$ 与 $u$ 正交，$p$ 是直线 $\{cu\}$ 上离 $b$ 最近的点。
+
+          例：$b=(1,2,2)$、$u=(1,0,1)$。$b\cdot u=3$，$u\cdot u=2$，所以 $p=\frac32(1,0,1)=(1.5,0,1.5)$，
+          $e=(-0.5,2,0.5)$，并且 $e\cdot u=-0.5+0.5=0$。
+      - title: 最小二乘就是找最近的投影
+        body: |
+          方程 $Ax=b$ 常常没有精确解：$b$ 不在 $A$ 的列空间里。**最小二乘（least squares）**退一步，找让残差长度 $\|Ax-b\|$ 最小的 $x$。
+          几何上，这就是把 $b$ 投影到列空间，最优残差与列空间正交。
+
+          令残差与 $A$ 的每一列都正交，得到**正规方程（normal equations）**
+          $$A^{\mathsf T}Ax=A^{\mathsf T}b.$$
+          当 $A$ 的列线性无关时，$A^{\mathsf T}A$ 可逆，解唯一。
+
+          如果 $q_1,\dots,q_k$ 是空间的一组正交单位基，那么 $b$ 的坐标就是 $b\cdot q_i$；
+          用它们排成的方阵 $Q$ 满足 $Q^{\mathsf T}Q=I$，这样的正交矩阵（orthogonal matrix）不改变长度和夹角。
+    items:
+      - id: projection-length
+        type: number
+        prompt: |
+          求 $b=(1,2,2)$ 在 $u=(1,0,1)$ 方向上的正交投影 $p$，再填 $|p|$。（保留三位小数）
+        answer: 2.121
+        tolerance: 0.001
+        hint: 先算 $b\cdot u=3$、$u\cdot u=2$，得到 $p=(1.5,0,1.5)$，再算长度。
+        explain: |
+          $$p=\frac{3}{2}(1,0,1)=(1.5,0,1.5),\qquad |p|=\sqrt{1.5^2+0^2+1.5^2}=\sqrt{4.5}=\frac{3}{\sqrt2}\approx2.121.$$
+          残差 $e=b-p=(-0.5,2,0.5)$ 与 $u$ 正交，$|e|=\sqrt{4.5}$，并且 $|b|=3$，正好满足 $|b|^2=|p|^2+|e|^2$。
+      - id: residual-orthogonal
+        type: choice
+        prompt: |
+          $p$ 是 $b$ 在 $u$ 方向上的投影，$e=b-p$。下面哪个说法对？
+        options:
+          - text: $e$ 与 $u$ 正交，$p$ 是 $u$ 方向上离 $b$ 最近的点
+            correct: true
+          - text: $e$ 与 $b$ 正交
+            why: $e\cdot b=e\cdot(p+e)=|e|^2\ne0$（只要 $e\ne0$），并不正交
+          - text: $p$ 与 $b$ 正交
+            why: 投影 $p$ 一般与 $b$ 同向偏一点，点积通常不为 0
+          - text: $e=0$，所以 $b$ 就在 $u$ 方向上
+            why: $b=(1,2,2)$ 不是 $u=(1,0,1)$ 的倍数，残差不为 0
+        explain: |
+          投影的定义就是让 $e=b-p$ 与 $u$ 垂直。这样 $b=p+e$ 被拆成一个沿 $u$ 的部分和一个垂直 $u$ 的部分；
+          沿直线移动 $p$ 只会让垂直距离变大，所以 $p$ 是最近的。
+      - id: residual-length
+        type: number
+        prompt: |
+          把 $b=(1,1)$ 投影到 $u=(1,0)$ 方向上，得到 $p$。残差 $e=b-p$ 的长度是多少？
+        answer: 1
+        tolerance: 0.001
+        hint: $p=(1,0)$，所以 $e=(0,1)$。
+        explain: |
+          $b\cdot u=1$，$u\cdot u=1$，所以 $p=(1,0)$，$e=(0,1)$，长度为 1。
+          这也说明投影丢掉了垂直于 $u$ 的那一截，但保留了沿 $u$ 的全部分量。
+      - id: match-inner-terms
+        type: match
+        prompt: 把概念和它的意思连起来。
+        pairs:
+          - ["点积", "对应分量相乘再相加"]
+          - ["正交", "两个非零向量的点积为 0"]
+          - ["正交投影", "b 在 u 方向上最接近的倍数"]
+          - ["最小二乘", "让残差长度最小的近似解"]
+        explain: |
+          点积是计算工具；点积为 0 判断垂直；投影是沿一个方向的最近逼近；最小二乘是把同样的“最近”用到多个方向（列空间）上。
+          它们共用同一个几何想法：残差与目标方向正交。
+      - id: cosine
+        type: number
+        prompt: |
+          求 $(1,1)$ 与 $(1,0)$ 夹角的余弦。（保留三位小数）
+        answer: 0.707
+        tolerance: 0.001
+        hint: $\cos\theta=\frac{u\cdot v}{|u||v|}$，其中 $|(1,1)|=\sqrt2$。
+        explain: |
+          点积是 $1$，长度分别是 $\sqrt2$ 和 $1$，所以 $\cos\theta=\frac{1}{\sqrt2}\approx0.707$。
+          这正是 $45^\circ$ 的余弦；点积为正说明夹角小于 $90^\circ$。
+
+  - id: eigenvalues
+    chapter: 特征值
+    title: 被矩阵只拉伸的方向
+    minutes: 10
+    warmup:
+      id: guess
+      type: choice
+      prompt: |
+        矩阵 $B=\begin{bmatrix}2&1\\1&2\end{bmatrix}$ 作用在向量 $(1,1)$ 上，发生了什么？
+      options:
+        - text: 方向不变，长度变成 3 倍
+          correct: true
+        - text: 方向转了 $90^\circ$
+          why: $B(1,1)=(3,3)$，仍然沿 $(1,1)$ 的方向，没有转
+        - text: 变成零向量
+          why: $B(1,1)=(3,3)\ne(0,0)$
+      explain: |
+        $B(1,1)=(2\cdot1+1\cdot1,\ 1\cdot1+2\cdot1)=(3,3)=3(1,1)$。
+        输入和输出在同一条直线上，只是被放大了 3 倍；这样的方向就是特征向量方向。
+    cards:
+      - title: 特征值与特征向量
+        body: |
+          若存在非零向量 $v$ 和数 $\lambda$，使
+          $$Av=\lambda v,$$
+          就称 $\lambda$ 是 $A$ 的**特征值（eigenvalue）**，$v$ 是对应的**特征向量（eigenvector）**。
+          特征向量被矩阵作用后仍在同一条过原点的直线上，可能被拉伸、压缩、反向或压成零；特征值就是那个倍数。
+
+          把 $Av=\lambda v$ 写成 $(A-\lambda I)v=0$。要有非零解，矩阵 $A-\lambda I$ 必须不可逆，所以
+          $$\det(A-\lambda I)=0.$$
+          对 2×2 矩阵，这等价于 $\lambda^2-(\operatorname{tr}A)\lambda+\det A=0$，其中迹 $\operatorname{tr}A=a+d$。
+      - title: 对称矩阵可以正交对角化
+        body: |
+          对 $B=\begin{bmatrix}2&1\\1&2\end{bmatrix}$，$\operatorname{tr}B=4$、$\det B=3$，解 $\lambda^2-4\lambda+3=0$ 得 $\lambda=3,1$。
+          $\lambda=3$ 时 $(B-3I)v=0$ 给出 $x=y$，特征向量 $(1,1)$；$\lambda=1$ 时给出 $x+y=0$，特征向量 $(1,-1)$。
+
+          实对称矩阵的不同特征值对应的特征向量自动正交。把特征向量单位化：
+          $$q_1=\frac{1}{\sqrt2}\begin{bmatrix}1\\1\end{bmatrix},\qquad q_2=\frac{1}{\sqrt2}\begin{bmatrix}1\\-1\end{bmatrix}.$$
+          令 $Q=[q_1\ q_2]$、$\Lambda=\operatorname{diag}(3,1)$，就有 $B=Q\Lambda Q^{\mathsf T}$，并且 $Q^{\mathsf T}Q=I$。
+
+          不是所有矩阵都能这样分解。$\begin{bmatrix}1&1\\0&1\end{bmatrix}$ 只有 $(1,0)$ 一个特征向量方向，凑不出两组独立的特征向量。
+      - title: 特征值告诉你哪个方向会占上风
+        body: |
+          反复乘同一个矩阵时，特征值决定各方向的变化：$|\lambda|>1$ 的方向被放大，$|\lambda|<1$ 的方向被缩小，$\lambda<0$ 还会翻转方向。
+          如果绝对值最大的特征值唯一，重复作用后它对应的特征向量方向通常会占主导（初始向量在这个方向上有分量）。
+
+          这也是很多算法的直觉来源：幂迭代靠反复乘矩阵找主特征向量；主成分分析找的是协方差矩阵的特征向量，也就是数据变化最大的方向。
+          特征值告诉你每个方向被放大多少，特征向量告诉你方向本身。
+    items:
+      - id: sim-eigvec
+        type: sim
+        sim: matrix2d
+        prompt: |
+          调整矩阵，使 $(1,1)$ 成为特征向量方向，并且 $A(1,1)=(3,3)$。
+        params: {start: [[1, 0], [0, 1]]}
+        goal:
+          eigvec: [1, 1]
+          maps:
+            - [[1, 1], [3, 3]]
+        solution: [[2, 1], [1, 2]]
+        hint: 如果第一列是 $(2,1)$、第二列是 $(1,2)$，那么 $A(1,1)$ 就是两列之和。
+        explain: |
+          $$\begin{bmatrix}2&1\\1&2\end{bmatrix}\begin{bmatrix}1\\1\end{bmatrix}=\begin{bmatrix}3\\3\end{bmatrix}=3\begin{bmatrix}1\\1\end{bmatrix}.$$
+          所以 $(1,1)$ 是特征向量，特征值是 3。这个矩阵的两列之和等于 $3(1,1)$，正好对应“输入 $(1,1)$ 是两列各取 1 份”。
+      - id: eig-b
+        type: number
+        prompt: |
+          求 $B=\begin{bmatrix}2&1\\1&2\end{bmatrix}$ 的较大特征值。
+        answer: 3
+        tolerance: 0.001
+        hint: 解 $\lambda^2-4\lambda+3=0$，或者直接看 $B(1,1)=3(1,1)$。
+        explain: |
+          迹是 4，行列式是 3，特征方程 $\lambda^2-4\lambda+3=(\lambda-3)(\lambda-1)=0$，两个特征值是 3 和 1，较大的是 3。
+          对应特征向量分别是 $(1,1)$ 和 $(1,-1)$。
+      - id: eig-c
+        type: number
+        prompt: |
+          求 $C=\begin{bmatrix}4&1\\2&3\end{bmatrix}$ 的较大特征值。
+        answer: 5
+        tolerance: 0.001
+        hint: 迹是 $4+3=7$，行列式是 $4\cdot3-1\cdot2=10$，解 $\lambda^2-7\lambda+10=0$。
+        explain: |
+          $\lambda^2-7\lambda+10=(\lambda-5)(\lambda-2)=0$，特征值是 5 和 2，较大的是 5。
+          它们之和等于迹 7，之积等于行列式 10，可以用这两个关系快速检查。
+      - id: eig-square
+        type: number
+        prompt: |
+          对 $B=\begin{bmatrix}2&1\\1&2\end{bmatrix}$，$B^2$ 作用在 $(1,1)$ 上会把长度变成原来的几倍？
+        answer: 9
+        tolerance: 0.001
+        hint: $B(1,1)=3(1,1)$，再乘一次 $B$ 会再放大几倍？
+        explain: |
+          $B(1,1)=3(1,1)$，所以 $B^2(1,1)=B(3(1,1))=3B(1,1)=9(1,1)$。
+          特征值也会相乘：$B^2$ 在同一个特征向量方向上的特征值是 $3^2=9$。
+      - id: eig-definition
+        type: choice
+        prompt: |
+          关于特征向量，下面哪个说法对？
+        options:
+          - text: 它是非零向量，矩阵作用后仍在同一条过原点的直线上（可能反向或变成零）
+            correct: true
+          - text: 任何向量都是特征向量
+            why: 一般向量会被转到新方向，只有特殊方向才满足 $Av=\lambda v$
+          - text: 特征值一定是正数
+            why: 特征值可以是负数（方向翻转）甚至 0（该方向被压掉）
+          - text: 零向量也是特征向量
+            why: 定义要求 $v\ne0$；否则 $A0=\lambda0$ 对任何 $\lambda$ 都成立，没有意义
+        explain: |
+          特征向量的定义是 $Av=\lambda v$ 且 $v\ne0$。方向可以不变，也可以反向，所以 $\lambda$ 可以是负数；
+          $\lambda=0$ 表示这个非零方向被矩阵送到了 0。
+
+boss:
+  items:
+    - id: boss-system
+      type: number
+      prompt: |
+        用高斯消元解方程组
+        $$\begin{cases}x+2y+z=4\\2x+5y+3z=9\\x+3y+3z=6\end{cases}$$
+        填出 $z$ 的值。
+      answer: 1
+      tolerance: 0.001
+      hint: 消元后第三行会直接给出 $z$。
+      explain: |
+        第二行减第一行的 2 倍得 $y+z=1$，第三行减第一行得 $y+2z=2$，再相减得 $z=1$。
+        回代得 $y=0$、$x=3$，解是 $(3,0,1)$，代回三式都成立。
+    - id: boss-eigvec
+      type: number
+      prompt: |
+        对 $B=\begin{bmatrix}2&1\\1&2\end{bmatrix}$，较大特征值对应的单位特征向量可以写成 $(a,a)$，其中 $a>0$。求 $a$。
+      answer: 0.7071
+      tolerance: 0.001
+      hint: 特征向量 $(1,1)$ 的长度是 $\sqrt2$，单位化就是除以它。
+      explain: |
+        $\lambda=3$ 对应的特征向量是 $(1,1)$，长度为 $\sqrt{1^2+1^2}=\sqrt2$，所以
+        $$q_1=\frac{1}{\sqrt2}(1,1)\approx(0.7071,0.7071).$$
+        另一个特征向量 $(1,-1)$ 单位化后是 $(0.7071,-0.7071)$，两者正交。
+    - id: boss-projection
+      type: number
+      prompt: |
+        求 $b=(1,2,2)$ 在 $u=(1,0,1)$ 方向上的正交投影 $p$，填 $p$ 的第一个分量。
+      answer: 1.5
+      tolerance: 0.001
+      hint: 系数是 $\frac{b\cdot u}{u\cdot u}=\frac32$，再乘 $u$。
+      explain: |
+        $b\cdot u=3$、$u\cdot u=2$，所以 $p=\frac32(1,0,1)=(1.5,0,1.5)$，第一个分量是 1.5。
+        残差 $e=b-p=(-0.5,2,0.5)$，且 $e\cdot u=-0.5+0.5=0$，说明 $e$ 与 $u$ 正交。

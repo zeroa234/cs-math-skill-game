@@ -1,0 +1,5 @@
+# Game-only skill additions. C.3.5 was promoted to the 193-skill tree on 2026-11-03.
+# Its scope, prerequisites, learning resources and outline now come from the tree.
+# Keep the existing interactive lessons in data/content/C.3.5.yaml.
+# Migration and CS2023 evidence: reports/tree-sync-2026-11-03.md.
+skills: []

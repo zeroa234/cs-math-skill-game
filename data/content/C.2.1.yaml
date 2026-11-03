@@ -1,0 +1,4325 @@
+skill: C.2.1
+version: 2
+authors: [main-agent]
+brief:
+  why: |
+    你写的程序并不直接操作硬件，而是跑在操作系统给的一台“假电脑”上：好像独占一个 CPU，好像有一大片只属于自己的内存，用名字就能找到文件。这一关讲操作系统怎样造出这三样东西（进程、虚拟内存、文件），以及几个线程共用数据时怎样不出错。主线照着《Operating Systems: Three Easy Pieces》（OSTEP）讲，代码用 C，只假设你学过 C/C++、数据结构和计算机组成原理这几关。
+  outcomes:
+    - 说出进程是什么、有哪三种状态，用 fork、wait、exec 写出 shell 运行一条命令的过程，解释父子进程为什么各有一份变量
+    - 说出用户态和内核态、陷入和时钟中断的作用，排出一次系统调用和一次上下文切换的步骤
+    - 用 FIFO、SJF、STCF、RR 排出时间线，算周转时间、等待时间和响应时间；说出多级反馈队列的五条规则
+    - 用基址和界限、分页翻译虚拟地址；算页表大小、TLB 命中率和多级页表的下标；用 FIFO、LRU、最优算法数缺页次数
+    - 判断哪些变量被几个线程共享，解释竞态条件；用锁和信号量保护临界区、安排先后顺序，写出有界缓冲区；说出死锁的四个条件和预防办法
+    - 说出轮询、中断、DMA 各适合什么设备，设备驱动在内核里的位置
+    - 用 open、read、write、lseek、dup2、stat、link 操作文件和目录，算 inode 的位置和一个文件最多多大，数出打开和读写一个文件要访问几次磁盘
+terms:
+  - term: 进程
+    def: '正在运行的程序：它的内存（地址空间）、寄存器和打开的文件'
+  - term: 地址空间
+    def: '一个进程能访问的那一片内存：代码、堆、栈都在里面'
+  - term: 调度
+    def: '决定下一个让哪个进程（或线程）在 CPU 上运行'
+  - term: 进程控制块
+    def: 'PCB：操作系统给每个进程的一个结构体，记着状态、pid、打开的文件、停下时的寄存器等'
+  - term: 用户态
+    def: 'CPU 的受限模式：普通程序在这里运行，不能直接做 I/O 等特权操作'
+  - term: 内核态
+    def: 'CPU 的特权模式：内核在这里运行，可以做任何操作'
+  - term: 陷入
+    def: 'trap：一条特殊指令，同时跳进内核、切到内核态；系统调用就靠它'
+  - term: 陷入表
+    def: '开机时内核告诉硬件的对照表：系统调用、各种中断发生时分别跳到哪段处理程序'
+  - term: 时钟中断
+    def: '定时器每隔几毫秒发出的中断，让内核定期拿回 CPU'
+  - term: 上下文切换
+    def: '保存当前进程（或线程）的寄存器，装入另一个的，让 CPU 改跑另一个'
+  - term: 线程
+    def: '进程里的一条执行流：有自己的 PC、寄存器和栈，和同一进程的其他线程共用地址空间'
+  - term: 周转时间
+    def: '任务完成的时刻减去它到达的时刻'
+  - term: 抢占
+    def: '调度程序中途停下正在运行的任务，换另一个运行'
+  - term: 响应时间
+    def: '任务到达到它第一次运行之间的时间'
+  - term: 时间片
+    def: '时间片轮转里每个任务一次最多连续运行的时间，是时钟中断周期的整数倍'
+  - term: 多级反馈队列
+    def: 'MLFQ：几个优先级不同的队列，按任务用掉多少 CPU 来升降它的优先级'
+  - term: 虚拟地址
+    def: '程序发出和看到的地址，要翻译成物理地址才能访问内存'
+  - term: 物理地址
+    def: '内存条上真正的位置'
+  - term: 内存管理单元
+    def: 'MMU：CPU 里负责把虚拟地址翻译成物理地址、检查越界的硬件'
+  - term: 页框
+    def: '物理内存按页大小切出的一格，可以放进任何一个虚拟页'
+  - term: 页表
+    def: '每个进程一张：记着它的每个虚拟页放在哪个页框，以及有效、保护、存在等标志'
+  - term: 页表项
+    def: 'PTE：页表的一行，有页框号和有效位、保护位、存在位、脏位、访问位'
+  - term: TLB
+    def: 'MMU 里的小 cache，存着最近用过的“虚拟页号 → 页框号”'
+  - term: 多级页表
+    def: '把页表切成一页一页，全无效的那几页不分配，用页目录记下其余几页在哪'
+  - term: 页目录
+    def: '多级页表的顶层：每块页表一项，记着这块在哪个页框或整块无效'
+  - term: 交换空间
+    def: '磁盘上专门用来存放被换出的页的地方'
+  - term: 缺页
+    def: 'page fault：访问的页不在内存里（存在位为 0），陷入内核去把它读进来'
+  - term: 竞态条件
+    def: '结果取决于几个线程执行的先后时机，比如两个线程同时加 1 丢掉一次'
+  - term: 临界区
+    def: '访问共享变量、不能被几个线程同时执行的那段代码'
+  - term: 互斥锁
+    def: 'mutex：同一时刻只能被一个线程持有的锁，用来保护临界区'
+  - term: 自旋锁
+    def: '拿不到时在循环里反复检查、一直占着 CPU 空转的锁'
+  - term: 信号量
+    def: '一个整数加 wait（减 1，小于 0 就睡）和 post（加 1，叫醒一个）两个操作'
+  - term: 死锁
+    def: '几个线程互相等对方手里的资源，谁也没法继续'
+  - term: 条件变量
+    def: 'pthread 的同步工具：带着一把锁睡下等某个条件，别的线程改好条件后叫醒它'
+  - term: 轮询
+    def: 'polling：反复读设备的状态寄存器，问它好了没有'
+  - term: 设备驱动
+    def: '内核里专门懂某种设备细节的那段代码，把设备的命令藏在通用接口后面'
+  - term: inode
+    def: 'index node：记着一个文件的类型、大小、权限、时间和数据块位置；inode 号是文件的底层名字'
+  - term: 打开文件表
+    def: '系统里每个打开的文件一项，记着当前偏移、读写方式和指向哪个 inode'
+  - term: 硬链接
+    def: '目录里又一个指向同一个 inode 号的名字；文件在最后一个名字删掉后才真正删除'
+  - term: 符号链接
+    def: '软链接：一种特殊文件，内容是目标的路径名；目标删掉后它就悬空了'
+lessons:
+  # ---------------------------------------------------------------- 进程/线程
+  - id: process
+    chapter: 进程/线程
+    title: 程序跑起来以后：进程
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你一边开着浏览器，一边放着音乐，电脑只有一个 CPU 核心。猜一猜：这两个程序是怎样“同时”运行的？
+          options:
+            - text: 轮流用 CPU，每个只跑一小会儿，换得非常快
+              correct: true
+            - text: CPU 一半的电路跑浏览器，另一半跑音乐
+              why: 一个核心同一时刻只执行一条指令流，不能劈成两半
+            - text: 音乐其实是提前录好的，不用 CPU
+              why: 播放音乐要不停地解码、送数据给声卡，一直在用 CPU
+          explain: 它们在轮流，只是快到你察觉不到。下面讲操作系统怎样安排这种轮流。
+      - card:
+          title: 程序和进程
+          body: |
+            磁盘上的程序只是一个文件：一堆指令和数据，自己不会动。操作系统把它运行起来，就有了一个**进程（process）**：正在运行的程序。
+
+            一个 CPU 先跑这个进程一小会儿，停下来，再跑另一个……每个进程都像拥有一个自己的 CPU。OSTEP 管这叫 CPU 的分时（time sharing）。
+      - card:
+          title: 一个进程由什么组成
+          body: |
+            要描述一个进程，就看它运行时能读、能改的东西：
+
+            - 内存：指令和数据都在内存里。这个进程能访问的那一片内存，叫它的**地址空间（address space）**；
+            - 寄存器：特别是程序计数器 PC（下一条指令在哪）和栈指针（栈顶在哪）；
+            - 它打开的文件。
+      - item:
+          id: machine-state
+          type: choice
+          prompt: 下面哪一项**不**属于一个正在运行的进程的状态？
+          options:
+            - text: 磁盘上另一个还没运行的程序文件
+              correct: true
+            - text: 程序计数器 PC 的值
+              why: PC 记着这个进程下一条要执行的指令，是它状态的一部分
+            - text: 它打开的文件列表
+              why: OSTEP 把打开的文件也算进进程的状态
+            - text: 它地址空间里的变量
+              why: 地址空间里的代码和数据正是进程的内存
+          explain: 进程的状态是它运行时会读写的东西：内存、寄存器、打开的文件。别的程序文件与它无关。
+      - card:
+          title: 操作系统对进程能做什么
+          body: |
+            每个操作系统都提供这几类接口：
+
+            | 接口 | 做什么 |
+            |---|---|
+            | 创建 | 你在终端里输入命令、双击图标时，新建一个进程 |
+            | 销毁 | 强行结束一个失控的进程 |
+            | 等待 | 等某个进程结束 |
+            | 其他控制 | 暂停一个进程，过一会儿再让它继续 |
+            | 状态 | 查它运行了多久、现在处在什么状态 |
+      - item:
+          id: api-match
+          type: match
+          prompt: 把要做的事和对应的那一类接口连起来。
+          pairs:
+            - [一个程序卡死了，把它强行关掉, 销毁]
+            - [在终端里输入 ls 运行它, 创建]
+            - [脚本等上一个命令结束再执行下一个, 等待]
+            - [查看一个程序已经用了多少 CPU 时间, 状态]
+          explain: 这几类接口后面都会用 C 写出来：创建是 fork 和 exec，等待是 wait，销毁靠发信号。
+      - card:
+          title: 创建进程时操作系统做了什么
+          body: |
+            1. 把程序的代码和静态数据（如初始化过的全局变量）从磁盘装进内存。早期系统一次装完；现代系统用到哪一块才装哪一块；
+            2. 分配栈，把 main 的参数 argc、argv 放进去；
+            3. 分配一点堆，给 malloc 用；
+            4. 准备好 0、1、2 三个文件描述符；
+            5. 跳到 main，开始运行。
+      - item:
+          id: create-order
+          type: order
+          prompt: 把操作系统创建并启动一个进程的步骤排好。
+          steps:
+            - 把代码和静态数据装进内存
+            - 分配栈，填好 argc 和 argv
+            - 分配堆
+            - 准备好标准输入、标准输出、标准错误
+            - 跳到 main 开始执行
+          explain: 前面四步都是在搭舞台，最后一步才把 CPU 交给程序。
+      - card:
+          title: 三种状态
+          body: |
+            一个进程在某一时刻处在三种状态之一：
+
+            - **运行**：正在 CPU 上执行指令；
+            - **就绪**：随时能跑，只是操作系统此刻让别人在跑；
+            - **阻塞**：在等某件事（比如等磁盘读完），事情没发生之前跑不了。
+
+            操作系统决定下一个让哪个进程运行，这件事叫**调度（scheduling）**。就绪变运行叫“被调度”，运行变就绪叫“被取消调度”。
+      - item:
+          id: read-disk
+          type: choice
+          prompt: 一个正在运行的进程开始从磁盘读一个文件，要等好几毫秒。它会进入哪种状态？
+          options:
+            - text: 阻塞
+              correct: true
+            - text: 就绪
+              why: 就绪是“能跑但没轮到”；它在等磁盘，数据没到之前根本跑不了
+            - text: 继续运行
+              why: 让它占着 CPU 干等太浪费，操作系统会让它让出 CPU
+          explain: 发起 I/O 就变成阻塞，CPU 交给别的进程；磁盘读完后它变回就绪。
+      - card:
+          title: 看一段状态变化
+          body: |
+            OSTEP 的例子：两个进程，Process0 跑了 3 个时间单位后发起 I/O。
+
+            | 时间 | Process0 | Process1 | 说明 |
+            |---|---|---|---|
+            | 1–3 | 运行 | 就绪 | 第 3 步末 Process0 发起 I/O |
+            | 4–6 | 阻塞 | 运行 | 它在等，Process1 跑 |
+            | 7–8 | 就绪 | 运行 | I/O 完成了 |
+            | 9–10 | 运行 | — | Process1 在第 8 步结束 |
+      - item:
+          id: trace-7
+          type: choice
+          prompt: 上表第 7、8 个时间单位，Process0 的 I/O 已经完成了，为什么它是“就绪”而不是“运行”？
+          options:
+            - text: 操作系统决定让正在跑的 Process1 继续，Process0 等着轮到自己
+              correct: true
+            - text: I/O 完成以后进程必须先阻塞两个单位
+              why: I/O 完成就从阻塞变成就绪了；是否立刻运行由操作系统选
+            - text: Process0 已经结束了
+              why: 它在第 9、10 个单位还在运行
+          explain: I/O 完成只让它“能跑”，什么时候真的跑由调度决定。这样安排好不好，正是调度要考虑的问题。
+          review: false
+      - card:
+          title: 操作系统怎么记住每个进程
+          body: |
+            操作系统也是程序，它用一个进程列表记下所有进程，每个进程一个结构体。教学系统 xv6 的 `struct proc` 里有：内存的起点和大小、状态、pid、父进程、打开的文件、当前目录，以及一个 `struct context`，进程停下时它的寄存器就存在这里。
+
+            这种每个进程一份的结构体叫**进程控制块（process control block，PCB）**。
+      - item:
+          id: regs-saved
+          type: choice
+          prompt: 一个进程被暂停、换别的进程运行时，它寄存器里的值去了哪里？
+          options:
+            - text: 存进操作系统为它保留的结构体（如 xv6 的 struct context），下次运行时装回寄存器
+              correct: true
+            - text: 丢掉了，下次从 main 重新开始
+              why: 那样进程每次被换下都要重来，根本跑不完
+            - text: 一直留在 CPU 里不动
+              why: 下一个进程要用同一组寄存器，不存起来就被覆盖了
+          explain: 停下时存起来，再运行时装回去，进程就能从停下的地方接着跑，好像没被打断过。
+      - item:
+          id: zombie
+          type: choice
+          prompt: xv6 的状态里除了运行、就绪、阻塞，还有 ZOMBIE（僵尸）。它表示什么？
+          options:
+            - text: 进程已经退出，但父进程还没取走它的退出状态，所以还没清理
+              correct: true
+            - text: 进程卡死了，怎么都结束不了
+              why: 僵尸进程已经结束了；它只是留着一点记录等父进程来读
+            - text: 进程正在创建中
+              why: 创建中的状态在 xv6 里叫 EMBRYO
+          explain: 留着这条记录，父进程才能知道子进程是不是成功结束（退出状态是多少）。
+
+  - id: fork-wait-exec
+    chapter: 进程/线程
+    title: 创建进程：fork、wait 和 exec
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 在终端里运行下面的程序，"hello" 会显示几次？
+          code: |
+            int main(void) {
+                printf("hello\n");
+                fork();
+                printf("bye\n");
+                return 0;
+            }
+          lang: c
+          answer: 1
+          explain: hello 只显示 1 次，bye 显示 2 次。fork 造出的新进程不从 main 开头跑，而是从 fork 返回的地方接着跑。
+      - card:
+          title: fork：复制出一个进程
+          body: |
+            ```c
+            int rc = fork();
+            if (rc < 0) {          // 失败
+                fprintf(stderr, "fork failed\n");
+                exit(1);
+            } else if (rc == 0) {  // 新进程走这里
+                printf("child (pid:%d)\n", (int) getpid());
+            } else {               // 原来的进程走这里
+                printf("parent of %d (pid:%d)\n", rc, (int) getpid());
+            }
+            ```
+
+            fork 是系统调用，造出一个几乎一模一样的新进程，叫子进程；原来的叫父进程。每个进程有一个编号 pid，`getpid()` 返回自己的 pid。
+      - card:
+          title: fork 返回两次
+          body: |
+            fork 之后有两个进程，都从 fork 返回的地方继续，只有返回值不同：
+
+            | 在哪个进程里 | fork 返回 |
+            |---|---|
+            | 父进程 | 子进程的 pid（正数） |
+            | 子进程 | 0 |
+            | 失败时（没有子进程） | −1 |
+
+            所以 `if (rc == 0)` 就能分出两边各做各的事。
+      - item:
+          id: rc-zero
+          type: choice
+          prompt: fork 成功以后，`rc == 0` 的那一支由谁执行？
+          options:
+            - text: 子进程
+              correct: true
+            - text: 父进程
+              why: 父进程拿到的是子进程的 pid，一个正数
+            - text: 两个都执行
+              why: 两个进程里 rc 的值不同，各自只走一支
+          explain: 子进程里 fork 返回 0，父进程里返回子进程的 pid。
+      - card:
+          title: 谁先打印不一定
+          body: |
+            OSTEP 运行这个程序两次，看到两种结果：
+
+            ```
+            parent of 29147 (pid:29146)
+            child (pid:29147)
+            ```
+
+            ```
+            child (pid:29147)
+            parent of 29147 (pid:29146)
+            ```
+
+            fork 之后父子两个进程都就绪，先运行谁由调度决定，程序自己说了不算。
+      - item:
+          id: who-first
+          type: choice
+          prompt: 只调用 fork、不调用 wait 的程序，父子两边的输出有时这个在前，有时那个在前。为什么？
+          options:
+            - text: 两个进程都能运行，先运行哪个由操作系统的调度决定
+              correct: true
+            - text: fork 有时会失败
+              why: 失败时根本没有子进程，只会打印一行
+            - text: printf 有时会把两行合在一起
+              why: 每个进程都完整地打印了自己的那一行，只是先后不同
+          explain: 这种“每次运行结果可能不同”叫不确定性，并发程序里会经常遇到。
+      - card:
+          title: wait：等子进程结束
+          body: |
+            ```c
+            } else {
+                int rc_wait = wait(NULL);
+                printf("parent of %d (rc_wait:%d) (pid:%d)\n", rc, rc_wait, (int) getpid());
+            }
+            ```
+
+            父进程调用 `wait(NULL)` 后会阻塞，直到一个子进程结束；它返回那个子进程的 pid。
+
+            于是顺序固定了：就算父进程先运行，也会停在 wait 上，等子进程打印完、退出，wait 才返回。
+      - item:
+          id: wait-order
+          type: choice
+          prompt: 父进程打印之前先调用了 `wait(NULL)`。输出顺序是？
+          options:
+            - text: 一定是子进程先打印
+              correct: true
+            - text: 一定是父进程先打印
+              why: 父进程的打印在 wait 后面，wait 要等子进程结束才返回
+            - text: 还是不一定
+              why: 父进程即使先运行，也只能先走到 wait 停下
+          explain: wait 把“谁先谁后”从调度手里拿了回来。
+      - card:
+          title: 父子各有一份内存
+          body: |
+            ```c
+            int x = 1;
+            if (fork() == 0) { x++; printf("child %d\n", x); }
+            else { wait(NULL); printf("parent %d\n", x); }
+            ```
+
+            子进程拿到的是父进程地址空间的一份副本。子进程把自己那份 x 改成 2，父进程的 x 还是 1。
+
+            真实的内核不会马上复制整个内存：父子先共用同一批内存，谁要写才复制那一页，叫写时复制（copy-on-write），效果和复制一样。
+      - item:
+          id: fork-x
+          type: choice
+          prompt: 上面这段程序输出什么？
+          code: |
+            int main(void) {
+                int x = 1;
+                if (fork() == 0) { x++; printf("child %d\n", x); }
+                else { wait(NULL); printf("parent %d\n", x); }
+                return 0;
+            }
+          lang: c
+          options:
+            - text: 先 child 2，再 parent 1
+              correct: true
+            - text: 先 child 2，再 parent 2
+              why: 子进程改的是自己那份 x，父进程的 x 不受影响
+            - text: 先 parent 1，再 child 2
+              why: 父进程先 wait，要等子进程结束才打印
+          explain: 两份地址空间各管各的；wait 让 child 一定在前。
+      - card:
+          title: exec：换成另一个程序
+          body: |
+            ```c
+            char *args[3] = { "wc", "p3.c", NULL };
+            execvp(args[0], args);
+            printf("this shouldn't print out");
+            ```
+
+            exec 把当前进程换成另一个程序：装入新程序的代码和静态数据，盖掉原来的，堆和栈重新初始化，然后从新程序的 main 开始。它不创建新进程，pid 不变。成功的 exec 永远不返回。
+      - item:
+          id: exec-return
+          type: choice
+          prompt: 下面的 execvp 成功运行了 wc。它后面那句 printf 会执行吗？
+          code: |
+            char *args[3] = { "wc", "p3.c", NULL };
+            execvp(args[0], args);
+            printf("this shouldn't print out");
+          lang: c
+          options:
+            - text: 不会，原来的代码已经被 wc 的代码盖掉了
+              correct: true
+            - text: 会，等 wc 结束以后执行
+              why: exec 不是调用一个函数再回来；原程序整个被换掉了，没有地方可以回来
+            - text: 会，和 wc 同时执行
+              why: exec 没有创建新进程，只有一个进程，它现在在跑 wc
+          explain: 只有 exec 失败（比如找不到 wc）时，它才返回 −1，后面的代码才会运行。
+      - card:
+          title: 为什么拆成 fork 和 exec
+          body: |
+            shell（终端里接收命令的程序）运行一条命令：先 fork，子进程里 exec 那个命令，父进程 wait 它结束，再显示提示符。
+
+            拆开的好处是 fork 之后、exec 之前，子进程可以先改改环境。`wc p3.c > newfile.txt`：子进程先 `close(1)`，再 open newfile.txt，拿到最小的空号 1，然后 exec wc。打开的文件描述符在 exec 之后还在，wc 往 1 号写的就进了文件。
+      - item:
+          id: shell-order
+          type: order
+          prompt: 把 shell 运行 `wc p3.c > newfile.txt` 的步骤排好。
+          steps:
+            - shell 调用 fork
+            - 子进程关掉 1 号文件描述符
+            - 子进程打开 newfile.txt，拿到 1 号
+            - 子进程 exec wc
+            - 父进程（shell）wait 到子进程结束
+          explain: 重定向只能放在 fork 和 exec 之间：在父进程里改会把 shell 自己的输出也改掉，exec 之后又轮不到 shell 的代码运行了。
+      - card:
+          title: 信号和用户
+          body: |
+            `kill()` 系统调用给进程发信号。shell 里：
+
+            | 按键 | 信号 | 效果 |
+            |---|---|---|
+            | Ctrl-C | SIGINT | 通常结束进程 |
+            | Ctrl-Z | SIGTSTP | 暂停，之后用 fg 让它继续 |
+
+            进程可以用 `signal()` 接住某个信号，改成运行自己的一段代码。用户一般只能控制自己的进程；超级用户 root 能结束任何进程。
+      - item:
+          id: signals
+          type: match
+          prompt: 把操作和它的效果连起来。
+          pairs:
+            - [按 Ctrl-C, 发 SIGINT，通常结束进程]
+            - [按 Ctrl-Z, 发 SIGTSTP，暂停进程]
+            - [输入 fg, 让暂停的进程继续]
+            - [调用 signal(), 指定收到某个信号时运行哪段代码]
+          explain: 信号是从外面通知进程“发生了某件事”的办法。
+      - item:
+          id: kill-others
+          type: choice
+          prompt: 一台服务器上，普通用户 alice 想结束用户 bob 运行的一个进程。会怎样？
+          options:
+            - text: 不允许，普通用户只能控制自己的进程
+              correct: true
+            - text: 允许，任何人都能给任何进程发信号
+              why: 那样谁都能关掉别人的程序，系统就没法多人共用了
+            - text: 允许，只要 alice 知道 pid
+              why: 知道编号不代表有权限；操作系统会检查是谁发的
+          explain: 只有 root 这类超级用户能结束别人的进程。所以平时不要用 root 身份干活，误操作的代价太大。
+      - item:
+          id: fork-buffer
+          type: number
+          prompt: 运行 `./p > out.txt`，把输出重定向到文件。out.txt 里有几行 hello？
+          code: |
+            int main(void) {
+                printf("hello\n");
+                fork();
+                return 0;
+            }
+          lang: c
+          answer: 2
+          hint: printf 的文字什么时候真正写出去？输出到文件和输出到终端时一样吗？
+          explain: 输出到文件时，printf 先把 "hello\n" 攒在缓冲区里，fork 时还没写出去。缓冲区在进程的内存里，被一起复制给了子进程，两个进程结束时各写一次。输出到终端时遇到换行就写出了，所以只有 1 行。
+
+  - id: lde
+    chapter: 进程/线程
+    title: 受限直接执行：用户态、陷入和时钟中断
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个程序直接在 CPU 上跑，最快。可是它写了个死循环，从来不请操作系统办任何事。猜一猜：操作系统怎样把 CPU 拿回来？
+          options:
+            - text: 硬件里有个定时器，每隔几毫秒打断 CPU 一次，让操作系统运行
+              correct: true
+            - text: 操作系统一直在旁边盯着
+              why: 一个 CPU 核心同一时刻只能跑一个程序；它在跑这个死循环时，操作系统根本没在运行
+            - text: 拿不回来，只能重启
+              why: 早期一些系统确实如此，现代系统靠硬件定时器解决了
+          explain: 靠的是定时器发出的中断。下面一步步讲。
+      - card:
+          title: 直接执行，但要有限制
+          body: |
+            最快的办法是让程序直接在 CPU 上跑：操作系统为它建好进程、装好内存，然后跳到 main。
+
+            但这样有两个问题：程序想做危险的事（比如直接读写整块磁盘）怎么拦住？程序一直占着 CPU，怎么换别人？OSTEP 的答案叫受限直接执行（limited direct execution）：直接跑，但先让硬件设好限制。
+      - card:
+          title: 用户态和内核态
+          body: |
+            CPU 有两种模式：
+
+            - **用户态（user mode）**：普通程序在这里跑，能做的事受限。比如直接发 I/O 请求，CPU 会抛出异常，操作系统多半会结束这个程序；
+            - **内核态（kernel mode）**：内核在这里跑，什么都能做，包括 I/O 和各种特权指令。
+
+            程序要读文件，就得请内核代办，也就是系统调用。
+      - item:
+          id: user-io
+          type: choice
+          prompt: 一个用户态的程序直接执行了一条只有内核态才能执行的 I/O 指令。会发生什么？
+          options:
+            - text: CPU 抛出异常，转到操作系统处理，操作系统通常会结束这个程序
+              correct: true
+            - text: 指令照样执行，只是慢一点
+              why: 特权指令在用户态根本不会执行，否则限制就没意义了
+            - text: 程序自动切到内核态再执行
+              why: 程序不能自己提升权限，只能通过系统调用请内核办
+          explain: 这就是“受限”：危险的事只能交给内核做，内核可以先检查权限。
+      - card:
+          title: 陷入和从陷入返回
+          body: |
+            系统调用靠一条特殊指令：**陷入（trap）**。它同时做两件事：跳进内核，把模式升到内核态。硬件把这个进程的 PC 和一些寄存器存到它的内核栈上，以便回得来。
+
+            内核办完事，执行“从陷入返回”（return-from-trap）：恢复寄存器，回到用户态，从陷入指令的下一条接着执行。
+
+            `open()`、`read()` 看起来是普通函数，因为 C 库里的这个函数替你执行了陷入指令。
+      - card:
+          title: 陷入表：只能从正门进
+          body: |
+            陷入时跳到内核的哪里，不能由程序说了算，否则它可以跳过权限检查那几行。
+
+            开机时 CPU 处在内核态，内核告诉硬件：发生系统调用、键盘中断、磁盘中断时，各跳到哪段处理程序。这张对照表叫**陷入表（trap table）**。设置它的指令是特权指令。
+
+            每个系统调用有一个编号，程序把编号放进约定的寄存器，内核先检查编号有效再执行。
+      - item:
+          id: why-trap-table
+          type: choice
+          prompt: 为什么不让程序在陷入时自己指定跳到内核里的哪个地址？
+          options:
+            - text: 程序可以跳到权限检查之后的地方，绕过检查直接做危险的事
+              correct: true
+            - text: 因为程序不知道内核代码在哪
+              why: 关键不是知不知道，而是不能让它随便选；入口只能是内核事先登记好的那几个
+            - text: 因为跳转指令在用户态不能用
+              why: 程序里的普通跳转一直在用；只是进内核这一跳要走陷入表
+          explain: 陷入表和系统调用号一起，保证程序只能“按编号点菜”，不能直接进厨房。
+      - item:
+          id: lde-order
+          type: order
+          prompt: 程序调用 read() 读文件。把发生的事排好。
+          steps:
+            - C 库里的 read 把系统调用号放进寄存器，执行陷入指令
+            - 硬件把寄存器存到内核栈，切到内核态，按陷入表跳到处理程序
+            - 内核检查编号和参数，把文件内容读进来
+            - 从陷入返回：恢复寄存器，回到用户态
+            - 程序从陷入的下一条指令继续
+          explain: 进内核和出内核都由硬件配合完成，程序自己做不到切换模式。
+      - card:
+          title: 怎么把 CPU 拿回来
+          body: |
+            程序在 CPU 上跑的时候，操作系统没在运行，它什么也做不了。
+
+            老办法是协作式：等程序自己做系统调用，或者主动调用 yield 让出 CPU，或者做了非法操作（比如除以 0）陷入内核。可要是程序死循环、从不调用系统调用，只能重启。
+
+            现代办法：**时钟中断（timer interrupt）**。开机时内核启动一个定时器，它每隔几毫秒发一次中断，CPU 停下当前程序，跳到内核登记好的处理程序。
+      - item:
+          id: coop-loop
+          type: choice
+          prompt: 在只靠协作的系统上，一个程序进入死循环，而且不做任何系统调用。操作系统能怎么办？
+          options:
+            - text: 什么也做不了，只能重启机器
+              correct: true
+            - text: 等下一次系统调用时结束它
+              why: 死循环里没有系统调用，这一刻永远不会来
+            - text: 用时钟中断打断它
+              why: 协作式系统的定义就是不靠时钟中断；有了时钟中断才是非协作式
+          explain: 所以启动定时器是开机时必做的事，而且是特权操作：程序不能把它关掉。
+      - card:
+          title: 上下文切换
+          body: |
+            时钟中断让内核拿回了 CPU，接下来由调度程序决定：继续跑原来的进程，还是换一个。
+
+            要换的话，内核把当前进程 A 的寄存器、PC、内核栈指针存进 A 的进程结构，装入 B 的，再从陷入返回，回到的就是 B。这一步叫**上下文切换（context switch）**。
+
+            | 谁 | 做什么 |
+            |---|---|
+            | 硬件 | 中断时把 A 的寄存器存到 A 的内核栈 |
+            | 内核 | 存 A 的内核寄存器到 A 的进程结构，装入 B 的，换到 B 的内核栈 |
+            | 硬件 | 从陷入返回时从 B 的内核栈恢复寄存器，跳到 B 的 PC |
+      - item:
+          id: switch-order
+          type: order
+          prompt: 进程 A 在运行，时钟中断来了，内核决定换成进程 B。把步骤排好。
+          steps:
+            - 时钟中断：硬件把 A 的寄存器存到 A 的内核栈，切到内核态
+            - 内核的处理程序运行，调度程序决定换成 B
+            - 内核把 A 的寄存器存进 A 的进程结构，装入 B 的，换到 B 的内核栈
+            - 从陷入返回：恢复 B 的寄存器，回到用户态
+            - B 从上次停下的地方继续运行
+          explain: 从陷入返回本来会回到 A；因为中途把内核栈换成了 B 的，回到的就是 B。
+      - card:
+          title: 处理中断时又来了中断
+          body: |
+            内核正在处理一个中断或系统调用，又来了一个中断怎么办？简单的做法是处理期间先关掉中断，但关太久会丢中断（比如漏掉“磁盘读完了”）。内核还用锁保护自己的数据结构。
+
+            这些切换有多快？lmbench 测得：1996 年 200 MHz 的 P6 上跑 Linux 1.3.37，一次系统调用约 4 微秒，一次上下文切换约 6 微秒。现在快得多。
+      - item:
+          id: disable-irq
+          type: choice
+          prompt: 内核处理中断时把中断关掉很长时间，会有什么问题？
+          options:
+            - text: 可能丢中断，比如错过“磁盘读完了”，等这个结果的进程就一直醒不过来
+              correct: true
+            - text: 没有问题，关得越久越安全
+              why: 关着中断时设备的通知进不来，时间一长就会漏掉
+            - text: CPU 会自动切回用户态
+              why: 关中断不改变 CPU 的模式
+          explain: 所以只在很短的关键几步里关中断。
+      - item:
+          id: privileged
+          type: choice
+          multi: true
+          prompt: 下面哪些操作只能在内核态做？（多选）
+          options:
+            - text: 设置陷入表
+              correct: true
+            - text: 启动或关掉定时器
+              correct: true
+            - text: 直接向磁盘发 I/O 请求
+              correct: true
+            - text: 把两个寄存器里的数相加
+              why: 普通计算是用户程序天天在做的，不需要特权
+          explain: 前三件事一旦被普通程序随意使用，它就能接管整台机器：换掉陷入表、关掉定时器独占 CPU、读写别人的文件。
+
+  - id: threads-intro
+    chapter: 进程/线程
+    title: 一个进程里的几条执行流：线程
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个程序要把两个很大的数组逐个相加，电脑有 4 个 CPU 核心。猜一猜：怎样能明显更快？
+          options:
+            - text: 把数组分成 4 段，4 个核心各算一段，同时进行
+              correct: true
+            - text: 把同一段算 4 遍取平均
+              why: 加法的结果是确定的，算 4 遍不会更准，只会更慢
+            - text: 再快也只能用 1 个核心
+              why: 程序可以开出几条执行流，让操作系统把它们放到不同的核心上
+          explain: 一个程序里开几条同时进行的执行流，正是这一课要讲的东西。
+      - card:
+          title: 线程：共用地址空间的执行流
+          body: |
+            到现在为止，一个进程只有一个执行点：一个 PC。一个进程里也可以有好几个执行点，每个叫一个**线程（thread）**。
+
+            每个线程有自己的 PC 和一组寄存器；同一进程的线程共用同一个地址空间，能访问同样的数据。线程之间切换也要上下文切换（存到线程控制块，TCB），但不用换地址空间。
+      - card:
+          title: 每个线程一个栈
+          body: |
+            单线程的进程只有一个栈，在地址空间的末尾。有两个线程，就有两个栈：
+
+            | 单线程 | 两个线程 |
+            |---|---|
+            | 代码 | 代码 |
+            | 堆 | 堆 |
+            | （空） | （空）、栈 2、（空） |
+            | 栈 | 栈 1 |
+
+            线程函数的局部变量、参数、返回值都放在它自己的栈上（叫线程局部存储）。
+      - item:
+          id: thread-own
+          type: match
+          prompt: 两个线程属于同一个进程。把每样东西归到“各有一份”或“共用一份”。
+          pairs:
+            - [程序计数器 PC, 每个线程各有一份]
+            - [函数里的局部变量, 每个线程在自己的栈上各有一份]
+            - [全局变量, 整个进程共用一份]
+            - [malloc 得到的堆内存, 整个进程共用一份（谁拿到指针谁就能访问）]
+          explain: 寄存器和栈是线程自己的；代码、全局变量、堆、打开的文件是大家的。
+      - card:
+          title: 为什么要线程
+          body: |
+            1. 并行：多核电脑上，一个线程用一个核心，把大任务分成几份同时做，叫并行化（parallelization）；
+            2. 不被慢的 I/O 卡住：一个线程在等磁盘或网络时，别的线程照样能用 CPU。
+
+            多开几个进程也能做到，但进程之间的内存是分开的。线程共用地址空间，共享数据方便得多。
+      - item:
+          id: proc-vs-thread
+          type: choice
+          prompt: 进程和线程最主要的区别是什么？
+          options:
+            - text: 不同进程有各自独立的地址空间；同一进程的线程共用地址空间，只各有自己的寄存器和栈
+              correct: true
+            - text: 线程只能在单核 CPU 上运行
+              why: 线程正适合放到多个核心上同时跑
+            - text: 进程不能读写文件，线程可以
+              why: 进程和线程都能读写文件；同一进程的线程共用打开的文件
+          explain: fork 出的子进程改变量，父进程看不见；同一进程的两个线程改同一个全局变量，彼此立刻看得见。
+      - card:
+          title: 用 pthread 创建线程
+          body: |
+            ```c
+            #include <pthread.h>
+            void *mythread(void *arg) {
+                printf("%s\n", (char *) arg);
+                return NULL;
+            }
+            int main(void) {
+                pthread_t p1, p2;
+                printf("main: begin\n");
+                pthread_create(&p1, NULL, mythread, "A");
+                pthread_create(&p2, NULL, mythread, "B");
+                pthread_join(p1, NULL);
+                pthread_join(p2, NULL);
+                printf("main: end\n");
+                return 0;
+            }
+            ```
+
+            `pthread_create` 要一个函数指针和一个 `void *` 参数，新线程从这个函数开始跑。`pthread_join` 等那个线程结束，像进程的 wait。编译时加 `-pthread`。
+      - item:
+          id: join-output
+          type: choice
+          prompt: main 先打印 main begin，再创建打印 A 的线程和打印 B 的线程，两个都 pthread_join 之后打印 main end。哪一种输出**不可能**出现？
+          options:
+            - text: main begin、A、main end、B
+              correct: true
+            - text: main begin、A、B、main end
+              why: 这是最常见的一种
+            - text: main begin、B、A、main end
+              why: 先创建的线程不一定先运行，B 可以抢先打印
+          explain: main 打印 end 之前，已经 join 了两个线程，A 和 B 一定都打印完了。
+      - card:
+          title: 先创建的不一定先跑
+          body: |
+            新线程创建出来以后可能立刻运行，也可能先就绪等着；main 也可能继续跑。到底谁先，由调度程序决定。
+
+            所以这个程序可能先打印 A，也可能先打印 B，但 main begin 一定最先、main end 一定最后。
+      - item:
+          id: how-many-orders
+          type: number
+          prompt: main 先打印 main begin，再创建打印 A 的线程和打印 B 的线程，两个都 pthread_join 之后打印 main end。一共可能出现几种不同的输出？
+          answer: 2
+          explain: main begin 在最前、main end 在最后是固定的；中间 A、B 可以任意先后，所以是 2 种。
+      - card:
+          title: 并发和并行
+          body: |
+            单核 CPU 上的几个线程是轮流执行的：每个跑一小会儿就换，看起来同时进行，叫并发（concurrency）。多核 CPU 上它们可以真的在同一时刻各占一个核心，叫并行（parallelism）。
+
+            即使只有一个核心，线程也有用：一个线程等 I/O 时，另一个线程可以用 CPU。
+      - item:
+          id: concurrency
+          type: choice
+          prompt: 一台单核电脑上跑着一个有两个线程的程序。下面哪句话对？
+          options:
+            - text: 两个线程是并发的：轮流执行，任意时刻只有一个在 CPU 上
+              correct: true
+            - text: 两个线程是并行的：同一时刻都在执行
+              why: 一个核心同一时刻只执行一个线程；真正同时执行需要多个核心
+            - text: 单核电脑上不能有多个线程
+              why: 可以有，只是它们轮流运行
+          explain: 并发说的是“交替推进”，并行说的是“同时执行”。并行一定是并发，并发不一定是并行。
+  # ---------------------------------------------------------------- 调度
+  - id: sched-metrics
+    chapter: 调度
+    title: 谁先跑：先来先服务和周转时间
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 三个任务同时交给电脑：A 要跑 100 秒，B 和 C 各要 10 秒。一次只能跑一个，跑完再换。猜一猜：按什么顺序，三个任务平均等得最短？
+          options:
+            - text: 先 B 和 C，最后 A
+              correct: true
+            - text: 先 A，再 B、C
+              why: B 和 C 都要先干等 100 秒，平均下来最慢
+            - text: 怎么排都一样
+              why: 总时间都是 120 秒，可每个任务结束的时间不一样，平均值差很多
+          explain: 短的先跑，大家平均完成得早。这一课先学会怎么算“平均等得多久”。
+      - card:
+          title: 机制和策略
+          body: |
+            上下文切换解决的是“怎样换”，这叫机制（mechanism）。调度要回答“换谁”：按什么规则选下一个进程，这叫策略（policy）。
+
+            OSTEP 先把问题简化，假设每个任务（job）：
+
+            1. 运行时间都一样；
+            2. 同时到达；
+            3. 一旦开始就一直跑完；
+            4. 只用 CPU，不做 I/O；
+            5. 运行时间事先知道。
+
+            后面会一条条去掉这些假设。
+      - item:
+          id: mech-policy
+          type: match
+          prompt: 把问题归到“机制”或“策略”。
+          pairs:
+            - [上下文切换时怎样保存寄存器, 机制：怎样做]
+            - [现在该运行哪一个进程, 策略：选哪个]
+          explain: 把两者分开，换一种调度策略就不用重写切换代码。
+          review: false
+      - card:
+          title: 周转时间
+          body: |
+            怎么比较调度策略的好坏？先用一个指标：**周转时间（turnaround time）**，任务完成的时刻减去它到达的时刻。
+
+            $$T_{周转} = T_{完成} - T_{到达}$$
+
+            假设 2 成立时，大家都在 0 时刻到达，周转时间就等于完成时间。
+      - item:
+          id: turnaround-one
+          type: number
+          prompt: 一个任务在第 9 秒到达，第 30 秒完成。它的周转时间是多少秒？
+          answer: 21
+          unit: 秒
+          explain: 30 − 9 = 21。
+      - card:
+          title: 先来先服务
+          body: |
+            最简单的策略：谁先到谁先跑，跑完再换下一个。叫先进先出（FIFO），也叫先来先服务（FCFS）。
+
+            A、B、C 都在 0 时刻到达，各跑 10 秒，按 A、B、C 的顺序：
+
+            | 任务 | 完成 | 周转时间 |
+            |---|---|---|
+            | A | 10 | 10 |
+            | B | 20 | 20 |
+            | C | 30 | 30 |
+
+            平均周转时间 (10 + 20 + 30) / 3 = 20 秒。
+      - item:
+          id: fifo-four
+          type: number
+          prompt: 四个任务都在 0 时刻到达，各跑 5 秒，用 FIFO。平均周转时间是多少秒？
+          answer: 12.5
+          unit: 秒
+          explain: 完成时刻 5、10、15、20，平均 50 / 4 = 12.5。
+      - card:
+          title: 护航效应
+          body: |
+            去掉假设 1，让任务长短不同：A 跑 100 秒，B、C 各 10 秒，A 先到一点点。FIFO 下，A 跑完 B 才能跑：
+
+            | 任务 | 完成 | 周转时间 |
+            |---|---|---|
+            | A | 100 | 100 |
+            | B | 110 | 110 |
+            | C | 120 | 120 |
+
+            平均 110 秒。几个短任务被排在一个长任务后面干等，像超市里只买一样东西的人排在推满一车的人后面，叫护航效应（convoy effect）。
+      - item:
+          id: convoy
+          type: number
+          prompt: 三个任务都在 0 时刻到达，按 A、B、C 的顺序用 FIFO。A 跑 60 秒，B 跑 10 秒，C 跑 20 秒。平均周转时间是多少秒？
+          answer: 73.33333333
+          tolerance: 0.01
+          unit: 秒
+          explain: 完成时刻 60、70、90，平均 220 / 3 ≈ 73.33。
+      - card:
+          title: 等待时间
+          body: |
+            原技能树的练习还用到等待时间：任务在就绪队列里等了多久，没在跑的那些时间。
+
+            $$T_{等待} = T_{周转} - T_{运行}$$
+
+            比如一个任务 1 秒到达、要跑 4 秒、12 秒完成：周转 11 秒，其中跑了 4 秒，等了 7 秒。
+      - card:
+          title: 例题：先来先服务的平均等待时间
+          body: |
+            四个进程：P1（到达 0，运行 8）、P2（1，4）、P3（2，9）、P4（3，5）。用 FCFS，求平均等待时间。
+          reveal:
+            - title: 第 1 步：按到达先后排出时间线
+              body: |
+                P1 0–8，P2 8–12，P3 12–21，P4 21–26。
+            - title: 第 2 步：算每个进程的等待时间
+              body: |
+                等待 = 完成 − 到达 − 运行：
+
+                | 进程 | 完成 | 等待 |
+                |---|---|---|
+                | P1 | 8 | 8 − 0 − 8 = 0 |
+                | P2 | 12 | 12 − 1 − 4 = 7 |
+                | P3 | 21 | 21 − 2 − 9 = 10 |
+                | P4 | 26 | 26 − 3 − 5 = 18 |
+            - title: 第 3 步：求平均
+              body: |
+                (0 + 7 + 10 + 18) / 4 = 35 / 4 = 8.75。
+      - item:
+          id: fcfs-sim
+          type: sim
+          sim: scheduler
+          params:
+            procs:
+              - { name: A, arrive: 0, burst: 4 }
+              - { name: B, arrive: 1, burst: 3 }
+              - { name: C, arrive: 2, burst: 2 }
+            algo: FCFS
+          goal: {}
+          solution: [A, A, A, A, B, B, B, C, C]
+          prompt: 用先来先服务排出时间线：每个时间格点一下“这一格谁在用 CPU”。
+          explain: A 0–4，B 4–7，C 7–9。等待时间 0、3、5。
+      - item:
+          id: fcfs-wait
+          type: number
+          prompt: 三个进程：X（到达 0，运行 6）、Y（到达 2，运行 3）、Z（到达 4，运行 1）。用 FCFS，平均等待时间是多少？
+          answer: 3
+          explain: X 0–6，Y 6–9，Z 9–10。等待：X 0，Y 9 − 2 − 3 = 4，Z 10 − 4 − 1 = 5，平均 9 / 3 = 3。
+
+  - id: sjf-stcf
+    chapter: 调度
+    title: 短的先跑：SJF 和 STCF
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: A 跑 100 秒，B、C 各 10 秒，都在 0 时刻到达。这次先跑 B，再跑 C，最后跑 A。平均周转时间是多少秒？
+          answer: 50
+          unit: 秒
+          explain: 完成时刻 10、20、120，平均 150 / 3 = 50。同样三个任务，FIFO 是 110 秒。
+      - card:
+          title: 最短作业优先
+          body: |
+            每次从等着的任务里挑运行时间最短的，跑完再挑下一个，叫最短作业优先（Shortest Job First，SJF）。
+
+            三个任务同时到达时，SJF 的平均周转时间是最小的：长任务排在后面，只让它自己晚完成；短任务排在前面，只让后面的人多等一点点。
+      - item:
+          id: sjf-three
+          type: number
+          prompt: 三个任务都在 0 时刻到达，分别要跑 8、4、2 秒。用 SJF，平均周转时间是多少秒？
+          answer: 7.33333333
+          tolerance: 0.01
+          unit: 秒
+          explain: 顺序 2、4、8，完成时刻 2、6、14，平均 22 / 3 ≈ 7.33。
+      - card:
+          title: 任务不同时到达
+          body: |
+            去掉假设 2。A 在 0 时刻到达，要跑 100 秒；B、C 在第 10 秒到达，各 10 秒。
+
+            SJF 一旦让 A 开始就跑完（假设 3 还在），B、C 只能等：A 在 100 完成，B 在 110，C 在 120。
+
+            周转时间 100、110 − 10 = 100、120 − 10 = 110，平均约 103.33 秒，又是护航效应。
+      - item:
+          id: sjf-late
+          type: choice
+          prompt: 上面这种情况，B、C 为什么等了那么久？
+          options:
+            - text: SJF 不会打断已经开始的 A，B、C 到达时 A 已经在跑了
+              correct: true
+            - text: SJF 总是先跑最长的任务
+              why: SJF 挑最短的；问题是 B、C 到的时候 A 已经开始，而 SJF 不中途换人
+            - text: B 和 C 到达得太晚，排不上
+              why: 它们第 10 秒就到了，只是 SJF 不会中途停下 A
+          explain: 这就要用到能中途换人的调度程序。
+          review: false
+      - card:
+          title: 抢占：中途换人
+          body: |
+            有了时钟中断和上下文切换，调度程序可以中途停下正在跑的任务，换另一个，这叫**抢占（preemption）**。SJF 不抢占。
+
+            最短完成时间优先（Shortest Time-to-Completion First，STCF，也叫最短剩余时间优先 SRTF）：每来一个新任务，就比较所有任务还剩多少时间，剩得最少的先跑。
+
+            上面的例子：A 跑到第 10 秒，B、C 到了，各剩 10 秒，A 还剩 90 秒，于是先跑 B、C，A 最后跑完。
+      - item:
+          id: stcf-avg
+          type: number
+          prompt: 用 STCF：A 在 0 时刻到达、要跑 100 秒；B、C 在第 10 秒到达，各 10 秒。A 在 0–10 和 30–120 运行，B 在 10–20，C 在 20–30。平均周转时间是多少秒？
+          answer: 50
+          unit: 秒
+          explain: 周转时间 A 120 − 0 = 120，B 20 − 10 = 10，C 30 − 10 = 20，平均 150 / 3 = 50。
+      - card:
+          title: 看 STCF 排一遍
+          body: |
+            四个进程：A（到达 0，运行 7）、B（2，4）、C（4，1）、D（5，4）。下面是 STCF 排出的时间线：第 2 秒 B 到达，它要 4 秒，A 还剩 5 秒，B 抢占 A；第 4 秒 C 到达，只要 1 秒，又抢占 B。
+          sim:
+            name: scheduler
+            params:
+              procs:
+                - { name: A, arrive: 0, burst: 7 }
+                - { name: B, arrive: 2, burst: 4 }
+                - { name: C, arrive: 4, burst: 1 }
+                - { name: D, arrive: 5, burst: 4 }
+              algo: SRTF
+      - item:
+          id: sjf-sim
+          type: sim
+          sim: scheduler
+          params:
+            procs:
+              - { name: A, arrive: 0, burst: 7 }
+              - { name: B, arrive: 2, burst: 4 }
+              - { name: C, arrive: 4, burst: 1 }
+              - { name: D, arrive: 5, burst: 4 }
+            algo: SJF
+          goal: {}
+          solution: [A, A, A, A, A, A, A, C, B, B, B, B, D, D, D, D]
+          prompt: 同样四个进程，换成不抢占的 SJF，排出时间线。
+          hint: A 一开始就在跑，SJF 会不会中途换人？A 跑完以后，等着的有谁、谁最短？
+          explain: A 0–7 跑完。第 7 秒 B、C、D 都在等，C 最短，7–8；B 和 D 都是 4，B 先到，8–12；D 12–16。
+      - item:
+          id: stcf-wait
+          type: number
+          prompt: 四个进程 A（到达 0，运行 7）、B（2，4）、C（4，1）、D（5，4），STCF 的时间线是 A 0–2、B 2–4、C 4–5、B 5–7、D 7–11、A 11–16。平均等待时间是多少？
+          answer: 3
+          explain: 等待 = 完成 − 到达 − 运行：A 16 − 0 − 7 = 9，B 7 − 2 − 4 = 1，C 5 − 4 − 1 = 0，D 11 − 5 − 4 = 2，平均 12 / 4 = 3。
+      - card:
+          title: 例题：非抢占 SJF 的平均等待时间
+          body: |
+            还是 P1（到达 0，运行 8）、P2（1，4）、P3（2，9）、P4（3，5），换成非抢占的 SJF。
+          reveal:
+            - title: 第 1 步：0 时刻只有 P1，它一直跑完
+              body: P1 0–8。期间 P2、P3、P4 都到了。
+            - title: 第 2 步：每次挑剩下最短的
+              body: P2（4）8–12，P4（5）12–17，P3（9）17–26。
+            - title: 第 3 步：算等待时间
+              body: |
+                P1 0，P2 12 − 1 − 4 = 7，P3 26 − 2 − 9 = 15，P4 17 − 3 − 5 = 9。平均 (0 + 7 + 15 + 9) / 4 = 7.75，比 FCFS 的 8.75 少。
+      - item:
+          id: sjf-weak
+          type: choice
+          prompt: SJF 和 STCF 都依赖哪条在现实里很难成立的假设？
+          options:
+            - text: 事先知道每个任务要跑多久
+              correct: true
+            - text: 所有任务同时到达
+              why: STCF 正是为了处理不同时到达的任务
+            - text: 任务一旦开始就跑完
+              why: STCF 已经不需要这条，它会抢占
+          explain: 操作系统其实不知道一个程序要跑多久，实用的调度方法不能依赖它。
+
+  - id: rr-io
+    chapter: 调度
+    title: 轮流来：时间片轮转、响应时间和 I/O
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你在编辑器里打字，后台同时在编译一个大项目。对你来说，什么最要紧？
+          options:
+            - text: 每按一个键，屏幕马上有反应
+              correct: true
+            - text: 编译任务最早完成
+              why: 编译晚几秒你未必在意，可每个字都要等几秒才出现就没法用了
+          explain: 交互的程序在意的是“多快开始有反应”，这是另一个指标。
+      - card:
+          title: 响应时间
+          body: |
+            分时系统出现以后，用户坐在终端前等着，于是有了新指标：**响应时间（response time）**，任务到达到它第一次运行之间的时间。
+
+            $$T_{响应} = T_{首次运行} - T_{到达}$$
+
+            STCF 对它很不友好：三个任务同时到达，第三个要等前两个都跑完才第一次运行。
+      - item:
+          id: sjf-response
+          type: number
+          prompt: 三个任务都在 0 时刻到达，各跑 5 秒，用 SJF。平均响应时间是多少秒？
+          answer: 5
+          unit: 秒
+          explain: 第一次运行的时刻是 0、5、10，平均 15 / 3 = 5。
+      - card:
+          title: 时间片轮转
+          body: |
+            时间片轮转（Round Robin，RR）：每个任务只跑一小段，叫一个**时间片（time slice）**，然后换就绪队列里的下一个，一圈一圈轮下去。
+
+            时间片必须是时钟中断周期的整数倍：中断每 10 毫秒一次，时间片就是 10、20……毫秒。
+
+            还是三个 5 秒的任务，时间片 1 秒：ABCABC……，第一次运行在 0、1、2，平均响应时间 1 秒。SJF 是 5 秒。
+      - item:
+          id: rr-response
+          type: number
+          prompt: 三个任务都在 0 时刻到达，各跑 5 秒，用 RR，时间片 2 秒。平均响应时间是多少秒？
+          answer: 2
+          unit: 秒
+          explain: A 在 0 开始，B 在 2，C 在 4，平均 6 / 3 = 2。
+      - card:
+          title: 时间片不能太短
+          body: |
+            时间片越短，响应越快；但每次切换都有固定开销。OSTEP 的例子：时间片 10 毫秒、切换 1 毫秒，大约 10% 的时间花在切换上；时间片加到 100 毫秒，不到 1%。把固定开销分摊开，叫摊还（amortization）。
+
+            切换的代价不只是存寄存器：程序运行时在 CPU 的 cache 里攒下的数据，还有分支预测器（CPU 里猜下一步往哪跳的部件）攒下的经验，换人后都要重新攒起来。
+      - item:
+          id: amortize
+          type: number
+          prompt: 时间片 50 毫秒，每次上下文切换 1 毫秒。每 51 毫秒里有 1 毫秒花在切换上，约占百分之多少？
+          answer: 1.96
+          tolerance: 0.01
+          unit: '%'
+          explain: 1 / 51 ≈ 0.0196，约 1.96%。
+      - card:
+          title: RR 的周转时间很差
+          body: |
+            三个 5 秒的任务、时间片 1 秒：A 在 13 完成，B 在 14，C 在 15，平均周转时间 14 秒。FIFO 只要 (5 + 10 + 15) / 3 = 10 秒。
+
+            RR 很公平：每个任务都在短时间里分到 CPU。可正因为把每个任务都拉长了，周转时间差。照顾周转时间的（SJF、STCF）响应时间差，照顾响应时间的（RR）周转时间差，这是一种取舍。
+      - item:
+          id: rr-turnaround
+          type: number
+          prompt: 两个任务都在 0 时刻到达，各跑 3 秒，用 RR，时间片 1 秒（ABABAB）。平均周转时间是多少秒？
+          answer: 5.5
+          unit: 秒
+          explain: A 第 3 次运行在 4–5，完成于 5；B 完成于 6。平均 (5 + 6) / 2 = 5.5。
+      - card:
+          title: 看 RR 排一遍
+          body: |
+            P1（到达 0，运行 8）、P2（1，4）、P3（2，9）、P4（3，5），时间片 4。规则：同一时刻新到达的进程，排在刚用完时间片的进程前面。
+          sim:
+            name: scheduler
+            params:
+              procs:
+                - { name: P1, arrive: 0, burst: 8 }
+                - { name: P2, arrive: 1, burst: 4 }
+                - { name: P3, arrive: 2, burst: 9 }
+                - { name: P4, arrive: 3, burst: 5 }
+              algo: RR
+              quantum: 4
+      - card:
+          title: 例题：RR 的平均等待时间
+          body: 上面的时间线：P1 0–4，P2 4–8（完成），P3 8–12，P4 12–16，P1 16–20（完成），P3 20–24，P4 24–25（完成），P3 25–26（完成）。
+          reveal:
+            - title: 第 1 步：找出每个进程的完成时刻
+              body: P1 20，P2 8，P3 26，P4 25。
+            - title: 第 2 步：等待 = 完成 − 到达 − 运行
+              body: P1 20 − 0 − 8 = 12，P2 8 − 1 − 4 = 3，P3 26 − 2 − 9 = 15，P4 25 − 3 − 5 = 17。
+            - title: 第 3 步：求平均
+              body: (12 + 3 + 15 + 17) / 4 = 47 / 4 = 11.75。比 FCFS 的 8.75 和 SJF 的 7.75 都大。
+      - item:
+          id: rr-sim
+          type: sim
+          sim: scheduler
+          params:
+            procs:
+              - { name: A, arrive: 0, burst: 5 }
+              - { name: B, arrive: 1, burst: 3 }
+              - { name: C, arrive: 2, burst: 1 }
+            algo: RR
+            quantum: 2
+          goal: {}
+          solution: [A, A, B, B, C, A, A, B, A]
+          prompt: 用 RR、时间片 2 排出时间线。
+          hint: 第 2 秒 A 的时间片用完，此刻 C 刚到。队列里谁排在前面？
+          explain: A 0–2；B 1 时刻就在队里，2–4；C 2 时刻到达、排在用完时间片的 A 前面，4–5；A 5–7；B 7–8 完成；A 8–9 完成。
+      - item:
+          id: rr-wait
+          type: number
+          prompt: RR 时间线 A A B B C A A B A（A 到达 0、运行 5；B 到达 1、运行 3；C 到达 2、运行 1）。平均等待时间是多少？
+          answer: 3.33333333
+          tolerance: 0.01
+          explain: 完成时刻 A 9、B 8、C 5。等待 A 9 − 0 − 5 = 4，B 8 − 1 − 3 = 4，C 5 − 2 − 1 = 2，平均 10 / 3 ≈ 3.33。
+      - card:
+          title: 别忘了 I/O
+          body: |
+            去掉假设 4。A 和 B 都要 50 毫秒 CPU，A 每跑 10 毫秒就做一次 10 毫秒的 I/O，B 只用 CPU。
+
+            如果 A 做 I/O 时 CPU 干等，就浪费了。更好的办法：把 A 的每 10 毫秒看成一个独立的短任务。A 发起 I/O、进入阻塞后，CPU 去跑 B；I/O 完成时磁盘发中断，A 变回就绪，STCF 又让它先跑。CPU 和磁盘同时在忙，这叫重叠（overlap）。
+      - item:
+          id: io-overlap
+          type: order
+          prompt: 进程 A 发起一次磁盘读。把接下来发生的事排好。
+          steps:
+            - A 发起磁盘读，进入阻塞
+            - 调度程序让 B 在 CPU 上运行
+            - 磁盘读完，发出中断
+            - 内核的中断处理程序把 A 改回就绪
+            - 调度程序再次选中 A
+          explain: 阻塞期间 CPU 没有闲着，这就是 I/O 和计算的重叠。
+      - item:
+          id: io-why
+          type: choice
+          prompt: 为什么调度程序要在一个进程发起 I/O 时换别的进程运行？
+          options:
+            - text: 它在等 I/O，用不了 CPU；换别人跑，CPU 和磁盘可以同时忙
+              correct: true
+            - text: 为了让发起 I/O 的进程降级受罚
+              why: 不是惩罚；它确实暂时用不着 CPU
+            - text: 因为 I/O 必须由另一个进程来完成
+              why: I/O 由设备完成，完成时用中断通知内核
+          explain: 交互的程序经常做 I/O：用一点 CPU 就去等输入。调度程序可以借这个特点认出它们。
+
+  - id: mlfq
+    chapter: 调度
+    title: 不知道谁短谁长：多级反馈队列
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 操作系统其实不知道每个程序要跑多久。猜一猜：它怎样还能让短的、交互的程序先跑？
+          options:
+            - text: 看它过去的表现：一直占着 CPU 的多半是长任务，常常让出 CPU 的多半是交互的
+              correct: true
+            - text: 让程序自己报告要跑多久
+              why: 程序也不知道，而且会有人故意少报来插队
+            - text: 随机挑
+              why: 随机不会特意照顾短任务
+          explain: 用历史预测将来，这一课的调度方法就靠这个想法。
+      - card:
+          title: 多级反馈队列
+          body: |
+            **多级反馈队列（multi-level feedback queue，MLFQ）**有好几个就绪队列，每个队列一个优先级。每个就绪的任务在其中一个队列里。
+
+            - 规则 1：A 的优先级比 B 高，就跑 A（B 不跑）；
+            - 规则 2：A 和 B 优先级相同，就按 RR 轮流跑。
+
+            关键在优先级怎么定：MLFQ 看任务运行时的表现来调整它。
+      - item:
+          id: who-runs
+          type: choice
+          prompt: 三个队列 Q2（最高）、Q1、Q0（最低）。A 和 B 在 Q2，C 在 Q0。现在谁在运行？
+          options:
+            - text: A 和 B 轮流运行，C 不运行
+              correct: true
+            - text: 只有 A，跑完再跑 B
+              why: 同一优先级按 RR 轮流，不是一个跑完再跑另一个
+            - text: A、B、C 三个轮流
+              why: C 的优先级低，只要 Q2 里还有任务，C 就轮不到
+          explain: 规则 1 管不同优先级，规则 2 管同一优先级。
+      - card:
+          title: 新来的先放最高，用完配额就降级
+          body: |
+            每一层有一个配额（allotment）：任务在这一层最多能用多少 CPU 时间。先假设配额等于一个时间片。
+
+            - 规则 3：新任务进来，放在最高优先级；
+            - 规则 4：任务在某一层用完配额（不管中间让出过几次 CPU），就降一级。
+
+            OSTEP 的例子：三个队列、时间片 10 毫秒。一个长任务进来在 Q2，跑 10 毫秒降到 Q1，再跑 10 毫秒降到 Q0，之后一直留在 Q0。
+      - item:
+          id: drop-time
+          type: number
+          prompt: 四个队列 Q3（最高）到 Q0，每层配额 10 毫秒。一个一直占用 CPU 的长任务刚进来，它独自运行。多少毫秒后它到达 Q0？
+          answer: 30
+          unit: 毫秒
+          explain: Q3 → Q2 → Q1 → Q0 降三次，每次用完 10 毫秒，共 30 毫秒。
+      - card:
+          title: 它怎样模仿 SJF
+          body: |
+            长任务 A 已经在 Q0 跑着，第 100 毫秒来了一个只要 20 毫秒的短任务 B。B 放进 Q2，比 A 优先，先跑；跑两个时间片就完成了，还没降到底层。然后 A 接着跑。
+
+            MLFQ 不知道新任务长短，先假设它短，给最高优先级。真是短任务就很快跑完；不是，就一层层降下去，表明自己是个长任务。这样近似实现了 SJF。
+      - item:
+          id: approx-sjf
+          type: choice
+          prompt: MLFQ 不知道运行时间，为什么还能让短任务先完成？
+          options:
+            - text: 新任务都从最高优先级开始，短任务在降到底层之前就跑完了
+              correct: true
+            - text: 它会先把每个任务试跑一遍量出长短
+              why: 它没有专门的“试跑”；只是边跑边根据用掉的时间降级
+            - text: 短任务的优先级是程序员写死的
+              why: 优先级完全由运行时的表现决定
+          explain: 长任务会“暴露”自己：它一直用完配额，于是被一层层降下去。
+      - card:
+          title: 两个漏洞
+          body: |
+            只有规则 1–4 还不够：
+
+            - 饥饿（starvation）：交互任务太多，高优先级一直有人，底层的长任务永远轮不到；
+            - 程序也可能变：一个长任务后来变成交互的，可它已经沉在底层了。
+
+            - 规则 5：每过一段时间 S，把所有任务都移到最高优先级。
+
+            这样底层任务至少每隔 S 就能分到一些 CPU，变了性子的任务也有机会被重新对待。
+      - item:
+          id: boost
+          type: choice
+          prompt: 规则 5（每隔 S 把所有任务提到最高优先级）主要解决什么问题？
+          options:
+            - text: 底层的长任务饿死，以及任务行为改变后优先级回不来
+              correct: true
+            - text: 让短任务跑得更快
+              why: 短任务本来就从最高优先级开始；规则 5 照顾的是长任务
+            - text: 减少上下文切换
+              why: 提升以后大家在同一层轮流，切换并不会更少
+          explain: S 设得太长，长任务会饿；太短，交互任务分到的 CPU 又不够。OSTEP 把这种只能凭经验调的数叫“巫毒常数”（voo-doo constants）。
+      - card:
+          title: 为什么规则 4 要“不管让出过几次”
+          body: |
+            早先的规则是：用完配额才降级；配额用完之前让出 CPU（比如做 I/O），就留在原层，配额重新算。
+
+            这就能被钻空子：程序每次用到配额的 99% 就发一个无关紧要的 I/O，永远留在最高层，几乎独占 CPU。
+
+            现在的规则 4 记下任务在这一层一共用了多少，用完就降，一口气用完还是分几次用完都一样。
+      - item:
+          id: game
+          type: choice
+          prompt: 一个程序每次用掉配额的 99% 就做一次 I/O。在现在的规则 4 下会怎样？
+          options:
+            - text: 它在这一层累计用完配额后照样被降级
+              correct: true
+            - text: 它永远留在最高优先级
+              why: 那是旧规则的漏洞；现在按累计用量算，分几次用完也算用完
+            - text: 它会被操作系统结束
+              why: 调度程序只调整优先级，不会因此结束程序
+          explain: 按累计时间记账，钻空子就没用了。
+      - card:
+          title: 怎么配参数
+          body: |
+            高优先级队列里多是交互任务，时间片短一点（比如 10 毫秒以内）；低优先级队列里多是长任务，时间片可以长到几百毫秒。
+
+            Solaris 的分时调度默认有 60 个队列，时间片从最高层的 20 毫秒慢慢加到最低层的几百毫秒，大约每 1 秒提升一次优先级。
+      - item:
+          id: rules-match
+          type: match
+          prompt: 把 MLFQ 的规则和它的内容连起来。
+          pairs:
+            - [规则 1, 优先级高的先跑]
+            - [规则 2, 同一优先级按 RR 轮流]
+            - [规则 3, 新任务放在最高优先级]
+            - [规则 4, 在一层用完配额就降一级]
+            - [规则 5, 每隔一段时间把所有任务提到最高优先级]
+          explain: 规则 1、2 是怎么挑，规则 3、4 是怎么调优先级，规则 5 防止饿死。
+      - item:
+          id: slices
+          type: choice
+          prompt: 为什么 MLFQ 通常给低优先级队列更长的时间片？
+          options:
+            - text: 底层多是长任务，不在乎响应快慢，时间片长可以少切换
+              correct: true
+            - text: 为了惩罚长任务
+              why: 时间片长反而让它们每次多跑一会儿
+            - text: 底层任务更重要
+              why: 底层优先级最低；时间片长只是减少切换开销
+          explain: 高层短时间片保证交互任务反应快，底层长时间片减少切换。
+  # ---------------------------------------------------------------- 虚拟内存
+  - id: address-space
+    chapter: 虚拟内存
+    title: 每个进程的私人内存：地址空间
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同一台电脑上同时运行同一个程序两次，两个进程各自打印同一个变量的地址，打印出来的数一模一样。猜一猜：它们在用同一块内存吗？
+          options:
+            - text: 不是，程序看到的地址是假的，操作系统把它们放在了不同的真实位置
+              correct: true
+            - text: 是，所以一个改了另一个也会变
+              why: 两个进程的内存是隔开的，一个改了另一个看不见
+          explain: 程序看到的地址要经过一次翻译，才变成真正的内存位置。
+      - card:
+          title: 从一个程序到好几个
+          body: |
+            最早的电脑一次只跑一个程序，它从物理内存的某个地方开始放，操作系统只是一堆库函数。
+
+            后来要分时：好几个进程轮流用 CPU。每次切换都把整个内存存到磁盘再读回来太慢了，于是让几个进程同时待在内存里，各占一块。OSTEP 的图：512KB 内存，操作系统占 0–64KB，进程 A、B、C 各占一块 64KB。
+
+            新问题来了：一个进程不能读写别人的那块。
+      - item:
+          id: why-not-swap-all
+          type: choice
+          prompt: 为什么不在每次切换进程时把整个内存存到磁盘、再把下一个进程的读进来？
+          options:
+            - text: 磁盘太慢，每次切换都读写整块内存，大部分时间都花在搬数据上
+              correct: true
+            - text: 磁盘放不下
+              why: 问题是速度：切换每秒要发生很多次
+            - text: 内存里的数据不能写到磁盘上
+              why: 可以写，暂时不用的部分确实会被换到磁盘上，只是不能每次切换都整个搬
+          explain: 所以让几个进程同时住在内存里，换人只换寄存器。
+      - card:
+          title: 地址空间长什么样
+          body: |
+            操作系统给每个进程的，是一份地址空间：从 0 开始的一片“自己的”内存。OSTEP 用一个 16KB 的小例子：
+
+            | 地址 | 放什么 |
+            |---|---|
+            | 0–1KB | 代码（指令） |
+            | 1KB 起 | 堆（malloc 的数据），往大地址长 |
+            | ……（空） | 堆和栈之间的空当 |
+            | 到 16KB 为止 | 栈（局部变量、参数、返回地址），往小地址长 |
+
+            堆和栈一个从上往下、一个从下往上，中间留着空，谁要长都有地方。
+      - item:
+          id: regions
+          type: match
+          prompt: 把内容和它在地址空间里的区域连起来。
+          pairs:
+            - [程序的指令, 代码]
+            - [malloc 分到的链表节点, 堆]
+            - [函数的局部变量和返回地址, 栈]
+          explain: 这和学 C 时画的“程序的内存地图”是同一张图，只是现在知道了它是操作系统造出来的。
+      - card:
+          title: 虚拟地址和物理地址
+          body: |
+            程序以为自己从地址 0 开始，其实它被放在物理内存的某个别处，比如 320KB。
+
+            程序发出的地址叫**虚拟地址（virtual address）**；内存条上真正的位置叫**物理地址（physical address）**。每次读写，操作系统和硬件都要把虚拟地址翻译成物理地址。这叫虚拟化内存。
+      - card:
+          title: 你看到的地址都是虚拟的
+          body: |
+            ```c
+            printf("location of code : %p\n", main);
+            printf("location of heap : %p\n", malloc(100e6));
+            int x = 3;
+            printf("location of stack: %p\n", &x);
+            ```
+
+            OSTEP 在 64 位 Mac 上的输出：
+
+            ```
+            location of code : 0x1095afe50
+            location of heap : 0x1096008c0
+            location of stack: 0x7fff691aea64
+            ```
+
+            代码在前，堆紧随其后，栈在很远的另一头。这些都是虚拟地址。
+      - item:
+          id: printed-addr
+          type: choice
+          prompt: 在 C 里用 `printf("%p", &x)` 打印一个变量的地址，看到的是什么？
+          options:
+            - text: 虚拟地址
+              correct: true
+            - text: 物理地址
+              why: 用户程序看不到物理地址，它发出和看到的都是虚拟地址
+            - text: 磁盘上的位置
+              why: 变量在内存里；打印的是它在地址空间里的位置
+          explain: 只有操作系统和硬件知道它实际在物理内存的哪里。
+      - card:
+          title: 虚拟内存的三个目标
+          body: |
+            - 透明（transparency）：程序察觉不到内存被虚拟化了，照样以为自己独占一片内存；
+            - 高效（efficiency）：不让程序明显变慢，也不浪费太多内存来记账，要靠硬件帮忙；
+            - 保护（protection）：一个进程的读写碰不到别的进程和操作系统的内存。
+
+            保护带来隔离：一个进程出错崩溃，不影响别的进程。
+      - item:
+          id: goals
+          type: match
+          prompt: 把描述和虚拟内存的目标连起来。
+          pairs:
+            - [程序不用改一行代码就能在虚拟内存上运行, 透明]
+            - [翻译地址不能让程序慢很多，也不能占太多内存, 高效]
+            - [进程 A 改不了进程 B 的内存, 保护]
+          explain: 衡量任何一种虚拟内存的做法，都看这三条。
+      - item:
+          id: isolation
+          type: choice
+          prompt: 进程 A 有一个 bug，把一个乱指的指针拿来写。有了虚拟内存的保护，会发生什么？
+          options:
+            - text: 最多弄坏 A 自己的内存或让 A 被结束，B 和操作系统不受影响
+              correct: true
+            - text: 可能写坏 B 的数据
+              why: A 发出的每个地址都按 A 自己的地址空间翻译，翻不到 B 的内存
+            - text: 整台电脑会死机
+              why: 保护的目的正是让一个进程出错不连累别人
+          explain: 这就是隔离：进程之间互不干扰，靠的正是各自的地址空间。
+
+  - id: base-bounds
+    chapter: 虚拟内存
+    title: 最简单的翻译：基址和界限
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 一个程序以为自己从地址 0 开始，操作系统其实把它放在了物理地址 32768（32KB）开始的地方。程序读虚拟地址 1000，猜一猜：真正读的是哪个物理地址？
+          answer: 33768
+          explain: 32768 + 1000 = 33768。整个地址空间平移了 32768，每个地址都加上它。
+      - card:
+          title: 先做几个简化
+          body: |
+            第一个方案很简单。先假设：
+
+            1. 每个进程的地址空间在物理内存里是连续的一整块；
+            2. 地址空间比物理内存小；
+            3. 每个地址空间一样大。
+
+            这些假设并不现实，更好的做法会一条条去掉它们。
+      - card:
+          title: 基址寄存器和界限寄存器
+          body: |
+            每个 CPU 加两个寄存器：基址（base）和界限（bounds）。操作系统把进程放进内存时，把放的起点写进基址。之后进程的每次访问：
+
+            $$物理地址 = 虚拟地址 + 基址$$
+
+            同时检查虚拟地址是否小于界限，越界就抛异常。这部分硬件叫**内存管理单元（memory management unit，MMU）**。这种做法也叫动态重定位。
+      - item:
+          id: bb-3000
+          type: number
+          prompt: 一个 4KB 的地址空间被放在物理地址 16KB（16384）。虚拟地址 3000 对应哪个物理地址？
+          answer: 19384
+          explain: 3000 + 16384 = 19384。3000 小于界限 4096，没有越界。
+      - item:
+          id: bb-4400
+          type: choice
+          prompt: 同一个进程（地址空间 4KB，基址 16KB）访问虚拟地址 4400。会怎样？
+          options:
+            - text: 越界，CPU 抛出异常，交给操作系统处理
+              correct: true
+            - text: 访问物理地址 20784
+              why: 先查界限：4400 不小于 4096，根本不做加法就报错
+            - text: 自动截断成 4400 − 4096 = 304
+              why: 硬件不会替程序“修正”地址，越界就是越界
+          explain: 界限寄存器负责保护：进程只能碰自己那一块。
+      - card:
+          title: 例题：一条指令的几次访问
+          body: |
+            进程被放在物理地址 32KB（32768）。它执行地址 128 的一条指令，这条指令从虚拟地址 15KB 读一个数。
+          reveal:
+            - title: 第 1 步：取指令也要翻译
+              body: PC 是 128，硬件先加上基址：128 + 32768 = 32896，从物理地址 32896 取出这条指令。
+            - title: 第 2 步：指令里的读数据也要翻译
+              body: 15KB = 15360，加上基址得 48128，也就是 47KB。
+            - title: 第 3 步：每一步都检查界限
+              body: 128 和 15360 都小于界限 16KB，没有越界。整个过程操作系统不用插手，全由硬件完成。
+      - item:
+          id: bb-load
+          type: number
+          prompt: 基址 32768，界限 16384。进程读虚拟地址 15KB（15360）。物理地址是多少？
+          answer: 48128
+          explain: 15360 + 32768 = 48128（47KB）。
+      - card:
+          title: 硬件要提供什么
+          body: |
+            | 硬件 | 为什么 |
+            |---|---|
+            | 用户态和内核态 | 不让用户程序做特权操作 |
+            | 基址和界限寄存器 | 每个 CPU 一对 |
+            | 翻译并检查界限 | 每次访问都做，必须快 |
+            | 修改基址、界限的特权指令 | 只有操作系统能改 |
+            | 登记异常处理程序的特权指令 | 越界时跳到操作系统 |
+            | 能抛出异常 | 越界访问时 |
+      - item:
+          id: why-priv-base
+          type: choice
+          prompt: 为什么修改基址寄存器的指令必须是特权指令？
+          options:
+            - text: 否则程序可以把基址改到别的进程那一块，读写别人的内存
+              correct: true
+            - text: 因为这条指令很慢
+              why: 和快慢无关，是为了保护
+            - text: 因为程序不知道自己被放在哪
+              why: 关键是不能让程序自己选放在哪，否则保护就没了
+          explain: 只有操作系统能改基址和界限，进程才被关在自己的那一块里。
+      - card:
+          title: 操作系统要做什么
+          body: |
+            1. 创建进程时找一块空的地方，从空闲列表（free list）里拿；
+            2. 进程结束时把那块放回空闲列表；
+            3. 上下文切换时，把旧进程的基址和界限存进它的进程结构，装入新进程的。进程停着时，操作系统还能把它整块搬到别处，只要改掉存着的基址；
+            4. 开机时登记异常处理程序。进程越界，通常直接结束它。
+      - item:
+          id: bb-switch
+          type: choice
+          prompt: 操作系统从进程 A 切换到进程 B，基址和界限寄存器要怎么处理？
+          options:
+            - text: 把 A 的值存进 A 的进程结构，再把 B 的值装进寄存器
+              correct: true
+            - text: 不用管，每个进程有自己的一对寄存器
+              why: 每个 CPU 只有一对，所有进程轮流用
+            - text: 清零
+              why: 清零后 B 的地址就翻译错了；要装入 B 自己的值
+          explain: 基址和界限也是进程状态的一部分，和其他寄存器一样要存、要装。
+      - card:
+          title: 浪费在中间
+          body: |
+            进程分到 16KB 的一整块，可它的堆和栈都不大，中间那一大段空当也占着物理内存，别人用不了。
+
+            分出去的一块里面没用上的部分，叫内部碎片（internal fragmentation）。把地址空间切成小块分别放，就能避免这种浪费。
+      - item:
+          id: internal-frag
+          type: number
+          prompt: 一个进程分到 16KB 的一整块，实际只用了代码 1KB、堆 2KB、栈 1KB。浪费了多少 KB？
+          answer: 12
+          unit: KB
+          explain: 16 − (1 + 2 + 1) = 12KB，都是堆和栈之间的空当。
+
+  - id: paging
+    chapter: 虚拟内存
+    title: 分页：切成一样大的小块
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 基址和界限要求整个地址空间连续地放在一起，中间的空当也占着内存。如果把地址空间切成很多一样大的小块，每块单独放，猜一猜好处是什么？
+          options:
+            - text: 每一小块能放进物理内存里任何一个空位，没用到的块根本不用放
+              correct: true
+            - text: 访问内存会更快
+              why: 分页让每次访问多了一步查表，要另想办法提速
+            - text: 不再需要翻译地址
+              why: 每一小块放在哪都要记下来，翻译反而多了一步查表
+          explain: 这就是分页。
+      - card:
+          title: 页和页框
+          body: |
+            把地址空间切成固定大小的页（page），把物理内存切成同样大小的**页框（page frame）**。每一页可以放进任何一个空闲的页框。
+
+            OSTEP 的小例子：地址空间 64 字节，页大小 16 字节，共 4 页（0–3）；物理内存 128 字节，共 8 个页框（0–7）。
+      - card:
+          title: 页表
+          body: |
+            每个进程有一张**页表（page table）**，记着它的每一页放在了哪个页框。例子里：
+
+            | 虚拟页号 VPN | 页框号 PFN |
+            |---|---|
+            | 0 | 3 |
+            | 1 | 7 |
+            | 2 | 5 |
+            | 3 | 2 |
+
+            每个进程的页放法都不一样，所以每个进程一张。
+      - item:
+          id: per-process
+          type: choice
+          prompt: 为什么每个进程要有自己的一张页表，而不是全系统一张？
+          options:
+            - text: 不同进程的同一个虚拟页号放在不同的页框里，各自的对应关系不一样
+              correct: true
+            - text: 为了让页表小一点
+              why: 和大小无关；是每个进程的对应关系本来就不同
+            - text: 因为每个进程的页大小不同
+              why: 页大小由硬件定，所有进程一样
+          explain: 两个进程都有虚拟页 0，一个可能在页框 3，另一个可能在页框 6。
+      - card:
+          title: 把地址拆成两半
+          body: |
+            页大小 16 = 2⁴ 字节，所以虚拟地址的低 4 位是页内偏移（offset）；64 字节的地址一共 6 位，高 2 位就是虚拟页号（VPN）。
+
+            虚拟地址 21 = 01 0101：VPN = 01 = 1，偏移 = 0101 = 5。查表，VPN 1 在页框 7（111）。偏移不变，把 VPN 换成 PFN：111 0101 = 117。
+      - card:
+          title: 你来当页表
+          body: 下面就是 21 → 117 这次翻译，可以改一改输入试试。
+          sim:
+            name: paging
+            params: { pageSize: 16, vaddr: 21, table: [3, 7, 5, 2] }
+      - item:
+          id: translate-50
+          type: sim
+          sim: paging
+          params: { pageSize: 16, vaddr: 50, table: [3, 7, 5, 2] }
+          goal: {}
+          solution: { vpn: 3, offset: 2, paddr: 34 }
+          prompt: 页大小 16 字节，页表如下。把虚拟地址 50 翻译成物理地址。
+          hint: 50 除以 16，商是页号，余数是偏移。
+          explain: 50 = 3 × 16 + 2，VPN 3，偏移 2；VPN 3 在页框 2，物理地址 2 × 16 + 2 = 34。
+      - item:
+          id: translate-fault
+          type: sim
+          sim: paging
+          params: { pageSize: 4096, vaddr: 9029, table: [5, null, 7] }
+          goal: {}
+          solution: { vpn: 2, offset: 837, paddr: 29509 }
+          prompt: 页大小 4096 字节。把虚拟地址 9029 翻译成物理地址（如果那一页在页表里写着未映射，就勾上那个复选框）。
+          explain: 9029 = 2 × 4096 + 837，VPN 2 在页框 7，物理地址 7 × 4096 + 837 = 29509。
+      - card:
+          title: 页表有多大
+          body: |
+            真实的 32 位地址、4KB 页：4KB = 2¹² 字节，偏移 12 位，VPN 20 位，一个进程有 2²⁰（约一百万）个页。每一项记一个页框号和一些标志，假设 4 字节：
+
+            $$2^{20} \times 4\ \text{B} = 4\ \text{MB}$$
+
+            每个进程一张 4MB 的表，100 个进程就是 400MB。这么大的表放不进 CPU，只能放在内存里（内核的内存里）。
+      - item:
+          id: pt-size
+          type: number
+          prompt: 32 位虚拟地址、4KB 页、页表的每一项 4 字节。一个进程的单级页表占多少 MB？
+          answer: 4
+          unit: MB
+          explain: 2³² / 2¹² = 2²⁰ 项，每项 4 字节，2²² 字节 = 4MB。
+      - item:
+          id: vpn-hex
+          type: text
+          prompt: 32 位地址、4KB 页。虚拟地址 0x00403ABC 的页内偏移是多少？（写十六进制，不写 0x）
+          answers: [ABC, '0ABC']
+          explain: 4KB 页，偏移是低 12 位，也就是最后 3 个十六进制位：ABC。前面的 0x00403 是虚拟页号。
+      - card:
+          title: 页表项里有什么
+          body: |
+            页表的每一行叫**页表项（page table entry，PTE）**，除了页框号还有几个标志位：
+
+            | 位 | 意思 |
+            |---|---|
+            | 有效位（valid） | 这一页分配了没有；无效的页一访问就陷入内核 |
+            | 保护位 | 能不能读、写、执行 |
+            | 存在位（present） | 在内存里，还是被换到了磁盘上 |
+            | 脏位（dirty） | 进了内存以后被改过没有 |
+            | 访问位（reference） | 最近被访问过没有 |
+
+            堆和栈之间的空当全标无效，不用分配页框。
+      - item:
+          id: pte-bits
+          type: match
+          prompt: 把页表项的标志位和它回答的问题连起来。
+          pairs:
+            - [有效位, 这一页属于这个进程吗]
+            - [保护位, 这一页能写吗]
+            - [存在位, 这一页现在在内存里吗]
+            - [脏位, 这一页进内存以后被改过吗]
+          explain: x86 的页表项里还有 U/S 位，决定用户态程序能不能访问这一页。
+      - card:
+          title: 也太慢了
+          body: |
+            页表在内存里。于是每次访问内存（取指令、读写数据）之前，硬件都要先从内存里取出页表项：
+
+            ```
+            VPN     = (VirtualAddress & VPN_MASK) >> SHIFT
+            PTEAddr = PTBR + VPN * sizeof(PTE)
+            ```
+
+            PTBR 是页表基址寄存器，存着当前进程页表的起点。每次访问多一次内存访问，程序可能慢一倍以上。
+      - item:
+          id: pte-addr
+          type: number
+          prompt: 页表基址寄存器 PTBR = 4096，每个页表项 4 字节。虚拟页号 5 的页表项在哪个物理地址？
+          answer: 4116
+          explain: 4096 + 5 × 4 = 4116。
+      - item:
+          id: two-problems
+          type: choice
+          multi: true
+          prompt: 只用一张放在内存里的单级页表，分页有哪两个问题？（多选）
+          options:
+            - text: 太慢：每次访问内存前都要多访问一次页表
+              correct: true
+            - text: 太大：每个进程的页表可能有几 MB
+              correct: true
+            - text: 一个进程能读写别的进程的页
+              why: 每个进程只能查到自己的页表，页表里只有它自己的页
+          explain: 解决“慢”靠在 CPU 里缓存翻译结果，解决“大”靠把页表分层。
+
+  - id: tlb
+    chapter: 虚拟内存
+    title: 翻译快一点：TLB
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 每次访问内存都要先查一次内存里的页表，慢了一倍。猜一猜：最自然的提速办法是？
+          options:
+            - text: 在 CPU 里放一个小 cache，存最近用过的那些翻译结果
+              correct: true
+            - text: 把整张页表放进 CPU 里
+              why: 一张页表可能有 4MB，CPU 里放不下，放得下也查不快
+            - text: 干脆不翻译
+              why: 不翻译就没有隔离和保护了
+          explain: 又是 cache 的老办法：把常用的放得近一点。
+      - card:
+          title: TLB
+          body: |
+            **TLB（translation lookaside buffer，地址转换旁路缓冲）**是 MMU 里的一个小 cache，存着最近用过的“虚拟页号 → 页框号”。
+
+            1. 从虚拟地址取出 VPN，先查 TLB；
+            2. 命中：直接拼出物理地址，不用访问页表；
+            3. 缺失：去内存里查页表，把这条翻译放进 TLB，再重新执行这条指令，这次就命中了。
+      - item:
+          id: tlb-steps
+          type: order
+          prompt: 一次 TLB 缺失时，硬件管理的 TLB 怎样处理？把步骤排好。
+          steps:
+            - 从虚拟地址取出 VPN，在 TLB 里没找到
+            - 按 PTBR 和 VPN 算出页表项的地址，从内存读出页表项
+            - 把这条翻译放进 TLB
+            - 重新执行这条指令，这次 TLB 命中
+          explain: 缺失的代价是多一次内存访问；命中时几乎不花时间。
+      - card:
+          title: 例子：顺着读一个数组
+          body: |
+            10 个 4 字节整数的数组，从虚拟地址 100 开始；地址 8 位，页 16 字节。a[0]–a[2] 在第 6 页，a[3]–a[6] 在第 7 页，a[7]–a[9] 在第 8 页。
+
+            第一次读完整个数组：缺失、命中、命中、缺失、命中、命中、命中、缺失、命中、命中。命中率 7 / 10 = 70%。每一页只有第一次访问缺失，因为数组元素挨在一起，这是空间局部性。
+      - item:
+          id: tlb-32
+          type: number
+          prompt: 同一个数组（10 个 4 字节整数，从虚拟地址 100 开始），页大小换成 32 字节。第一次顺着读一遍，TLB 命中率是百分之多少？
+          answer: 80
+          unit: '%'
+          hint: 32 字节一页时，地址 96–127 是一页。a[0] 到 a[9] 占地址 100–139。
+          explain: 100–127（a[0]–a[6]）在一页，128–139（a[7]–a[9]）在下一页。只有 2 次缺失，命中 8 次，80%。页越大，缺失越少。
+      - card:
+          title: 两种局部性
+          body: |
+            - 时间局部性：刚用过的，很可能马上又用。比如循环变量和循环体的指令；
+            - 空间局部性：用了地址 x，很可能马上用 x 附近的。比如顺着读数组。
+
+            循环结束后紧接着再读一遍这个数组，只要 TLB 装得下这 3 页，10 次全是命中，靠的是时间局部性。
+      - item:
+          id: second-pass
+          type: choice
+          prompt: 刚读完整个数组，马上再读一遍，10 次全部命中。这主要是因为哪种局部性？
+          options:
+            - text: 时间局部性：刚用过的翻译很快又被用到
+              correct: true
+            - text: 空间局部性
+              why: 第一遍里每页后几个元素命中，靠的是空间局部性；第二遍连第一个都命中，是因为同样的页刚用过
+          explain: TLB 和所有 cache 一样，靠这两种局部性才有用。
+      - card:
+          title: TLB 缺失由谁处理
+          body: |
+            - 硬件处理：x86 就是这样。硬件知道页表在哪（CR3 寄存器指着），缺失时自己去查；
+            - 软件处理：MIPS、SPARC 这类 RISC 处理器（和 RISC-V 一样指令简单规整的一类），缺失时硬件只抛出异常，陷入内核，由内核的处理程序查页表，用特权指令写进 TLB，再从陷入返回。
+
+            注意：系统调用返回后从陷入的下一条指令继续；TLB 缺失返回后要重新执行引起缺失的那一条。
+      - item:
+          id: tlb-retry
+          type: choice
+          prompt: 软件管理的 TLB 发生缺失，内核处理完后从陷入返回。程序从哪条指令继续？
+          options:
+            - text: 重新执行引起 TLB 缺失的那一条
+              correct: true
+            - text: 那一条的下一条
+              why: 那条指令要访问的内存还没访问成功，跳过它程序就错了
+            - text: 从 main 重新开始
+              why: 只需要重做这一条指令
+          explain: 这一点和系统调用不同：系统调用已经办完了事，所以返回到下一条。
+      - card:
+          title: TLB 里存了什么
+          body: |
+            典型的 TLB 有 32、64 或 128 项，是全相联的：一条翻译可以放在任何一项，查的时候所有项同时比较。每一项是：
+
+            | VPN | PFN | 其他位 |
+            |---|---|---|
+
+            其他位有有效位、保护位、地址空间标识符、脏位等。TLB 的有效位只表示“这一项里有没有存着翻译”，和页表项的有效位（这一页分配了没有）不是一回事。
+      - item:
+          id: tlb-valid
+          type: choice
+          prompt: 刚开机时 TLB 的每一项都是无效的。这说明什么？
+          options:
+            - text: TLB 里还没有缓存任何翻译
+              correct: true
+            - text: 所有的页都还没分配
+              why: 那是页表项有效位的意思；TLB 的有效位只说这一项有没有存东西
+            - text: 进程不能访问内存
+              why: 能访问，只是第一次都会 TLB 缺失，再去查页表
+          explain: 程序跑起来以后，TLB 被一项项填满。
+      - card:
+          title: 换进程时 TLB 怎么办
+          body: |
+            进程 P1 的虚拟页 10 在页框 100，P2 的虚拟页 10 在页框 170。换到 P2 以后，如果 TLB 里还留着 P1 的“10 → 100”，P2 就读到 P1 的内存了。
+
+            两种办法：切换时清空 TLB（把有效位全设成 0），代价是新进程开始时一直缺失；或者每一项加一个地址空间标识符（ASID），像 pid，但位数少（比如 8 位），不同进程的翻译可以同时留在 TLB 里。
+      - item:
+          id: asid
+          type: choice
+          prompt: TLB 里带了 ASID。从 P1 切换到 P2 时，还需要清空 TLB 吗？
+          options:
+            - text: 不需要，只要把当前 ASID 改成 P2 的，只有 ASID 匹配的项才算命中
+              correct: true
+            - text: 需要，不然会用到 P1 的翻译
+              why: 有了 ASID，P1 的项带着 P1 的标识，P2 查的时候对不上
+            - text: 需要，因为 TLB 只能存一个进程的翻译
+              why: 有了 ASID 就能同时存好几个进程的
+          explain: 不清空，切回 P1 时它的翻译可能还在，省下很多缺失。
+      - card:
+          title: TLB 满了换掉谁
+          body: |
+            常见的是换掉最久没用过的一项（LRU），或者随机换一项。
+
+            LRU 也有很糟的时候：TLB 有 n 项，程序循环访问 n + 1 个页。每次要用的那一页恰好刚被换出去，每次访问都缺失；随机替换反而好得多。
+
+            程序短时间里用的页比 TLB 能装的多，叫超出 TLB 覆盖范围。解决办法之一是大页：一项管一大片（比如 4MB），数据库这类程序常用。
+      - item:
+          id: lru-loop
+          type: number
+          prompt: TLB 只有 4 项，用 LRU 替换。程序反复按 1、2、3、4、5、1、2、3、4、5……的顺序访问 5 个页。TLB 装满以后，每 5 次访问里有几次命中？
+          answer: 0
+          explain: 要访问 1 时，最久没用的恰好是 1，它刚被换出去；之后每一次都是这样，命中 0 次。
+      - item:
+          id: coverage
+          type: number
+          prompt: 一个 TLB 有 64 项，页大小 4KB。TLB 一次最多覆盖多少 KB 的内存？
+          answer: 256
+          unit: KB
+          explain: 64 × 4KB = 256KB。程序常用的数据超过 256KB 就会频繁缺失；改用 4MB 的大页，64 项能覆盖 256MB。
+
+  - id: multilevel
+    chapter: 虚拟内存
+    title: 页表小一点：多级页表
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个进程的地址空间大部分是堆和栈之间的空当，可是线性页表给每一页都留了一项，大多数项都是无效的。猜一猜：怎样省掉这些空项？
+          options:
+            - text: 把页表也切成一页一页，整页都无效的那几页干脆不分配
+              correct: true
+            - text: 把无效的项删掉，把有效的项挤在一起
+              why: 线性页表靠 VPN 直接当下标找项，挤在一起就找不到了
+            - text: 没办法，页表必须完整
+              why: 下面就讲办法
+          explain: 这样页表就从一个长数组变成了一棵树。
+      - card:
+          title: 先试试大页
+          body: |
+            最简单的办法是页大一点。32 位地址、16KB 页：偏移 14 位，VPN 18 位，页表 2¹⁸ × 4 字节 = 1MB，小了 4 倍。
+
+            代价是内部碎片：程序只用了一页的一点点，整页都要占着。所以大多数系统平时用 4KB（x86）或 8KB（SPARCv9）的页。
+      - item:
+          id: big-pages
+          type: number
+          prompt: 32 位虚拟地址、64KB 页、每个页表项 4 字节。单级页表多少 KB？
+          answer: 256
+          unit: KB
+          explain: 64KB = 2¹⁶，VPN 16 位，2¹⁶ × 4 = 262144 字节 = 256KB。
+      - card:
+          title: 多级页表
+          body: |
+            **多级页表（multi-level page table）**的做法：
+
+            1. 把线性页表切成一块块，每块正好一页大；
+            2. 一整块里的页表项全都无效，这一块就不分配；
+            3. 另用一张**页目录（page directory）**，每块一项（PDE），记着这块页表在哪个页框，或者整块都无效。
+
+            访问一个地址时，先查页目录，再查那一块页表。它像一棵树，根是页目录。
+      - card:
+          title: 例子：16KB 的地址空间
+          body: |
+            地址空间 16KB，页 64 字节：地址 14 位，偏移 6 位，VPN 8 位，共 256 个页表项，每项 4 字节，整张表 1KB，正好切成 16 页，每页 16 项。
+
+            页目录要 16 项，用 VPN 的高 4 位选；低 4 位选那一页里的第几项。这个进程只有开头和末尾有内容，只需要分配 3 页：页目录 1 页，有内容的两块页表各 1 页，而不是 16 页。
+      - item:
+          id: pd-bits
+          type: number
+          prompt: 上面这个例子里，VPN 有 8 位。有几位用来在页目录里选项？
+          answer: 4
+          explain: 页表切成 16 页，页目录要 16 项，2⁴ = 16，所以是 VPN 的高 4 位。
+      - card:
+          title: 例题：两级页表翻译一个地址
+          body: 翻译虚拟地址 0x3F80 = 11 1111 1000 0000。页目录的第 15 项指向页框 101；页框 101 里那块页表的第 14 项写着页框 55。
+          reveal:
+            - title: 第 1 步：拆出 VPN 和偏移
+              body: 高 8 位 1111 1110 是 VPN（254），低 6 位 000000 是偏移（0）。
+            - title: 第 2 步：用 VPN 的高 4 位查页目录
+              body: 1111 = 15，第 15 项有效，这块页表在页框 101。
+            - title: 第 3 步：用 VPN 的低 4 位查那块页表
+              body: 1110 = 14，第 14 项写着页框 55。
+            - title: 第 4 步：拼出物理地址
+              body: 55 × 64 + 0 = 3520，也就是 0x0DC0。
+      - item:
+          id: ml-translate
+          type: number
+          prompt: 还是这个例子（页 64 字节，虚拟页 254 在页框 55）。虚拟地址 0x3F85 对应的物理地址是多少？（写十进制）
+          answer: 3525
+          explain: 0x3F85 的偏移是低 6 位 000101 = 5，VPN 仍是 254，在页框 55：55 × 64 + 5 = 3525（0x0DC5）。
+      - card:
+          title: 代价：用时间换空间
+          body: |
+            TLB 命中时，多级页表和线性页表一样快，根本不查页表。TLB 缺失时，两级页表要从内存读两次（页目录一次、页表项一次），线性页表只读一次。
+
+            另一个代价是复杂：查表的硬件或内核代码更难写。为了省大量内存，这是值得的。
+      - item:
+          id: ml-cost
+          type: choice
+          prompt: 用两级页表代替线性页表，什么时候会变慢？
+          options:
+            - text: TLB 缺失时，要多读一次内存
+              correct: true
+            - text: 每次访问内存都会变慢
+              why: TLB 命中时根本不查页表，和线性页表一样快
+            - text: 永远不会变慢
+              why: TLB 缺失时多一次内存访问
+          explain: 好在 TLB 的命中率通常很高。
+      - card:
+          title: 两级还不够时
+          body: |
+            30 位地址、512 字节的页：偏移 9 位，VPN 21 位。一页 512 字节能放 512 / 4 = 128 个页表项，所以每一级用 7 位。
+
+            21 位的 VPN 用掉低 7 位以后，还剩 14 位给页目录：2¹⁴ 项，要占 128 页，页目录本身又太大了。于是再加一级：把页目录也切成页，上面再放一张目录。21 = 7 + 7 + 7，三级。
+      - item:
+          id: ptes-per-page
+          type: number
+          prompt: 页大小 4KB，每个页表项 4 字节。一页能放多少个页表项？
+          answer: 1024
+          explain: 4096 / 4 = 1024 = 2¹⁰，所以每一级用 10 位。32 位地址去掉 12 位偏移剩 20 位，正好分成 10 + 10 两级。
+      - item:
+          id: why-multilevel
+          type: choice
+          prompt: 原技能树的问题：为什么需要多级页表？
+          options:
+            - text: 只给实际用到的那部分地址分配页表，地址空间里大片的空当不占内存
+              correct: true
+            - text: 让地址翻译更快
+              why: TLB 缺失时它反而更慢；它省的是空间
+            - text: 让每个进程能用更大的页
+              why: 页大小不变；变的是页表的组织方式
+          explain: 32 位地址的单级页表要 4MB，而一个小程序实际只用了几页，多级页表只为这几页分配。
+
+  - id: swapping
+    chapter: 虚拟内存
+    title: 内存不够时：交换空间和缺页
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你同时开了很多程序，它们要的内存加起来比电脑装的内存还多。猜一猜：为什么它们还能运行？
+          options:
+            - text: 暂时不用的页被搬到磁盘上，要用时再搬回来
+              correct: true
+            - text: 操作系统把内存压缩了一半
+              why: 有的系统确实会压缩内存，但 OSTEP 这里讲的基本办法是借用磁盘
+            - text: 超出的部分程序根本没用到，所以没关系
+              why: 它们可能都会用到，只是不一定同时用
+          explain: 把磁盘当成内存的后备。
+      - card:
+          title: 交换空间
+          body: |
+            在磁盘上留出一块地方，按页为单位把内存里的页搬出去（换出）、搬回来（换入），叫**交换空间（swap space）**。OSTEP 的小例子：物理内存 4 页，交换空间 8 页，三个进程各有一部分页在内存、其余在磁盘；第四个进程的页全在磁盘上。
+
+            程序的代码页不一定进交换空间：可执行文件本来就在磁盘上，需要时从那里读。
+      - card:
+          title: 存在位和缺页
+          body: |
+            页表项里的存在位：1 表示这一页在内存里，一切照常；0 表示在磁盘上。
+
+            访问一个存在位是 0 的页，叫**缺页（page fault）**。硬件陷入内核，由缺页处理程序（page-fault handler）来处理。
+      - item:
+          id: present-zero
+          type: choice
+          prompt: TLB 缺失后查页表，这一页有效，但存在位是 0。接下来会发生什么？
+          options:
+            - text: 缺页：陷入内核，由缺页处理程序把这一页从磁盘读进来
+              correct: true
+            - text: 进程被结束
+              why: 页是有效的（属于这个进程），只是不在内存里；无效的页才会让进程被结束
+            - text: 读到全是 0 的数据
+              why: 真正的数据在磁盘上，要先读回来
+          explain: 有效位看“是不是你的”，存在位看“在不在内存”。
+      - card:
+          title: 处理一次缺页
+          body: |
+            1. 找一个空闲的页框；没有就先换出一页（换出哪一页由置换策略决定）；
+            2. 磁盘位置记在哪？页表项里原来放页框号的位，可以改放这一页在磁盘上的地址；
+            3. 发起磁盘读。读的这段时间，这个进程处在阻塞状态，操作系统去运行别的进程；
+            4. 读完了，更新页表项（存在位改成 1，填上页框号），重新执行那条指令。这次 TLB 缺失，再重试一次就 TLB 命中了。
+      - item:
+          id: fault-order
+          type: order
+          prompt: 把处理一次缺页的步骤排好。
+          steps:
+            - 程序访问一页，页表项的存在位是 0，陷入内核
+            - 内核找到一个空闲页框（必要时先换出一页）
+            - 发起磁盘读，这个进程阻塞，别的进程运行
+            - 磁盘读完，更新页表项：存在位设为 1，填上页框号
+            - 重新执行引起缺页的那条指令
+          explain: 磁盘很慢，所以等的时候让别的进程用 CPU，又是一次 I/O 和计算的重叠。
+      - card:
+          title: 为什么缺页让操作系统处理
+          body: |
+            TLB 缺失可以交给硬件，缺页却总是交给操作系统。原因：缺页要读磁盘，磁盘本来就慢，内核多执行一些指令也不显得慢；而且要读磁盘，硬件得懂交换空间、懂怎样发起磁盘 I/O，这些都是操作系统的事。
+      - card:
+          title: 缺页的代价
+          body: |
+            平均访问时间（AMAT）：
+
+            $$AMAT = T_M + P_{缺页} \times T_D$$
+
+            OSTEP 的例子：访问内存 $T_M$ ≈ 100 纳秒，访问磁盘 $T_D$ ≈ 10 毫秒。命中率 90% 时，AMAT ≈ 100 纳秒 + 0.1 × 10 毫秒 ≈ 1 毫秒；命中率 99.9% 时 ≈ 10.1 微秒，快了约 100 倍。
+
+            哪怕很少的缺页，也会让程序慢得像在用磁盘。
+      - item:
+          id: amat
+          type: number
+          prompt: 访问内存 100 纳秒，访问磁盘 10 毫秒，缺页率 1%。平均一次访问多少微秒？
+          answer: 100.1
+          unit: 微秒
+          explain: 0.1 微秒 + 0.01 × 10000 微秒 = 0.1 + 100 = 100.1 微秒，比全在内存里慢了约 1000 倍。
+      - card:
+          title: 不等到满了才换
+          body: |
+            等内存全满了才换出，就太被动了。多数系统设一个低水位（LW）和一个高水位（HW）：空闲页少于 LW 时，后台一个专门的线程（交换守护进程）开始换出页面，直到空闲页达到 HW 再停下来。
+
+            一次换出好几页，还能把要写的页凑在一起，一次写到磁盘上，比一页一页写快。
+      - item:
+          id: watermark
+          type: choice
+          prompt: 低水位 LW = 10 页、高水位 HW = 30 页。空闲页从 12 掉到了 9，会发生什么？
+          options:
+            - text: 后台线程开始换出页面，一直到空闲页达到 30
+              correct: true
+            - text: 换出 1 页，让空闲页回到 10
+              why: 它一直换到高水位 HW 才停，一次腾出一大批
+            - text: 等内存全满了才换
+              why: 设水位就是为了不等到满
+          explain: 提前、成批地腾地方，缺页时就不用临时等着换出。
+      - card:
+          title: 什么时候把页读进来
+          body: |
+            大多数页是按需调页（demand paging）：真正访问到时才读进来。这也是为什么创建进程时，现代系统不把整个程序一次装进内存：用到哪页，缺页时再读哪页。
+
+            操作系统也可以猜：读进了代码页 P，多半很快要用 P + 1，就提前读进来，叫预取（prefetching）。
+      - item:
+          id: demand
+          type: choice
+          prompt: 一个程序刚启动就立刻运行，可它的可执行文件有几百 MB。现代系统是怎样做到的？
+          options:
+            - text: 只建好页表，页都标成不在内存；运行中用到哪一页，就缺页、读进哪一页
+              correct: true
+            - text: 先把几百 MB 全读进内存，只是读得很快
+              why: 现代系统不这么做，那样启动会很慢，没用到的部分也白读了
+            - text: 程序直接在磁盘上运行
+              why: CPU 只能执行内存里的指令
+          explain: 按需调页让“懒加载”成为可能，这正是进程那一课说的“用到哪一块才装哪一块”。
+
+  - id: replacement
+    chapter: 虚拟内存
+    title: 换出谁：页面置换
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 内存满了，又要读进新的一页，必须换出一页。如果你能预知未来，换出哪一页最好？
+          options:
+            - text: 下一次用到得最晚的那一页
+              correct: true
+            - text: 最早进来的那一页
+              why: 最早进来的可能马上就要用
+            - text: 用得最多的那一页
+              why: 用得多的往往马上又要用，换出去只会再缺页
+          explain: Belady 证明了这就是最优的做法，叫最优置换（OPT）。
+      - card:
+          title: 最优置换
+          body: |
+            最优置换（OPT，Belady 提出）：换出下一次访问离现在最远的那一页。别的页都会先被用到，换掉最远的那个最划算。
+
+            OSTEP 的例子：3 个页框，访问 0, 1, 2, 0, 1, 3, 0, 3, 1, 2, 1。前三次缺页是因为内存一开始是空的，叫冷启动缺页（compulsory miss）。最优置换一共命中 6 次、缺页 5 次，命中率 6 / 11 ≈ 54.5%。
+
+            它要知道未来，所以实际做不出来，只用来当标杆。
+      - card:
+          title: 看最优置换走一遍
+          body: 每一列是一次访问，表格显示访问后三个页框里各是哪一页。访问 3 时内存已满：0 下次在第 7 次访问、1 在第 9 次、2 在第 10 次，2 最远，换出 2。
+          sim:
+            name: replace
+            params: { frames: 3, refs: [0, 1, 2, 0, 1, 3, 0, 3, 1, 2, 1], policy: OPT }
+      - item:
+          id: opt-sim
+          type: sim
+          sim: replace
+          params: { frames: 3, refs: [1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5], policy: OPT, help: true }
+          goal: {}
+          solution: [3, 4, 1, 3]
+          prompt: 你来当最优置换：每次缺页而内存已满时，点要换出的页。
+          hint: 看每一页“下次用在第几个引用”，挑最晚的；后面不再用到的最先换。
+          explain: 共缺页 7 次。访问 4 时 1、2 马上要用，3 最远，换出 3；访问 5 时换出 4；访问 3 时 1 和 2 都不再用到，任选一个，这里换出 1；访问 4 时 2 和 3 都不再用到，又任选一个，这里换出 3。
+      - card:
+          title: 先进先出
+          body: |
+            FIFO：换出最早进来的那一页。实现简单：页进来时排进一个队列，换的时候取队头。
+
+            同一个例子（0, 1, 2, 0, 1, 3, 0, 3, 1, 2, 1，3 个页框），FIFO 只命中 4 次，命中率 36.4%。它不管一页是不是刚刚还在用。
+      - item:
+          id: fifo-sim
+          type: sim
+          sim: replace
+          params: { frames: 3, refs: [7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2], policy: FIFO, help: true }
+          goal: { misses: 10 }
+          solution: [7, 0, 1, 2, 3, 0, 4]
+          prompt: 原技能树的练习：引用串 7 0 1 2 0 3 0 4 2 3 0 3 2，3 个页框，你来当 FIFO。
+          explain: FIFO 一共缺页 10 次，每次换出的是最早进来的页：7、0、1、2、3、0、4。
+      - card:
+          title: Belady 异常
+          body: |
+            一般来说，内存越大，命中率越高。可 Belady 等人找到一个引用串：1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5。用 FIFO，3 个页框缺页 9 次，4 个页框反而缺页 10 次。
+
+            LRU（下面讲）不会这样：它有“栈性质”，大小为 N + 1 的内存里总包含大小为 N 时的那些页。FIFO 和随机没有这个性质。
+      - item:
+          id: belady
+          type: sim
+          sim: replace
+          params: { frames: 4, refs: [1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5], policy: FIFO }
+          goal: { misses: 10 }
+          solution: [1, 2, 3, 4, 5, 1]
+          prompt: 同一个引用串 1 2 3 4 1 2 5 1 2 3 4 5，给 4 个页框，你来当 FIFO。数一数缺页次数。
+          explain: 缺页 10 次，比 3 个页框时的 9 次还多。
+      - card:
+          title: 随机和 LRU
+          body: |
+            随机（Random）：随便挑一页换出。好坏全看运气：OSTEP 把上面的例子跑了一万次，略多于 40% 的时候和最优置换一样好。
+
+            最近最少使用（LRU）：用历史来猜未来，换出最久没被访问过的那一页。刚用过的很可能又要用（时间局部性）。同一个例子里，LRU 命中 6 次，和最优置换一样。
+      - item:
+          id: lru-sim
+          type: sim
+          sim: replace
+          params: { frames: 3, refs: [7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2], policy: LRU, help: true }
+          goal: { misses: 9 }
+          solution: [7, 1, 2, 3, 0, 4]
+          prompt: 还是 7 0 1 2 0 3 0 4 2 3 0 3 2、3 个页框，这次你来当 LRU。
+          hint: 看每一页“上次用在第几个引用”，挑最早的。
+          explain: LRU 缺页 9 次，比 FIFO 少 1 次。
+      - item:
+          id: fifo-count
+          type: number
+          prompt: 引用串 7 0 1 2 0 3 0 4 2 3 0 3 2，3 个页框，用 FIFO。缺页几次？
+          answer: 10
+          explain: 13 次访问里只有第 5 次（0）、第 12 次（3）、第 13 次（2）命中，其余 10 次缺页，其中前 3 次是冷启动缺页。LRU 是 9 次。
+      - card:
+          title: 近似 LRU：时钟算法
+          body: |
+            真的 LRU 要每次访问都记时间，太贵了。硬件只给每页一个访问位（use bit）：这一页被读写时设成 1。
+
+            时钟算法（clock）：所有页排成一圈，一根“指针”转着看。指着的页访问位是 1，就把它清成 0，往下走；是 0，就换出它。
+
+            还可以优先换出干净的页：脏页换出前要先写回磁盘，干净页直接丢掉就行。
+      - item:
+          id: clock
+          type: choice
+          prompt: 时钟指针依次指向页 A、B、C，它们的访问位是 1、1、0。要换出一页，结果是？
+          options:
+            - text: 换出 C，并且 A 和 B 的访问位被清成 0
+              correct: true
+            - text: 换出 A，它最先被指到
+              why: A 的访问位是 1，说明最近用过，先清成 0 放过它
+            - text: 换出 A 和 B
+              why: 一次只换出一页：找到第一个访问位是 0 的
+          explain: 访问位是 1 的页得到“第二次机会”。
+      - card:
+          title: 抖动
+          body: |
+            几个进程正在用的页加起来比物理内存还多，系统不停地缺页、换页，几乎干不了正事，叫抖动（thrashing）。
+
+            早期系统的办法是准入控制：先只运行一部分进程，让它们正在用的页（工作集）放得下。有的 Linux 版本更粗暴：内存不够时运行 OOM killer，挑一个占内存多的进程结束掉。
+      - item:
+          id: thrashing
+          type: choice
+          prompt: 一台机器上同时运行的进程正在用的页加起来远超物理内存。会发生什么？
+          options:
+            - text: 几乎每次访问都缺页，大部分时间花在读写磁盘上，所有进程都慢得动不了
+              correct: true
+            - text: 只有最后启动的那个进程慢
+              why: 大家互相把对方的页挤出去，每个进程都受影响
+            - text: 操作系统把多出来的进程自动换到另一台电脑上
+              why: 单机的操作系统做不到；办法是少运行几个，或者结束一些进程
+          explain: 少做一点、做好，比什么都同时做、都做不好强。
+  # ---------------------------------------------------------------- 同步与隔离
+  - id: memory-model
+    chapter: 同步与隔离
+    title: 哪些变量是几个线程共用的
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个线程运行同一个函数，函数里有一个局部变量 `int t;`。猜一猜：它们用的是同一个 t 吗？
+          options:
+            - text: 不是，每个线程在自己的栈上各有一个 t
+              correct: true
+            - text: 是，同一个进程的线程什么都共用
+              why: 线程共用地址空间，但每个线程有自己的栈，局部变量在各自的栈上
+          explain: 不过“各有一个”不等于“别人碰不到”。这一课用 CS:APP 的线程内存模型讲清楚。
+      - card:
+          title: 线程内存模型
+          body: |
+            CS:APP 的说法：几个线程运行在同一个进程里，每个线程有自己的线程上下文：
+
+            - 线程 ID、栈、栈指针、PC、条件码（记着上一次运算结果是否为 0、是否溢出的几个标志位）、通用寄存器。
+
+            其余的进程上下文所有线程共用：
+
+            - 地址空间里的代码、数据、堆、共享库；
+            - 打开的文件。
+      - card:
+          title: 实际上没有那么严
+          body: |
+            寄存器是真的分开的，别的线程碰不到。可栈并没有被保护：栈也在共用的地址空间里，一个线程只要拿到指向另一个线程栈上变量的指针，就能读写它。
+
+            概念上“栈是私有的”，实际上“别人拿到地址就能改”，这个落差常常引出 bug。
+      - item:
+          id: other-stack
+          type: choice
+          prompt: 线程 1 把自己栈上一个局部变量的地址存进了一个全局指针。线程 2 能通过这个指针改这个变量吗？
+          options:
+            - text: 能，所有线程的栈都在同一个地址空间里
+              correct: true
+            - text: 不能，栈是线程私有的，硬件会阻止
+              why: 只有寄存器是真正分开的；栈只是“各用各的”，并没有硬件保护
+            - text: 不能，局部变量没有地址
+              why: 局部变量在栈上，有地址，& 就能取到
+          explain: 这正是下面那个例子里 msgs 被共享的原因。
+      - card:
+          title: 变量放在哪里
+          body: |
+            | 变量 | 定义在哪 | 有几份 |
+            |---|---|---|
+            | 全局变量 | 函数外面 | 整个进程只有 1 份 |
+            | 局部变量 | 函数里面、不带 static | 每个运行这个函数的线程，在自己的栈上 1 份 |
+            | 局部 static 变量 | 函数里面、带 static | 整个进程只有 1 份，和全局变量一样 |
+      - item:
+          id: instances
+          type: match
+          prompt: 三个线程都运行同一个函数。把变量和它一共有几份连起来。
+          pairs:
+            - [函数外面定义的 int total, 1 份]
+            - ['函数里的 static int calls', 1 份（和全局变量一样）]
+            - [函数里的 int i, 3 份，每个线程的栈上一份]
+          explain: static 让局部变量活得和全局变量一样久，也就只有一份。
+      - card:
+          title: CS:APP 的例子
+          body: |
+            ```c
+            char **ptr;                 /* 全局变量 */
+            void *thread(void *vargp) {
+                long myid = (long) vargp;
+                static int cnt = 0;
+                printf("[%ld]: %s (cnt=%d)\n", myid, ptr[myid], ++cnt);
+                return NULL;
+            }
+            int main(void) {
+                long i;
+                pthread_t tid;
+                char *msgs[2] = { "Hello from foo", "Hello from bar" };
+                ptr = msgs;
+                for (i = 0; i < 2; i++)
+                    pthread_create(&tid, NULL, thread, (void *) i);
+                pthread_exit(NULL);     /* 主线程结束；对等线程跑完后进程才退出 */
+            }
+            ```
+
+            一个变量是共享的，当且仅当它的某一份被不止一个线程用到。
+      - item:
+          id: shared-vars
+          type: choice
+          multi: true
+          prompt: 下面这个程序有主线程和两个对等线程。哪些变量是共享的？（多选）
+          code: |
+            char **ptr;                 /* 全局变量 */
+            void *thread(void *vargp) {
+                long myid = (long) vargp;
+                static int cnt = 0;
+                printf("[%ld]: %s (cnt=%d)\n", myid, ptr[myid], ++cnt);
+                return NULL;
+            }
+            int main(void) {
+                long i;
+                pthread_t tid;
+                char *msgs[2] = { "Hello from foo", "Hello from bar" };
+                ptr = msgs;
+                for (i = 0; i < 2; i++)
+                    pthread_create(&tid, NULL, thread, (void *) i);
+                pthread_exit(NULL);     /* 主线程结束；对等线程跑完后进程才退出 */
+            }
+          lang: c
+          options:
+            - text: ptr
+              correct: true
+            - text: cnt
+              correct: true
+            - text: msgs
+              correct: true
+            - text: i
+              why: i 在主线程的栈上，只有主线程用；传给线程的是它的值的一份副本
+            - text: myid
+              why: 每个对等线程在自己的栈上有一个 myid，各用各的
+          explain: ptr 是全局变量，三个线程都用；cnt 是局部 static，只有 1 份，两个对等线程都用；msgs 在主线程的栈上，对等线程通过 ptr 间接读它。i 和 myid 不共享。
+      - item:
+          id: myid-count
+          type: number
+          prompt: CS:APP 的 sharing.c 里，两个对等线程都运行 thread 函数，函数里有一个局部变量 `long myid`。程序运行时 myid 一共有几份？
+          answer: 2
+          explain: 每个对等线程的栈上一份：一份是 0，一份是 1。
+      - card:
+          title: 共享的就要小心
+          body: |
+            共享变量是线程之间传数据的方便办法：一个写，另一个就能读到。可几个线程同时去改同一个共享变量时，结果可能出错。
+
+            上面的 `++cnt` 就有这个风险：两个线程同时加，cnt 可能少加一次。
+      - item:
+          id: risky
+          type: choice
+          prompt: 下面哪个变量在多线程程序里最需要小心？
+          options:
+            - text: 好几个线程都会去改的全局计数器
+              correct: true
+            - text: 每个线程函数里自己的循环变量
+              why: 循环变量在各自的栈上，没人和它抢
+            - text: 只在程序开始时写一次、之后只读的全局配置
+              why: 大家都只读，不会互相改乱
+          explain: 被不止一个线程用到、而且有人写，才会出问题。
+
+  - id: race
+    chapter: 同步与隔离
+    title: 两个线程一起加 1：竞态条件
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个线程共用一个全局变量 counter（初始 0），各自把它加 1，每个线程加一千万次。在多核电脑上跑完，counter 是多少？
+          options:
+            - text: 常常不到两千万，而且每次运行结果都不一样
+              correct: true
+            - text: 一定是两千万
+              why: 只有一个线程时是这样；两个线程同时加，会互相覆盖
+            - text: 一定是一千万
+              why: 两个线程的加法大部分都生效了，只是会丢掉一部分
+          explain: OSTEP 实际运行的结果：一次是 20000000，一次是 19345221，又一次是 19221041。
+      - card:
+          title: 加 1 其实是三条指令
+          body: |
+            `counter = counter + 1;` 编译成 x86 是三条指令（counter 在地址 0x8049a1c）：
+
+            ```
+            mov 0x8049a1c, %eax   ; 把 counter 读进寄存器 eax
+            add $0x1, %eax        ; 寄存器加 1
+            mov %eax, 0x8049a1c   ; 写回 counter
+            ```
+
+            每个线程有自己的一组寄存器（上下文切换时存、装），所以两个线程的 eax 是两份。
+      - card:
+          title: 出错的那种交错
+          body: |
+            counter 原来是 50：
+
+            1. 线程 1 读出 50，加 1，eax = 51；
+            2. 这时时钟中断，切到线程 2；
+            3. 线程 2 读出 counter，还是 50，加 1，写回 51；
+            4. 切回线程 1，它把自己的 eax（51）写回去。
+
+            加了两次，counter 却只从 50 变成 51。
+      - item:
+          id: lost-update
+          type: number
+          prompt: counter 原来是 50。两个线程各执行一次“读到寄存器、加 1、写回”，执行顺序是：线程 1 读，线程 2 读，线程 2 加 1，线程 2 写回，线程 1 加 1，线程 1 写回。最后 counter 是多少？
+          answer: 51
+          explain: 两个线程都读到了 50，各自算出 51，后写回的覆盖了先写回的。
+      - card:
+          title: 你来当调度程序
+          body: 两个线程都执行 t = x、t = t + 1、x = t，t 是各自的局部变量。点按钮决定下一步让谁走，看看 x 能被你变成几。
+          sim:
+            name: threads
+            params:
+              shared: { x: 0 }
+              threads:
+                - { name: T1, locals: { t: 0 }, steps: ["t = x", "t = t + 1", "x = t"] }
+                - { name: T2, locals: { t: 0 }, steps: ["t = x", "t = t + 1", "x = t"] }
+      - item:
+          id: race-sim
+          type: sim
+          sim: threads
+          params:
+            shared: { x: 0 }
+            threads:
+              - { name: T1, locals: { t: 0 }, steps: ["t = x", "t = t + 1", "x = t"] }
+              - { name: T2, locals: { t: 0 }, steps: ["t = x", "t = t + 1", "x = t"] }
+          goal: { final: { x: 1 } }
+          solution: [0, 1, 0, 0, 1, 1]
+          prompt: 安排两个线程的执行顺序，让两次加 1 之后 x 只等于 1。
+          hint: 要让一次加法丢掉，两个线程都得在对方写回之前读到 x。
+          explain: 两个线程都先读到 0，各自算出 1，谁后写回都是 1。
+      - card:
+          title: 竞态条件和临界区
+          body: |
+            结果取决于几个线程执行的先后时机，叫**竞态条件（race condition）**，也叫数据竞争。有竞态的程序每次运行结果可能不同，叫不确定的程序。
+
+            访问共享变量、不能让几个线程同时执行的那段代码，叫**临界区（critical section）**。我们要的是互斥（mutual exclusion）：一个线程在临界区里时，别的线程进不来。
+      - item:
+          id: race-terms
+          type: match
+          prompt: 把概念和它的意思连起来。
+          pairs:
+            - [竞态条件, 结果取决于线程执行的先后时机]
+            - [临界区, 访问共享变量、不能被几个线程同时执行的代码]
+            - [互斥, 一个线程在临界区里时，别的线程进不来]
+          explain: 有了互斥，临界区就不会被交错执行，竞态条件也就没了。
+      - item:
+          id: race-transfer
+          type: sim
+          sim: threads
+          params:
+            shared: { x: 0 }
+            threads:
+              - { name: T1, locals: { t: 0 }, steps: ["t = x", "t = t + 1", "x = t"] }
+              - { name: T2, locals: { u: 0 }, steps: ["u = x", "u = u + 2", "x = u"] }
+          goal: { final: { x: 1 } }
+          solution: [0, 1, 1, 1, 0, 0]
+          prompt: T1 把 x 加 1，T2 把 x 加 2。正确的结果应该是 3。安排执行顺序，让 x 最后等于 1。
+          hint: 要让 T2 的加 2 被覆盖掉，T1 必须先读、最后写。
+          explain: T1 先读到 0；T2 读到 0、算出 2、写回；T1 再算出 1、写回，覆盖了 T2 的结果。
+      - card:
+          title: 想要原子的操作
+          body: |
+            如果有一条指令“把内存里的这个数加 1”，并且硬件保证它执行时不会被打断：要么还没执行，要么已经执行完，中断不会停在半中间。这叫原子的（atomic），意思是“作为一个整体，全有或全无”。
+
+            可我们不可能给每种操作都造一条原子指令（比如“原子地更新一整棵树”）。办法是：硬件只提供几条有用的原子指令，在它们上面搭出锁这类同步工具，把一小段代码变成原子的。
+      - item:
+          id: atomic
+          type: choice
+          prompt: 说一段代码的执行是“原子的”，是什么意思？
+          options:
+            - text: 别的线程看来，它要么一点都没执行，要么全部执行完，看不到中间状态
+              correct: true
+            - text: 它执行得非常快
+              why: 快慢无关；再快的三条指令也可能在中间被打断
+            - text: 它只有一条指令
+              why: 一条指令通常是原子的，但几条指令也可以借助锁变成原子的
+          explain: 所以 counter = counter + 1 的三条指令要靠锁才能变成原子的。
+      - card:
+          title: 另一种问题：等别人
+          body: |
+            线程之间除了抢着改共享变量，还常常要等：一个线程发起磁盘 I/O，进入睡眠，要等 I/O 完成后被叫醒才能继续；或者一个线程要等另一个算完才能用结果。
+
+            所以同步工具要解决两件事：临界区的互斥，以及“睡下等、被叫醒”。锁解决前一件；后一件要另外的工具。
+      - item:
+          id: two-needs
+          type: choice
+          prompt: 主线程要等工作线程把结果算完再打印。这属于哪一类问题？
+          options:
+            - text: 一个线程要等另一个线程做完某件事
+              correct: true
+            - text: 两个线程同时改共享变量
+              why: 这里不是抢着改，而是有先后顺序：先算完，再打印
+          explain: 前一类用锁就够；后一类要能“睡下等、被叫醒”的工具。
+
+  - id: locks
+    chapter: 同步与隔离
+    title: 锁：一次只放一个线程进去
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 想保护 counter++，有人说：设一个全局标志 flag，进去前看 flag 是不是 0，是 0 就把它改成 1 再进去，出来时改回 0。猜一猜：这样能保证一次只有一个线程进去吗？
+          options:
+            - text: 不能，两个线程可能都看到 0，然后都改成 1 进去
+              correct: true
+            - text: 能，flag 就是一把锁
+              why: “看”和“改”是两步，中间可能被切走
+          explain: 和 counter++ 是同一个毛病：检查和设置之间被打断了。
+      - card:
+          title: 锁
+          body: |
+            ```c
+            pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+            pthread_mutex_lock(&lock);
+            counter = counter + 1;       // 临界区
+            pthread_mutex_unlock(&lock);
+            ```
+
+            锁是一个变量，要么空闲，要么被一个线程持有。lock 时锁空闲就拿到它进去；被别人持有就等着。unlock 把它放开。POSIX（Linux、macOS 这类系统共同遵守的接口标准）管这种锁叫**互斥锁（mutex）**，因为它在线程之间提供互斥。
+      - item:
+          id: lock-held
+          type: choice
+          prompt: 线程 1 持有锁 m，正在临界区里。线程 2 调用 `pthread_mutex_lock(&m)`。会怎样？
+          options:
+            - text: 线程 2 停在这里等，直到线程 1 unlock 了 m
+              correct: true
+            - text: 线程 2 也拿到锁，两个一起进去
+              why: 锁同一时刻只能被一个线程持有
+            - text: 线程 2 报错退出
+              why: lock 不会失败退出，它会等
+          explain: 锁让程序员拿回一点对调度的控制：不管操作系统怎么切换，临界区里最多一个线程。
+      - card:
+          title: 加了锁再试试
+          body: 两个线程都先 lock m，再做那三步，最后 unlock m。不管你怎么安排，x 都会是 2：一个线程拿着锁时，另一个只能“被挡住”。
+          sim:
+            name: threads
+            params:
+              shared: { x: 0 }
+              locks: [m]
+              threads:
+                - { name: T1, locals: { t: 0 }, steps: ["lock m", "t = x", "t = t + 1", "x = t", "unlock m"] }
+                - { name: T2, locals: { t: 0 }, steps: ["lock m", "t = x", "t = t + 1", "x = t", "unlock m"] }
+      - item:
+          id: forgot-lock
+          type: sim
+          sim: threads
+          params:
+            shared: { x: 0 }
+            locks: [m]
+            threads:
+              - { name: T1, locals: { t: 0 }, steps: ["lock m", "t = x", "t = t + 1", "x = t", "unlock m"] }
+              - { name: T2, locals: { u: 0 }, steps: ["u = x", "u = u + 1", "x = u"] }
+          goal: { final: { x: 1 } }
+          solution: [0, 0, 1, 1, 1, 0, 0, 0]
+          prompt: T1 用了锁，T2 的程序员忘了加锁。安排顺序，让两次加 1 之后 x 只等于 1。
+          hint: 锁只挡得住也来 lock 的线程。
+          explain: T1 拿着锁读到 0，T2 根本不检查锁，照样读到 0、写回 1，T1 再写回 1。锁要所有访问这个变量的代码都用才有效。
+      - card:
+          title: 怎样评价一把锁
+          body: |
+            1. 互斥：能不能保证临界区里最多一个线程；
+            2. 公平：等锁的线程最终都能拿到吗，会不会有线程一直等（饿死）；
+            3. 性能：没人抢时开销多大？单个 CPU 上好几个线程抢呢？多个 CPU 上呢？
+      - card:
+          title: 关中断行不行
+          body: |
+            单 CPU 上，进临界区前关中断、出来再开，就不会被切走。可是：
+
+            - 关中断是特权操作，得信任每个程序：一个程序一开始就 lock，就能独占 CPU；
+            - 多 CPU 上没用：别的 CPU 上的线程照样进来；
+            - 关太久会丢中断；
+            - 在现代 CPU 上，开关中断本身比较慢。
+
+            所以只有操作系统自己在少数地方这么用。
+      - item:
+          id: no-irq
+          type: choice
+          multi: true
+          prompt: 用“关中断”给用户程序当锁，有哪些问题？（多选）
+          options:
+            - text: 要让任何程序都能执行特权操作，恶意程序可以独占 CPU
+              correct: true
+            - text: 在多 CPU 的机器上挡不住别的 CPU 上的线程
+              correct: true
+            - text: 关得太久可能丢掉设备的中断
+              correct: true
+            - text: 单 CPU 上也保证不了互斥
+              why: 单 CPU 上关了中断就不会被切走，互斥是能保证的；问题在别处
+          explain: 前三条都是 OSTEP 列出的理由，所以需要硬件提供专门的原子指令。
+      - card:
+          title: 测试并设置
+          body: |
+            硬件提供的最简单的原子指令：测试并设置（test-and-set），x86 上是带锁的 xchg。它做的事用 C 写是：
+
+            ```c
+            int TestAndSet(int *old_ptr, int new) {
+                int old = *old_ptr;
+                *old_ptr = new;
+                return old;
+            }
+            ```
+
+            关键是这三行由硬件原子地完成。用它做锁：
+
+            ```c
+            void lock(lock_t *l)   { while (TestAndSet(&l->flag, 1) == 1) ; }
+            void unlock(lock_t *l) { l->flag = 0; }
+            ```
+      - item:
+          id: tas-held
+          type: number
+          prompt: 锁的 flag 现在是 1（被别人持有）。一个线程执行 `TestAndSet(&flag, 1)`，返回值是多少？
+          answer: 1
+          explain: 返回旧值 1，同时把 flag 设成 1（没变）。返回 1 说明锁被占着，while 循环接着转。等持有者把 flag 改成 0，下一次 TestAndSet 返回 0，同时设成 1，这个线程就拿到了锁。
+      - card:
+          title: 自旋锁
+          body: |
+            这把锁拿不到时就在 while 里一圈圈空转，叫**自旋锁（spin lock）**。
+
+            - 互斥：对，“看”和“设”是一条原子指令，只有一个线程能看到 0；
+            - 公平：不保证，一个线程可能一直转、一直抢不到；
+            - 性能：单 CPU 上很糟。持锁的线程在临界区里被切走后，其余 N − 1 个线程每个都要白转完一整个时间片。多 CPU、线程数和 CPU 数差不多时还不错。
+
+            单 CPU 上用它，必须有抢占，否则空转的线程永远不让出 CPU。
+      - item:
+          id: spin-waste
+          type: number
+          prompt: 单 CPU、时间片 10 毫秒。5 个线程抢同一把自旋锁，持锁的线程在临界区里被切走了。在它再次运行之前，其他 4 个线程各转完一个时间片。一共白白浪费了多少毫秒？
+          answer: 40
+          unit: 毫秒
+          explain: 4 × 10 = 40 毫秒，全在检查一个不会变的 flag。
+
+  - id: cas-queues
+    chapter: 同步与隔离
+    title: 少转圈：比较并交换、让出 CPU 和排队睡觉
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 100 个线程抢一把锁，持锁的那个被切走了。另外 99 个一个个上 CPU 空转。猜一猜：怎样更好？
+          options:
+            - text: 拿不到锁的线程睡下，等锁放开时被叫醒
+              correct: true
+            - text: 让它们转得更快
+              why: 转得再快，在等的那个值也不会变
+          explain: 这要操作系统帮忙。这一课先看另一条原子指令，再看两种少转圈的办法。
+      - card:
+          title: 比较并交换
+          body: |
+            另一条常见的原子指令：比较并交换（compare-and-swap，SPARC 的叫法；x86 叫 compare-and-exchange）。
+
+            ```c
+            int CompareAndSwap(int *ptr, int expected, int new) {
+                int original = *ptr;
+                if (original == expected)
+                    *ptr = new;
+                return original;
+            }
+            ```
+
+            *ptr 等于预期值才换成新值，否则什么都不做；总是返回原来的值，调用者据此知道成没成功。
+      - item:
+          id: cas-fail
+          type: number
+          prompt: flag 现在是 1。执行 `CompareAndSwap(&flag, 0, 1)`，返回值是多少？
+          answer: 1
+          explain: 原来的值 1 不等于预期的 0，所以不换，flag 还是 1，返回原来的 1。用它做锁：`while (CompareAndSwap(&flag, 0, 1) == 1) ;`，返回 0 时才是自己把 0 换成了 1、拿到了锁。
+      - card:
+          title: 不用锁也能加 1
+          body: |
+            比较并交换比测试并设置更强：可以不用锁，直接安全地更新一个变量。
+
+            ```c
+            void add_one(int *c) {
+                int old;
+                do {
+                    old = *c;
+                } while (CompareAndSwap(c, old, old + 1) != old);
+            }
+            ```
+
+            先读出旧值，再要求“如果它还是 old，就换成 old + 1”。中间被别的线程改过，交换就失败，重新读一遍再试。
+      - item:
+          id: cas-retry
+          type: choice
+          prompt: 下面的 add_one 里，CompareAndSwap 什么时候会失败、需要再转一圈？
+          code: |
+            void add_one(int *c) {
+                int old;
+                do {
+                    old = *c;
+                } while (CompareAndSwap(c, old, old + 1) != old);
+            }
+          lang: c
+          options:
+            - text: 读出 old 之后、交换之前，别的线程已经把 *c 改了
+              correct: true
+            - text: 每次都要失败一次
+              why: 没人抢的时候第一次就成功
+            - text: '*c 等于 0 的时候'
+              why: 和值是多少无关，只看它在这期间有没有被改过
+          explain: 失败说明自己读到的值过期了，于是重读再试，不会丢掉别人的加法。
+      - card:
+          title: 让出 CPU
+          body: |
+            拿不到锁就调用 yield，主动让出 CPU：
+
+            ```c
+            void lock(void) {
+                while (TestAndSet(&flag, 1) == 1)
+                    yield();
+            }
+            ```
+
+            yield 是系统调用，把自己从运行改成就绪，让别的线程运行。两个线程、一个 CPU 时效果很好：拿不到锁就让，持锁的线程马上能跑完。
+
+            可 100 个线程时，99 个线程每个都要“上 CPU、发现拿不到、让出”一遍，每次都是一次上下文切换；而且一个线程可能一直让、一直抢不到，会饿死。
+      - item:
+          id: yield-cost
+          type: choice
+          prompt: 用 yield 代替空转，100 个线程抢锁、持锁者被切走时，还剩什么问题？
+          options:
+            - text: 99 个线程各做一次上下文切换，开销不小；而且不保证谁都能拿到锁
+              correct: true
+            - text: 没问题了
+              why: 比空转一个时间片好，但切换本身有代价，也没解决饿死
+            - text: 锁不再互斥
+              why: 拿锁仍靠原子的 TestAndSet，互斥没受影响
+          explain: 问题的根源是“下一个谁运行”全交给了调度程序碰运气。
+      - card:
+          title: 排队睡觉
+          body: |
+            更好的办法：锁里带一个等待队列，拿不到锁的线程排进队列、睡下。Solaris 提供两个调用：`park()` 让调用者睡下，`unpark(tid)` 叫醒指定的线程。
+
+            - lock：锁空闲就拿走；被占着就把自己加进队列，然后 park 睡下；
+            - unlock：队列空就把锁放开；不空就 unpark 队头那个线程，锁直接交给它，flag 一直保持 1。
+
+            锁内部的 flag 和队列本身也要保护：用一个小自旋锁 guard，只在改它们的几行里短暂地转。
+      - item:
+          id: park-order
+          type: order
+          prompt: 线程 T 调用 lock，发现锁被占着。把接下来的步骤排好。
+          steps:
+            - 用 TestAndSet 拿到 guard（短暂自旋）
+            - 看到 flag 是 1，把自己的线程 ID 加进等待队列
+            - 放开 guard
+            - 调用 park 睡下
+            - 持锁的线程 unlock 时 unpark 了 T，T 醒来时已经持有锁
+          explain: 放开 guard 必须在 park 之前，否则 T 带着 guard 睡着，谁都进不来了。
+      - card:
+          title: 醒来和睡下的竞态
+          body: |
+            T 刚放开 guard、还没来得及 park，就被切走；持锁的线程正好 unlock，对 T 调用了 unpark。接着 T 才 park，它就可能永远睡下去。这叫唤醒/等待竞态（wakeup/waiting race）。
+
+            Solaris 加了第三个调用 `setpark()`：T 先说“我马上要 park”，如果在 park 之前已经被 unpark 过，park 就立刻返回。Linux 的 futex 做的是类似的事，更多工作放进了内核。
+      - item:
+          id: setpark
+          type: choice
+          prompt: setpark() 解决的是哪个问题？
+          options:
+            - text: 线程还没睡下就被“叫醒”了，之后再睡就没人叫它
+              correct: true
+            - text: 线程拿着 guard 睡着了
+              why: 那是把放开 guard 放在 park 之后造成的；setpark 解决的是 unpark 来得太早
+            - text: 自旋太多
+              why: 排队睡觉本身已经解决了自旋；setpark 解决的是一个时机上的竞态
+          explain: 先登记“要睡了”，早到的叫醒就不会丢。
+      - card:
+          title: 优先级反转
+          body: |
+            少用自旋锁还有一个原因。T2 优先级高，T1 低，调度程序只要 T2 能跑就不跑 T1。T2 正好在等 I/O，T1 拿到一把自旋锁；I/O 完成，T2 立刻抢占 T1，也去拿这把锁，于是一直转。T1 永远轮不到运行、放不了锁，系统卡死。
+
+            办法之一是优先级继承：高优先级线程等着低优先级线程时，临时把后者的优先级提上来。
+      - item:
+          id: inversion
+          type: choice
+          prompt: 高优先级的 T2 在自旋等一把锁，锁被低优先级的 T1 拿着；调度程序只要 T2 能运行就不运行 T1。系统为什么卡死了？
+          options:
+            - text: 高优先级的 T2 一直在转着等锁，持锁的低优先级 T1 永远得不到 CPU 去放锁
+              correct: true
+            - text: T1 和 T2 都在等对方的锁
+              why: 这里只有一把锁；卡死是因为调度优先级，不是两把锁互相等
+            - text: 自旋锁坏了
+              why: 锁本身没问题，问题在调度程序总是先跑 T2
+          explain: 改用排队睡觉的锁，或者优先级继承，都能解决。
+      - item:
+          id: lock-kinds
+          type: match
+          prompt: 把锁的做法和它的主要问题连起来。
+          pairs:
+            - [只自旋, 单 CPU 上白白转掉整个时间片]
+            - [拿不到就 yield, 线程多时上下文切换开销大，还可能饿死]
+            - [排队加 park / unpark, 需要操作系统支持，还要处理唤醒/等待竞态]
+          explain: 实际的锁常常两步走：先转一小会儿，还拿不到再睡下。
+
+  - id: semaphores
+    chapter: 同步与隔离
+    title: 信号量：既能当锁，也能等别人
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 主线程创建了一个子线程，想等子线程做完某件事再继续。猜一猜：只用一把锁做得到吗？
+          options:
+            - text: 不好做，锁管的是“别同时进来”，不管“谁先谁后”
+              correct: true
+            - text: 很简单，锁本来就是干这个的
+              why: 锁不保证主线程一定排在子线程后面
+          explain: Dijkstra 发明的一种工具两件事都能做，就是这一课要讲的。
+      - card:
+          title: 信号量
+          body: |
+            **信号量（semaphore）**是一个整数加两个操作：
+
+            ```c
+            sem_t s;
+            sem_init(&s, 0, 1);   // 初值 1；第二个参数 0 表示在同一进程的线程间共用
+            sem_wait(&s);         // 减 1；结果小于 0 就睡下等
+            sem_post(&s);         // 加 1；有线程在等就叫醒一个
+            ```
+
+            Dijkstra 原来把它们叫 P() 和 V()。值是负数时，它的绝对值正好是在等的线程数。
+      - item:
+          id: sem-negative
+          type: number
+          prompt: 信号量 s 初值 1。三个线程先后调用 sem_wait(&s)，没有人调用 sem_post。现在 s 的值是多少？
+          answer: -2
+          explain: 第一个减到 0，直接通过；第二个减到 −1，睡下；第三个减到 −2，睡下。−2 说明有 2 个线程在等。
+      - card:
+          title: 当锁用
+          body: |
+            ```c
+            sem_t m;
+            sem_init(&m, 0, 1);
+            sem_wait(&m);
+            // 临界区
+            sem_post(&m);
+            ```
+
+            初值 1：第一个线程减到 0 进去；第二个减到 −1 睡下；第一个出来时 post，加回 0，叫醒第二个。只有两个状态（拿着、没拿着）的信号量叫二值信号量，它就是一把锁。
+      - item:
+          id: sem-lock-init
+          type: number
+          prompt: 用信号量当锁，初值应该是多少？
+          answer: 1
+          explain: 初值 1 表示一开始有一个“空位”，第一个来的线程能直接进去。
+      - card:
+          title: 安排先后
+          body: |
+            ```c
+            sem_t s;
+            void *child(void *arg) { printf("child\n"); sem_post(&s); return NULL; }
+            int main(void) {
+                sem_init(&s, 0, 0);
+                pthread_t c;
+                pthread_create(&c, NULL, child, NULL);
+                sem_wait(&s);
+                printf("parent: end\n");
+            }
+            ```
+
+            初值 0。主线程先到 sem_wait：减到 −1 睡下，子线程 post 后叫醒它。子线程先跑完：post 把 0 加到 1，主线程之后 wait 减到 0，直接通过。两种情况 child 都在前。
+      - item:
+          id: order-init
+          type: number
+          prompt: 用信号量让线程 A 一定等线程 B 做完某件事再继续（A 调用 sem_wait，B 做完后调用 sem_post），初值应该是多少？
+          answer: 0
+          explain: 初值 0 表示“那件事还没发生”，A 来了只能等；B 做完 post 一次，A 才能过去。
+      - card:
+          title: 在模拟器里用信号量
+          body: 模拟器里 wait s 和 signal s 就是 sem_wait 和 sem_post。它照 Linux 的实现，值不会低于 0：值是 0 时 wait 的线程显示“被挡住了”，效果和 OSTEP 的定义一样。试试先让 parent 走。
+          sim:
+            name: threads
+            params:
+              shared: { x: 0, y: 0 }
+              sems: { s: 0 }
+              threads:
+                - { name: child, steps: ["x = 1", "signal s"] }
+                - { name: parent, steps: ["wait s", "y = x"] }
+      - item:
+          id: parent-first
+          type: choice
+          prompt: 信号量 s 初值 0。parent 线程第一步是 wait s，然后读 x；child 线程先把 x 设成 1，再 signal s。如果调度程序先让 parent 运行，会怎样？
+          options:
+            - text: parent 卡在 wait s 上，要等 child 做完 signal s 才能继续，所以读到的 x 一定是 1
+              correct: true
+            - text: parent 直接读到 x = 0
+              why: s 是 0，parent 过不了 wait s，读 x 那一步根本轮不到
+            - text: 两个线程都卡住，谁也动不了
+              why: child 不需要等任何东西，它一定能跑完并 signal s
+          explain: 不管调度程序先运行谁，信号量都保证 child 写 x 在 parent 读 x 之前。
+      - card:
+          title: 生产者和消费者
+          body: |
+            一个有 MAX 个格子的缓冲区：生产者往里放，消费者往外取。满了生产者要等，空了消费者要等。用两个信号量：
+
+            - empty：还有几个空格，初值 MAX；
+            - full：已经放了几个，初值 0。
+
+            生产者 `sem_wait(&empty)` 占一个空格，放进去，`sem_post(&full)`；消费者 `sem_wait(&full)`，取出来，`sem_post(&empty)`。
+
+            好几个生产者时，两个可能同时往同一个格子里放，所以放和取本身还要用第三个信号量 mutex（初值 1）互斥。
+      - card:
+          title: 例题：有界缓冲区
+          body: 原技能树的练习：用信号量写出有界缓冲区，说明每个信号量的作用。
+          reveal:
+            - title: 第 1 步：定下三个信号量和初值
+              body: |
+                ```
+                semaphore mutex = 1, empty = N, full = 0
+                ```
+            - title: 第 2 步：生产者先等空格，再进临界区
+              body: |
+                ```
+                producer: loop { item = produce(); P(empty); P(mutex); put(item); V(mutex); V(full) }
+                ```
+            - title: 第 3 步：消费者先等产品，再进临界区
+              body: |
+                ```
+                consumer: loop { P(full); P(mutex); item = take(); V(mutex); V(empty); consume(item) }
+                ```
+            - title: 第 4 步：说清每个信号量的作用
+              body: empty 数空格，满了让生产者等；full 数产品，空了让消费者等；mutex 保证同一时刻只有一个线程改缓冲区。
+      - item:
+          id: buf-roles
+          type: match
+          prompt: 把有界缓冲区（N 个格子）里的信号量和它的初值、作用连起来。
+          pairs:
+            - [empty, 初值 N：数空格，满了让生产者等]
+            - [full, 初值 0：数产品，空了让消费者等]
+            - [mutex, 初值 1：一次只让一个线程改缓冲区]
+          explain: 两个负责计数和等待，一个负责互斥。
+      - item:
+          id: buf-sim
+          type: sim
+          sim: threads
+          params:
+            shared: { n: 0 }
+            sems: { empty: 1, full: 0, mutex: 1 }
+            threads:
+              - { name: 生产者, steps: ["wait empty", "wait mutex", "n = n + 1", "signal mutex", "signal full"] }
+              - { name: 消费者, steps: ["wait full", "wait mutex", "n = n - 1", "signal mutex", "signal empty"] }
+          goal: { final: { n: 0 } }
+          solution: [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
+          prompt: 一个格子的缓冲区（empty 初值 1，full 初值 0）。让生产者放一个、消费者取一个，两个都做完。
+          hint: 消费者一开始能过 wait full 吗？
+          explain: 消费者一上来就被 full = 0 挡住，只能等生产者放好、signal full 以后才能取。
+      - card:
+          title: 顺序反了会死锁
+          body: |
+            如果把 mutex 放在外面：消费者先 `sem_wait(&mutex)` 拿到它，再 `sem_wait(&full)`，缓冲区是空的，它睡下了，手里还拿着 mutex。生产者来了，要先 `sem_wait(&mutex)`，拿不到，也睡下。
+
+            两个线程都在等对方，谁也动不了，这叫**死锁（deadlock）**。所以必须先等 empty / full，再拿 mutex；mutex 只包住放和取那一两行。
+      - item:
+          id: wrong-order-sim
+          type: sim
+          sim: threads
+          params:
+            shared: { n: 0 }
+            sems: { empty: 1, full: 0, mutex: 1 }
+            threads:
+              - { name: 生产者, steps: ["wait empty", "wait mutex", "n = n + 1", "signal mutex", "signal full"] }
+              - { name: 消费者, steps: ["wait mutex", "wait full", "n = n - 1", "signal mutex", "signal empty"] }
+          goal: { deadlock: true }
+          solution: [1, 0]
+          prompt: 这次消费者先拿 mutex 再等 full。安排顺序，让两个线程都卡住。
+          explain: 消费者拿到 mutex 后卡在 full 上；生产者过了 empty，卡在 mutex 上。没有线程能继续。
+      - item:
+          id: why-order
+          type: choice
+          prompt: 有界缓冲区里，为什么生产者必须先 P(empty) 再 P(mutex)？
+          options:
+            - text: 反过来的话，缓冲区满时生产者拿着 mutex 睡下，消费者拿不到 mutex 来腾地方，就死锁了
+              correct: true
+            - text: 因为 empty 的初值比 mutex 大
+              why: 和初值大小无关，问题在拿着 mutex 去睡
+            - text: 顺序无所谓
+              why: 上面的模拟已经看到，顺序反了会死锁
+          explain: 一个原则：不要拿着锁去等一件可能很久才发生的事。
+
+  - id: concurrency-bugs
+    chapter: 同步与隔离
+    title: 常见的并发错误和死锁
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 研究者翻了 MySQL、Apache、Mozilla、OpenOffice 四个大项目里修过的并发 bug。猜一猜：死锁占多数吗？
+          options:
+            - text: 不是，大多数不是死锁
+              correct: true
+            - text: 是，大多数是死锁
+              why: Lu 等人统计的 105 个 bug 里，死锁只有 31 个
+          explain: 不是死锁的有 74 个，占大多数。
+      - card:
+          title: 一项真实的统计
+          body: |
+            Lu 等人在 2008 年研究了这四个开源程序里的 105 个并发 bug：74 个不是死锁，31 个是死锁。OpenOffice 只有 8 个，Mozilla 将近 60 个。
+
+            不是死锁的那些，又主要分成两类：违反原子性和违反顺序。两类合起来占了 97%。
+      - item:
+          id: lu-share
+          type: number
+          prompt: 105 个并发 bug 里有 74 个不是死锁。它们约占百分之几？（保留一位小数）
+          answer: 70.5
+          tolerance: 0.1
+          unit: '%'
+          explain: 74 / 105 ≈ 0.7048，约 70.5%。
+      - card:
+          title: 违反原子性
+          body: |
+            MySQL 里的真实例子：
+
+            ```c
+            // 线程 1
+            if (thd->proc_info) {
+                fputs(thd->proc_info, ...);
+            }
+            // 线程 2
+            thd->proc_info = NULL;
+            ```
+
+            线程 1 检查完不是 NULL，还没来得及 fputs，就被切走；线程 2 把它改成 NULL；线程 1 回来用一个空指针，崩溃。“检查”和“使用”本该是一个整体，却没保证。修法：两边都在访问 proc_info 前后加同一把锁。
+      - item:
+          id: atomicity
+          type: choice
+          prompt: 上面 MySQL 的例子里，出错的根本原因是什么？
+          options:
+            - text: 程序默认“检查”和“使用”之间不会被打断，可实际上没有用锁保证
+              correct: true
+            - text: fputs 有 bug
+              why: fputs 只是拿到了一个空指针；毛病在调用它之前
+            - text: 线程 2 不应该把指针设成 NULL
+              why: 设成 NULL 本身是合理的，问题是线程 1 的检查和使用之间可以被插进来
+          explain: 违反原子性：一段代码本该原子地执行，却没有强制做到。
+      - card:
+          title: 违反顺序
+          body: |
+            Mozilla 里的例子：
+
+            ```c
+            // 线程 1
+            mThread = PR_CreateThread(mMain, ...);
+            // 线程 2
+            mState = mThread->State;
+            ```
+
+            线程 2 以为 mThread 已经创建好了。如果线程 2 先运行，mThread 还是 NULL，又是空指针。修法是强制先后：线程 1 设好 mThread 后发信号，线程 2 先等这个信号，用初值 0 的信号量，或者用条件变量。
+
+            **条件变量（condition variable）**是 pthread 提供的另一种工具：`pthread_cond_wait` 带着一把锁睡下等某个条件，别的线程改好条件后用 `pthread_cond_signal` 叫醒它。
+      - item:
+          id: order-fix
+          type: choice
+          prompt: 修上面 Mozilla 的 bug，用一个信号量 ready，应该怎么做？
+          options:
+            - text: ready 初值 0；线程 1 设好 mThread 后 sem_post(&ready)；线程 2 先 sem_wait(&ready) 再用 mThread
+              correct: true
+            - text: ready 初值 1；两个线程都先 wait 再 post
+              why: 那是当锁用，只保证不同时，不保证线程 1 先
+            - text: 让线程 2 sleep 一秒再用
+              why: 睡一秒只是让出错的概率小一点，不能保证顺序
+          explain: 违反顺序的 bug，要用能安排先后的工具来修。
+      - card:
+          title: 死锁
+          body: |
+            线程 1 拿着锁 L1，要锁 L2；同时线程 2 拿着 L2，要 L1。两个都在等对方放手，谁也动不了，这就是死锁。
+
+            ```c
+            // 线程 1                 // 线程 2
+            pthread_mutex_lock(L1);   pthread_mutex_lock(L2);
+            pthread_mutex_lock(L2);   pthread_mutex_lock(L1);
+            ```
+
+            大程序里各个模块各自拿锁，这种交叉往往藏得很深。下面的模拟里先让 T1 走一步，再让 T2 走一步。
+          sim:
+            name: threads
+            params:
+              locks: [a, b]
+              threads:
+                - { name: T1, steps: ["lock a", "lock b", "unlock b", "unlock a"] }
+                - { name: T2, steps: ["lock b", "lock a", "unlock a", "unlock b"] }
+      - item:
+          id: deadlock-sim
+          type: sim
+          sim: threads
+          params:
+            locks: [a, b]
+            threads:
+              - { name: T1, steps: ["lock a", "lock b", "unlock b", "unlock a"] }
+              - { name: T2, steps: ["lock b", "lock a", "unlock a", "unlock b"] }
+          goal: { deadlock: true }
+          solution: [0, 1]
+          prompt: T1 先拿 a 再拿 b，T2 先拿 b 再拿 a。安排顺序，让它们死锁。
+          explain: T1 拿到 a、T2 拿到 b，之后各自要的那把都在对方手里。
+      - card:
+          title: 死锁的四个条件
+          body: |
+            四个条件同时成立才会死锁：
+
+            1. 互斥：资源（比如锁）一次只能被一个线程独占；
+            2. 持有并等待：线程拿着已经到手的资源，再等新的；
+            3. 不可抢占：不能强行从持有者手里拿走资源；
+            4. 循环等待：存在一圈线程，每个都拿着下一个要的资源。
+
+            只要打破其中任何一个，就不会死锁。
+      - item:
+          id: four-conditions
+          type: match
+          prompt: 把死锁的条件和它的意思连起来。
+          pairs:
+            - [互斥, 一把锁同一时刻只能被一个线程拿着]
+            - [持有并等待, 拿着 L1 的同时去等 L2]
+            - [不可抢占, 不能把锁从持有者手里夺过来]
+            - [循环等待, T1 等 T2 的锁，T2 又等 T1 的锁]
+          explain: 四个缺一个都形成不了死锁。
+      - card:
+          title: 怎样预防
+          body: |
+            | 打破哪个条件 | 做法 |
+            |---|---|
+            | 循环等待 | 规定拿锁的顺序：所有代码都先拿 L1 再拿 L2；也可以按锁的地址从小到大拿 |
+            | 持有并等待 | 用一把总锁包住，一次把要的锁全拿到 |
+            | 不可抢占 | 用 `pthread_mutex_trylock`，拿不到就把已有的放掉，过会儿重试（可能活锁：大家一直重试、谁也没进展） |
+            | 互斥 | 用比较并交换这类原子指令写不用锁的数据结构 |
+
+            最常用的是第一种：定一个全局的拿锁顺序。
+      - item:
+          id: fix-order
+          type: choice
+          prompt: 上面 T1、T2 的死锁，最简单的修法是？
+          options:
+            - text: 让 T2 也先拿 a 再拿 b
+              correct: true
+            - text: 让两个线程拿锁前先 sleep 一会儿
+              why: 只是改变了时机，死锁仍然可能发生
+            - text: 再加一把锁 c
+              why: 锁更多只会让顺序问题更复杂
+          explain: 大家都按 a → b 的顺序拿，就不可能形成一圈等待。
+      - card:
+          title: 避免和检测
+          body: |
+            不预防也可以：
+
+            - 避免：调度程序事先知道每个线程要哪些锁，安排它们不同时运行，就不会死锁。Dijkstra 的银行家算法就是这类做法，但要求事先知道很多信息，用得不多；
+            - 检测并恢复：允许偶尔死锁，定期检查。很多数据库会构造一张“谁在等谁”的资源图，发现有环就打破它，比如让其中一个操作撤销、从头再来。
+      - item:
+          id: strategies
+          type: match
+          prompt: 把对付死锁的做法和它属于哪一类连起来。
+          pairs:
+            - [所有代码按同一顺序拿锁, 预防：打破循环等待]
+            - [trylock 拿不到就放掉已拿的锁, 预防：打破不可抢占]
+            - [数据库定期找等待图里的环, 检测并恢复]
+          explain: 平时写程序，最可靠的是定好拿锁顺序。
+  # ---------------------------------------------------------------- I/O
+  - id: io-devices
+    chapter: I/O
+    title: 和设备说话：寄存器、轮询和中断
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 操作系统要让磁盘“把这块数据写到第 1000 号块”。猜一猜：它怎样把这个命令告诉磁盘？
+          options:
+            - text: 往磁盘控制器的几个寄存器里写数据和命令
+              correct: true
+            - text: 调用磁盘里的一个函数
+              why: 设备不运行内核的代码；内核只能通过设备提供的寄存器接口和它打交道
+            - text: 把命令写进一个普通文件
+              why: 文件本身就靠磁盘实现，最底层总得有直接操作设备的办法
+          explain: 每个设备都提供一组寄存器当接口，操作系统读写它们来指挥设备。
+      - card:
+          title: 设备挂在哪里
+          body: |
+            经典的结构分三层：CPU 通过内存总线连着内存；显卡这类快设备挂在通用 I/O 总线上（比如 PCI）；磁盘、鼠标、键盘这类慢设备挂在外设总线上（SCSI、SATA、USB）。
+
+            为什么分层？越快的总线必须越短，也越贵，挂不了几个设备；慢设备放远一点，可以挂很多。现代的 Intel 芯片组里，CPU 通过 DMI 连到一块 I/O 芯片，硬盘走 eSATA，键盘鼠标走 USB，高性能的设备走 PCIe。
+      - item:
+          id: buses
+          type: match
+          prompt: 按 OSTEP 的说法，把设备和它通常挂的地方连起来。
+          pairs:
+            - [内存, 内存总线，离 CPU 最近]
+            - [显卡, 高性能的连接（PCI、PCIe）]
+            - [键盘和鼠标, USB 这类外设总线]
+          explain: 越需要速度的设备，离 CPU 越近。
+      - card:
+          title: 一个典型的设备
+          body: |
+            OSTEP 用一个虚构的“典型设备”来讲。它分两部分：
+
+            - 接口：给系统看的三个寄存器。状态寄存器（现在忙不忙）、命令寄存器（要它做什么）、数据寄存器（传进传出的数据）；
+            - 内部：设备自己的实现，可能有一个小 CPU、一些内存和固件（设备里的软件）。现代的磁盘阵列（RAID）控制器里，固件有几十万行。
+      - card:
+          title: 最简单的协议
+          body: |
+            ```
+            while (STATUS == BUSY)
+                ;                     // 等设备空下来
+            把数据写进 DATA 寄存器
+            把命令写进 COMMAND 寄存器   // 设备开始干活
+            while (STATUS == BUSY)
+                ;                     // 等它做完
+            ```
+
+            反复读状态寄存器问“好了没”，叫**轮询（polling）**。数据由 CPU 亲自一个个写进数据寄存器，叫程序控制 I/O（programmed I/O，PIO）。
+      - item:
+          id: protocol-order
+          type: order
+          prompt: 把操作系统用这个协议让设备做一件事的步骤排好。
+          steps:
+            - 反复读状态寄存器，等设备不忙
+            - 把数据写进数据寄存器
+            - 把命令写进命令寄存器
+            - 反复读状态寄存器，等设备做完
+          explain: 第一步和最后一步都是轮询。
+      - item:
+          id: polling-waste
+          type: choice
+          prompt: 操作系统用轮询的协议（一直读状态寄存器，等设备做完）去读一块很慢的磁盘。最大的浪费在哪？
+          options:
+            - text: CPU 一直在转圈读状态寄存器，别的进程用不了 CPU
+              correct: true
+            - text: 寄存器太少
+              why: 三个寄存器足够描述一次请求；浪费在 CPU 干等
+            - text: 数据要写两遍
+              why: 数据只写进数据寄存器一次
+          explain: 磁盘一次要几毫秒，CPU 在这几毫秒里本可以执行几百万条指令。
+      - card:
+          title: 用中断代替轮询
+          body: |
+            操作系统发出请求后，让发起请求的进程睡下（阻塞），切换去运行别的进程。设备做完时发出中断，CPU 跳到操作系统的中断处理程序（interrupt service routine，ISR），处理程序把那个进程叫醒。
+
+            磁盘在为进程 1 工作的同时，CPU 在运行进程 2：计算和 I/O 重叠了。
+      - item:
+          id: irq-overlap
+          type: choice
+          prompt: 用中断方式读磁盘，磁盘工作的这段时间里 CPU 在做什么？
+          options:
+            - text: 运行别的进程
+              correct: true
+            - text: 一直读磁盘的状态寄存器
+              why: 那是轮询；用中断就不用盯着
+            - text: 关机省电
+              why: 只要有别的进程就绪，CPU 就去运行它
+          explain: 设备做完会发中断通知，CPU 不用盯着。
+      - card:
+          title: 中断不总是更好
+          body: |
+            设备很快、第一次查状态多半就好了时，用中断反而慢：切到别的进程、处理中断、再切回来，开销比直接等一会儿还大。所以：
+
+            - 快设备：轮询；
+            - 慢设备：中断；
+            - 不知道快慢、时快时慢：先轮询一小会儿，还没好再改用中断，两阶段的混合做法。
+      - item:
+          id: fast-device
+          type: choice
+          prompt: 一个设备通常在 1 微秒内就完成请求，而一次上下文切换加中断处理要好几微秒。用哪种方式等它最合适？
+          options:
+            - text: 轮询
+              correct: true
+            - text: 中断
+              why: 切走再切回来的开销比等待本身还大
+          explain: 中断的好处是不浪费 CPU，可它本身有开销，只在等得久时才划算。
+      - card:
+          title: 中断太多也会出事
+          body: |
+            网络上大量数据包涌进来，每个包一次中断，操作系统可能一直忙着处理中断，用户程序根本得不到运行，没法真正服务这些请求，叫活锁（livelock）。这时偶尔改用轮询，操作系统更能掌控节奏。
+
+            另一个优化是合并中断（coalescing）：设备先等一小会儿，期间完成的几个请求合成一次中断送给 CPU。代价是每个请求的延迟变长了。
+      - item:
+          id: coalescing
+          type: choice
+          prompt: 网卡把 10 个包的中断合成 1 次再发给 CPU。得到什么，付出什么？
+          options:
+            - text: 处理中断的开销少了，但每个包要多等一会儿才被处理
+              correct: true
+            - text: 只有好处，没有代价
+              why: 等着凑齐几个包，最先到的那个包就被延后了
+            - text: 包会丢失
+              why: 包都还在，只是晚一点通知 CPU
+          explain: 又一个系统里常见的取舍：开销和延迟。
+
+  - id: dma-drivers
+    chapter: I/O
+    title: DMA 和设备驱动
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 要把内存里的 4KB 数据交给磁盘，用 PIO 得让 CPU 一个字一个字写进数据寄存器。猜一猜：能不能不让 CPU 干这个活？
+          options:
+            - text: 能，交给一个专门搬数据的部件，搬完再通知 CPU
+              correct: true
+            - text: 不能，数据只能由 CPU 搬
+              why: 计算机里有专门的硬件可以直接在内存和设备之间搬数据
+          explain: 这个部件就是 DMA 引擎。
+      - card:
+          title: DMA
+          body: |
+            DMA（direct memory access，直接存储器访问）引擎是系统里的一个专门设备，能在设备和内存之间搬数据，不用 CPU 插手。
+
+            操作系统告诉它三件事：数据在内存的哪里、搬多少、搬给哪个设备。然后操作系统就去忙别的了。搬完时，DMA 控制器发一次中断。CPU 在这段时间里可以运行别的进程。
+      - item:
+          id: dma-order
+          type: order
+          prompt: 用 DMA 把一块数据写到磁盘。把步骤排好。
+          steps:
+            - 操作系统告诉 DMA 引擎：数据在哪、多少、给哪个设备
+            - 操作系统去运行别的进程
+            - DMA 引擎把数据从内存搬到设备
+            - DMA 控制器发出中断，操作系统得知传完了
+          explain: CPU 只在开头吩咐一次、结尾收一次中断。
+      - item:
+          id: dma-choice
+          type: match
+          prompt: 把情况和最合适的做法连起来。
+          pairs:
+            - [从磁盘读一大块文件, DMA]
+            - [等一次按键, 中断]
+            - [等一个几乎马上就好的快设备, 轮询]
+          explain: 数据多用 DMA，事件少而慢用中断，等得极短时轮询。
+      - card:
+          title: 操作系统怎样碰到设备寄存器
+          body: |
+            两种做法，现在都还在用：
+
+            - 专门的 I/O 指令：比如 x86 的 in 和 out，指定一个寄存器和一个端口号（代表设备）。这些指令通常是特权指令；
+            - 内存映射 I/O（memory-mapped I/O）：硬件把设备寄存器当成内存地址，操作系统用普通的读写内存指令访问，硬件把这些读写转给设备。
+      - item:
+          id: in-out-priv
+          type: choice
+          prompt: 为什么 x86 的 in、out 指令通常只能在内核态执行？
+          options:
+            - text: 否则任何程序都能直接读写磁盘，绕过操作系统的权限检查，控制整台机器
+              correct: true
+            - text: 因为它们比普通指令慢
+              why: 和快慢无关，是为了让只有操作系统能直接控制设备
+            - text: 因为用户程序用不着设备
+              why: 用户程序当然要用设备，只是要通过系统调用请内核代办
+          explain: 这和受限直接执行是同一个道理：危险的事只交给内核。
+      - card:
+          title: 设备驱动
+          body: |
+            磁盘有 SCSI、ATA、USB 等许多种，命令各不相同，可文件系统不想关心这些。办法是抽象：内核里最底层有一段专门懂某种设备细节的代码，叫**设备驱动（device driver）**，细节都封装在它里面。
+
+            Linux 的文件系统栈从上到下：应用程序 →（open、read、write 等 POSIX 接口）→ 文件系统 →（通用的块读写）→ 通用块层 →（具体协议的读写）→ 设备驱动。
+      - item:
+          id: fs-stack
+          type: order
+          prompt: 程序调用 read 读文件。把请求经过的各层，从上到下排好。
+          steps:
+            - 应用程序调用 read
+            - 文件系统算出要读哪些块
+            - 通用块层把块读写请求交给对应的驱动
+            - 设备驱动按这种磁盘的协议发出命令
+          explain: 文件系统只发“读第几块”，不关心底下是什么磁盘。还有一条“原始接口”，让磁盘检查工具这类程序直接读写块。
+      - card:
+          title: 抽象的代价
+          body: |
+            封装也有坏处：SCSI 磁盘能报告很详细的错误，可因为上层只认通用接口，文件系统最后只收到一个笼统的 EIO（一般 I/O 错误）。
+
+            每种能插进电脑的设备都要有驱动，所以驱动占了内核代码的一大块：研究发现 Linux 内核里超过 70% 的代码是设备驱动。驱动常由不那么熟悉内核的人写，bug 多，是内核崩溃的主要来源之一。
+      - item:
+          id: driver-share
+          type: choice
+          prompt: 有人说“操作系统有几百万行代码”。按 OSTEP 引用的研究，其中占比最大的是什么？
+          options:
+            - text: 设备驱动，Linux 内核里超过 70%
+              correct: true
+            - text: 调度程序
+              why: 调度程序的代码很少；真正大的是各种设备的驱动
+            - text: 文件系统
+              why: 文件系统不小，但驱动多得多
+          explain: 而且对某一台电脑，大部分驱动根本用不上，因为同时插着的设备只有几个。
+      - item:
+          id: abstraction-cost
+          type: choice
+          prompt: SCSI 磁盘出错时能报告很详细的原因，可 Linux 的文件系统只收到一个笼统的 EIO。为什么？
+          options:
+            - text: 通用块层只提供各种磁盘都有的那部分接口，SCSI 特有的细节在这一层被丢掉了
+              correct: true
+            - text: 文件系统故意忽略错误
+              why: 不是故意；上层收到的就只有通用的错误码
+            - text: SCSI 磁盘其实不报告错误
+              why: OSTEP 说 SCSI 的错误报告很丰富，只是传不上去
+          explain: 抽象让上层简单，代价是用不上某些设备的特殊本事。
+  # ---------------------------------------------------------------- 文件系统
+  - id: files-api
+    chapter: 文件系统
+    title: 文件和目录：名字、inode 和读写的位置
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你给文件起名叫 report.txt。猜一猜：在文件系统内部，这个文件真正的“名字”是什么？
+          options:
+            - text: 一个编号
+              correct: true
+            - text: 就是 report.txt
+              why: report.txt 是给人看的名字，同一个文件还可以有好几个这样的名字
+            - text: 它在磁盘上的颜色
+              why: 磁盘上只有一个个数据块，没有颜色
+          explain: 人用名字，文件系统用编号。目录负责把名字对到编号上。
+      - card:
+          title: 文件和目录
+          body: |
+            文件就是一串字节，可以读、可以写。每个文件有一个底层的名字，是一个编号，叫 **inode 号（inode number）**，用户平时看不到。文件系统不关心文件里装的是图片还是代码，只负责把存进去的原样还给你。
+
+            目录也有自己的 inode 号，它的内容很特别：一张（给人看的名字，inode 号）的列表。比如一个目录里有一项（"foo"，10），名字 foo 就对应 inode 号 10 的那个文件。
+      - card:
+          title: 目录树和路径
+          body: |
+            目录里还可以放目录，就组成一棵目录树，从根目录开始，Unix 里根目录写作 `/`。从根一路写下来的名字叫绝对路径，比如根目录下的目录 foo 里的文件 bar.txt 写作 `/foo/bar.txt`。
+
+            不同目录里可以有同名的文件：`/foo/bar.txt` 和 `/bar/foo/bar.txt` 是两个文件。文件名里点后面的 .txt、.c 只是约定，文件系统不检查 main.c 里是不是真的是 C 代码。
+      - item:
+          id: dir-content
+          type: choice
+          prompt: 一个目录的内容是什么？
+          options:
+            - text: 一张表：每一项是一个名字和它对应的 inode 号
+              correct: true
+            - text: 它里面所有文件的数据，一个接一个放着
+              why: 目录只存名字到编号的对应，文件的数据在别处
+            - text: 什么都没有，目录只是一个标签
+              why: 目录也是一个有 inode 号的对象，它的内容就是那张对照表
+          explain: 所以打开 /foo/bar.txt，要先在根目录里找 foo，再在 foo 里找 bar.txt。
+      - card:
+          title: 创建一个文件
+          body: |
+            ```c
+            int fd = open("foo", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);  // 主人可读、可写
+            ```
+
+            open 和文件描述符在学 C 时用过。补充一点：文件描述符是每个进程私有的。xv6 的 `struct proc` 里有一个数组 `struct file *ofile[NOFILE]`，文件描述符就是这个数组的下标。
+      - card:
+          title: 用 strace 看 cat 做了什么
+          body: |
+            `strace` 能列出一个程序做的每个系统调用。OSTEP 对内容是 hello 的文件 foo 运行 `strace cat foo`：
+
+            ```
+            open("foo", O_RDONLY|O_LARGEFILE)       = 3
+            read(3, "hello\n", 4096)                = 6
+            write(1, "hello\n", 6)                  = 6
+            read(3, "", 4096)                       = 0
+            close(3)                                = 0
+            ```
+
+            打开得到 3；第一次读到 6 个字节，原样写到 1 号；再读返回 0，说明读完了；最后关掉。
+      - item:
+          id: strace-cat
+          type: number
+          prompt: 用 cat 显示一个内容是 "hi\n"（3 个字节）的文件。strace 显示 cat 先读到了这 3 个字节，紧接着又调用了一次 read。这次 read 返回几？
+          answer: 0
+          explain: 返回 0 表示已经到文件末尾，cat 就知道该关文件了。
+      - card:
+          title: 当前偏移和 lseek
+          body: |
+            操作系统给每个打开的文件记一个当前偏移（offset）：下一次读写从第几个字节开始。读写 N 个字节，偏移就加 N。
+
+            ```c
+            off_t lseek(int fd, off_t offset, int whence);
+            ```
+
+            whence 是 SEEK_SET 时，偏移设成 offset；SEEK_CUR 时，在当前位置上加 offset；SEEK_END 时，设成文件大小加 offset。lseek 只是改内存里的一个数，不会让磁盘做任何事。
+      - item:
+          id: reads-300
+          type: number
+          prompt: 一个 300 字节的文件，打开后连续调用 4 次 `read(fd, buf, 100)`。第 4 次返回几？
+          answer: 0
+          explain: 前三次各读 100 字节，偏移从 0 变成 100、200、300；第 4 次已经在末尾，返回 0。
+      - item:
+          id: lseek-read
+          type: number
+          prompt: 打开一个 1000 字节的文件，先 `lseek(fd, 200, SEEK_SET)`，再 `read(fd, buf, 50)`。之后当前偏移是多少？
+          answer: 250
+          explain: lseek 把偏移设成 200；read 读了 50 个字节，偏移加 50，变成 250。
+      - card:
+          title: 打开文件表
+          body: |
+            偏移记在哪里？xv6 里每个打开的文件对应一个结构体：
+
+            ```c
+            struct file {
+                int ref;            // 有几个文件描述符指着它
+                char readable;
+                char writable;
+                struct inode *ip;   // 指向哪个文件
+                uint off;           // 当前偏移
+            };
+            ```
+
+            系统里所有这样的结构体合起来叫**打开文件表（open file table）**。同一个文件 open 两次，得到两个文件描述符（比如 3 和 4），指着表里两项，各有各的偏移。
+      - item:
+          id: two-opens
+          type: choice
+          prompt: 一个进程把同一个文件打开了两次，得到 fd 3 和 fd 4。先从 fd 3 读 100 字节，再从 fd 4 读 100 字节。fd 4 读到的是文件的哪一段？
+          options:
+            - text: 第 0 到 99 个字节
+              correct: true
+            - text: 第 100 到 199 个字节
+              why: 两次 open 在打开文件表里是两项，各有自己的偏移，fd 4 的偏移还是 0
+          explain: 每次 open 都新建一项。也有办法让两个文件描述符共用一项：fork 和 dup。
+      - card:
+          title: 马上写进磁盘：fsync 和 rename
+          body: |
+            write 通常只是把数据交给内核，内核过一会儿才真正写到磁盘上。要确保已经写进磁盘，调用 `fsync(fd)`：它要等这个文件所有还没写下去的数据都写到磁盘才返回。
+
+            `rename(old, new)` 改名，而且对系统崩溃是原子的：要么还是旧名，要么已经是新名。所以安全地更新一个文件的常见做法是：先写到一个临时文件，fsync，再 rename 成原来的名字。
+      - item:
+          id: atomic-update
+          type: order
+          prompt: 编辑器要安全地保存 notes.txt，即使中途断电也不能留下写了一半的文件。把步骤排好。
+          steps:
+            - 把新内容写进 notes.txt.tmp
+            - 对 notes.txt.tmp 调用 fsync，确保写进了磁盘
+            - 把 notes.txt.tmp rename 成 notes.txt
+          explain: 断电发生在 rename 之前，notes.txt 还是旧的完整版本；之后，就是新的完整版本。
+
+  - id: file-sharing
+    chapter: 文件系统
+    title: 共用一个打开的文件：fork、dup 和重定向
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 父进程打开一个文件，然后 fork。子进程把偏移 lseek 到 10 后退出；父进程等子进程结束，再查自己的偏移。猜一猜：父进程看到的偏移是多少？
+          answer: 10
+          explain: 父子两个进程的这个文件描述符指着打开文件表里的同一项，偏移是共用的。
+      - card:
+          title: fork 后共用打开文件表的一项
+          body: |
+            ```c
+            int fd = open("file.txt", O_RDONLY);
+            int rc = fork();
+            if (rc == 0) {
+                rc = lseek(fd, 10, SEEK_SET);
+                printf("child: offset %d\n", rc);
+            } else if (rc > 0) {
+                (void) wait(NULL);
+                printf("parent: offset %d\n", (int) lseek(fd, 0, SEEK_CUR));
+            }
+            ```
+
+            输出 `child: offset 10`、`parent: offset 10`。fork 复制了文件描述符数组，可两边的 3 号指着同一项，这一项的 ref 变成 2。两个进程都关掉它（或退出）以后，这一项才被删掉。
+      - item:
+          id: refcnt
+          type: number
+          prompt: 一个进程打开一个文件得到 fd 3，然后 fork 了一次。打开文件表里这一项的引用计数 ref 是多少？
+          answer: 2
+          explain: 父子两个进程的 3 号都指着它。
+      - card:
+          title: dup：再要一个号码
+          body: |
+            ```c
+            int fd = open("README", O_RDONLY);
+            int fd2 = dup(fd);
+            ```
+
+            dup 新建一个文件描述符，和原来的指着打开文件表的同一项，两个可以混着用，偏移也共用。新号码是当前最小的空号。
+      - item:
+          id: dup-number
+          type: number
+          prompt: 一个刚启动的程序（0、1、2 已被占用）调用 `fd = open(...)` 得到 3，然后调用 `fd2 = dup(fd)`。fd2 是几？
+          answer: 4
+          explain: dup 给出当前最小的空号，0 到 3 都被占了，所以是 4。
+      - card:
+          title: dup2 和重定向
+          body: |
+            `dup2(fd, 1)` 让 1 号指向 fd 指着的那一项；1 号原来开着的话先关掉。shell 做 `wc p3.c > out.txt` 时，子进程里就可以这样写：
+
+            ```c
+            int fd = open("out.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            dup2(fd, 1);
+            close(fd);
+            execvp("wc", args);
+            ```
+
+            之后 wc 往 1 号写的东西都进了 out.txt。
+      - item:
+          id: dup2-meaning
+          type: choice
+          prompt: 执行 `dup2(fd, 1)` 之后，`printf("hi\n")` 的输出去了哪里？
+          options:
+            - text: fd 打开的那个文件
+              correct: true
+            - text: 还是屏幕
+              why: printf 写的是 1 号，而 1 号现在已经指向 fd 打开的文件
+            - text: 同时去屏幕和文件
+              why: 1 号只能指一个地方；原来连着屏幕的那一项被关掉了
+          explain: 程序本身不知道自己的输出被重定向了，它照样往 1 号写。
+      - card:
+          title: 共用一项和各开各的
+          body: |
+            同一个空文件 f：
+
+            ```c
+            int a = open("f", O_WRONLY);
+            int b = dup(a);
+            write(a, "ab", 2);
+            write(b, "cd", 2);
+            ```
+
+            a 和 b 共用一个偏移：写完 ab 偏移是 2，cd 接着写在后面，文件是 abcd。
+
+            如果 b 是用 `open("f", O_WRONLY)` 另外打开的，它的偏移还是 0，cd 会写在开头，把 ab 盖掉，文件是 cd。
+      - item:
+          id: two-opens-write
+          type: text
+          prompt: 空文件 f。`a = open("f", O_WRONLY); b = open("f", O_WRONLY);` 然后 `write(a, "xyz", 3); write(b, "Q", 1);`。之后文件内容是什么？
+          answers: [Qyz]
+          explain: 两次 open 各有偏移，都从 0 开始。先写 xyz，再从开头写 Q，盖掉了 x，文件是 Qyz。
+      - item:
+          id: redirect-order
+          type: order
+          prompt: shell 用 dup2 运行 `ls > list.txt`。把子进程里的步骤排好（fork 已经做完）。
+          steps:
+            - 打开 list.txt，得到一个新的文件描述符 fd
+            - dup2(fd, 1)，让 1 号指向 list.txt
+            - close(fd)，这个多余的号码不用了
+            - exec ls
+          explain: 打开的文件在 exec 之后还在，ls 一开始 1 号就指着 list.txt。
+
+  - id: dirs-metadata
+    chapter: 文件系统
+    title: 文件的信息、删除文件和目录
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 在终端里用 rm 删除一个文件。猜一猜：rm 用的系统调用叫什么？
+          options:
+            - text: unlink
+              correct: true
+            - text: delete
+              why: Unix 里没有叫 delete 的系统调用
+            - text: remove_file
+              why: 这个名字是编的；真正的名字有点出人意料
+          explain: 为什么叫 unlink（解除链接），等讲到“一个文件可以有好几个名字”时就明白了。
+      - card:
+          title: stat：文件的元数据
+          body: |
+            文件系统为每个文件记了不少信息，叫元数据（metadata）。用 `stat()` 或 `fstat()` 能拿到，填进一个 `struct stat`：
+
+            | 字段 | 意思 |
+            |---|---|
+            | st_ino | inode 号 |
+            | st_mode | 文件类型和权限 |
+            | st_nlink | 链接数：有几个名字指着它 |
+            | st_uid、st_gid | 主人和所属组 |
+            | st_size | 大小（字节） |
+            | st_atime、st_mtime、st_ctime | 最后访问、修改内容、修改状态的时间 |
+
+            这些信息存在每个文件的 inode 里。
+      - item:
+          id: stat-fields
+          type: match
+          prompt: 把问题和 struct stat 里回答它的字段连起来。
+          pairs:
+            - [这个文件多大, st_size]
+            - [它的 inode 号是多少, st_ino]
+            - [有几个名字指着这个文件, st_nlink]
+            - [它最后一次被改内容是什么时候, st_mtime]
+          explain: 命令行的 stat 工具显示的就是这些字段。
+      - item:
+          id: stat-size
+          type: number
+          prompt: 在终端里运行 `echo hello > file`，再运行 `stat file`。显示的 Size 是多少？
+          answer: 6
+          explain: echo 写了 hello 五个字母和一个换行，共 6 个字节。
+      - card:
+          title: 删除文件
+          body: |
+            OSTEP 用 strace 看 `rm foo`：
+
+            ```
+            unlink("foo")    = 0
+            ```
+
+            unlink 只要一个文件名，成功返回 0。为什么不叫 delete？因为它删掉的其实是“名字到文件的链接”，一个文件可以有好几个名字。
+      - card:
+          title: 创建目录
+          body: |
+            ```
+            mkdir("foo", 0777)    = 0
+            ```
+
+            新建的目录叫“空”的，其实里面有两项：`.` 指它自己，`..` 指它的上一级目录。用 `ls -a` 能看到。
+
+            程序不能直接往目录里写东西：目录的格式是文件系统的元数据，只能通过新建文件、新建目录这些操作间接修改，这样目录不会被写坏。
+      - item:
+          id: empty-dir
+          type: number
+          prompt: 刚用 mkdir 新建一个目录，用 `ls -a` 列出它的内容，有几项？
+          answer: 2
+          explain: . 和 ..，分别指它自己和上一级目录。
+      - item:
+          id: no-write-dir
+          type: choice
+          prompt: 为什么程序不能像写普通文件那样直接 write 一个目录？
+          options:
+            - text: 目录的格式由文件系统负责，随便写会把名字到 inode 号的对应写坏
+              correct: true
+            - text: 目录太大了
+              why: 和大小无关，是为了保证目录内容正确
+            - text: 目录是只读的，永远不能改
+              why: 可以改，只是要通过新建、删除、改名这些系统调用间接改
+          explain: 想往目录里加一项，就在里面新建一个文件或目录。
+      - card:
+          title: 读目录
+          body: |
+            ```c
+            DIR *dp = opendir(".");
+            struct dirent *d;
+            while ((d = readdir(dp)) != NULL)
+                printf("%lu %s\n", (unsigned long) d->d_ino, d->d_name);
+            closedir(dp);
+            ```
+
+            ls 就是这样列出目录的。每次 readdir 交回一项，`struct dirent` 里有名字 `d_name`、inode 号 `d_ino`，还有类型 `d_type` 等。只读名字和编号；要知道大小这类信息，还得对每个文件调用 stat，ls -l 就是这么做的。
+      - item:
+          id: ls-l
+          type: choice
+          prompt: 自己写一个 ls -l，要显示每个文件的大小。只用 readdir 够吗？
+          options:
+            - text: 不够，readdir 只给名字和 inode 号这些；大小要对每个文件再调用 stat
+              correct: true
+            - text: 够，struct dirent 里有文件大小
+              why: dirent 里没有大小，大小在 inode 里，要用 stat 取
+          explain: 目录里只有名字到 inode 号的对应，其余信息都在各个文件的 inode 里。
+      - card:
+          title: 删除目录
+          body: |
+            `rmdir()` 删除一个目录，但要求它是空的，只剩 `.` 和 `..`。删一个有内容的目录会失败。
+
+            这是因为一次删掉整个目录可能毁掉大量数据。`rm -rf *` 会递归删掉当前目录下的一切，在错误的目录里敲下它，代价惨重。
+      - item:
+          id: rmdir-nonempty
+          type: choice
+          prompt: 对一个里面还有两个文件的目录调用 rmdir，会怎样？
+          options:
+            - text: 失败，目录不是空的
+              correct: true
+            - text: 连同两个文件一起删掉
+              why: rmdir 只删空目录；要先删掉里面的文件
+            - text: 只删目录，文件留下
+              why: 文件的名字就记在这个目录里，目录不能先没了
+          explain: 先 unlink 里面的文件，再 rmdir。
+
+  - id: links-permissions
+    chapter: 文件系统
+    title: 硬链接、符号链接和权限
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 运行 `echo hello > file`，再 `ln file file2`，然后 `rm file`。猜一猜：`cat file2` 还能显示 hello 吗？
+          options:
+            - text: 能
+              correct: true
+            - text: 不能，原文件已经删了
+              why: rm 删掉的只是 file 这个名字，file2 是同一个文件的另一个名字
+          explain: 这一课讲为什么，也就揭开了 rm 为什么调用 unlink。
+      - card:
+          title: 硬链接
+          body: |
+            `link(old, new)`（命令行是 `ln`）在目录里再加一个名字，指向和原文件同一个 inode 号。文件没有被复制，只是多了一个名字，这叫**硬链接（hard link）**：
+
+            ```
+            prompt> ls -i file file2
+            67158084 file
+            67158084 file2
+            ```
+
+            所以创建文件其实是两件事：建一个 inode 记下文件的一切；再把一个名字链接到它，放进目录。两个名字地位完全一样。
+      - item:
+          id: hard-link-inode
+          type: choice
+          prompt: 运行 `ln a.txt b.txt` 后，`ls -i a.txt b.txt` 会显示什么？
+          options:
+            - text: 两个名字的 inode 号相同
+              correct: true
+            - text: 两个不同的 inode 号
+              why: 硬链接不复制文件，只是给同一个 inode 多加一个名字
+            - text: b.txt 没有 inode 号
+              why: b.txt 和 a.txt 一样，是指向那个 inode 的名字
+          explain: 改 a.txt 的内容，从 b.txt 也能看到，因为它们就是同一个文件。
+      - card:
+          title: 链接计数
+          body: |
+            inode 里记着有几个名字指着它，叫链接计数（link count），`stat` 显示为 Links。unlink 删掉一个名字和 inode 之间的链接，计数减 1；只有减到 0，文件系统才真正释放 inode 和数据块。
+
+            ```
+            echo hello > file   → Links: 1
+            ln file file2       → Links: 2
+            ln file2 file3      → Links: 3
+            rm file             → Links: 2
+            ```
+      - item:
+          id: link-count
+          type: number
+          prompt: 新建文件 a，然后 `ln a b`、`ln a c`、`rm b`、`ln c d`。现在这个文件的链接计数是多少？
+          answer: 3
+          explain: 1 → 2（b）→ 3（c）→ 2（删 b）→ 3（d）。剩下 a、c、d 三个名字。
+      - card:
+          title: 符号链接
+          body: |
+            硬链接有限制：不能链接目录（怕目录树里出现环）；不能跨磁盘分区，因为 inode 号只在一个文件系统里唯一。
+
+            **符号链接（symbolic link）**，也叫软链接，用 `ln -s` 创建。它是第三种文件类型，内容就是目标的路径名：
+
+            ```
+            lrwxrwxrwx 1 remzi remzi 4 May 3 19:10 file2 -> file
+            ```
+
+            file2 大小 4 字节，正好是 "file" 四个字母。链接到更长的名字 alongerfilename，大小就是 15。
+      - item:
+          id: symlink-size
+          type: number
+          prompt: 运行 `ln -s /tmp/data.txt link`。用 `ls -l link` 看，link 的大小是多少字节？
+          answer: 13
+          explain: 符号链接存的是路径名 /tmp/data.txt，一共 13 个字符。
+      - card:
+          title: 悬空的符号链接
+          body: |
+            符号链接只记着一个路径名，原文件删掉以后它就指空了，叫悬空引用（dangling reference）：
+
+            ```
+            prompt> echo hello > file
+            prompt> ln -s file file2
+            prompt> rm file
+            prompt> cat file2
+            cat: file2: No such file or directory
+            ```
+
+            硬链接就不会这样：只要还有一个名字，文件就在。
+      - item:
+          id: hard-vs-soft
+          type: match
+          prompt: 把说法归到硬链接或符号链接。
+          pairs:
+            - [和原文件的 inode 号相同, 硬链接]
+            - [内容是目标的路径名, 符号链接]
+            - [可以指向一个目录, 符号链接（硬链接不能）]
+            - [删掉原来的名字后照样能读, 硬链接（符号链接会悬空）]
+          explain: 硬链接是同一个文件的又一个名字；符号链接是一个记着路径的小文件。
+      - card:
+          title: 权限位
+          body: |
+            ```
+            prompt> ls -l foo.txt
+            -rw-r--r-- 1 remzi wheel 0 Aug 24 16:29 foo.txt
+            ```
+
+            第一个字符是类型：`-` 普通文件，`d` 目录，`l` 符号链接。后面 9 个字符分三组：主人、同组的人、其他人各自能不能读（r）、写（w）、执行（x）。
+
+            `chmod 600 foo.txt`：主人 4 + 2 = 6，能读写；同组和其他人都是 0，权限变成 `rw-------`。
+      - item:
+          id: chmod-750
+          type: text
+          prompt: 想让主人能读、写、执行，同组的人能读和执行，其他人什么都不能做（rwxr-x---），chmod 后面写什么三位数？
+          answers: ['750']
+          explain: 主人 4 + 2 + 1 = 7，同组 4 + 1 = 5，其他人 0。
+      - card:
+          title: 执行位
+          body: |
+            对普通文件，执行位决定它能不能当程序运行。OSTEP 的例子：`chmod 600 hello.csh` 去掉了执行位，再运行 `./hello.csh` 就报 Permission denied。
+
+            对目录，执行位的意思不一样：有了它才能 cd 进这个目录；再加上写位，才能在里面新建文件。
+
+            超级用户 root 可以访问所有文件，不受权限位限制。AFS 这类文件系统还有更细的访问控制列表（ACL），能逐个列出谁能做什么。
+      - item:
+          id: dir-x
+          type: choice
+          prompt: 一个目录对你只有 r 和 w，没有 x。你能 cd 进去吗？
+          options:
+            - text: 不能，进入目录要执行位
+              correct: true
+            - text: 能，有读权限就能进
+              why: 对目录来说，读位让你列出名字；进去要的是执行位
+          explain: 目录的 x 有时被叫作“搜索”权限。
+      - item:
+          id: ls-type
+          type: match
+          prompt: 把 ls -l 一行开头的第一个字符和文件类型连起来。
+          pairs:
+            - ["-", 普通文件]
+            - [d, 目录]
+            - [l, 符号链接]
+          explain: 这一个字符和权限无关，只说是什么类型。
+
+  - id: fs-layout
+    chapter: 文件系统
+    title: 文件系统在磁盘上怎么摆
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 磁盘只是一长串编了号的块。猜一猜：文件系统至少要在磁盘上另外记下什么，才能找到每个文件的数据？
+          options:
+            - text: 每个文件的数据放在哪几个块
+              correct: true
+            - text: 每个文件的颜色和图标
+              why: 图标是桌面程序的事；文件系统要记的是数据在哪
+            - text: 什么都不用记，按文件名排序放
+              why: 文件会变大变小、删掉又新建，没法只靠排序找到
+          explain: 这个“记录”就放在每个文件的 inode 里。
+      - card:
+          title: 一个很小的文件系统
+          body: |
+            OSTEP 的教学文件系统 vsfs：磁盘只有 64 块，每块 4KB。
+
+            | 块 | 放什么 |
+            |---|---|
+            | 0 | 超级块：记着有多少 inode、多少数据块、inode 表从哪块开始等 |
+            | 1 | inode 位图：哪些 inode 已被使用 |
+            | 2 | 数据位图：哪些数据块已被使用 |
+            | 3–7 | inode 表 |
+            | 8–63 | 数据区：56 块，放文件内容 |
+
+            inode 每个 256 字节，一块放 16 个，5 块一共 80 个 inode。
+      - item:
+          id: inode-count
+          type: number
+          prompt: 同样用 5 块（每块 4KB）放 inode 表，但每个 inode 只有 128 字节。一共能放多少个 inode？
+          answer: 160
+          explain: 4096 / 128 = 32 个一块，5 块是 160 个。
+      - item:
+          id: layout-order
+          type: order
+          prompt: 把 vsfs 磁盘上从第 0 块开始的区域排好。
+          steps:
+            - 超级块
+            - inode 位图
+            - 数据位图
+            - inode 表
+            - 数据区
+          explain: 挂载文件系统时，操作系统先读超级块，才知道其余部分在哪。
+      - card:
+          title: inode
+          body: |
+            每个文件一个 **inode**（index node，索引节点），记着这个文件的元数据：类型、大小、主人、权限、几个时间、链接数，以及最要紧的：它的数据在哪些块。
+
+            inode 号就是它在 inode 表里的下标，所以由编号能直接算出它在磁盘上的位置。
+      - card:
+          title: 例题：inode 32 在哪
+          body: vsfs 的 inode 表从 12KB（第 3 块的开头）开始，每个 inode 256 字节。磁盘按 512 字节的扇区读写。找 inode 32。
+          reveal:
+            - title: 第 1 步：算它在 inode 表里的偏移
+              body: 32 × 256 = 8192 字节 = 8KB。
+            - title: 第 2 步：加上 inode 表的起点
+              body: 12KB + 8KB = 20KB，也就是从磁盘开头数第 20 × 1024 = 20480 个字节。
+            - title: 第 3 步：换成扇区号
+              body: 20480 / 512 = 40，读第 40 号扇区所在的那一块，就拿到了 inode 32。
+      - item:
+          id: inode-50
+          type: number
+          prompt: 同一个 vsfs（inode 表从 12KB 开始，每个 inode 256 字节）。inode 50 从磁盘的第几个字节开始？
+          answer: 25088
+          explain: 12 × 1024 + 50 × 256 = 12288 + 12800 = 25088，也就是 24.5KB 处。
+      - card:
+          title: 数据块在哪：多级索引
+          body: |
+            inode 里的指针指着数据块。指针个数有限，大文件怎么办？用间接指针：它指的块里装的不是数据，而是更多指针。
+
+            ext2 风格：12 个直接指针，加 1 个间接指针。块 4KB、地址 4 字节时，一个间接块能装 1024 个指针，所以文件最大
+
+            $$(12 + 1024) \times 4\text{KB} = 4144\text{KB}$$
+
+            再加一个二级间接指针（指向装满间接块指针的块），又多 1024 × 1024 块，文件可以超过 4GB。
+      - item:
+          id: max-4144
+          type: number
+          prompt: 块 4KB、磁盘地址 4 字节，inode 有 12 个直接指针和 1 个间接指针。一个文件最大多少 KB？
+          answer: 4144
+          unit: KB
+          explain: 间接块装 4096 / 4 = 1024 个指针，(12 + 1024) × 4 = 4144KB。
+      - item:
+          id: blocks-100k
+          type: number
+          prompt: 同样的 inode（12 个直接指针、1 个间接指针，块 4KB）。一个 100KB 的文件一共占几个块？（算上间接块本身）
+          answer: 26
+          explain: 100 / 4 = 25 个数据块。12 个用直接指针，剩下 13 个要放进间接块，所以还要 1 个间接块，共 26 块。
+      - card:
+          title: 为什么树是歪的
+          body: |
+            这种指针结构是一棵很不平衡的树：前 12 块一步就到，后面的要多走一两层。这样设计，是因为研究发现大多数文件很小（最常见的大小约 2KB），用几个直接指针就够；少数大文件才需要间接块。
+
+            另一种做法是范围（extent）：一个指针加一个长度，表示“从这块开始连续多少块”。Linux 的 ext4 用的就是 extent。
+      - item:
+          id: why-unbalanced
+          type: choice
+          prompt: inode 为什么先放 12 个直接指针，再放间接指针，而不是全部用间接指针？
+          options:
+            - text: 大多数文件很小，直接指针就够，读它们不用多读间接块
+              correct: true
+            - text: 间接指针不能指向数据块
+              why: 间接块里的指针就是指向数据块的；只是要多读一次间接块
+            - text: 为了让大文件更快
+              why: 大文件反而要多走几层；这样设计是照顾占多数的小文件
+          explain: 常见的情况要快，这是系统设计的老规矩。
+      - card:
+          title: 空闲空间
+          body: |
+            新建文件要找一个空闲的 inode，写数据要找空闲的数据块。vsfs 用两张位图：每一位对应一个 inode 或一个数据块，0 是空闲，1 是已用。
+
+            分配数据块时，有的文件系统会一次找一串连续的空闲块（比如 8 块）留给新文件，以后读这个文件时磁头不用来回跳。
+      - item:
+          id: bitmap
+          type: choice
+          prompt: 数据位图里第 17 位是 1，表示什么？
+          options:
+            - text: 第 17 个数据块已经被某个文件用了
+              correct: true
+            - text: 第 17 个文件有 1 个数据块
+              why: 位图的每一位对应一个块，不是一个文件
+            - text: 第 17 个数据块坏了
+              why: 位图只记用没用，不记好坏
+          explain: 找空闲块，就是在位图里找一个 0。
+
+  - id: fs-access
+    chapter: 文件系统
+    title: 打开和读写一个文件，要读几次磁盘
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 打开 /foo/bar，内存里什么都没缓存（只有超级块）。每个目录的内容只占一块。猜一猜：open 至少要从磁盘读几次？
+          answer: 5
+          explain: 根目录的 inode、根目录的内容、foo 的 inode、foo 的内容、bar 的 inode，一共 5 次。
+      - card:
+          title: 目录在磁盘上的样子
+          body: |
+            目录也是一种文件，inode 里的类型写着“目录”，数据块里存着一项项的（名字，inode 号）。vsfs 里一个目录 dir（inode 5）有 foo、bar 和一个长名字的文件：
+
+            | inum | reclen | strlen | name |
+            |---|---|---|---|
+            | 5 | 12 | 2 | . |
+            | 2 | 12 | 3 | .. |
+            | 12 | 12 | 4 | foo |
+            | 13 | 12 | 4 | bar |
+            | 24 | 36 | 28 | foobar_is_a_pretty_longname |
+
+            reclen 是这一项占的字节数，strlen 是名字的长度。删掉一个文件，可以把它那一项的 inum 设成 0 表示空。
+      - item:
+          id: dir-entry
+          type: number
+          prompt: 上表里，名字 bar 对应的 inode 号是多少？
+          answer: 13
+          explain: 打开 dir/bar 时，文件系统读 dir 的数据块，找到 bar 这一项，就知道下一步去读 inode 13。
+          review: false
+      - card:
+          title: open 走一遍路径
+          body: |
+            打开 /foo/bar：
+
+            1. 根目录没有上一级，它的 inode 号必须事先知道，大多数 Unix 文件系统里是 2。读 inode 2；
+            2. 读根目录的数据块，找到 foo，得到它的 inode 号（比如 44）；
+            3. 读 foo 的 inode，再读 foo 的数据块，找到 bar 的 inode 号；
+            4. 读 bar 的 inode，检查权限，在这个进程的打开文件表里分配一个文件描述符，交回给程序。
+
+            路径每多一层目录，就多读一个 inode 和至少一块数据。
+      - item:
+          id: open-steps
+          type: order
+          prompt: 打开 /a/b（没有缓存）。把读磁盘的顺序排好。
+          steps:
+            - 读根目录的 inode（2 号）
+            - 读根目录的数据块，找到 a 的 inode 号
+            - 读 a 的 inode
+            - 读 a 的数据块，找到 b 的 inode 号
+            - 读 b 的 inode
+          explain: 每一级都是先 inode（找数据在哪），再数据（找下一级的名字）。
+      - item:
+          id: open-deep
+          type: number
+          prompt: 打开 /a/b/c/file，什么都没缓存，每个目录的内容只占一块。open 一共要读几次磁盘？
+          answer: 9
+          explain: 根、a、b、c 四个目录各读 inode 和数据，共 8 次，最后读 file 的 inode，共 9 次。
+      - card:
+          title: 读和关
+          body: |
+            打开以后每次 read：先读这个文件的 inode 找到数据在哪一块，再读那一块，然后把 inode 里的“最后访问时间”改掉写回去。所以每读一块，是 2 次读加 1 次写。偏移在内存里的打开文件表中更新。
+
+            读文件不碰位图：位图只在分配新块时才用。close 只释放文件描述符，不读写磁盘。
+      - item:
+          id: read-12k
+          type: number
+          prompt: 没有缓存，先 open("/foo/bar")（读 5 次磁盘），再连读它的 3 个数据块（每次 read 读一块）。一共要访问磁盘几次？
+          answer: 14
+          explain: open 5 次；每次 read 读 inode、读数据、写回 inode，3 次 read 共 9 次。5 + 9 = 14。
+      - card:
+          title: 写更贵
+          body: |
+            往文件末尾写一个新块，每次 write 要 5 次 I/O：读数据位图、写回数据位图（标记新块已用），读 inode、写回 inode（记下新块的位置），最后写数据块本身。
+
+            新建文件更贵：读写 inode 位图、写新的 inode、往目录的数据块里加一项、读写目录的 inode。OSTEP 的例子里，创建 /foo/bar 要 10 次 I/O。
+      - item:
+          id: write-3
+          type: number
+          prompt: 文件已经打开，往末尾连写 3 个新块（每次 write 一块，每块都要新分配）。这 3 次 write 一共要几次 I/O？
+          answer: 15
+          explain: 每次分配新块的 write 是 5 次 I/O（数据位图读写、inode 读写、写数据），3 × 5 = 15。
+      - card:
+          title: 用内存当缓存
+          body: |
+            这么多 I/O 太慢，所以文件系统把常用的块缓存在内存里。早期的做法是开机时划出固定一块，约占内存的 10%，叫静态划分：文件系统用不了那么多时也没法给别人。
+
+            现代系统把虚拟内存的页和文件系统的块放在同一个页缓存（page cache）里，谁需要得多就多给谁，叫动态划分。第一次打开一个文件要读很多块，再打开同一目录下的文件，大多直接从缓存里拿到。
+      - item:
+          id: page-cache
+          type: choice
+          prompt: 几秒钟前打开过 /foo/bar，现在再打开一次。这一次通常要读几次磁盘？
+          options:
+            - text: 很少或者不用读，路径上的 inode 和目录块多半还在缓存里
+              correct: true
+            - text: 还是 5 次
+              why: 刚读过的块会留在页缓存里，再用时直接从内存拿
+            - text: 10 次
+              why: 打开已有的文件不需要新建，更不会比第一次多
+          explain: 读操作只要缓存够大，可以完全不碰磁盘。
+      - card:
+          title: 写缓冲
+          body: |
+            写不一样：数据最终必须写到磁盘才能保存下来。但先攒在内存里再写，也有好处：
+
+            - 合并：创建一个文件改了 inode 位图，紧接着又创建一个又改了它，攒着就只写一次；
+            - 排序：攒了一批写，可以排好顺序再写；
+            - 省掉：创建一个临时文件很快又删掉，攒着的写干脆不用写了。
+
+            大多数文件系统会把写攒 5 到 30 秒。代价是这期间断电，攒着的数据就丢了。要马上落盘就用 fsync，或者绕过缓存的直接 I/O。
+      - item:
+          id: buffer-loss
+          type: choice
+          prompt: 一个程序 write 了一段数据后，过了 2 秒机器断电。数据很可能怎样？
+          options:
+            - text: 还攒在内存的写缓冲里，没写到磁盘，丢了
+              correct: true
+            - text: 一定已经在磁盘上了
+              why: write 返回只说明内核收下了，多数文件系统要过 5 到 30 秒才真正写下去
+            - text: 断电时操作系统会自动保存
+              why: 断电时操作系统也来不及做任何事
+          explain: 数据库这类程序很在乎这一点，所以要在关键时刻调用 fsync。
+      - item:
+          id: buffer-avoid
+          type: choice
+          prompt: 为什么推迟写磁盘，有时能让一些写完全不用发生？
+          options:
+            - text: 比如临时文件刚建好就被删掉，攒着的那些写就不用再写了
+              correct: true
+            - text: 因为推迟以后数据会变少
+              why: 数据本身不会变少；是有些写在落盘前就已经没意义了
+            - text: 因为磁盘会自动丢掉重复的写
+              why: 是文件系统在内存里合并或取消，不是磁盘
+          explain: 懒一点，在写磁盘这件事上反而是优点。
+boss:
+  items:
+    - id: fork-boss
+      type: choice
+      prompt: 下面的程序输出什么？
+      code: |
+        int main(void) {
+            int x = 5;
+            if (fork() == 0) { x = x * 2; printf("child %d\n", x); }
+            else { wait(NULL); printf("parent %d\n", x); }
+            return 0;
+        }
+      lang: c
+      options:
+        - text: 先 child 10，再 parent 5
+          correct: true
+        - text: 先 child 10，再 parent 10
+          why: 子进程改的是自己那份 x
+        - text: 先 parent 5，再 child 10
+          why: 父进程要先等子进程结束
+      explain: fork 后父子各有一份地址空间；wait 让子进程的输出一定在前。
+    - id: timer-boss
+      type: choice
+      prompt: 一个进程在用户态死循环。时钟中断来了以后，下面哪一项是对的？
+      options:
+        - text: 硬件把它的寄存器存到内核栈、切到内核态，跳到内核事先登记在陷入表里的处理程序
+          correct: true
+        - text: 进程自己调用 yield 让出 CPU
+          why: 死循环的进程不会主动让出；靠的是硬件定时器发中断
+        - text: 内核直接跳到另一个进程，不保存这个进程的寄存器
+          why: 不保存寄存器就再也回不到它了
+      explain: 内核拿回 CPU 后，调度程序决定是否做上下文切换。
+    - id: sjf-boss
+      type: number
+      prompt: 四个进程 P1（到达 0，运行 5）、P2（1，3）、P3（2，8）、P4（3，6），用非抢占的 SJF。平均等待时间是多少？
+      answer: 5.25
+      explain: P1 0–5，P2 5–8，P4 8–14，P3 14–22。等待 0、4、12、5，平均 21 / 4 = 5.25。
+    - id: rr-boss
+      type: number
+      prompt: 进程 P1（到达 0，运行 8）、P2（1，4）、P3（2，9）、P4（3，5），用 RR，时间片 4，同一时刻新到达的排在刚用完时间片的前面。平均等待时间是多少？
+      answer: 11.75
+      explain: 时间线 P1 0–4，P2 4–8，P3 8–12，P4 12–16，P1 16–20，P3 20–24，P4 24–25，P3 25–26。等待 12、3、15、17，平均 11.75。
+    - id: mlfq-boss
+      type: choice
+      prompt: MLFQ 里，一个交互程序每次只用一点 CPU 就等键盘输入。按现在的规则 4（累计用完这一层的配额才降级），它会怎样？
+      options:
+        - text: 每次只用一点，很久才累计用完配额，所以一直留在高优先级，响应很快
+          correct: true
+        - text: 每次让出 CPU 都降一级
+          why: 降级看的是累计用掉的时间，不是让出的次数
+        - text: 立刻降到最低
+          why: 只有用完配额才降，交互程序用得很少
+      explain: 再加上规则 5 定期提升，长任务也不会饿死。
+    - id: pt-boss
+      type: number
+      prompt: 32 位虚拟地址、8KB 页、每个页表项 4 字节。一个进程的单级页表占多少 MB？
+      answer: 2
+      unit: MB
+      explain: 8KB = 2¹³，VPN 19 位，2¹⁹ × 4 字节 = 2²¹ 字节 = 2MB。
+    - id: vpn-boss
+      type: text
+      prompt: 32 位地址、4KB 页。虚拟地址 0x12345678 的虚拟页号是多少？（写十六进制，不写 0x）
+      answers: ['12345', '00012345']
+      explain: 4KB 页的偏移是低 12 位（最后 3 个十六进制位 678），前面的 0x12345 是虚拟页号。
+    - id: lru-boss
+      type: number
+      prompt: 引用串 1 2 3 4 1 2 5 1 2 3 4 5，3 个页框，用 LRU。缺页几次？
+      answer: 10
+      explain: 只有第 2 次出现的 1、2（第 8、9 次访问）命中，其余 10 次缺页。
+    - id: buffer-boss
+      type: choice
+      prompt: 用信号量写一个有 8 个格子的有界缓冲区。empty、full、mutex 的初值应该是？
+      options:
+        - text: empty = 8，full = 0，mutex = 1
+          correct: true
+        - text: empty = 0，full = 8，mutex = 1
+          why: 一开始缓冲区是空的：8 个空格，0 个产品
+        - text: empty = 8，full = 0，mutex = 0
+          why: mutex 初值 0 的话谁也进不了临界区
+      explain: empty 数空格，full 数产品，mutex 当锁用。
+    - id: deadlock-boss
+      type: choice
+      prompt: 线程 1 依次拿锁 A、B，线程 2 依次拿锁 B、A，偶尔两个都卡住。怎样改最可靠？
+      options:
+        - text: 规定所有代码都先拿 A 再拿 B
+          correct: true
+        - text: 拿锁之前随机睡一会儿
+          why: 只是让死锁少一点，不能保证不发生
+        - text: 把锁换成自旋锁
+          why: 自旋锁一样会互相等，只是等的时候在空转
+      explain: 统一的拿锁顺序打破了循环等待。
+    - id: io-boss
+      type: choice
+      prompt: 网卡每秒收进大量数据。为什么不让 CPU 用 PIO 一个字一个字地把数据搬进内存？
+      options:
+        - text: CPU 会被搬数据占满；交给 DMA 引擎整块搬，搬完只中断一次，CPU 可以去运行别的进程
+          correct: true
+        - text: PIO 读不到网卡的数据
+          why: PIO 可以读，只是太费 CPU
+        - text: 因为中断太慢
+          why: 用 DMA 反而要靠中断通知搬完了；问题在 CPU 亲自搬数据
+      explain: 大量数据用 DMA。
+    - id: link-boss
+      type: number
+      prompt: 新建文件 x，然后 `ln x y`、`ln y z`、`rm x`、`rm y`。现在这个文件的链接计数是多少？
+      answer: 1
+      explain: 1 → 2 → 3 → 2 → 1，只剩 z 这一个名字，文件还在。
+    - id: inode-boss
+      type: number
+      prompt: 块 4KB、磁盘地址 8 字节，inode 有 12 个直接指针和 1 个间接指针。一个文件最大多少 KB？
+      answer: 2096
+      unit: KB
+      explain: 间接块装 4096 / 8 = 512 个指针，(12 + 512) × 4 = 2096KB。
+    - id: open-boss
+      type: number
+      prompt: 打开 /usr/lib/x.so，什么都没缓存，每个目录的内容只占一块。open 一共要读几次磁盘？
+      answer: 7
+      explain: 根、usr、lib 三个目录各读 inode 和数据共 6 次，再读 x.so 的 inode，共 7 次。
