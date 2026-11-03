@@ -60,7 +60,9 @@ export async function completeLesson(store, g, content, skillId, lesson, results
     if (stars === 3 && firstTry === results.length) grant(d, "perfect", now, out);
     afterAny(d, g, now, out);
   });
-  return { stars, xp: gained, achievements: out, lab: labNew(metBefore, metKeys(content, store.get())), state: skillState(g, content, store.get(), skillId) };
+  // firstTry is what the stars count; hinted: right on the first try, but after a hint (not counted)
+  const hinted = results.filter((r) => r.firstTry && r.correct && r.usedHint).length;
+  return { stars, firstTry, hinted, xp: gained, achievements: out, lab: labNew(metBefore, metKeys(content, store.get())), state: skillState(g, content, store.get(), skillId) };
 }
 
 // bossResult: { graded, auto: 0..1 (share of checks right on the first try), testOut }

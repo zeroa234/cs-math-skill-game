@@ -1,4 +1,5 @@
 // Shell: top navigation and the hash-routed views. The first visit opens with the intro scene.
+// A save that cannot be read replaces all of it until the player decides (SaveProblem.jsx).
 import { useEffect } from "preact/hooks";
 import { useRoute, href } from "../app/router.js";
 import { useProgress, dueCards, store, activeRoute, packs } from "../app/state.js";
@@ -17,8 +18,15 @@ import { Profile } from "./Profile.jsx";
 import { Lab } from "./Lab.jsx";
 import { Toasts } from "./common.jsx";
 import { Icon } from "./icons.jsx";
+import { useSaveHealth, UnreadableSave, UnsavedWarning } from "./SaveProblem.jsx";
 
 export function App() {
+  const health = useSaveHealth();
+  if (health.unreadable) return <><main id="main"><UnreadableSave problem={health.unreadable} /></main><Toasts /></>;
+  return <Game unsaved={health.unsaved} />;
+}
+
+function Game({ unsaved }) {
   const r = useRoute();
   const p = useProgress();
   const due = dueCards(p).length;
@@ -56,6 +64,7 @@ export function App() {
           <button type="button" class="icon-btn" aria-pressed={sound} aria-label={sound ? "声音：开（点一下关闭音效和音乐）" : "声音：关（点一下打开）"} title={sound ? "关闭声音" : "打开声音"} onClick={toggleSound}><Icon name={sound ? "volume" : "mute"} size={24} /></button>
         </header>
       )}
+      {unsaved && <UnsavedWarning />}
       <main id="main" class={"view-" + r.name}>{view}</main>
       <Toasts />
     </>

@@ -48,6 +48,23 @@ for (const scheme of ["light", "dark"]) {
     if (r.impact === "serious" || r.impact === "critical") bad++;
     console.log(`${scheme} #/lab (every experiment) [${r.impact}] ${r.id}: ${r.help} — ${r.nodes.length} nodes, e.g. ${r.nodes[0].target.join(" ")}`);
   }
+  await p.evaluate(() => {
+    Storage.prototype.setItem = () => { throw new DOMException("Test quota", "QuotaExceededError"); };
+  });
+  await p.locator(".topbar button[aria-pressed]").click();
+  await p.waitForSelector(".save-warning");
+  const contrast = await p.evaluate(async () => {
+    const result = await window.axe.run(".save-warning", { runOnly: ["color-contrast"] });
+    const nodes = result.passes.flatMap((rule) => rule.nodes);
+    const tags = nodes.map((node) => document.querySelector(node.target[0])?.tagName);
+    return { tags, violations: result.violations.length, incomplete: result.incomplete.length };
+  });
+  if (contrast.violations || !["DIV", "B", "A"].every((tag) => contrast.tags.includes(tag))) {
+    bad++;
+    console.log(`${scheme} .save-warning contrast did not pass: ${JSON.stringify(contrast)}`);
+  } else {
+    console.log(`${scheme} .save-warning text and link passed WCAG AA contrast`);
+  }
   await ctx.close();
 }
 await browser.close();

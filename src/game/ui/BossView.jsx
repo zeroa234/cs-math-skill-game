@@ -11,7 +11,7 @@ import { bossFlow, firstTryShare, PASS_SHARE } from "../core/lesson.js";
 import { submitBoss } from "../app/actions.js";
 import { play } from "../app/sound.js";
 import { Md } from "./md.jsx";
-import { toast } from "./common.jsx";
+import { toast, Notice } from "./common.jsx";
 import { CAST, Sprite } from "./cast.jsx";
 import { artFor } from "../app/art.js";
 import { StepPlayer } from "./StepPlayer.jsx";
@@ -23,7 +23,7 @@ export function BossView({ id, mode }) {
   const p = useProgress();
   const skill = g.byId.get(id);
   const [phase, setPhase] = useState({ at: "brief", attempt: 0 });
-  if (!skill) return null;
+  if (!skill) return <Notice title="没有这个技能"><a class="btn" href={href("map")}>去地图</a></Notice>;
   const st = stateOf(p, id);
   const testOut = mode === "test";
   const boss = bossFlow(skill, packs[id]);
@@ -73,10 +73,6 @@ function SelfStudyExercise({ skill, back }) {
     </> : <p>综合练习资料整理中，可以先按技能页的教材指引学习。</p>}
     {back}
   </section></div>;
-}
-
-function Notice({ title, children }) {
-  return <div class="page"><div class="card center notice"><h1>{title}</h1><p>{children}</p></div></div>;
 }
 
 function BossResult({ skill, boss, phase, testOut, retry }) {

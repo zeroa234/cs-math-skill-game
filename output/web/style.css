@@ -123,8 +123,8 @@ pre.code, .md pre { background: var(--panel-2); border: 1px solid var(--line); p
 /* buttons: chunky "3D" keys that press down */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.35em; border: var(--p) solid var(--rim); border-bottom-width: calc(2 * var(--p)); background: var(--panel); color: var(--ink); padding: 0.45rem 1.1rem; font: inherit; cursor: pointer; text-decoration: none; min-height: 44px; transition: transform 0.05s, filter 0.1s; }
 .btn:hover { text-decoration: none; filter: brightness(1.04); border-color: var(--edge); }
-.btn:active:not(:disabled) { transform: translateY(var(--p)); border-bottom-width: var(--p); margin-bottom: var(--p); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:active:not(:disabled, [aria-disabled="true"]) { transform: translateY(var(--p)); border-bottom-width: var(--p); margin-bottom: var(--p); }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; }
 .btn.primary { background: var(--accent); border-color: var(--accent-edge); color: var(--accent-ink); }
 .btn.good { background: var(--good); border-color: var(--good-edge); color: var(--good-ink); }
 .btn.warn { background: var(--bad); border-color: var(--bad-edge); color: var(--bad-ink); }
@@ -176,6 +176,10 @@ a.stat-chip:hover { text-decoration: none; background: rgba(255, 255, 255, 0.24)
 .continue .unit-icon { width: 64px; height: 64px; display: grid; place-items: center; font-family: var(--px); font-size: var(--fs-l); color: #fff; background: color-mix(in srgb, var(--lane) 78%, #000); border-bottom: 5px solid color-mix(in srgb, var(--lane) 55%, #000); }
 .continue h2 { margin: 0; }
 .review-banner { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; justify-content: space-between; background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+/* save trouble (SaveProblem.jsx): above every screen, lessons and the intro included */
+.save-warning { position: sticky; top: 0; z-index: 45; padding: 0.5rem 1rem; background: #c2353d; color: #fff; }
+.save-warning a { color: #fff; }
+.save-problem { max-width: 40rem; margin: 2rem auto; border-color: var(--bad); }
 .open-list { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.4rem 1rem; }
 
 /* route cards (recommended campaigns) */

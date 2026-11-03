@@ -46,7 +46,11 @@ export function Intro() {
   };
 
   useEffect(() => {
-    const on = (e) => { if ((e.key === "Enter" || e.key === " ") && !e.repeat) { e.preventDefault(); advance(); } if (e.key === "Escape") finish(); };
+    // Enter or Space on a focused button (跳过开场, 开始) is that button's own click, not "next line".
+    const on = (e) => {
+      if ((e.key === "Enter" || e.key === " ") && !e.repeat && !e.target.closest?.("button, a, input, select, textarea")) { e.preventDefault(); advance(); }
+      if (e.key === "Escape") finish();
+    };
     window.addEventListener("keydown", on);
     return () => window.removeEventListener("keydown", on);
   });

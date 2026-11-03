@@ -93,7 +93,8 @@ function treeSkillsWithoutContent() {
 
 await session("home", DESK, async (p, shot) => {
   await shot("0-title");
-  await p.click(".intro .title-card .btn");
+  await p.locator(".intro .title-card .btn").press("Enter");
+  await p.waitForSelector(".intro .dialog");
   await shot("0-dialog");
   for (let i = 0; i < 12 && !(await p.$(".page.pick")); i++) {
     const last = await p.$(".dialog .row .btn");
@@ -227,21 +228,55 @@ await session("flow", DESK, async (p, shot) => {
     localStorage.setItem(key, JSON.stringify(s));
     return Object.keys(s.cards).length;
   });
-  if (due < 12) errors.push(`[flow] only ${due} review cards after ${played.length} lessons`);
+  if (due <= 12) throw new Error(`expected at least two review rounds, got ${due} cards`);
   await p.goto(url + "#/review");
   await p.reload();
   await p.waitForSelector(".player");
   await shot("3-review");
-  for (let guard = 0; guard < 60 && !(await p.$("text=复习完成")); guard++) {
-    const btn = await p.$(".answer-bar .inner > .btn");
-    if (!btn) { await p.waitForTimeout(100); continue; }
-    if ((await btn.textContent()).trim() === "检查" && (await btn.isDisabled())) await answerAnything(p);
+  for (let guard = 0; guard < 60 && !(await p.$("text=这一组复习完了")); guard++) {
+    const btn = p.locator(".answer-bar .inner > .btn");
+    if ((await btn.textContent()).trim() === "检查") await answerAnything(p);
     await btn.click();
   }
-  if (!(await p.$("text=复习完成"))) errors.push("[flow] review session did not finish");
+  await p.getByRole("heading", { name: "这一组复习完了" }).waitFor();
   const after = await p.evaluate(() => Object.values(JSON.parse(localStorage.getItem("cs-math-skill-game/progress")).cards).filter((c) => new Date(c.dueAt) <= new Date()).length);
   if (after > due - 12) errors.push(`[flow] review did not reschedule cards (${after} still due of ${due})`);
   await shot("4-review-done");
+  await p.getByRole("button", { name: "再来一组" }).click();
+  await p.locator('.player [aria-label="复习进度"][aria-valuenow="0"]').waitFor();
+});
+
+await session("save", DESK, async (p) => {
+  const key = "cs-math-skill-game/progress";
+  const corrupt = '{"v":';
+  await p.locator(".intro .skip").press("Space");
+  await p.waitForSelector(".page.pick");
+  await p.evaluate(({ key, corrupt }) => localStorage.setItem(key, corrupt), { key, corrupt });
+  await p.reload();
+  await p.waitForSelector(".save-problem");
+  await p.getByRole("button", { name: "从头开始…" }).click();
+  await p.getByRole("button", { name: "取消" }).click();
+  if (await p.evaluate((k) => localStorage.getItem(k), key) !== corrupt) throw new Error("corrupt save was overwritten");
+  await p.getByRole("button", { name: "从头开始…" }).click();
+  await p.getByRole("button", { name: "清掉，从头开始" }).click();
+  await p.waitForSelector(".topbar");
+
+  const peer = await p.context().newPage();
+  await peer.goto(url + "#/pick");
+  await peer.locator('.topbar button[aria-pressed="true"]').click();
+  await p.locator('.topbar button[aria-pressed="false"]').waitFor();
+  await peer.close();
+
+  await p.evaluate(() => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = () => { throw new DOMException("Test quota", "QuotaExceededError"); };
+    window.restoreSaveWrites = () => { Storage.prototype.setItem = original; };
+  });
+  await p.locator('.topbar button[aria-pressed="false"]').click();
+  await p.waitForSelector(".save-warning");
+  await p.evaluate(() => window.restoreSaveWrites());
+  await p.locator('.topbar button[aria-pressed="true"]').click();
+  await p.locator(".save-warning").waitFor({ state: "hidden" });
 });
 
 await session("phone", PHONE, async (p, shot) => {
@@ -317,7 +352,11 @@ await session("update", DESK, async (p) => {
   let reply = { status: 200, body: { tag_name: "v99.0.0", body: "测试用的更新说明", html_url: "https://github.com/zeroa234/cs-math-skill-game/releases/tag/v99.0.0", assets: [] } };
   await p.route("https://api.github.com/**", (r) => (reply ? r.fulfill({ status: reply.status, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(reply.body) }) : r.abort()));
   await p.goto(url + "#/me");
-  const check = async () => { await p.click(".update-check button"); await p.waitForFunction(() => !document.querySelector(".update-check button").disabled); return (await p.innerText(".update-check")).replace(/\s+/g, " "); };
+  const check = async () => {
+    await p.click(".update-check button");
+    await p.locator('.update-check button[aria-disabled="true"]').waitFor({ state: "hidden" });
+    return (await p.innerText(".update-check")).replace(/\s+/g, " ");
+  };
   let text = await check();
   if (!text.includes("有新版本 99.0.0") || !text.includes("测试用的更新说明") || !(await p.$(".update-check a.btn.primary[href*='releases/tag/v99.0.0']"))) errors.push(`[update] a newer release is not offered: ${text}`);
   reply = { status: 200, body: { ...reply.body, tag_name: "v0.0.1" } };

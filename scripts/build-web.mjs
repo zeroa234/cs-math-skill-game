@@ -7,6 +7,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import * as esbuild from "esbuild";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -35,7 +36,9 @@ const options = {
 
 function copyStatic() {
   for (const f of ["index.html", "style.css", "outlines.js"]) fs.copyFileSync(path.join(ROOT, "src/web", f), path.join(OUT, f));
-  const katexDist = path.join(ROOT, "node_modules/katex/dist");
+  // resolved like an import, so a copy of the project inside it (scripts/publish-github.mjs builds
+  // the published snapshot in temp/publish/repo) finds the project's node_modules too
+  const katexDist = path.join(path.dirname(createRequire(import.meta.url).resolve("katex/package.json")), "dist");
   fs.copyFileSync(path.join(katexDist, "katex.min.css"), path.join(OUT, "katex.min.css"));
   for (const f of fs.readdirSync(path.join(katexDist, "fonts")).filter((f) => f.endsWith(".woff2"))) fs.copyFileSync(path.join(katexDist, "fonts", f), path.join(OUT, "fonts", f));
   // KaTeX's CSS lists woff2, woff and ttf; keep only woff2 so missing files never 404.

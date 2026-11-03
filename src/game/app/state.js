@@ -75,9 +75,11 @@ export function useSkillStates(p) {
   }, [p]);
 }
 
+// The review queue, most overdue first: due cards whose question still exists. 营地, the top bar and
+// 复习 all count from this one list.
 export const dueCards = (p, now = new Date()) =>
   Object.entries(p.cards)
-    .filter(([, c]) => isDue(c, now))
+    .filter(([key, c]) => isDue(c, now) && itemForCard(key))
     .sort((a, b) => new Date(a[1].dueAt) - new Date(b[1].dueAt))
     .map(([key]) => key);
 

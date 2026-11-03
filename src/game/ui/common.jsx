@@ -83,3 +83,8 @@ export function Toasts() {
   }, []);
   return <div class="toasts" role="status" aria-live="polite">{list.map((t) => <div class="toast"><b>{t.title}</b>{t.body && <span>{t.body}</span>}</div>)}</div>;
 }
+
+// A screen that cannot be played (yet): what is missing and a way back.
+export function Notice({ title, children }) {
+  return <div class="page"><div class="card center notice"><h1>{title}</h1><p>{children}</p></div></div>;
+}

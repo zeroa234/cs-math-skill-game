@@ -1,6 +1,6 @@
 // Spaced review: due cards from every skill, mixed together (FSRS decides when each comes back).
 import { useState } from "preact/hooks";
-import { g, store, useProgress, dueCards, itemForCard } from "../app/state.js";
+import { store, useProgress, dueCards, itemForCard } from "../app/state.js";
 import { href } from "../app/router.js";
 import { answerReview } from "../app/actions.js";
 import { toast } from "./common.jsx";
@@ -10,9 +10,16 @@ import { Icon } from "./icons.jsx";
 
 const SESSION = 12;
 
+// One round is up to SESSION cards, fixed when it starts; when it ends and more are due (more than one
+// round's worth, or cards answered wrong that are due again already), the end screen offers another.
 export function ReviewView() {
+  const [round, setRound] = useState(0);
+  return <ReviewRound key={round} again={() => setRound(round + 1)} />;
+}
+
+function ReviewRound({ again }) {
   const p = useProgress();
-  const [session] = useState(() => dueCards(store.get()).filter((k) => itemForCard(k)).slice(0, SESSION));
+  const [session] = useState(() => dueCards(store.get()).slice(0, SESSION));
   const [i, setI] = useState(0);
   const [right, setRight] = useState(0);
   if (!session.length) {
@@ -26,13 +33,20 @@ export function ReviewView() {
       </div></div>
     );
   }
-  if (i >= session.length) return (
-    <div class="page"><div class="card center">
-      <h1>复习完成</h1>
-      <p>答对 {right} / {session.length}。答错的题会更快再出现。</p>
-      <a class="btn primary" href={href()}>回营地</a>
-    </div></div>
-  );
+  if (i >= session.length) {
+    const left = dueCards(p).length;
+    return (
+      <div class="page"><div class="card center">
+        <h1>{left ? "这一组复习完了" : "复习完成"}</h1>
+        <p>答对 {right} / {session.length}。答错的题会更快再出现。</p>
+        {left > 0 && <p>还有 {left} 道题到了复习时间。</p>}
+        <div class="row center">
+          {left > 0 && <button type="button" class="btn primary" onClick={again}>再来一组</button>}
+          <a class={left ? "btn" : "btn primary"} href={href()}>回营地</a>
+        </div>
+      </div></div>
+    );
+  }
   const key = session[i];
   const found = itemForCard(key);
   return (

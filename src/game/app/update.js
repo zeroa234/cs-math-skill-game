@@ -48,11 +48,15 @@ export function dismissUpdate() {
   set(null);
 }
 
+// The release found is remembered with the day's check, so the banner is still there after the app
+// is reopened the same day (until it is dismissed, or this version is that release or newer).
 export async function checkInBackground(now = Date.now()) {
-  if (now - (memo().checkedAt || 0) < DAY) return;
+  const m = memo();
+  const show = (u) => { if (u && isNewer(u.latest, VERSION) && m.dismissed !== u.latest) set(u); };
+  if (now - (m.checkedAt || 0) < DAY) return show(m.found);
   try {
     const u = await checkUpdate();
-    remember({ checkedAt: now });
-    if (u.newer && memo().dismissed !== u.latest) set(u);
+    remember({ checkedAt: now, found: u.newer ? { latest: u.latest, download: u.download } : null });
+    show(u);
   } catch { /* offline or rate-limited: try again next launch */ }
 }

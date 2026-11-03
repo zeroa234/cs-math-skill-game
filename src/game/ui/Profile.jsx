@@ -10,8 +10,8 @@ import { Bar, toast } from "./common.jsx";
 import { Icon } from "./icons.jsx";
 import { CAST, HAS_CAST } from "./cast.jsx";
 import { NATIVE } from "../app/native.js";
-import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
-import { Share } from "@capacitor/share";
+import { saveTextFile, saveName } from "../app/files.js";
+import { ImportSave } from "./SaveProblem.jsx";
 
 export function Profile() {
   const p = useProgress();
@@ -20,32 +20,7 @@ export function Profile() {
   const lit = Object.keys(p.skills).filter((id) => g.byId.has(id) && stateOf(p, id).status === "lit");
   const tiers = { lit: 0, solid: 0, mastered: 0 };
   for (const id of lit) tiers[mastery(p, id)]++;
-  const exportFile = async () => {
-    const name = `点亮之路-存档-${new Date().toISOString().slice(0, 10)}.json`;
-    if (NATIVE) {
-      // The Android WebView ignores <a download>: write the file to the app cache, then open the share sheet.
-      try {
-        const { uri } = await Filesystem.writeFile({ path: name, data: store.exportJson(), directory: Directory.Cache, encoding: Encoding.UTF8 });
-        await Share.share({ title: name, files: [uri] });
-      } catch (err) {
-        if (!/cancel/i.test(err?.message || "")) toast({ title: "导出失败", body: err?.message || String(err) });
-      }
-      return;
-    }
-    const blob = new Blob([store.exportJson()], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  };
-  const importFile = async (e) => {
-    const input = e.currentTarget;
-    const f = input.files[0];
-    if (!f) return;
-    try { store.importJson(await f.text()); toast({ title: "存档已导入" }); } catch (err) { toast({ title: "导入失败", body: err.message }); }
-    input.value = "";
-  };
+  const exportFile = () => saveTextFile(saveName(), store.exportJson()).catch((err) => toast({ title: "导出失败", body: err?.message || String(err) }));
   const set = (k, v) => store.update((d) => { d.settings[k] = v; });
   return (
     <div class="page profile">
@@ -94,7 +69,7 @@ export function Profile() {
         <p class="small muted">{NATIVE ? "进度只存在这个 App 里。卸载或换手机前，先导出（会弹出分享，可以发到微信、QQ 或存到文件）。" : "进度只存在这个浏览器里。换电脑或清理浏览器数据前，先导出。"}</p>
         <div class="row">
           <button type="button" class="btn" onClick={exportFile}>导出存档</button>
-          <label class="btn ghost">导入存档<input type="file" accept="application/json,.json" hidden onChange={importFile} /></label>
+          <ImportSave />
           {!confirmReset ? <button type="button" class="btn ghost danger" onClick={() => setConfirmReset(true)}>清空进度…</button> : <>
             <span>确定清空全部进度？</span>
             <button type="button" class="btn danger" onClick={() => { store.replace({ v: 1 }); setConfirmReset(false); toast({ title: "进度已清空" }); }}>清空</button>
@@ -113,7 +88,10 @@ export function Profile() {
 // Version and a manual "is there a newer one?" (the app also checks by itself once a day).
 function UpdateCheck() {
   const [st, setSt] = useState({});
+  // aria-disabled rather than disabled while busy: a disabled button drops the keyboard and
+  // screen-reader focus, and the result below would be announced with the reader lost on the page.
   const check = async () => {
+    if (st.busy) return;
     setSt({ busy: true });
     try { setSt({ result: await checkUpdate() }); } catch (e) { setSt({ error: e.message }); }
   };
@@ -123,7 +101,7 @@ function UpdateCheck() {
       <h2>版本</h2>
       <p>当前版本 <b>{VERSION}</b>{NATIVE ? "" : "（网页版）"}</p>
       <div class="row">
-        <button type="button" class="btn" disabled={st.busy} onClick={check}>{st.busy ? "正在检查…" : "检查更新"}</button>
+        <button type="button" class="btn" aria-disabled={st.busy ? "true" : undefined} onClick={check}>{st.busy ? "正在检查…" : "检查更新"}</button>
         <a class="small" href={RELEASES_PAGE} target="_blank" rel="noopener">所有版本和更新说明</a>
       </div>
       <div role="status" aria-live="polite">

@@ -2,8 +2,10 @@
 // the browser's back button works. Works on file:// where the History API cannot.
 import { useEffect, useState } from "preact/hooks";
 
+// A part that is not valid percent-encoding (a hand-typed "%") stays as typed instead of throwing.
+const decode = (s) => { try { return decodeURIComponent(s); } catch { return s; } };
 export function parseHash(hash = location.hash) {
-  const parts = hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
+  const parts = hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decode);
   return { name: parts[0] || "home", args: parts.slice(1) };
 }
 

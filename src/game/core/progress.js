@@ -42,6 +42,8 @@ export function migrate(p) {
   return out;
 }
 
+// Adapters: load() → text or null; save(text) → false when the text could not be stored;
+// watch(fn), optional, calls fn(text) when another tab or window saved.
 export const memoryStorage = () => {
   let data = null;
   return { load: () => data, save: (s) => { data = s; } };
@@ -49,24 +51,43 @@ export const memoryStorage = () => {
 export const localStorageAdapter = (key = KEY) => ({
   load() { try { return window.localStorage.getItem(key); } catch { return null; } },
   save(s) { try { window.localStorage.setItem(key, s); return true; } catch { return false; } },
+  watch(fn) { window.addEventListener("storage", (e) => { if (e.key === key && e.newValue) fn(e.newValue); }); },
 });
 
+// health(): { unreadable?: { message, raw }, unsaved?: true }
+//  - unreadable: the stored save could not be read (damaged, or from a newer version of the game).
+//    It is never written over: the store keeps changes in memory only until replace() (import, or
+//    starting over) — the player decides, after they could download the save as it is.
+//  - unsaved: the last save did not reach storage (full, or blocked); cleared by the next one that does.
+// A save from another tab replaces this tab's copy, so the two do not write over each other's progress.
 export function createStore(adapter) {
-  let state;
-  try { state = migrate(JSON.parse(adapter.load() || "null") || emptyProgress()); } catch { state = emptyProgress(); }
+  let state, health = {};
+  const raw = adapter.load();
+  try { state = migrate(JSON.parse(raw || "null") || emptyProgress()); }
+  catch (e) { state = emptyProgress(); health = { unreadable: { message: e.message, raw } }; }
   const listeners = new Set();
+  const emit = () => { for (const l of listeners) l(state); };
+  const write = () => {
+    if (health.unreadable) return;
+    const failed = adapter.save(JSON.stringify(state)) === false;
+    if (failed !== !!health.unsaved) health = failed ? { unsaved: true } : {};
+  };
+  adapter.watch?.((text) => {
+    try { state = migrate(JSON.parse(text)); health = {}; emit(); } catch { /* unreadable there too: keep ours */ }
+  });
   return {
     get: () => state,
+    health: () => health,
     // update(fn): fn receives a draft copy and mutates it; listeners get the new state.
     update(fn) {
       const draft = structuredClone(state);
       fn(draft);
       state = draft;
-      adapter.save(JSON.stringify(state));
-      for (const l of listeners) l(state);
+      write();
+      emit();
       return state;
     },
-    replace(next) { state = migrate(next); adapter.save(JSON.stringify(state)); for (const l of listeners) l(state); },
+    replace(next) { state = migrate(next); health = {}; write(); emit(); },
     subscribe(l) { listeners.add(l); return () => listeners.delete(l); },
     exportJson: () => JSON.stringify({ app: "cs-math-skill-game", exportedAt: new Date().toISOString(), progress: state }, null, 1),
     importJson(text) {
