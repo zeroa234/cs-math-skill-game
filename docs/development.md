@@ -47,10 +47,10 @@ README 只放玩家和第一次来的人要看的东西；这里是内容明细�
 | `src/game/sims/views/`、`src/game/ui/` | Preact 界面 |
 | `src/game/app/` | 路由（`router.js`）、存档和玩家操作（`state.js`、`actions.js`）、实验室（`lab.js`）、背景图（`art.js`）、音效和背景音乐（`sound.js`、`music.js`）、更新检查（`update.js`）、App 里才生效的部分（`native.js`） |
 | `tests/` | 见下面“测试” |
-| `scripts/publish-github.mjs`、`scripts/release-github.mjs`、`scripts/readme-images.mjs`、`.github/workflows/pages.yml`、`docs/releases/` | 发布到 GitHub：源码快照去掉导师素材、重新构建无导师的网页版并检查；建发布、附 APK（更新说明在 `docs/releases/<版本>.md`）；README 截图；Pages 部署 `output/web`（步骤见 [android.md](android.md)“发新版本”） |
+| `scripts/publish-github.mjs`、`scripts/release-github.mjs`、`scripts/readme-images.mjs`、`.github/workflows/pages.yml`、`docs/releases/` | 发布到 GitHub：源码快照（去掉不公开词表和精灵提取脚本）、重新构建网页版并检查导师能显示、文字里没有不公开的词；建发布、附 APK 和电脑版 zip（更新说明在 `docs/releases/<版本>.md`）；README 截图；Pages 部署 `output/web`（步骤见 [android.md](android.md)“发新版本”） |
 | `scripts/lib/edge.mjs` | 所有要开浏览器的测试和脚本共用：找系统 Edge、把它的临时文件放进 `temp/`、构建后游戏的地址 |
 | `assets/` | 像素背景（`bg/`，来源和提示词见其 README）、导师素材（`cast/`，来源、处理和限制见其 README）、像素字体（`fonts/`，OFL）、背景音乐（`music/`，CC0，来源见其 README） |
-| `scripts/cast/` | 背景像素化、导师立绘的裁切；导师精灵的提取脚本和角色素材只在作者本地，不进公开仓库（见 README“已知限制”） |
+| `scripts/cast/` | 背景像素化、导师立绘的裁切；导师精灵的提取脚本只在作者本地（它读的是作者本地的渲染结果） |
 | `capacitor.config.json`、`src/android/`、`scripts/android/`、`assets/app-icon/` | 安卓 App：Capacitor 配置、生成的安卓工程、打包和画图标的脚本、图标源图（见 [android.md](android.md)）；签名密钥在 `config/android/`，不进 git |
 | `archive/` | 不在游戏里、留着重写时参考的东西：13 个旧内容包和只有它们用过的组件、样式、测试（见其 README）。游戏、构建和 `npm test` 都不读 |
 | `reports/` | 启发式评估和手机版复查（`hci/`）、逐节覆盖表（`coverage/`）、章节排序、KTH 交叉核对、调研 |

@@ -1,6 +1,4 @@
-// Screenshots for README.md → docs/images/*.webp, taken from a built game (default output/web; the
-// publish script passes its build without the mentor characters, which is what the public repository
-// shows). Desktop 1280×800 and phone 390×844 at 2× pixel density, light theme, a player with some
+// Screenshots for README.md → docs/images/*.webp, taken from a built game (default output/web). Desktop 1280×800 and phone 390×844 at 2× pixel density, light theme, a player with some
 // progress on 我的远征. PNG from Edge, WebP by ffmpeg (on PATH).
 // usage: node scripts/readme-images.mjs [web-dir]          (self-written glue)
 import fs from "node:fs";

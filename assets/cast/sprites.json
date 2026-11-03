@@ -1,0 +1,224 @@
+{
+ "packs": {
+  "blue": {
+   "idle": {
+    "file": "sprites/blue/idle.webp",
+    "w": 43,
+    "h": 71,
+    "frames": 96,
+    "fps": 12,
+    "loop": true,
+    "foot": [
+     23,
+     71
+    ]
+   },
+   "walk": {
+    "file": "sprites/blue/walk.webp",
+    "w": 44,
+    "h": 72,
+    "frames": 14,
+    "fps": 12,
+    "loop": true,
+    "foot": [
+     24,
+     72
+    ]
+   },
+   "wave": {
+    "file": "sprites/blue/wave.webp",
+    "w": 48,
+    "h": 78,
+    "frames": 44,
+    "fps": 12,
+    "loop": false,
+    "foot": [
+     24,
+     78
+    ]
+   },
+   "dance": {
+    "file": "sprites/blue/dance.webp",
+    "w": 53,
+    "h": 71,
+    "frames": 130,
+    "fps": 12,
+    "loop": false,
+    "foot": [
+     23,
+     71
+    ]
+   },
+   "jump_start": {
+    "file": "sprites/blue/jump_start.webp",
+    "w": 53,
+    "h": 73,
+    "frames": 9,
+    "fps": 12,
+    "loop": false,
+    "foot": [
+     26,
+     71
+    ]
+   },
+   "jump_air": {
+    "file": "sprites/blue/jump_air.webp",
+    "w": 50,
+    "h": 67,
+    "frames": 28,
+    "fps": 12,
+    "loop": true,
+    "foot": [
+     23,
+     66
+    ]
+   },
+   "jump_land": {
+    "file": "sprites/blue/jump_land.webp",
+    "w": 64,
+    "h": 71,
+    "frames": 15,
+    "fps": 12,
+    "loop": false,
+    "foot": [
+     23,
+     71
+    ]
+   },
+   "coy": {
+    "file": "sprites/blue/coy.webp",
+    "w": 43,
+    "h": 72,
+    "frames": 62,
+    "fps": 12,
+    "loop": true,
+    "foot": [
+     24,
+     72
+    ]
+   },
+   "sit": {
+    "file": "sprites/blue/sit.webp",
+    "w": 51,
+    "h": 52,
+    "frames": 49,
+    "fps": 12,
+    "loop": true,
+    "foot": [
+     23,
+     58
+    ]
+   }
+  },
+  "black": {
+   "idle": {
+    "file": "sprites/black/idle.webp",
+    "w": 38,
+    "h": 71,
+    "frames": 73,
+    "fps": 12,
+    "loop": true,
+    "foot": [
+     20,
+     71
+    ]
+   },
+   "walk": {
+    "file": "sprites/black/walk.webp",
+    "w": 43,
+    "h": 72,
+    "frames": 14,
+    "fps": 12,
+    "loop": true,
+    "foot": [
+     24,
+     72
+    ]
+   },
+   "wave": {
+    "file": "sprites/black/wave.webp",
+    "w": 45,
+    "h": 78,
+    "frames": 44,
+    "fps": 12,
+    "loop": false,
+    "foot": [
+     21,
+     78
+    ]
+   },
+   "cast": {
+    "file": "sprites/black/cast.webp",
+    "w": 57,
+    "h": 75,
+    "frames": 36,
+    "fps": 12,
+    "loop": false,
+    "foot": [
+     22,
+     76
+    ]
+   },
+   "jump_start": {
+    "file": "sprites/black/jump_start.webp",
+    "w": 52,
+    "h": 73,
+    "frames": 9,
+    "fps": 12,
+    "loop": false,
+    "foot": [
+     25,
+     71
+    ]
+   },
+   "jump_air": {
+    "file": "sprites/black/jump_air.webp",
+    "w": 48,
+    "h": 67,
+    "frames": 28,
+    "fps": 12,
+    "loop": true,
+    "foot": [
+     20,
+     66
+    ]
+   },
+   "jump_land": {
+    "file": "sprites/black/jump_land.webp",
+    "w": 55,
+    "h": 71,
+    "frames": 15,
+    "fps": 12,
+    "loop": false,
+    "foot": [
+     20,
+     71
+    ]
+   },
+   "coy": {
+    "file": "sprites/black/coy.webp",
+    "w": 41,
+    "h": 72,
+    "frames": 62,
+    "fps": 12,
+    "loop": true,
+    "foot": [
+     23,
+     72
+    ]
+   },
+   "sit": {
+    "file": "sprites/black/sit.webp",
+    "w": 45,
+    "h": 53,
+    "frames": 49,
+    "fps": 12,
+    "loop": true,
+    "foot": [
+     20,
+     57
+    ]
+   }
+  }
+ }
+}

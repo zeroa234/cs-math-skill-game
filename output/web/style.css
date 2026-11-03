@@ -663,7 +663,7 @@ h4 { font-size: var(--fs); color: var(--accent-strong); }
 .term-def { display: block; max-width: min(100%, 36em); margin: 0.4em 0; padding: 0.4em 0.8em; background: var(--lit-soft); color: var(--ink); border: var(--p) solid var(--gold-edge); border-bottom-width: calc(2 * var(--p)); clip-path: var(--notch); text-align: left; }
 .term-def[hidden] { display: none; }
 
-/* built without the mentor characters (CAST=none, the public repository): close the space they took */
+/* built without the mentor characters (CAST=none, or no assets/cast/): close the space they took */
 .no-cast .player-stage { grid-template-columns: minmax(0, 1fr); }
 .no-cast .coach, .no-cast .mentors { display: none; }
 

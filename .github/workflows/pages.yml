@@ -1,5 +1,5 @@
-# Publishes the committed web build (output/web, built without the mentor characters by
-# scripts/publish-github.mjs) to GitHub Pages. Nothing is built here: the build needs the sibling
+# Publishes the committed web build (output/web, built by scripts/publish-github.mjs) to GitHub
+# Pages. Nothing is built here: the build needs the sibling
 # cs-math-skill-tree checkout and Python, and the committed copy is what was tested.
 name: Pages
 on:

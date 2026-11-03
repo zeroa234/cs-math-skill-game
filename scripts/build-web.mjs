@@ -2,8 +2,8 @@
 // one IIFE script (no ES modules, which browsers block on file://), the stylesheet, KaTeX's CSS and
 // fonts, and the lazily loaded knowledge-map outlines.
 // usage: node scripts/build-web.mjs [--watch]
-// CAST=none builds without the mentor characters (the public repository has no assets/cast/; the
-// game then simply shows no mentors). WEB_OUT=<dir> writes somewhere other than output/web.
+// CAST=none (or no assets/cast/ at all, e.g. after replacing the characters) builds without the
+// mentor characters; the game then simply shows no mentors. WEB_OUT=<dir> writes somewhere other than output/web.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

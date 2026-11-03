@@ -1,7 +1,7 @@
 // Creates the GitHub release v<version> for the version in package.json, after the source snapshot
 // is pushed (scripts/publish-github.mjs --push), and attaches the APK. The in-app update check reads
 // this release (src/game/app/update.js). See docs/android.md "发新版本".
-//  - notes: docs/releases/<version>.md; APK: output/apk/点亮之路-<version>.apk
+//  - notes: docs/releases/<version>.md; APK: output/apk/点亮之路-<version>.apk; PC version: output/web, zipped
 //  - the asset is uploaded as cs-math-skill-game-<version>.apk (GitHub renames non-ASCII file names)
 //    with the Chinese name as its label
 //  - Chinese text goes to gh as UTF-8 JSON on stdin (gh's arguments get re-encoded on Windows), and
@@ -34,10 +34,23 @@ const old = tryJson([`repos/${REPO}/releases/tags/${tag}`]);
 const rel = old ? json(["-X", "PATCH", `repos/${REPO}/releases/${old.id}`, "--input", "-"], { name: want.name, body: want.body }) : json(["-X", "POST", `repos/${REPO}/releases`, "--input", "-"], want);
 if (rel.name !== want.name || rel.body.replace(/\r\n/g, "\n") !== want.body.replace(/\r\n/g, "\n")) throw new Error("the release's name or notes came back different (encoding?)");
 
-const name = `cs-math-skill-game-${version}.apk`;
-for (const a of rel.assets || []) if (a.name === name) gh(["-X", "DELETE", `repos/${REPO}/releases/assets/${a.id}`]);
-const label = encodeURIComponent(`点亮之路 ${version}（安卓）`);
-const asset = json(["-X", "POST", "-H", "Content-Type: application/vnd.android.package-archive", `https://uploads.github.com/repos/${REPO}/releases/${rel.id}/assets?name=${name}&label=${label}`, "--input", apk]);
-const sha = crypto.createHash("sha256").update(fs.readFileSync(apk)).digest("hex");
-if (asset.digest && asset.digest !== `sha256:${sha}`) throw new Error(`uploaded ${asset.digest}, local sha256:${sha}`);
-console.log(`${rel.html_url}\n  ${asset.name} (${asset.label}) ${(asset.size / 1048576).toFixed(1)} MB, sha256 ${asset.digest ? "matches" : "not reported by GitHub"}: ${sha}`);
+// The PC version: the built game alone (output/web, the same build the APK packs), in one folder,
+// zipped. Unzip and double-click index.html.
+const stage = path.join(ROOT, "temp/release");
+const folder = `cs-math-skill-game-${version}`;
+fs.rmSync(stage, { recursive: true, force: true });
+fs.cpSync(path.join(ROOT, "output/web"), path.join(stage, folder), { recursive: true });
+const zip = path.join(stage, `${folder}-web.zip`);
+execFileSync(process.platform === "win32" ? "C:/Windows/System32/tar.exe" : "bsdtar", ["-a", "-c", "-f", zip, "-C", stage, folder]); // -a: zip, from the file name
+
+console.log(rel.html_url);
+for (const [file, name, label, type] of [
+  [apk, `cs-math-skill-game-${version}.apk`, `点亮之路 ${version}（安卓）`, "application/vnd.android.package-archive"],
+  [zip, `cs-math-skill-game-${version}-web.zip`, `点亮之路 ${version}（电脑版：解压后双击 index.html）`, "application/zip"],
+]) {
+  for (const a of rel.assets || []) if (a.name === name) gh(["-X", "DELETE", `repos/${REPO}/releases/assets/${a.id}`]);
+  const asset = json(["-X", "POST", "-H", `Content-Type: ${type}`, `https://uploads.github.com/repos/${REPO}/releases/${rel.id}/assets?name=${name}&label=${encodeURIComponent(label)}`, "--input", file]);
+  const sha = crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+  if (asset.digest && asset.digest !== `sha256:${sha}`) throw new Error(`${name}: uploaded ${asset.digest}, local sha256:${sha}`);
+  console.log(`  ${asset.name} (${asset.label}) ${(asset.size / 1048576).toFixed(1)} MB, sha256 ${asset.digest ? "matches" : "not reported by GitHub"}: ${sha}`);
+}

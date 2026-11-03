@@ -12,7 +12,7 @@ export const CAST = {
   blue: { name: "鲸鱼姐姐", portrait: "assets/cast/portraits/blue.webp", celebrate: "dance" },
 };
 
-// Built without the characters (CAST=none, as in the public repository): no sprites, no portraits,
+// Built without the characters (CAST=none, or no assets/cast/): no sprites, no portraits,
 // and <html class="no-cast"> lets the stylesheet close the gaps they leave.
 export const HAS_CAST = Object.keys(meta.packs).length > 0;
 if (!HAS_CAST && typeof document !== "undefined") document.documentElement.classList.add("no-cast");
