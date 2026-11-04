@@ -1,0 +1,12 @@
+{
+  "name": "cs-math-skill-game",
+  "version": "0.0.0",
+  "description": "CS and math learning game",
+  "author": "zeroa234",
+  "private": true,
+  "main": "main.cjs",
+  "devDependencies": {
+    "electron": "45.2.2",
+    "electron-builder": "26.18.0"
+  }
+}

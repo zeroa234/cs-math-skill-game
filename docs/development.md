@@ -52,6 +52,7 @@ README 只放玩家和第一次来的人要看的东西；这里是内容明细�
 | `scripts/lib/edge.mjs` | 所有要开浏览器的测试和脚本共用：找系统 Edge、把它的临时文件放进 `temp/`、构建后游戏的地址 |
 | `assets/` | 像素背景（`bg/`，来源和提示词见其 README）、导师素材（`cast/`，来源、处理和限制见其 README）、像素字体（`fonts/`，OFL）、背景音乐（`music/`，CC0，来源见其 README） |
 | `scripts/cast/` | 背景像素化、导师立绘的裁切；导师精灵的提取脚本只在作者本地（它读的是作者本地的渲染结果） |
+| `scripts/windows/` | Windows 安装版：Electron 桌面入口、electron-builder 配置、打包和核对脚本（见 [android.md](android.md)“Windows 安装版”） |
 | `capacitor.config.json`、`src/android/`、`scripts/android/`、`assets/app-icon/` | 安卓 App：Capacitor 配置、生成的安卓工程、打包和画图标的脚本、图标源图（见 [android.md](android.md)）；签名密钥在 `config/android/`，不进 git |
 | `archive/` | 不在游戏里、留着重写时参考的东西：7 个还没重写的旧内容包、还没有课用到的实验室条目（见其 README）。游戏、构建和 `npm test` 都不读 |
 | `reports/` | 启发式评估和手机版复查（`hci/`）、逐节覆盖表（`coverage/`）、章节排序、KTH 交叉核对、调研 |

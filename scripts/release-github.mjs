@@ -5,6 +5,8 @@
 //    publish-github.mjs built from HEAD (temp/publish/repo/output/web), zipped
 //  - the APK must pack that same game, file for file (so it was built from the same commit, with
 //    nothing uncommitted), or nothing is released
+//  - the Windows x64 installer (output/windows/, scripts/windows/build-installer.mjs) is attached when it
+//    exists for this version, after the same check: the game inside must be the published one
 //  - the asset is uploaded as cs-math-skill-game-<version>.apk (GitHub renames non-ASCII file names)
 //    with the Chinese name as its label
 //  - Chinese text goes to gh as UTF-8 JSON on stdin (gh's arguments get re-encoded on Windows), and
@@ -51,16 +53,24 @@ fs.cpSync(web, path.join(stage, folder), { recursive: true });
 const zip = path.join(stage, `${folder}-web.zip`);
 execFileSync(TAR, ["-a", "-c", "-f", zip, "-C", stage, folder]); // -a: zip, from the file name
 
+const assets = [
+  [apk, `cs-math-skill-game-${version}.apk`, `点亮之路 ${version}（安卓）`, "application/vnd.android.package-archive"],
+  [zip, `cs-math-skill-game-${version}-web.zip`, `点亮之路 ${version}（电脑版：解压后双击 index.html）`, "application/zip"],
+];
+const win = path.join(ROOT, "output/windows", `cs-math-skill-game-${version}-windows-x64-setup.exe`);
+if (fs.existsSync(win)) {
+  const { verifyInstaller } = await import("./windows/verify-installer.mjs");
+  await verifyInstaller(win, web);
+  assets.push([win, path.basename(win), `点亮之路 ${version}（Windows x64 安装版）`, "application/vnd.microsoft.portable-executable"]);
+} else console.warn(`no ${path.relative(ROOT, win)}: released without the Windows installer (node scripts/windows/build-installer.mjs)`);
+
 const want = { tag_name: tag, target_commitish: head.sha, name: `点亮之路 ${version}`, body: fs.readFileSync(notes, "utf8").trim(), draft: false, prerelease: false };
 const old = tryJson([`repos/${REPO}/releases/tags/${tag}`]);
 const rel = old ? json(["-X", "PATCH", `repos/${REPO}/releases/${old.id}`, "--input", "-"], { name: want.name, body: want.body }) : json(["-X", "POST", `repos/${REPO}/releases`, "--input", "-"], want);
 if (rel.name !== want.name || rel.body.replace(/\r\n/g, "\n") !== want.body.replace(/\r\n/g, "\n")) throw new Error("the release's name or notes came back different (encoding?)");
 
 console.log(rel.html_url);
-for (const [file, name, label, type] of [
-  [apk, `cs-math-skill-game-${version}.apk`, `点亮之路 ${version}（安卓）`, "application/vnd.android.package-archive"],
-  [zip, `cs-math-skill-game-${version}-web.zip`, `点亮之路 ${version}（电脑版：解压后双击 index.html）`, "application/zip"],
-]) {
+for (const [file, name, label, type] of assets) {
   for (const a of rel.assets || []) if (a.name === name) gh(["-X", "DELETE", `repos/${REPO}/releases/assets/${a.id}`]);
   const asset = json(["-X", "POST", "-H", `Content-Type: ${type}`, `https://uploads.github.com/repos/${REPO}/releases/${rel.id}/assets?name=${name}&label=${encodeURIComponent(label)}`, "--input", file]);
   const sha = crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");

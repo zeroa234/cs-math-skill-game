@@ -1,0 +1,12 @@
+{
+  "appId": "local.csmathskillgame.desktop",
+  "productName": "点亮之路",
+  "files": ["main.cjs", "game/**/*"],
+  "directories": { "output": "dist" },
+  "win": {
+    "target": [{"target": "nsis", "arch": ["x64"]}],
+    "icon": "game.ico",
+    "artifactName": "cs-math-skill-game-${version}-windows-x64-setup.exe"
+  },
+  "nsis": { "oneClick": true, "perMachine": false, "runAfterFinish": false, "deleteAppDataOnUninstall": false, "differentialPackage": false }
+}

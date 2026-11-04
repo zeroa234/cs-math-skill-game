@@ -39,9 +39,24 @@ keytool -genkeypair -keystore config/android/release.jks -storetype PKCS12 -alia
 2. 提交，`node scripts/android/build-apk.mjs`（发版前跑一遍全量测试，见 [development.md](development.md)“测试”）。
 3. 写更新说明 `docs/releases/<版本>.md`（App 的“检查更新”会原样显示它，用纯文本就好），提交。
 4. `node scripts/publish-github.mjs --push` 把源码快照推到 [zeroa234/cs-math-skill-game](https://github.com/zeroa234/cs-math-skill-game)。
-5. `node scripts/release-github.mjs` 建 `v<版本>` 的发布，附上 APK 和电脑版 zip（`output/web` 打包成 `cs-math-skill-game-<版本>-web.zip`，只有游戏文件，解压后双击 `index.html`）：说明取自第 3 步的文件，APK 以 `cs-math-skill-game-<版本>.apk` 上传（GitHub 会改掉文件名里的中文），中文名“点亮之路 <版本>（安卓）”作为显示标签；中文以 UTF-8 JSON 交给 gh，再读回来比对，上传后的 sha256 要和本地一致。
+   然后 `node scripts/windows/build-installer.mjs` 用这份快照构建出的游戏打 Windows 安装包（见下面“Windows 安装版”）。
+5. `node scripts/release-github.mjs` 建 `v<版本>` 的发布，附上 APK、电脑版 zip 和 Windows 安装包（有这个版本的安装包才附，附之前同样核对里面的游戏）（`output/web` 打包成 `cs-math-skill-game-<版本>-web.zip`，只有游戏文件，解压后双击 `index.html`）：说明取自第 3 步的文件，APK 以 `cs-math-skill-game-<版本>.apk` 上传（GitHub 会改掉文件名里的中文），中文名“点亮之路 <版本>（安卓）”作为显示标签；中文以 UTF-8 JSON 交给 gh，再读回来比对，上传后的 sha256 要和本地一致。
 
 App 每天最多自动检查一次 `https://api.github.com/repos/zeroa234/cs-math-skill-game/releases/latest`（`src/game/app/update.js`），发现新版本就在营地显示“有新版本 [下载] [以后再说]”；“我的”页最下面可以随时手动检查。下载的是发布页上的 APK，安装要本人确认（安卓不允许商店外的 App 静默更新）；同包名、同签名，覆盖安装进度还在。请求只有这一个 GET，不带任何玩家数据；GitHub 对未登录请求每个 IP 每小时限 60 次，一天一次远远够用。
+
+## Windows 安装版
+
+把发布的网页游戏装进一个 Electron 桌面程序，做成一键安装的 NSIS 安装包：Electron 45.2.2 + electron-builder 26.18.0（都是 MIT），版本由 `scripts/windows/package-lock.json` 固定。1.2.1 时手工打过一次，1.3.0 起改成脚本：
+
+```bash
+node scripts/windows/build-installer.mjs   # 先要 publish-github.mjs 生成了这个版本的快照
+```
+
+- 游戏取自 `temp/publish/repo/output/web`（`publish-github.mjs` 从 HEAD 构建的那份，和发布页的电脑版 zip 是同一批文件），放进程序的 `game/` 目录；`package.json` 的版本写进安装包和文件名。
+- 工具装在 `temp/windows-package/`（第一次运行时 `npm ci`），Electron、NSIS、7-Zip 的下载也缓存在那里，不写 C 盘。
+- 打完后自动检查两件事：用 electron-builder 下载的 7-Zip 和它自带的 asar 把安装包拆开，里面的游戏要和发布的逐文件相同（`scripts/windows/verify-installer.mjs`，发布脚本上传前也跑一遍）；再无界面地启动解包出的程序，用 DevTools 端口确认它显示出游戏的第一屏。
+- 桌面入口 `scripts/windows/main.cjs`：游戏文件经私有的 `skill-game://` 协议提供（安全上下文，存档和读文件跟网页版一样），`game/` 以外的路径一律拒绝；教材和课程链接用系统浏览器打开。存档在 `%APPDATA%\cs-math-skill-game`，卸载时保留。
+- 没有代码签名证书，第一次运行时 Windows SmartScreen 可能提示“未知发布者”，点“仍要运行”。程序不自动更新，新版本要重新下载安装（覆盖安装，进度保留）。
 
 ## 文件在哪
 
@@ -50,6 +65,7 @@ App 每天最多自动检查一次 `https://api.github.com/repos/zeroa234/cs-mat
 | `capacitor.config.json` | App 名、包名 `local.csmathskillgame.app`、网页目录 `output/web`、安卓工程目录 `src/android`。Capacitor 只认项目根目录下的这个文件，所以放在根目录 |
 | `src/android/` | `npx cap add android` 生成的安卓工程。修改包括 `app/build.gradle` 的签名和版本、`res/` 的图标和启动背景、`MainActivity.java` 的 WebView 设置（禁止页面缩放；背景音乐换曲不需要再点一下，`setMediaPlaybackRequiresUserGesture(false)`，游戏自己仍然等第一次点击才出声）。网页副本（`app/src/main/assets/public`）和构建产物不进 git，每次 `cap sync` 重新复制 |
 | `scripts/android/build-apk.mjs` | 上面的打包脚本（自写，约 40 行胶水代码） |
+| `scripts/windows/` | Windows 安装版：`build-installer.mjs`（打包脚本，自写的胶水代码）、`verify-installer.mjs`（拆开安装包核对游戏）、`main.cjs`（桌面入口）、`electron-builder.json`、`package.json` 和 `package-lock.json`（固定工具版本）、`game.ico`（图标） |
 | `scripts/android/make-icon-sources.mjs` | 画图标和启动图的源图到 `assets/app-icon/`：游戏里的像素灯泡（pixelarticons 的 lightbulb，MIT），深蓝底、金色、亮黄灯芯，按整像素放大，保持像素边缘清楚（自写，用 Playwright 截 SVG） |
 | `assets/app-icon/` | 图标源图。切成安卓各尺寸用官方工具：`npx @capacitor/assets@4.0.0 generate --android --androidProject src/android --assetPath assets/app-icon` |
 | `src/game/app/native.js` | App 里才生效的部分：`NATIVE`（是不是在 App 里）、返回键处理、viewport 禁止整页缩放 |
