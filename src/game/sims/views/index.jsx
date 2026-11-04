@@ -2,5 +2,6 @@
 import os from "./os.jsx";
 import trace from "./trace.jsx";
 import algo from "./algo.jsx";
+import math from "./math.jsx";
 
-export const SIM_VIEWS = { ...os, ...trace, ...algo };
+export const SIM_VIEWS = { ...os, ...trace, ...algo, ...math };

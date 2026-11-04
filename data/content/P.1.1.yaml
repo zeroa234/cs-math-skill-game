@@ -671,7 +671,7 @@ lessons:
             print("Python"[2:5])
             ```
 
-            显示 `Py` 和 `tho`。`[a:b]` 从下标 a 开始，到 b **之前**为止，不包括 b，和 range 的规矩一样。所以取出的长度正好是 b − a。
+            显示 `Py` 和 `tho`。`[a:b]` 从下标 a 开始，到 b **之前**为止，不包括 b。所以取出的长度正好是 b − a。
       - item:
           id: slice-mid
           type: text
@@ -1293,19 +1293,25 @@ lessons:
 
             显示 `{'苹果': 6, '梨': 3}`：给一个新键赋值就是添加，给已有的键赋值就是修改，一个键只会出现一次。
 
-            数东西时最常用的一行：`counts[w] = counts.get(w, 0) + 1`。w 第一次出现时 get 交出 0，加 1 得 1；以后每次在原来的数上加 1。
+            数东西时最常用的一行：`counts[w] = counts.get(w, 0) + 1`，w 是要数的那个东西。w 还不在字典里时，get 交出 0，加 1 得 1；已经在了，就在原来的数上加 1。
+
+            现在每数一个就写一行；后面学了 for，就能让这一行对一整串东西自动重复，一口气数完。
       - item:
           id: count-dict
           type: number
-          prompt: 运行下面的程序，显示的数是多少？
+          prompt: 数票：运行下面的程序，显示的数是多少？
           code: |
-            counts = {}
-            for w in ["a", "b", "a", "a"]:
-                counts[w] = counts.get(w, 0) + 1
-            print(counts["a"])
+            votes = {}
+            v = "red"
+            votes[v] = votes.get(v, 0) + 1
+            v = "blue"
+            votes[v] = votes.get(v, 0) + 1
+            v = "red"
+            votes[v] = votes.get(v, 0) + 1
+            print(votes["red"])
           lang: python
-          answer: 3
-          explain: '"a" 出现了 3 次：第一次 get 交出 0，0 + 1 = 1；之后变成 2、3。'
+          answer: 2
+          explain: '第一次数 "red" 时字典里还没有它，get 交出 0，存成 1；数 "blue" 不动 "red"；第二次数 "red"，get 交出 1，存成 2。'
       - card:
           title: 列表当成一摞盘子
           body: |
@@ -1572,7 +1578,7 @@ lessons:
       - card:
           title: range：一串整数
           body: |
-            `range(5)` 产生 0, 1, 2, 3, 4：从 0 开始，**不包括 5**，正好 5 个数。
+            `range(5)` 产生 0, 1, 2, 3, 4：从 0 开始，**不包括 5**，正好 5 个数。和切片 `[a:b]` 一样，包括开头，不包括结尾。
 
             `range(1, 5)` 是 1, 2, 3, 4；`range(0, 10, 3)` 每次加 3：0, 3, 6, 9。
 

@@ -3,6 +3,10 @@
 # the pack's `terms`), or when the pack lists it under `assumes` because a prerequisite skill teaches it.
 # Checked by scripts/lib/packs.mjs; text inside code, math and lesson titles is not scanned.
 # Add words here whenever a review finds one that slipped through: the list is meant to grow.
+#
+# Code is checked through `code` (at the end): a program shown in a fenced block, an item's `code` or a
+# traced program that contains one of a term's keywords uses that term. Added 2026-11-04 after a player
+# found a for loop in P.1.1's "改动列表和字典", two lessons before for is taught.
 terms:
   # programming basics
   - 源代码
@@ -141,3 +145,156 @@ terms:
   - 打开文件表
   - 硬链接
   - 符号链接
+  # calculus: limits and continuity (added with M.1.1, 2026-11-04). Not listed: 连续 (ordinary word:
+  # 连续三次), 图像, 区间 (used plainly after 开区间 / 闭区间 are defined), and school words other packs
+  # use plainly: 数列 (P.1.1), 绝对值 and 有界 (C.2.1: 有界缓冲区), 多项式 (F.1.1)
+  - 定义域
+  - 分段函数
+  - 通项公式
+  - 递推公式
+  - 等差数列
+  - 等比数列
+  - 极限
+  - 收敛
+  - 发散
+  - 单调
+  - 左极限
+  - 右极限
+  - 单侧极限
+  - 弧度
+  - 无穷极限
+  - 竖直渐近线
+  - 水平渐近线
+  - 有理函数
+  - 待定型
+  - 夹逼定理
+  - 无穷小
+  - 无穷大
+  - 高阶无穷小
+  - 等价无穷小
+  - 三角不等式
+  - 间断点
+  - 开区间
+  - 闭区间
+  - 介值定理
+  - 二分法
+  - 最值定理
+  - 局部极大值
+  - 临界点
+  - 一致连续
+  # linear algebra (added with M.3.1, 2026-11-04). Not listed: 矩阵 (F.1.1 defines 邻接矩阵), 基 and 秩
+  # (single characters), 正交, 长度, 乘数 (ordinary words)
+  - 向量
+  - 线性组合
+  - 点积
+  - 消元
+  - 主元
+  - 回代
+  - 上三角矩阵
+  - 增广矩阵
+  - 消元矩阵
+  - 单位矩阵
+  - 置换矩阵
+  - 逆矩阵
+  - 可逆
+  - 转置
+  - 对称矩阵
+  - 行列式
+  - 余子式
+  - 向量空间
+  - 子空间
+  - 列空间
+  - 零空间
+  - 行简化阶梯形
+  - 自由未知数
+  - 特解
+  - 线性无关
+  - 张成
+  - 维数
+  - 行空间
+  - 左零空间
+  - 线性变换
+  - 单位向量
+  - 柯西-施瓦茨不等式
+  - 正交补
+  - 投影
+  - 最小二乘
+  - 标准正交
+  - 正交矩阵
+  - 特征值
+  - 特征向量
+  - 对角化
+  - 谱定理
+  - 正定矩阵
+  - 奇异值
+  - 奇异值分解
+  - 方差
+  - 主成分分析
+  - 范数
+  - 条件数
+  - 预条件
+  # calculus: single-variable differentiation (added with M.1.2, 2026-11-04). Not listed: 切线 and 斜率
+  # (M.1.1 and D.3.1 use them as school words), 对数 (matches 对数组 in D.3.1), 极值 (M.1.1 uses it plainly),
+  # 相对误差 (D.3.1 and M.3.1 use it)
+  - 导数
+  - 割线
+  - 差商
+  - 可导
+  - 瞬时变化率
+  - 乘积法则
+  - 商法则
+  - 链式法则
+  - 复合函数
+  - 二阶导数
+  - 高阶导数
+  - 阶乘
+  - 隐函数
+  - 反函数
+  - 自然对数
+  - 对数求导法
+  - 线性近似
+  - 微分
+  - 可微
+  - 费马定理
+  - 驻点
+  - 罗尔定理
+  - 中值定理
+  - 二阶导数判别法
+  - 柯西中值定理
+  - 洛必达法则
+  - 二次近似
+  - 泰勒多项式
+  - 余项
+  - 幂级数
+  - 收敛半径
+  - 泰勒级数
+  # P.2.3 Python and scientific computing tools (2026-11-04). Not added: 掩码（C.1.1 的位掩码是另一个意思）、插值（D.3.1 讲分位数时顺带用到）、依赖、频率、采样这些日常词，
+  # 和“维数组”这类会被子串误报的写法（写成“二维的数组”，避开线性代数的“维数”）。
+  - 魔术命令
+  - 命令行参数
+  - 视图
+  - 广播
+  - 数据框
+  - 相关系数
+  - 稀疏矩阵
+  - 局部最小值
+  - 微分方程
+  - 概率密度
+  - 累积分布函数
+  - 零假设
+  - 显著性水平
+  - 傅里叶变换
+  - 开运算
+  - 虚拟环境
+  - 锁文件
+
+# term: keywords whose use in a shown program means the program uses that term (whole words, after
+# string literals and comments are removed). Only keywords that mean the same idea in every language
+# the packs show (Python, C, shell, pseudocode). "a / b" means teaching either term is enough. The
+# lesson that defines the term may use its keywords before the defining card (scripts/lib/beginner.mjs).
+code:
+  循环: [for, while]
+  分支: [if]
+  函数: [def, return, lambda]
+  模块 / 标准库 / 第三方库: [import]
+  异常: [try, except, raise]

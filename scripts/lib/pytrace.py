@@ -8,9 +8,15 @@ Each step is the state *before* `line` runs: the variables of the frame that is 
 program ends. `stack` (only while a function is running) is the call stack, outermost first, e.g.
 ["<module>", "sum_squares", "square"]. Uses sys.settrace; only frames compiled from the traced code
 are recorded.
+
+Default reprs carry a memory address ("<__main__.Student object at 0x00000204A8AE6E40>") that changes
+on every run, which would make every build of the game differ. Such addresses are replaced, in order of
+first appearance, by fixed stand-ins (0x7f0000001000, 0x7f0000001040, ...): the same object keeps the
+same address throughout the trace, and different objects get different ones.
 """
 import io
 import json
+import re
 import sys
 
 MAX_STEPS = 400
@@ -67,7 +73,10 @@ def main():
     finally:
         sys.settrace(None)
         sys.stdout, sys.stdin = old_out, old_in
-    print(json.dumps({"steps": steps, "error": error, "out": out.getvalue()}, ensure_ascii=False))
+    text = json.dumps({"steps": steps, "error": error, "out": out.getvalue()}, ensure_ascii=False)
+    seen = {}
+    text = re.sub(r" at 0x[0-9A-Fa-f]+", lambda m: seen.setdefault(m.group(0), f" at 0x{0x7f0000001000 + 0x40 * len(seen):x}"), text)
+    print(text)
 
 
 if __name__ == "__main__":

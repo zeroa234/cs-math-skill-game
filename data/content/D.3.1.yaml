@@ -1,0 +1,4305 @@
+skill: D.3.1
+version: 2
+authors: [main-agent]
+brief:
+  why: 数据科学用数据回答问题：这十年房价怎么变、哪些因素影响共享单车的租量、新疫苗有没有效。这一关走完一个数据项目的全过程：把问题说清楚，弄清数据代表谁，读文件、清洗、汇总、画图，用 scikit-learn 建模，再用正确的方法评估它，最后说清结论有多可靠。从“怎么读懂一行 Python”讲起，不需要编程基础。
+  outcomes:
+    - 说出数据项目的四个阶段，分清描述、探索、推断、预测四类问题，分清相关和因果
+    - 分清目标总体、访问框和样本，认出覆盖、选择、无回答、测量四种偏差，知道加大样本去不掉偏差
+    - 读懂常见文件格式和编码，用 pandas 把 CSV、JSON 读成数据框，判断一张表的粒度和主键
+    - 用 loc、iloc 和条件筛选取数，检查数据质量，处理缺失值、类型、文字和日期，合并和改变表的形状
+    - 用平均数、中位数、四分位数、标准差、相关系数描述数据，分组汇总、做透视表，选对图
+    - 在 Jupyter 笔记本里查帮助、计时、调试，让笔记本能从头重现
+    - 用 NumPy 做整列运算和汇总，按 scikit-learn 的套路建模
+    - 划分训练集和测试集，认出并避免数据泄漏，用流水线把预处理和模型绑在一起
+    - 算准确率、精确率、召回率、F1、AUC、MAE、MSE、R²，按决策选指标
+    - 用交叉验证挑模型，解释过拟合和偏差–方差的权衡，固定随机性
+    - 用自助法算置信区间，用打乱标签做假设检验、读懂 p 值，分清置信区间和预测区间，记录每一次实验
+terms:
+  - term: 生命周期
+    def: '数据项目的四个阶段：提问、获取数据、理解数据、理解世界，会来回走'
+  - term: 随机实验
+    def: '随机决定谁接受处理、谁不接受，再比较两组；能回答因果问题'
+  - term: 目标总体
+    def: '你想得出结论的那群对象'
+  - term: 访问框
+    def: '实际能接触、能测量到的那些对象；可能比目标总体少，也可能多'
+  - term: 样本
+    def: '最后真正测到的那一批对象'
+  - term: 大数据傲慢
+    def: '把海量数据当成普查，忽视它代表谁、测的是什么'
+  - term: 测量工具
+    def: '拿来测的东西：问卷、温度计、传感器'
+  - term: 测量协议
+    def: '怎么测的规矩：怎么选样本、怎么追访、多久校准一次'
+  - term: 漂移
+    def: '仪器用久了读数一点点偏离真值'
+  - term: 赋值
+    def: '用 = 让左边的名字代表右边算出的值：先算右边，再贴名字'
+  - term: 变量
+    def: '代表一个值的名字。price = 8 之后，写 price 就是用 8'
+  - term: 整数
+    def: '没有小数点的数，如 8、-3；类型叫 int，pandas 里常显示为 int64'
+  - term: 浮点数
+    def: '带小数点的数，如 3.5、8.0；类型叫 float，pandas 里常显示为 float64'
+  - term: 字符串
+    def: '一对引号里的文字，如 "8"、"北京"；类型叫 str'
+  - term: 表达式
+    def: '能算出一个值的写法，如 price * count、temp > 30'
+  - term: 布尔
+    def: '布尔值只有 True 和 False 两种，比较的结果就是布尔值'
+  - term: 列表
+    def: '方括号写的一串按顺序的值，如 [21, 25, 19]，编号从 0 开始'
+  - term: 字典
+    def: '花括号里的一组“键: 值”，按键查值，如 {"temp": 31}["temp"] 得 31'
+  - term: 函数
+    def: '起了名字的一段操作，写名字加括号就让它执行，如 len([3, 8])'
+  - term: 调用
+    def: '写 函数名(值) 让函数执行一遍'
+  - term: 参数
+    def: '调用函数时括号里交给它的值；在模型里也指从数据学出来的数'
+  - term: 第三方库
+    def: '别人写好、单独安装的代码包，如 pandas、NumPy、scikit-learn'
+  - term: 循环
+    def: '让同一段代码对一串值各执行一遍，如 for r in [1, 2]: ...'
+  - term: 编码手册
+    def: '说明数据每一栏在哪几位、每个代码是什么意思的文档（codebook）'
+  - term: 字节
+    def: '文件里存放的基本单位，每个字节是 0 到 255 之间的一个数'
+  - term: 字符编码
+    def: '规定哪个数代表哪个字的对照规则，如 ASCII、Latin-1、UTF-8'
+  - term: 内存
+    def: '电脑运行程序时临时放数据的地方，比硬盘小得多；pandas 要把整个文件读进来'
+  - term: 数据框
+    def: 'pandas 里的表格（DataFrame）：有行有列，每列是一个 Series'
+  - term: 索引
+    def: '数据框或 Series 每一行的标签（index），默认是 0、1、2……'
+  - term: Series
+    def: 'pandas 里的一列：一串值，加上每个值的索引'
+  - term: NaN
+    def: '“不是一个数”，pandas 用它表示缺失的数值'
+  - term: 粒度
+    def: '一张表里一行代表的对象，如一家餐厅、一次检查、一条违规'
+  - term: 主键
+    def: '能唯一认出每一行的一列（或几列合起来）'
+  - term: 外键
+    def: '指向另一张表主键的列，合并两张表就靠它'
+  - term: 抽样权重
+    def: '一行在总体里代表多少个对象；算比例和平均时要带上'
+  - term: JSON
+    def: '网上传数据最常用的文本格式：花括号是“名字: 值”，方括号是一串值，可以套很多层'
+  - term: HTTP
+    def: '网上一问一答的规矩：程序发请求，服务器回响应'
+  - term: 请求
+    def: '程序发给服务器的一条消息，常见的有 GET（取）和 POST（交）'
+  - term: 响应
+    def: '服务器回给程序的消息：状态码、头部和正文'
+  - term: 状态码
+    def: '响应里表示成没成的三位数：2 开头成功，4 开头请求方的问题，5 开头服务器的问题'
+  - term: REST
+    def: '一种数据接口的风格：每个网址代表一样东西，服务器不记得上一次请求'
+  - term: 令牌
+    def: '认证后拿到的一串字符（token），之后每个请求都带上它；会过期'
+  - term: 切片
+    def: '用 [开始:结束] 取出连续的一段；iloc 不含结尾，loc 含结尾'
+  - term: 完全随机缺失
+    def: '缺不缺跟任何东西都无关；只有这时直接删掉缺失行才不会让结论偏'
+  - term: 类型转换
+    def: '把值换成另一种类型，如 astype(int)、pd.to_datetime'
+  - term: 多层索引
+    def: '有两层或更多层标签的索引（MultiIndex），按两列分组时会得到'
+  - term: 平均数
+    def: '全部加起来除以个数；会被极端值拉走'
+  - term: 中位数
+    def: '从小到大排好后正中间的数；不怕极端值'
+  - term: 稳健
+    def: '不怕极端值：改动几个极端的数，结果变化不大，如中位数'
+  - term: 四分位数
+    def: '排在 25% 位置的 Q1 和排在 75% 位置的 Q3'
+  - term: 四分位距
+    def: 'IQR = Q3 − Q1，中间一半数据占的宽度'
+  - term: 离群值
+    def: '远离其他数据的值；常用规则：超出 Q1 − 1.5 IQR 到 Q3 + 1.5 IQR'
+  - term: 方差
+    def: '每个值离平均数的距离平方后的平均，衡量数据有多分散'
+  - term: 标准差
+    def: '方差开平方，和原数据同一个单位'
+  - term: 相关系数
+    def: 'r 在 −1 到 1 之间，衡量两列数有多接近一条直线'
+  - term: 透视表
+    def: '按一列分行、另一列分列，在每个格子里汇总的表（pivot table）'
+  - term: 直方图
+    def: '把数值分进等宽的区间，画出每个区间里有几个'
+  - term: 核密度估计
+    def: '在每个数据点放一个小鼓包再加起来，得到平滑的分布曲线（KDE）'
+  - term: 单元格
+    def: '笔记本里可以单独运行的一格代码或文字'
+  - term: 内核
+    def: '笔记本背后一直在运行的 Python，记住所有运行过的格子里定义的名字'
+  - term: 魔术命令
+    def: '笔记本专用、以 % 开头的命令，如 %timeit、%run、%debug'
+  - term: 调试
+    def: '找出并改正代码错误的过程'
+  - term: 数组
+    def: 'NumPy 里一串同一类型的数，可以有几行几列（array）'
+  - term: 整体运算
+    def: '对整个数组直接写运算，不写循环，NumPy 对每个值都做一遍'
+  - term: 掩码
+    def: '一串布尔值，放进方括号就留下 True 的位置'
+  - term: 特征
+    def: '描述一个样本的某个方面的一列，模型用它来预测'
+  - term: 监督学习
+    def: '有标签的学习：标签是类别叫分类，是连续的数叫回归'
+  - term: 无监督学习
+    def: '没有标签，找数据自己的结构，如聚类、降维'
+  - term: 超参数
+    def: '建模型时自己定、不从数据学的选项，如 n_neighbors'
+  - term: 罐子模型
+    def: '把每个对象写在弹珠上放进罐子再摸出来，用来想象和模拟抽样'
+  - term: 简单随机样本
+    def: '每一种 n 个的组合被抽中的机会都相同的不放回样本'
+  - term: 统计量
+    def: '从样本算出来的数，如样本平均数'
+  - term: 抽样分布
+    def: '一个统计量在所有可能的样本上取各个值的机会'
+  - term: 偏差
+    def: '整体往一个方向偏离真值的部分；加大样本也去不掉'
+  - term: 训练集
+    def: '用来拟合和挑选模型的那部分数据'
+  - term: 测试集
+    def: '留到最后只用一次、评估模型在新数据上表现的那部分数据'
+  - term: 预处理
+    def: '拟合模型前对数据做的处理，如标准化、补缺失、挑特征'
+  - term: 标准化
+    def: '每列减去平均、除以标准差；平均和标准差只能从训练集算'
+  - term: 数据泄漏
+    def: '建模型时用到了真正预测时拿不到的信息，评估分数会好看得可疑'
+  - term: 流水线
+    def: '把预处理和模型串成一个整体（pipeline），fit 时只在训练部分上学'
+  - term: 独热编码
+    def: '把一列类别变成每个类别一列、是它就填 1 的写法（one-hot）'
+  - term: 基线
+    def: '最简单的做法（如永远猜最常见的类）的成绩，模型要先比过它'
+  - term: 准确率
+    def: '猜对的个数 ÷ 总数；类别不平衡时会骗人'
+  - term: 混淆矩阵
+    def: '数出真实和预测四种组合的表；scikit-learn 里行是真实、列是预测'
+  - term: 阈值
+    def: '把概率变成类别的分界线，概率大于它就判为正'
+  - term: 精确率
+    def: 'TP ÷ (TP + FP)：判为正的里面有多少真是正的'
+  - term: 召回率
+    def: 'TP ÷ (TP + FN)：真正的正例里找出了多少'
+  - term: F1
+    def: '精确率和召回率的调和平均 2PR ÷ (P + R)'
+  - term: 特异度
+    def: 'TN ÷ (TN + FP)：真正的负例里有多少被判对'
+  - term: 假正率
+    def: 'FP ÷ (FP + TN) = 1 − 特异度'
+  - term: ROC 曲线
+    def: '阈值从高到低扫一遍，横轴假正率、纵轴真正率（召回率）画出的曲线'
+  - term: AUC
+    def: 'ROC 曲线下的面积：1 完美，0.5 瞎猜；等于正例得分高于负例的机会'
+  - term: 平均绝对误差
+    def: 'MAE：误差绝对值的平均，和目标同一个单位'
+  - term: 均方误差
+    def: 'MSE：误差平方的平均，对大误差很敏感'
+  - term: RMSE
+    def: 'MSE 开平方，回到目标的单位'
+  - term: 决定系数
+    def: 'R² = 1 − 模型误差平方和 ÷ 猜平均数的误差平方和；猜平均数得 0'
+  - term: 过拟合
+    def: '模型跟着训练数据里的噪声走，训练分数高、新数据上差'
+  - term: 欠拟合
+    def: '模型太简单，训练分数和验证分数都低'
+  - term: 交叉验证
+    def: '把训练集分成 k 折，轮流留一折验证、其余拟合，再平均 k 个分数'
+  - term: 留一法
+    def: '每次只留一个样本当验证的交叉验证'
+  - term: 总体参数
+    def: '总体的某个数（如全体的平均），通常不知道，用统计量去估计'
+  - term: 自助法
+    def: '把样本当总体、有放回地反复重抽，估计统计量的波动（bootstrap）'
+  - term: 标准误
+    def: '统计量的标准差，说明它在不同样本之间波动多大'
+  - term: 置信区间
+    def: '估计值的一个范围；95% 指这种造区间的方法大约 95% 能盖住真值'
+  - term: 零假设
+    def: '假设“没有效果、差别只是碰巧”，再看数据和它有多不相符'
+  - term: p 值
+    def: '零假设成立时，得到至少这么极端结果的机会；不是零假设为真的概率'
+  - term: p 值操纵
+    def: '做很多次检验，只报告碰巧显著的那几次'
+  - term: 预测区间
+    def: '一个未来的新观测可能落在的范围，比平均数的置信区间宽'
+lessons:
+  # ---------------------------------------------------------------- 问题定义
+  - id: lifecycle
+    chapter: 问题定义
+    title: 一个数据项目的四个阶段
+    minutes: 12
+    flow:
+      - guess:
+          id: guess-first
+          type: choice
+          prompt: 你想知道“这十年房价是怎么变的”。第一步最该做什么？
+          options:
+            - text: 把问题说具体：哪个城市、哪些年、用什么价格，再看能找到什么数据
+              correct: true
+            - text: 先挑一个最厉害的预测模型
+              why: 问题还没说清楚，不知道模型要回答什么
+            - text: 先把能下载到的数据全部下载下来
+              why: 数据多不等于对路；不知道问题，就不知道该要哪些数据
+          explain: 数据项目从一个问题开始。把宽泛的问题收窄成“能用数据回答”的问题，是第一步要做的事。
+      - card:
+          title: 四个阶段
+          body: |
+            几乎每个数据项目都走这四步，合起来叫数据科学的**生命周期（lifecycle）**：
+
+            1. **提问**：想知道什么？把问题收窄到能用数据回答。
+            2. **获取数据**：数据从哪来、覆盖谁、质量怎样。
+            3. **理解数据**：清洗、汇总、画图，找规律。
+            4. **理解世界**：从这批数据推出关于更大范围的结论，或做预测。
+
+            这四步会来回走：画图时发现数据有问题，就要回到第 2 步。
+      - item:
+          id: order-stages
+          type: order
+          prompt: 把数据项目的四个阶段按顺序排好。
+          steps:
+            - 提出一个能用数据回答的问题
+            - 获取数据，检查覆盖范围和质量
+            - 清洗、汇总、画图，理解数据
+            - 从数据推出关于世界的结论或预测
+          explain: 先问题，后数据，再分析，最后下结论。实际做的时候会倒回前面的阶段，但第一次走一定是这个顺序。
+      - card:
+          title: 四类问题
+          body: |
+            问题的种类决定了后面怎么做：
+
+            | 种类 | 例子 |
+            |---|---|
+            | 描述 | 这十年房价是怎么变的？ |
+            | 探索 | 房子的哪些方面和售价有关？ |
+            | 推断 | 从 500 套成交记录，能推出全市的平均房价吗？ |
+            | 预测 | 这套房子挂出去能卖多少？ |
+
+            描述和探索只看手上的数据，做到第 3 步就可以停；推断和预测要走到第 4 步。
+      - item:
+          id: match-question-kind
+          type: match
+          prompt: 把问题和它的种类配起来。
+          pairs:
+            - [去年每个月共享单车租了多少次, 描述]
+            - [租车次数和气温、下雨有没有关系, 探索]
+            - [从抽查的 300 辆车估计全市车辆的故障率, 推断]
+            - [明天上午 8 点这个站点会被租走几辆车, 预测]
+          explain: 描述是“发生了什么”，探索是“什么和什么有关”，推断是“从一部分推到全体”，预测是“对还没看到的情况给一个数”。
+      - card:
+          title: 相关不等于因果
+          body: |
+            数据里两件事一起变，不说明一件导致另一件。
+
+            “空气污染多的地区，肺病是不是更多？”这个问题，看现成的记录就能回答，这叫观察。“给维基百科的活跃作者发奖励，他们会不会写得更多？”这是在问因果，要做**随机实验**：随机挑一半人发奖，另一半不发，再比较。
+      - item:
+          id: breakfast
+          type: choice
+          prompt: 调查发现，吃早餐的学生平均成绩更高。能据此说“吃早餐提高成绩”吗？
+          options:
+            - text: 不能。这是相关，可能是别的原因（比如家庭作息规律）同时影响两者
+              correct: true
+            - text: 能，调查人数够多就能说明因果
+              why: 人数多只让“相关”更可靠，不会把相关变成因果
+            - text: 能，因为成绩是在吃早餐之后测的
+              why: 时间先后不够，作息规律的家庭可能既让孩子吃早餐、又督促学习
+          explain: 要说明因果，最可靠的办法是随机分组：随机让一部分学生吃早餐，其他条件都一样，再比较成绩。
+      - card:
+          title: 四个阶段会来回走
+          body: |
+            一本教材用四个案例走完整条流程：
+
+            - 公交车为什么总是晚点：自己记录等车时间，再做简单模型；
+            - 廉价空气传感器准不准：把几个来源的数据清洗、合并；
+            - 没有秤，怎么估一头驴的体重：重点在建模和预测；
+            - 识别假新闻：先把新闻正文变成能分析的数据。
+
+            每个阶段都可能把你送回前面：清洗时发现关键的一列大半是空的，就要回去找数据，甚至改问题。
+      - item:
+          id: go-back
+          type: choice
+          prompt: 你在理解数据时发现，想研究的“骑行时长”一列有一半是空的。比较合理的下一步是？
+          options:
+            - text: 回到获取数据的阶段，查清为什么空、能不能补到，必要时改问题
+              correct: true
+            - text: 直接删掉这一列，继续往下做
+              why: 删掉了问题最关心的那一列，结论就回答不了原来的问题
+            - text: 不管它，直接下结论
+              why: 一半缺失可能让结论偏到很远，必须先弄清缺失的原因
+          explain: 生命周期不是一条单行道。发现数据回答不了问题时，倒回前面的阶段是正常的做法。
+
+  - id: data-scope
+    chapter: 问题定义
+    title: 目标总体、访问框和样本
+    minutes: 13
+    flow:
+      - guess:
+          id: guess-big
+          type: choice
+          prompt: 一个数据集有几十亿条记录。它还需要担心“能不能代表我想研究的人”吗？
+          options:
+            - text: 需要。量大不等于覆盖对了人，也不保证测得准
+              correct: true
+            - text: 不需要，几十亿条已经接近所有人了
+              why: 再多的记录也可能只来自某一类人，或者测的不是你想要的东西
+          explain: 下面的谷歌流感趋势就是一个反例：数据量极大，预测却连续高估。
+      - card:
+          title: 三个范围
+          body: |
+            一项研究要分清三层：
+
+            - **目标总体（target population）**：你想得出结论的那群对象；
+            - **访问框（access frame）**：你实际能接触、能测量到的那些对象；
+            - **样本（sample）**：最后真正测到的那一批。
+
+            维基百科奖励实验：目标总体是开始前一个月最活跃的 1% 作者；访问框剔除了当月已经得过奖的人；样本是从中随机抽的 200 人，观察 90 天。
+      - item:
+          id: wiki-count
+          type: number
+          prompt: 实验开始前一个月，有 144,000 名志愿者在维基百科上写了内容。最活跃的 1% 是多少人？
+          answer: 1440
+          explain: 144,000 × 1% = 1,440 人。这是目标总体的大小；样本只抽了其中 200 人。
+      - card:
+          title: 访问框可能少，也可能多
+          body: |
+            电话民调想了解“会去投票的人”，访问框却是“有电话、按过往记录判断可能投票的人”。
+
+            - **少**：会去投票、但不接陌生电话的人，在总体里，不在框里；
+            - **多**：被拨通、但最后不去投票的人，在框里，不在总体里。
+
+            访问框和目标总体对不上，从样本得出的结论多半也对不上。
+      - item:
+          id: frame-match
+          type: match
+          prompt: 电话民调的目标总体是“会去投票的人”，访问框是“有电话的可能投票者”。把每种人和他所在的位置配起来。
+          pairs:
+            - [会去投票但没有电话, 在总体里，不在访问框里]
+            - [有电话、被判为可能投票，但最后没去投, 在访问框里，不在总体里]
+            - [有电话、被拨到、也去投了票, 总体、访问框、样本里都有]
+          explain: 民调只能接触访问框里的人。框缺掉的那部分人，样本再大也问不到。
+      - card:
+          title: 大数据傲慢
+          body: |
+            谷歌流感趋势曾用“流感相关的搜索有多少”来估计流感病例数。2011–2012 年的流感季，它在 108 周里有 100 周高估了疾控中心的数字；一个只用三周前疾控数据加季节规律的简单模型反而更准。
+
+            把海量数据当成“几乎等于普查”、忽视它代表谁、测的是什么，这叫**大数据傲慢（big data hubris）**。后来把两种数据结合起来，比单用哪一种都好。
+      - item:
+          id: gft-why
+          type: choice
+          prompt: 谷歌流感趋势的数据量远大于疾控中心的报告，为什么还是连续高估？
+          options:
+            - text: 搜索次数测的不是“得了流感的人数”，搜索的人也不能代表病人
+              correct: true
+            - text: 数据量还不够大
+              why: 它的数据已经极大；问题出在测什么、代表谁，加数据解决不了
+            - text: 疾控中心的数据是错的
+              why: 疾控的报告是比较的标准；一个只用旧疾控数据的模型都比它准
+          explain: 没得流感的人也会因为新闻去搜索。数据和问题之间的联系，比数据的多少更重要。
+      - card:
+          title: 单位决定能问什么
+          body: |
+            加州一份环境健康数据只提供到“人口普查区”这一级：每个区一行，写着这个区的空气质量和哮喘住院率。访问框的单位是区，样本是全部的区。
+
+            用它可以问“空气差的区，哮喘住院率是不是更高”，但问不了“空气差会不会让某个人得哮喘”：一个区的数据拆不回一个个人。
+      - item:
+          id: tract-question
+          type: choice
+          prompt: 数据每行是一个社区（空气质量、哮喘住院率）。下面哪个问题能用它回答？
+          options:
+            - text: 空气越差的社区，哮喘住院率是不是越高
+              correct: true
+            - text: 住在空气差的社区的张三，得哮喘的风险是多少
+              why: 数据的单位是社区，拆不回个人
+            - text: 哮喘住院的人里，男性多还是女性多
+              why: 每行只有社区的汇总数，没有每个病人的性别
+          explain: 先看清一行代表什么对象，再决定能问什么问题。
+
+  - id: protocols
+    chapter: 问题定义
+    title: 测量工具和协议
+    minutes: 11
+    flow:
+      - guess:
+          id: guess-drift
+          type: choice
+          prompt: 一台空气传感器用了两年，读数慢慢比实际偏高。这种问题多抽几次样能消除吗？
+          options:
+            - text: 不能，每次都往同一个方向偏
+              correct: true
+            - text: 能，次数多了自然平均回来
+              why: 高的、低的随机乱跳才会互相抵消；一直偏高的不会
+          explain: 往同一个方向的偏差要靠校准仪器来发现和修正，测再多次也平均不掉。
+      - card:
+          title: 工具和协议
+          body: |
+            **测量工具（instrument）** 是用来测的东西：问卷、温度计、传感器。
+
+            **测量协议（protocol）** 是怎么测的规矩：样本怎么选、没回答的人怎么追访、访员怎么培训、怎么给答题人保密、仪器多久校准一次、先测什么后测什么。
+
+            同一份问卷，换一套协议，得到的数据可能完全不同。
+      - item:
+          id: tool-or-protocol
+          type: match
+          prompt: 把下面几项归到“测量工具”或“测量协议”。
+          pairs:
+            - [一份 20 道题的问卷, 测量工具：拿来问的问题]
+            - [没接电话的人隔天再打两次, 测量协议：怎么追访]
+            - [每天用已知浓度的气体校准传感器, 测量协议：多久校准一次]
+            - [装在楼顶的 PM2.5 传感器, 测量工具：拿来测的仪器]
+          explain: 工具是“拿什么测”，协议是“按什么规矩测”。
+      - card:
+          title: 仪器会漂，平台会改
+          body: |
+            仪器用久了会**漂移（drift）**：读数一点点偏离真值，所以要定期拿已知的标准去比。
+
+            网上的行为数据也有同样的问题：搜索网站为了服务和广告不断调整算法，同一个搜索词，今年和去年统计出来的意义可能已经变了，别人很难重复你的结果。合并多个来源时，每个来源都要单独问一遍：谁、用什么、按什么规矩测的。
+      - item:
+          id: platform-change
+          type: choice
+          prompt: 你用某网站 2019 年和 2024 年的搜索量比较“人们对某话题的兴趣”。最需要先确认的是？
+          options:
+            - text: 网站这几年有没有改过统计或推荐的算法
+              correct: true
+            - text: 两年的数据量是不是一样大
+              why: 数据量不同可以换算；测量方式变了，数字的含义就变了
+            - text: 两年都用同一种电脑分析
+              why: 用什么电脑分析不影响数据本身的含义
+          explain: 测量方式一变，前后两段数据就不能直接比。
+      - card:
+          title: 测一个看不见的真值
+          body: |
+            夏威夷冒纳罗亚观测站从 1958 年起测大气二氧化碳浓度。它建在太平洋中的山顶，远离污染和植物，测到的是“背景浓度”。
+
+            协议：每小时用一种已知浓度的标准气测 5 分钟，每天再用另外两种标准气各测一段时间，用来发现读数的偏差。仪器正常时，读数围绕真值，偏离大约 0.30 ppm（每一百万个干燥空气分子里的二氧化碳分子数）。
+      - item:
+          id: natural-map
+          type: match
+          prompt: 测二氧化碳浓度时，“总体、访问框、样本”分别对应什么？
+          pairs:
+            - [目标, 大气中二氧化碳浓度的真值]
+            - [访问框, 仪器能测准的范围（精度）]
+            - [样本, 一次次的实际读数]
+          explain: 总体、访问框、样本不只用来描述人群：测一个物理量时，样本就是重复的读数，目标是那个看不见的真值。
+      - item:
+          id: reference-gas
+          type: choice
+          prompt: 观测站为什么要定时测“已知浓度的标准气”？
+          options:
+            - text: 拿读数和已知浓度比，看仪器有没有往一个方向偏
+              correct: true
+            - text: 为了让读数变得更多
+              why: 标准气的读数不算进大气浓度的数据，它用来检查仪器
+            - text: 标准气能把大气里的二氧化碳去掉
+              why: 标准气是另外装好的已知样品，不会改变大气
+          explain: 浓度已知，读数就应该等于它；差多少，就是仪器现在的偏差。
+
+  # ---------------------------------------------------------------- 数据获取
+  - id: python-values
+    chapter: 数据获取
+    title: 读懂代码（一）：名字、数和文字
+    minutes: 12
+    flow:
+      - guess:
+          id: guess-name
+          type: number
+          prompt: 一行代码写 `price = 8`，下一行写 `price * 3`。第二行算出来是多少？
+          answer: 24
+          explain: 第一行让 price 这个名字代表 8，第二行就是 8 × 3 = 24。
+      - card:
+          title: 给值起名字
+          body: |
+            后面的数据分析都用 Python 写。先学读懂最常见的几种写法。
+
+            ```python
+            price = 8
+            count = 3
+            total = price * count
+            print(total)
+            ```
+
+            `=` 叫**赋值（assignment）**：先算右边，再让左边的名字代表这个结果。这种名字叫**变量（variable）**。`print(...)` 把括号里的东西显示出来。这段代码显示 24。
+      - item:
+          id: reassign
+          type: number
+          prompt: 这段代码最后显示什么数？
+          code: |
+            a = 5
+            b = a + 2
+            a = 100
+            print(b)
+          lang: python
+          answer: 7
+          explain: 第 2 行算 b 的时候 a 是 5，b = 7。之后 a 改成 100，b 不会跟着变，还是 7。
+      - card:
+          title: 数和文字
+          body: |
+            Python 里的值有几种**类型**：
+
+            | 写法 | 类型 |
+            |---|---|
+            | `8`、`-3` | **整数（integer）**，int |
+            | `3.5`、`8.0` | **浮点数（float）**，带小数点，float |
+            | `"8"`、`"北京"` | **字符串（string）**，一对引号里的文字，str |
+
+            `"8"` 是文字不是数：`"8" + "1"` 是把两段文字接起来，得 `"81"`；`8 + 1` 才是 9。
+      - item:
+          id: str-plus
+          type: text
+          prompt: '`print("3" + "4")` 显示什么？'
+          answers: ["34"]
+          explain: 两个都是字符串，+ 把它们首尾接起来，得到 34，不是 7。表格里的数字列如果被读成了文字，就会出这种错。
+      - card:
+          title: 表达式和比较
+          body: |
+            能算出一个值的写法叫**表达式（expression）**，如 `price * count`、`(3 + 5) / 2`。`/` 的结果总是浮点数：`6 / 2` 得 `3.0`。
+
+            比较大小也是表达式，结果只有两种：`True`（成立）或 `False`（不成立），这种值叫**布尔值（boolean）**：
+
+            ```python
+            print(8 > 3)     # True
+            print(8 == 3)    # False，== 是“是否相等”
+            ```
+      - item:
+          id: bool-predict
+          type: choice
+          prompt: '`temp = 31`，那么 `temp > 30` 的结果是什么？'
+          options:
+            - text: 'True'
+              correct: true
+            - text: '31'
+              why: 比较的结果是“成立 / 不成立”，不是数本身
+            - text: 'False'
+              why: 31 比 30 大，比较成立
+          explain: 后面筛选表格时会大量用到这种比较，比如“气温高于 30 度的那些天”。
+      - item:
+          id: divide-type
+          type: choice
+          prompt: '`print(6 / 2)` 显示什么？'
+          options:
+            - text: '3.0'
+              correct: true
+            - text: '3'
+              why: / 的结果总是浮点数，带小数点
+            - text: '"3"'
+              why: 算出来的是数，不是文字
+          explain: 在 Python 里，/ 总是得到浮点数，即使能除尽。
+
+  - id: python-containers
+    chapter: 数据获取
+    title: 读懂代码（二）：列表、字典和函数
+    minutes: 14
+    flow:
+      - guess:
+          id: guess-list
+          type: number
+          prompt: '`temps = [21, 25, 19]` 是三天的气温。你猜 `temps[0]` 是哪个数？'
+          answer: 21
+          explain: Python 从 0 开始数，temps[0] 是第一个，temps[1] 是第二个。
+      - card:
+          title: 列表：一串按顺序的值
+          body: |
+            方括号写的一串值叫**列表（list）**：
+
+            ```python
+            temps = [21, 25, 19]
+            print(temps[0])     # 21，第一个
+            print(temps[-1])    # 19，最后一个
+            print(len(temps))   # 3，一共几个
+            ```
+
+            方括号里的编号从 0 开始；-1 表示倒数第一个。
+      - item:
+          id: list-index
+          type: number
+          prompt: '`rentals = [120, 98, 143, 87]`。`rentals[2]` 是多少？'
+          answer: 143
+          explain: 从 0 开始数：rentals[0] = 120，rentals[1] = 98，rentals[2] = 143。
+      - card:
+          title: 字典：按名字查值
+          body: |
+            花括号里写成“名字: 值”的叫**字典（dictionary）**，按前面的名字（叫“键”）查后面的值：
+
+            ```python
+            day = {"date": "2024-07-01", "temp": 31, "rentals": 143}
+            print(day["temp"])    # 31
+            ```
+
+            一行表格数据，就可以写成一个字典：列名是键，格子里的数是值。网上传来的数据（JSON）也大多长这样。
+      - item:
+          id: dict-get
+          type: text
+          prompt: '`city = {"name": "杭州", "pop": 1252}`。`city["name"]` 是什么？'
+          answers: [杭州]
+          explain: 用键 "name" 查到的值是 "杭州"。
+      - card:
+          title: 函数：起了名字的一段操作
+          body: |
+            `print(...)`、`len(...)` 都是**函数（function）**：写名字加括号，就让它干一件事，这叫**调用（call）**。括号里交给它的值叫**参数（argument）**：
+
+            ```python
+            len([3, 8, 5])          # 3
+            round(3.14159, 2)       # 3.14，第二个参数是保留几位小数
+            round(3.14159, ndigits=2)   # 一样，按名字写参数
+            ```
+
+            按名字写的参数（如 `ndigits=2`、后面的 `encoding="utf-8"`）可以不管顺序。
+      - item:
+          id: round-call
+          type: number
+          prompt: '`round(2.71828, 3)` 得多少？'
+          answer: 2.718
+          tolerance: 0.0001
+          explain: 第二个参数 3 表示保留 3 位小数，2.71828 → 2.718。
+      - card:
+          title: 用别人写好的库
+          body: |
+            数据分析的大部分功能不在 Python 本身里，而在别人写好、单独安装的**第三方库（third-party library）**里，最常用的是 pandas：
+
+            ```python
+            import pandas as pd
+            df = pd.read_csv("rentals.csv")
+            ```
+
+            `import pandas as pd` 导入它并简称 pd；`pd.read_csv(...)` 调用它里面的函数，把一个表格文件读进来。值后面加点再加名字，如 `"abc".upper()`，是调用这个值自带的函数（叫**方法**），得 `"ABC"`。
+      - item:
+          id: method-call
+          type: text
+          prompt: '`"a,b,c".split(",")` 按逗号把文字切开。结果是什么？（照 Python 的写法填）'
+          answers: ["['a', 'b', 'c']", '["a", "b", "c"]']
+          explain: split 是字符串的方法，按逗号切成三段，放进一个列表：['a', 'b', 'c']。
+      - card:
+          title: 对每个值做一遍
+          body: |
+            `for` 让同一段代码对列表里的每个值各做一遍，这叫**循环（loop）**：
+
+            ```python
+            total = 0
+            for r in [120, 98, 143]:
+                total = total + r
+            print(total)      # 361
+            ```
+
+            冒号下面往右空了 4 格的那行会执行三次，r 依次是 120、98、143。
+      - item:
+          id: loop-sum
+          type: number
+          prompt: 这段代码显示什么？
+          code: |
+            total = 0
+            for s in ["Ann", "Bo", "Cy"]:
+                total = total + len(s)
+            print(total)
+          lang: python
+          answer: 7
+          explain: s 依次是 "Ann"、"Bo"、"Cy"，len 分别是 3、2、2；total 从 0 加起：3、5、7，显示 7。
+  - id: file-formats
+    chapter: 数据获取
+    title: 数据从哪来，存成什么样
+    minutes: 12
+    flow:
+      - guess:
+          id: guess-ext
+          type: choice
+          prompt: 一个文件名叫 scores.csv。它里面一定是用逗号分隔的表格吗？
+          options:
+            - text: 不一定，扩展名只是起名时的约定，要打开看内容
+              correct: true
+            - text: 一定，.csv 就保证了内容的格式
+              why: 扩展名谁都能随便改，它只是一个提示
+          explain: 读数据之前，先看看文件的前几行长什么样。
+      - card:
+          title: 两个真实的数据源
+          body: |
+            - **美国急诊药物调查**：目标总体是全美所有和药物有关的急诊就诊，访问框是按概率抽中的医院急诊室。每条记录是一次就诊（不是一个人），最多写 16 种药。
+            - **旧金山餐厅卫生检查**：检查员突击检查、按违规扣分（0–100 分）。7,000 多家餐厅并不是每年都查，有的一年查好几次。数据分三个文件：检查结果、违规明细、餐厅信息。
+
+            两份都是纯文本文件，格式却差别很大。
+      - item:
+          id: dawn-unit
+          type: choice
+          prompt: 急诊药物调查的每条记录是一次急诊就诊。同一个人一年去了 3 次急诊，数据里会有几条记录？
+          options:
+            - text: 3 条
+              correct: true
+            - text: 1 条
+              why: 记录的单位是“一次就诊”，不是“一个人”
+          explain: 一行代表什么，决定了能数出什么：这份数据能数“就诊次数”，数不出“去过急诊的人数”。
+      - card:
+          title: 四种文本格式
+          body: |
+            | 格式 | 样子 |
+            |---|---|
+            | 分隔：CSV、TSV | 每行一条记录，值之间用逗号（CSV）或制表符（TSV）隔开 |
+            | 固定宽度 | 每个值占固定的几列字符，没有分隔符 |
+            | 分层：JSON、XML、HTML | 用括号或标签一层套一层 |
+            | 松散文本 | 网站访问日志、设备日志，要自己切开 |
+
+            文件格式和数据的结构是两回事：同一张表，可以存成 CSV，也可以存成 JSON。CSV 也不是 Excel 文件，两者的读法不同。
+      - item:
+          id: match-format
+          type: match
+          prompt: 把文件的开头和它的格式配起来。
+          pairs:
+            - ['"business_id","score","date"', CSV（逗号分隔）]
+            - ['{"site": "0014", "aqi": 30}', JSON（分层）]
+            - ['     1 2251082    .9426354082   3 4 1', 固定宽度]
+            - ['169.237.46.168 - - [26/Jan/2004:10:47:58 -0800] "GET /stat141"', 松散文本（访问日志）]
+          explain: '逗号隔开是 CSV；花括号和“名字: 值”是 JSON；一长串挤在一起、只靠位置区分的是固定宽度；网站日志要按空格和括号自己切。'
+      - card:
+          title: 先看前几行
+          body: |
+            餐厅检查文件的前三行：
+
+            ```
+            "business_id","score","date","type"
+            19,"94","20160513","routine"
+            19,"94","20171211","routine"
+            ```
+
+            第一行是列名，之后每行一次检查。日期写成 20160513 这样的一串数字，后面要转成真正的日期才能算星期几。
+
+            写文件位置时用 `Path() / "data" / "inspections.csv"`（来自 Python 自带的 pathlib），Windows 和 macOS 上都能用。
+      - item:
+          id: first-line
+          type: choice
+          prompt: 一个 CSV 文件的第一行是 `"business_id","score","date","type"`。这一行通常是什么？
+          options:
+            - text: 列名
+              correct: true
+            - text: 第一条检查记录
+              why: 这一行全是名字，没有数值；下面每一行才是一条记录
+          explain: 大多数 CSV 第一行是列名；读的时候 pandas 默认也这样理解。
+      - card:
+          title: 固定宽度要靠说明书
+          body: |
+            急诊调查的文件是固定宽度：每行就是一长串数字，看不出哪几位是年龄。必须查它的**编码手册（codebook）**：手册写着年龄在第 34–35 位，用 1 到 11 表示年龄段（1 是 5 岁及以下，11 是 65 岁以上），-8 表示没有记录。
+
+            没有编码手册，固定宽度的文件几乎没法读。
+      - item:
+          id: codebook-age
+          type: choice
+          prompt: 固定宽度文件里，年龄这一栏读出来是 -8。按编码手册，它是什么意思？
+          options:
+            - text: 年龄没有记录
+              correct: true
+            - text: 年龄是 -8 岁
+              why: 年龄不可能是负数；这是手册规定的“缺失”记号
+            - text: 年龄段第 8 档
+              why: 第 8 档写作 8，前面没有负号
+          explain: 很多数据用特殊的数表示缺失（-8、-99.99……），不查手册就会把它们当成真的数来算。
+
+  - id: encoding-size
+    chapter: 数据获取
+    title: 编码和文件大小
+    minutes: 12
+    flow:
+      - guess:
+          id: guess-garbled
+          type: choice
+          prompt: 一个表格文件在你电脑上打开，里面的人名变成了一堆乱码。最可能的原因是？
+          options:
+            - text: 读文件时用错了“文字和数字的对照规则”
+              correct: true
+            - text: 文件坏了，没法恢复
+              why: 换对规则重新读，通常就正常了
+          explain: 这套对照规则叫编码。下面讲它是什么、怎么指定。
+      - card:
+          title: 文字在文件里是一串数
+          body: |
+            文件里存的都是一个个**字节（byte）**：每个字节是 0 到 255 之间的一个数。哪个数代表哪个字，由**字符编码（character encoding）**规定：
+
+            - ASCII：只有英文字母、数字和标点，一个字一个字节；
+            - Latin-1（ISO-8859-1）：在 ASCII 上加了西欧语言的重音字母；
+            - UTF-8：能表示一百多万个字，兼容 ASCII；英文一个字节，汉字通常三个字节。
+      - item:
+          id: utf8-bytes
+          type: number
+          prompt: 用 UTF-8 编码，“数据”两个汉字一共占几个字节？
+          answer: 6
+          explain: UTF-8 里常用汉字每个占 3 个字节，两个字 6 个字节；英文 "data" 只占 4 个字节。
+      - card:
+          title: 编码错了会怎样
+          body: |
+            pandas 默认按 UTF-8 读。餐厅信息文件其实是 Latin-1，直接读就报错：
+
+            ```
+            UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd1 in position 8
+            ```
+
+            告诉它正确的编码就好了：
+
+            ```python
+            bus = pd.read_csv("businesses.csv", encoding="ISO-8859-1")
+            ```
+
+            不知道编码时，chardet 库可以猜，但只是猜：它对这个文件的把握只有 0.73。拿不准就去查数据的说明文档。
+      - item:
+          id: fix-encoding
+          type: choice
+          prompt: '`pd.read_csv("shops.csv")` 报 `UnicodeDecodeError: ''utf-8'' codec can''t decode byte`。最该先做什么？'
+          options:
+            - text: 查清文件的编码，用 encoding= 参数指定后重读
+              correct: true
+            - text: 把报错的那几行删掉
+              why: 不是那几行坏了，而是整个文件该用另一种编码读
+            - text: 换一台电脑再读
+              why: 换电脑不会改变 pandas 默认按 UTF-8 读这件事
+          explain: 这个报错说明“按 UTF-8 解释不通”，换成文件真正的编码即可。
+      - card:
+          title: 文件有多大
+          body: |
+            文件放在硬盘上；分析时要整个读进**内存（memory）**，内存比硬盘小得多。大小按 1,024 进位：
+
+            | 单位 | 字节数 |
+            |---|---|
+            | 1 KiB | 1,024 |
+            | 1 MiB | 1,024² = 1,048,576 |
+            | 1 GiB | 1,024³ |
+
+            经验法则：pandas 读一个文件，至少要准备文件大小 5 倍的空闲内存。
+      - item:
+          id: mib
+          type: number
+          prompt: 一个文件有 52,428,800 个字节。它是多少 MiB？
+          answer: 50
+          explain: 52,428,800 ÷ 1,024² = 52,428,800 ÷ 1,048,576 = 50 MiB。
+      - item:
+          id: five-times
+          type: number
+          prompt: 按“至少 5 倍文件大小”的经验法则，用 pandas 读一个 2 GiB 的文件，大约至少要多少 GiB 空闲内存？
+          answer: 10
+          explain: 2 × 5 = 10 GiB。一台 8 GiB 内存的电脑读不进来，即使硬盘上放得下这个文件。
+      - card:
+          title: 读不进来怎么办
+          body: |
+            连最好的电脑都没法整个读进内存的数据，才叫“大数据”。三种办法：
+
+            1. 只取一部分或随机抽样：最简单，但可能丢掉罕见的情况；
+            2. 先放进数据库，用 SQL 汇总成小表再读进 Python；
+            3. 用分布式系统（如 Spark）让很多台电脑一起算：功能强，安装和配置成本高。
+      - item:
+          id: rare-events
+          type: choice
+          prompt: 你只抽了 1% 的记录来分析，想研究的却是一种很少见的药物反应。抽样最大的问题是？
+          options:
+            - text: 罕见的情况可能只剩几条，甚至一条都抽不到
+              correct: true
+            - text: 1% 的样本一定有偏差
+              why: 随机抽样本身不偏，问题是太少的样本装不下罕见事件
+          explain: 研究罕见事件时，宁可先在数据库里筛出相关记录再读进来。
+
+  - id: dataframe
+    chapter: 数据获取
+    title: 读成一张表：数据框
+    minutes: 13
+    flow:
+      - guess:
+          id: guess-table
+          type: choice
+          prompt: 一张表有 4 行 3 列。你猜 pandas 用 `(4, 3)` 表示的是什么？
+          options:
+            - text: 4 行、3 列
+              correct: true
+            - text: 3 行、4 列
+              why: pandas 总是先说行数，再说列数
+          explain: 这个“形状”写作 df.shape，下面马上用到。
+      - card:
+          title: 数据框
+          body: |
+            pandas 把表格读成**数据框（DataFrame）**：
+
+            ```python
+            df = pd.DataFrame({
+                "date": ["07-01", "07-02", "07-03", "07-04"],
+                "temp": [31, 28, 33, 35],
+                "rentals": [143, 120, 151, 97],
+            })
+            print(df)
+            ```
+            ```
+                date  temp  rentals
+            0  07-01    31      143
+            1  07-02    28      120
+            2  07-03    33      151
+            3  07-04    35       97
+            ```
+
+            左边的 0、1、2、3 是行的标签，叫**索引（index）**。`df.shape` 是 `(4, 3)`。
+      - item:
+          id: df-shape
+          type: text
+          prompt: 一个数据框有 365 行，每行一天，列有 date、temp、rentals、rain 四列。`df.shape` 是什么？
+          answers: ["(365, 4)"]
+          explain: shape 先写行数再写列数：(365, 4)。
+      - card:
+          title: 一列是一个 Series
+          body: |
+            方括号里写列名，取出一列。一列是一个 **Series**：一串值，加上每个值的索引。
+
+            ```python
+            df["rentals"]          # 一列
+            df["rentals"].sum()    # 511
+            df["temp"].mean()      # 31.75，平均值
+            ```
+
+            注意：`df[0]` 不是“第一行”，pandas 会去找名叫 0 的列，找不到就报 KeyError。按行取值的写法后面讲。
+      - item:
+          id: df-sum
+          type: number
+          prompt: 一张表的 temp 列是 31、28、33、35。`df["temp"].sum()` 是多少？
+          answer: 127
+          explain: 31 + 28 + 33 + 35 = 127。
+      - item:
+          id: df-zero
+          type: choice
+          prompt: 对一个列名是 date、temp、rentals 的数据框写 `df[0]`，会怎样？
+          options:
+            - text: 报 KeyError：没有叫 0 的列
+              correct: true
+            - text: 取出第一行
+              why: 数据框的方括号按列名找；取行要用后面讲的 iloc
+            - text: 取出第一列 date
+              why: 方括号里写的是列名，不是列的位置
+          explain: 列表用 [0] 取第一个值，数据框的 [ ] 却是按列名找，这是初学者最常踩的坑之一。
+      - card:
+          title: 从文件读进来
+          body: |
+            真实数据通常从文件读：
+
+            ```python
+            df = pd.read_csv("bikes.csv")
+            df.head()      # 看前 5 行
+            df.shape       # 几行几列
+            df.dtypes      # 每列的类型
+            ```
+
+            `dtypes` 会告诉你每列被读成了什么：int64 是整数，float64 是浮点数，str（文字）是字符串。数字列被读成了 str，往往说明里面混进了文字。
+      - item:
+          id: dtypes-read
+          type: choice
+          prompt: '`df.dtypes` 显示 `rentals    str`。最可能是什么情况？'
+          options:
+            - text: 这一列里混进了不是数字的东西，比如 "暂无" 或 "1,203"
+              correct: true
+            - text: 租车数本来就该是文字
+              why: 租车数是计数，应该是整数；读成文字就没法求和
+          explain: 只要一列里有一个值不像数，pandas 就会把整列当文字。先找出那些值，再决定怎么改。
+      - card:
+          title: 缺的格子补 NaN
+          body: |
+            用一串字典也能造数据框，每个字典是一行：
+
+            ```python
+            pd.DataFrame([{"a": 1, "b": 2}, {"b": 3, "c": 4}])
+            ```
+            ```
+                 a  b    c
+            0  1.0  2  NaN
+            1  NaN  3  4.0
+            ```
+
+            某行没有的列，pandas 填上 **NaN**（not a number），表示缺失。有 NaN 的整数列会变成浮点数，所以 a 列显示 1.0。
+      - item:
+          id: count-nan
+          type: number
+          prompt: '`pd.DataFrame([{"x": 1}, {"y": 2}, {"x": 3, "y": 4}])` 里一共有几个 NaN？'
+          answer: 2
+          explain: 第一行缺 y，第二行缺 x，第三行两列都有，一共 2 个 NaN。
+
+  - id: granularity
+    chapter: 数据获取
+    title: 一行代表什么
+    minutes: 13
+    flow:
+      - guess:
+          id: guess-rows
+          type: choice
+          prompt: 一张“餐厅检查”表有 14,222 行，旧金山有 7,000 多家餐厅。行数比餐厅多，说明什么？
+          options:
+            - text: 一行是一次检查，同一家餐厅可以有好几行
+              correct: true
+            - text: 表里有很多重复的错误记录
+              why: 一家餐厅被查多次是正常的，每次一行
+          explain: 先弄清一行代表什么，才知道该怎么数、怎么合并。
+      - card:
+          title: 粒度
+          body: |
+            一行代表的对象叫这张表的**粒度（granularity）**。餐厅数据的三张表：
+
+            | 表 | 形状 | 一行是 |
+            |---|---|---|
+            | 餐厅信息 | (6406, 9) | 一家餐厅 |
+            | 检查结果 | (14222, 4) | 一次检查 |
+            | 违规明细 | (39042, 3) | 一次检查里的一条违规 |
+
+            一次检查可能发现好几条违规，所以违规表最长。
+      - item:
+          id: grain-match
+          type: match
+          prompt: 把每张表和它的粒度配起来。
+          pairs:
+            - [每家门店的名称和电话, 一家门店一行]
+            - [每次卫生检查的分数和日期, 一次检查一行]
+            - [每次检查查出的问题, 一条违规一行]
+          explain: 同一个数据源的几张表，粒度常常不同；合并前要先弄清。
+      - card:
+          title: 主键：一行的身份证
+          body: |
+            能唯一认出每一行的列叫**主键（primary key）**。检查方法：行数和不重复的值的个数一样多。
+
+            ```python
+            len(bus)                       # 6406
+            bus["business_id"].nunique()   # 6406，不重复的有几个
+            ```
+
+            两者相等，business_id 就是餐厅表的主键。检查表里同一家餐厅出现多次，business_id 不是主键，要用 (business_id, date) 两列合起来。
+      - item:
+          id: pk-check
+          type: choice
+          prompt: 一张表有 6 行，business_id 一列只有 3 个不同的值。business_id 能当这张表的主键吗？
+          options:
+            - text: 不能，有的值出现了不止一次
+              correct: true
+            - text: 能，每行都有 business_id
+              why: 每行都有不够，还要每个值只出现一次
+          explain: 6 行只有 3 个不同的值，至少有一个值重复，它认不出唯一的一行。
+      - card:
+          title: 查出意外的重复
+          body: |
+            检查表按 (business_id, date) 数一数，有 3 家餐厅同一天有两条记录：
+
+            ```python
+            insp.groupby(["business_id", "date"]).size()
+            ```
+
+            比如 64859 号餐厅 2015-09-24 有两个分数：96 和 91。可能那天查了两次，也可能是录入错误。先记下来，清洗时再决定。
+
+            违规表里的 business_id 指向餐厅表的主键，叫**外键（foreign key）**：靠它可以把两张表接起来。
+      - item:
+          id: fk-choice
+          type: choice
+          prompt: 违规表每行有一个 business_id，它在餐厅表里是主键。在违规表里，这一列叫什么？
+          options:
+            - text: 外键
+              correct: true
+            - text: 主键
+              why: 违规表里同一个 business_id 会出现很多次，认不出唯一的一行
+          explain: 外键是“指向另一张表主键的列”，合并两张表就靠它。
+      - card:
+          title: 带权重的样本
+          body: |
+            急诊调查每行带一个**抽样权重（sampling weight）**：这一行在总体里代表多少次就诊。算比例时必须带上：
+
+            ```python
+            np.average(dawn["sex"] == 2)                      # 48.0%
+            np.average(dawn["sex"] == 2, weights=dawn["wt"])  # 52.3%
+            ```
+
+            不带权重，女性占 48.0%；带上权重是 52.3%，差了 4 个百分点多。`np.average` 是 NumPy 库求平均的函数，`weights=` 给每个值一个分量。
+      - item:
+          id: weighted-share
+          type: number
+          prompt: 4 条记录，性别依次是 女、男、女、男，权重依次是 1、3、1、1。带权重算，女性占多少？（写成小数，保留两位）
+          answer: 0.33
+          tolerance: 0.01
+          explain: 女性的权重和是 1 + 1 = 2，总权重是 1 + 3 + 1 + 1 = 6，2 ÷ 6 ≈ 0.33。不带权重是 2 ÷ 4 = 0.5。
+      - item:
+          id: weight-why
+          type: number
+          prompt: 一份调查的样本里 45% 未满 18 岁，总体里只有 22% 未满 18 岁。要让样本代表总体，未满 18 岁的人每人的权重应是多少？（保留两位小数）
+          answer: 0.49
+          tolerance: 0.01
+          explain: 权重 = 总体占比 ÷ 样本占比 = 22 ÷ 45 ≈ 0.49。他们在样本里多了，所以每人算得少一点；18 岁以上的权重是 78 ÷ 55 ≈ 1.42。
+
+  - id: json-http
+    chapter: 数据获取
+    title: 从网上取数据：JSON、HTTP 和 REST
+    minutes: 15
+    flow:
+      - guess:
+          id: guess-404
+          type: choice
+          prompt: 你在浏览器里打开一个不存在的网页，常看到“404”。你猜 404 是谁的问题？
+          options:
+            - text: 请求的一方：要的东西不存在
+              correct: true
+            - text: 网站的服务器坏了
+              why: 服务器出错是 500 那一类；404 是“找不到你要的东西”
+          explain: 网页和数据接口用同一套规矩通信，下面讲。
+      - card:
+          title: JSON
+          body: |
+            网上传数据最常用 **JSON**：
+
+            ```json
+            {"lender_id": "matt",
+             "loan_count": 23,
+             "status": [2, 1, 3],
+             "sponsored": false,
+             "sponsor_name": null,
+             "lender_dem": {"sex": "m", "age": 77}}
+            ```
+
+            花括号是“名字: 值”的集合，方括号是一串值；它们可以一层套一层。最底层的值只有四种：字符串、数、true/false、null（空）。Python 的 json 库把它读成字典和列表。
+      - item:
+          id: json-read
+          type: text
+          prompt: '`d = {"lender_id": "matt", "lender_dem": {"sex": "m", "age": 77}}`。`d["lender_dem"]["age"]` 是多少？'
+          answers: ["77"]
+          explain: '先取 lender_dem，得到 {"sex": "m", "age": 77}，再取 age，得 77。'
+      - card:
+          title: 把 JSON 摊平成表
+          body: |
+            ```python
+            pd.json_normalize(d)
+            ```
+
+            套在里面的 lender_dem 被摊成两列 `lender_dem.sex`、`lender_dem.age`；status 是一串值，原样留在一个格子里。
+
+            同一份数据，JSON 可以按行写（一串字典），也可以按列写（每列一串值）。没有唯一的读法，先看清它怎么组织。
+
+            还有一个坑：`pd.read_json` 会猜类型，把站点编号 "0014" 读成整数 14，前面的 0 丢了。
+      - item:
+          id: normalize-cols
+          type: number
+          prompt: 一个 JSON 的外层有 lender_id、loan_count、status、sponsored、sponsor_name 五个名字，还有一个 lender_dem，里面套着 sex 和 age。用 json_normalize 摊平后有几列？
+          answer: 7
+          explain: 外层 5 个名字各一列，lender_dem 摊成 lender_dem.sex 和 lender_dem.age 两列，一共 7 列。
+      - item:
+          id: leading-zero
+          type: choice
+          prompt: 站点编号写作 "0014"、"0102"。用 read_csv 或 read_json 读进来变成了 14 和 102。该怎么办？
+          options:
+            - text: '读的时候告诉 pandas 这一列是文字，如 dtype={"site": str}'
+              correct: true
+            - text: 不用管，14 和 0014 是一回事
+              why: 编号是名字不是数，丢了 0 可能和别的编号撞上，也对不上别的表
+          explain: 邮编、编号、电话这类“长得像数的名字”，都应该当字符串读。
+      - card:
+          title: HTTP：一问一答
+          body: |
+            从网上取东西用 **HTTP**：你的程序发一个**请求（request）**，服务器回一个**响应（response）**。请求和响应都是“头部 + 空行 + 正文”。
+
+            ```python
+            import requests
+            resp = requests.get("https://en.wikipedia.org/wiki/...")
+            resp.status_code    # 200
+            resp.text           # 正文：网页的 HTML 文字
+            ```
+
+            GET 是“取东西”，POST 是“交东西给服务器”。响应里的**状态码（status code）**先告诉你成没成。
+      - item:
+          id: status-match
+          type: match
+          prompt: 把状态码和它的意思配起来。
+          pairs:
+            - ['200', 成功]
+            - ['301', 东西搬到别的网址了]
+            - ['404', 找不到请求的东西]
+            - ['503', 服务器暂时不能提供服务]
+          explain: 2 开头是成功，3 开头是转到别处，4 开头是请求方的问题，5 开头是服务器的问题。
+      - card:
+          title: REST 接口
+          body: |
+            很多网站用 **REST** 风格提供数据接口：每个网址代表一样东西（一位歌手、他的专辑），服务器不记得你上一次请求了什么，每次请求都要带齐信息。
+
+            通常分两步：先用 POST 交上账号和密钥，换回一个**令牌（token）**；之后每个 GET 请求都在头部带上它。令牌会过期，过期后再请求得到 401；账号密钥错了得到 400。密钥不要写进要分享的代码里。
+      - item:
+          id: token-expired
+          type: choice
+          prompt: 你的脚本昨天还能取到数据，今天每个请求都返回 401。最可能的原因是？
+          options:
+            - text: 令牌过期了，要重新认证换一个
+              correct: true
+            - text: 服务器坏了
+              why: 服务器出错是 5 开头的状态码
+            - text: 网址里的歌手不存在了
+              why: 找不到东西是 404
+          explain: 401 表示“没有通过身份验证”。重新用账号和密钥换一个新令牌即可。
+  # ---------------------------------------------------------------- 清洗
+  - id: select
+    chapter: 清洗
+    title: 按标签取、按位置取、按条件筛
+    minutes: 14
+    flow:
+      - guess:
+          id: guess-slice
+          type: choice
+          prompt: 一列数的行标签是 a、b、c、d。“从 a 取到 c” 应该包括 c 吗？
+          options:
+            - text: 包括，按标签取时连结尾一起取
+              correct: true
+            - text: 不包括，和列表一样不含结尾
+              why: 按位置取才不含结尾；按标签取时 pandas 包括结尾
+          explain: 这正是 loc 和 iloc 最容易混的地方，下面一条条看。
+      - card:
+          title: loc 按标签，iloc 按位置
+          body: |
+            用 `[开始:结束]` 取出连续的一段，叫**切片（slice）**。pandas 有两种取法：
+
+            ```python
+            s = pd.Series([0.25, 0.5, 0.75, 1.0], index=["a", "b", "c", "d"])
+            s.loc["a":"c"]    # 按标签：a、b、c，包括结尾
+            s.iloc[0:2]       # 按位置：第 0、1 个，不包括 2
+            ```
+
+            `loc` 看的是索引里写的标签，`iloc` 看的是从 0 数起的位置。
+      - item:
+          id: loc-count
+          type: number
+          prompt: '`s` 的索引是 a、b、c、d。`s.loc["b":"d"]` 有几个值？'
+          answer: 3
+          explain: 按标签取包括结尾：b、c、d，共 3 个。
+      - item:
+          id: iloc-count
+          type: number
+          prompt: 同一个 `s`，`s.iloc[1:3]` 有几个值？
+          answer: 2
+          explain: 按位置取不包括结尾：第 1、2 个（b、c），共 2 个。
+      - card:
+          title: 标签也是整数时
+          body: |
+            ```python
+            d = pd.Series(["a", "b", "c"], index=[1, 3, 5])
+            d.loc[1]     # "a"：标签为 1 的那个
+            d.iloc[1]    # "b"：位置为 1 的那个（第二个）
+            ```
+
+            标签恰好是整数时，不写 loc、iloc 很容易搞混你取的是哪一个。养成习惯：按标签就写 loc，按位置就写 iloc。数据框也一样：`df.iloc[0]` 才是第一行。
+      - item:
+          id: int-label
+          type: text
+          prompt: '`d = pd.Series(["a", "b", "c"], index=[1, 3, 5])`。`d.loc[3]` 是什么？'
+          answers: [b]
+          explain: loc 按标签找，标签 3 对应的是 "b"。若写 d.iloc[3] 会报错，因为只有 3 个值（位置 0、1、2）。
+      - card:
+          title: 按条件筛行
+          body: |
+            方括号里放一列布尔值，留下 True 的那些行：
+
+            ```python
+            df[df["temp"] > 30]                          # 气温高于 30 的天
+            df[(df["temp"] > 30) & (df["rentals"] > 100)]  # 两个条件都满足
+            df.loc[df["temp"] > 30, ["date", "rentals"]]   # 只要这两列
+            ```
+
+            `&` 是“并且”，`|` 是“或者”，每个条件都要加括号。同样的筛选也可以写成 `df.query("temp > 30 and rentals > 100")`，更好读。
+      - item:
+          id: filter-count
+          type: number
+          prompt: 一张表 temp 列是 31、28、33、35，rentals 列是 143、120、151、97。`df[(df["temp"] > 30) & (df["rentals"] > 100)]` 有几行？
+          answer: 2
+          explain: temp > 30 的是 31、33、35 三天；其中 rentals > 100 的是 143 和 151，共 2 行。35 度那天只租了 97，被第二个条件筛掉。
+      - item:
+          id: and-parens
+          type: choice
+          prompt: 想筛出“下雨或者气温低于 5 度”的天。哪种写法对？
+          options:
+            - text: df[(df["rain"] > 0) | (df["temp"] < 5)]
+              correct: true
+            - text: df[df["rain"] > 0 or df["temp"] < 5]
+              why: 对一整列不能用 or，要用 |，而且每个条件要加括号
+            - text: df[(df["rain"] > 0) & (df["temp"] < 5)]
+              why: '& 是“并且”，这样只留下又下雨又冷的天'
+          explain: '“或者”用 |，“并且”用 &；query 里才写 and、or。'
+
+  - id: quality
+    chapter: 清洗
+    title: 质量检查：这些值说得通吗
+    minutes: 13
+    flow:
+      - guess:
+          id: guess-zip
+          type: choice
+          prompt: 旧金山的邮编都以 941 开头。餐厅表的邮编一列里出现了 92672 和 941。你怎么看？
+          options:
+            - text: 是脏数据，要查清楚再处理
+              correct: true
+            - text: 是正常的邮编
+              why: 92672 在南加州，941 少了两位，都不该出现在旧金山的餐厅里
+          explain: 用你对数据范围的了解反过来检查数值，是最有效的质量检查。
+      - card:
+          title: 四个角度
+          body: |
+            拿到一张表，从四个角度检查：
+
+            1. **和范围对得上吗**：旧金山的邮编应以 941 开头；
+            2. **值合理吗**：卫生分数在 0–100，月份在 1–12，大气二氧化碳约 300–450 ppm；
+            3. **相关的列互相一致吗**：同一行的年龄和就诊类型不该矛盾；
+            4. **对分析有用吗**：几乎全是同一个值的列，没有信息量。
+
+            `value_counts()` 数每个值出现几次，`describe()` 给出最小值、最大值等，适合快速扫一遍。
+      - item:
+          id: zip-bad
+          type: choice
+          prompt: 邮编一列里有这些值：94110、94133、941033148、94109。哪个最可疑？
+          options:
+            - text: '941033148'
+              correct: true
+            - text: '94110'
+              why: 941 开头、5 位，是正常的旧金山邮编
+          explain: 941033148 是 9 位：前 5 位 94103 加上 4 位扩展码。可以取前 5 位放进一个新列，原来那列保留。
+      - card:
+          title: 用交叉表查一致性
+          body: |
+            急诊调查的说明写着：“酒精”这一类就诊只记录 21 岁以下的人。用 `pd.crosstab` 数一数年龄段和就诊类型的每种组合：
+
+            ```python
+            pd.crosstab(dawn["age"], dawn["type"])
+            ```
+
+            结果里“酒精”一列的非零数都在年龄段 1–4（21 岁以下），和说明一致。如果在年龄段 8 看到了数，就说明数据或说明有一个错了。
+      - item:
+          id: crosstab-use
+          type: choice
+          prompt: 你想检查“孕检”记录里有没有男性。最直接的做法是？
+          options:
+            - text: 用 pd.crosstab 数一数性别和检查项目的每种组合
+              correct: true
+            - text: 分别求性别和检查项目两列的平均值
+              why: 平均值看不出两列的组合；矛盾藏在组合里
+          explain: 交叉表把两列的每种组合都数出来，矛盾的组合一眼就能看到。
+      - card:
+          title: 发现问题以后
+          body: |
+            检查表的 type 一列：14,221 次 routine，1 次 complaint。几乎没有信息，删掉这一列损失很小。
+
+            处理问题有四种选择：**不动**、**改值**、**删列**、**删行**。原则：
+
+            - 改值时新建一列放改过的值，保留原来那列；
+            - 不要为了省事删掉大量记录，可以缩小研究范围；
+            - 用代码做每一步修改，别手动改表格，方便检查和重做。
+      - item:
+          id: fix-match
+          type: match
+          prompt: 把问题和比较合适的处理配起来。
+          pairs:
+            - [邮编写成 9 位的 941033148, 改值：取前 5 位存进新列]
+            - ['某列 14,221 个 routine、1 个 complaint', 删列：几乎没有信息]
+            - [少数几行明显是测试时录入的假数据, 删行]
+            - [分数有几个 100 分, 不动：在合理范围内]
+          explain: 先判断问题出在值、列还是行，再选最小的改动，并把改动写在代码里。
+      - item:
+          id: keep-original
+          type: choice
+          prompt: 你要把一列邮编里的 9 位邮编截成 5 位。比较好的做法是？
+          options:
+            - text: 把截好的结果存进一列新的 zip5，原来的邮编列不动
+              correct: true
+            - text: 直接覆盖原来的邮编列
+              why: 一旦截错，原始值就找不回来了，也没法核对改了哪些
+          explain: 保留原始值，以后发现规则有问题还能重做。
+
+  - id: missing
+    chapter: 清洗
+    title: 缺失值
+    minutes: 14
+    flow:
+      - guess:
+          id: guess-nansum
+          type: choice
+          prompt: 一列数是 1、（空）、3。你猜 pandas 求和会得到什么？
+          options:
+            - text: 4，跳过空的那个
+              correct: true
+            - text: 报错
+              why: pandas 求和、求平均默认跳过缺失值
+            - text: NaN
+              why: 这是 NumPy 直接求和的结果；pandas 默认跳过缺失值
+          explain: 跳过缺失值很方便，但也会悄悄改变“平均的是哪些行”。
+      - card:
+          title: NaN 和 None
+          body: |
+            缺失的值在 pandas 里显示为 NaN（数值列）或 None。
+
+            ```python
+            x = pd.Series([1, None, 3])
+            x.isna()      # False, True, False：哪些是缺失
+            x.sum()       # 4.0，跳过缺失
+            x.mean()      # 2.0，只平均 1 和 3
+            ```
+
+            NaN 参与普通的算术，结果还是 NaN；用 NumPy 直接求和 `np.array([1, np.nan, 3]).sum()` 得 nan。
+      - item:
+          id: mean-skip
+          type: number
+          prompt: '`pd.Series([4, None, 8, None]).mean()` 是多少？'
+          answer: 6
+          explain: 跳过两个缺失值，只平均 4 和 8：(4 + 8) ÷ 2 = 6。注意除数是 2 不是 4。
+      - card:
+          title: 删掉或补上
+          body: |
+            ```python
+            df.dropna()               # 删掉含缺失值的行
+            df.dropna(how="all")      # 只删整行都缺的
+            df["temp"].fillna(0)      # 用 0 填
+            df["temp"].ffill()        # 用前一个值填
+            df["temp"].interpolate()  # 用前后两个值连线插补
+            ```
+
+            数据框不能删一个格子，只能删整行或整列。每种补法都有假设：用 0 填，等于假设“没记录就是 0”。
+      - item:
+          id: interpolate
+          type: number
+          prompt: 气温一列是 10、（空）、14。用 `interpolate()` 插补后，中间那个是多少？
+          answer: 12
+          explain: 前后两个值是 10 和 14，连成直线，中间点是 (10 + 14) ÷ 2 = 12。用 ffill 会是 10。
+      - card:
+          title: 用数表示的缺失
+          body: |
+            很多数据不写空，而用一个特殊的数表示缺失：二氧化碳月均值缺测写 -99.99；急诊调查用 -7 表示“不适用”、-8 表示“没记录”、-9 表示“缺失”。
+
+            不先换成 NaN，它们会被当成真的数来算：
+
+            ```python
+            co2 = co2.replace(-99.99, np.nan)
+            ```
+      - item:
+          id: code-mean
+          type: number
+          prompt: 三个月的二氧化碳浓度是 400.1、-99.99、401.3（-99.99 表示缺测）。把 -99.99 换成 NaN 以后，平均值是多少？
+          answer: 400.7
+          tolerance: 0.01
+          explain: 只平均 400.1 和 401.3，得 400.7。不换的话会算成 (400.1 − 99.99 + 401.3) ÷ 3 ≈ 233.8，离谱得多。
+      - card:
+          title: 为什么缺，比怎么补更重要
+          body: |
+            - 整条记录都没有（被抽中的人拒绝回答），会让样本偏向愿意回答的人，**样本再大也去不掉这种偏差**；
+            - **完全随机缺失**：缺不缺跟任何东西都无关，比如某天实验室设备坏了；只有这种情况，直接删掉缺失的行才不会让结论偏；
+            - 用平均值补，会让这一列看起来比实际更集中，后面算出的误差范围偏窄。
+
+            补过的值要做标记，比如加一列 temp_imputed 写 True / False。
+      - item:
+          id: mean-impute
+          type: choice
+          prompt: 收入一列有 30% 缺失，你用平均收入把它们全补上。这会带来什么问题？
+          options:
+            - text: 这一列看起来比真实情况更集中，之后算的误差范围偏窄
+              correct: true
+            - text: 没有问题，平均值不变
+              why: 平均值确实不变，但这一列的分散程度被人为压小了
+            - text: 会让平均收入变高
+              why: 用平均值补，平均值不会变
+          explain: 30% 的值都放在同一点上，分散程度明显变小；而且不愿报收入的人，收入可能本来就和平均不一样。
+      - item:
+          id: mcar
+          type: choice
+          prompt: 下面哪种缺失最接近“完全随机缺失”？
+          options:
+            - text: 某天实验室停电，那天的读数没有记录
+              correct: true
+            - text: 收入高的人更常拒绝回答收入
+              why: 缺不缺和收入本身有关，删掉缺失行会让平均收入偏低
+            - text: 重病的病人没来复诊，所以没有复诊数据
+              why: 缺失和病情有关，只看来复诊的人会高估治疗效果
+          explain: 停电和读数大小无关；另外两种，缺不缺和要研究的值本身有关。
+
+  - id: text-time
+    chapter: 清洗
+    title: 换类型、处理文字和日期
+    minutes: 15
+    flow:
+      - guess:
+          id: guess-date
+          type: choice
+          prompt: 检查日期存成了整数 20160513。能直接从它算出那天是星期几吗？
+          options:
+            - text: 不能，要先把它变成真正的日期
+              correct: true
+            - text: 能，对 7 取余就行
+              why: 20160513 只是把年月日拼在一起的数，对 7 取余没有意义
+          explain: 数和日期是两种类型，先换类型才能做日期的运算。
+      - card:
+          title: 换类型
+          body: |
+            把一个值变成另一种类型，叫**类型转换（type conversion）**：
+
+            ```python
+            df["rentals"].astype(int)              # 文字 "143" → 整数 143
+            dates = pd.to_datetime(insp["date"].astype(str), format="%Y%m%d")
+            dates.dt.year           # 2016
+            dates.dt.day_of_week    # 星期几：星期一是 0，星期日是 6
+            ```
+
+            `format="%Y%m%d"` 写明“4 位年、2 位月、2 位日”。不写的话 pandas 要自己猜，可能猜错。
+      - item:
+          id: dow
+          type: number
+          prompt: 2016 年 5 月 13 日是星期五。`pd.to_datetime("20160513", format="%Y%m%d").day_of_week` 是多少？
+          answer: 4
+          explain: 星期一是 0，所以星期五是 4。
+      - card:
+          title: 检查多在星期几
+          body: |
+            把餐厅检查日期换成星期几再数：星期二和星期三最多（各 3,200 多次），星期六只有 141 次，星期日 474 次。
+
+            这一步就是第三类变换：从已有的列里**抽取**出新的信息。另外两类是换类型，和数学变换（换单位、取对数、用身高体重算出 BMI）。
+      - item:
+          id: sat-code
+          type: number
+          prompt: 按 `day_of_week` 的编号，星期六是几？
+          answer: 5
+          explain: 星期一 0、星期二 1……星期五 4、星期六 5、星期日 6。
+      - card:
+          title: 一整列文字一起处理
+          body: |
+            `.str` 后面接字符串的方法，就能对一整列文字同时操作，缺失值自动跳过：
+
+            ```python
+            viol["description"].str.lower()             # 全变小写
+            viol["description"].str.strip()             # 去掉两头的空格
+            viol["description"].str.contains("vermin")  # 是否提到鼠虫
+            ```
+
+            最后一行得到一列布尔值，可以直接当新特征，或者用 `.sum()` 数有几条。
+      - item:
+          id: str-contains
+          type: number
+          prompt: '`pd.Series(["High risk vermin", "Unclean floor", "vermin noted"]).str.contains("vermin").sum()` 是多少？'
+          answer: 2
+          explain: 第 1、3 条含 vermin，得 True、False、True，True 当作 1 相加，得 2。
+      - card:
+          title: 按时间汇总、平滑、错开
+          body: |
+            ```python
+            df.groupby(df["date"].dt.to_period("M"))["rentals"].mean()  # 每月平均
+            df["rentals"].rolling(7).mean()    # 7 天移动平均：每天和前 6 天一起平均
+            df["rentals"].shift(1)             # 整列往下错一行：每一天放上“昨天”的值
+            ```
+
+            数据太密（每小时一条）看不出趋势时，先按天或按周汇总再画图。
+      - item:
+          id: rolling3
+          type: number
+          prompt: 一列是 3、6、9、12。`rolling(3).mean()` 的最后一个值是多少？
+          answer: 9
+          explain: 最后一个窗口是 6、9、12，平均 9。前两个位置凑不满 3 个，是 NaN。
+      - card:
+          title: 把一串变换写成函数
+          body: |
+            ```python
+            def add_dates(df):
+                d = pd.to_datetime(df["date"].astype(str), format="%Y%m%d")
+                return df.assign(timestamp=d, year=d.dt.year)
+
+            insp = pd.read_csv("inspections.csv").pipe(add_dates)
+            ```
+
+            `assign` 返回加了新列的新表，原表不动；`pipe` 把表交给函数。反复就地修改同一张表容易出错，尤其在可以乱序运行的笔记本里；写成函数，从读文件开始一次做完，同一个函数还能用在违规表上。
+      - item:
+          id: pipe-why
+          type: choice
+          prompt: 为什么把清洗步骤写成函数、用 pipe 从读文件开始串起来，比一步步就地改表好？
+          options:
+            - text: 每次都从原始文件一次做完，不怕某一步被重复执行或漏掉
+              correct: true
+            - text: 运行速度一定更快
+              why: 好处在于不易出错、容易重做，不在于速度
+          explain: 就地修改时，同一格代码运行两次可能让结果改两遍；从头串起来的写法每次结果都一样。
+
+  - id: combine
+    chapter: 清洗
+    title: 对齐、拼接与合并
+    minutes: 14
+    flow:
+      - guess:
+          id: guess-align
+          type: choice
+          prompt: 两列数，一列的标签是 0、1、2，另一列是 1、2、3。把它们相加，你猜标签 0 那个位置得什么？
+          options:
+            - text: NaN，因为另一列没有标签 0
+              correct: true
+            - text: 原来的数，缺的当 0
+              why: pandas 不会替你假设缺的是 0
+            - text: 按位置对齐，第一个加第一个
+              why: pandas 按标签对齐，不按位置
+          explain: pandas 的运算按标签对齐，这能防止错位，也会冒出 NaN。
+      - card:
+          title: 按标签对齐
+          body: |
+            ```python
+            A = pd.Series([2, 4, 6], index=[0, 1, 2])
+            B = pd.Series([1, 3, 5], index=[1, 2, 3])
+            A + B                     # 0: NaN, 1: 5, 2: 9, 3: NaN
+            A.add(B, fill_value=0)    # 0: 2,   1: 5, 2: 9, 3: 5
+            ```
+
+            结果的标签是两边的并集；只有一边有的标签得 NaN。想把缺的当 0，用 `add` 并写 `fill_value=0`。
+      - item:
+          id: add-fill
+          type: number
+          prompt: '`A = pd.Series([2, 4, 6], index=[0, 1, 2])`，`B = pd.Series([1, 3, 5], index=[1, 2, 3])`。`A.add(B, fill_value=0)` 在标签 3 处是多少？'
+          answer: 5
+          explain: A 没有标签 3，按 fill_value 当 0；B 在 3 处是 5，0 + 5 = 5。
+      - card:
+          title: 上下拼接
+          body: |
+            几张列相同的表（比如每年一个文件）用 `pd.concat` 上下接起来：
+
+            ```python
+            pd.concat([df2023, df2024])                    # 索引原样保留：0, 1, 0, 1
+            pd.concat([df2023, df2024], ignore_index=True)  # 重新编号：0, 1, 2, 3
+            ```
+
+            pandas 保留原来的索引，所以可能出现重复的标签。要往表里一条条加数据时，先把它们收集进一个列表，最后一次 concat，比每次加一条快得多。
+      - item:
+          id: concat-dup
+          type: choice
+          prompt: 两张各 2 行、索引都是 0、1 的表，直接 `pd.concat` 后，`df.loc[0]` 会取到几行？
+          options:
+            - text: 2 行，两张表的标签 0 都被取出来
+              correct: true
+            - text: 1 行
+              why: concat 保留了原索引，标签 0 现在出现了两次
+          explain: 拼接后要按位置编号，就加 ignore_index=True。
+      - card:
+          title: 按键合并
+          body: |
+            ```python
+            pd.merge(bus, insp, on="business_id")               # 默认 how="inner"
+            pd.merge(bus, insp, on="business_id", how="left")   # 保留左表的每一行
+            ```
+
+            默认只留下**两边都有**的键：有餐厅、没有检查记录的，会从结果里消失。这是“合并后行数莫名变少”最常见的原因。一家餐厅有 3 次检查，合并后它占 3 行。
+      - item:
+          id: merge-rows
+          type: number
+          prompt: 餐厅表有 19、24、31、45 四家。检查表有 5 行：19 两次、24 一次、31 一次、99 一次。`pd.merge(餐厅表, 检查表, on="business_id")` 有几行？
+          answer: 4
+          explain: 两边都有的键是 19、24、31。19 有两次检查占 2 行，24、31 各 1 行，共 4 行；45 没有检查、99 不在餐厅表，都被丢掉。
+      - item:
+          id: merge-left
+          type: number
+          prompt: 同样的两张表，改成 `how="left"`，结果有几行？
+          answer: 5
+          explain: 左表每家都保留：19 两行、24 一行、31 一行、45 一行（检查分数是 NaN），共 5 行。
+      - card:
+          title: 合并之后先检查
+          body: |
+            合并以后照着这个顺序查一遍：
+
+            1. 行数对不对：比合并前多了，可能是键有重复；少了，可能是有的键对不上；
+            2. 有没有 NaN：`df.isna().any()`；
+            3. 哪些键对不上：找出那些键，看是拼写不同、类型不同（"0014" 和 14），还是真的没有。
+      - item:
+          id: merge-type
+          type: choice
+          prompt: '左表的站点编号是 "0014"（文字），右表是 14（整数）。`pd.merge(左表, 右表, on="site")` 报错：`You are trying to merge on str and int64 columns for key ''site''`。原因是？'
+          options:
+            - text: 键的类型不同，一边是文字、一边是整数，没法直接比较
+              correct: true
+            - text: 两张表的站点真的不同
+              why: 是同一个站点，只是一边存成文字、一边存成整数
+            - text: 两张表的行数不一样
+              why: 行数不同完全可以合并，报错说的是键的类型
+          explain: 合并前把两边的键转成同一种类型、同一种写法（比如都当文字、补齐前导 0）。
+
+  - id: reshape
+    chapter: 清洗
+    title: 宽表、长表和多层索引
+    minutes: 13
+    flow:
+      - guess:
+          id: guess-wide
+          type: choice
+          prompt: 一张表每行一年，12 列分别是 1–12 月的二氧化碳浓度。想算“每个月份在各年的平均”，好算吗？
+          options:
+            - text: 还算方便，但想按年、按月灵活分组时，换成每行一个“年-月”更好算
+              correct: true
+            - text: 这种表最适合计算
+              why: 月份藏在列名里，没法直接当一列来分组
+          explain: 这种表叫宽表，适合人看；下面的长表更适合计算。
+      - card:
+          title: 宽表和长表
+          body: |
+            **宽表**：每行一个年份，月份横着排成 12 列。**长表**：每行一个“年、月、数值”，也叫整洁数据（tidy data）。
+
+            ```python
+            co2_long = co2_wide.melt(id_vars=["Yr"], var_name="month", value_name="average")
+            co2_wide = pd.pivot_table(co2_long, index="Yr", columns="month", values="average")
+            ```
+
+            `melt` 把宽表压成长表，`pivot_table` 反过来展开。长表可以直接按年或按月分组；宽表给人看更清楚。melt 后行的顺序可能和原来不同。
+      - item:
+          id: melt-rows
+          type: number
+          prompt: 宽表有 2 行（1959、1960 年），除了 Yr 还有 12 个月份列。melt 成长表后有几行？
+          answer: 24
+          explain: 每个“年 × 月”一行：2 × 12 = 24 行，列是 Yr、month、average。
+      - card:
+          title: 两层的索引
+          body: |
+            按两列分组，结果的索引有两层：
+
+            ```python
+            g = df.groupby(["city", "year"])["rentals"].sum()
+            ```
+            ```
+            city  year
+            A     2023    10
+                  2024    12
+            B     2023     7
+                  2024     9
+            ```
+
+            这叫**多层索引（MultiIndex）**。`g.unstack()` 把里面那层（year）挪到列上，变成 2 行 2 列的宽表；`stack()` 反过来。用 loc 按外层取，如 `g.loc["A"]`。
+      - item:
+          id: unstack-shape
+          type: text
+          prompt: 按 city、year 两列分组求和得到 g：2 个城市、2 个年份，四种组合都有。`g.unstack()` 的形状是什么？
+          answers: ["(2, 2)"]
+          explain: 城市成为行（A、B），年份成为列（2023、2024），2 行 2 列。
+      - card:
+          title: 换一个粒度
+          body: |
+            想研究“每家餐厅”，手上却是“每次检查”的表，就要汇总到更粗的粒度：每家餐厅一行，写上检查次数、平均分、最低分、最近一次的分数。汇总时要说清用哪种算法：计数、求和、最小、最大、第一个或最后一个。
+
+            政府数据常把县和州混在一张表里（每个县一行，还有一行“全州合计”）。这种混合粒度要先拆成两张表。
+      - item:
+          id: mixed-grain
+          type: choice
+          prompt: 一张表每行一个县的人口，最后还有一行“全州合计”。你直接对人口一列求和，会怎样？
+          options:
+            - text: 结果是全州人口的两倍，因为合计行又加了一遍
+              correct: true
+            - text: 正好得到全州人口
+              why: 各县加起来已经是全州人口，合计行又加了一次
+          explain: 一张表只该有一种粒度。先把合计行拿出去，单独成一张表。
+  # ---------------------------------------------------------------- 探索分析
+  - id: summary
+    chapter: 探索分析
+    title: 典型值和分散程度
+    minutes: 15
+    flow:
+      - guess:
+          id: guess-typical
+          type: choice
+          prompt: 6 个人的月消费（百元）是 2、3、3、4、5、100。用哪个数描述“一般人花多少”更合适？
+          options:
+            - text: 排在中间的数（3 和 4 的中间，3.5）
+              correct: true
+            - text: 平均数（19.5）
+              why: 一个 100 把平均数拉到了 19.5，6 个人里 5 个都远低于它
+          explain: 平均数会被极端值拉走；排在中间的那个数不会。
+      - card:
+          title: 平均数和中位数
+          body: |
+            - **平均数（mean）**：全部加起来除以个数。2、3、3、4、5、100 的平均数是 117 ÷ 6 = 19.5。
+            - **中位数（median）**：从小到大排好，排在正中间的数；个数是偶数时取中间两个的平均，这里是 (3 + 4) ÷ 2 = 3.5。
+
+            把 100 换成 1000，平均数变成 169.5，中位数还是 3.5。不怕极端值的统计量叫**稳健的（robust）**。
+      - item:
+          id: median-odd
+          type: number
+          prompt: 7 个数 1、2、4、4、5、7、30 的中位数是多少？
+          answer: 4
+          explain: 已经排好了，7 个数正中间是第 4 个：4。平均数是 53 ÷ 7 ≈ 7.57，被 30 拉高了。
+      - card:
+          title: 四分位数和离群值
+          body: 用 2、3、3、4、5、100 一步步找出“正常范围”，看 100 算不算离得太远。
+          reveal:
+            - title: 第 1 步：找出四分之一处和四分之三处
+              body: |
+                **四分位数（quartile）**：Q1 是排在 25% 位置的数，Q3 是 75% 位置的数。pandas 的 `quantile` 用线性插值：n 个数时，Q1 在第 0.25 × (n − 1) 个位置（从 0 数）。
+
+                2、3、3、4、5、100 有 6 个数：Q1 在位置 1.25，在 3 和 3 之间，Q1 = 3；Q3 在位置 3.75，在 4 和 5 之间的 75% 处，Q3 = 4.75。
+            - title: 第 2 步：算四分位距
+              body: '**四分位距（IQR）** = Q3 − Q1 = 4.75 − 3 = 1.75，中间一半数据占的宽度。'
+            - title: 第 3 步：画出“正常范围”
+              body: 上界 = Q3 + 1.5 × IQR = 4.75 + 2.625 = 7.375；下界 = Q1 − 1.5 × IQR = 0.375。
+            - title: 第 4 步：判断
+              body: 100 远高于上界 7.375，按 1.5 倍 IQR 规则是**离群值（outlier）**。离群值先查原因（录错了？真的有人花了 1 万？），再决定怎么处理。
+      - item:
+          id: iqr-fence
+          type: number
+          prompt: 1、2、4、4、5、7、30 这 7 个数，Q1 = 3，Q3 = 6。按 1.5 倍 IQR 规则，上界是多少？
+          answer: 10.5
+          tolerance: 0.001
+          explain: IQR = 6 − 3 = 3，上界 = 6 + 1.5 × 3 = 10.5。30 超过上界，是离群值。
+      - item:
+          id: q3-compute
+          type: number
+          prompt: 1、2、4、4、5、7、30 一共 7 个数。用线性插值，Q3 在第 0.75 × (7 − 1) 个位置（从 0 数）。Q3 是多少？
+          answer: 6
+          explain: 0.75 × 6 = 4.5，在第 4 个（5）和第 5 个（7）的正中间，(5 + 7) ÷ 2 = 6。
+      - card:
+          title: 分散程度：标准差
+          body: |
+            42 位美国总统的身高（厘米）：平均 179.7，最矮 163，最高 193，Q1 = 174.25，中位数 182，Q3 = 183。
+
+            **方差（variance）** 是每个值离平均数的距离平方后的平均；**标准差（standard deviation）** 是方差开平方，和原数据同一个单位。身高的标准差约 6.9 厘米。
+
+            `df["height"].describe()` 一次给出个数、平均、标准差、最小、四分位数和最大。pandas 的 std 除以 n − 1，NumPy 的 np.std 默认除以 n，所以这里分别是 7.02 和 6.93。
+      - item:
+          id: var-small
+          type: number
+          prompt: 三个数 2、4、6，平均数是 4。把每个数离平均数的距离平方再平均（除以 3），方差是多少？
+          answer: 2.6667
+          tolerance: 0.01
+          explain: 距离是 −2、0、2，平方是 4、0、4，平均 8 ÷ 3 ≈ 2.67。标准差是它的平方根，约 1.63。
+      - card:
+          title: 两列一起变吗
+          body: |
+            **相关系数（correlation coefficient）** r 在 −1 和 1 之间，衡量两列数有多接近一条直线：
+
+            - r = 1：完全在一条上升的直线上；r = −1：完全在一条下降的直线上；
+            - r 接近 0：没有直线关系，但可能有别的关系。x 是 −2、−1、0、1、2，y = x²，r 恰好是 0。
+
+            ```python
+            df["temp"].corr(df["rentals"])
+            ```
+      - item:
+          id: corr-zero
+          type: choice
+          prompt: 气温和冰淇淋销量的相关系数接近 0。能说明两者没有关系吗？
+          options:
+            - text: 不能，可能有弯曲的关系，要画散点图看
+              correct: true
+            - text: 能，r 接近 0 就是没有关系
+              why: r 只衡量直线关系；y = x² 这种 U 形关系 r 也是 0
+          explain: 先画图，再看 r。r 只回答“像不像一条直线”。
+
+  - id: groupby
+    chapter: 探索分析
+    title: 分组汇总
+    minutes: 13
+    flow:
+      - guess:
+          id: guess-group
+          type: choice
+          prompt: 想比较“晴天、阴天、雨天平均租多少车”。直觉上该怎么做？
+          options:
+            - text: 按天气把行分成三堆，每堆各算平均，再放在一起比
+              correct: true
+            - text: 算全部天的平均
+              why: 全部的平均看不出不同天气的差别
+          explain: 这就是“拆开—计算—合并”，pandas 叫 groupby。
+      - card:
+          title: 拆开、计算、合并
+          body: |
+            ```python
+            df = pd.DataFrame({
+                "weather": ["晴", "雨", "晴", "阴", "雨", "晴"],
+                "rentals": [150, 60, 130, 100, 80, 140],
+            })
+            df.groupby("weather")["rentals"].mean()
+            ```
+            ```
+            weather
+            晴    140.0
+            阴    100.0
+            雨     70.0
+            ```
+
+            按 weather **分组（group by）**，对每组的 rentals 求平均，结果的索引是组名。
+      - item:
+          id: group-mean
+          type: number
+          prompt: 同一张表，`df.groupby("weather")["rentals"].sum()` 里“雨”是多少？
+          answer: 140
+          explain: 雨天两行：60 和 80，求和 140。
+      - card:
+          title: 一次算几种
+          body: |
+            ```python
+            df.groupby("weather")["rentals"].agg(["mean", "max", "count"])
+            ```
+            ```
+                     mean  max  count
+            weather
+            晴      140.0  150      3
+            阴      100.0  100      1
+            雨       70.0   80      2
+            ```
+
+            一定要看 count：阴天只有 1 天，它的平均数说明不了多少。只有几行的组，平均数很不可靠。
+      - item:
+          id: group-count
+          type: choice
+          prompt: 按城市分组算平均房价，某城市只有 2 套成交。比较各城市平均房价时该怎么对待它？
+          options:
+            - text: 一起报出成交套数，提醒这个平均数不可靠
+              correct: true
+            - text: 当成和别的城市一样可靠
+              why: 2 套房子的平均数，换两套就可能差很多
+          explain: 分组汇总时把每组的个数一起列出来，读者才知道哪些数靠得住。
+      - card:
+          title: 每行减去本组的平均
+          body: |
+            `transform` 也按组算，但结果和原表一样长，每行放上它那组的值：
+
+            ```python
+            g = df.groupby("weather")["rentals"].transform("mean")
+            # 140, 70, 140, 100, 70, 140
+            df["vs_group"] = df["rentals"] - g
+            # 10, -10, -10, 0, 10, 0
+            ```
+
+            这样能看出“同样是晴天，这一天比平常多还是少”。`filter` 则按组决定留不留，如 `df.groupby("weather").filter(lambda g: len(g) >= 2)` 去掉只有 1 天的组。lambda 是一种一行写完的小函数。
+      - item:
+          id: transform-val
+          type: number
+          prompt: 同一张表，第一行是晴天、租了 150 辆。`df["rentals"] - df.groupby("weather")["rentals"].transform("mean")` 在第一行是多少？
+          answer: 10
+          explain: 晴天的平均是 (150 + 130 + 140) ÷ 3 = 140，150 − 140 = 10。
+      - item:
+          id: filter-rows
+          type: number
+          prompt: '同一张表（晴 3 天、雨 2 天、阴 1 天），`df.groupby("weather").filter(lambda g: len(g) >= 2)` 剩几行？'
+          answer: 5
+          explain: 只有阴天那组不到 2 行，被整组去掉；晴 3 行加雨 2 行，剩 5 行。
+
+  - id: pivot
+    chapter: 探索分析
+    title: 透视表
+    minutes: 12
+    flow:
+      - guess:
+          id: guess-titanic
+          type: choice
+          prompt: 泰坦尼克号沉没时，你猜哪一类乘客的生还率最高？
+          options:
+            - text: 头等舱的女性
+              correct: true
+            - text: 三等舱的男性
+              why: 三等舱男性的生还率最低，只有约 14%
+            - text: 二等舱的男性
+              why: 二等舱男性只有约 16% 生还
+          explain: 用透视表把“性别 × 舱位”的生还率排成一张表，一眼就能比。
+      - card:
+          title: 两个方向一起分组
+          body: |
+            **透视表（pivot table）** 按一列分行、另一列分列，在每个格子里汇总：
+
+            ```python
+            titanic.pivot_table("survived", index="sex", columns="class")
+            ```
+            ```
+            class      First   Second   Third
+            sex
+            female  0.968085  0.921053  0.500000
+            male    0.368852  0.157407  0.135447
+            ```
+
+            survived 是 1（生还）或 0，平均数就是生还率。默认的汇总是求平均。
+      - item:
+          id: pivot-read
+          type: choice
+          prompt: 泰坦尼克号生还率的透视表：female 一行依次是 0.968、0.921、0.500（头等、二等、三等舱），male 一行是 0.369、0.157、0.135。三等舱女性的生还率是多少？
+          options:
+            - text: 50%
+              correct: true
+            - text: 13.5%
+              why: 这是三等舱男性的生还率
+            - text: 96.8%
+              why: 这是头等舱女性的生还率
+          explain: 行找 female，列找 Third，格子里是 0.5。
+      - card:
+          title: 换汇总方法、加合计
+          body: |
+            ```python
+            titanic.pivot_table("survived", index="sex", columns="class", aggfunc="sum")
+            titanic.pivot_table("survived", index="sex", columns="class", margins=True)
+            ```
+
+            `aggfunc="sum"` 改成数人数：头等舱女性生还 91 人。`margins=True` 加一行一列 All，是合计的生还率：女性整体 0.742，全体 0.384。
+
+            透视表和 `groupby(["sex", "class"])["survived"].mean().unstack()` 得到同一张表，但好读得多。
+      - item:
+          id: pivot-rate
+          type: number
+          prompt: 头等舱女性有 94 人，生还 91 人。生还率是多少？（保留三位小数）
+          answer: 0.968
+          tolerance: 0.001
+          explain: 91 ÷ 94 ≈ 0.968，和透视表里的 0.968085 一致。平均一列 0 和 1，就是数 1 的比例。
+      - item:
+          id: margins-all
+          type: number
+          prompt: 全船 891 名乘客（数据集里的），生还 342 人。`margins=True` 右下角的 All 是多少？（保留三位小数）
+          answer: 0.384
+          tolerance: 0.001
+          explain: 342 ÷ 891 ≈ 0.384。右下角是全体的生还率，不是各格子的简单平均。
+
+  - id: line-scatter
+    chapter: 探索分析
+    title: 折线图和散点图
+    minutes: 13
+    flow:
+      - guess:
+          id: guess-chart
+          type: choice
+          prompt: 想看“一年 365 天的租车量怎么起伏”，哪种图最合适？
+          options:
+            - text: 横轴是日期的折线图
+              correct: true
+            - text: 饼图
+              why: 饼图看的是各部分占多少，看不出随时间的起伏
+          explain: 随时间变化用折线图；两列数的关系用散点图。
+      - card:
+          title: 画布和坐标框
+          body: |
+            用 Matplotlib 库画图：
+
+            ```python
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots()          # 一张画布 fig，里面一个坐标框 ax
+            ax.plot(df["date"], df["rentals"], "-g", label="rentals")
+            ax.set(xlabel="日期", ylabel="租车量", title="每日租车量")
+            ax.legend()
+            fig.savefig("rentals.png")
+            ```
+
+            `"-g"` 是“实线、绿色”的简写。连着调用两次 `ax.plot`，两条线画在同一个框里。
+      - item:
+          id: plot-two
+          type: choice
+          prompt: 在同一个 ax 上先后写 `ax.plot(x, a)` 和 `ax.plot(x, b)`，会怎样？
+          options:
+            - text: 两条线画在同一个坐标框里，颜色自动不同
+              correct: true
+            - text: 第二条线替换掉第一条
+              why: 每次 plot 都是往框里再加一条线
+            - text: 生成两张图
+              why: 同一个 ax 就是同一个坐标框
+          explain: 想分开画，就要建几个坐标框（后面的子图）。
+      - card:
+          title: 散点图
+          body: |
+            ```python
+            ax.scatter(df["temp"], df["rentals"], s=df["rain"] * 10, c=df["month"], alpha=0.5)
+            ```
+
+            每个点是一行：横坐标是气温，纵坐标是租车量。点的大小（s）、颜色（c）还能各表示一列，一张图同时看四列。点很多、重叠时，用 `alpha` 让点半透明。
+
+            散点图回答“两列有没有关系、是什么形状的关系”，比只看相关系数可靠。
+      - item:
+          id: scatter-use
+          type: match
+          prompt: 把问题和合适的图配起来。
+          pairs:
+            - [一年里每天的气温怎么变, 折线图]
+            - [气温高的天，租车是不是更多, 散点图]
+            - [租车量大多落在什么范围, 直方图]
+          explain: 时间变化用折线，两列关系用散点，一列的分布用直方图（下一课）。
+      - item:
+          id: set-label
+          type: choice
+          prompt: 用 `fig, ax = plt.subplots()` 画图，想给横轴加标签。哪个写法对？
+          options:
+            - text: ax.set_xlabel("气温")
+              correct: true
+            - text: ax.xlabel("气温")
+              why: 坐标框对象上的方法名多了 set_，plt.xlabel 才没有
+          explain: plt.xlabel、plt.title 在 ax 上分别是 ax.set_xlabel、ax.set_title；也可以用 ax.set(xlabel=..., title=...) 一次设好。
+
+  - id: histogram
+    chapter: 探索分析
+    title: 直方图和密度
+    minutes: 13
+    flow:
+      - guess:
+          id: guess-bins
+          type: choice
+          prompt: 画身高的直方图时，把区间分得非常细（每 0.1 厘米一格），你猜图会怎样？
+          options:
+            - text: 每格只有零星几个人，图变成一堆参差的细柱，看不出形状
+              correct: true
+            - text: 图会更准确，形状更清楚
+              why: 格子太细，每格的人数被偶然性主导
+          explain: 格子太粗会抹掉细节，太细会全是噪声，要试几种宽度。
+      - card:
+          title: 直方图
+          body: |
+            **直方图（histogram）** 把数值分进一个个等宽的区间（叫 bin），数每个区间里有几个：
+
+            ```python
+            ax.hist(heights, bins=10)
+            counts, edges = np.histogram([1, 2, 2, 3, 3, 3], bins=3)
+            # counts = [1, 2, 3]
+            ```
+            ```
+            1.0–1.7 | ■
+            1.7–2.3 | ■■
+            2.3–3.0 | ■■■
+            ```
+
+            `np.histogram` 只数不画，返回每格的个数和格子的边界。
+      - item:
+          id: hist-count
+          type: text
+          prompt: '`np.histogram([1, 2, 2, 3, 3, 3, 10], bins=3)` 把 1 到 10 分成三个等宽的格子（1–4、4–7、7–10）。每格的个数是什么？（写成 [a, b, c]）'
+          answers: ["[6, 0, 1]", "[6,0,1]"]
+          explain: 1、2、2、3、3、3 都在 1–4，4–7 没有，10 在最后一格。一个离群值把大部分数据挤进了一格，这时可以去掉离群值再画，或者换成对数刻度。
+      - card:
+          title: 平滑的密度曲线
+          body: |
+            直方图的形状受格子宽度影响。**核密度估计（KDE）** 在每个数据点放一个小鼓包，再把鼓包加起来，得到一条平滑的曲线。鼓包越宽越平滑，但会抹掉真实的细节；越窄越贴近数据，但会抖。
+
+            两列数一起看分布：`plt.hist2d(x, y)` 把平面分成方格数点数；`plt.contour` 画等高线，把三维的高低画在平面上。
+      - item:
+          id: kde-width
+          type: choice
+          prompt: 核密度估计的鼓包设得很窄，曲线会怎样？
+          options:
+            - text: 在每个数据点附近起伏，抖得厉害
+              correct: true
+            - text: 变成一条很平的线
+              why: 鼓包宽了才会变平；窄的鼓包让曲线跟着每个点起伏
+          explain: 宽度的选择是一种权衡：太宽漏掉细节，太窄全是偶然的起伏。
+      - item:
+          id: hist-shape
+          type: choice
+          prompt: 收入的直方图左边一座高峰，右边拖着长长的尾巴。用平均数还是中位数描述“典型收入”？
+          options:
+            - text: 中位数，长尾巴会把平均数拉高
+              correct: true
+            - text: 平均数，它用到了所有人的收入
+              why: 少数很高的收入会把平均数拉到大多数人之上
+          explain: 看分布的形状，再选描述它的统计量。
+
+  - id: figure-parts
+    chapter: 探索分析
+    title: 误差线、图例、子图和 seaborn
+    minutes: 14
+    flow:
+      - guess:
+          id: guess-error
+          type: choice
+          prompt: 一项测量得 71，另一项得 74。两者有没有实质的差别？
+          options:
+            - text: 不知道，要看每个测量的误差有多大
+              correct: true
+            - text: 有，74 比 71 大
+              why: 若误差是 ±5，两者完全可能是同一个值
+          explain: 只报数字、不报误差，无法判断两个测量是否一致。
+      - card:
+          title: 误差线
+          body: |
+            ```python
+            ax.errorbar(x, y, yerr=dy, fmt="o", capsize=3)
+            ax.fill_between(x, low, high, alpha=0.3)
+            ```
+
+            `errorbar` 在每个点上下画出误差范围；数据是连续的一条曲线时，用 `fill_between` 画一条半透明的带子，带子宽的地方就是不确定的地方。71 ± 2.5 和 74 ± 5 的范围重叠很多，说明两次测量可能是同一个值。
+      - item:
+          id: overlap
+          type: choice
+          prompt: A 组平均 71 ± 2.5，B 组平均 74 ± 5（± 后面是误差范围）。两组的范围重叠吗？
+          options:
+            - text: 重叠，A 是 68.5–73.5，B 是 69–79
+              correct: true
+            - text: 不重叠
+              why: 69 到 73.5 这一段两个范围都包含
+          explain: 范围重叠时，不能只凭两个数的大小下结论。
+      - card:
+          title: 图例和子图
+          body: |
+            - 没写 `label=` 的线不会出现在图例里：`ax.plot(x, y, label="2024")` 再 `ax.legend()`。
+            - 一张图里放几个坐标框：
+
+            ```python
+            fig, axes = plt.subplots(2, 3, sharex="col")   # 2 行 3 列
+            axes[0, 0].hist(heights)                        # 第一行第一个
+            ```
+
+            `plt.subplots` 返回的 axes 从 0 数；老写法 `plt.subplot(2, 3, i)` 的 i 却从 1 数，别混。
+      - item:
+          id: subplot-index
+          type: text
+          prompt: '`fig, axes = plt.subplots(2, 3)`。第二行第三个坐标框怎么写？'
+          answers: ["axes[1, 2]", "axes[1,2]", "axes[1][2]"]
+          explain: 行和列都从 0 数，第二行是 1，第三个是 2：axes[1, 2]。
+      - card:
+          title: seaborn：为数据框设计的画图库
+          body: |
+            seaborn 建在 Matplotlib 之上，直接吃数据框的列名，常见的统计图一行就够：
+
+            ```python
+            import seaborn as sns
+            sns.histplot(data=df, x="rentals", hue="weather")   # 按天气分颜色的直方图
+            sns.boxplot(data=df, x="weather", y="rentals")      # 每种天气一个箱线图
+            sns.pairplot(df, hue="weather")                     # 每两列一张散点图
+            ```
+
+            箱线图把中位数、Q1、Q3 和离群值画成一个盒子加两根须。细节（比如重叠的刻度文字）还得回到 Matplotlib 调。
+      - item:
+          id: box-parts
+          type: match
+          prompt: 箱线图里的各部分表示什么？
+          pairs:
+            - [盒子中间的横线, 中位数]
+            - [盒子的上下边, Q3 和 Q1]
+            - [须外面单独画的点, 离群值]
+          explain: 盒子装着中间一半的数据，它的高度就是四分位距。
+      - item:
+          id: legend-missing
+          type: choice
+          prompt: 你画了两条线、调用了 `ax.legend()`，图例却是空的。最可能少写了什么？
+          options:
+            - text: 两条线都没写 label=
+              correct: true
+            - text: 少写了 plt.show()
+              why: 不 show 是看不到图，但不会让图例变空
+          explain: 图例只列出带 label 的线和点。
+  # ---------------------------------------------------------------- Notebook
+  - id: notebook
+    chapter: Notebook
+    title: 笔记本：一格一格地运行
+    minutes: 13
+    flow:
+      - guess:
+          id: guess-cell
+          type: choice
+          prompt: 笔记本里第 1 格写了 `x = 5` 并运行，接着在第 5 格写 `print(x)` 运行。会显示什么？
+          options:
+            - text: 5，前面运行过的格子留下的名字一直都在
+              correct: true
+            - text: 报错，因为 x 不在同一格里
+              why: 运行过的格子里定义的名字，整本笔记本都能用
+          explain: 这很方便，也是笔记本最容易出问题的地方（后面专门讲）。
+      - card:
+          title: 笔记本是什么
+          body: |
+            Jupyter 笔记本（notebook）把代码分成一个个**单元格（cell）**，每格单独运行，结果（数字、表格、图）就显示在格子下面。文字说明也可以写成一格。
+
+            笔记本背后有一个一直在运行的 Python，叫**内核（kernel）**。你运行一格，就是把这格代码交给内核执行；内核记住所有运行过的格子里定义的名字，直到你重启它。
+      - item:
+          id: kernel-restart
+          type: choice
+          prompt: 你重启了笔记本的内核，然后直接运行第 5 格的 `print(x)`（x 是在第 1 格定义的）。会怎样？
+          options:
+            - text: 报 NameError，x 还没有定义
+              correct: true
+            - text: 显示 5，格子里的代码还在
+              why: 代码还写在格子里，但重启后内核里什么名字都没有了，要重新运行第 1 格
+          explain: 重启内核会清空所有名字；格子里的文字留着，但要重新运行才算数。
+      - card:
+          title: 查帮助、自动补全
+          body: |
+            - `len?`：显示 len 的说明文档；`函数名??` 还会显示它的代码（用 C 写的函数看不到）。
+            - 写到一半按 Tab：列出可能的名字，如 `df.gr` 再按 Tab 会提示 `groupby`。
+            - `*Warning?`：用 * 当通配符，列出所有名字里含 Warning 的东西。
+
+            给自己的函数写一段说明文字（docstring），别人用 `?` 就能看到。
+      - item:
+          id: help-match
+          type: match
+          prompt: 把写法和它的作用配起来。
+          pairs:
+            - [pd.read_csv?, 显示 read_csv 的说明]
+            - [df.gr 再按 Tab, 列出以 gr 开头的方法]
+            - [my_func??, 显示 my_func 的代码]
+          explain: '? 看说明，?? 看代码，Tab 补全名字。'
+      - card:
+          title: 魔术命令和历史
+          body: |
+            以 `%` 开头的是笔记本专用的**魔术命令（magic command）**，不是 Python 代码：
+
+            - `%run clean.py`：运行一个 Python 文件，它里面定义的名字留在笔记本里；
+            - `%timeit sum(range(1000))`：反复运行一行，量它要多久；
+            - `%%timeit` 两个百分号：量整格。
+
+            笔记本记得你运行过什么：`In[3]` 是第 3 次运行的代码，`Out[3]` 是它的结果，`_` 是上一个结果。行尾加分号 `;` 就不显示结果。
+      - item:
+          id: out-history
+          type: choice
+          prompt: 你刚运行了一格，结果是一个很长的表。想在下一格接着用它，又懒得重新算。可以写什么？
+          options:
+            - text: _（一个下划线，代表上一个结果）
+              correct: true
+            - text: In[-1]
+              why: In 存的是你输入的代码，不是结果
+          explain: 用 _ 或 Out[编号] 很方便，但交付前最好改成有名字的变量，否则重新运行时编号会变。
+      - item:
+          id: magic-what
+          type: choice
+          prompt: '`%timeit np.sum(x)` 里的 `%timeit` 是什么？'
+          options:
+            - text: 笔记本的魔术命令，反复运行后面那行并报告用时
+              correct: true
+            - text: Python 的一个函数
+              why: 魔术命令只在笔记本（IPython）里有效，放进普通的 .py 文件会报错
+          explain: 以 % 开头的都是笔记本提供的命令，不是 Python 语言的一部分。
+
+  - id: debug-timing
+    chapter: Notebook
+    title: 读报错、调试和计时
+    minutes: 13
+    flow:
+      - guess:
+          id: guess-traceback
+          type: choice
+          prompt: 一段报错有二十行。你猜最该先看哪一行？
+          options:
+            - text: 最后一行：错误的种类和原因
+              correct: true
+            - text: 第一行
+              why: 第一行通常只是“Traceback”这个标题
+          explain: 最后一行说出了什么错，往上一层层是“是在哪里调用的”。
+      - card:
+          title: 读报错
+          body: |
+            ```
+            ---------------------------------------------------------------------------
+            ZeroDivisionError                         Traceback (most recent call last)
+            <ipython-input-2-b6d9...> in <module>()
+            ----> 1 func2(1)
+            <ipython-input-1-d849...> in func1(a, b)
+            ----> 2     return a / b
+            ZeroDivisionError: division by zero
+            ```
+
+            从下往上读：最后一行是错误（除以 0），上面一层是出错的那行（`return a / b`），再上面是谁调用了它。`%xmode Verbose` 会多显示每层的参数值，`%xmode Plain` 显示得最少。
+      - item:
+          id: tb-read
+          type: choice
+          prompt: '报错最后一行是 `KeyError: ''rentls''`。最可能的原因是？'
+          options:
+            - text: 列名拼错了，表里没有叫 rentls 的列
+              correct: true
+            - text: 表是空的
+              why: 空表报的不是这个；KeyError 加一个名字，说的是“没有这个键”
+          explain: KeyError 后面写着找不到的那个名字，对照一下真实的列名（rentals）就知道了。
+      - card:
+          title: 出错以后进去看
+          body: |
+            找出并改正代码错误的过程叫**调试（debugging）**。笔记本里报错之后，立刻运行一格 `%debug`，就进入出错那一刻：
+
+            - 输入变量名（如 `a`、`b`）看它当时的值；
+            - `up` 往上一层，看调用它的地方；
+            - `quit` 退出。
+
+            `%pdb on` 让每次报错都自动进入调试。
+      - item:
+          id: debug-when
+          type: choice
+          prompt: 一个函数在第 300 行数据上报了除以 0 的错。你想知道那一刻的 b 是怎么变成 0 的。最直接的办法是？
+          options:
+            - text: 报错后运行 %debug，查看当时各个变量的值，再用 up 往上一层看
+              correct: true
+            - text: 把整段代码删掉重写
+              why: 还不知道错在哪，重写可能再犯
+          explain: 调试器让你停在出错的那一刻，直接看到变量的值，比猜快得多。
+      - card:
+          title: 量一量多快
+          body: |
+            - `%time 语句`：运行一次，报告用时；
+            - `%timeit 语句`：运行很多次，报告典型用时，更准；
+            - `%prun 函数()`：列出每个函数各花了多少时间，找出慢在哪。
+
+            小心：`%timeit L.sort()` 只有第一次在排乱序的列表，之后都在排已经排好的，量出来偏快，这时该用 `%time`。
+
+            先让代码算对，再考虑快：过早优化往往白费力气。
+      - item:
+          id: time-sort
+          type: choice
+          prompt: 用 `%timeit L.sort()` 量排序一个随机列表要多久，结果为什么会偏快？
+          options:
+            - text: 第一次运行后 L 已经排好了，之后的每次都在排一个有序的列表
+              correct: true
+            - text: '%timeit 会跳过排序'
+              why: 它真的运行了，只是后面每次排的都是已经有序的列表
+          explain: 会改变数据的操作，重复计时不再是同一件事；用 %time 只量一次。
+      - item:
+          id: prun-use
+          type: choice
+          prompt: 一个清洗函数要跑 10 分钟，你想知道时间主要花在哪一步。该用哪个？
+          options:
+            - text: '%prun'
+              correct: true
+            - text: '%timeit'
+              why: '%timeit 只给总用时，还会重复跑很多次，10 分钟的函数会跑很久'
+          explain: '%prun 按函数列出用时，先优化最慢的那一处。'
+
+  - id: reproducible
+    chapter: Notebook
+    title: 让笔记本可以重现
+    minutes: 12
+    flow:
+      - guess:
+          id: guess-hidden
+          type: choice
+          prompt: 一本笔记本在你电脑上能出结果，同事从头运行却报错。最常见的原因是？
+          options:
+            - text: 你运行格子的顺序和它们从上到下的顺序不一样，有的名字是早就删掉的格子留下的
+              correct: true
+            - text: 同事的电脑太慢
+              why: 慢只会让它跑得久，不会让它报错
+          explain: 笔记本里看到的结果，不一定是“从上到下运行一遍”的结果。
+      - card:
+          title: 隐藏的状态
+          body: |
+            你可以随意先运行第 7 格再运行第 3 格，也可以删掉一格而它定义的名字还留在内核里。屏幕上的结果来自你实际的运行顺序，而不是格子排列的顺序。
+
+            ```
+            In [1]: df = pd.read_csv("bikes.csv")
+            In [5]: df = df[df["temp"] > 0]      # 这格后来被删了
+            In [3]: df["rentals"].mean()
+            ```
+
+            方括号里的编号告诉你运行顺序。编号乱了，就该重新从头跑。
+      - item:
+          id: run-order
+          type: choice
+          prompt: 一个格子写着 `df = df[df["rentals"] > 0]`。你把它运行了两次。结果会怎样？
+          options:
+            - text: 和运行一次一样，因为第二次筛选时已经没有 rentals ≤ 0 的行了
+              correct: true
+            - text: 删掉的行会是一次的两倍
+              why: 第二次运行时 df 已经只剩 rentals > 0 的行，再筛一次不变
+          explain: 这一格碰巧重复运行没有害处。但若写的是 df["rentals"] = df["rentals"] * 2，运行两次就乘了 4，结果悄悄错了。
+      - card:
+          title: 交付前的检查
+          body: |
+            1. **重启内核，从头全部运行**（Restart & Run All），确认结果不变；
+            2. 用到随机数的地方**固定随机种子**（如 `random_state=42`）；
+            3. 用 `requirements.txt` 记下每个库的版本；
+            4. 文件路径写相对路径，参数集中放在开头；
+            5. 稳定的代码挪进 .py 文件，写上测试，笔记本里只调用。
+      - item:
+          id: rerun-all
+          type: choice
+          prompt: 交付笔记本前，确认它“从头运行也能得到同样结果”的最直接办法是？
+          options:
+            - text: 重启内核，然后从上到下全部运行一遍
+              correct: true
+            - text: 检查每一格下面都有输出
+              why: 有输出只说明某个时刻运行过，不说明按顺序从头能跑通
+          explain: 重启后内核是空的，能全部跑通才说明没有依赖隐藏的状态。
+      - item:
+          id: repro-match
+          type: match
+          prompt: 把问题和对策配起来。
+          pairs:
+            - [格子乱序运行留下的名字, 重启内核并全部运行]
+            - [每次运行随机划分的结果都不同, 固定随机种子]
+            - [同事装的 pandas 版本不同，结果不一样, 用 requirements.txt 记下版本]
+            - [路径写成 C:/Users/me/data.csv, 改成项目里的相对路径]
+          explain: 可重现要同时管住运行顺序、随机性、软件版本和文件位置。
+
+  # ---------------------------------------------------------------- 统计包与工作流
+  - id: numpy
+    chapter: 统计包与工作流
+    title: NumPy 数组
+    minutes: 14
+    flow:
+      - guess:
+          id: guess-one-type
+          type: choice
+          prompt: 把 3.14、4、2、3 放进 NumPy 的一串数里。你猜 4 还是整数 4 吗？
+          options:
+            - text: 不是，全部变成浮点数，4 变成 4.0
+              correct: true
+            - text: 是，每个值保持原来的类型
+              why: NumPy 的一串数只能有一种类型，有一个浮点数，就全部变成浮点数
+          explain: 这是 NumPy 快的原因之一：所有值同一种类型，紧挨着存放。
+      - card:
+          title: 数组
+          body: |
+            pandas 的每一列底下都是一个 NumPy **数组（array）**：一串同一类型的数，可以有几行几列。
+
+            ```python
+            import numpy as np
+            a = np.array([3.14, 4, 2, 3])   # [3.14, 4. , 2. , 3. ]，类型 float64
+            g = np.arange(12).reshape(3, 4) # 0 到 11 排成 3 行 4 列
+            g.shape, g.ndim, g.size         # (3, 4), 2, 12
+            g[1, 2]                         # 第 1 行第 2 列（都从 0 数）：6
+            ```
+
+            Python 的列表每个值都是独立的对象，可以混着放；数组只放一种类型，省地方、算得快。
+      - item:
+          id: arr-index
+          type: number
+          prompt: '`g = np.arange(12).reshape(3, 4)`，即 0–11 按行排成 3 行 4 列。`g[2, 1]` 是多少？'
+          answer: 9
+          explain: 第 2 行是 8、9、10、11（从 0 数行），第 1 列是 9。
+      - card:
+          title: 两个坑
+          body: |
+            **整数数组塞进小数，小数被悄悄截掉：**
+
+            ```python
+            x = np.array([5, 0, 3])
+            x[0] = 3.14159
+            x          # array([3, 0, 3])
+            ```
+
+            **切出来的一块和原数组共用数据：**
+
+            ```python
+            s = g[:2, :2]
+            s[0, 0] = 99
+            g[0, 0]    # 99，原数组也变了
+            ```
+
+            要一份独立的副本，写 `g[:2, :2].copy()`。
+      - item:
+          id: truncate
+          type: number
+          prompt: '`x = np.array([1, 2, 3])`，然后 `x[1] = 7.9`。`x[1]` 现在是多少？'
+          answer: 7
+          explain: x 是整数数组，7.9 被直接截掉小数部分（不是四舍五入），变成 7。
+      - item:
+          id: view-copy
+          type: choice
+          prompt: '`a = np.zeros(5)`；`b = a[1:3]`；`b[0] = 8`。`a[1]` 是多少？'
+          options:
+            - text: '8.0'
+              correct: true
+            - text: '0.0'
+              why: 数组切出来的一块和原数组共用数据，改 b 就是改 a
+          explain: 这一点和 Python 的列表相反：列表的切片是复制出来的新列表。
+
+  - id: ufuncs
+    chapter: 统计包与工作流
+    title: 整列运算、汇总和筛选
+    minutes: 14
+    flow:
+      - guess:
+          id: guess-speed
+          type: choice
+          prompt: 对一百万个数求和，用 Python 自带的 sum 和用 np.sum，你猜差多少？
+          options:
+            - text: np.sum 快一两百倍
+              correct: true
+            - text: 差不多
+              why: Python 的循环每一步都要检查类型，NumPy 一次处理整个数组
+          explain: 原书的测量：sum 104 毫秒，np.sum 0.442 毫秒，约 235 倍。
+      - card:
+          title: 不写循环，整个数组一起算
+          body: |
+            ```python
+            x = np.array([1, 4, 2, 5, 3])
+            x * 2          # [2, 8, 4, 10, 6]
+            np.sqrt(x)     # 每个数开平方
+            ```
+
+            对数组直接写运算，NumPy 会对每个值都做一遍，这叫**整体运算**（英文叫 vectorization）。Python 的 for 循环慢，不是因为加法慢，而是每一圈都要检查类型、找该用哪种加法。看到对数组写的 for 循环，就想想能不能改成一行数组运算。
+
+            浮点数有误差：`np.sin(np.pi)` 得 1.22e-16，而不是 0。
+      - item:
+          id: vec-calc
+          type: text
+          prompt: '`np.array([1, 2, 3]) ** 2 + 1` 是什么？（写成 [a, b, c]）'
+          answers: ["[2, 5, 10]", "[2,5,10]"]
+          explain: 每个数先平方（1、4、9）再加 1：[2, 5, 10]。
+      - card:
+          title: 按行还是按列汇总
+          body: |
+            ```python
+            M = np.array([[1, 2, 3],
+                          [4, 5, 6]])
+            M.sum()          # 21
+            M.sum(axis=0)    # [5, 7, 9]：每列一个和
+            M.max(axis=1)    # [3, 6]：每行一个最大值
+            ```
+
+            `axis=0` 表示“把第 0 个方向（行）压扁”，所以得到每列一个数。还有 `mean`、`std`、`median`、`np.percentile(x, 25)` 等；遇到 NaN 用 `np.nansum`、`np.nanmean`。
+      - item:
+          id: axis-sum
+          type: text
+          prompt: '`np.array([[1, 2], [3, 4], [5, 6]]).sum(axis=0)` 是什么？（写成 [a, b]）'
+          answers: ["[9, 12]", "[9,12]"]
+          explain: axis=0 把三行压成一行：1 + 3 + 5 = 9，2 + 4 + 6 = 12。
+      - card:
+          title: 用条件挑出一部分
+          body: |
+            ```python
+            x = np.array([1, 4, 2, 5, 3])
+            x > 2                   # [False, True, False, True, True]
+            np.sum(x > 2)           # 3：True 当 1，数出有几个
+            x[(x > 1) & (x < 5)]    # [4, 2, 3]
+            ```
+
+            一串布尔值叫**掩码（mask）**，放进方括号就留下 True 的位置。对数组不能写 `and`、`or`，要写 `&`、`|`，每个条件加括号；写成 `(x > 1) and (x < 5)` 会报 ValueError。
+      - item:
+          id: mask-count
+          type: number
+          prompt: '`x = np.array([3, 8, 1, 9, 4, 7])`。`np.sum((x > 3) & (x < 9))` 是多少？'
+          answer: 3
+          explain: 大于 3 且小于 9 的是 8、4、7，共 3 个。
+      - item:
+          id: and-error
+          type: choice
+          prompt: '对数组写 `x[(x > 1) and (x < 5)]` 会怎样？'
+          options:
+            - text: 报 ValueError：一串布尔值没法当成一个真假来判断
+              correct: true
+            - text: 正常筛选
+              why: and 要求两边各是一个真假值，数组有很多个，NumPy 不替你决定
+          explain: 逐个比较的“并且”是 &，“或者”是 |。
+
+  - id: sklearn
+    chapter: 统计包与工作流
+    title: scikit-learn 的固定套路
+    minutes: 15
+    flow:
+      - guess:
+          id: guess-ml
+          type: choice
+          prompt: 在数据科学里，“机器学习”最接近下面哪种说法？
+          options:
+            - text: 根据数据调整一个模型里的数，让它能描述数据、做预测
+              correct: true
+            - text: 让电脑像人一样思考
+              why: 这里的“学习”只是用数据把模型的参数定下来
+          explain: 比如“一条直线”是模型，直线的斜率和截距就是从数据里学出来的数。
+      - card:
+          title: 两大类
+          body: |
+            每行一个对象（叫样本），每列描述它的一个方面，叫**特征（feature）**。想预测的那一列叫**标签（label）**。
+
+            - **监督学习**：有标签。标签是类别（是否垃圾邮件）叫**分类**，是连续的数（房价）叫**回归**；
+            - **无监督学习**：没有标签，找数据自己的结构：把相近的点分成几**簇**（聚类），或把很多列压成少数几列（降维）。
+      - item:
+          id: task-match
+          type: match
+          prompt: 把任务和它的类型配起来。
+          pairs:
+            - [根据邮件内容判断是不是垃圾邮件, 分类]
+            - [根据面积和位置估房价, 回归]
+            - [把顾客按购买习惯分成几群，事先不知道有哪几群, 聚类]
+          explain: 有标签、标签是类别：分类；有标签、标签是数：回归；没有标签，找分组：聚类。
+      - card:
+          title: X 和 y
+          body: |
+            scikit-learn 要求：
+
+            - 特征放进 **X**，二维，形状是 [样本数, 特征数]；
+            - 标签放进 **y**，一维，长度是样本数。
+
+            只有一个特征时最容易出错：
+
+            ```python
+            x = 10 * rng.rand(50)      # 形状 (50,)，一维
+            X = x.reshape(-1, 1)       # 形状 (50, 1)，二维
+            ```
+
+            `reshape(-1, 1)` 把它变成 50 行 1 列，-1 表示“行数自己算”。
+      - item:
+          id: x-shape
+          type: text
+          prompt: 一个数据框有 1797 行，64 个特征列，外加 1 列标签。scikit-learn 需要的 X 的形状是什么？
+          answers: ["(1797, 64)"]
+          explain: X 只放特征：1797 个样本、64 个特征，(1797, 64)；y 的形状是 (1797,)。
+      - card:
+          title: 五步
+          body: |
+            ```python
+            from sklearn.linear_model import LinearRegression  # 1. 选模型的种类
+            model = LinearRegression(fit_intercept=True)        # 2. 设好选项
+            X = x.reshape(-1, 1)                                 # 3. 整理成 X、y
+            model.fit(X, y)                                      # 4. 用数据拟合
+            model.predict([[5]])                                 # 5. 对新数据预测
+            ```
+
+            第 2 步设的选项在看数据之前就定下来，叫**超参数（hyperparameter）**；第 4 步从数据里学出来的数，名字带下划线：`model.coef_`（斜率）、`model.intercept_`（截距）。
+      - item:
+          id: steps-order
+          type: order
+          prompt: 把用 scikit-learn 建模的步骤排好。
+          steps:
+            - from sklearn.neighbors import KNeighborsClassifier
+            - model = KNeighborsClassifier(n_neighbors=1)
+            - model.fit(X_train, y_train)
+            - y_pred = model.predict(X_test)
+          explain: 先导入模型种类，再建一个模型并设超参数，然后拟合，最后预测。
+      - item:
+          id: coef-read
+          type: number
+          prompt: 数据是按 y = 2x − 1 再加随机误差造的 50 个点。拟合后 `model.coef_` 是 1.98，`model.intercept_` 是 −0.90。`model.predict([[5]])` 大约是多少？（保留一位小数）
+          answer: 9.0
+          tolerance: 0.1
+          explain: 1.98 × 5 − 0.90 = 9.0（精确值 8.985）。学出来的斜率和截距接近真实的 2 和 −1。
+      - item:
+          id: hyper-or-learned
+          type: choice
+          prompt: KNeighborsClassifier(n_neighbors=5) 里的 5 是什么？
+          options:
+            - text: 超参数：建模型时我们自己定的
+              correct: true
+            - text: 从数据里学出来的数
+              why: 学出来的数在 fit 之后才有，名字带下划线；n_neighbors 在看到数据前就写好了
+          explain: 超参数靠我们选（下一章用验证来选），参数靠 fit 学。
+  # ---------------------------------------------------------------- 抽样偏差
+  - id: urn
+    chapter: 抽样偏差
+    title: 罐子模型：把抽样想成摸弹珠
+    minutes: 14
+    flow:
+      - guess:
+          id: guess-urn
+          type: choice
+          prompt: 罐子里有 3 颗黑弹珠、2 颗白弹珠，不放回地摸 2 颗。你猜两颗同色的可能性大约是多少？
+          options:
+            - text: 约 40%
+              correct: true
+            - text: 约 60%
+              why: 黑的多，容易以为常常两颗都黑；其实摸走一颗黑的以后，黑白就一样多了
+            - text: 约 20%
+              why: 两颗都黑的情况就有 3 种，已经占了十分之三
+          explain: 精确答案是 40%：一共 10 种摸法，两颗都黑 3 种、都白 1 种，同色 4 种。下面用模拟和数数两种办法得到它。
+      - card:
+          title: 罐子模型
+          body: |
+            把总体里的每个对象写在一颗弹珠上放进罐子，摇匀，摸出几颗：这就是**罐子模型（urn model）**。摸出的弹珠不放回去叫**不放回抽样**，放回去再摸叫**有放回抽样**。
+
+            ```python
+            urn = ["b", "b", "b", "w", "w"]
+            np.random.choice(urn, size=2, replace=False)   # 例如 ['b' 'w']
+            ```
+
+            把这一行重复 10,000 次，数两颗同色的比例，原书得到 0.4032。
+      - item:
+          id: urn-exact
+          type: number
+          prompt: 3 黑 2 白，不放回摸 2 颗。一共有 10 种摸法（不计顺序），两颗同色的有几种？
+          answer: 4
+          explain: 3 颗黑里挑 2 颗有 3 种，2 颗白里挑 2 颗有 1 种，共 4 种，概率 4 ÷ 10 = 0.4，和模拟的 0.4032 很接近。
+      - card:
+          title: 简单随机样本
+          body: |
+            从 N 个对象里不放回地抽 n 个，如果**每一种 n 个的组合**被抽中的机会都一样，这叫**简单随机样本（simple random sample）**。
+
+            7 颗弹珠 A–G 抽 3 颗，一共有 35 种组合，每种的机会都是 1/35。
+
+            很多人以为“每个对象被抽中的机会相等”就够了。不对：把 7 颗分成固定的几组、整组整组地抽，每颗被抽中的机会也可能相等，但很多组合根本抽不到。
+      - item:
+          id: samples-with-a
+          type: number
+          prompt: 7 颗弹珠 A–G 抽 3 颗，35 种组合里有几种含 A？
+          answer: 15
+          explain: 含 A 的组合，另外两颗从剩下 6 颗里挑：6 × 5 ÷ 2 = 15 种。所以 A 被抽中的机会是 15/35 = 3/7。
+      - card:
+          title: 统计量会随样本变
+          body: |
+            7 个燃料箱里有 4 个会失效（1 表示失效）。抽 3 个，算失效的比例：
+
+            | 失效比例 | 组合数 | 机会 |
+            |---|---|---|
+            | 0 | 1 | 1/35 ≈ 0.03 |
+            | 1/3 | 12 | 12/35 ≈ 0.34 |
+            | 2/3 | 18 | 18/35 ≈ 0.51 |
+            | 1 | 4 | 4/35 ≈ 0.11 |
+
+            从样本算出的数叫**统计量（statistic）**；它在所有可能样本上的分布叫**抽样分布（sampling distribution）**。真实比例是 4/7 ≈ 0.57，单个样本可能差得很远。
+      - item:
+          id: sampling-dist
+          type: number
+          prompt: 按上表，抽 3 个燃料箱，样本里的失效比例至少是 2/3 的机会是多少？（保留两位小数）
+          answer: 0.63
+          tolerance: 0.01
+          explain: 2/3 和 1 两行相加：(18 + 4) ÷ 35 = 22/35 ≈ 0.63。
+      - item:
+          id: srs-def
+          type: choice
+          prompt: 全班 30 人按座位分成 10 排，每排 3 人。随机抽 1 排作为样本。这是简单随机样本吗？
+          options:
+            - text: 不是，像“不同排的 3 个人”这样的组合根本抽不到
+              correct: true
+            - text: 是，每个人被抽中的机会都是 1/10
+              why: 每个人机会相等不够；简单随机样本要求每一种 3 人组合机会都相等
+          explain: 这种整组抽的办法叫整群抽样。另一种分层抽样是先分组、再在每组里各抽几个。
+
+  - id: poll-bias
+    chapter: 抽样偏差
+    title: 偏差和方差：民调为什么会错
+    minutes: 15
+    flow:
+      - guess:
+          id: guess-bigger
+          type: choice
+          prompt: 一项民调因为高学历的人更愿意回答而有一点偏差。把样本从 1,500 人加到 12,000 人，能修好吗？
+          options:
+            - text: 不能，样本越大，越稳定地得到那个偏了的答案
+              correct: true
+            - text: 能，样本大了就准了
+              why: 样本大只能减少随机的波动，减不掉每次都往同一边偏的部分
+          explain: 下面用 2016 年宾夕法尼亚州的真实选票模拟一遍。
+      - card:
+          title: 准确 = 不偏 + 不散
+          body: |
+            想象朝靶心扔飞镖：
+
+            - **偏差（bias）**：飞镖整体偏向一边，平均位置不在靶心；
+            - **方差（variance）**：飞镖散得开，彼此差得远。
+
+            偏差小、方差大：平均在靶心，但每一镖都可能很偏；偏差大、方差小：每镖都挤在一起，却挤在错的地方。样本越大，方差越小；偏差只能靠改进抽样和测量的方法来减。
+      - item:
+          id: dart-match
+          type: match
+          prompt: 把飞镖的样子和它的偏差、方差配起来。
+          pairs:
+            - [紧紧挤在靶心, 偏差小、方差小]
+            - [紧紧挤在靶心左上方, 偏差大、方差小]
+            - [散布全靶，平均在靶心, 偏差小、方差大]
+          explain: 平均位置看偏差，散开的程度看方差。
+      - card:
+          title: 四种偏差
+          body: |
+            | 偏差 | 例子 |
+            |---|---|
+            | 覆盖偏差 | 电话调查接触不到没有电话的人 |
+            | 选择偏差 | 只在商场门口问，或者让人自愿报名 |
+            | 无回答偏差 | 被抽中的人拒访；或接受了访问但跳过某一题 |
+            | 测量偏差 | 空气湿度低时传感器读数系统性偏高；问题措辞带引导 |
+
+            对策：随机抽样减选择偏差，反复追访减无回答偏差，先做小规模试调查改措辞，校准仪器减测量偏差。
+      - item:
+          id: bias-type
+          type: match
+          prompt: 把情况和偏差的种类配起来。
+          pairs:
+            - [网上投票，谁想投谁投, 选择偏差]
+            - [问卷问“您是否同意这项明显有益的政策”, 测量偏差]
+            - ['抽中的 1,000 人里有 400 人没接电话', 无回答偏差]
+            - [只从有固定电话的家庭里抽样, 覆盖偏差]
+          explain: 先问“谁可能被漏掉、谁更可能出现、问法本身是否偏”。
+      - card:
+          title: 模拟 2016 年的宾州民调
+          body: |
+            2016 年宾州实际投票：特朗普 48.18%，克林顿 47.46%，共 6,165,478 票，差距不到 1 个百分点。把所有选票放进罐子，反复模拟 1,500 人的民调：
+
+            | 情况 | 民调判对“特朗普领先”的比例 |
+            |---|---|
+            | 无偏差，1,500 人 | 约 61% |
+            | 偏差 0.5%，1,500 人 | 约 45% |
+            | 无偏差，12,000 人 | 约 79% |
+            | 偏差 0.5%，12,000 人 | 约 37% |
+
+            样本变大后，有偏的民调更稳定地给出错的答案。
+      - item:
+          id: poll-read
+          type: choice
+          prompt: 按上表，民调有 0.5% 的偏差时，把样本从 1,500 人加到 12,000 人，判对的比例怎么变？
+          options:
+            - text: 从 45% 降到 37%，变得更差
+              correct: true
+            - text: 从 45% 升到 79%
+              why: 79% 是无偏差、12,000 人的情况
+          explain: 样本大了，结果更集中，但集中在偏了的地方，判对的机会反而变小。
+      - item:
+          id: unbiased-wrong
+          type: number
+          prompt: 无偏差、1,500 人的民调，约 61% 的次数判对。那么它判错的次数约占百分之几？
+          answer: 39
+          tolerance: 1
+          explain: 100% − 61% = 39%。真实差距只有 0.72 个百分点，即使抽样完全不偏，1,500 人的随机波动也常常盖过这个差距。
+      - card:
+          title: 三种随机的波动
+          body: |
+            能用罐子模型描述、因而能算出有多大的波动有三种：
+
+            - **抽样变异**：随机抽到的是哪些人；
+            - **分组变异**：随机分到实验组还是对照组；
+            - **测量误差**：同一个东西测几次，读数各不相同。
+
+            前提是罐子模型确实符合数据的来历。数据不是随机抽来的，按罐子模型算出的误差范围就不可信。
+      - item:
+          id: variation-kind
+          type: match
+          prompt: 把波动和它的来源配起来。
+          pairs:
+            - [两次独立的民调结果差了 2 个百分点, 抽样变异]
+            - [同一个传感器连读 15 次，读数各不相同, 测量误差]
+            - [随机分组后，两组的平均年龄差了 1 岁, 分组变异]
+          explain: 三种波动都来自一个随机的过程，所以都能用模拟估计它有多大。
+
+  - id: trial-air
+    chapter: 抽样偏差
+    title: 随机试验和测量误差
+    minutes: 14
+    flow:
+      - guess:
+          id: guess-vaccine
+          type: choice
+          prompt: 一项疫苗试验，打疫苗组 117 人感染，对照组 351 人感染，两组人数相同。会不会只是分组时碰巧？
+          options:
+            - text: 几乎不可能是碰巧，差距太大了
+              correct: true
+            - text: 很可能是碰巧
+              why: 下面的模拟会告诉你：如果疫苗无效，这么悬殊的结果 50 万次模拟里一次都没出现
+          explain: 判断“是不是碰巧”，办法是假设疫苗无效，看随机分组能不能分出这样的结果。
+      - card:
+          title: 假设疫苗无效
+          body: |
+            强生新冠疫苗的试验：43,738 人随机分成两组，28 天后共 468 人感染，疫苗组 117 人、对照组 351 人。
+
+            1. **假设疫苗无效**：这 468 人不管打不打疫苗都会感染，其余 43,270 人都不会；
+            2. 那么“117 人分在疫苗组”只是随机分组的结果；
+            3. 用罐子模拟：468 颗红弹珠和 43,270 颗白弹珠，随机摸 21,869 颗当疫苗组，看红弹珠有几颗；
+            4. 模拟 50 万次，没有一次少到 117 颗。
+      - item:
+          id: null-expected
+          type: number
+          prompt: 如果疫苗无效、两组人数相同，468 个感染者平均会有多少个落在疫苗组？
+          answer: 234
+          explain: 随机分成两半，平均一半：468 ÷ 2 = 234。实际只有 117，远少于 234。
+      - item:
+          id: efficacy
+          type: number
+          prompt: 疫苗有效率 = 1 − 疫苗组感染数 ÷ 对照组感染数（两组人数相同时）。117 和 351 算出的有效率约是百分之几？
+          answer: 66.7
+          tolerance: 0.1
+          explain: 117 ÷ 351 = 1/3，1 − 1/3 ≈ 66.7%。
+      - card:
+          title: 不同试验的数不能直接比
+          body: |
+            强生疫苗的有效率约 66%，另两家公司的约 95%。但这不能直接比：强生的试验在 2020 年 10–11 月，分布在 8 个国家、包括变异株流行的南非；另两家主要在美国、2020 年夏天，当时病例少。
+
+            同一个试验里，随机分组让两组的条件大致相同，组间的比较才可信。跨试验比较，先比一比两个试验的范围。
+      - item:
+          id: compare-trials
+          type: choice
+          prompt: 为什么不能直接说“66% 的疫苗不如 95% 的”？
+          options:
+            - text: 两个试验的时间、地点和流行的病毒不同，范围不一样
+              correct: true
+            - text: 66% 和 95% 差得不够多
+              why: 差得多少不是关键；两个数来自条件不同的试验
+          explain: 随机分组只保证同一试验内部两组可比，不保证两个试验可比。
+      - card:
+          title: 一台传感器的读数有多稳
+          body: |
+            一台众包空气质量传感器每两分钟报一个 PM2.5 均值。挑出读数稳定的三个半小时，共 45 个读数，三段的平均约 5.4、6.6、8.6 μg/m³。减去各段平均后，波动的标准差是 0.687。
+
+            标准差除以平均叫**相对误差**：读数在 5–9 之间时约 8%–12%，算是比较准。
+
+            但这只说明它**稳**，不说明它**准**：要知道有没有偏差，得和更精确的仪器比，或在已知浓度的环境里测。
+      - item:
+          id: rel-error
+          type: number
+          prompt: 波动的标准差是 0.687，那一段的平均读数是 6.6。相对误差约是百分之几？（保留整数）
+          answer: 10
+          tolerance: 1
+          explain: 0.687 ÷ 6.6 ≈ 0.104，约 10%。
+      - item:
+          id: stable-not-accurate
+          type: choice
+          prompt: 一台传感器反复读数非常接近，标准差很小。能说明它测得准吗？
+          options:
+            - text: 不能，它可能每次都偏高同样多
+              correct: true
+            - text: 能，波动小就是准
+              why: 波动小是方差小；读数整体偏高是偏差，两回事
+          explain: 稳定说的是方差，准确还要求没有偏差。湿度低时这类传感器正是会整体偏高。
+
+  # ---------------------------------------------------------------- 数据泄漏
+  - id: train-test
+    chapter: 数据泄漏
+    title: 训练集和测试集
+    minutes: 14
+    flow:
+      - guess:
+          id: guess-train-score
+          type: choice
+          prompt: 一个模型在它学过的那批数据上答对了 100%。你猜它在新数据上也能答对 100% 吗？
+          options:
+            - text: 不一定，它可能只是把学过的答案记住了
+              correct: true
+            - text: 能，学过的数据上全对说明模型很好
+              why: 用考过的原题打分，看不出它会不会做新题
+          explain: 评估模型要用它没见过的数据。
+      - card:
+          title: 用学过的数据打分是自欺
+          body: |
+            鸢尾花数据有 150 朵花。“最近邻”模型的做法是：找出最像的那朵学过的花，照抄它的种类。
+
+            ```python
+            model = KNeighborsClassifier(n_neighbors=1).fit(X, y)
+            accuracy_score(y, model.predict(X))    # 1.0
+            ```
+
+            每朵花最像的就是它自己，所以 100% 正确。把一半花留出来不给它学，再用这一半打分，准确率是 0.907。
+      - item:
+          id: holdout-acc
+          type: number
+          prompt: 用 75 朵花训练 1 近邻模型，在另外 75 朵上答对 68 朵。准确率是多少？（保留三位小数）
+          answer: 0.907
+          tolerance: 0.001
+          explain: 68 ÷ 75 ≈ 0.907。比在训练数据上的 1.0 低，这个才是它对新花的真实水平。
+      - card:
+          title: 先分开，测试集最后才用
+          body: |
+            ```python
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+            ```
+
+            - **训练集（training set）**：用来拟合模型、挑选模型；
+            - **测试集（test set）**：通常留 10%–25%，只在最后用一次，报告模型在新数据上的表现。
+
+            选好模型之前不要看测试集的分数。反复“看测试分数—改模型”，测试集就变成了训练的一部分，分数会偏乐观。
+      - item:
+          id: split-size
+          type: number
+          prompt: 99 行数据，留 22 行做测试集。训练集有几行？
+          answer: 77
+          explain: 99 − 22 = 77。测试集占 22 ÷ 99 ≈ 22%，在 10%–25% 之间。
+      - card:
+          title: 测试集也要做同样的变换
+          body: |
+            模型拟合前对数据做的处理叫**预处理（preprocessing）**，比如**标准化（standardization）**：每列减去平均、除以标准差。
+
+            ```python
+            scaler = StandardScaler()
+            X_train_s = scaler.fit_transform(X_train)   # 用训练集算平均和标准差，并变换
+            model = LinearRegression().fit(X_train_s, y_train)
+            model.predict(X_test)                        # 错：测试集没变换
+            model.predict(scaler.transform(X_test))      # 对：用同一套平均和标准差变换
+            ```
+
+            scikit-learn 的例子里，错的写法均方误差是 62.80，对的是 0.90。
+      - item:
+          id: fit-or-transform
+          type: choice
+          prompt: 测试集该用 `scaler.fit_transform(X_test)` 还是 `scaler.transform(X_test)`？
+          options:
+            - text: transform：用训练集算好的平均和标准差去变换测试集
+              correct: true
+            - text: fit_transform：测试集自己算平均和标准差
+              why: 那样测试集和训练集用的尺子不同，而且等于偷看了测试集
+          explain: fit 只用训练集；transform 训练集和测试集都要做。
+      - item:
+          id: mse-ratio
+          type: number
+          prompt: 忘了变换测试集，误差 62.80；正确变换后 0.90。前者大约是后者的多少倍？（保留整数）
+          answer: 70
+          tolerance: 1
+          explain: 62.80 ÷ 0.90 ≈ 69.8，约 70 倍。模型在标准化后的尺子上学，却拿原始尺子上的数来预测。
+
+  - id: leakage
+    chapter: 数据泄漏
+    title: 数据泄漏：偷看了答案
+    minutes: 14
+    flow:
+      - guess:
+          id: guess-leak
+          type: choice
+          prompt: 你预测“明天的销量”，模型用了一个特征“包括明天在内的 7 天平均销量”。分数非常高。可信吗？
+          options:
+            - text: 不可信，预测的时候还不知道明天的销量
+              correct: true
+            - text: 可信，分数高说明特征选得好
+              why: 这个特征里含着要预测的答案，真正预测时根本拿不到
+          explain: 这就是数据泄漏：建模时用了预测时拿不到的信息。
+      - card:
+          title: 什么是数据泄漏
+          body: |
+            建模型时用到了**真正预测的那一刻拿不到的信息**，叫**数据泄漏（data leakage）**。
+
+            它不会报错，只会让评估分数好看得可疑；模型上线后，在真正的新数据上表现差得多。
+
+            判断一个特征能不能用，就问一句：在做预测的那一刻，这个值已经知道了吗？
+      - item:
+          id: leak-or-not
+          type: choice
+          prompt: 预测“病人会不会在 30 天内再次住院”。下面哪个特征会造成泄漏？
+          options:
+            - text: 病人这 30 天里的复诊次数
+              correct: true
+            - text: 病人出院时的年龄
+              why: 出院那一刻就知道了，可以用
+            - text: 病人过去一年的住院次数
+              why: 出院前就有记录，可以用
+          explain: 预测是在出院时做的，那时还不知道接下来 30 天发生了什么。
+      - card:
+          title: 三种常见的泄漏
+          body: |
+            | 泄漏 | 修正 |
+            |---|---|
+            | 用了未来的信息（含当天及以后的滚动平均） | 只用预测时刻之前的数据；按时间顺序划分训练和测试 |
+            | 先在全部数据上标准化或挑特征，再划分 | 先划分；预处理只在训练集上 fit |
+            | 同一用户的记录同时出现在训练集和测试集 | 按用户分组划分（GroupKFold） |
+
+            时间数据不能随机打乱划分：那等于用未来的数据训练、去预测过去。
+      - item:
+          id: leak-fix
+          type: match
+          prompt: 把泄漏和修正配起来。
+          pairs:
+            - [先对全部数据做标准化，再划分训练集和测试集, 先划分，标准化只在训练集上 fit]
+            - [同一个病人的多次检查分到了训练集和测试集两边, 按病人分组划分]
+            - [用随机打乱的方式划分每天的销量数据, 按时间先后划分]
+          explain: 每种修正都是让测试集真正“没见过”：没见过它的统计量，没见过同一个人，没见过它之后的日子。
+      - card:
+          title: 三条规矩
+          body: |
+            scikit-learn 的建议：
+
+            1. **先划分**训练集和测试集，再做任何预处理；
+            2. **fit 和 fit_transform 只碰训练集**；transform 训练集和测试集都要做；
+            3. 用**流水线**把预处理和模型绑在一起，它会自动在正确的那部分数据上 fit。
+      - item:
+          id: rules-order
+          type: order
+          prompt: 把不泄漏的做法按顺序排好。
+          steps:
+            - 划分训练集和测试集
+            - 在训练集上 fit 预处理（如标准化）
+            - 用变换后的训练集拟合模型
+            - 用同一个预处理 transform 测试集，再评估
+          explain: 测试集一直被锁着，到最后一步才第一次被碰到，而且只做 transform。
+      - item:
+          id: same-user
+          type: choice
+          prompt: 每个用户有几十条浏览记录，你按记录随机划分训练集和测试集，分数很高。问题在哪？
+          options:
+            - text: 同一用户的记录两边都有，模型记住了用户而不是学到规律
+              correct: true
+            - text: 没有问题，随机划分就不会泄漏
+              why: 随机划分记录，同一个用户会被拆到两边
+          explain: 要预测的是新用户的行为，就要让测试集里的用户在训练集里一个都没出现过。
+
+  - id: pipeline
+    chapter: 数据泄漏
+    title: 用流水线防泄漏
+    minutes: 15
+    flow:
+      - guess:
+          id: guess-random-label
+          type: choice
+          prompt: 标签是抛硬币随机定的，和特征毫无关系。一个诚实的评估，准确率应该在多少附近？
+          options:
+            - text: 0.5 左右，就是瞎猜的水平
+              correct: true
+            - text: 0.9 以上
+              why: 标签和特征无关，任何模型都只能瞎猜
+          explain: 下面的例子里，泄漏让这个“只能瞎猜”的模型考出了 0.76。
+      - card:
+          title: 挑特征时偷看了测试集
+          body: |
+            scikit-learn 文档的例子：200 个样本、10,000 个随机特征，标签随机。
+
+            ```python
+            # 错：先在全部数据上挑出 25 个和标签最相关的特征，再划分
+            X_sel = SelectKBest(k=25).fit_transform(X, y)
+            X_train, X_test, y_train, y_test = train_test_split(X_sel, y, random_state=42)
+            # 准确率 0.76
+            ```
+
+            挑特征时用到了测试集的标签：一万个随机特征里，总有 25 个碰巧和测试集的标签对得上。先划分、只在训练集上挑，准确率是 0.5。
+      - item:
+          id: leak-gap
+          type: number
+          prompt: 泄漏版准确率 0.76，正确版 0.5。泄漏让准确率虚高了多少个百分点？
+          answer: 26
+          tolerance: 0.5
+          explain: 0.76 − 0.5 = 0.26，即 26 个百分点，全是假的。
+      - card:
+          title: 流水线
+          body: |
+            **流水线（pipeline）** 把几步串成一个模型：
+
+            ```python
+            from sklearn.pipeline import make_pipeline
+            pipe = make_pipeline(SelectKBest(k=25), HistGradientBoostingClassifier(random_state=1))
+            pipe.fit(X_train, y_train)    # 只在训练集上挑特征、拟合
+            pipe.predict(X_test)          # 测试集自动经过同样的挑选
+            cross_val_score(pipe, X, y)   # 每一折里重新挑特征
+            ```
+
+            用流水线做交叉验证，平均准确率是 0.43 ± 0.05，回到瞎猜的水平。
+      - item:
+          id: pipe-why
+          type: choice
+          prompt: 交叉验证时，为什么要把预处理放进流水线，而不是先对全部数据预处理好？
+          options:
+            - text: 流水线在每一折里只用这一折的训练部分 fit 预处理，不会偷看这一折的验证部分
+              correct: true
+            - text: 流水线算得更快
+              why: 好处是不泄漏，不是速度
+          explain: 先对全部数据预处理，每一折的验证部分都已经参与了 fit，分数就偏乐观。
+      - card:
+          title: 把类别变成数
+          body: |
+            模型只吃数。“社区”这种类别列不能编成 1、2、3：模型会以为社区 3 比社区 1 “大”。要用**独热编码（one-hot encoding）**，每个类别一列，是它就填 1：
+
+            | 社区=Fremont | 社区=Queen Anne | 社区=Wallingford |
+            |---|---|---|
+            | 0 | 1 | 0 |
+            | 1 | 0 | 0 |
+
+            类别很多时列会暴增，用稀疏的存法，只记录非 0 的格子。
+      - item:
+          id: onehot-cols
+          type: number
+          prompt: 一列“城市”有 5 种不同的值。做独热编码后，这一列变成几列？
+          answer: 5
+          explain: 每个城市一列，共 5 列；每行恰好有一个 1。
+      - card:
+          title: 补缺失、造新特征，都放进流水线
+          body: |
+            ```python
+            model = make_pipeline(
+                SimpleImputer(strategy="mean"),   # 用训练集每列的平均补缺失
+                PolynomialFeatures(degree=2),     # 造出平方、乘积等新特征
+                LinearRegression(),
+            )
+            model.fit(X_train, y_train)
+            ```
+
+            补缺失用的平均数，也必须只从训练集算：这正是“几乎所有预处理都可能泄漏”的意思。
+      - item:
+          id: impute-mean
+          type: number
+          prompt: 训练集里某一列是 （空）、3、3、4、8。SimpleImputer(strategy="mean") 会用什么数补那个空？
+          answer: 4.5
+          explain: 只平均有值的四个：(3 + 3 + 4 + 8) ÷ 4 = 4.5。
+  # ---------------------------------------------------------------- 评估指标
+  - id: confusion
+    chapter: 评估指标
+    title: 准确率和混淆矩阵
+    minutes: 14
+    flow:
+      - guess:
+          id: guess-99
+          type: choice
+          prompt: 1,000 个病人里只有 10 个真的有病。一个“模型”永远回答“没病”。它的准确率是多少？
+          options:
+            - text: 99%
+              correct: true
+            - text: 1%
+              why: 它对 990 个没病的人都答对了
+            - text: 50%
+              why: 两类人数相差很大，不是一半一半
+          explain: 99% 的准确率，却一个病人都没找出来。只看准确率会被骗。
+      - card:
+          title: 先找一个基线
+          body: |
+            分类模型预测类别。最简单的“模型”永远猜最常见的那一类，它的成绩就是**基线（baseline）**。
+
+            一份风倒木数据：659 棵黑云杉，65% 风暴后还站着，35% 倒了。永远猜“站着”，准确率就有 0.65。任何模型都得先比过这个数才算有用。
+
+            **准确率（accuracy）** = 猜对的个数 ÷ 总数。`accuracy_score(y_true, y_pred)`；加 `normalize=False` 返回猜对的个数。
+      - item:
+          id: baseline
+          type: number
+          prompt: 一批邮件里 90% 是正常邮件、10% 是垃圾邮件。永远猜“正常”的基线准确率是多少？
+          answer: 0.9
+          tolerance: 0.001
+          explain: 正常邮件全猜对，占 90%。一个垃圾邮件过滤器准确率 0.91，只比什么都不做好一点点。
+      - card:
+          title: 混淆矩阵
+          body: |
+            把“真实”和“预测”的四种组合各数一数，排成**混淆矩阵（confusion matrix）**。scikit-learn 的约定：**行是真实，列是预测**：
+
+            | | 预测 0 | 预测 1 |
+            |---|---|---|
+            | 真实 0 | 真负 TN | 假正 FP |
+            | 真实 1 | 假负 FN | 真正 TP |
+
+            “正 / 负”说的是预测，“真 / 假”说的是预测对不对。有的书行列是反过来的，读之前先确认。
+      - item:
+          id: cm-count
+          type: text
+          prompt: 'y_true = [0, 0, 0, 1, 1, 1, 1, 1]，y_pred = [0, 1, 0, 1, 0, 1, 0, 1]。`tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()` 分别是多少？（写成 2, 1, 2, 3 这样）'
+          answers: ["2, 1, 2, 3", "2,1,2,3"]
+          explain: 真实 0 有 3 个：预测 0 的 2 个（TN）、预测 1 的 1 个（FP）。真实 1 有 5 个：预测 0 的 2 个（FN）、预测 1 的 3 个（TP）。
+      - item:
+          id: cm-acc
+          type: number
+          prompt: 风倒木模型的混淆矩阵是 [[377, 49], [104, 129]]（行是真实：站着、倒下）。准确率是多少？（保留三位小数）
+          answer: 0.768
+          tolerance: 0.001
+          explain: 对角线是猜对的：(377 + 129) ÷ 659 ≈ 0.768，比基线 0.65 好。
+      - card:
+          title: 从概率到类别
+          body: |
+            多数分类模型先给出“是 1 的概率”，再按**阈值（threshold）**判：概率大于阈值就判 1。scikit-learn 的 `predict` 默认用 0.5。
+
+            ```python
+            p = model.predict_proba(X)[:, 1]     # 每行是 1 的概率
+            pred = (p > 0.3).astype(int)         # 换成阈值 0.3
+            ```
+
+            阈值不必是 0.5：准确率最高的阈值往往不在 0.5，应当用交叉验证来选。
+      - item:
+          id: thresh-pred
+          type: number
+          prompt: 四个样本是 1 的概率是 0.2、0.45、0.6、0.9。阈值取 0.4，有几个被判为 1？
+          answer: 3
+          explain: 大于 0.4 的是 0.45、0.6、0.9，共 3 个。阈值取 0.5 时只有 2 个。
+      - item:
+          id: imbalanced
+          type: choice
+          prompt: 正类只占 1%。为什么不能只看准确率？
+          options:
+            - text: 全猜负类就有 99% 的准确率，却一个正例都找不出来
+              correct: true
+            - text: 准确率算不出来
+              why: 能算，问题是它几乎只反映多数类
+          explain: 类别不平衡时，要看下一课的精确率、召回率，或者看混淆矩阵本身。
+
+  - id: precision-recall
+    chapter: 评估指标
+    title: 精确率、召回率和 F1
+    minutes: 14
+    flow:
+      - guess:
+          id: guess-screen
+          type: choice
+          prompt: 癌症初筛。漏掉一个病人，和把一个健康人叫回来复查，哪个代价更大？
+          options:
+            - text: 漏掉病人更严重
+              correct: true
+            - text: 叫回健康人更严重
+              why: 复查只是多花时间和钱；漏诊可能耽误治疗
+          explain: 哪种错误代价大，决定了该盯哪个指标。
+      - card:
+          title: 两个角度看“判为正”
+          body: |
+            - **精确率（precision）** = TP ÷ (TP + FP)：判为正的里面，有多少真是正的。“别冤枉好人”。
+            - **召回率（recall）** = TP ÷ (TP + FN)：真正的正例里，找出了多少。“别放过坏人”。
+
+            y_true = [0, 1, 0, 1]，y_pred = [0, 1, 0, 0]：判为正的只有 1 个，它是对的，精确率 1.0；真正的正例有 2 个，只找到 1 个，召回率 0.5。
+      - item:
+          id: precision-calc
+          type: number
+          prompt: 一个分类器 TP = 40、FP = 60、FN = 10、TN = 890。精确率是多少？
+          answer: 0.4
+          tolerance: 0.001
+          explain: 40 ÷ (40 + 60) = 0.4：判为正的 100 个里只有 40 个真是正的。
+      - item:
+          id: recall-calc
+          type: number
+          prompt: 同一个分类器（TP = 40、FP = 60、FN = 10、TN = 890），召回率是多少？
+          answer: 0.8
+          tolerance: 0.001
+          explain: 40 ÷ (40 + 10) = 0.8：50 个真正的正例找出了 40 个。
+      - card:
+          title: F1：两个一起看
+          body: 精确率和召回率常常此消彼长。想用一个数同时看两者，用 F1。
+          reveal:
+            - title: 第 1 步：写出精确率和召回率
+              body: 上一题的分类器：精确率 P = 0.4，召回率 R = 0.8。
+            - title: 第 2 步：用调和平均合成一个数
+              body: '**F1** = 2PR ÷ (P + R) = 2 × 0.4 × 0.8 ÷ 1.2 ≈ 0.533。'
+            - title: 第 3 步：和普通平均比一比
+              body: 普通平均是 0.6。调和平均更靠近小的那个：两个指标只要有一个差，F1 就高不起来。
+            - title: 第 4 步：和准确率比一比
+              body: 准确率 = (40 + 890) ÷ 1000 = 0.93，看起来很好，可是判为正的大半是错的。正类很少时，看精确率、召回率和 F1。
+      - item:
+          id: f1-calc
+          type: number
+          prompt: 精确率 1.0、召回率 0.5 时，F1 是多少？（保留三位小数）
+          answer: 0.667
+          tolerance: 0.001
+          explain: 2 × 1.0 × 0.5 ÷ 1.5 ≈ 0.667。普通平均会是 0.75。
+      - card:
+          title: 指标跟着决策走
+          body: |
+            选指标前先想：模型的输出要拿来做什么决定？
+
+            - 漏掉的代价大（初筛、欺诈预警）：盯召回率；
+            - 误报的代价大（垃圾邮件误删了重要邮件）：盯精确率；
+            - 预测的是“平均要多少”：用均方误差；是“一般要多少”（中位数）：用平均绝对误差；网络公司承诺“99% 的日子断网不超过 1 分钟”：关心的是 99% 分位数，要用专门配套的指标。
+
+            训练时用的损失和评估时用的指标，最好是同一个。
+      - item:
+          id: metric-match
+          type: match
+          prompt: 把场景和最该盯的指标配起来。
+          pairs:
+            - [机场安检找违禁品，宁可多查也别漏, 召回率]
+            - [自动把邮件移进垃圾箱，误删重要邮件很糟, 精确率]
+            - [两类人数差不多、两种错误代价相近, 准确率]
+          explain: 先问哪种错误更贵，再选指标。
+
+  - id: roc
+    chapter: 评估指标
+    title: 阈值、ROC 曲线和 AUC
+    minutes: 14
+    flow:
+      - guess:
+          id: guess-lower
+          type: choice
+          prompt: 把判为正的阈值从 0.5 降到 0.3，召回率会怎么变？
+          options:
+            - text: 升高或不变：判为正的更多了，漏掉的更少
+              correct: true
+            - text: 降低
+              why: 阈值越低，越多样本被判为正，真正例只会多找到、不会少找到
+          explain: 代价是精确率往往下降：多判的那些里混进了更多负例。
+      - card:
+          title: 阈值是一种取舍
+          body: |
+            风倒木模型想找出至少 75% 的倒木（召回率 ≥ 0.75），把阈值降到 0.33：
+
+            | 阈值 | 精确率 | 召回率 |
+            |---|---|---|
+            | 0.33 | 0.59 | 0.81 |
+
+            这时还站着的树有 70% 被判对，叫**特异度（specificity）** = TN ÷ (TN + FP)。阈值低，召回率高、精确率低；阈值高，反过来。
+      - item:
+          id: fpr-calc
+          type: number
+          prompt: 特异度是 0.70。假正率 FPR = FP ÷ (FP + TN) = 1 − 特异度，是多少？
+          answer: 0.3
+          tolerance: 0.001
+          explain: 1 − 0.70 = 0.30：站着的树里有 30% 被误判为倒下。
+      - card:
+          title: ROC 曲线和 AUC
+          body: |
+            把阈值从高到低扫一遍，每个阈值得到一对数：横轴是**假正率（FPR）**，纵轴是**真正率（TPR）**，也就是召回率。连起来就是 **ROC 曲线**。
+
+            ```python
+            fpr, tpr, thresholds = roc_curve(y, scores)
+            roc_auc_score(y, scores)
+            ```
+
+            曲线下的面积叫 **AUC**：1 是完美，0.5 是瞎猜。它等于“随便挑一个正例和一个负例，正例得分更高”的概率。
+      - item:
+          id: auc-pairs
+          type: number
+          prompt: 两个负例得分 0.1、0.4，两个正例得分 0.35、0.8。正例得分高于负例的组合占几分之几？（这就是 AUC）
+          answer: 0.75
+          tolerance: 0.001
+          explain: 4 对里：0.35 > 0.1 对，0.35 < 0.4 错，0.8 两对都对，3/4 = 0.75。roc_auc_score 也得 0.75。
+      - item:
+          id: proba-col
+          type: choice
+          prompt: 算 ROC-AUC 时该用 `predict_proba(X)[:, 0]` 还是 `[:, 1]`？
+          options:
+            - text: '[:, 1]：标签 1（正类）的概率'
+              correct: true
+            - text: '[:, 0]：第一列'
+              why: 第 0 列是负类的概率，用它算出的 AUC 是 1 − 真实的 AUC
+          explain: 二分类时要给“较大的那个标签”的得分。
+      - item:
+          id: auc-random
+          type: choice
+          prompt: 一个模型的 AUC 是 0.5。说明什么？
+          options:
+            - text: 它分不出正例和负例，和瞎猜一样
+              correct: true
+            - text: 它一半预测是对的，还不错
+              why: AUC 0.5 是随机打分也能得到的水平
+          explain: AUC 越接近 1，模型越能把正例排在负例前面。
+
+  - id: regression-metrics
+    chapter: 评估指标
+    title: 回归的指标：MAE、MSE 和 R²
+    minutes: 14
+    flow:
+      - guess:
+          id: guess-outlier-metric
+          type: choice
+          prompt: 预测房价时，有一套房子差了 100 万，其余都只差几万。哪种指标会被这一套拉得最高？
+          options:
+            - text: 误差平方的平均
+              correct: true
+            - text: 误差绝对值的平均
+              why: 绝对值只是 100 万，平方后是一万亿，平方的平均被拉得更狠
+          explain: 平方让大误差的分量变得非常重。
+      - card:
+          title: MAE 和 MSE
+          body: |
+            真实值 3、−0.5、2、7，预测值 2.5、0.0、2、8。误差是 0.5、−0.5、0、−1。
+
+            - **平均绝对误差（MAE）**：误差绝对值的平均，(0.5 + 0.5 + 0 + 1) ÷ 4 = 0.5，和目标同一个单位；
+            - **均方误差（MSE）**：误差平方的平均，(0.25 + 0.25 + 0 + 1) ÷ 4 = 0.375，单位是目标的平方；
+            - **RMSE**：MSE 开平方，0.612，回到原来的单位。
+      - item:
+          id: mae-calc
+          type: number
+          prompt: 真实值 10、20、30，预测值 12、18、33。MAE 是多少？（保留两位小数）
+          answer: 2.33
+          tolerance: 0.01
+          explain: 误差绝对值 2、2、3，平均 7 ÷ 3 ≈ 2.33。
+      - item:
+          id: mse-calc
+          type: number
+          prompt: 同样的真实值 10、20、30，预测值 12、18、33。MSE 是多少？（保留两位小数）
+          answer: 5.67
+          tolerance: 0.01
+          explain: 误差平方 4、4、9，平均 17 ÷ 3 ≈ 5.67。
+      - card:
+          title: R²
+          body: |
+            **决定系数 R²** = 1 − 模型的误差平方和 ÷ “永远猜平均数”的误差平方和。
+
+            - 永远猜平均数：R² = 0，这是参照点；
+            - 完全猜对：R² = 1；
+            - 比猜平均数还差：R² 是负数。
+
+            上面的例子 R² = 0.949。R² 取决于数据本身有多分散，不同数据集上的 R² 不宜直接比。
+      - item:
+          id: r2-const
+          type: choice
+          prompt: 一个回归模型对每个样本都输出训练集 y 的平均数。它在这批数据上的 R² 是多少？
+          options:
+            - text: '0'
+              correct: true
+            - text: '1'
+              why: 1 表示完全猜对；猜平均数正好是 R² 的参照点 0
+            - text: 负数
+              why: 只有比猜平均数更差才是负数
+          explain: R² 衡量的是“比猜平均数好多少”。
+      - item:
+          id: metric-robust
+          type: choice
+          prompt: 数据里有几个很大的离群值，你不想让它们主导评估。MAE 和 MSE 选哪个？
+          options:
+            - text: MAE，它不平方，大误差的分量没那么重
+              correct: true
+            - text: MSE
+              why: 平方会让离群值的误差变得非常大，主导整个平均
+          explain: 加一个误差 10 的样本，上例的 MAE 从 0.5 变成 2.4，MSE 从 0.375 变成 20.3。
+
+  # ---------------------------------------------------------------- 交叉验证
+  - id: overfitting
+    chapter: 交叉验证
+    title: 过拟合
+    minutes: 13
+    flow:
+      - guess:
+          id: guess-wiggle
+          type: choice
+          prompt: 用一条很弯的曲线穿过训练数据的每一个点，训练误差是 0。它对新数据的预测会怎样？
+          options:
+            - text: 多半很差，它把偶然的波动也当成了规律
+              correct: true
+            - text: 最好，训练误差都是 0 了
+              why: 训练误差 0 只说明它记住了这批点，包括其中的噪声
+          explain: 这叫过拟合。
+      - card:
+          title: 加特征，训练误差总会变小
+          body: |
+            一户明尼苏达人家 99 个月的数据：月平均气温和用气量。用多项式拟合：1 次、2 次……12 次。
+
+            每多加一项（x²、x³……），训练数据上的均方误差都会变小或不变，因为多一项就多一份弯曲的自由。所以**训练误差小不等于模型好**。
+
+            模型跟着训练数据里的噪声走，而不是跟着真实的规律走，叫**过拟合（overfitting）**。
+      - item:
+          id: train-mse-trend
+          type: choice
+          prompt: 多项式从 3 次加到 12 次，训练集上的均方误差会怎样？
+          options:
+            - text: 变小或不变
+              correct: true
+            - text: 一定变大
+              why: 更高次的多项式可以把高次项的系数设为 0，退回 3 次，所以训练误差不会变大
+          explain: 正因为训练误差只降不升，它不能用来挑模型。
+      - card:
+          title: 验证曲线
+          body: |
+            把训练分数和验证分数（模型没学过的数据）画在一起，横轴是模型的复杂度：
+
+            - 太简单：两个分数都低，叫**欠拟合（underfitting）**；
+            - 太复杂：训练分数很高，验证分数下降，叫过拟合；
+            - 验证分数最高的那个复杂度最合适。
+
+            数据越多，复杂的模型越不容易过拟合。拿不准时，在差不多的几个模型里选最简单的。
+      - item:
+          id: curve-read
+          type: choice
+          prompt: 复杂度从 1 到 10，训练分数一直升，验证分数在 4 达到最高、之后下降。该选哪个复杂度？
+          options:
+            - text: '4'
+              correct: true
+            - text: '10'
+              why: 训练分数最高，但验证分数已经下降，说明在过拟合
+            - text: '1'
+              why: 两个分数都低，是欠拟合
+          explain: 挑模型看验证分数，不看训练分数。
+      - item:
+          id: fit-match
+          type: match
+          prompt: 把现象和诊断配起来。
+          pairs:
+            - [训练分数 0.99，验证分数 0.60, 过拟合]
+            - [训练分数 0.62，验证分数 0.60, 欠拟合]
+            - [训练分数 0.90，验证分数 0.88, 差不多合适]
+          explain: 两者差得远是过拟合；两者都低是欠拟合。
+
+  - id: cross-validation
+    chapter: 交叉验证
+    title: k 折交叉验证
+    minutes: 14
+    flow:
+      - guess:
+          id: guess-one-split
+          type: choice
+          prompt: 只划分一次训练集和验证集，验证分数会不会因为“这一次刚好分到哪些行”而偏高或偏低？
+          options:
+            - text: 会，换一种分法分数就可能不同
+              correct: true
+            - text: 不会，分数是固定的
+              why: 换一个 random_state，分到验证集的行不同，分数就变
+          explain: 把数据轮流当验证集，再把几次的分数平均，就稳得多。
+      - card:
+          title: k 折
+          body: |
+            **交叉验证（cross-validation）**：
+
+            1. 把**训练集**分成 k 份（叫折）；
+            2. 每次留一折当验证集，用其余 k − 1 折拟合；
+            3. 轮流 k 次，每折都当过一次验证集；
+            4. 把 k 个验证分数平均，用平均分挑模型。
+
+            挑好以后，用全部训练集重新拟合，最后在测试集上评估一次。
+      - item:
+          id: cv-folds
+          type: number
+          prompt: 训练集有 75 行，做 3 折交叉验证。每次拟合用几行？
+          answer: 50
+          explain: 每折 25 行；留一折验证，用另外两折 50 行拟合。
+      - card:
+          title: 用 scikit-learn 做
+          body: |
+            ```python
+            scores = cross_val_score(KNeighborsClassifier(n_neighbors=1), X, y, cv=5)
+            # [0.967, 0.967, 0.933, 0.933, 1.0]
+            scores.mean()     # 0.96
+            ```
+
+            鸢尾花 150 朵，5 折，每折 30 朵。五次分数从 0.933 到 1.0，差别就是“分到哪些行”带来的波动。
+
+            极端情况：每次只留一个样本当验证，叫**留一法（leave-one-out）**，150 朵花要拟合 150 次，平均也是 0.96。
+      - item:
+          id: cv-mean
+          type: number
+          prompt: 5 折交叉验证的分数是 0.80、0.85、0.90、0.75、0.85。平均分是多少？
+          answer: 0.83
+          tolerance: 0.001
+          explain: (0.80 + 0.85 + 0.90 + 0.75 + 0.85) ÷ 5 = 4.15 ÷ 5 = 0.83。
+      - item:
+          id: cv-fits
+          type: number
+          prompt: 有 4 个候选的超参数，做 5 折交叉验证挑最好的。一共要拟合多少次模型（不算最后用全部训练集重拟合那次）？
+          answer: 20
+          explain: 每个候选在 5 折上各拟合一次：4 × 5 = 20 次。
+      - card:
+          title: 挑超参数
+          body: |
+            ```python
+            pipe = make_pipeline(PolynomialFeatures(), LinearRegression())
+            grid = GridSearchCV(pipe, {"polynomialfeatures__degree": range(1, 13)}, cv=5)
+            grid.fit(X_train, y_train)
+            grid.best_params_
+            ```
+
+            `GridSearchCV` 对每个候选做交叉验证，挑出平均分最好的，再用全部训练集重新拟合。把预处理放进流水线，每一折里才会只用这一折的训练部分。
+      - item:
+          id: cv-test-when
+          type: choice
+          prompt: 用交叉验证挑好了超参数。测试集该在什么时候用？
+          options:
+            - text: 最后用一次，报告选定模型的表现
+              correct: true
+            - text: 每挑一次超参数都看一下测试分数
+              why: 那样测试集就参与了挑选，最后报告的分数会偏乐观
+          explain: 交叉验证只在训练集里进行；测试集留到最后。
+
+  - id: bias-variance
+    chapter: 交叉验证
+    title: 模型的偏差和方差
+    minutes: 13
+    flow:
+      - guess:
+          id: guess-straight
+          type: choice
+          prompt: 真实规律是一条波浪线。用直线去拟合，换 25 批不同的数据各拟合一次。你猜 25 条直线会怎样？
+          options:
+            - text: 彼此差不多，但都抓不住波浪
+              correct: true
+            - text: 每条都很准
+              why: 直线怎么摆都弯不起来，抓不住波浪
+          explain: 稳定但系统性地偏：这是偏差大、方差小。
+      - card:
+          title: 信号加噪声
+          body: |
+            把数据想成 y = g(x) + ε：g 是真实的规律（信号），ε 是随机的噪声。我们只能在一类模型里找（比如所有二次多项式），g 不一定在这类模型里。
+
+            一个模拟研究：真实规律 g(x) = sin x + 0.3x，每次抽 50 个点、加噪声，用二次多项式拟合，重复 25 次。
+
+            - **模型的方差**：25 条拟合曲线彼此差多少；
+            - **模型的偏差**：25 条曲线的平均和真实的 g 差多少。
+      - item:
+          id: bv-match
+          type: match
+          prompt: 把模型和它的典型表现配起来。
+          pairs:
+            - [直线拟合波浪形的规律, 偏差大、方差小]
+            - [20 次多项式拟合 30 个点, 偏差小、方差大]
+            - [复杂度刚好、数据也够, 偏差和方差都不大]
+          explain: 简单的模型稳但偏，复杂的模型灵活但抖。
+      - card:
+          title: 偏差–方差的权衡
+          body: |
+            模型在新数据上的误差，来自三部分：偏差、方差、噪声。噪声谁也消不掉；模型越复杂，偏差越小、方差越大。
+
+            挑复杂度，就是在两者之间找总误差最小的地方。交叉验证的平均分，就是在估计这个总误差。数据越多，方差越小，可以用更复杂的模型。
+      - item:
+          id: more-data
+          type: choice
+          prompt: 一个复杂模型过拟合了（训练分数高、验证分数低）。下面哪个办法通常有帮助？
+          options:
+            - text: 收集更多的训练数据
+              correct: true
+            - text: 换一个更复杂的模型
+              why: 更复杂会让方差更大，过拟合更严重
+          explain: 数据多了，模型被偶然波动带偏的空间变小，方差下降。也可以换简单一点的模型。
+      - item:
+          id: noise-floor
+          type: choice
+          prompt: 用气量受很多记不下来的因素影响（哪天开了窗、来了客人）。这部分误差能靠换更好的模型消掉吗？
+          options:
+            - text: 不能，这是噪声，任何模型都消不掉
+              correct: true
+            - text: 能，模型足够复杂就行
+              why: 复杂的模型只会去追这些噪声，在新数据上更差
+          explain: 误差里噪声那一部分是下限。
+
+  - id: randomness
+    chapter: 交叉验证
+    title: 控制随机性
+    minutes: 13
+    flow:
+      - guess:
+          id: guess-seed
+          type: choice
+          prompt: 同一段建模代码，今天跑出 0.84，明天跑出 0.81。代码一个字没改。最可能的原因是？
+          options:
+            - text: 划分数据或模型内部用了随机数，而且没有固定
+              correct: true
+            - text: 电脑坏了
+              why: 结果不同、但都合理，通常是随机性没有固定
+          explain: 随机划分、随机森林、打乱顺序都会用随机数。
+      - card:
+          title: random_state
+          body: |
+            scikit-learn 里会用随机数的东西都有一个 `random_state` 参数：
+
+            | 写法 | 每次调用 fit 或 split |
+            |---|---|
+            | 整数，如 `random_state=0` | 结果都一样 |
+            | `np.random.RandomState(0)` 这样的随机数生成器 | 接着往下用，结果每次不同 |
+            | `None`（默认） | 每次不同，而且跨次运行也不同 |
+
+            不写 random_state 就等于写了 None。
+      - item:
+          id: state-same
+          type: choice
+          prompt: '`KFold(n_splits=2, shuffle=True, random_state=0)` 调用两次 split，两次分出的折一样吗？'
+          options:
+            - text: 一样
+              correct: true
+            - text: 不一样
+              why: 传整数时每次 split 都从同一个起点开始，所以分法相同
+          explain: 若传的是 RandomState(0)，第一次得到 [1, 2, 4, 8, 9] 当验证折，第二次就变成 [1, 2, 3, 5, 9]。
+      - card:
+          title: 一个脚本，每次都是 0.84
+          body: |
+            ```python
+            rng = np.random.RandomState(0)              # 程序开头定一次
+            X, y = make_classification(random_state=rng)
+            rf = RandomForestClassifier(random_state=rng)
+            X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=rng)
+            rf.fit(X_train, y_train).score(X_test, y_test)   # 0.84
+            ```
+
+            整个脚本只在开头定一个随机数生成器，传给每个用到随机数的地方，每次从头运行都得 0.84。不推荐用 `np.random.seed(0)` 设全局的种子。
+      - item:
+          id: none-default
+          type: choice
+          prompt: 想让脚本每次运行结果都一样，除了在开头定好 rng，还要做什么？
+          options:
+            - text: 检查所有用到随机数的地方都传了 rng 或整数，没有留下 random_state=None
+              correct: true
+            - text: 什么都不用做
+              why: 只要有一处没传，那里就用默认的 None，每次都不同
+          explain: None 是默认值，漏写一处就破坏了可重现性。
+      - card:
+          title: 交叉验证结果稳不稳
+          body: |
+            模型自己的随机性（比如随机森林）也会影响分数。
+
+            ```python
+            cross_val_score(RandomForestClassifier(random_state=123), X, y)
+            # [0.85, 0.95, 0.95, 0.9, 0.9]
+            cross_val_score(RandomForestClassifier(random_state=np.random.RandomState(0)), X, y)
+            # [0.9, 0.95, 0.95, 0.9, 0.9]
+            ```
+
+            给模型传整数，每折都用同一组随机数，碰巧好或碰巧差会在每折重复；传随机数生成器，每折不同，更能看出模型对随机性稳不稳。划分器则传整数最安全。别把随机种子当成超参数去挑。
+      - item:
+          id: cv-mean-rf
+          type: number
+          prompt: 随机森林的 5 折分数是 0.85、0.95、0.95、0.9、0.9。平均分是多少？
+          answer: 0.91
+          tolerance: 0.001
+          explain: (0.85 + 0.95 + 0.95 + 0.9 + 0.9) ÷ 5 = 4.55 ÷ 5 = 0.91。另一种传法得 0.92，差别全来自随机性。
+      - item:
+          id: seed-tune
+          type: choice
+          prompt: 同事试了 100 个随机种子，挑出交叉验证分数最高的那个写进报告。这样做有什么问题？
+          options:
+            - text: 挑出来的是碰巧最好的那一次，报告的分数偏乐观
+              correct: true
+            - text: 没问题，分数越高越好
+              why: 种子不是模型的一部分，换一批新数据，这份运气不会跟着来
+          explain: 报告时应说明用了几个种子、分数的平均和波动。
+  # ---------------------------------------------------------------- 实验记录与结论的不确定性
+  - id: three-distributions
+    chapter: 实验记录与结论的不确定性
+    title: 总体分布、经验分布和抽样分布
+    minutes: 12
+    flow:
+      - guess:
+          id: guess-again
+          type: choice
+          prompt: 你从全校随机抽了 100 人，平均身高 168 厘米。再随机抽 100 人，平均身高还会是 168 吗？
+          options:
+            - text: 多半会差一点，每次抽到的人不同
+              correct: true
+            - text: 一定还是 168
+              why: 换一批人，平均数会有小的波动
+          explain: “样本平均数会怎么波动”正是判断结论有多可靠的关键。
+      - card:
+          title: 三种分布
+          body: |
+            | 分布 | 画的是 |
+            |---|---|
+            | **总体分布** | 全部对象的值（通常看不到） |
+            | **经验分布** | 我们手上这个样本的值 |
+            | **抽样分布** | 从总体反复抽样时，统计量（比如样本平均数）可能取的值和机会 |
+
+            抽样方法能抽出有代表性的样本时，经验分布的形状和总体分布相似。抽样分布告诉我们：样本算出的数离总体的真值大概有多远。
+      - item:
+          id: dist-match
+          type: match
+          prompt: 把直方图和它属于哪种分布配起来。
+          pairs:
+            - [全市所有成年人的身高, 总体分布]
+            - [调查到的 500 个人的身高, 经验分布]
+            - [反复抽 500 人、每次算一个平均身高，这些平均数的直方图, 抽样分布]
+          explain: 前两种画的是一个个人的值，抽样分布画的是一个统计量在许多样本上的值。
+      - card:
+          title: 参数和统计量
+          body: |
+            总体的某个数（全市成年人的平均身高）叫**总体参数**，通常不知道；从样本算出的同一种数叫**统计量**，用来估计它。
+
+            下面三课要回答三个问题：
+
+            1. 统计量离总体参数大概多远？（置信区间）
+            2. 观察到的差别会不会只是碰巧？（假设检验）
+            3. 下一个新对象的值大概落在哪？（预测区间）
+      - item:
+          id: param-or-stat
+          type: choice
+          prompt: 民调里 52% 的受访者支持某项政策。这个 52% 是什么？
+          options:
+            - text: 统计量：从样本算出来，用来估计全体选民的支持率
+              correct: true
+            - text: 总体参数
+              why: 全体选民的真实支持率才是总体参数，我们不知道它
+          explain: 统计量会随样本变；总体参数是一个固定但看不见的数。
+
+  - id: bootstrap
+    chapter: 实验记录与结论的不确定性
+    title: 自助法和置信区间
+    minutes: 15
+    flow:
+      - guess:
+          id: guess-resample
+          type: choice
+          prompt: 手上只有一个样本，没法再去抽。还有办法估计“换一个样本，平均数会差多少”吗？
+          options:
+            - text: 有：把这个样本当成总体，从里面反复有放回地抽
+              correct: true
+            - text: 没有，必须再去收集新样本
+              why: 样本是总体的缩影，可以用它来模仿“再抽一次”
+          explain: 这个办法叫自助法。
+      - card:
+          title: 自助法
+          body: |
+            **自助法（bootstrap）**：
+
+            1. 把手上 n 个样本当成总体；
+            2. 从中**有放回地**抽 n 个，得到一个自助样本，算出统计量；
+            3. 重复几千次，得到统计量的一大堆值，画出直方图。
+
+            这个直方图模仿了抽样分布，它的**宽度**告诉我们统计量有多不稳。必须有放回：不放回抽 n 个，每次都把所有样本原样抽一遍。
+      - item:
+          id: why-replace
+          type: choice
+          prompt: 样本有 100 个，自助法每次抽 100 个。如果不放回，会怎样？
+          options:
+            - text: 每次都正好抽到全部 100 个，所有自助样本都一样
+              correct: true
+            - text: 和有放回一样
+              why: 不放回抽满 100 个，就是原样本本身，看不出任何波动
+          explain: 有放回才会让有的值抽到两次、有的一次没抽到，模仿“换一个样本”。
+      - card:
+          title: 置信区间
+          body: |
+            空气传感器的校准研究：湿度的系数估计为 0.21。自助法重复 10,000 次，这些系数的标准差约 0.027，叫**标准误（standard error）**。
+
+            **置信区间（confidence interval）** 给出估计值的一个范围：
+
+            - 分位数法：取自助法结果的 2.5% 和 97.5% 分位数，得到 95% 区间；
+            - 正态法：估计值 ± 1.96 × 标准误是 95% 区间，± 2.58 × 标准误是 99% 区间。
+
+            区间不包含 0，说明湿度确实有影响。
+      - item:
+          id: ci-upper
+          type: number
+          prompt: 估计值 0.21，标准误 0.027。用正态法，95% 置信区间的上端是多少？（保留三位小数）
+          answer: 0.263
+          tolerance: 0.001
+          explain: 0.21 + 1.96 × 0.027 = 0.21 + 0.053 = 0.263。下端是 0.157。
+      - item:
+          id: ci-meaning
+          type: choice
+          prompt: 一个 95% 置信区间是 [0.157, 0.263]。下面哪种理解对？
+          options:
+            - text: 用同样的方法反复抽样、算区间，大约 95% 的区间会盖住真值
+              correct: true
+            - text: 95% 的数据落在这个范围里
+              why: 置信区间说的是估计值的精度，不是单个数据的范围（那是预测区间）
+          explain: 95% 说的是“这个造区间的方法”有多可靠，而不是某一个区间。
+      - item:
+          id: ci-width
+          type: choice
+          prompt: 其他都不变，把样本量从 100 加到 400。置信区间会怎样？
+          options:
+            - text: 变窄，大约变成原来的一半
+              correct: true
+            - text: 变宽
+              why: 样本越大，统计量越稳，区间越窄
+          explain: 标准误大约和样本量的平方根成反比，√400 ÷ √100 = 2，所以宽度约减半。前提是没有偏差：偏差不会因样本变大而变小。
+
+  - id: hypothesis-test
+    chapter: 实验记录与结论的不确定性
+    title: 假设检验：会不会只是碰巧
+    minutes: 15
+    flow:
+      - guess:
+          id: guess-shuffle
+          type: choice
+          prompt: 发奖的 100 位维基作者，写作量的排名平均比没发奖的高。想知道这是不是碰巧，下面哪个办法说得通？
+          options:
+            - text: 假装奖励没用，把“发没发奖”的标签随机打乱很多次，看打乱后有多常出现这么大的差距
+              correct: true
+            - text: 再算一次平均数
+              why: 再算一次结果一样，回答不了“是不是碰巧”
+          explain: 这就是一种假设检验：先假设没有效果，看观察到的结果在这个假设下有多罕见。
+      - card:
+          title: 先假设没有效果
+          body: |
+            1. **零假设（null hypothesis）**：奖励没有效果，两组的差别只来自随机分组；
+            2. 选一个统计量：发奖组的平均排名（写作量从小到大排名，有很多 0 和极大的值，用排名更稳）；
+            3. 在零假设下随机打乱标签 100,000 次，每次算一个统计量；
+            4. 数一数：有多少次和实际观察到的一样极端，甚至更极端。
+
+            200 人的排名是 1 到 200，平均 100.5；发奖组实际是 113.68。
+      - item:
+          id: avg-rank
+          type: number
+          prompt: 200 个人的排名是 1、2、……、200。平均排名是多少？
+          answer: 100.5
+          tolerance: 0.001
+          explain: (1 + 200) ÷ 2 = 100.5。没有效果时，发奖组的平均排名应在 100.5 附近波动。
+      - card:
+          title: p 值
+          body: |
+            打乱 100,000 次，只有 0.052% 的次数平均排名超过 113.68。这个比例叫 **p 值（p-value）**：在零假设成立时，得到至少这么极端的结果的机会。
+
+            p 值很小，说明要么零假设错了，要么我们碰上了极罕见的运气；通常认为奖励确实有效果。现成的秩和检验 `scipy.stats.ranksums` 给出 p = 0.0013，结论一样。
+
+            p 值**不是**“零假设为真的概率”。
+      - item:
+          id: p-meaning
+          type: choice
+          prompt: 一次检验得到 p = 0.03。下面哪种说法对？
+          options:
+            - text: 如果真的没有效果，得到这么极端或更极端结果的机会是 3%
+              correct: true
+            - text: 没有效果的概率是 3%
+              why: p 值是在“假设没有效果”的前提下算的，不能反过来说成这个前提为真的概率
+            - text: 有效果的概率是 97%
+              why: p 值不是效果为真的概率
+          explain: p 值衡量的是“这份数据让零假设有多尴尬”。
+      - card:
+          title: 试得越多，越容易“碰巧显著”
+          body: |
+            以 0.05 为界，每做一次检验，即使真的没有任何效果，也有 5% 的机会得到“显著”。
+
+            把 20 个毫无关系的因素各检验一次，平均会有 1 个碰巧显著。只报告显著的那个、不提另外 19 个，叫 **p 值操纵（p-hacking）**，是结论不可靠的常见原因。对策：事先写好要检验什么，报告所有做过的检验。
+      - item:
+          id: false-pos
+          type: number
+          prompt: 你检验了 40 个其实都没有效果的因素，以 p < 0.05 为“显著”。平均会有几个碰巧显著？
+          answer: 2
+          explain: 40 × 0.05 = 2 个。看到“40 个里有 2 个显著”，并不能说明有任何真效果。
+      - item:
+          id: vaccine-p
+          type: choice
+          prompt: 疫苗试验中，假设疫苗无效、模拟 50 万次随机分组，没有一次疫苗组感染数少到 117。p 值大约是多少？
+          options:
+            - text: 小于 1/500,000，非常接近 0
+              correct: true
+            - text: '0.5'
+              why: 一次都没出现，说明这么极端的结果在零假设下极其罕见
+          explain: 这样的 p 值让我们相信疫苗确实有效。前提是试验真的随机分了组。
+
+  - id: prediction-interval
+    chapter: 实验记录与结论的不确定性
+    title: 预测区间：下一个会落在哪
+    minutes: 13
+    flow:
+      - guess:
+          id: guess-next-crab
+          type: choice
+          prompt: 452 只螃蟹的平均壳宽是 131.5 毫米。“平均壳宽的范围”和“下一只螃蟹壳宽的范围”，哪个更宽？
+          options:
+            - text: 下一只螃蟹的范围更宽
+              correct: true
+            - text: 平均壳宽的范围更宽
+              why: 平均数很稳；一只螃蟹自己就有大有小
+          explain: 前者是置信区间，后者是预测区间。
+      - card:
+          title: 两种区间
+          body: |
+            - **置信区间**：说的是估计值（如平均壳宽）有多准；
+            - **预测区间（prediction interval）**：说的是一个**未来的新观测**会落在哪。
+
+            螃蟹壳宽：平均 131.53，标准差 11.07，n = 452。
+
+            - 平均数的标准误 = 11.07 ÷ √452 ≈ 0.52，很小；
+            - 下一只螃蟹的不确定性 = 11.07 × √(1 + 1/452) ≈ 11.07，主要来自螃蟹之间本来的差别。
+      - item:
+          id: se-crab
+          type: number
+          prompt: 标准差 11.07、n = 452。平均壳宽的标准误 11.07 ÷ √452 是多少？（保留两位小数）
+          answer: 0.52
+          tolerance: 0.01
+          explain: √452 ≈ 21.26，11.07 ÷ 21.26 ≈ 0.52。平均数的 95% 置信区间只有约 ±1.02 毫米宽。
+      - card:
+          title: 用模型预测时
+          body: |
+            用壳宽预测蜕壳后的增长量。对壳宽 120 毫米的螃蟹：
+
+            | | 下端 | 上端 |
+            |---|---|---|
+            | 平均增长量的 95% 置信区间 | 15.63 | 16.08 |
+            | 这一只增长量的 95% 预测区间 | 12.48 | 19.24 |
+
+            模型的预测值是 15.86。预测区间宽得多：模型很确定“这种螃蟹平均长多少”，但一只螃蟹自己会多长或少长。
+
+            没有模型时，也可以直接用分位数：公交车晚点的 95% 分位数是 13.02 分钟，说明大约 95% 的车晚到不超过 13 分钟。
+      - item:
+          id: ci-or-pi
+          type: match
+          prompt: 把问题和该用的区间配起来。
+          pairs:
+            - [这家店每天的平均客流是多少, 置信区间：平均数的范围]
+            - [明天会来多少位客人, 预测区间：一个新观测的范围]
+            - [下雨天客流少了，会不会只是碰巧, 假设检验：差别是不是碰巧]
+          explain: 问“平均是多少”用置信区间；问“下一个是多少”用预测区间。
+      - item:
+          id: pi-width
+          type: choice
+          prompt: 样本量从 452 加到 45,200，螃蟹壳宽的预测区间会怎样？
+          options:
+            - text: 几乎不变，它主要由螃蟹之间本来的差别决定
+              correct: true
+            - text: 缩到原来的十分之一
+              why: 缩小的是平均数的标准误；一只螃蟹自身的波动不会因为抓的螃蟹多了而变小
+          explain: √(1 + 1/n) 在 n 很大时接近 1，预测区间的宽度主要是标准差本身。
+
+  - id: experiments
+    chapter: 实验记录与结论的不确定性
+    title: 记录每一次实验
+    minutes: 14
+    flow:
+      - guess:
+          id: guess-which-run
+          type: choice
+          prompt: 你一周里试了 30 组参数，最好的一次准确率 0.989，但已经想不起那次用的是什么参数和哪版数据。问题出在哪？
+          options:
+            - text: 没有把每次实验的参数、代码和数据版本跟结果一起记下来
+              correct: true
+            - text: 试的次数太多
+              why: 多试没问题，问题是没有记录，结果无法重现
+          explain: 结论要能重现，就要记得它是怎么得到的。
+      - card:
+          title: 一次实验要记什么
+          body: |
+            | 要记的 | 例子 |
+            |---|---|
+            | 参数 | 学习率 0.01、卷积单元 64 |
+            | 代码版本 | Git 的一次提交 |
+            | 数据版本 | 用的是哪一份训练数据 |
+            | 指标 | 损失 0.038、准确率 0.988 |
+            | 曲线 | 每一轮的损失 |
+
+            Git 是一种版本管理工具，它把代码在每次“提交”时的样子存下来，随时能回到那一刻。数据和模型文件太大，不适合直接放进 Git。
+      - item:
+          id: record-match
+          type: match
+          prompt: 把内容和它属于实验记录的哪一类配起来。
+          pairs:
+            - [train.epochs = 10, 参数]
+            - [acc = 0.9888, 指标]
+            - [每一轮的 loss 存成 logs.csv, 曲线]
+          explain: 参数是你设的，指标是跑出来的，曲线是指标随训练过程的变化。
+      - card:
+          title: 用 DVC 管实验
+          body: |
+            DVC 是一个和 Git 配合使用的工具：
+
+            ```
+            $ dvc exp run -S train.fine_tune_args.base_lr=0.001
+            Reproduced experiment(s): matte-vies
+            $ dvc exp show
+            ```
+
+            - 每次 `dvc exp run` 运行流程并保存一次实验，自动起一个名字（如 matte-vies），也可以用 `-n` 自己起；`-S` 临时改一个参数；
+            - 参数、指标、曲线放在 YAML、JSON、CSV 这类文件里；
+            - 实验挂在当前提交下面，但不进普通的 Git 历史，免得留下一堆临时提交。
+      - item:
+          id: exp-show-read
+          type: choice
+          prompt: '`dvc exp show` 显示：cnn-64 的 acc 是 0.988、conv_units 是 64；cnn-128 的 acc 是 0.989、conv_units 是 128。准确率最高的实验用了几个卷积单元？'
+          options:
+            - text: '128'
+              correct: true
+            - text: '64'
+              why: 64 那次准确率 0.988，比 0.989 低
+          explain: 表里每行一个实验，参数和指标并排，一眼就能比；两者只差 0.001，还要看这个差别是不是碰巧。
+      - card:
+          title: 分享实验
+          body: |
+            - 代码和小文件（参数、指标）走 Git：`git push`；
+            - 数据和模型这些大文件走 DVC 的远程存储：`dvc push`；
+            - 实验默认不会跟着 `git push` 上传，要 `dvc exp push origin`；
+            - 想把一个实验变成 Git 里可以正常切换过去的版本：`dvc exp branch 实验名`。
+
+            别人拿到后，能用同一份代码、同一份数据、同样的参数跑出同样的结果，这才算可重现。
+      - item:
+          id: share-big
+          type: choice
+          prompt: 一个 3 GB 的模型文件要和同事共享。应该怎么做？
+          options:
+            - text: 用 DVC 跟踪它、dvc push 到远程存储，Git 里只放 DVC 的小记录文件
+              correct: true
+            - text: 直接放进 Git 提交
+              why: Git 不适合存很大的文件，仓库会变得很大、很慢
+          explain: 代码走 Git，大文件走 DVC，两条路各管各的。
+      - item:
+          id: exp-name
+          type: choice
+          prompt: 你用 `dvc exp run` 跑了一次实验，没有起名字。之后怎么找到它？
+          options:
+            - text: DVC 自动给了一个名字（如 puffy-daks），用它在 dvc exp 的各个子命令里引用
+              correct: true
+            - text: 找不到，没起名字的实验不会保存
+              why: 每个实验都会保存，并且有一个唯一的名字
+          explain: 自动起的名字不好记，重要的实验最好用 -n 起一个有意义的名字。
+
+boss:
+  items:
+    - id: boss-kind
+      type: choice
+      prompt: “根据今天的天气和星期几，估计明天这个站点会被租走多少辆车。”这是哪一类问题？
+      options:
+        - text: 预测
+          correct: true
+        - text: 描述
+          why: 描述只说已经发生了什么，这里要对还没发生的事给一个数
+        - text: 推断
+          why: 推断是从样本推到总体，这里是对一个新的情况给出预测
+      explain: 对还没看到的情况给出一个数，就是预测。
+    - id: boss-frame
+      type: choice
+      prompt: 一项网上问卷调查“全国大学生的睡眠时间”，谁看到谁填。最主要的问题是？
+      options:
+        - text: 选择偏差：愿意点开填的人不能代表全国大学生
+          correct: true
+        - text: 样本太小
+          why: 就算填的人很多，自愿填写的人仍然可能和不填的人不同
+      explain: 自愿报名的样本偏向某些人，加大样本也去不掉这种偏差。
+    - id: boss-bytes
+      type: number
+      prompt: 一个 CSV 文件有 3 × 1,024³ 个字节。用 pandas 读它，按“至少 5 倍文件大小”的经验法则，大约至少要多少 GiB 空闲内存？
+      answer: 15
+      explain: 3 × 1,024³ 字节 = 3 GiB，3 × 5 = 15 GiB。
+    - id: boss-merge
+      type: number
+      prompt: 左表有站点 A、B、C。右表有 4 行：A 两行、B 一行、D 一行。`pd.merge(左表, 右表, on="site", how="left")` 有几行？
+      answer: 4
+      explain: A 匹配 2 行，B 匹配 1 行，C 没有匹配但 left 会保留 1 行（右边的列是 NaN），D 不在左表被丢掉：2 + 1 + 1 = 4。
+    - id: boss-iqr
+      type: number
+      prompt: 数据 2、3、3、4、5、100。用线性插值，Q1 = 3，Q3 = 4.75。按 1.5 倍 IQR 规则，上界是多少？
+      answer: 7.375
+      tolerance: 0.001
+      explain: IQR = 4.75 − 3 = 1.75，上界 = 4.75 + 1.5 × 1.75 = 7.375；100 超过上界，是离群值，用中位数 3.5 描述典型值更合适。
+    - id: boss-groupby
+      type: number
+      prompt: 一张表 weather 列是 晴、雨、晴、雨，rentals 列是 150、60、130、80。`df.groupby("weather")["rentals"].mean()` 里“晴”是多少？
+      answer: 140
+      explain: 晴天两行 150 和 130，平均 140。
+    - id: boss-notebook
+      type: choice
+      prompt: 交付一本笔记本前，确认别人从头运行也能得到同样结果的关键一步是？
+      options:
+        - text: 重启内核，从上到下全部运行一遍
+          correct: true
+        - text: 把每格的输出都截图保存
+          why: 截图只能证明你当时看到过，不能证明按顺序从头能跑出来
+      explain: 重启后内核是空的，全部跑通才说明没有依赖乱序运行留下的隐藏状态。
+    - id: boss-mask
+      type: number
+      prompt: '`x = np.array([5, 12, 7, 20, 3])`。`np.sum(x > 6)` 是多少？'
+      answer: 3
+      explain: 大于 6 的是 12、7、20，True 当 1，一共 3。
+    - id: boss-bias
+      type: choice
+      prompt: 一项民调因为高学历的人更愿意回答而偏向某位候选人。把样本扩大 8 倍会怎样？
+      options:
+        - text: 偏差还在，结果只是更稳定地偏向同一边
+          correct: true
+        - text: 偏差消失
+          why: 样本变大只减少随机波动，减不掉每次都往同一边偏的部分
+      explain: 偏差要靠改进抽样和追访来减。
+    - id: boss-leak
+      type: choice
+      prompt: 先在全部数据上做标准化，再划分训练集和测试集。错在哪、怎么改？
+      options:
+        - text: 测试集的平均和标准差泄漏进了训练；应先划分，只在训练集上 fit 标准化，再 transform 测试集
+          correct: true
+        - text: 没错，标准化不涉及标签
+          why: 不涉及标签也会泄漏：测试集的统计量参与了 fit
+      explain: 几乎所有预处理都可能泄漏，放进流水线最省心。
+    - id: boss-prf
+      type: number
+      prompt: 某分类器 TP = 40、FP = 60、FN = 10、TN = 890。F1 是多少？（保留三位小数）
+      answer: 0.533
+      tolerance: 0.001
+      explain: 精确率 40 ÷ 100 = 0.4，召回率 40 ÷ 50 = 0.8，F1 = 2 × 0.4 × 0.8 ÷ 1.2 ≈ 0.533；准确率是 930 ÷ 1000 = 0.93，看起来好，却掩盖了判为正的大半是错的。
+    - id: boss-cv
+      type: number
+      prompt: 训练集 120 行，做 4 折交叉验证。每次用来拟合的有几行？
+      answer: 90
+      explain: 每折 30 行，留 1 折验证，用其余 3 折 90 行拟合。
+    - id: boss-pvalue
+      type: choice
+      prompt: 一项研究报告“p = 0.04，所以新方法有效的概率是 96%”。这句话对吗？
+      options:
+        - text: 不对：p 值是假设没有效果时，得到这么极端结果的机会，不是有效的概率
+          correct: true
+        - text: 对
+          why: p 值是在“没有效果”的前提下算的，不能翻过来当成效果为真的概率
+      explain: 还要问：一共做了几次检验？只报告显著的那一次，就是 p 值操纵。

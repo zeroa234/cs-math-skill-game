@@ -74,7 +74,7 @@ SimView = {
 
 **加一个组件**：在 `logic/` 写 `{name, validate, initial, check}` 并加进 `logic/index.js`；在 `views/` 写 `{View, Demo, initial}` 并加进 `views/index.jsx`；在 `tests/unit/sims.test.mjs` 加教科书例题；在 `docs/content-authoring.md` 的组件表里写参数和作答格式；在 `src/game/app/lab.js` 的 `LAB` 加一个示例（玩家学完第一节用到它的课，实验室就多出它；单元测试要求课里的每个实验都在 `LAB` 里，`LAB` 的每一条也都有课用到）。只有归档内容用到的组件跟着归档（`archive/README.md`）。内容包里的 `solution` 会被 check-pack 用你的 `check` 验证。
 
-`trace` 特殊：构建时 `scripts/lib/pytrace.py` 用 `sys.settrace` 真实运行 Python，把每一步写进 `params.steps`，所以网页里不需要 Python。
+`trace` 特殊：构建时 `scripts/lib/pytrace.py` 用 `sys.settrace` 真实运行 Python，把每一步写进 `params.steps`，所以网页里不需要 Python。它以 `python -I -X utf8` 运行：`-I` 会忽略 PYTHONIOENCODING，不开 UTF-8 模式时，课里的代码带中文（如 P.2.3 的 `print("不是整数，再来")`）在 Windows 上会因编码出错。
 
 ## 4. 核心 API（`src/game/core/`）
 
@@ -130,8 +130,8 @@ SimView = {
 | 模块 | 职责 |
 |---|---|
 | `src/game/ui/StepPlayer.jsx` | 课、结业挑战、复习共用的一题一屏播放器：`<StepPlayer kicker title closeHref flow coach itemLabel leaveText onFinish>`；`CardStep`（`reveal` 部分逐个揭示）、`ItemStep`（复习直接用它）、`useKey`。答错的计分题本轮最后再出一次。`LessonPlayer.jsx` 和 `BossView.jsx` 只负责开始前说明和结束后的结算 |
-| `src/game/ui/md.jsx` | Markdown + KaTeX；`[[术语|释义]]` 渲染成可点开的查词按钮（一次只开一个，点别处或 Esc 关闭） |
-| `scripts/lib/beginner.mjs` | 零基础标准：`beginnerIssues(pack, lessons, {inherited, coreChapters})` 返回 B1–B7 违规；`resolveTerms(pack, lessons, glossary)` 在构建时给题目和后面几课的卡片加查词（释义 URI 编码）。术语清单 `data/jargon.yaml`；前置技能的术语由 `scripts/lib/packs.mjs` 的 `inheritedGlossary` 沿必须前置闭包收集 |
+| `src/game/ui/md.jsx` | Markdown + KaTeX；`[[术语|释义]]` 渲染成可点开的查词按钮（一次只开一个，点别处或 Esc 关闭）；比内容框宽的独立公式、表格、代码块在还能滑的一边渐隐（`more-l` / `more-r` 加 CSS 遮罩，页面变化、滚动、改窗口大小时重算），并可用键盘聚焦滚动；行内公式比一行还宽（KaTeX 找不到断点）时挪到单独一行（`katex-line`），宽度变了再重新判断 |
+| `scripts/lib/beginner.mjs` | 零基础标准：`beginnerIssues(pack, lessons, {inherited, coreChapters})` 返回 B1–B7 违规；`resolveTerms(pack, lessons, glossary)` 在构建时给题目和后面几课的卡片加查词（释义 URI 编码）。术语清单 `data/jargon.yaml`（`code` 把 for、if、def 等关键字对到术语，B1 也查代码块和题目的 `code`）；前置技能的术语由 `scripts/lib/packs.mjs` 的 `inheritedGlossary` 沿必须前置闭包收集 |
 | `src/game/ui/icons.jsx` | `<Icon name size label>`：pixelarticons 的像素图标（24 格），全游戏只用它，不用 emoji |
 | `src/game/ui/cast.jsx` | `CAST`（两位导师的名字、立绘、庆祝动作）；`<Sprite who action then scale flip cue>` 播放 `assets/cast/sprites.json` 描述的动画条（`action` 可以是动作串，最后一个循环）；所有动作画在同一个“舞台”上，脚的位置不变；`<Portrait who>` |
 | `src/game/app/sound.js` | `play(name)`：tap、select、correct、wrong、star、fanfare、unlock、blip、locked、page。ZzFX 在第一次出声时才加载（它一加载就创建 AudioContext）；`settings.sound === false` 时不出声 |

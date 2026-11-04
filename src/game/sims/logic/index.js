@@ -3,7 +3,8 @@
 import os from "./os.js";
 import trace from "./trace.js";
 import algo from "./algo.js";
+import math from "./math.js";
 import { registerSimChecker } from "../../core/check.js";
 
-export const SIMS = Object.fromEntries([...os, ...trace, ...algo].map((s) => [s.name, s]));
+export const SIMS = Object.fromEntries([...os, ...trace, ...algo, ...math].map((s) => [s.name, s]));
 for (const s of Object.values(SIMS)) registerSimChecker(s.name, (p, g, r) => s.check(p, g, r));

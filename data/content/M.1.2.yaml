@@ -1,0 +1,2933 @@
+skill: M.1.2
+version: 2
+authors: [main-agent]
+brief:
+  why: 导数回答“变得有多快”：曲线在一点有多陡，速度是多少，误差会放大几倍。机器学习训练模型，靠的就是沿着导数指的方向一步步调整参数，反向传播就是链式法则。这一关从割线和切线讲起，学会求导的全部法则，用导数做近似，用中值定理判断单调和极值，最后用泰勒多项式把复杂函数近似成多项式。只假设你学过上一站的极限与连续。
+  outcomes:
+    - 用定义（差商的极限）求导数，写出切线方程，判断一点是否可导
+    - 把导数读成变化率：速度、增长快慢，并分清平均变化率和瞬时变化率
+    - 用和、积、商的法则和链式法则求导，求高阶导数
+    - 用隐函数求导和反函数求导，求出反三角函数、eˣ、ln x、aˣ、xʳ 的导数
+    - 用线性近似和微分 dy = f′(x)dx 估算函数值和误差
+    - 说出罗尔定理、中值定理的条件和结论，用它们证明不等式、判断单调区间和极值
+    - 用洛必达法则和泰勒展开求 0/0 型极限
+    - 写出泰勒多项式，用拉格朗日余项估计误差，求简单幂级数的收敛半径，由已知级数得到新的级数
+terms:
+  - term: 割线
+    def: '曲线上两点连成的直线'
+  - term: 差商
+    def: '[f(a + h) − f(a)]/h：函数值的差除以输入的差，也就是割线的斜率'
+  - term: 切线
+    def: '割线的两点越靠越近时的极限位置；切线的斜率就是导数'
+  - term: 导数
+    def: 'f′(a) = lim_{h→0} [f(a + h) − f(a)]/h：曲线在 a 处切线的斜率，也是 a 处的瞬时变化率'
+  - term: 幂法则
+    def: '(xⁿ)′ = n xⁿ⁻¹，对任何实数指数 n 都成立（x > 0 时）'
+  - term: 可导
+    def: '导数的极限存在且有限。可导一定连续，连续不一定可导（如 |x| 在 0 处）'
+  - term: 瞬时变化率
+    def: '某一时刻的变化快慢，就是导数；一段时间的平均变化率是割线斜率'
+  - term: 乘积法则
+    def: '(uv)′ = u′v + uv′'
+  - term: 商法则
+    def: '(u/v)′ = (u′v − uv′)/v²，v ≠ 0'
+  - term: 复合函数
+    def: '先算 u = g(x)，再算 f(u) 得到的函数 f(g(x))；g 是里层，f 是外层'
+  - term: 链式法则
+    def: '复合函数的导数：dy/dx = (dy/du)·(du/dx)，即 [f(g(x))]′ = f′(g(x))·g′(x)'
+  - term: 二阶导数
+    def: '导数的导数 f″ = (f′)′，也写作 d²y/dx²'
+  - term: 高阶导数
+    def: '二阶及以上的导数：f″、f‴、f⁽⁴⁾……'
+  - term: 阶乘
+    def: 'n! = n·(n − 1)·…·2·1，约定 0! = 1'
+  - term: 隐函数
+    def: '由方程（如 x² + y² = 1）确定、没有解出成 y = … 的函数'
+  - term: 反函数
+    def: '把函数的输入和输出对调得到的函数 f⁻¹：f⁻¹(f(x)) = x；图像关于 y = x 对称'
+  - term: 自然对数
+    def: 'ln x：eˣ 的反函数，ln y = x 等价于 eˣ = y；(ln x)′ = 1/x'
+  - term: 对数求导法
+    def: '先对 y 取 ln 再求导，用 (ln y)′ = y′/y 解出 y′，适合乘方和连乘'
+  - term: 线性近似
+    def: '用切线代替曲线：x 靠近 a 时 f(x) ≈ f(a) + f′(a)(x − a)'
+  - term: 微分
+    def: 'dy = f′(x)dx：切线上的升高量，是函数增量 Δy 的线性主部'
+  - term: 可微
+    def: 'Δy = AΔx + o(Δx) 对某个常数 A 成立；一元函数可微和可导是一回事，A = f′(x)'
+  - term: 相对误差
+    def: '误差除以量本身的大小，常写成百分数'
+  - term: 费马定理
+    def: '函数在区间内部某点取局部极值、且在那里可导，那么那一点的导数为 0'
+  - term: 驻点
+    def: '导数等于 0 的点'
+  - term: 罗尔定理
+    def: '[a, b] 上连续、(a, b) 内可导、f(a) = f(b)，那么 (a, b) 里有一点导数为 0'
+  - term: 中值定理
+    def: '[a, b] 上连续、(a, b) 内可导，那么有 ξ ∈ (a, b) 使 f′(ξ) = [f(b) − f(a)]/(b − a)'
+  - term: 二阶导数判别法
+    def: 'f′(c) = 0 时：f″(c) > 0 是局部极小，f″(c) < 0 是局部极大，f″(c) = 0 判断不了'
+  - term: 柯西中值定理
+    def: '有 ξ 使 [f(b) − f(a)]/[g(b) − g(a)] = f′(ξ)/g′(ξ)（条件见课里），是洛必达法则的依据'
+  - term: 洛必达法则
+    def: '0/0 或 ∞/∞ 型的 lim f/g，在条件满足时等于 lim f′/g′'
+  - term: 二次近似
+    def: 'f(x) ≈ f(a) + f′(a)(x − a) + f″(a)/2·(x − a)²：最贴近曲线的抛物线'
+  - term: 泰勒多项式
+    def: 'Pₙ(x) = Σ f⁽ᵏ⁾(a)/k!·(x − a)ᵏ（k = 0…n）：在 a 处和 f 的前 n 阶导数都相同的多项式'
+  - term: 余项
+    def: 'Rₙ(x) = f(x) − Pₙ(x)：泰勒多项式的误差'
+  - term: 佩亚诺余项
+    def: 'f 在 a 处有 n 阶导数时 f(x) = Pₙ(x) + o((x − a)ⁿ)：误差比最后一项高阶，只说明 a 附近的情况'
+  - term: 幂级数
+    def: 'a₀ + a₁x + a₂x² + …：无限多项的“多项式”，值是前 n 项和的极限'
+  - term: 收敛半径
+    def: '幂级数在 |x| < R 时收敛、|x| > R 时发散的那个 R'
+  - term: 泰勒级数
+    def: '把泰勒多项式一直写下去得到的幂级数 Σ f⁽ⁿ⁾(a)/n!·(x − a)ⁿ'
+lessons:
+  - id: secant-tangent
+    chapter: 导数
+    title: 割线越来越短，就成了切线
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 在一条光滑曲线上取一点，用放大镜不停地放大这一点附近。放大到最后，曲线看起来像什么？
+          options:
+            - text: 一段直线
+              correct: true
+            - text: 一个尖角
+              why: 光滑曲线没有尖角；尖角放大以后还是尖角，比如 |x| 在 0 处
+            - text: 一个圆
+              why: 圆弧放大以后也越来越直，所以光滑曲线的一小段都接近直线
+          explain: 光滑曲线的一小段几乎是直的。这条“放大后看到的直线”就是这一课要找的切线。
+      - card:
+          title: 直线的斜率
+          body: |
+            过两点 $(x_1, y_1)$、$(x_2, y_2)$ 的直线，**斜率（slope）**是
+
+            $$\frac{y_2 - y_1}{x_2 - x_1}$$
+
+            意思是：往右走 1 个单位，直线升高多少。比如过 $(1, 1)$ 和 $(3, 9)$ 的直线，斜率是 $\frac{9 - 1}{3 - 1} = 4$。斜率为负，直线往右是下降的。
+      - item:
+          id: line-slope
+          type: number
+          prompt: '曲线 $y = x^2$ 上有两点 $(1, 1)$ 和 $(2, 4)$。过这两点的直线斜率是多少？'
+          answer: 3
+          explain: (4 − 1)/(2 − 1) = 3。
+      - card:
+          title: 割线和差商
+          body: |
+            曲线上任取两点连成的直线叫**割线（secant line）**。
+
+            在 $y = f(x)$ 上固定一点 $P = (a, f(a))$，再往右走 $h$ 取一点 $Q = (a + h, f(a + h))$。割线 $PQ$ 的斜率是
+
+            $$\frac{f(a + h) - f(a)}{h}$$
+
+            这个式子叫**差商（difference quotient）**：函数值的差，除以输入的差。
+      - card:
+          title: 演示：让 Q 滑向 P
+          body: 下面是 $f(x) = x^2$ 在 $a = 1$ 处的割线。把滑块往右拖，$h$ 变小，第二个点沿曲线滑向第一个点。看割线斜率怎样变化。
+          sim:
+            name: plot
+            params: { mode: secant, f: "x^2", a: 1, hMax: 1 }
+      - item:
+          id: secant-half
+          type: number
+          prompt: '$f(x) = x^2$，$a = 1$，$h = 0.5$。差商 $\frac{f(a+h) - f(a)}{h}$ 等于多少？'
+          answer: 2.5
+          explain: f(1.5) = 2.25，f(1) = 1，(2.25 − 1)/0.5 = 2.5。
+      - card:
+          title: 切线是割线的极限
+          body: |
+            $h$ 越来越小，割线越来越接近一条确定的直线，它叫曲线在 $P$ 点的**切线（tangent line）**。
+
+            切线不能定义成“和曲线只碰一个点的直线”：曲线可以弯来弯去，切线在别处再穿过曲线也没关系。切线的斜率是割线斜率的极限。
+      - item:
+          id: sim-secant
+          type: sim
+          prompt: '$f(x) = x^2$，$a = 1$。把 $h$ 调小，让割线斜率和 2 相差不到 0.01。'
+          sim: plot
+          params: { mode: secant, f: "x^2", a: 1, hMax: 1 }
+          goal: { slope: { target: 2, tol: 0.01 } }
+          solution: { h: 0.005 }
+          explain: 这里差商正好是 2 + h，所以 h 小于 0.01 就够了。h 趋于 0 时，割线斜率趋于 2。
+      - card:
+          title: 导数
+          body: |
+            切线的斜率叫 $f$ 在 $a$ 处的**导数（derivative）**，记作 $f'(a)$：
+
+            $$f'(a) = \lim_{h \to 0} \frac{f(a + h) - f(a)}{h}$$
+
+            这是这一章最重要的式子，后面的求导法则都从它推出来。$h$ 可正可负，两边的差商都要趋于同一个数。
+      - card:
+          title: 例题：用定义算 x² 在 1 处的导数
+          body: 求 $f(x) = x^2$ 在 $a = 1$ 处的导数。
+          reveal:
+            - title: 第 1 步：写出函数值的差
+              body: $f(1 + h) - f(1) = (1 + 2h + h^2) - 1 = 2h + h^2$。
+            - title: 第 2 步：除以 h，先约掉
+              body: $\frac{2h + h^2}{h} = 2 + h$（$h \ne 0$，可以约）。直接把 $h = 0$ 代进原来的差商会得到 $\frac00$，看不出结果，所以要先化简。
+            - title: 第 3 步：让 h 趋于 0
+              body: $2 + h \to 2$，所以 $f'(1) = 2$。和演示里割线斜率靠近的数一样。
+      - item:
+          id: def-at-3
+          type: number
+          prompt: '$f(x) = x^2$。已知 $f(3 + h) - f(3) = 6h + h^2$，那么 $f''(3)$ 是多少？'
+          answer: 6
+          hint: 先除以 h，再让 h 趋于 0。
+          explain: (6h + h²)/h = 6 + h → 6。
+      - item:
+          id: def-poly
+          type: number
+          prompt: '用定义求 $f(x) = 3x^2 - 4x + 1$ 在 $a = 2$ 处的导数。'
+          answer: 8
+          hint: 先算 f(2) 和 f(2 + h)，相减后每一项都带 h。
+          explain: f(2) = 5，f(2 + h) = 3(4 + 4h + h²) − 4(2 + h) + 1 = 5 + 8h + 3h²。差商 (8h + 3h²)/h = 8 + 3h → 8。
+      - item:
+          id: why-not-plug
+          type: choice
+          prompt: 用定义求导数时，为什么不能直接把 h = 0 代进差商？
+          options:
+            - text: 代进去分子分母都是 0，得到看不出结果的 0/0
+              correct: true
+            - text: 代进去结果总是 0
+              why: 分子是 f(a) − f(a) = 0，分母也是 0，0/0 不等于 0
+            - text: h = 0 时函数没有定义
+              why: f(a) 有定义；没有定义的是差商本身，因为分母是 0
+          explain: 差商在 h = 0 处是 0/0 的待定型。要先化简（通常是约掉分子里的 h），再求极限。
+
+  - id: derivative-function
+    chapter: 导数
+    title: 每一点都有斜率：导函数和幂法则
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 曲线 y = x² 在 x = 1 处切线斜率是 2，在 x = 3 处是 6。猜猜在 x = 5 处是多少？
+          answer: 10
+          explain: 规律是 2x，所以 x = 5 处是 10。下面就来证明这个规律。
+      - card:
+          title: 导数也是一个函数
+          body: |
+            每个 $x$ 都能算一个切线斜率，于是得到一个新函数 $f'(x) = \lim_{h \to 0} \frac{f(x + h) - f(x)}{h}$，叫**导函数**，通常也简称导数。
+
+            对 $x^2$：$\frac{(x + h)^2 - x^2}{h} = 2x + h \to 2x$，所以 $(x^2)' = 2x$。
+      - item:
+          id: slope-neg
+          type: number
+          prompt: '$f(x) = x^2$，$f''(x) = 2x$。曲线在 $x = -1$ 处的切线斜率是多少？'
+          answer: -2
+          explain: f′(−1) = 2 × (−1) = −2。负的斜率说明曲线在这里往右下降。
+      - card:
+          title: 几种写法
+          body: |
+            导数有几种常见写法，意思相同：
+
+            | 写法 | 读法 |
+            |---|---|
+            | $f'(x)$、$y'$ | f 撇、y 撇 |
+            | $\frac{dy}{dx}$、$\frac{df}{dx}$、$\frac{d}{dx}f(x)$ | 莱布尼茨的写法 |
+
+            $\frac{dy}{dx}$ 提醒你它来自 $\frac{\Delta y}{\Delta x}$，但它省掉了“在哪一点”，要从上下文看出来。
+      - card:
+          title: 例题：1/x 的导数
+          body: 用定义求 $f(x) = \frac1x$ 的导数。
+          reveal:
+            - title: 第 1 步：通分
+              body: $\frac{1}{x + h} - \frac1x = \frac{x - (x + h)}{x(x + h)} = \frac{-h}{x(x + h)}$。
+            - title: 第 2 步：除以 h
+              body: 得到 $\frac{-1}{x(x + h)}$，$h$ 约掉了。
+            - title: 第 3 步：让 h 趋于 0
+              body: $\frac{-1}{x(x + h)} \to -\frac{1}{x^2}$。所以 $(\frac1x)' = -\frac{1}{x^2}$。它总是负的：$\frac1x$ 的图像在两边都往右下降。
+      - item:
+          id: recip-at-3
+          type: number
+          prompt: '$f(x) = \frac1x$，$f''(x) = -\frac{1}{x^2}$。$f''(3)$ 是多少？'
+          answer: -0.1111111
+          tolerance: 0.0005
+          explain: −1/3² = −1/9 ≈ −0.111。
+      - card:
+          title: 幂法则
+          body: |
+            $(x + h)^3 = x^3 + 3x^2 h + 3x h^2 + h^3$。减去 $x^3$ 再除以 $h$：$3x^2 + 3xh + h^2 \to 3x^2$。
+
+            一般地，$(x + h)^n$ 展开后前两项是 $x^n + n x^{n-1} h$，其余每一项至少带 $h^2$，除以 $h$ 后还带着 $h$，极限是 0。于是得到**幂法则（power rule）**：
+
+            $$(x^n)' = n x^{n-1}$$
+
+            常数的导数是 0（图像是水平线），$x' = 1$。
+      - item:
+          id: power5
+          type: number
+          prompt: '$f(x) = x^5$。$f''(2)$ 是多少？'
+          answer: 80
+          explain: f′(x) = 5x⁴，f′(2) = 5 × 16 = 80。
+      - card:
+          title: 切线的方程
+          body: |
+            知道切点 $(a, f(a))$ 和斜率 $f'(a)$，用点斜式写出切线：
+
+            $$y - f(a) = f'(a)(x - a)$$
+
+            例：$y = \frac1x$ 在 $(1, 1)$ 处，斜率 $-\frac{1}{1^2} = -1$，切线是 $y - 1 = -(x - 1)$，即 $y = -x + 2$。
+      - item:
+          id: tangent-recip
+          type: number
+          prompt: '曲线 $y = \frac1x$ 在 $x = 2$ 处的切线和 $y$ 轴交在哪里？填交点的纵坐标。'
+          answer: 1
+          hint: 切点是 (2, 1/2)，斜率是 −1/2²。
+          explain: 切线 y − 1/2 = −(1/4)(x − 2)，即 y = −x/4 + 1。x = 0 时 y = 1。
+      - item:
+          id: triangle-area
+          type: number
+          prompt: '曲线 $y = \frac1x$ 在 $x = 4$ 处的切线，和两条坐标轴围成一个三角形。它的面积是多少？'
+          answer: 2
+          hint: 切线是 y − 1/4 = −(1/16)(x − 4)。分别令 y = 0、x = 0。
+          explain: 令 y = 0 得 x = 8，令 x = 0 得 y = 1/2，面积 ½ × 8 × ½ = 2。换成任何切点，两个截距总是 2a 和 2/a，面积总是 2，这是 1/x 特有的巧合。
+      - item:
+          id: power-pick
+          type: choice
+          prompt: 函数 f(x) = x¹⁰⁰ 的导数是什么？
+          options:
+            - text: 100x⁹⁹
+              correct: true
+            - text: 99x¹⁰⁰
+              why: 系数是原来的指数 100，指数减 1 变成 99
+            - text: 100x¹⁰¹
+              why: 求导以后指数减 1，不是加 1
+          explain: 幂法则：(xⁿ)′ = n xⁿ⁻¹，n = 100。
+
+  - id: sum-rule
+    chapter: 导数
+    title: 和与常数倍：多项式求导
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 已经知道 (x²)′ = 2x，(x³)′ = 3x²。猜猜 x² + x³ 的导数是什么？
+          options:
+            - text: 2x + 3x²
+              correct: true
+            - text: 6x³
+              why: 两项是加起来的，不是乘起来的
+            - text: 5x⁴
+              why: x² + x³ 不等于 x⁵，不能先把指数加起来
+          explain: 加起来的函数，导数也加起来。下面说明为什么。
+      - card:
+          title: 和法则与常数倍法则
+          body: |
+            **和法则（sum rule）**：$(u + v)' = u' + v'$。**常数倍法则（constant multiple rule）**：$c$ 是常数时，$(c\,u)' = c\,u'$。
+
+            理由在差商里：$u + v$ 的差商就是 $u$ 的差商加 $v$ 的差商；$cu$ 的差商是 $c$ 乘 $u$ 的差商。再用极限运算法则，和的极限等于极限的和，常数可以提到极限外面。
+      - item:
+          id: poly-at-1
+          type: number
+          prompt: '$f(x) = x^3 + 5x^{10}$。$f''(1)$ 是多少？'
+          answer: 53
+          explain: f′(x) = 3x² + 50x⁹，f′(1) = 3 + 50 = 53。
+      - item:
+          id: poly-at-neg1
+          type: number
+          prompt: '$f(x) = 4x^3 - 2x + 7$。$f''(-1)$ 是多少？'
+          answer: 10
+          explain: f′(x) = 12x² − 2（常数 7 的导数是 0），f′(−1) = 12 − 2 = 10。
+      - card:
+          title: 例题：多项式在一点的切线
+          body: 求 $y = x^3 - x$ 在点 $(2, 6)$ 处的切线。
+          reveal:
+            - title: 第 1 步：求导函数
+              body: $y' = 3x^2 - 1$。
+            - title: 第 2 步：代入切点的 x，得到一个数
+              body: $y'(2) = 3 \times 4 - 1 = 11$。斜率是 11 这个数，不是 $3x^2 - 1$。
+            - title: 第 3 步：点斜式
+              body: $y - 6 = 11(x - 2)$，即 $y = 11x - 16$。
+      - item:
+          id: tangent-quad
+          type: number
+          prompt: '$y = x^2 - 4x$ 在 $x = 3$ 处的切线写成 $y = 2x + b$。$b$ 是多少？'
+          answer: -9
+          hint: 切点的纵坐标是 3² − 4 × 3。
+          explain: 切点 (3, −3)，斜率 y′(3) = 2 × 3 − 4 = 2，切线 y + 3 = 2(x − 3)，即 y = 2x − 9。
+      - item:
+          id: slope-mistake
+          type: choice
+          prompt: 有人把 y = x³ − x 在 (2, 6) 处的切线写成 y − 6 = (3x² − 1)(x − 2)。错在哪里？
+          options:
+            - text: 斜率应该代入 x = 2，得到 11 这个数
+              correct: true
+            - text: 导数算错了，应该是 3x²
+              why: x 的导数是 1，所以 y′ = 3x² − 1，导数没错
+            - text: 点斜式应该写成 y + 6
+              why: 切点是 (2, 6)，点斜式是 y − 6，这里没错
+          explain: 切线是直线，斜率是一个数。先求导函数，再代入切点的横坐标。写成 (3x² − 1)(x − 2) 得到的是一条三次曲线。
+      - card:
+          title: 常数倍的图像意思
+          body: |
+            把 $y = x^2$ 的图像竖直拉长 3 倍得到 $y = 3x^2$。每一段的升高都变成 3 倍，往右走的距离不变，所以每点的切线斜率也变成 3 倍：$(3x^2)' = 3 \times 2x = 6x$。
+      - item:
+          id: stretch
+          type: number
+          prompt: '$g(x) = 5x^4$。$g''(1)$ 是多少？'
+          answer: 20
+          explain: g′(x) = 5 × 4x³ = 20x³，g′(1) = 20。
+
+  - id: differentiable
+    chapter: 导数
+    title: 什么时候没有导数
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: f(x) = |x| 的图像在 0 处是一个尖角。它在 0 处有一条确定的切线吗？
+          options:
+            - text: 没有
+              correct: true
+            - text: 有，是 y = 0
+              why: 在 0 的右边曲线是 y = x，左边是 y = −x，都不贴着 y = 0
+            - text: 有，是 y = x
+              why: y = x 只贴着右半边；左半边是 y = −x
+          explain: 放大尖角，它还是尖角，不会变成一段直线。
+      - card:
+          title: 可导、左导数和右导数
+          body: |
+            导数的极限存在（是一个有限的数），就说 $f$ 在这一点**可导（differentiable）**。
+
+            看 $|x|$ 在 0 处的差商 $\frac{|h|}{h}$：$h > 0$ 时是 1，$h < 0$ 时是 −1。只看 $h \to 0^+$ 的极限叫**右导数**，只看 $h \to 0^-$ 的叫**左导数**。这里右导数 1、左导数 −1，不相等，所以 $|x|$ 在 0 处不可导。
+      - item:
+          id: abs-left
+          type: number
+          prompt: '$f(x) = |x - 2|$。它在 $x = 2$ 处的左导数是多少？'
+          answer: -1
+          explain: x < 2 时 f(x) = 2 − x，图像是斜率 −1 的直线，所以左导数是 −1；右导数是 1。两边不等，f 在 2 处不可导。
+      - card:
+          title: 可导一定连续
+          body: |
+            $f(a + h) - f(a) = \frac{f(a + h) - f(a)}{h} \cdot h$。可导时，右边趋于 $f'(a) \times 0 = 0$，所以 $f(a + h) \to f(a)$：**可导一定连续**。
+
+            反过来不对：$|x|$ 在 0 处连续，却不可导。$\sqrt[3]{x}$ 在 0 处连续，差商 $\frac{\sqrt[3]{h}}{h}$ 趋于 $+\infty$，切线是竖直的，也不可导。
+      - item:
+          id: cont-diff
+          type: choice
+          prompt: 下面哪句话一定对？
+          options:
+            - text: 在一点可导，就在这一点连续
+              correct: true
+            - text: 在一点连续，就在这一点可导
+              why: '|x| 在 0 处连续，但左右导数不等，不可导'
+            - text: 在一点不连续，也可能可导
+              why: 可导一定连续，所以不连续的点一定不可导
+          explain: 可导要求更多：不但图像不断开，而且放大后是一段直线。
+      - item:
+          id: cbrt
+          type: choice
+          prompt: f(x) = ∛x 在 x = 0 处为什么不可导？
+          options:
+            - text: 差商趋于 +∞，切线是竖直的
+              correct: true
+            - text: 它在 0 处不连续
+              why: ∛x 在 0 处连续，0 的立方根就是 0
+            - text: 它在 0 处左右导数不相等
+              why: 两边的差商 h^(1/3)/h = h^(−2/3) 都趋于 +∞，问题是没有有限的极限
+          explain: 竖直的直线没有斜率，所以导数不存在。
+      - card:
+          title: 例题：把两段接得光滑
+          body: |
+            $f(x) = ax^2 + bx + 6$（$x \le 1$），$f(x) = 2x^5 + 3x^4 + 4x^2 + 5x + 6$（$x > 1$）。求 $a$、$b$，使 $f$ 在 1 处可导。
+          reveal:
+            - title: 第 1 步：先要连续
+              body: 右边一段在 1 处的值 $2 + 3 + 4 + 5 + 6 = 20$，左边是 $a + b + 6$。连续要求 $a + b = 14$。
+            - title: 第 2 步：左右导数相等
+              body: 左边的导数 $2ax + b$，在 1 处是 $2a + b$；右边 $10x^4 + 12x^3 + 8x + 5$，在 1 处是 35。所以 $2a + b = 35$。
+            - title: 第 3 步：解方程
+              body: 两式相减得 $a = 21$，再得 $b = -7$。只看导数相等不够，第 1 步的连续不能省。
+      - item:
+          id: smooth-at-0
+          type: number
+          prompt: '$f(x) = ax^2 + bx + 6$（$x \le 0$），$f(x) = 2x^5 + 3x^4 + 4x^2 + 5x + 6$（$x > 0$）。要使 $f$ 在 0 处可导，$b$ 必须是多少？'
+          answer: 5
+          hint: 两段在 0 处的值都是 6，所以已经连续。再比较左右两段在 0 处的导数。
+          explain: 左边导数 2ax + b 在 0 处是 b；右边 10x⁴ + 12x³ + 8x + 5 在 0 处是 5。所以 b = 5，a 取什么都行。
+  - id: rate-of-change
+    chapter: 导数
+    title: 导数是变化的快慢
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 一个南瓜从 80 米高处落下，t 秒时离地 h = 80 − 5t² 米，4 秒后落地。这 4 秒里平均每秒高度变化多少米？（下降记为负数）
+          answer: -20
+          explain: 高度从 80 变到 0，用了 4 秒：(0 − 80)/(4 − 0) = −20 米/秒。要用“末减初”，所以是负的。
+      - card:
+          title: 平均变化率和瞬时变化率
+          body: |
+            一段时间里 $y$ 的变化除以 $x$ 的变化，$\frac{\Delta y}{\Delta x}$，叫**平均变化率（average rate of change）**，就是割线的斜率。
+
+            让这段时间缩到 0，得到某一时刻的**瞬时变化率（instantaneous rate of change）**，就是导数 $\frac{dy}{dx}$，切线的斜率。
+
+            单位跟着走：高度是米、时间是秒，变化率的单位就是米/秒。
+      - item:
+          id: avg-1-3
+          type: number
+          prompt: 南瓜离地的高度 h = 80 − 5t² 米（t 是秒）。从 t = 1 到 t = 3，平均速度是多少米/秒？
+          answer: -20
+          explain: h(1) = 75，h(3) = 35，(35 − 75)/(3 − 1) = −20 米/秒。
+      - card:
+          title: 落地那一刻有多快
+          body: |
+            $h(t) = 80 - 5t^2$，求导得 $h'(t) = -10t$，单位是米/秒。
+
+            落地时 $t = 4$：$h'(4) = -40$ 米/秒，大约每小时 144 公里。负号表示高度在减少。平均速度只有 −20，因为开始时南瓜几乎没动。
+      - item:
+          id: speed-at-2
+          type: number
+          prompt: 南瓜离地的高度 h = 80 − 5t² 米（t 是秒）。t = 2 秒那一刻的瞬时速度是多少米/秒？
+          answer: -20
+          explain: h′(t) = −10t，h′(2) = −20 米/秒。
+      - card:
+          title: 到处都是变化率
+          body: |
+            电量 $q$ 对时间的导数 $\frac{dq}{dt}$ 是电流；温度 $T$ 沿一根铁棒的位置 $x$ 的导数 $\frac{dT}{dx}$ 是温度梯度；存款对时间的导数是每月多存（或少存）多少钱。
+
+            导数为正，量在增加；为负，量在减少；为 0，这一刻不增也不减。
+      - card:
+          title: 例题：账户余额
+          body: 一个账户在第 $t$ 个月的余额是 $f(t) = -5t^2 + 60t + 120$ 美元。1 月（$t = 1$）时，余额每月大约增加多少？
+          reveal:
+            - title: 第 1 步：求导，单位是美元/月
+              body: $f'(t) = -10t + 60$。
+            - title: 第 2 步：代入 t = 1
+              body: $f'(1) = 50$ 美元/月：从 1 月到 2 月，余额大约多 50 美元。
+            - title: 第 3 步：和真实变化比一比
+              body: $f(1) = 175$，$f(2) = 220$，实际多了 45。导数是那一刻的速度，一个月里速度在变，所以只是“大约”。
+      - item:
+          id: balance-10
+          type: number
+          prompt: '账户余额 $f(t) = -5t^2 + 60t + 120$ 美元（$t$ 是月份）。$f''(10)$ 是多少美元/月？'
+          answer: -40
+          explain: f′(10) = −100 + 60 = −40：10 月时余额在减少，大约每月少 40 美元。
+      - item:
+          id: balance-max
+          type: number
+          prompt: '账户余额 $f(t) = -5t^2 + 60t + 120$ 美元。余额先增后减，最多的时候是多少美元？'
+          answer: 300
+          hint: 余额最多的时刻，它既不增也不减。
+          explain: f′(t) = −10t + 60 = 0，t = 6（6 月）。f(6) = −180 + 360 + 120 = 300。旁边 f(5) = f(7) = 295。
+      - item:
+          id: avg-vs-inst
+          type: choice
+          prompt: 余额函数为 f(t)。f(11) − f(10) 和 f′(10) 有什么区别？
+          options:
+            - text: 前者是 10 月到 11 月的平均变化率（割线斜率），后者是 10 月那一刻的变化率（切线斜率）
+              correct: true
+            - text: 两者完全相同，只是写法不同
+              why: 两者一般不相等；比如 f = −5t² + 60t + 120 时，f(11) − f(10) = −45，而 f′(10) = −40
+            - text: 前者是瞬时变化率，后者是平均变化率
+              why: 说反了：相减再除以时间差（这里是 1 个月）是一段时间的平均
+          explain: f(11) − f(10) = [f(11) − f(10)]/(11 − 10)，是一段时间的平均；导数是极限，是一个时刻的值。
+
+  - id: sin-cos
+    chapter: 导数
+    title: 正弦和余弦的导数
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 正弦曲线 y = sin x（x 用弧度）在原点处，切线的斜率大约是多少？
+          options:
+            - text: '1'
+              correct: true
+            - text: '0'
+              why: 原点处 sin x 正在上升，不是水平的；水平的地方在 x = π/2
+            - text: '−1'
+              why: 原点附近 x 增大时 sin x 也增大，斜率是正的
+          explain: 在原点附近 sin x ≈ x，曲线贴着直线 y = x，斜率 1。下面的演示可以亲眼看到。
+      - card:
+          title: 演示：sin x 在 0 处的割线
+          body: |
+            $\sin x$ 在 0 处的差商是 $\frac{\sin h - \sin 0}{h} = \frac{\sin h}{h}$。上一站学过 $\frac{\sin h}{h} \to 1$，所以斜率是 1。把滑块往右拖看它逼近 1。
+          sim:
+            name: plot
+            params: { mode: secant, f: "sin(x)", a: 0, hMax: 1 }
+      - item:
+          id: sim-cos0
+          type: sim
+          prompt: '$f(x) = \cos x$，$a = 0$。把 $h$ 调小，让割线斜率离 0 不到 0.01。'
+          sim: plot
+          params: { mode: secant, f: "cos(x)", a: 0, hMax: 1 }
+          goal: { slope: { target: 0, tol: 0.01 } }
+          solution: { h: 0.01 }
+          explain: 差商是 (cos h − 1)/h，上一站学过它趋于 0。cos x 在 0 处是最高点，切线水平。
+      - card:
+          title: 从 0 处推到每一处
+          body: |
+            用和角公式 $\sin(x + h) = \sin x \cos h + \cos x \sin h$：
+
+            $$\begin{aligned}&\frac{\sin(x + h) - \sin x}{h} \\ &= \sin x \cdot \frac{\cos h - 1}{h} \\ &\quad + \cos x \cdot \frac{\sin h}{h}\end{aligned}$$
+
+            两个分式分别趋于 0 和 1，所以 $(\sin x)' = \cos x$。用 $\cos(x + h) = \cos x \cos h - \sin x \sin h$ 同样得到 $(\cos x)' = -\sin x$。
+      - item:
+          id: sin-at
+          type: number
+          prompt: '$f(x) = \sin x$。$f''(\frac{\pi}{3})$ 是多少？'
+          answer: 0.5
+          explain: f′(x) = cos x，cos(π/3) = 1/2。
+      - item:
+          id: cos-sign
+          type: choice
+          prompt: cos x 的导数是什么？
+          options:
+            - text: −sin x
+              correct: true
+            - text: sin x
+              why: 在 x 稍大于 0 的地方，cos x 从 1 往下走，斜率是负的；而那里 sin x 是正的，所以要加负号
+            - text: −cos x
+              why: −cos x 是对 cos x 连续求两次导数的结果，不是一次
+          explain: 记不清符号时，想想 cos x 从 x = 0 开始是下降的。
+      - card:
+          title: 一定要用弧度
+          body: |
+            推导用到了 $\frac{\sin h}{h} \to 1$，它只在 $h$ 用弧度量时成立（弧度就是单位圆上的弧长）。如果用角度量，$\frac{\sin(h°)}{h} \to \frac{\pi}{180} \approx 0.01745$，导数公式会多出这个因子。微积分里的角一律用弧度。
+      - card:
+          title: 例题：哪里切线水平
+          body: 求 $h(x) = \sin x + \sqrt3 \cos x$ 的切线水平的位置。
+          reveal:
+            - title: 第 1 步：求导
+              body: $h'(x) = \cos x - \sqrt3 \sin x$。
+            - title: 第 2 步：令导数为 0
+              body: $\cos x = \sqrt3 \sin x$，两边除以 $\cos x$：$\tan x = \frac{1}{\sqrt3}$。
+            - title: 第 3 步：写出所有解
+              body: $x = \frac{\pi}{6} + k\pi$（$k$ 是整数），有无穷多个。$h$ 其实等于 $2\sin(x + \frac{\pi}{3})$，水平切线就在它的波峰和波谷。
+      - item:
+          id: flat-sin-cos
+          type: number
+          prompt: '$g(x) = \sin x + \cos x$。在 $0 < x < \pi$ 里，它的切线在哪个 $x$ 处水平？（填小数，保留 3 位）'
+          answer: 0.7854
+          tolerance: 0.001
+          explain: g′(x) = cos x − sin x = 0，tan x = 1，x = π/4 ≈ 0.785。
+      - item:
+          id: lin-comb
+          type: number
+          prompt: '$f(x) = 5\sin x - 2\cos x$。$f''(0)$ 是多少？'
+          answer: 5
+          explain: f′(x) = 5cos x + 2sin x，f′(0) = 5。
+
+  - id: product-rule
+    chapter: 导数
+    title: 乘积法则
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: x² = x · x，而 x 的导数是 1。如果“积的导数等于导数的积”，x² 的导数就会是 1 × 1 = 1。这对吗？
+          options:
+            - text: 不对，x² 的导数是 2x
+              correct: true
+            - text: 对，x² 的导数是 1
+              why: 幂法则给出 (x²)′ = 2x，比如 x = 3 处切线斜率是 6，不是 1
+          explain: 积的导数不能逐个相乘。正确的规则在下面。
+      - card:
+          title: 乘积法则
+          body: |
+            **乘积法则（product rule）**：$u$、$v$ 都可导时，
+
+            $$(uv)' = u'v + uv'$$
+
+            积求导，得到的是一个和：轮流对一个因子求导，另一个不动，再加起来。检验：$(x \cdot x)' = 1 \cdot x + x \cdot 1 = 2x$。
+      - item:
+          id: x3x4
+          type: number
+          prompt: '用乘积法则求 $f(x) = x^3 \cdot x^4$ 在 $x = 1$ 处的导数。'
+          answer: 7
+          explain: f′ = 3x² · x⁴ + x³ · 4x³，在 1 处是 3 + 4 = 7。和 (x⁷)′ = 7x⁶ 在 1 处的值一样。
+      - card:
+          title: 为什么是这样
+          body: |
+            积的变化可以拆成两份：
+
+            $$\begin{aligned}&u(x{+}h)v(x{+}h) - u(x)v(x) \\ &= [u(x{+}h) - u(x)]\,v(x{+}h) \\ &\quad + u(x)\,[v(x{+}h) - v(x)]\end{aligned}$$
+
+            除以 $h$ 再让 $h \to 0$：第一份趋于 $u'v$，第二份趋于 $uv'$。第一份里 $v(x + h) \to v(x)$，用的是“可导一定连续”。
+      - item:
+          id: why-cont
+          type: choice
+          prompt: 证明乘积法则时要用到 v(x + h) → v(x)（h → 0）。这一步靠的是什么？
+          options:
+            - text: v 可导，所以 v 连续
+              correct: true
+            - text: v 是多项式
+              why: 法则对任何可导的 v 都成立，不只是多项式
+            - text: h 很小，所以 v(x + h) = v(x)
+              why: h 不为 0 时两者一般不相等；说的是极限相等
+          explain: 可导一定连续，连续的意思是：输入的变化趋于 0 时，函数值趋于原来的值。
+      - card:
+          title: 例题：xⁿ sin x
+          body: 求 $y = x^3 \sin x$ 的导数，以及 $x = \frac{\pi}{2}$ 处的值。
+          reveal:
+            - title: 第 1 步：分出两个因子
+              body: $u = x^3$，$v = \sin x$；$u' = 3x^2$，$v' = \cos x$。
+            - title: 第 2 步：套用乘积法则
+              body: $y' = 3x^2 \sin x + x^3 \cos x$。
+            - title: 第 3 步：代入
+              body: $\sin\frac{\pi}{2} = 1$，$\cos\frac{\pi}{2} = 0$，所以 $y'(\frac{\pi}{2}) = 3 \cdot \frac{\pi^2}{4} \approx 7.402$。
+      - item:
+          id: x2cos
+          type: number
+          prompt: '$y = x^2 \cos x$。$y''(\pi)$ 是多少？（填小数，保留 3 位）'
+          answer: -6.2832
+          tolerance: 0.002
+          hint: u = x²，v = cos x，cos π = −1，sin π = 0。
+          explain: y′ = 2x cos x − x² sin x，y′(π) = 2π × (−1) − 0 = −2π ≈ −6.283。
+      - card:
+          title: 三个因子
+          body: |
+            把 $vw$ 看成一个因子，用两次乘积法则：
+
+            $$(uvw)' = u'vw + uv'w + uvw'$$
+
+            规律一样：每次只对一个因子求导，其余不动，最后全加起来。
+      - item:
+          id: three
+          type: number
+          prompt: '$f(x) = x(x + 1)(x + 2)$。$f''(1)$ 是多少？'
+          answer: 11
+          explain: 三个因子在 1 处是 1、2、3，导数都是 1：1·2·3 + 1·1·3 + 1·2·1 = 6 + 3 + 2 = 11。展开成 x³ + 3x² + 2x 再求导，3 + 6 + 2 也是 11。
+      - item:
+          id: not-product
+          type: choice
+          prompt: 下面哪一个是 (x² sin x)′？
+          options:
+            - text: 2x sin x + x² cos x
+              correct: true
+            - text: 2x cos x
+              why: 这是把两个导数直接相乘，乘积法则不是这样
+            - text: 2x sin x
+              why: 漏了第二项：sin x 也在变，要加上 x² · (sin x)′
+          explain: u′v + uv′ = 2x · sin x + x² · cos x。
+
+  - id: quotient-rule
+    chapter: 导数
+    title: 商法则
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: x²/x = x，它的导数是 1。如果“商的导数等于导数的商”，会得到 (2x)/1 = 2x。这对吗？
+          options:
+            - text: 不对
+              correct: true
+            - text: 对
+              why: x²/x 就是 x，导数是 1，不是 2x
+          explain: 商也不能逐个求导。下面推出正确的规则。
+      - card:
+          title: 商法则
+          body: |
+            设 $q = \frac{u}{v}$，那么 $u = qv$。对它用乘积法则（这里先承认 $q$ 可导，用定义可以证明）：$u' = q'v + qv'$。解出 $q'$，再把 $q = \frac uv$ 代回去：
+
+            $$\left(\frac{u}{v}\right)' = \frac{u'v - uv'}{v^2} \quad (v \ne 0)$$
+
+            这叫**商法则（quotient rule）**。分子是 $u'v$ 在前、减去 $uv'$，顺序不能反；分母是原来分母的平方。
+      - item:
+          id: frac-at-1
+          type: number
+          prompt: '$f(x) = \frac{x^2}{x + 1}$。$f''(1)$ 是多少？'
+          answer: 0.75
+          explain: f′ = [2x(x + 1) − x² · 1]/(x + 1)² = (x² + 2x)/(x + 1)²。在 1 处是 3/4。
+      - card:
+          title: 负指数的幂法则
+          body: |
+            取 $u = 1$：$\left(\frac1v\right)' = -\frac{v'}{v^2}$。再取 $v = x^n$：
+
+            $$(x^{-n})' = -\frac{n x^{n-1}}{x^{2n}} = -n x^{-n-1}$$
+
+            所以幂法则 $(x^n)' = n x^{n-1}$ 对负的整数指数也成立。$(\frac1x)' = (x^{-1})' = -x^{-2}$，和用定义算的一样。
+      - item:
+          id: neg-power
+          type: number
+          prompt: '$f(x) = \frac{1}{x^2}$。$f''(2)$ 是多少？'
+          answer: -0.25
+          explain: f(x) = x⁻²，f′(x) = −2x⁻³ = −2/x³，f′(2) = −2/8 = −0.25。
+      - card:
+          title: 例题：tan x 的导数
+          body: 求 $\tan x = \frac{\sin x}{\cos x}$ 的导数。
+          reveal:
+            - title: 第 1 步：认出 u 和 v
+              body: $u = \sin x$，$v = \cos x$；$u' = \cos x$，$v' = -\sin x$。
+            - title: 第 2 步：套商法则
+              body: $\frac{\cos x \cdot \cos x - \sin x \cdot (-\sin x)}{\cos^2 x} = \frac{\cos^2 x + \sin^2 x}{\cos^2 x}$。
+            - title: 第 3 步：化简
+              body: $\cos^2 x + \sin^2 x = 1$，所以 $(\tan x)' = \frac{1}{\cos^2 x}$，也写作 $\sec^2 x$（$\sec x = \frac{1}{\cos x}$）。
+      - item:
+          id: tan-at
+          type: number
+          prompt: '$f(x) = \tan x$。$f''(\frac{\pi}{4})$ 是多少？'
+          answer: 2
+          explain: f′ = 1/cos²x，cos(π/4) = √2/2，cos² = 1/2，所以 f′(π/4) = 2。
+      - item:
+          id: simplify-first
+          type: number
+          prompt: '$f(x) = \frac{x^4 + 1}{x^2}$。$f''(2)$ 是多少？'
+          answer: 3.75
+          hint: 可以先拆成 x² + x⁻²，再用幂法则。
+          explain: f = x² + x⁻²，f′ = 2x − 2x⁻³，f′(2) = 4 − 0.25 = 3.75。用商法则得 (2x⁴ − 2)/x³，在 2 处是 30/8 = 3.75，一样。
+      - item:
+          id: order-matters
+          type: choice
+          prompt: 商法则 (u/v)′ 的分子是哪一个？
+          options:
+            - text: u′v − uv′
+              correct: true
+            - text: uv′ − u′v
+              why: 顺序反了，结果差一个负号；用 (x/1)′ = 1 检验：u′v − uv′ = 1·1 − x·0 = 1
+            - text: u′v + uv′
+              why: 这是乘积法则的分子；商法则中间是减号
+          explain: 记法：“上导乘下，减上乘下导，除以下的平方”。拿不准时用 x/1 检验。
+
+  - id: chain-rule
+    chapter: 导数
+    title: 链式法则：函数套函数
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: sin x 的导数是 cos x。猜猜 sin(3x) 的导数是什么？
+          options:
+            - text: 3cos(3x)
+              correct: true
+            - text: cos(3x)
+              why: 3x 比 x 变化快 3 倍，sin(3x) 的波也挤窄了 3 倍，坡更陡
+            - text: cos(3)
+              why: 导数要随 x 变化；cos(3) 只是一个数
+          explain: 里面的 3x 跑得比 x 快 3 倍，所以整体的变化率也乘 3。下面把这个想法写成规则。
+      - card:
+          title: 复合函数
+          body: |
+            先算 $u = g(x)$，再把 $u$ 放进 $f$，得到 $f(g(x))$，这叫**复合函数（composite function）**。$g$ 是里层，$f$ 是外层。
+
+            例：$\sin(x^2)$ 的里层是 $x^2$，外层是 $\sin$。注意写法：$\sin^{10} t$ 的意思是 $(\sin t)^{10}$，里层是 $\sin t$，外层是 10 次方。
+      - item:
+          id: inner-outer
+          type: choice
+          prompt: (x² + 1)⁵ 的里层和外层分别是什么？
+          options:
+            - text: 里层 x² + 1，外层 u⁵
+              correct: true
+            - text: 里层 u⁵，外层 x² + 1
+              why: 先算的是 x² + 1，再把结果 5 次方，所以 x² + 1 在里面
+            - text: 里层 x²，外层 u + 1
+              why: 这样拆得到的是 x² 的 5 次方再加 1，不是原来的函数
+          explain: 看计算顺序：先算的在里层，最后算的在外层。
+      - card:
+          title: 链式法则
+          body: |
+            $y = f(u)$，$u = g(x)$。**链式法则（chain rule）**：
+
+            $$\frac{dy}{dx} = \frac{dy}{du} \cdot \frac{du}{dx}$$
+
+            也就是 $(f(g(x)))' = f'(g(x)) \cdot g'(x)$。
+
+            直观的理由：$\frac{\Delta y}{\Delta x} = \frac{\Delta y}{\Delta u} \cdot \frac{\Delta u}{\Delta x}$，再取极限（$\Delta u$ 可能等于 0，严格的证明要另外处理）。快慢相乘：$u$ 变得比 $x$ 快 3 倍，$y$ 变得比 $u$ 快 2 倍，$y$ 就比 $x$ 快 6 倍。
+      - item:
+          id: sin10t
+          type: number
+          prompt: '$y = \sin(10t)$。$t = 0$ 时 $\frac{dy}{dt}$ 是多少？'
+          answer: 10
+          explain: 外层 sin u 的导数 cos u，里层 10t 的导数 10：y′ = 10cos(10t)，t = 0 时是 10。只写 cos(10t) 就漏了里层的 10。
+      - card:
+          title: 例题：sin(x²)
+          body: 求 $y = \sin(x^2)$ 的导数。
+          reveal:
+            - title: 第 1 步：引入中间量
+              body: 设 $u = x^2$，那么 $y = \sin u$。
+            - title: 第 2 步：分别求导
+              body: $\frac{dy}{du} = \cos u$，$\frac{du}{dx} = 2x$。
+            - title: 第 3 步：相乘，再把 u 换回 x
+              body: $\frac{dy}{dx} = \cos u \cdot 2x = 2x\cos(x^2)$。最后一步别忘了把 $u$ 换回 $x^2$。
+      - item:
+          id: power-chain
+          type: number
+          prompt: '$y = (x^2 + 1)^5$。$y''(1)$ 是多少？'
+          answer: 160
+          explain: y′ = 5(x² + 1)⁴ · 2x，x = 1 时是 5 × 2⁴ × 2 = 160。
+      - item:
+          id: sin-pow
+          type: number
+          prompt: '$y = \sin^{10} t$，即 $(\sin t)^{10}$。$t = \frac{\pi}{4}$ 时 $y''$ 是多少？'
+          answer: 0.3125
+          hint: 外层是 u¹⁰，里层是 sin t。sin(π/4) = cos(π/4) = √2/2，而 (√2/2)² = 1/2。
+          explain: y′ = 10 sin⁹t · cos t。在 π/4 处 = 10 (√2/2)¹⁰ = 10 × (1/2)⁵ = 10/32 = 0.3125。
+      - card:
+          title: 三层也一样
+          body: |
+            $y = [\cos(\theta^4)]^2$ 有三层：最外是平方，中间是 $\cos$，最里是 $\theta^4$。从外往里，每层求导再相乘：
+
+            $$\begin{aligned}y' &= 2\cos(\theta^4) \cdot (-\sin(\theta^4)) \cdot 4\theta^3 \\ &= -8\theta^3 \cos(\theta^4)\sin(\theta^4)\end{aligned}$$
+      - item:
+          id: three-layer
+          type: choice
+          prompt: y = sin²(3x)，即 [sin(3x)]²。它的导数是什么？
+          options:
+            - text: 6 sin(3x) cos(3x)
+              correct: true
+            - text: 2 sin(3x) cos(3x)
+              why: 漏了最里层 3x 的导数 3
+            - text: 2 cos(3x)
+              why: 最外层是平方，不是 sin；平方的导数是 2 sin(3x)，还要乘 sin 那一层的导数和 3
+          explain: 外层 u² → 2u，中间 sin v → cos v，里层 3x → 3。相乘：2 sin(3x) · cos(3x) · 3。
+      - item:
+          id: quot-by-chain
+          type: number
+          prompt: '把 $\frac{x^3}{x + 1}$ 写成 $x^3 (x + 1)^{-1}$，用乘积法则和链式法则求它在 $x = 1$ 处的导数。'
+          answer: 1.25
+          explain: 导数 = 3x²(x + 1)⁻¹ + x³ · (−1)(x + 1)⁻² · 1。x = 1 时 3/2 − 1/4 = 1.25。用商法则 (2x³ + 3x²)/(x + 1)² 也得 5/4。样子不同的答案常常相等。
+
+  - id: higher-derivatives
+    chapter: 导数
+    title: 导数的导数
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 小车 t 秒时的位置是 s = t³ 米，速度 v = 3t² 米/秒。加速度是速度的变化率。t = 2 时加速度是多少米/秒²？
+          answer: 12
+          explain: 速度 3t² 的导数是 6t，t = 2 时是 12。加速度就是位置的“导数的导数”。
+      - card:
+          title: 二阶导数
+          body: |
+            $f'$ 也是一个函数，可以再求导。$f'' = (f')'$ 叫**二阶导数（second derivative）**，写作 $f''(x)$、$\frac{d^2y}{dx^2}$。继续求导得到三阶 $f'''$、四阶 $f^{(4)}$……二阶及以上都叫**高阶导数（higher derivative）**。
+
+            $\frac{d^2y}{dx^2}$ 的分母是 $(dx)^2$，不是 $x^2$ 的微小变化；这只是一种约定的写法。
+      - item:
+          id: x4-third
+          type: number
+          prompt: '$f(x) = x^4$。三阶导数 $f''''''(1)$ 是多少？'
+          answer: 24
+          explain: f′ = 4x³，f″ = 12x²，f‴ = 24x，在 1 处是 24。
+      - card:
+          title: 正弦转一圈回来
+          body: |
+            $(\sin x)' = \cos x$，$(\sin x)'' = -\sin x$，$(\sin x)''' = -\cos x$，$(\sin x)^{(4)} = \sin x$。
+
+            求四次导数就回到自己，以后每四次重复一遍。这是正弦和余弦特有的性质，一般函数没有。
+      - item:
+          id: sin-tenth
+          type: choice
+          prompt: sin x 的 10 阶导数是什么？
+          options:
+            - text: −sin x
+              correct: true
+            - text: sin x
+              why: 每 4 次回到 sin x；10 = 8 + 2，还要再求 2 次，得到 −sin x
+            - text: cos x
+              why: cos x 是 1 阶（以及 5、9 阶）导数
+          explain: 10 除以 4 余 2，和二阶导数相同：−sin x。
+      - card:
+          title: xⁿ 求 n 次导
+          body: |
+            $x^3 \to 3x^2 \to 3 \cdot 2x \to 3 \cdot 2 \cdot 1$。一般地，$x^n$ 求 $n$ 次导数得到
+
+            $$n \cdot (n-1) \cdots 2 \cdot 1 = n!$$
+
+            $n!$ 读作 n 的**阶乘（factorial）**，如 $4! = 24$。再多求一次就是 0。
+      - item:
+          id: d5x5
+          type: number
+          prompt: '$x^5$ 的 5 阶导数是多少？'
+          answer: 120
+          explain: 5! = 5 × 4 × 3 × 2 × 1 = 120，是一个常数；6 阶导数就是 0。
+      - item:
+          id: d2-notation
+          type: choice
+          prompt: 记号 d²y/dx² 表示什么？
+          options:
+            - text: y 的二阶导数
+              correct: true
+            - text: y 对 x² 求导
+              why: 分母读作“dx 的平方”，不是“d(x²)”；这是约定的写法
+            - text: 一阶导数的平方
+              why: 一阶导数的平方写作 (dy/dx)²，和二阶导数不是一回事
+          explain: d²y/dx² = d/dx (dy/dx)。
+      - item:
+          id: f-pp-neg-f
+          type: choice
+          prompt: 下面哪个函数满足 f″(x) = −f(x)？
+          options:
+            - text: 3 sin x − cos x
+              correct: true
+            - text: eˣ
+              why: 后面会学到 eˣ 的各阶导数都是它自己，f″ = f，不是 −f
+            - text: x²
+              why: x² 的二阶导数是 2，不等于 −x²
+          explain: (3 sin x − cos x)″ = −3 sin x + cos x = −(3 sin x − cos x)。a sin x + b cos x 都满足这个关系。
+  - id: implicit
+    chapter: 导数
+    title: 隐函数求导：不解出 y 也能求斜率
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 圆 x² + y² = 25 上的点 (3, 4)。半径从圆心指向它，斜率是 4/3。切线和半径垂直，猜猜切线斜率是多少？
+          options:
+            - text: −3/4
+              correct: true
+            - text: 4/3
+              why: 这是半径的斜率；切线和半径垂直，不是同一条线
+            - text: 3/4
+              why: 垂直的两条直线斜率相乘等于 −1，所以要带负号
+          explain: 垂直直线的斜率互为负倒数：−1 ÷ (4/3) = −3/4。下面用求导得到同样的结果。
+      - card:
+          title: 方程也能定义函数
+          body: |
+            $x^2 + y^2 = 1$ 不是 $y = \ldots$ 的样子，但它把 $y$ 和 $x$ 联系起来了：在上半圆，每个 $x$ 对应一个 $y$。这样由方程确定、没有解出来的函数叫**隐函数（implicit function）**。
+
+            解出来是 $y = \sqrt{1 - x^2}$（上半圆）或 $y = -\sqrt{1 - x^2}$（下半圆），已经要分两种情况；很多方程根本解不出来。
+      - card:
+          title: 两边一起求导
+          body: |
+            把 $y$ 看成 $x$ 的函数，对方程两边求导。$y^2$ 是复合函数，链式法则给出 $(y^2)' = 2y \cdot y'$。
+
+            $x^2 + y^2 = 1$ 两边求导：$2x + 2y\,y' = 0$，所以 $y' = -\frac{x}{y}$。上半圆、下半圆都适用，只要代入点的坐标。
+      - item:
+          id: circle-34
+          type: number
+          prompt: '圆 $x^2 + y^2 = 25$ 在点 $(3, 4)$ 处的切线斜率是多少？'
+          answer: -0.75
+          explain: 2x + 2y y′ = 0，y′ = −x/y = −3/4。和几何算出来的一样。
+      - item:
+          id: circle-3m4
+          type: number
+          prompt: '圆 $x^2 + y^2 = 25$ 在点 $(3, -4)$（下半圆）处的切线斜率是多少？'
+          answer: 0.75
+          explain: y′ = −x/y = −3/(−4) = 3/4。同一个式子，代入下半圆的点就行。
+      - card:
+          title: 例题：y⁴ + xy² − 2 = 0
+          body: 求曲线 $y^4 + xy^2 - 2 = 0$ 在点 $(1, 1)$ 处的切线斜率。
+          reveal:
+            - title: 第 1 步：确认点在曲线上
+              body: $1 + 1 - 2 = 0$，在。
+            - title: 第 2 步：两边求导
+              body: $y^4$ 求导得 $4y^3 y'$；$xy^2$ 是乘积，得 $1 \cdot y^2 + x \cdot 2y\,y'$；常数 2 求导得 0。所以 $4y^3 y' + y^2 + 2xy\,y' = 0$。
+            - title: 第 3 步：解出 y′ 再代入
+              body: $y' = -\frac{y^2}{4y^3 + 2xy}$，在 $(1, 1)$ 处是 $-\frac{1}{6}$。答案里留着 $y$ 是正常的，代入点就得到数。
+      - item:
+          id: xy-curve
+          type: number
+          prompt: '曲线 $x^2 + xy + y^2 = 3$ 经过点 $(1, 1)$。那里的切线斜率是多少？'
+          answer: -1
+          hint: xy 是乘积，求导得 y + x y′。
+          explain: 2x + (y + x y′) + 2y y′ = 0，y′ = −(2x + y)/(x + 2y)，在 (1, 1) 处是 −3/3 = −1。
+      - card:
+          title: 分数指数的幂法则
+          body: |
+            $y = x^{m/n}$ 等价于 $y^n = x^m$。两边求导：$n y^{n-1} y' = m x^{m-1}$，解出 $y'$ 并代回 $y = x^{m/n}$，化简得
+
+            $$\left(x^{m/n}\right)' = \frac{m}{n} x^{\frac{m}{n} - 1}$$
+
+            幂法则对分数指数也成立。例如 $\sqrt{x} = x^{1/2}$，导数是 $\frac12 x^{-1/2} = \frac{1}{2\sqrt x}$。
+      - item:
+          id: x23
+          type: number
+          prompt: '$f(x) = x^{2/3}$。$f''(8)$ 是多少？'
+          answer: 0.3333333
+          tolerance: 0.0005
+          explain: f′(x) = (2/3)x^(−1/3)，8^(1/3) = 2，所以 f′(8) = (2/3)(1/2) = 1/3。
+      - item:
+          id: sqrt4
+          type: number
+          prompt: '$f(x) = \sqrt{x}$。$f''(4)$ 是多少？'
+          answer: 0.25
+          explain: f′(x) = 1/(2√x)，f′(4) = 1/4。
+
+  - id: implicit-practice
+    chapter: 导数
+    title: 隐函数求导的练习和二阶导数
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 曲线 y³ + x³ = 3xy 很难解出 y = …。还能求出它在某一点的切线斜率吗？
+          options:
+            - text: 能，两边求导就行
+              correct: true
+            - text: 不能，必须先解出 y
+              why: 隐函数求导不需要解出 y，只要知道点的坐标
+          explain: 求导后的方程里 y′ 只出现一次方，像一次方程一样解出来。
+      - card:
+          title: 例题：y³ + x³ = 3xy 在 (4/3, 2/3)
+          body: 求曲线 $y^3 + x^3 = 3xy$ 在 $(\frac43, \frac23)$ 处的切线斜率。
+          reveal:
+            - title: 第 1 步：确认点在曲线上
+              body: $\frac{8}{27} + \frac{64}{27} = \frac{72}{27} = \frac83$；$3 \cdot \frac43 \cdot \frac23 = \frac83$。在。
+            - title: 第 2 步：两边求导
+              body: $3y^2 y' + 3x^2 = 3(y + x y')$。右边的 $xy$ 用了乘积法则。
+            - title: 第 3 步：把带 y′ 的项移到一边
+              body: $3y^2 y' - 3x y' = 3y - 3x^2$，所以 $y' = \frac{y - x^2}{y^2 - x}$。
+            - title: 第 4 步：代入
+              body: 分子 $\frac23 - \frac{16}{9} = -\frac{10}{9}$，分母 $\frac49 - \frac43 = -\frac89$，$y' = \frac{10}{8} = \frac54$。
+      - item:
+          id: hyperbola
+          type: number
+          prompt: '双曲线 $y^2 - x^2 = 1$ 在点 $(1, \sqrt2)$ 处的切线斜率是多少？（填小数，保留 3 位）'
+          answer: 0.7071
+          tolerance: 0.001
+          explain: 2y y′ − 2x = 0，y′ = x/y = 1/√2 ≈ 0.707。
+      - item:
+          id: cubic-sum
+          type: number
+          prompt: '曲线 $x^3 + y^3 = 9$ 经过 $(1, 2)$。那里的切线斜率是多少？'
+          answer: -0.25
+          explain: 3x² + 3y² y′ = 0，y′ = −x²/y² = −1/4。
+      - card:
+          title: 分母为 0：切线竖直
+          body: |
+            椭圆 $x^2 + 4y^2 = 1$：$2x + 8y\,y' = 0$，$y' = -\frac{x}{4y}$。
+
+            在顶点 $(0, \frac12)$ 处 $y' = 0$，切线水平。在最右边的点 $(1, 0)$ 处分母是 0，$y'$ 没有定义：那里的切线是竖直的，不是算错了。
+      - item:
+          id: vertical
+          type: choice
+          prompt: 椭圆 x² + 4y² = 1 上，y′ = −x/(4y)。在点 (1, 0) 处分母为 0，这说明什么？
+          options:
+            - text: 那里切线是竖直的，斜率不存在
+              correct: true
+            - text: 求导做错了
+              why: 椭圆最右边的点切线本来就是竖直的，公式如实反映了这一点
+            - text: 那里切线斜率是 0
+              why: 斜率为 0 是分子为 0；这里是分母为 0
+          explain: 竖直的直线没有斜率，所以 y′ 在那里不存在。
+      - card:
+          title: 例题：隐函数的二阶导数
+          body: 椭圆 $x^2 + 4y^2 = 1$，已知 $y' = -\frac{x}{4y}$。求 $y''$。
+          reveal:
+            - title: 第 1 步：对 y′ 用商法则
+              body: $y'' = -\frac{1 \cdot 4y - x \cdot 4y'}{16y^2} = \frac{-y + x y'}{4y^2}$。这里 $y$ 仍是 $x$ 的函数，它的导数写成 $y'$。
+            - title: 第 2 步：代入 y′
+              body: $\frac{-y - \frac{x^2}{4y}}{4y^2} = -\frac{4y^2 + x^2}{16 y^3}$。
+            - title: 第 3 步：用原方程化简
+              body: $x^2 + 4y^2 = 1$，所以 $y'' = -\frac{1}{16y^3}$。先解出 $y'$ 再求导，比再对原方程求导一次省事。
+      - item:
+          id: ellipse-ypp
+          type: number
+          prompt: '椭圆 $x^2 + 4y^2 = 1$ 上，$y'''' = -\frac{1}{16y^3}$。在顶点 $(0, \frac12)$ 处 $y''''$ 是多少？'
+          answer: -0.5
+          explain: y³ = 1/8，16y³ = 2，y″ = −1/2。负的二阶导数说明曲线在这里向下弯，顶点是最高点。
+
+  - id: inverse-functions
+    chapter: 导数
+    title: 反函数和它的导数
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: f(x) = 2x + 1 把 3 变成 7。哪个函数能把 7 变回 3？
+          options:
+            - text: g(x) = (x − 1)/2
+              correct: true
+            - text: g(x) = 2x − 1
+              why: g(7) = 13，变不回 3；要倒着做：先减 1，再除以 2
+            - text: g(x) = 1/(2x + 1)
+              why: 这是 f 的倒数，不是把输出变回输入的函数
+          explain: f 是“乘 2 再加 1”，倒回去就是“减 1 再除以 2”。
+      - card:
+          title: 反函数
+          body: |
+            如果 $g(f(x)) = x$，并且 $f(g(y)) = y$，$g$ 叫 $f$ 的**反函数（inverse function）**，记作 $f^{-1}$：把输入和输出的角色对调。
+
+            要有反函数，$f$ 不能把两个输入送到同一个输出。$x^2$ 把 2 和 −2 都送到 4，所以只取 $x \ge 0$ 的部分，它的反函数是 $\sqrt{x}$。$f^{-1}$ 的图像是 $f$ 的图像沿直线 $y = x$ 翻过来。
+      - item:
+          id: cube-inv
+          type: number
+          prompt: '$f(x) = x^3$。$f^{-1}(8)$ 是多少？'
+          answer: 2
+          explain: f⁻¹(8) 是那个立方等于 8 的数：2。
+      - card:
+          title: 反函数的导数
+          body: |
+            设 $y = f^{-1}(x)$，那么 $f(y) = x$。两边对 $x$ 求导（左边用链式法则）：$f'(y) \cdot y' = 1$，所以
+
+            $$(f^{-1})'(x) = \frac{1}{f'(y)}$$
+
+            其中 $y = f^{-1}(x)$。
+
+            从图上看：沿 $y = x$ 翻过来，往右走和往上走对调了，斜率变成倒数。
+      - item:
+          id: inv-slope
+          type: number
+          prompt: '$f(x) = x^3 + x$，$f(1) = 2$。反函数 $f^{-1}$ 在 $x = 2$ 处的导数是多少？'
+          answer: 0.25
+          hint: 先算 f′(1)。
+          explain: f′(x) = 3x² + 1，f′(1) = 4。f⁻¹(2) = 1，所以 (f⁻¹)′(2) = 1/f′(1) = 1/4。
+      - card:
+          title: 例题：√x 作为 x² 的反函数
+          body: $f(x) = x^2$（$x > 0$）的反函数是 $\sqrt x$。用反函数求导得到 $\sqrt x$ 的导数。
+          reveal:
+            - title: 第 1 步：写成 f(y) = x
+              body: $y = \sqrt x$ 等价于 $y^2 = x$（$y > 0$）。
+            - title: 第 2 步：两边求导
+              body: $2y\,y' = 1$，$y' = \frac{1}{2y}$。
+            - title: 第 3 步：换回 x
+              body: $y = \sqrt x$，所以 $(\sqrt x)' = \frac{1}{2\sqrt x}$，和幂法则 $\frac12 x^{-1/2}$ 一样。
+      - item:
+          id: cbrt-inv
+          type: number
+          prompt: '$\sqrt[3]{x}$ 是 $x^3$ 的反函数。它在 $x = 8$ 处的导数是多少？'
+          answer: 0.0833333
+          tolerance: 0.0005
+          explain: y = ∛x 时 y³ = x，3y² y′ = 1，y′ = 1/(3y²)。x = 8 时 y = 2，y′ = 1/12 ≈ 0.0833。
+      - item:
+          id: mirror
+          type: choice
+          prompt: 函数 f 的图像在点 (1, 2) 处切线斜率是 4。它的反函数的图像在点 (2, 1) 处切线斜率是多少？
+          options:
+            - text: 1/4
+              correct: true
+            - text: '4'
+              why: 沿 y = x 翻过来以后，横竖对调，斜率变成倒数
+            - text: '−4'
+              why: 翻折不改变升降的方向；增函数的反函数还是增函数，斜率为正
+          explain: (f⁻¹)′(2) = 1/f′(1) = 1/4。
+
+  - id: inverse-trig
+    chapter: 导数
+    title: 反三角函数的导数
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: tan(π/4) = 1。哪个角的正切等于 1，并且在 −π/2 和 π/2 之间？
+          options:
+            - text: π/4
+              correct: true
+            - text: 5π/4
+              why: tan(5π/4) 也等于 1，但 5π/4 不在 −π/2 到 π/2 之间
+            - text: '1'
+              why: tan 1 ≈ 1.557，不是 1
+          explain: 正切每隔 π 重复，要规定只取 −π/2 到 π/2 之间的那个角，答案才唯一。
+      - card:
+          title: 取一段再反过来
+          body: |
+            $\tan x$ 在 $(-\frac{\pi}{2}, \frac{\pi}{2})$ 上一直增加，取遍所有实数。这一段的反函数叫反正切 $\arctan x$（也写 $\tan^{-1} x$）：输入任何实数，输出在 $(-\frac{\pi}{2}, \frac{\pi}{2})$ 里。
+
+            同样，$\sin x$ 取 $[-\frac{\pi}{2}, \frac{\pi}{2}]$ 得到 $\arcsin x$，$\cos x$ 取 $[0, \pi]$ 得到 $\arccos x$，它们的输入都只能在 $[-1, 1]$ 里。
+      - item:
+          id: arc-values
+          type: choice
+          prompt: arcsin(1/2) 等于多少？
+          options:
+            - text: π/6
+              correct: true
+            - text: 5π/6
+              why: sin(5π/6) 也是 1/2，但 arcsin 只取 −π/2 到 π/2 之间的角
+            - text: π/3
+              why: sin(π/3) = √3/2，不是 1/2
+          explain: sin(π/6) = 1/2，且 π/6 在 [−π/2, π/2] 里。
+      - card:
+          title: 例题：arctan x 的导数
+          body: 求 $y = \arctan x$ 的导数。
+          reveal:
+            - title: 第 1 步：写成 tan y = x
+              body: 两边求导，$(\tan y)' = \frac{1}{\cos^2 y}$，所以 $\frac{1}{\cos^2 y} \cdot y' = 1$，$y' = \cos^2 y$。
+            - title: 第 2 步：把 cos y 写成 x 的式子
+              body: 画一个直角三角形，角 $y$ 的对边是 $x$、邻边是 1，斜边就是 $\sqrt{1 + x^2}$，$\cos y = \frac{1}{\sqrt{1 + x^2}}$。
+            - title: 第 3 步：得到结果
+              body: $(\arctan x)' = \frac{1}{1 + x^2}$。$\cos^2(\arctan x)$ 也对，但不化简就没法用。
+      - item:
+          id: atan1
+          type: number
+          prompt: '$(\arctan x)'' = \frac{1}{1 + x^2}$。它在 $x = 1$ 处是多少？'
+          answer: 0.5
+          explain: 1/(1 + 1) = 1/2。arctan 在 1 处的切线斜率是 1/2。
+      - card:
+          title: 反正弦和反余弦
+          body: |
+            $y = \arcsin x$：$\sin y = x$，求导 $\cos y \cdot y' = 1$。$y$ 在 $[-\frac{\pi}{2}, \frac{\pi}{2}]$ 里，$\cos y \ge 0$，$\cos y = \sqrt{1 - x^2}$：
+
+            $$\begin{aligned}(\arcsin x)' &= \frac{1}{\sqrt{1 - x^2}} \\ (\arccos x)' &= -\frac{1}{\sqrt{1 - x^2}}\end{aligned}$$
+
+            两个式子都只在 $-1 < x < 1$ 时有意义。$\arccos$ 是减函数，所以带负号。
+      - item:
+          id: asin06
+          type: number
+          prompt: '$(\arcsin x)''$ 在 $x = 0.6$ 处是多少？'
+          answer: 1.25
+          explain: 1/√(1 − 0.36) = 1/√0.64 = 1/0.8 = 1.25。
+      - item:
+          id: atan2x
+          type: number
+          prompt: '$y = \arctan(2x)$。$y''(0)$ 是多少？'
+          answer: 2
+          hint: 链式法则：外层 arctan u，里层 2x。
+          explain: y′ = 1/(1 + 4x²) · 2，x = 0 时是 2。
+      - item:
+          id: acos-sign
+          type: choice
+          prompt: 为什么 (arccos x)′ 带负号，而 (arcsin x)′ 不带？
+          options:
+            - text: arccos x 随 x 增大而减小，切线向右下降
+              correct: true
+            - text: 因为 cos x 的导数是 −sin x
+              why: 推导里确实出现 −sin y，但根本原因是 arccos 是减函数，斜率处处为负
+            - text: 因为 arccos x 的取值是负的
+              why: arccos 的取值在 [0, π]，都不是负的
+          explain: arccos 从 arccos(−1) = π 降到 arccos(1) = 0，一路下降。
+
+  - id: exp-log
+    chapter: 导数
+    title: eˣ 和 ln x
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 2ˣ 每当 x 增加 1 就翻倍。它在 x = 0 处切线的斜率大约是多少？
+          options:
+            - text: 比 1 小，约 0.69
+              correct: true
+            - text: 正好是 1
+              why: 从 x = 0 到 x = 1，2ˣ 从 1 涨到 2，割线斜率是 1；曲线向上弯，所以 0 处的切线比这条割线平
+            - text: 正好是 2
+              why: 2 是底数；0 处的斜率要用差商的极限来算
+          explain: (2ʰ − 1)/h 在 h → 0 时趋于约 0.6931。下面的演示用 3ˣ 看这件事。
+      - card:
+          title: aˣ 的导数和它自己成正比
+          body: |
+            $a^{x+h} = a^x a^h$，所以
+
+            $$\begin{aligned}\frac{a^{x+h} - a^x}{h} &= a^x \cdot \frac{a^h - 1}{h} \\ &\to a^x \cdot M(a)\end{aligned}$$
+
+            $M(a) = \lim_{h \to 0}\frac{a^h - 1}{h}$ 只和底数 $a$ 有关，正是 $a^x$ 在 0 处的斜率。下面演示 $3^x$ 在 0 处的割线。
+          sim:
+            name: plot
+            params: { mode: secant, f: "3^x", a: 0, hMax: 1 }
+      - item:
+          id: sim-2x
+          type: sim
+          prompt: '$f(x) = 2^x$，$a = 0$。把 $h$ 调小，让割线斜率和 0.6931 相差不到 0.002。'
+          sim: plot
+          params: { mode: secant, f: "2^x", a: 0, hMax: 1 }
+          goal: { slope: { target: 0.6931, tol: 0.002 } }
+          solution: { h: 0.005 }
+          explain: M(2) ≈ 0.6931，M(3) ≈ 1.0986。所以 (2ˣ)′ ≈ 0.6931 · 2ˣ，(3ˣ)′ ≈ 1.0986 · 3ˣ。
+      - card:
+          title: e：斜率正好是 1 的底
+          body: |
+            $M(2) < 1 < M(3)$。把那个让 $M = 1$ 的底叫 $e$，$e \approx 2.71828$。于是
+
+            $$(e^x)' = e^x$$
+
+            导数就是它自己。这样的底一定存在：$b = 2^{1/M(2)}$ 时 $b^x = 2^{x/M(2)}$，用链式法则，它在 0 处的斜率是 $\frac{M(2)}{M(2)} = 1$。
+      - item:
+          id: e3x
+          type: number
+          prompt: '$y = e^{3x}$。$y''(0)$ 是多少？'
+          answer: 3
+          explain: 链式法则：y′ = e^(3x) · 3，x = 0 时是 3。
+      - card:
+          title: 自然对数
+          body: |
+            $e^x$ 的反函数叫**自然对数（natural logarithm）**，写作 $\ln x$：$\ln y = x$ 等价于 $e^x = y$（$y > 0$）。$\ln 1 = 0$，$\ln e = 1$，$\ln(ab) = \ln a + \ln b$。
+
+            求导：$w = \ln x$ 时 $e^w = x$，两边求导 $e^w w' = 1$，$w' = \frac{1}{e^w} = \frac1x$。再加上链式法则：
+
+            $$(\ln x)' = \frac1x, \qquad (\ln u)' = \frac{u'}{u}$$
+      - item:
+          id: ln4
+          type: number
+          prompt: '$f(x) = \ln x$。$f''(4)$ 是多少？'
+          answer: 0.25
+          explain: f′(x) = 1/x，f′(4) = 1/4。
+      - card:
+          title: 例题：两道综合求导
+          body: 求 (a) $y = \ln(1 + x^2)$ 和 (b) $y = x^3 e^{2x}$ 的导数。
+          reveal:
+            - title: (a) 用 (ln u)′ = u′/u
+              body: $u = 1 + x^2$，$u' = 2x$，所以 $y' = \frac{2x}{1 + x^2}$。
+            - title: (b) 第 1 步：乘积法则
+              body: $y' = (x^3)' e^{2x} + x^3 (e^{2x})'$。
+            - title: (b) 第 2 步：链式法则求 (e²ˣ)′，再整理
+              body: $(e^{2x})' = 2e^{2x}$，所以 $y' = 3x^2 e^{2x} + 2x^3 e^{2x} = x^2(2x + 3)e^{2x}$。
+      - item:
+          id: x3e2x
+          type: number
+          prompt: '$y = x^3 e^{2x}$。$y''(1)$ 是多少？（填小数，保留 2 位）'
+          answer: 36.9453
+          tolerance: 0.01
+          explain: y′ = x²(2x + 3)e^(2x)，x = 1 时是 5e² ≈ 36.95。
+      - item:
+          id: ln-cos
+          type: number
+          prompt: '$g(x) = \ln(\cos x)$。$g''(\frac{\pi}{4})$ 是多少？'
+          answer: -1
+          explain: g′ = (cos x)′/cos x = −sin x/cos x = −tan x，tan(π/4) = 1，所以是 −1。
+      - item:
+          id: simplify-ln
+          type: choice
+          prompt: y = ln(e^(x²)) 的导数是什么？
+          options:
+            - text: 2x
+              correct: true
+            - text: 1/e^(x²)
+              why: 这是 ln u 的导数 1/u，还要乘 u′；更省事的是先化简
+            - text: e^(x²)
+              why: ln 和 e 抵消以后剩下的是 x²，不是 e^(x²)
+          explain: ln(e^(x²)) = x²（ln 和 e 互为反函数），导数是 2x。先化简再求导最快。
+
+  - id: log-diff
+    chapter: 导数
+    title: 对数求导法：aˣ、xʳ 和 xˣ
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 2ˣ 的导数是什么？
+          options:
+            - text: 2ˣ · ln 2
+              correct: true
+            - text: x · 2ˣ⁻¹
+              why: 这是把幂法则用错了地方：幂法则管的是“底在变、指数固定”的 xⁿ，2ˣ 是指数在变
+            - text: 2ˣ
+              why: 只有底是 e 时导数才等于自己；2 < e，2ˣ 涨得慢一些
+          explain: 这一课说明为什么，并顺便得到 M(2) = ln 2 ≈ 0.6931。
+      - card:
+          title: 对数的运算
+          body: |
+            $\ln(MN) = \ln M + \ln N$，$\ln\frac{M}{N} = \ln M - \ln N$，$\ln(M^k) = k \ln M$，换底：$\log_b M = \frac{\ln M}{\ln b}$。
+
+            两个常见的错：$(\ln M)^k$ 不等于 $k \ln M$，乘方要在 ln 的括号里面才能提出来；$\ln \frac MN$ 不等于 $\frac{\ln M}{\ln N}$。
+      - item:
+          id: log-rule
+          type: choice
+          prompt: 下面哪个等式对所有正数 M、N 都成立？
+          options:
+            - text: ln(M³) = 3 ln M
+              correct: true
+            - text: (ln M)³ = 3 ln M
+              why: M = e 时左边是 1，右边是 3。乘方在括号外面不能提出来
+            - text: ln(M/N) = ln M / ln N
+              why: 商的对数是对数的差，ln M − ln N
+          explain: 乘方在 ln 的括号里面，指数可以提到前面。
+      - card:
+          title: aˣ 的导数
+          body: |
+            $a = e^{\ln a}$，所以 $a^x = e^{x \ln a}$。$\ln a$ 是一个常数，链式法则给出
+
+            $$(a^x)' = e^{x\ln a} \cdot \ln a = (\ln a)\, a^x$$
+
+            于是 $M(a) = \ln a$：$M(2) = \ln 2 \approx 0.6931$，$(10^x)' = (\ln 10)\,10^x$。哪怕坚持用 2 或 10 作底，导数里也会冒出自然对数。
+      - item:
+          id: two-x
+          type: number
+          prompt: '$f(x) = 2^x$。$f''(3)$ 是多少？（填小数，保留 3 位）'
+          answer: 5.5452
+          tolerance: 0.001
+          explain: f′(x) = (ln 2) 2ˣ，f′(3) = 8 ln 2 ≈ 5.545。
+      - card:
+          title: 对数求导法
+          body: |
+            $y = x^x$ 底和指数都在变，幂法则和指数的公式都不能直接用。先取对数：$\ln y = x \ln x$。两边求导，左边是 $\frac{y'}{y}$，右边用乘积法则：$\ln x + 1$。最后乘回 $y$：
+
+            $$(x^x)' = x^x(1 + \ln x)$$
+
+            这叫**对数求导法（logarithmic differentiation）**。最后一步乘回 $y$ 最容易忘。
+      - item:
+          id: xx2
+          type: number
+          prompt: '$y = x^x$。$y''(2)$ 是多少？（填小数，保留 3 位）'
+          answer: 6.7726
+          tolerance: 0.001
+          explain: y′ = xˣ(1 + ln x)，x = 2 时是 4(1 + ln 2) ≈ 4 × 1.6931 ≈ 6.773。
+      - card:
+          title: 任意实数指数的幂法则
+          body: |
+            $x > 0$ 时 $x^r = e^{r \ln x}$，链式法则给出 $(x^r)' = e^{r\ln x} \cdot \frac{r}{x} = r x^{r-1}$。所以幂法则对任何实数 $r$ 都成立，比如 $(x^{\pi})' = \pi x^{\pi - 1}$。
+
+            分清两种函数：$x^{\pi}$ 是底在变，用幂法则；$\pi^x$ 是指数在变，导数是 $(\ln \pi)\,\pi^x$。
+      - item:
+          id: pi-mix
+          type: number
+          prompt: '$f(x) = x^{\pi} + \pi^x$。$f''(1)$ 是多少？（填小数，保留 3 位）'
+          answer: 6.7379
+          tolerance: 0.001
+          explain: f′(x) = π x^(π−1) + (ln π) π^x。x = 1 时是 π + π ln π ≈ 3.1416 + 3.5963 ≈ 6.738。
+      - item:
+          id: log-product
+          type: number
+          prompt: '$y = (x + 1)^2 (x + 2)^3$。用对数求导法求 $y''(0)$。'
+          answer: 28
+          hint: ln y = 2 ln(x + 1) + 3 ln(x + 2)，求导后乘回 y。
+          explain: y′/y = 2/(x + 1) + 3/(x + 2)。x = 0 时 y = 1 × 8 = 8，y′/y = 2 + 1.5 = 3.5，y′ = 28。直接用乘积法则也是 2·8 + 3·4 = 28。
+  - id: linear-approx
+    chapter: 微分
+    title: 用切线代替曲线
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 不用计算器，√4.1 最接近哪个数？
+          options:
+            - text: '2.025'
+              correct: true
+            - text: '2.05'
+              why: 4 增加到 4.1，平方根增加得比 0.05 少：2.05² = 4.2025，已经超过 4.1
+            - text: '2.1'
+              why: 2.1² = 4.41，比 4.1 大得多
+          explain: √x 在 4 处的斜率是 1/(2√4) = 1/4，x 多 0.1，√x 大约多 0.025。真实值约 2.02485。
+      - card:
+          title: 线性近似
+          body: |
+            光滑曲线放大后接近切线，所以在 $a$ 附近可以用切线的高度代替函数值：
+
+            $$f(x) \approx f(a) + f'(a)(x - a)$$
+
+            这叫 $f$ 在 $a$ 处的**线性近似（linear approximation）**。曲线难算，直线好算。代价是：$x$ 离 $a$ 越远，误差越大。
+      - item:
+          id: recip-21
+          type: number
+          prompt: '用 $f(x) = \frac1x$ 在 $a = 2$ 处的线性近似估算 $\frac{1}{2.1}$。'
+          answer: 0.475
+          explain: f(2) = 1/2，f′(2) = −1/4，近似值 1/2 − (1/4)(0.1) = 0.475。真实值约 0.47619。
+      - card:
+          title: x 靠近 0 时的一张表
+          body: |
+            取 $a = 0$，$f(x) \approx f(0) + f'(0)\,x$：
+
+            | 函数 | 近似 | 依据 |
+            |---|---|---|
+            | $\sin x$ | $x$ | $\sin 0 = 0$，$\cos 0 = 1$ |
+            | $\cos x$ | $1$ | $\cos 0 = 1$，$-\sin 0 = 0$ |
+            | $e^x$ | $1 + x$ | $e^0 = 1$，导数也是 1 |
+            | $\ln(1 + x)$ | $x$ | $\ln 1 = 0$，$\frac{1}{1 + 0} = 1$ |
+            | $(1 + x)^r$ | $1 + rx$ | $1$，$r$ |
+
+            写成 $\ln(1 + x)$ 而不是 $\ln x$，是因为 $\ln x$ 在 0 处没有定义，基点要选在函数好算的地方。
+      - item:
+          id: cube-101
+          type: number
+          prompt: '用 $(1 + x)^r \approx 1 + rx$ 估算 $1.01^3$。'
+          answer: 1.03
+          explain: r = 3，x = 0.01：1 + 0.03 = 1.03。真实值 1.030301，误差只有 0.0003。
+      - item:
+          id: e002
+          type: number
+          prompt: '用 $e^x \approx 1 + x$ 估算 $e^{0.02}$。'
+          answer: 1.02
+          explain: 1 + 0.02 = 1.02，真实值约 1.020201。
+      - card:
+          title: 离基点远了就不准
+          body: |
+            $\sin x \approx x$：$\sin 0.01 = 0.0099998\ldots$，几乎一样；$\sin 1 = 0.841\ldots$，和 1 差了 0.15 多。$x$ 一直变大，$\sin x$ 却总在 −1 和 1 之间，误差只会越来越大。
+
+            远处的点要换一个近的基点。比如 $\sin 3.1$：3.1 靠近 $\pi$，$\sin\pi = 0$，$\cos\pi = -1$，所以 $\sin 3.1 \approx -(3.1 - \pi) = \pi - 3.1 \approx 0.0416$。
+      - item:
+          id: base-pick
+          type: choice
+          prompt: 想估算 ln 0.98，用哪个近似最合适？
+          options:
+            - text: ln x 在 x = 1 处的线性近似 ln x ≈ x − 1，得 −0.02
+              correct: true
+            - text: ln x 在 x = 0 处的线性近似
+              why: ln x 在 0 处没有定义，不能作基点
+            - text: ln x 在 x = e 处的线性近似
+              why: e ≈ 2.718 离 0.98 太远，误差大；要选离 0.98 近、又好算的点
+          explain: ln 1 = 0，(ln x)′ = 1/x 在 1 处是 1，所以 ln x ≈ x − 1。真实值 ln 0.98 ≈ −0.0202。
+      - item:
+          id: cbrt83
+          type: number
+          prompt: '用 $\sqrt[3]{x}$ 在 $x = 8$ 处的线性近似估算 $\sqrt[3]{8.3}$。（填小数，保留 3 位）'
+          answer: 2.025
+          tolerance: 0.0005
+          explain: f(8) = 2，f′(x) = (1/3)x^(−2/3)，f′(8) = 1/12。近似值 2 + 0.3/12 = 2.025。真实值约 2.0247。
+
+  - id: differentials
+    chapter: 微分
+    title: 微分 dy
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 边长 10 厘米的正方形，边长增加 0.1 厘米。面积大约增加多少平方厘米？
+          options:
+            - text: 约 2（准确是 2.01）
+              correct: true
+            - text: 约 0.01
+              why: 0.01 = 0.1² 只是右上角那个小正方形；两条长边各多出 10 × 0.1 = 1
+            - text: 约 0.1
+              why: 面积的增加要看边长 10 有多长：两条边各多出 1 平方厘米
+          explain: 10.1² − 10² = 2.01。其中 2 = 2 × 10 × 0.1 来自两条长条，0.01 来自小角。
+      - card:
+          title: 增量和微分
+          body: |
+            $x$ 变化 $\Delta x$，函数真正的变化是 $\Delta y = f(x + \Delta x) - f(x)$。$\Delta x$ 很小时 $\Delta y \approx f'(x)\,\Delta x$。
+
+            把 $dx = \Delta x$ 叫 $x$ 的微分，把
+
+            $$dy = f'(x)\,dx$$
+
+            叫 $y$ 的**微分（differential）**。$dy$ 是沿切线升高的量，$\Delta y$ 是沿曲线升高的量，两者只差一点点。
+      - item:
+          id: dy-gap
+          type: number
+          prompt: '$y = x^2$，$x = 10$，$dx = \Delta x = 0.1$。$\Delta y - dy$ 是多少？'
+          answer: 0.01
+          tolerance: 0.000001
+          explain: Δy = 10.1² − 100 = 2.01，dy = 2 × 10 × 0.1 = 2，差 0.01 = (Δx)²。
+      - card:
+          title: 线性主部
+          body: |
+            如果 $\Delta y = A\,\Delta x + o(\Delta x)$（$A$ 是和 $\Delta x$ 无关的常数，$o(\Delta x)$ 是比 $\Delta x$ 高阶的无穷小），就说 $f$ 在这一点**可微**，$A\,\Delta x$ 叫 $\Delta y$ 的线性主部。
+
+            两边除以 $\Delta x$ 取极限可以看出 $A = f'(x)$。一元函数可微和可导是一回事，微分 $dy$ 就是线性主部。$\frac{dy}{dx}$ 也可以读成两个微分之比。
+      - item:
+          id: higher-order
+          type: choice
+          prompt: Δx → 0 时，Δy − dy 和 Δx 相比是什么？
+          options:
+            - text: 比 Δx 高阶的无穷小
+              correct: true
+            - text: 和 Δx 同阶
+              why: (Δy − dy)/Δx = [Δy/Δx − f′(x)] → f′(x) − f′(x) = 0，比值趋于 0 是高阶
+            - text: 比 Δx 低阶
+              why: 低阶意味着比 Δx 趋于 0 得更慢；这里它趋于 0 得更快
+          explain: 例如 y = x² 时 Δy − dy = (Δx)²，比 Δx 快得多地趋于 0。
+      - card:
+          title: 例题：估算 ∛64.1
+          body: 用微分估算 $\sqrt[3]{64.1}$。
+          reveal:
+            - title: 第 1 步：选函数和基点
+              body: $y = x^{1/3}$，$x = 64$ 时 $y = 4$；$dx = 0.1$。
+            - title: 第 2 步：写出 dy
+              body: $dy = \frac13 x^{-2/3}\,dx = \frac13 \cdot \frac{1}{16} \cdot 0.1 = \frac{1}{480} \approx 0.00208$。
+            - title: 第 3 步：加上去
+              body: $\sqrt[3]{64.1} \approx 4 + \frac{1}{480} \approx 4.00208$。和线性近似 $f(a) + f'(a)(x - a)$ 算的完全一样，只是换了写法。
+      - item:
+          id: sqrt1005
+          type: number
+          prompt: '用微分估算 $\sqrt{100.5}$。（填小数，保留 3 位）'
+          answer: 10.025
+          tolerance: 0.0005
+          explain: y = √x，dy = dx/(2√x) = 0.5/20 = 0.025，所以 √100.5 ≈ 10.025。真实值约 10.02497。
+      - card:
+          title: 微分的运算法则
+          body: |
+            每条求导法则乘上 $dx$ 就是一条微分法则：
+
+            $$\begin{aligned}d(cu) &= c\,du \\ d(u + v) &= du + dv \\ d(uv) &= u\,dv + v\,du \\ d(u^n) &= n u^{n-1}\,du\end{aligned}$$
+
+            例：$d(\sin\theta\cos\theta) = \cos\theta \cdot \cos\theta\,d\theta + \sin\theta \cdot (-\sin\theta)\,d\theta = (\cos^2\theta - \sin^2\theta)\,d\theta$。常数的微分是 0。
+      - item:
+          id: d-poly
+          type: number
+          prompt: '$d(7u^9 + 34 - 5u^{-3}) = (\ \square\ )\,du$。$u = 1$ 时方框里是多少？'
+          answer: 78
+          explain: d(7u⁹) = 63u⁸ du，d(34) = 0，d(−5u⁻³) = −5 · (−3)u⁻⁴ du = 15u⁻⁴ du。u = 1 时 63 + 15 = 78。
+      - item:
+          id: cube-err
+          type: number
+          prompt: 量得一个立方体的边长是 5 厘米，可能有 ±0.1 厘米的误差。用微分估计算出的体积可能差多少立方厘米？
+          answer: 7.5
+          explain: V = x³，dV = 3x² dx = 3 × 25 × 0.1 = 7.5。实际上边长 5.1 时体积多 7.651，4.9 时少 7.351，估计相当接近。
+
+  - id: approx-uses
+    chapter: 微分
+    title: 近似的几种用法
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 量地球半径时有 2% 的误差。把它当成球算体积 V = (4/3)πr³，体积的误差大约是百分之几？
+          options:
+            - text: 6%
+              correct: true
+            - text: 2%
+              why: 体积是半径的 3 次方，误差也会放大
+            - text: 8%
+              why: 1.02³ ≈ 1.061，大约是 6%，不是 2³ = 8 倍
+          explain: 下面用微分说明：三次方把误差的百分比放大到 3 倍。
+      - card:
+          title: 相对误差
+          body: |
+            误差除以量本身，叫**相对误差（relative error）**，常写成百分数。
+
+            $V = \frac43\pi r^3$，$dV = 4\pi r^2\,dr$，两式相除：$\frac{dV}{V} = 3\,\frac{dr}{r}$。半径量成 4000 英里、误差 ±80 英里，$\frac{dr}{r} = 0.02$，体积的相对误差约 $0.06$，即 6%。
+      - item:
+          id: circle-rel
+          type: number
+          prompt: 圆面积 A = πr²。半径的相对误差是 1%，面积的相对误差大约是百分之几？（填数字，如 5 表示 5%）
+          answer: 2
+          explain: dA = 2πr dr，dA/A = 2 dr/r = 2 × 1% = 2%。
+      - card:
+          title: 近似相乘：高次项一起丢
+          body: |
+            求 $\frac{e^{-3x}}{\sqrt{1 + x}}$ 在 0 附近的线性近似。$e^{-3x} \approx 1 - 3x$，$(1 + x)^{-1/2} \approx 1 - \frac12 x$，相乘：
+
+            $$\begin{aligned}&(1 - 3x)(1 - \tfrac12 x) \\ &= 1 - \tfrac72 x + \tfrac32 x^2 \approx 1 - \tfrac72 x\end{aligned}$$
+
+            既然近似时已经丢掉了 $x^2$ 的项，乘出来的 $x^2$ 项也要丢掉，否则一部分丢、一部分留，结果反而不对。
+      - item:
+          id: prod-lin
+          type: number
+          prompt: '$\sqrt{1 + x}\, e^{x}$ 在 $x = 0$ 附近的线性近似是 $1 + kx$。$k$ 是多少？'
+          answer: 1.5
+          explain: (1 + x/2)(1 + x) = 1 + 1.5x + 0.5x²，丢掉 x² 项得 1 + 1.5x。直接求导 f′(0) = 1/2 + 1 = 1.5，一样。
+      - card:
+          title: 真实的例子：卫星上的钟
+          body: |
+            狭义相对论说，以速度 $v$ 运动的钟走过 $T$ 的时间，地面上过了 $T' = \frac{T}{\sqrt{1 - v^2/c^2}}$。用 $(1 + u)^{-1/2} \approx 1 - \frac12 u$，取 $u = -\frac{v^2}{c^2}$：
+
+            $$T' \approx T\left(1 + \frac12 \frac{v^2}{c^2}\right)$$
+
+            卫星速度约 4 千米/秒，光速约 $3 \times 10^5$ 千米/秒，$\frac{v^2}{c^2} \approx 1.8 \times 10^{-10}$。这么小，丢掉 $u^2$ 完全没有影响。
+      - item:
+          id: gps-day
+          type: number
+          prompt: '卫星上的钟相对地面每秒慢大约 $\frac12 \frac{v^2}{c^2} \approx 8.9 \times 10^{-11}$ 秒。一天（86400 秒）累计慢多少微秒（$10^{-6}$ 秒）？（保留 1 位小数）'
+          answer: 7.7
+          tolerance: 0.1
+          explain: 86400 × 8.9 × 10⁻¹¹ ≈ 7.7 × 10⁻⁶ 秒，约 7.7 微秒。这里只算了速度的效应；广义相对论里引力的效应方向相反、还更大，定位系统两者都要修正。
+      - card:
+          title: 例题：解不出来的函数也能估
+          body: $w(x)$ 由 $(w + 1)e^w = x$ 确定，解不出 $w = \ldots$。估算 $w(1.5)$。
+          reveal:
+            - title: 第 1 步：找一个好算的点
+              body: $w = 0$ 时 $(0 + 1)e^0 = 1$，所以 $w(1) = 0$。
+            - title: 第 2 步：隐函数求导
+              body: $w' e^w + (w + 1)e^w w' = 1$，$w' = \frac{1}{(w + 2)e^w}$，在 $x = 1$、$w = 0$ 处是 $\frac12$。
+            - title: 第 3 步：线性近似
+              body: $w(x) \approx 0 + \frac12(x - 1)$，$w(1.5) \approx 0.25$。真实值约 0.213，要更准可以换个更近的基点再算一次。
+      - item:
+          id: y-plus-y3
+          type: number
+          prompt: '$y(x)$ 由 $y + y^3 = x$ 确定，$y(2) = 1$。用线性近似估算 $y(2.2)$。'
+          answer: 1.05
+          hint: 两边求导：y′ + 3y² y′ = 1。
+          explain: y′ = 1/(1 + 3y²)，在 y = 1 处是 1/4。y(2.2) ≈ 1 + (1/4)(0.2) = 1.05。真实值约 1.0482。
+  - id: fermat-rolle
+    chapter: 微分中值定理
+    title: 山顶是平的：费马定理和罗尔定理
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一座光滑的小山，在山顶处的切线是什么样的？
+          options:
+            - text: 水平的
+              correct: true
+            - text: 向右上升的
+              why: 如果切线向右上升，往右走一点就比山顶更高，那它就不是山顶
+            - text: 竖直的
+              why: 光滑的山顶没有竖直的切线；竖直切线出现在像 ∛x 在 0 处那样的地方
+          explain: 山顶左边在上坡、右边在下坡，正好在山顶处不升不降。
+      - card:
+          title: 费马定理
+          body: |
+            **费马定理（Fermat's theorem）**：$f$ 在区间内部的点 $c$ 取局部极值，并且在 $c$ 可导，那么 $f'(c) = 0$。
+
+            理由（以局部极大为例）：$c$ 附近 $f(c + h) \le f(c)$。$h > 0$ 时差商 $\frac{f(c + h) - f(c)}{h} \le 0$，$h < 0$ 时差商 $\ge 0$。两边的极限都等于 $f'(c)$，所以 $f'(c)$ 既 $\le 0$ 又 $\ge 0$，只能是 0。
+      - item:
+          id: fermat-use
+          type: choice
+          prompt: f 在 x = 2 处取局部极小值，并且在那里可导。f′(2) 是多少？
+          options:
+            - text: '0'
+              correct: true
+            - text: 一定是正数
+              why: 正的导数说明往右在上升，往左会更低，x = 2 就不是局部最低
+            - text: 不能确定
+              why: 可导加上局部极值，费马定理保证导数是 0
+          explain: 局部极小和局部极大一样，可导的话导数一定为 0。
+      - card:
+          title: 用导数找临界点
+          body: |
+            上一站说的临界点，用导数来说就是：区间内部 $f'(c) = 0$ 或 $f'(c)$ 不存在的点。导数等于 0 的点叫**驻点（stationary point）**。
+
+            由费马定理，可导函数的局部极值只会出现在驻点。但反过来不对：$x^3$ 在 0 处导数为 0，左右两边却都在上升，不是极值。临界点只是“候选”。
+      - item:
+          id: crit-pos
+          type: number
+          prompt: '$f(x) = x^3 - 12x$ 有两个驻点。正的那个是多少？'
+          answer: 2
+          explain: f′(x) = 3x² − 12 = 0，x² = 4，x = ±2。
+      - item:
+          id: x3-not
+          type: choice
+          prompt: f(x) = x³，f′(0) = 0。x = 0 是 f 的局部极值点吗？
+          options:
+            - text: 不是，左右两边都在上升
+              correct: true
+            - text: 是局部极小
+              why: x < 0 时 x³ < 0 = f(0)，左边比它低，不是局部最低
+            - text: 是局部极大
+              why: x > 0 时 x³ > 0，右边比它高
+          explain: 导数为 0 只是极值的必要条件，不是充分条件。
+      - card:
+          title: 罗尔定理
+          body: |
+            **罗尔定理（Rolle's theorem）**：$f$ 在闭区间 $[a, b]$ 上连续、在开区间 $(a, b)$ 内可导，并且 $f(a) = f(b)$，那么 $(a, b)$ 里至少有一点 $c$ 使 $f'(c) = 0$。
+
+            理由：由最值定理，$f$ 在 $[a, b]$ 上取到最大值和最小值。如果两个都在端点，$f$ 是常数，处处导数为 0；否则至少一个在内部，由费马定理那里导数为 0。
+      - card:
+          title: 例题：验证罗尔定理
+          body: 验证 $f(x) = x^2 + 2x$ 在 $[-2, 0]$ 上满足罗尔定理的条件，并找出 $c$。
+          reveal:
+            - title: 第 1 步：检查条件
+              body: 多项式处处连续、处处可导；$f(-2) = 4 - 4 = 0$，$f(0) = 0$，两端相等。
+            - title: 第 2 步：解 f′(c) = 0
+              body: $f'(x) = 2x + 2 = 0$，$c = -1$，在 $(-2, 0)$ 里。
+      - item:
+          id: rolle-quad
+          type: number
+          prompt: '$f(x) = 2x^2 - 8x + 6$ 在 $[1, 3]$ 上满足罗尔定理的条件。罗尔定理保证的 $c$ 是多少？'
+          answer: 2
+          explain: f(1) = 0，f(3) = 18 − 24 + 6 = 0。f′(x) = 4x − 8 = 0，c = 2。
+      - item:
+          id: rolle-cubic
+          type: number
+          prompt: '$f(x) = x^3 - 4x$ 在 $[-2, 2]$ 上满足罗尔定理的条件，有两个 $c$。正的那个是多少？（填小数，保留 3 位）'
+          answer: 1.1547
+          tolerance: 0.001
+          explain: f(±2) = 0。f′(x) = 3x² − 4 = 0，x = ±2/√3 ≈ ±1.155，两个都在 (−2, 2) 里。
+      - item:
+          id: rolle-abs
+          type: choice
+          prompt: f(x) = |x| − 1 在 [−1, 1] 上连续，f(−1) = f(1) = 0，可是 (−1, 1) 里没有导数为 0 的点。为什么不和罗尔定理矛盾？
+          options:
+            - text: f 在 x = 0 处不可导，不满足定理的条件
+              correct: true
+            - text: 罗尔定理只对多项式成立
+              why: 定理对所有满足三个条件的函数成立；这里缺的是可导
+            - text: 因为 f(0) = −1 是负数
+              why: 函数值的正负和定理无关
+          explain: 只要有一个点不可导，结论就可能不成立。
+
+  - id: mvt
+    chapter: 微分中值定理
+    title: 中值定理：平均速度总有一刻达到
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一辆车 6 小时开了 3000 公里，平均每小时 500 公里。路上一定有某一刻，速度表正好指在 500 吗？
+          options:
+            - text: 一定有
+              correct: true
+            - text: 不一定
+              why: 速度连续变化；如果一直低于 500，6 小时就开不到 3000 公里，一直高于也不行
+          explain: 速度有时不到 500、有时超过 500（或者一直正好是 500），中间某一刻一定正好是 500。这就是下面要讲的定理。
+      - card:
+          title: 中值定理
+          body: |
+            **中值定理（mean value theorem）**，也叫拉格朗日中值定理：$f$ 在 $[a, b]$ 上连续、在 $(a, b)$ 内可导，那么存在 $\xi \in (a, b)$，使
+
+            $$f'(\xi) = \frac{f(b) - f(a)}{b - a}$$
+
+            也可以写成 $f(b) = f(a) + f'(\xi)(b - a)$。图上的意思：总有一点的切线和连接两端的割线平行。“中值”的“中”指的是区间中间的某个点。罗尔定理是 $f(a) = f(b)$ 的特例。
+      - item:
+          id: fall
+          type: number
+          prompt: '一个球从高处落下，$t$ 秒时高度 $s(t) = -16t^2 + 100$ 英尺，在 $t = 2.5$ 时落地。哪一刻的瞬时速度等于这段时间的平均速度？'
+          answer: 1.25
+          hint: 先算平均速度 [s(2.5) − s(0)]/2.5。
+          explain: s(2.5) = 0，平均速度 (0 − 100)/2.5 = −40 英尺/秒。s′(t) = −32t = −40，t = 5/4 = 1.25 秒。
+      - card:
+          title: 为什么成立
+          body: |
+            用罗尔定理。设 $\ell(x)$ 是连接 $(a, f(a))$、$(b, f(b))$ 的割线，令 $g(x) = f(x) - \ell(x)$，即曲线比割线高出多少。
+
+            $g(a) = g(b) = 0$，$g$ 满足罗尔定理的条件，所以有 $\xi$ 使 $g'(\xi) = 0$，即 $f'(\xi) = \ell' =$ 割线斜率。直观的看法：把割线平行地往上（或往下）推，最后离开曲线前碰到的那一点，切线就和割线平行。
+      - item:
+          id: x2-13
+          type: number
+          prompt: '对 $f(x) = x^2$ 在 $[1, 3]$ 上用中值定理，定理中的 $\xi$ 是多少？'
+          answer: 2
+          explain: '[f(3) − f(1)]/(3 − 1) = (9 − 1)/2 = 4 = f′(ξ) = 2ξ，ξ = 2，在 (1, 3) 里。'
+      - card:
+          title: 例题：√x 在 [0, 9] 上
+          body: 对 $f(x) = \sqrt x$ 在 $[0, 9]$ 上用中值定理，求 $\xi$。
+          reveal:
+            - title: 第 1 步：检查条件
+              body: $\sqrt x$ 在 $[0, 9]$ 上连续，在 $(0, 9)$ 内可导（0 处不可导没关系，定理只要求内部可导）。
+            - title: 第 2 步：割线斜率
+              body: $\frac{\sqrt9 - \sqrt0}{9 - 0} = \frac13$。
+            - title: 第 3 步：解方程
+              body: $f'(\xi) = \frac{1}{2\sqrt\xi} = \frac13$，$\sqrt\xi = \frac32$，$\xi = \frac94$。
+      - item:
+          id: x3-03
+          type: number
+          prompt: '对 $f(x) = x^3$ 在 $[0, 3]$ 上用中值定理，求 $\xi$。（填小数，保留 3 位）'
+          answer: 1.7321
+          tolerance: 0.001
+          explain: 割线斜率 (27 − 0)/3 = 9。3ξ² = 9，ξ = √3 ≈ 1.732（负根不在区间里）。
+      - card:
+          title: 条件不能少，ξ 也不一定唯一
+          body: |
+            $|x|$ 在 $[-1, 2]$ 上：割线斜率 $\frac{2 - 1}{3} = \frac13$，可是导数只有 1 和 −1，没有 $\frac13$。原因是 0 处不可导。不连续也不行：跳一下，割线斜率就可能和每一点的导数都对不上。
+
+            定理只说 $\xi$ 存在，可能有好几个，也不告诉你在哪。它的用处不是求 $\xi$，而是下一课的推论和不等式。
+      - item:
+          id: recip-mvt
+          type: choice
+          prompt: f(x) = 1/x 在 [−1, 1] 的两端：f(1) − f(−1) = 2，割线斜率是 1。可是 f′(x) = −1/x² 总是负的。为什么这不违反中值定理？
+          options:
+            - text: f 在 x = 0 处没有定义，不连续，不满足条件
+              correct: true
+            - text: 因为割线斜率算错了
+              why: '[1 − (−1)]/[1 − (−1)] = 1，没有算错'
+            - text: 中值定理只对增函数成立
+              why: 定理没有这个要求；这里缺的是 [−1, 1] 上的连续
+          explain: 定理要求整个闭区间上连续，1/x 在 0 处断开了。
+      - item:
+          id: exists
+          type: choice
+          prompt: 中值定理说“存在 ξ ∈ (a, b) 使 f′(ξ) = [f(b) − f(a)]/(b − a)”。下面哪种理解对？
+          options:
+            - text: 至少有一个这样的点，可能不止一个
+              correct: true
+            - text: 区间里每一点的导数都等于割线斜率
+              why: 只有直线才处处如此；一般的曲线只在某些点上
+            - text: 这样的点恰好在区间正中间
+              why: “中值”的“中”只是“中间某处”；例如 √x 在 [0, 9] 上 ξ = 9/4，不是 4.5
+          explain: 存在性的定理：保证有，不保证唯一，也不说在哪。
+
+  - id: mvt-consequences
+    chapter: 微分中值定理
+    title: 中值定理的推论和不等式
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一整天里，你的车速表一直指着 0。晚上车在哪里？
+          options:
+            - text: 还在早上的位置
+              correct: true
+            - text: 不一定，可能被挪动过
+              why: 被挪动时车在动，速度就不是 0；这里说的是一整天速度都是 0
+          explain: 速度处处为 0，位置就不变。这正是中值定理的第一个推论。
+      - card:
+          title: 导数为 0 就是常数
+          body: |
+            在一个区间上 $f'(x) = 0$。任取区间里的 $a < b$，由中值定理 $f(b) - f(a) = f'(\xi)(b - a) = 0$，所以 $f$ 是常数。
+
+            推论：在一个区间上 $f' = g'$，那么 $(f - g)' = 0$，$f = g + C$：导数相同的两个函数只差一个常数。
+      - item:
+          id: same-deriv
+          type: number
+          prompt: '在全体实数上 $f''(x) = 2x$，并且 $f(0) = 3$。$f(2)$ 是多少？'
+          answer: 7
+          explain: x² 的导数也是 2x，所以 f(x) = x² + C。f(0) = 3 给出 C = 3，f(2) = 4 + 3 = 7。
+      - card:
+          title: 一定要是一个区间
+          body: |
+            $g(x) = \frac1x$（$x > 0$），$g(x) = \frac1x + 2$（$x < 0$）。在它的定义域上处处 $g'(x) = -\frac{1}{x^2}$，和 $\frac1x$ 的导数一样，可是 $g$ 不等于 $\frac1x + C$：两段加的常数不同。
+
+            原因是定义域断成了两段。“导数相同就只差一个常数”只在一个区间上成立。
+      - item:
+          id: two-pieces
+          type: choice
+          prompt: 在 x ≠ 0 处，f′(x) = g′(x)。能断定 f(x) − g(x) 在所有 x ≠ 0 上是同一个常数吗？
+          options:
+            - text: 不能，x > 0 和 x < 0 两段可以差不同的常数
+              correct: true
+            - text: 能，导数相同就差一个常数
+              why: 这个推论要求在一个区间上；x ≠ 0 是两个区间拼起来的
+          explain: 每一段上各自是常数，两段的常数可以不同。
+      - card:
+          title: 导数的正负决定增减
+          body: |
+            在一个区间上 $f' > 0$：任取 $a < b$，$f(b) - f(a) = f'(\xi)(b - a) > 0$，所以 $f$ 递增。同样 $f' < 0$ 时递减。
+
+            反过来不一定：$x^3$ 处处递增，可是 $f'(0) = 0$。
+      - card:
+          title: 例题：证明 eˣ > 1 + x（x > 0）
+          body: 证明 $x > 0$ 时 $e^x > 1 + x$。
+          reveal:
+            - title: 第 1 步：把不等式变成“差大于 0”
+              body: 令 $f(x) = e^x - (1 + x)$，要证 $x > 0$ 时 $f(x) > 0$。
+            - title: 第 2 步：看起点和导数
+              body: $f(0) = 0$；$f'(x) = e^x - 1 > 0$（$x > 0$）。
+            - title: 第 3 步：用递增
+              body: $f$ 在 $[0, \infty)$ 上递增（端点处连续，内部导数为正），所以 $x > 0$ 时 $f(x) > f(0) = 0$。再用一次同样的方法可以证明 $e^x > 1 + x + \frac{x^2}{2}$。
+      - item:
+          id: ln-ineq
+          type: choice
+          prompt: 想证明 x > 0 时 ln(1 + x) < x。令 f(x) = x − ln(1 + x)，下一步该看什么？
+          options:
+            - text: f(0) = 0，并且 x > 0 时 f′(x) = 1 − 1/(1 + x) > 0
+              correct: true
+            - text: f(1) = 1 − ln 2 > 0
+              why: 一个点大于 0 说明不了所有 x > 0；要看起点的值和导数的正负
+            - text: f′(x) = 1 − 1/(1 + x) < 0
+              why: x > 0 时 1/(1 + x) < 1，所以 f′(x) > 0
+          explain: 起点 f(0) = 0，之后一直递增，所以 x > 0 时 f(x) > 0，即 ln(1 + x) < x。
+      - card:
+          title: 用导数的范围夹住变化
+          body: |
+            中值定理说割线斜率等于某处的导数，所以它夹在导数的最小值和最大值之间：
+
+            $$\min f' \le \frac{f(b) - f(a)}{b - a} \le \max f'$$
+
+            例：$(\sin x)' = \cos x$ 在 $-1$ 和 $1$ 之间，所以 $|\sin b - \sin a| \le |b - a|$。这也说明线性近似为什么可信：区间很短时 $f'(\xi)$ 和 $f'(a)$ 差不多。
+      - item:
+          id: sin-gap
+          type: choice
+          prompt: 不用计算器，|sin 0.31 − sin 0.30| 最多是多少？
+          options:
+            - text: '0.01'
+              correct: true
+            - text: '0.31'
+              why: 这是 sin 0.31 本身的上界；要估的是两个值的差，用 |sin b − sin a| ≤ |b − a|
+            - text: 不能估计
+              why: (sin x)′ = cos x 的绝对值不超过 1，中值定理直接给出上界
+          explain: '|sin b − sin a| = |cos ξ| · |b − a| ≤ |b − a| = 0.01。'
+      - item:
+          id: sqrt101
+          type: number
+          prompt: '对 $\sqrt{x}$ 在 $[100, 101]$ 上用中值定理：$\sqrt{101} - 10 = \frac{1}{2\sqrt{\xi}}$，$100 < \xi < 101$。由此得到 $\sqrt{101}$ 小于哪个数？'
+          answer: 10.05
+          hint: ξ > 100，所以 1/(2√ξ) < 1/(2√100)。
+          explain: 1/(2√ξ) < 1/20 = 0.05，所以 √101 < 10.05。真实值约 10.0499。
+      - item:
+          id: tan-ineq
+          type: choice
+          prompt: 0 < x < π/2 时为什么 tan x > x？对 tan 在 [0, x] 上用中值定理。
+          options:
+            - text: tan x = tan 0 + sec²ξ · x，而 0 < ξ < π/2 时 sec²ξ = 1/cos²ξ > 1
+              correct: true
+            - text: tan x 的导数是 sec² x，它小于 1
+              why: 0 < cos ξ < 1，所以 1/cos²ξ > 1，不是小于 1
+            - text: 因为 tan 0 = 1
+              why: tan 0 = 0；正因为是 0，tan x 才等于 sec²ξ · x
+          explain: tan x = sec²ξ · x > 1 · x = x。
+      - item:
+          id: x3-incr
+          type: choice
+          prompt: x³ 在全体实数上递增，可是 (x³)′ 在 x = 0 处等于 0。这和“f′ > 0 推出递增”矛盾吗？
+          options:
+            - text: 不矛盾：f′ > 0 能推出递增，但递增不要求处处 f′ > 0
+              correct: true
+            - text: 矛盾，所以 x³ 其实不是递增的
+              why: a < b 时 a³ < b³，x³ 确实递增
+          explain: 那条推论只说了一个方向。递增函数的导数只能保证 ≥ 0。
+
+  - id: monotone-extrema
+    chapter: 微分中值定理
+    title: 单调区间和极值
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: f(x) = x³ − 3x 的导数是 3x² − 3。猜猜 f 在哪一段是下降的？
+          options:
+            - text: −1 < x < 1
+              correct: true
+            - text: x > 1
+              why: x = 2 时 f′(2) = 9 > 0，在上升
+            - text: x < 0
+              why: x = −2 时 f′(−2) = 9 > 0，那里也在上升
+          explain: 3x² − 3 < 0 等价于 x² < 1。导数为负的地方，函数下降。
+      - card:
+          title: 找单调区间的步骤
+          body: |
+            1. 求 $f'$，找出 $f' = 0$ 和 $f'$ 不存在的点；
+            2. 用这些点把定义域切成几段；
+            3. 每段取一个点看 $f'$ 的正负：正的那段递增，负的那段递减。
+
+            在每一段里 $f'$ 不会变号（它连续时，要变号就得经过 0）。
+      - card:
+          title: 例题：x³ − 3x 的单调区间和极值
+          body: 求 $y = x^3 - 3x$ 的单调区间和极值。
+          reveal:
+            - title: 第 1 步：求导，找驻点
+              body: $y' = 3x^2 - 3 = 3(x - 1)(x + 1)$，驻点 $x = -1$ 和 $x = 1$。
+            - title: 第 2 步：分段看正负
+              body: $(-\infty, -1)$ 上取 $-2$，$y' = 9 > 0$，递增；$(-1, 1)$ 上取 0，$y' = -3 < 0$，递减；$(1, +\infty)$ 上取 2，$y' = 9 > 0$，递增。
+            - title: 第 3 步：读出极值
+              body: $x = -1$ 处由增变减，是局部极大，$y = -1 + 3 = 2$；$x = 1$ 处由减变增，是局部极小，$y = 1 - 3 = -2$。
+      - item:
+          id: dec-end
+          type: number
+          prompt: '$f(x) = x^3 - 12x$ 在一个区间 $(-c, c)$ 上递减。$c$ 是多少？'
+          answer: 2
+          explain: f′(x) = 3x² − 12 = 3(x − 2)(x + 2)，在 (−2, 2) 上为负。
+      - card:
+          title: 一阶导数判别法
+          body: |
+            $f$ 在 $c$ 附近连续，$c$ 是临界点，$c$ 两侧可导：
+
+            - $f'$ 从正变负，$f(c)$ 是局部极大；
+            - $f'$ 从负变正，$f(c)$ 是局部极小；
+            - 两侧同号，$f(c)$ 不是极值。
+
+            临界点只是候选，一定要看两侧的符号。
+      - item:
+          id: max-val
+          type: number
+          prompt: '$f(x) = x^3 - 12x$ 的局部极大值是多少？'
+          answer: 16
+          explain: 驻点 ±2。x = −2 左边 f′ > 0、右边 f′ < 0，是局部极大，f(−2) = −8 + 24 = 16。
+      - item:
+          id: cubic-test
+          type: number
+          prompt: '$f(x) = x^3 - 3x^2 - 9x - 1$ 的局部极小值是多少？'
+          answer: -28
+          hint: f′(x) = 3x² − 6x − 9 = 3(x − 3)(x + 1)。
+          explain: 驻点 −1 和 3。x = 3 处 f′ 由负变正，是局部极小，f(3) = 27 − 27 − 27 − 1 = −28；x = −1 处是局部极大，f(−1) = 4。
+      - card:
+          title: 二阶导数判别法
+          body: |
+            **二阶导数判别法（second derivative test）**：$f'(c) = 0$，$f''$ 在 $c$ 附近连续。
+
+            - $f''(c) > 0$：曲线像碗一样向上弯，$c$ 是局部极小；
+            - $f''(c) < 0$：向下弯，$c$ 是局部极大；
+            - $f''(c) = 0$：判断不了。$x^4$、$-x^4$、$x^3$ 在 0 处都是 $f' = f'' = 0$，结果分别是极小、极大、都不是。
+
+            判断不了时，回到一阶导数判别法。
+      - item:
+          id: second-test
+          type: choice
+          prompt: f(x) = x³ − 3x，f′(1) = 0，f″(x) = 6x。x = 1 是什么？
+          options:
+            - text: 局部极小，因为 f″(1) = 6 > 0
+              correct: true
+            - text: 局部极大，因为 f″(1) > 0
+              why: 二阶导数为正表示向上弯，像碗底，是极小
+            - text: 判断不了
+              why: 只有 f″(1) = 0 时才判断不了；这里是 6
+          explain: 和一阶导数判别法的结论一致：x = 1 处由减变增。
+      - item:
+          id: quartic-min
+          type: number
+          prompt: '$f(x) = x^4 - 2x^2$ 的局部极小值是多少？'
+          answer: -1
+          hint: f′ = 4x³ − 4x = 4x(x − 1)(x + 1)，f″ = 12x² − 4。
+          explain: 驻点 0、±1。f″(±1) = 8 > 0，是局部极小，f(±1) = 1 − 2 = −1；f″(0) = −4 < 0，x = 0 是局部极大，f(0) = 0。
+      - item:
+          id: inconclusive
+          type: choice
+          prompt: f(x) = x⁵ − 5x³ 在 x = 0 处 f′(0) = 0，f″(0) = 0。又知道 f′(x) = 5x²(x² − 3) 在 x = −1 和 x = 1 处都是负的。x = 0 是什么？
+          options:
+            - text: 不是极值点
+              correct: true
+            - text: 局部极小
+              why: 两侧 f′ 都为负，函数一直在下降，没有由减变增
+            - text: 二阶导数为 0，所以是局部极大
+              why: f″(c) = 0 时二阶判别法什么也说明不了，要回到一阶判别法
+          explain: 二阶判别法失效，用一阶：0 的两侧 f′ 同为负，f 一直下降，0 不是极值。
+  - id: quadratic-approx
+    chapter: 泰勒公式与局部近似
+    title: 用抛物线贴得更紧
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: cos x 在 x = 0 处的切线是水平线 y = 1。只看这条切线，能看出 cos x 在 0 附近比 1 大还是小吗？
+          options:
+            - text: 看不出来
+              correct: true
+            - text: 能，比 1 大
+              why: cos x 的最大值就是 1，0 附近都不超过 1
+            - text: 能，比 1 小
+              why: 事实是比 1 小，但水平的切线本身不带这个信息；要看曲线往哪边弯
+          explain: 切线只记录了值和斜率。往哪边弯、弯多少，要靠二阶导数。
+      - card:
+          title: 二次近似
+          body: |
+            在线性近似上再加一个平方项：
+
+            $$\begin{aligned}f(x) \approx\ & f(a) + f'(a)(x - a) \\ & + \frac{f''(a)}{2}(x - a)^2\end{aligned}$$
+
+            这叫**二次近似（quadratic approximation）**，它是在 $a$ 处和曲线最贴近的抛物线。取 $a = 0$：$\cos x \approx 1 - \frac12 x^2$（$f''(0) = -\cos 0 = -1$），$e^x \approx 1 + x + \frac12 x^2$。
+      - item:
+          id: ln11
+          type: number
+          prompt: '$\ln(1 + x)$ 在 0 处 $f(0) = 0$，$f''(0) = 1$，二阶导数 $f''''(0) = -1$。用二次近似估算 $\ln 1.1$。'
+          answer: 0.095
+          tolerance: 0.00001
+          explain: ln(1 + x) ≈ x − x²/2，x = 0.1 时 0.1 − 0.005 = 0.095。线性近似给 0.1，真实值约 0.09531，二次近似好得多。
+      - card:
+          title: 为什么有 1/2
+          body: |
+            设 $p(x) = c_0 + c_1 x + c_2 x^2$，要它在 0 处和 $f$ 的值、一阶导数、二阶导数都相同。
+
+            $p(0) = c_0$，$p'(0) = c_1$，而 $p''(x) = 2c_2$。所以 $c_0 = f(0)$，$c_1 = f'(0)$，$2c_2 = f''(0)$，即 $c_2 = \frac{f''(0)}{2}$。$\frac12$ 来自 $x^2$ 求两次导数得到的 2。
+      - item:
+          id: sqrt-coef
+          type: number
+          prompt: '$f(x) = \sqrt{1 + x}$ 的二次近似是 $1 + \frac12 x + c\,x^2$。$c$ 是多少？'
+          answer: -0.125
+          hint: f″(x) = −(1/4)(1 + x)^(−3/2)，再除以 2。
+          explain: f″(0) = −1/4，c = −1/8 = −0.125。于是 √1.1 ≈ 1 + 0.05 − 0.00125 = 1.04875，真实值约 1.048809。
+      - card:
+          title: x 靠近 0 时的二次近似表
+          body: |
+            | 函数 | 二次近似 |
+            |---|---|
+            | $\sin x$ | $x$（$f''(0) = 0$，没有平方项） |
+            | $\cos x$ | $1 - \frac12 x^2$ |
+            | $e^x$ | $1 + x + \frac12 x^2$ |
+            | $\ln(1 + x)$ | $x - \frac12 x^2$ |
+            | $(1 + x)^r$ | $1 + rx + \frac{r(r - 1)}{2}x^2$ |
+
+            $\sin x$ 的二次近似和线性近似一样：二次项可以是 0。
+      - item:
+          id: e01
+          type: number
+          prompt: '用 $e^x \approx 1 + x + \frac12 x^2$ 估算 $e^{0.1}$。'
+          answer: 1.105
+          tolerance: 0.000001
+          explain: 1 + 0.1 + 0.005 = 1.105，真实值约 1.1051709。
+      - card:
+          title: 例题：两个近似相乘
+          body: 求 $e^{-3x}(1 + x)^{-1/2}$ 在 0 附近的二次近似。
+          reveal:
+            - title: 第 1 步：分别写出二次近似
+              body: $e^{-3x} \approx 1 - 3x + \frac92 x^2$（把 $e^u$ 的近似里 $u$ 换成 $-3x$）；$(1 + x)^{-1/2} \approx 1 - \frac12 x + \frac38 x^2$（$r = -\frac12$，$\frac{r(r - 1)}{2} = \frac38$）。
+            - title: 第 2 步：相乘，只留到 x²
+              body: 常数 1；$x$ 项 $-3 - \frac12 = -\frac72$；$x^2$ 项 $\frac38 + (-3)(-\frac12) + \frac92 = \frac38 + \frac32 + \frac92 = \frac{51}{8}$。
+            - title: 第 3 步：写出结果
+              body: $\approx 1 - \frac72 x + \frac{51}{8}x^2$。$x^3$ 及以上的项全部丢掉。符号很容易错，算完要检查一遍。
+      - item:
+          id: excos
+          type: number
+          prompt: '$e^x \cos x$ 在 0 附近的二次近似里，$x^2$ 的系数是多少？'
+          answer: 0
+          explain: (1 + x + x²/2)(1 − x²/2) = 1 + x + (1/2 − 1/2)x² + …，x² 项正好抵消，系数是 0。
+      - item:
+          id: far-away
+          type: choice
+          prompt: 用 eˣ ≈ 1 + x + x²/2 算 e¹，得 2.5，真实值约 2.718。为什么差这么多？
+          options:
+            - text: x = 1 离基点 0 太远，二次近似只在 0 附近可靠
+              correct: true
+            - text: 公式里的 1/2 应该是 1
+              why: 1/2 是对的；它保证二阶导数相同
+            - text: 二次近似总是比线性近似差
+              why: 在基点附近二次近似通常更好，比如 e^0.1 的误差只有 0.00017
+          explain: 二次函数长得比指数函数慢得多，离开 0 越远差得越多。要更准，就继续加三次、四次……的项。
+
+  - id: taylor-poly
+    chapter: 泰勒公式与局部近似
+    title: 泰勒多项式：一阶一阶对上
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 让一个多项式在 x = 0 处和 eˣ 的值、一阶、二阶、三阶……导数都相同，阶数越高，0 附近会怎样？
+          options:
+            - text: 贴得越来越紧，贴住的范围也越来越宽
+              correct: true
+            - text: 越来越差，因为多项式太复杂
+              why: 每多对上一阶导数，误差在 0 附近就小一个量级
+          explain: 下面的演示可以直接看到。
+      - card:
+          title: 系数怎么来
+          body: |
+            设 $P(x) = a_0 + a_1 x + a_2 x^2 + \cdots + a_n x^n$。对 $a_k x^k$ 求 $k$ 次导数得到 $k!\,a_k$；求的次数少于 $k$，在 0 处还剩 $x$ 的乘方，值是 0；多于 $k$ 就是 0。所以 $P^{(k)}(0) = k!\,a_k$。
+
+            要 $P^{(k)}(0) = f^{(k)}(0)$，就取 $a_k = \frac{f^{(k)}(0)}{k!}$。约定 $0! = 1$，常数项 $a_0 = f(0)$ 也符合这个式子。
+      - card:
+          title: 泰勒多项式
+          body: |
+            一般的基点 $a$：
+
+            $$\begin{aligned}P_n(x) &= \sum_{k=0}^{n} \frac{f^{(k)}(a)}{k!}(x - a)^k \\ &= f(a) + f'(a)(x - a) \\ &\quad + \frac{f''(a)}{2!}(x - a)^2 + \cdots\end{aligned}$$
+
+            叫 $f$ 在 $a$ 处的 $n$ 阶**泰勒多项式（Taylor polynomial）**。$a = 0$ 时也叫麦克劳林多项式。$e^x$ 的各阶导数都是 $e^x$，所以 $P_n(x) = 1 + x + \frac{x^2}{2!} + \cdots + \frac{x^n}{n!}$。拖动下面的阶数看看。
+          sim:
+            name: plot
+            params: { mode: taylor, series: exp, xMax: 3 }
+      - item:
+          id: p3-at-1
+          type: number
+          prompt: '$e^x$ 在 0 处的 3 阶泰勒多项式是 $1 + x + \frac{x^2}{2} + \frac{x^3}{6}$。它在 $x = 1$ 处的值是多少？（填小数，保留 4 位）'
+          answer: 2.6667
+          tolerance: 0.0001
+          explain: 1 + 1 + 1/2 + 1/6 = 8/3 ≈ 2.6667，真实值 e ≈ 2.71828。
+      - item:
+          id: sim-exp1
+          type: sim
+          prompt: '把阶数调到能让 $e^x$ 的泰勒多项式在 $x = 1$ 处的误差小于 0.001。'
+          sim: plot
+          params: { mode: taylor, series: exp, xMax: 3 }
+          goal: { at: 1, errorBelow: 0.001 }
+          solution: { order: 6 }
+          explain: 5 阶时误差约 0.0016，6 阶时约 0.00023。误差和第一个没加上的项 1/(n + 1)! 差不多大。
+      - card:
+          title: 例题：sin x 的泰勒多项式
+          body: 求 $\sin x$ 在 0 处的泰勒多项式。
+          reveal:
+            - title: 第 1 步：列出各阶导数在 0 处的值
+              body: $\sin x$、$\cos x$、$-\sin x$、$-\cos x$、$\sin x$……在 0 处依次是 0、1、0、−1、0、1……，四个一组重复。
+            - title: 第 2 步：除以 k!
+              body: |
+                偶数次项全是 0，奇数次项正负交替：
+
+                $$\sin x \approx x - \frac{x^3}{3!} + \frac{x^5}{5!} - \cdots$$
+            - title: 第 3 步：cos x 同理
+              body: $\cos x \approx 1 - \frac{x^2}{2!} + \frac{x^4}{4!} - \cdots$，只有偶数次项。
+      - item:
+          id: sin-x5
+          type: number
+          prompt: '$\sin x$ 在 0 处的泰勒多项式里，$x^5$ 的系数是多少？（填分数或小数）'
+          answer: 0.0083333
+          tolerance: 0.00001
+          explain: (sin x)⁽⁵⁾ = cos x，在 0 处是 1，系数 1/5! = 1/120 ≈ 0.008333。
+      - item:
+          id: sim-sin2
+          type: sim
+          prompt: '换成 $\sin x$。把阶数调到能让它在 $x = 2$ 处的误差小于 0.001。'
+          sim: plot
+          params: { mode: taylor, series: sin, xMax: 3 }
+          goal: { at: 2, errorBelow: 0.001 }
+          solution: { order: 9 }
+          explain: 7 阶（和 8 阶，因为 x⁸ 的系数是 0）误差约 0.0014，9 阶约 0.00005。x 离 0 越远，需要的阶数越高。
+      - card:
+          title: 多项式的泰勒多项式就是它自己
+          body: |
+            $f(x) = 3x^3 + 4x^2 - 2x + 1$：$f(0) = 1$，$f'(0) = -2$，$f''(0) = 8$，$f'''(0) = 18$，再往上都是 0。系数 $1, -2, \frac82, \frac{18}{6}$，正好拼回原来的多项式。
+
+            换个基点：$x^3 + 2x + 1$ 在 $a = 1$ 处，$f(1) = 4$，$f'(1) = 5$，$f''(1) = 6$，2 阶泰勒多项式是 $4 + 5(x - 1) + 3(x - 1)^2$。
+      - item:
+          id: ln-at-1
+          type: number
+          prompt: '$\ln x$ 在 $a = 1$ 处的 2 阶泰勒多项式是 $(x - 1) - \frac12(x - 1)^2$。用它估算 $\ln 1.2$。'
+          answer: 0.18
+          tolerance: 0.000001
+          explain: 0.2 − 0.5 × 0.04 = 0.18，真实值约 0.18232。
+      - item:
+          id: coef-formula
+          type: choice
+          prompt: 泰勒多项式里 (x − a)ᵏ 的系数是什么？
+          options:
+            - text: f⁽ᵏ⁾(a)/k!
+              correct: true
+            - text: f⁽ᵏ⁾(a)
+              why: 漏了 k!；(x − a)ᵏ 求 k 次导数会多出 k!，要除掉
+            - text: f⁽ᵏ⁾(a)/k
+              why: 要除的是 k! = k(k − 1)⋯1，不只是 k
+          explain: 除以 k! 才能让多项式的 k 阶导数在 a 处正好等于 f⁽ᵏ⁾(a)。
+
+  - id: remainder
+    chapter: 泰勒公式与局部近似
+    title: 误差有多大：拉格朗日余项
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用 eˣ 的 3 阶泰勒多项式算 e^0.1，得 1.1051667，真实值是 1.1051709…。误差大约是多少？
+          options:
+            - text: 百万分之几
+              correct: true
+            - text: 千分之几
+              why: 两个数前 5 位小数都一样，差在第 6 位
+            - text: 0.1 左右
+              why: 差得远没有这么大；两个数到小数点后第五位都相同
+          explain: 差约 0.0000043。下面的公式能在不知道真实值的情况下给出这样的误差上界。
+      - card:
+          title: 余项和拉格朗日余项
+          body: |
+            $R_n(x) = f(x) - P_n(x)$ 叫泰勒多项式的**余项（remainder）**，就是误差。
+
+            如果 $f$ 有 $n + 1$ 阶导数，那么在 $a$ 和 $x$ 之间有某个 $\xi$，使
+
+            $$R_n(x) = \frac{f^{(n+1)}(\xi)}{(n+1)!}(x - a)^{n+1}$$
+
+            这叫拉格朗日余项。$n = 0$ 时它就是中值定理 $f(x) - f(a) = f'(\xi)(x - a)$，所以它是中值定理的推广。
+      - item:
+          id: cubic-rem
+          type: number
+          prompt: '$f(x) = x^3 + 2x + 1$ 在 $a = 1$ 处的 2 阶泰勒多项式是 $P_2(x) = 4 + 5(x - 1) + 3(x - 1)^2$。$f(3) - P_2(3)$ 是多少？'
+          answer: 8
+          explain: f(3) = 34，P₂(3) = 4 + 10 + 12 = 26，差 8。余项公式：f‴ = 6 是常数，6/3! × (3 − 1)³ = 8，完全吻合。
+      - card:
+          title: 用余项给误差上界
+          body: |
+            $\xi$ 不知道具体在哪，但只要知道 $|f^{(n+1)}|$ 在 $a$ 和 $x$ 之间不超过某个数 $B$，就有
+
+            $$|R_n(x)| \le \frac{B}{(n+1)!}|x - a|^{n+1}$$
+
+            例：$\sin x$ 的各阶导数都是 $\pm\sin$ 或 $\pm\cos$，$B = 1$ 总可以用。
+      - card:
+          title: 例题：e^0.1 的误差上界
+          body: 写出 $e^x$ 在 0 处的 3 阶泰勒多项式，估算 $e^{0.1}$，并用拉格朗日余项给出误差上界（可以用 $e^{0.1} < 1.2$）。
+          reveal:
+            - title: 第 1 步：写出 P₃ 并代入
+              body: $P_3(x) = 1 + x + \frac{x^2}{2} + \frac{x^3}{6}$，$P_3(0.1) = 1 + 0.1 + 0.005 + 0.000167 \approx 1.105167$。
+            - title: 第 2 步：写出余项
+              body: $(e^x)^{(4)} = e^x$，所以 $R_3(0.1) = \frac{e^{\xi}}{4!}(0.1)^4$，$0 < \xi < 0.1$。
+            - title: 第 3 步：放大成上界
+              body: $e^{\xi} < e^{0.1} < 1.2$，所以 $|R_3| < \frac{1.2 \times 0.0001}{24} = 5 \times 10^{-6}$。真实误差约 $4.3 \times 10^{-6}$，在上界之内。
+      - item:
+          id: p1-bound
+          type: number
+          prompt: '用 $e^x \approx 1 + x$（1 阶泰勒多项式）算 $e^{0.1}$。按拉格朗日余项，误差最多是多少？（可以用 $e^{0.1} < 1.2$）'
+          answer: 0.006
+          tolerance: 0.000001
+          explain: '|R₁| ≤ 1.2/2! × 0.1² = 0.006。真实误差 e^0.1 − 1.1 ≈ 0.00517，确实不超过 0.006。'
+      - item:
+          id: sin-bound
+          type: number
+          prompt: '用 $\sin x \approx x - \frac{x^3}{6}$ 算 $\sin 0.5$。这个多项式也是 4 阶泰勒多项式（$x^4$ 的系数是 0），按 $R_4$ 估计误差最多是多少？（保留 2 位有效数字）'
+          answer: 0.00026
+          tolerance: 0.000005
+          hint: '|f⁽⁵⁾| ≤ 1，用 0.5⁵/5!。'
+          explain: 0.5⁵/120 = 0.03125/120 ≈ 0.00026。真实误差约 0.000259。用 R₃ 只能得到 0.5⁴/24 ≈ 0.0026，粗了 10 倍。
+      - card:
+          title: 项数越多，误差趋于 0
+          body: |
+            $e^x$ 的各阶导数都是 $e^x$。在 $|x| \le d$ 里 $e^{\xi} \le e^d$，于是
+
+            $$|R_n(x)| \le e^{d}\,\frac{|x|^{n+1}}{(n+1)!}$$
+
+            阶乘比乘方长得快得多，$n \to \infty$ 时右边趋于 0。所以对任何 $x$，$P_n(x) \to e^x$：项数足够多，想要多准就有多准。$\sin x$、$\cos x$ 用 $B = 1$ 同理。
+      - item:
+          id: fact-wins
+          type: choice
+          prompt: 为什么对固定的 x（比如 x = 10），10ⁿ⁺¹/(n + 1)! 在 n → ∞ 时趋于 0？
+          options:
+            - text: n 超过 10 以后，每多一项就多乘一个小于 1 的因子 10/(n + 1)，而且越来越小
+              correct: true
+            - text: 因为 10ⁿ⁺¹ 趋于 0
+              why: 10ⁿ⁺¹ 越来越大；是分母长得更快
+            - text: 它不趋于 0
+              why: 开始时会变大，但 n 超过 10 后每步乘的 10/(n + 1) < 1 并趋于 0，最终趋于 0
+          explain: 阶乘最终胜过任何固定底数的乘方，这就是 eˣ、sin x、cos x 的泰勒多项式对所有 x 都越来越准的原因。
+
+  - id: lhopital
+    chapter: 泰勒公式与局部近似
+    title: 洛必达法则：0/0 时比导数
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: x → 0 时，(eˣ − 1)/x 趋于多少？
+          answer: 1
+          explain: 这正是 eˣ 在 0 处的导数（差商的极限），等于 e⁰ = 1。0/0 型的极限和导数关系密切。
+      - card:
+          title: 柯西中值定理
+          body: |
+            **柯西中值定理（Cauchy's mean value theorem）**：$f$、$g$ 在 $[a, b]$ 上连续、在 $(a, b)$ 内可导，并且 $(a, b)$ 内 $g'(x) \ne 0$，那么存在 $\xi \in (a, b)$ 使
+
+            $$\frac{f(b) - f(a)}{g(b) - g(a)} = \frac{f'(\xi)}{g'(\xi)}$$
+
+            取 $g(x) = x$ 就是中值定理。证明的想法也一样：构造一个两端相等的函数，用罗尔定理。
+      - card:
+          title: 洛必达法则
+          body: |
+            **洛必达法则（L'Hôpital's rule）**：$x \to a$ 时 $f \to 0$、$g \to 0$（或都趋于 $\pm\infty$），$f$、$g$ 在 $a$ 附近（$a$ 本身可以除外）可导且 $g'(x) \ne 0$。如果 $\lim \frac{f'(x)}{g'(x)}$ 存在（或是 $\pm\infty$），那么
+
+            $$\lim_{x \to a}\frac{f(x)}{g(x)} = \lim_{x \to a}\frac{f'(x)}{g'(x)}$$
+
+            0/0 型的理由：补上 $f(a) = g(a) = 0$，由柯西中值定理 $\frac{f(x)}{g(x)} = \frac{f'(\xi)}{g'(\xi)}$，$\xi$ 夹在 $a$ 和 $x$ 之间，$x \to a$ 时 $\xi \to a$。单侧极限和 $x \to \pm\infty$ 也成立。
+      - item:
+          id: sin3x
+          type: number
+          prompt: '用洛必达法则求 $\lim_{x \to 0}\frac{\sin 3x}{x}$。'
+          answer: 3
+          explain: 0/0 型。分子分母分别求导：3cos 3x / 1 → 3。和上一站用 sin u/u → 1 算的一样。
+      - card:
+          title: 例题：一次不够就再来一次
+          body: 求 $\lim_{x \to 0}\frac{e^x - x - 1}{x^2}$。
+          reveal:
+            - title: 第 1 步：确认是 0/0
+              body: 分子 $e^0 - 0 - 1 = 0$，分母 0。
+            - title: 第 2 步：求导一次
+              body: $\frac{e^x - 1}{2x}$，还是 0/0。
+            - title: 第 3 步：再求导一次
+              body: $\frac{e^x}{2} \to \frac12$。每用一次之前都要检查还是不是 0/0 或 ∞/∞。
+      - item:
+          id: x-sin
+          type: number
+          prompt: '求 $\lim_{x \to 0}\frac{x - \sin x}{x^3}$。（填分数或小数）'
+          answer: 0.1666667
+          tolerance: 0.0001
+          hint: 连用三次，每次都检查是不是 0/0。
+          explain: (1 − cos x)/(3x²) → sin x/(6x) → cos x/6 → 1/6。
+      - item:
+          id: cos-x2
+          type: number
+          prompt: '求 $\lim_{x \to 0}\frac{1 - \cos x}{x^2}$。'
+          answer: 0.5
+          explain: sin x/(2x) 还是 0/0，再一次 cos x/2 → 1/2。
+      - card:
+          title: 不是 0/0 就不能用
+          body: |
+            $\lim_{x \to 1}\frac{x^2 + 5}{3x + 4}$：分子趋于 6，分母趋于 7，不是 0/0，直接代入得 $\frac67$。硬用洛必达法则会得到 $\frac{2x}{3} \to \frac23$，是错的。
+
+            另外，法则是分子、分母各自求导，不是对整个分式用商法则。
+      - item:
+          id: misuse
+          type: choice
+          prompt: 有人这样算：lim_{x→0} sin x / eˣ = lim_{x→0} cos x / eˣ = 1。错在哪里？
+          options:
+            - text: x → 0 时分母 eˣ → 1，不是 0/0 型，不能用洛必达法则；正确答案是 0
+              correct: true
+            - text: cos x 的导数算错了
+              why: (sin x)′ = cos x、(eˣ)′ = eˣ 都没错，错在不该用这个法则
+            - text: 没有错，答案就是 1
+              why: 直接代入 sin 0 / e⁰ = 0/1 = 0
+          explain: 用之前先检查分子分母是不是都趋于 0（或都趋于 ∞）。
+      - item:
+          id: inf-inf
+          type: number
+          prompt: '求 $\lim_{x \to +\infty}\frac{x^2}{e^x}$。'
+          answer: 0
+          explain: ∞/∞ 型。2x/eˣ 仍是 ∞/∞，再一次 2/eˣ → 0。eˣ 比任何 xⁿ 长得都快。
+      - card:
+          title: 0·∞ 型：先写成分式
+          body: |
+            $x \to 0^+$ 时 $x \ln x$ 是 $0 \cdot (-\infty)$ 型，先改写成分式：$x\ln x = \frac{\ln x}{1/x}$，成了 ∞/∞ 型。
+
+            $$\begin{aligned}\lim_{x \to 0^+}\frac{\ln x}{1/x} &= \lim_{x \to 0^+}\frac{1/x}{-1/x^2} \\ &= \lim_{x \to 0^+}(-x) = 0\end{aligned}$$
+
+            乘方型（如 $x^{1/x}$）先取对数，化成乘积再这样做。
+      - item:
+          id: x-root-x
+          type: number
+          prompt: '求 $\lim_{x \to +\infty} x^{1/x}$。'
+          answer: 1
+          hint: 设 y = x^(1/x)，ln y = (ln x)/x。
+          explain: (ln x)/x 是 ∞/∞ 型，求导得 (1/x)/1 → 0。所以 ln y → 0，y → e⁰ = 1。
+  - id: taylor-limits
+    chapter: 泰勒公式与局部近似
+    title: 局部近似：用泰勒展开求极限
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: x 很小时，sin x − x 大约是多少？
+          options:
+            - text: −x³/6
+              correct: true
+            - text: '0'
+              why: sin x ≈ x 只精确到一阶；差 sin x − x 不是 0，而是比 x 高阶的小量
+            - text: −x²/2
+              why: sin x 的泰勒多项式没有 x² 项；−x²/2 是 cos x − 1 的主要部分
+          explain: sin x = x − x³/6 + …，所以 sin x − x ≈ −x³/6。
+      - card:
+          title: 佩亚诺余项
+          body: |
+            只要 $f$ 在 $a$ 处有 $n$ 阶导数，就有
+
+            $$f(x) = P_n(x) + o\big((x - a)^n\big)$$
+
+            （$x \to a$ 时）误差比最后一项 $(x - a)^n$ 还要高阶。这种写法的误差叫**佩亚诺余项（Peano remainder）**。它只说明 $a$ 附近的情况，不给具体大小，但条件比拉格朗日余项少，用来求极限正合适。
+      - card:
+          title: 常用的展开（x → 0）
+          body: |
+            $$e^x = 1 + x + \frac{x^2}{2} + \frac{x^3}{6} + o(x^3)$$
+            $$\sin x = x - \frac{x^3}{6} + o(x^3)$$
+            $$\cos x = 1 - \frac{x^2}{2} + \frac{x^4}{24} + o(x^4)$$
+            $$\ln(1 + x) = x - \frac{x^2}{2} + o(x^2)$$
+
+            上一站的等价无穷小 $\sin x \sim x$、$e^x - 1 \sim x$、$\ln(1 + x) \sim x$，就是这些展开只写到第一项。
+      - item:
+          id: ln-lim
+          type: number
+          prompt: '用展开求 $\lim_{x \to 0}\frac{\ln(1 + x) - x}{x^2}$。'
+          answer: -0.5
+          explain: 分子 = (x − x²/2 + o(x²)) − x = −x²/2 + o(x²)，除以 x² 趋于 −1/2。
+      - card:
+          title: 例题：展开相乘
+          body: 求 $\lim_{x \to 0}\frac{e^x \sin x - x - x^2}{x^3}$。
+          reveal:
+            - title: 第 1 步：分母是 x³，每个展开都写到 x³
+              body: $e^x = 1 + x + \frac{x^2}{2} + o(x^2)$，$\sin x = x - \frac{x^3}{6} + o(x^3)$。$\sin x$ 本身就带一个 $x$，所以 $e^x$ 写到 $x^2$ 就够了。
+            - title: 第 2 步：相乘，只留到 x³
+              body: $e^x \sin x = x + x^2 + \frac{x^3}{2} - \frac{x^3}{6} + o(x^3) = x + x^2 + \frac{x^3}{3} + o(x^3)$。
+            - title: 第 3 步：代回
+              body: 分子 $= \frac{x^3}{3} + o(x^3)$，极限是 $\frac13$。用洛必达法则要求导三次，展开更省事。
+      - item:
+          id: cos4
+          type: number
+          prompt: '求 $\lim_{x \to 0}\frac{\cos x - 1 + \frac{x^2}{2}}{x^4}$。（填分数或小数）'
+          answer: 0.0416667
+          tolerance: 0.0001
+          explain: cos x − 1 + x²/2 = x⁴/24 + o(x⁴)，极限是 1/24 ≈ 0.0417。
+      - item:
+          id: e3
+          type: number
+          prompt: '求 $\lim_{x \to 0}\frac{e^x - 1 - x - \frac{x^2}{2}}{x^3}$。（填分数或小数）'
+          answer: 0.1666667
+          tolerance: 0.0001
+          explain: 分子 = x³/6 + o(x³)，极限 1/6。
+      - card:
+          title: 加减里不能随便换成等价无穷小
+          body: |
+            $\lim_{x \to 0}\frac{\tan x - \sin x}{x^3}$：如果把 $\tan x$、$\sin x$ 都换成 $x$，分子变成 0，得到 0，这是错的。
+
+            要展开到够用的阶：$\tan x = x + \frac{x^3}{3} + o(x^3)$（它的三阶导数在 0 处是 2，系数 $\frac{2}{3!}$），所以分子 $= \frac{x^3}{3} + \frac{x^3}{6} + o(x^3) = \frac{x^3}{2} + o(x^3)$，极限是 $\frac12$。
+      - item:
+          id: trap
+          type: choice
+          prompt: 求 lim_{x→0} (tan x − sin x)/x³ 时，把 tan x 和 sin x 都换成 x，得到 0。错在哪里？
+          options:
+            - text: 等价无穷小只能在乘除里整体替换；相减时一阶项抵消了，要展开到更高阶
+              correct: true
+            - text: tan x 和 x 不是等价无穷小
+              why: tan x/x → 1，它们确实等价；问题在于用在了减法里
+            - text: 没有错，极限就是 0
+              why: 展开到三阶得分子 ≈ x³/2，极限是 1/2
+          explain: 一阶项相减抵消后，决定结果的是三阶项，所以要展开到 x³。
+      - item:
+          id: which-order
+          type: choice
+          prompt: 求 lim_{x→0} (sin x − x)/x³，sin x 至少要展开到第几阶？
+          options:
+            - text: 3 阶：x − x³/6 + o(x³)
+              correct: true
+            - text: 1 阶：x + o(x)
+              why: 分子会变成 o(x)，除以 x³ 看不出极限
+            - text: 5 阶
+              why: 可以，但没必要；o(x³) 除以 x³ 已经趋于 0
+          explain: 分母是 x³，展开到 x³，余项 o(x³)/x³ → 0，结果是 −1/6。
+
+  - id: power-series
+    chapter: 泰勒公式与局部近似
+    title: 幂级数：无限长的多项式
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 一直加下去：1 + 1/2 + 1/4 + 1/8 + …，和越来越接近多少？
+          answer: 2
+          explain: 每次加上剩下距离的一半，永远到不了 2，但要多接近有多接近。
+      - card:
+          title: 幂级数
+          body: |
+            把多项式一直写下去：$a_0 + a_1 x + a_2 x^2 + \cdots = \sum_{n=0}^{\infty} a_n x^n$，叫**幂级数（power series）**。
+
+            它在某个 $x$ 的值，是前 $n$ 项和这个数列（部分和）的极限。部分和收敛，就说级数在这个 $x$ 处收敛；不收敛就是发散。
+      - card:
+          title: 几何级数
+          body: |
+            $S = 1 + x + x^2 + \cdots$。乘以 $x$：$xS = x + x^2 + \cdots$。相减：$S - xS = 1$，
+
+            $$1 + x + x^2 + \cdots = \frac{1}{1 - x}$$
+
+            （$|x| < 1$ 时）。这个推导先假设了 $S$ 存在。$|x| < 1$ 时部分和 $\frac{1 - x^{n+1}}{1 - x}$ 确实收敛；$x = 1$ 时是 $1 + 1 + \cdots$，相减成了“∞ − ∞”，推导不成立。
+      - item:
+          id: third
+          type: number
+          prompt: '$1 + \frac13 + \frac19 + \frac{1}{27} + \cdots$ 等于多少？'
+          answer: 1.5
+          explain: 几何级数，x = 1/3：1/(1 − 1/3) = 3/2。
+      - item:
+          id: x-two
+          type: choice
+          prompt: 把 x = 2 代进 1/(1 − x) 得到 −1。所以 1 + 2 + 4 + 8 + … = −1 吗？
+          options:
+            - text: 不对，|x| ≥ 1 时级数发散，公式不适用
+              correct: true
+            - text: 对，公式就是这么说的
+              why: 公式只在 |x| < 1 时成立；x = 2 时部分和 1、3、7、15……越来越大
+          explain: 用幂级数的公式之前，先确认 x 在收敛的范围里。
+      - card:
+          title: 收敛半径
+          body: |
+            每个幂级数都有一个 $R$（$0 \le R \le \infty$）：$|x| < R$ 时收敛，$|x| > R$ 时发散。$R$ 叫**收敛半径（radius of convergence）**。几何级数的 $R = 1$。
+
+            在 $|x| < R$ 里，幂级数可以像多项式一样加、乘、求导。$|x| = R$ 的两个端点要另外判断，属于无穷级数那一站。
+      - card:
+          title: 例题：用相邻两项的比求 R
+          body: 求 $\sum_{n \ge 1}\frac{x^n}{n}$、$\sum_{n \ge 0}\left(\frac{x}{2}\right)^n$、$\sum_{n \ge 0}\frac{x^n}{n!}$ 的收敛半径。
+          reveal:
+            - title: 方法：后一项比前一项的绝对值，看极限是否小于 1
+              body: 设这个比的极限是 $L$。$L < 1$ 时级数收敛，$L > 1$ 时发散。把 $L < 1$ 解成关于 $|x|$ 的不等式。
+            - title: 第 1 个
+              body: $\left|\frac{x^{n+1}/(n+1)}{x^n/n}\right| = |x|\frac{n}{n + 1} \to |x|$，要 $|x| < 1$，$R = 1$。
+            - title: 第 2、3 个
+              body: $\frac{|x|}{2} < 1$ 给出 $R = 2$；$\frac{|x|^{n+1}/(n+1)!}{|x|^n/n!} = \frac{|x|}{n + 1} \to 0 < 1$ 对所有 $x$ 成立，$R = \infty$。
+      - item:
+          id: r3
+          type: number
+          prompt: '幂级数 $\sum_{n \ge 0}\frac{x^n}{3^n}$ 的收敛半径是多少？'
+          answer: 3
+          explain: 后项比前项是 |x|/3，|x|/3 < 1 即 |x| < 3。它就是 x/3 的几何级数。
+      - item:
+          id: rn
+          type: number
+          prompt: '幂级数 $\sum_{n \ge 1} n x^n$ 的收敛半径是多少？'
+          answer: 1
+          explain: '|(n + 1)x^(n+1)| / |n xⁿ| = |x|(n + 1)/n → |x|，所以 R = 1。'
+
+  - id: taylor-series
+    chapter: 泰勒公式与局部近似
+    title: 泰勒级数
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 1 + 1 + 1/2 + 1/6 + 1/24 + 1/120（每项是 1/n!，n 从 0 到 5）等于多少？（保留 4 位小数）
+          answer: 2.7167
+          tolerance: 0.0001
+          explain: 和是 2.71667，已经很接近 e = 2.71828…。下面说明为什么。
+      - card:
+          title: 泰勒级数
+          body: |
+            泰勒多项式一直写下去，就是**泰勒级数（Taylor series）** $\sum_{n=0}^{\infty}\frac{f^{(n)}(a)}{n!}(x - a)^n$。用余项可以证明，下面三个对所有实数 $x$ 都成立（$R = \infty$）：
+
+            $$\begin{aligned}e^x &= \sum_{n=0}^{\infty}\frac{x^n}{n!} \\ \sin x &= x - \frac{x^3}{3!} + \frac{x^5}{5!} - \cdots \\ \cos x &= 1 - \frac{x^2}{2!} + \frac{x^4}{4!} - \cdots\end{aligned}$$
+
+            取 $x = 1$：$e = 1 + 1 + \frac{1}{2!} + \frac{1}{3!} + \cdots$，这是一个能算出 $e$ 的式子。
+      - item:
+          id: e-sum
+          type: number
+          prompt: '用 $e = \sum \frac{1}{n!}$ 的前 8 项（$n = 0$ 到 $7$）估算 $e$。（保留 5 位小数）'
+          answer: 2.71825
+          tolerance: 0.00001
+          explain: 前 6 项和 2.716667，再加 1/720 ≈ 0.001389、1/5040 ≈ 0.000198，得 2.718254。真实值 2.718282，误差约 0.00003。
+      - card:
+          title: 演示：sin x 和它的泰勒多项式
+          body: 阶数调高，多项式在越来越宽的范围里贴住 $\sin x$。幂级数里看不出 $\sin x$ 是周期函数，$\pi$ 藏在了无穷多项里。
+          sim:
+            name: plot
+            params: { mode: taylor, series: sin, xMax: 6, maxOrder: 15 }
+      - item:
+          id: sim-cos3
+          type: sim
+          prompt: '换成 $\cos x$。把阶数调到能让它在 $x = 3$ 处的误差小于 0.01。'
+          sim: plot
+          params: { mode: taylor, series: cos, xMax: 6, maxOrder: 15 }
+          goal: { at: 3, errorBelow: 0.01 }
+          solution: { order: 10 }
+          explain: 8 阶时误差约 0.015，10 阶时约 0.001。cos 只有偶数次项，阶数每次跳 2。
+      - card:
+          title: 半径向两边一样长
+          body: |
+            把几何级数里的 $x$ 换成 $-x$：$\frac{1}{1 + x} = 1 - x + x^2 - x^3 + \cdots$，$R = 1$。
+
+            $x = -1$ 时分母是 0，函数在那里断开，所以半径不会超过 1。半径是从中心向两边量的：$x = 1$ 处函数好好的，等于 $\frac12$，级数却是 $1 - 1 + 1 - \cdots$，部分和 1、0、1、0 来回跳，不收敛。
+      - item:
+          id: radius-both
+          type: choice
+          prompt: 1/(1 + x) 在 x = 1 处等于 1/2，为什么它的级数 1 − x + x² − … 在 x = 1 处不收敛？
+          options:
+            - text: 收敛半径是 1，由 x = −1 处的断点决定，x = 1 已经在边界上
+              correct: true
+            - text: 因为部分和有界
+              why: 部分和 1、0、1、0 确实有界，但有界不等于收敛；它不靠近任何一个数
+            - text: 级数其实收敛到 1/2
+              why: 部分和在 1 和 0 之间来回跳，没有极限
+          explain: 收敛的范围是以 0 为中心、向两边各 R 的区间。
+      - card:
+          title: 级数收敛，不一定等于原函数
+          body: |
+            $f(x) = e^{-1/x^2}$（$x > 0$），$f(x) = 0$（$x \le 0$）。可以证明它在 0 处的各阶导数全是 0，泰勒级数就是 $0 + 0 + \cdots = 0$，可是 $x > 0$ 时 $f(x) > 0$。
+
+            所以泰勒级数要等于 $f$，还得证明余项趋于 0，就像上面对 $e^x$ 做的那样。
+      - item:
+          id: sec-coef
+          type: number
+          prompt: '$\sec x = \frac{1}{\cos x}$。已知 $\sec 0 = 1$，$(\sec x)'' = \sec x \tan x$ 在 0 处为 0，$(\sec x)'''' = \sec x\tan^2 x + \sec^3 x$。它的泰勒级数里 $x^2$ 的系数是多少？'
+          answer: 0.5
+          explain: (sec x)″ 在 0 处 = 0 + 1 = 1，系数 1/2! = 1/2。所以 sec x ≈ 1 + x²/2 + …。sec x 是偶函数，只有偶数次项。
+      - item:
+          id: odd-even
+          type: choice
+          prompt: 一个函数满足 f(−x) = −f(x)（奇函数，如 sin x），它在 0 处的泰勒级数里有哪些项？
+          options:
+            - text: 只有 x 的奇数次项
+              correct: true
+            - text: 只有偶数次项
+              why: 偶数次项满足 (−x)²ᵏ = x²ᵏ，属于偶函数；sin x 的级数是 x − x³/6 + …
+            - text: 奇数次和偶数次都有
+              why: 奇函数的偶数阶导数在 0 处都是 0，偶数次项全部消失
+          explain: sin x 只有奇数次项，cos x（偶函数）只有偶数次项。
+
+  - id: series-ops
+    chapter: 泰勒公式与局部近似
+    title: 用已知的级数造新的级数
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: sin x = x − x³/6 + x⁵/120 − …。猜猜 x sin x 的级数前两项是什么？
+          options:
+            - text: x² − x⁴/6
+              correct: true
+            - text: x − x³/6
+              why: 这是 sin x 本身；每一项还要乘 x
+            - text: 2x − x³/3
+              why: 这像是把系数乘了 2；乘 x 是把每项的次数加 1
+          explain: 在收敛半径内，幂级数可以像多项式一样逐项乘 x。
+      - card:
+          title: 加、乘、代换
+          body: |
+            在收敛半径内，幂级数可以相加、乘以 $x^k$、互相相乘（至少在两个半径中较小的那个范围内成立），还可以把 $x$ 换成别的式子。
+
+            例：$e^u = 1 + u + \frac{u^2}{2!} + \cdots$ 里把 $u$ 换成 $-x^2$：$e^{-x^2} = 1 - x^2 + \frac{x^4}{2!} - \frac{x^6}{3!} + \cdots$。几何级数里 $x$ 换成 $-25x^2$：$\frac{1}{1 + 25x^2} = 1 - 25x^2 + 625x^4 - \cdots$，要 $|25x^2| < 1$，即 $|x| < \frac15$。
+      - item:
+          id: ex2-coef
+          type: number
+          prompt: '$e^{-x^2}$ 的级数里 $x^4$ 的系数是多少？'
+          answer: 0.5
+          explain: (−x²)²/2! = x⁴/2，系数 1/2。
+      - item:
+          id: r-sub
+          type: number
+          prompt: '$\frac{1}{1 + 4x^2} = 1 - 4x^2 + 16x^4 - \cdots$ 的收敛半径是多少？'
+          answer: 0.5
+          explain: 这是 u = −4x² 的几何级数，要 |4x²| < 1，即 |x| < 1/2。
+      - card:
+          title: 逐项求导
+          body: |
+            在收敛半径内可以一项一项求导，半径不变：
+
+            $$\Big(\sum a_n x^n\Big)' = \sum n\,a_n x^{n-1}$$
+
+            检验：$\sin x$ 的级数逐项求导，$\frac{3x^2}{3!} = \frac{x^2}{2!}$、$\frac{5x^4}{5!} = \frac{x^4}{4!}$，正好得到 $\cos x$ 的级数。几何级数求导：$\frac{1}{(1 - x)^2} = 1 + 2x + 3x^2 + \cdots$（$|x| < 1$）。
+      - item:
+          id: sum-n
+          type: number
+          prompt: '用 $\frac{1}{(1 - x)^2} = 1 + 2x + 3x^2 + \cdots$ 求 $1 + 2 \cdot \frac12 + 3 \cdot \frac14 + 4 \cdot \frac18 + \cdots$。'
+          answer: 4
+          explain: x = 1/2 在收敛半径内，和是 1/(1 − 1/2)² = 4。
+      - card:
+          title: 例题：ln(1 + x) 的级数
+          body: 已知 $(\ln(1 + x))' = \frac{1}{1 + x} = 1 - x + x^2 - x^3 + \cdots$（$|x| < 1$）。求 $\ln(1 + x)$ 的级数。
+          reveal:
+            - title: 第 1 步：倒过来找每一项
+              body: 哪个函数的导数是 $x^n$？是 $\frac{x^{n+1}}{n + 1}$。所以导数为 $1 - x + x^2 - \cdots$ 的级数是 $C + x - \frac{x^2}{2} + \frac{x^3}{3} - \cdots$。
+            - title: 第 2 步：用一个点定出常数
+              body: $x = 0$ 时 $\ln 1 = 0$，所以 $C = 0$。导数相同的两个函数只差一个常数（中值定理的推论），这一步保证了两者相等。
+            - title: 第 3 步：写出结果
+              body: $\ln(1 + x) = x - \frac{x^2}{2} + \frac{x^3}{3} - \frac{x^4}{4} + \cdots$，$R = 1$。这种“倒过来求导”的运算就是逐项积分，积分在下一站一元积分学。
+      - item:
+          id: ln11-3
+          type: number
+          prompt: '用 $\ln(1 + x) = x - \frac{x^2}{2} + \frac{x^3}{3} - \cdots$ 的前 3 项估算 $\ln 1.1$。（保留 5 位小数）'
+          answer: 0.09533
+          tolerance: 0.00001
+          explain: 0.1 − 0.005 + 0.000333 = 0.095333，真实值 0.0953102。
+      - card:
+          title: arctan x 的级数
+          body: |
+            $(\arctan x)' = \frac{1}{1 + x^2} = 1 - x^2 + x^4 - x^6 + \cdots$（几何级数，$u = -x^2$，$|x| < 1$）。同样倒过来，再用 $\arctan 0 = 0$：
+
+            $$\begin{aligned}\arctan x = x &- \frac{x^3}{3} + \frac{x^5}{5} \\ &- \frac{x^7}{7} + \cdots\end{aligned}$$
+      - item:
+          id: atan-x7
+          type: number
+          prompt: '$\arctan x$ 的级数里 $x^7$ 的系数是多少？（填分数或小数）'
+          answer: -0.1428571
+          tolerance: 0.0001
+          explain: −x⁶ 倒过来是 −x⁷/7，系数 −1/7 ≈ −0.143。
+      - item:
+          id: atan5x
+          type: number
+          prompt: '$\arctan(5x)$ 的级数里 $x^3$ 的系数是多少？（保留 2 位小数）'
+          answer: -41.6667
+          tolerance: 0.01
+          hint: 把 arctan u 的级数里 u 换成 5x。
+          explain: −(5x)³/3 = −125x³/3，系数 −125/3 ≈ −41.67。收敛半径变成 1/5。
+boss:
+  items:
+    - id: d-x3e2x
+      type: choice
+      prompt: y = x³e^(2x) 的导数是什么？
+      options:
+        - text: x²(2x + 3)e^(2x)
+          correct: true
+        - text: 6x²e^(2x)
+          why: 这是把两个因子的导数 3x² 和 2e^(2x) 直接相乘；积要用乘积法则
+        - text: 3x²e^(2x) + x³e^(2x)
+          why: (e^(2x))′ = 2e^(2x)，漏了链式法则里里层 2x 的导数 2
+      explain: 乘积法则加链式法则：3x²e^(2x) + x³ · 2e^(2x) = x²(2x + 3)e^(2x)。
+    - id: d-ln
+      type: number
+      prompt: '$y = \ln(1 + x^2)$。$y''(1)$ 是多少？'
+      answer: 1
+      explain: y′ = 2x/(1 + x²)，x = 1 时是 2/2 = 1。
+    - id: d-sin-x2
+      type: choice
+      prompt: y = sin(x²) 的导数是什么？
+      options:
+        - text: 2x cos(x²)
+          correct: true
+        - text: cos(x²)
+          why: 漏了里层 x² 的导数 2x
+        - text: cos(2x)
+          why: 外层的导数要在原来的里层 x² 处取值，再乘里层的导数
+      explain: 外层 sin u 的导数 cos u，在 u = x² 处取值，再乘 (x²)′ = 2x。
+    - id: implicit-boss
+      type: number
+      prompt: '圆 $x^2 + y^2 = 25$ 在点 $(4, 3)$ 处的切线斜率是多少？（填分数或小数）'
+      answer: -1.3333333
+      tolerance: 0.001
+      explain: 2x + 2y y′ = 0，y′ = −x/y = −4/3。
+    - id: mono-boss
+      type: choice
+      prompt: y = x³ − 3x 在哪个区间上单调递减？
+      options:
+        - text: (−1, 1)
+          correct: true
+        - text: (1, +∞)
+          why: x > 1 时 y′ = 3x² − 3 > 0，在递增
+        - text: (−∞, −1)
+          why: x < −1 时 y′ > 0，也在递增
+      explain: y′ = 3(x − 1)(x + 1) 只在 (−1, 1) 上为负。
+    - id: max-boss
+      type: number
+      prompt: '$y = x^3 - 3x$ 的局部极大值是多少？'
+      answer: 2
+      explain: 驻点 ±1。x = −1 处 y′ 由正变负，是局部极大，y(−1) = −1 + 3 = 2。（x = 1 处是局部极小 −2。）
+    - id: mvt-boss
+      type: number
+      prompt: '对 $f(x) = x^2$ 在 $[1, 3]$ 上用拉格朗日中值定理，定理中的 $\xi$ 是多少？'
+      answer: 2
+      explain: (9 − 1)/(3 − 1) = 4 = 2ξ，ξ = 2。
+    - id: dy-boss
+      type: number
+      prompt: '用微分估算 $\sqrt{101}$：取 $x = 100$，$dx = 1$。估算值是多少？'
+      answer: 10.05
+      tolerance: 0.000001
+      explain: dy = dx/(2√x) = 1/20 = 0.05，√101 ≈ 10.05。真实值约 10.0499。
+    - id: p3-boss
+      type: number
+      prompt: '$e^x$ 在 0 处的 3 阶泰勒多项式 $P_3(x)$，在 $x = 0.1$ 处的值是多少？（保留 6 位小数）'
+      answer: 1.105167
+      tolerance: 0.000001
+      explain: 1 + 0.1 + 0.01/2 + 0.001/6 = 1.1051667。
+    - id: rem-boss
+      type: number
+      prompt: '用 $e^x$ 在 0 处的 3 阶泰勒多项式算 $e^{0.1}$。拉格朗日余项给出的误差上界是多少？（可以用 $e^{0.1} < 1.2$）'
+      answer: 0.000005
+      tolerance: 0.0000001
+      explain: '|R₃| ≤ 1.2 × 0.1⁴/4! = 1.2 × 0.0001/24 = 5 × 10⁻⁶。真实误差约 4.3 × 10⁻⁶。'
+    - id: lim-boss
+      type: number
+      prompt: '求 $\lim_{x \to 0}\frac{x - \sin x}{x^3}$。（填分数或小数）'
+      answer: 0.1666667
+      tolerance: 0.0001
+      explain: sin x = x − x³/6 + o(x³)，分子 = x³/6 + o(x³)，极限 1/6。连用三次洛必达法则也得 1/6。

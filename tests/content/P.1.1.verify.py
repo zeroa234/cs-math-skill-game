@@ -238,7 +238,10 @@ checks += [
     (out('xs = [1, 2, 3, 4]\ndel xs[1:3]\nprint(xs)'), "[1, 4]\n"), (out('xs = [1, 2, 3]\ndel xs[0]\nprint(xs)'), "[2, 3]\n"),
     (out('prices = {"苹果": 5, "梨": 3}\ndel prices["梨"]\nprint(prices)'), "{'苹果': 5}\n"), (raises('x = 1\ndel x\nprint(x)', NameError), True),
     (out('prices = {"苹果": 5}\nprices["梨"] = 3\nprices["苹果"] = 6\nprint(prices)'), "{'苹果': 6, '梨': 3}\n"),
-    (out('counts = {}\nfor w in ["a", "b", "a", "a"]:\n    counts[w] = counts.get(w, 0) + 1\nprint(counts["a"])'), "3\n"),
+    (out('votes = {}\nv = "red"\nvotes[v] = votes.get(v, 0) + 1\nv = "blue"\nvotes[v] = votes.get(v, 0) + 1\nv = "red"\nvotes[v] = votes.get(v, 0) + 1\nprint(votes["red"])'), "2\n"),
+    (out('votes = {}\nv = "red"\nvotes[v] = votes.get(v, 0) + 1\nprint(votes)'), "{'red': 1}\n"),
+    (out('votes = {"red": 1}\nv = "blue"\nvotes[v] = votes.get(v, 0) + 1\nprint(votes)'), "{'red': 1, 'blue': 1}\n"),
+    (list(range(5)), [0, 1, 2, 3, 4]), ("Python"[0:2], "Py"), (len("Python"[2:5]), 5 - 2),
     (out('s = []\ns.append(1)\ns.append(2)\ns.append(3)\ns.pop()\nprint(s.pop())'), "2\n"),
     (out('a, b = 1, 2\nprint(a, b)'), "1 2\n"), (err('a, b = [1, 2, 3]'), "ValueError: too many values to unpack (expected 2, got 3)"),
     # loop-control

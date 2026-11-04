@@ -19,7 +19,7 @@
 
 | 规则 | 要求 | 依据 | 怎么查 |
 |---|---|---|---|
-| B1 先讲后用 | `data/jargon.yaml` 里的术语，第一次出现前必须有一张卡用 `**术语（英文）**` 讲清楚它，并写进本包的 `terms`；前置技能的内容包已经讲过的可以直接用；前置技能还没有内容包的，写进 `assumes` | 专家盲点（Nathan & Petrosino 2003）；预训练原则：先给出关键概念的名字和特征（Mayer 2014，16 个实验里 13 个支持） | 自动 |
+| B1 先讲后用 | `data/jargon.yaml` 里的术语，第一次出现前必须有一张卡用 `**术语（英文）**` 讲清楚它，并写进本包的 `terms`；前置技能的内容包已经讲过的可以直接用；前置技能还没有内容包的，写进 `assumes`。程序也算：题目和卡片里展示的代码用了 `data/jargon.yaml` 的 `code` 列出的关键字（`for`、`while` 算用了“循环”，`if` 算“分支”，`def`、`return` 算“函数”……），就等于用了这个术语；只有讲它的那一课可以先出现（开头先猜）。字符串、注释和行内代码不查 | 专家盲点（Nathan & Petrosino 2003）；预训练原则：先给出关键概念的名字和特征（Mayer 2014，16 个实验里 13 个支持） | 自动 |
 | B2 讲一点、练一点 | 连续讲解卡不超过 2 张，之后必须有一个问题（先猜或练习） | 分段原则：学习者自己控制节奏的小段比连续讲解学得更深（Mayer 2014，10/10 个实验支持）；检索练习（研究报告 B1） | 自动 |
 | B3 一张卡一个想法 | 一张卡的讲解文字（不算代码、表格、公式）不超过 240 字；超了就拆成两张，中间加一个问题 | 同上；工作记忆有限，同时出现的新元素越少越好（认知负荷，研究报告 B4） | 自动 |
 | B4 先看例子再动手 | 要操作交互组件的计分题，之前同一课里必须有演示（卡片带 `sim`）或分步例题（卡片带 `reveal`） | 例题效应（Sweller & Cooper 1985）；从完整例题到独立解题逐步撤掉支架（Renkl & Atkinson 2003） | 自动 |
@@ -91,7 +91,7 @@ npm run build && npm run e2e                             # 每一课按正确答
 
 写完课再逐行核对一遍。覆盖表不全的包不算写完，也不计入路线卡片上的“已写好”：构建按 C1 检查每个包，通过才给它标上 `coverage: true`（`src/game/app/state.js` 的 `routeStats` 只数两条都满足的站）。
 
-**现状**：2026-11-03 先对照了 P.1.1 和 P.2.2，结果在 `reports/coverage-audit.md`，两站随后补齐。“我的远征”的 5 站（P.1.1、P.2.2、F.1.1、C.1.1、C.2.1）都已按两条标准写完，覆盖表全部通过 C1。另外 13 个技能的旧版包不达标，已归档到 `archive/data/content/`，这些技能现在和其他没有互动课的技能一样。
+**现状**：2026-11-03 先对照了 P.1.1 和 P.2.2，结果在 `reports/coverage-audit.md`，两站随后补齐。“我的远征”的 5 站（P.1.1、P.2.2、F.1.1、C.1.1、C.2.1）都已按两条标准写完，覆盖表全部通过 C1。另外 13 个技能的旧版包不达标，已归档到 `archive/data/content/`；其中 M.1.1、M.1.2、M.3.1、P.2.3、M.5.3、F.1.2 已按两条标准重写，旧包已删，其余的技能现在和其他没有互动课的技能一样。
 
 ## 一课的结构
 
@@ -110,7 +110,7 @@ npm run build && npm run e2e                             # 每一课按正确答
 - 在定义术语的那张卡里写 `**术语（英文）**`，同时在包顶部的 `terms` 里写一条 `{ term, def }`。`def` 是一句话（90 字以内），游戏里所有题目、解析、后面几课的卡片中，这个术语第一次出现的地方都会自动变成可以点开的词，点一下显示 `def`（复习时也一样）。同一课的卡片里不加，因为那一课自己就在讲它。
 - 前置技能的内容包里 `terms` 讲过的词，可以直接用，也会自动带查词。
 - 想在某处强制加查词，写 `[[术语]]`；选项和配对卡片里不会出现查词按钮（按钮里不能放按钮）。
-- `data/jargon.yaml` 是“初学者不认识的词”清单，B1 只查清单里的词。读者发现漏网的词就加进去，清单只增不减；太常见、有日常含义的词（如“方法”“对象”“类型”）不放进去，以免误报。
+- `data/jargon.yaml` 是“初学者不认识的词”清单，B1 只查清单里的词；它末尾的 `code` 把代码关键字对到术语上，代码块里的程序也按它查（2026-11-04 起：玩家发现 P.1.1“改动列表和字典”的题在教 for 之前两课就用了 for 循环，原来的检查不看代码，没拦住）。读者发现漏网的词就加进去，清单只增不减；太常见、有日常含义的词（如“方法”“对象”“类型”）不放进去，以免误报。
 
 ## 写作要求
 
@@ -122,6 +122,7 @@ npm run build && npm run e2e                             # 每一课按正确答
 - `hint` 是一个推动思路的小问题，不是答案。
 - 练习题会在几天后单独出现在复习里，看不到讲解卡和前一题。题干要自带全部条件；实在离不开前一题（“接上题”“上面那个”）就写 `review: false`，check-pack 会检查。
 - 数学用 KaTeX：行内 `$...$`，独立公式 `$$...$$`。写在 `|` 块里，反斜杠不用转义。
+- 长公式照常写，不用为手机拆短：独立公式、表格和代码比内容框宽时可以左右滑，界面会自动在还有内容的那一边做渐隐提示（`src/game/ui/md.jsx` 的 `markScroller`）。几个并列的式子更适合用 `\begin{aligned}…\end{aligned}` 分行，读起来比横着滑方便，这是写法上的选择，不是硬性要求。行内公式由 KaTeX 在最外层的关系符号和运算符号（=、<、+、−……）后面自动折行；没有这类断点、又比一行还宽的（如用逗号隔开的一串、很宽的分式），界面会把它挪到单独一行，同样可以滑、带渐隐（`fitInline`）。
 - 代码放进题目的 `code` 字段（`lang: python` / `c`），不要塞进 prompt 文本。
 
 ## 题型
@@ -151,11 +152,25 @@ npm run build && npm run e2e                             # 每一课按正确答
 | threads | `{shared: {x: 0}, locks: [m], sems: {s: 0}, threads: [{name, locals: {t: 0}, steps: ["t = x", "t = t + 1", "x = t"]}]}` | `{final: {x: 1}}` 或 `{deadlock: true}` | 每一步选哪个线程（从 0 数），如 `[0,1,0,0,1,1]` |
 | replace | `{frames: 3, refs: [7, 0, 1, 2, …], policy: FIFO\|LRU\|OPT}`（引用串最多 24 个，页框 1–6；`help: true` 在练习里也显示每页的进来时间 / 上次使用 / 下次使用） | `{}` 或 `{misses: 10}` | 每次“缺页且页框已满”时换出的页，按先后，如 `[7, 0, 1]`。OPT 下几页一样远（比如都不再用到）时任选一个都算对 |
 | graph（bfs/dfs） | `{mode: bfs, start: a, directed: false, nodes: [{id: a, x: 40, y: 100}, …], edges: [[a, b], [b, c], …]}`（坐标是像素，整张图宽不超过约 360；`help: true` 在练习里也显示队列/栈/候选点） | `{}` | 节点第一次访问到的先后顺序 `[a, b, c]`。平局任选，算法能产生的任何一种顺序都算对 |
+| graph（dijkstra/topo） | 同 BFS，`directed: true`；Dijkstra 的边第三项是权重：`edges: [[a, b, 4], …]`；topo 不要 `start`，图里不能有圈 | `{}` | Dijkstra 是确定最短距离的先后顺序，topo 是排好的顺序；平局任选。Dijkstra 默认在节点下显示暂定距离，`hideDist: true` 隐藏 |
+| graph（flow） | `{mode: flow, directed: true, start: s, sink: t, nodes, edges: [[s, a, 3], …]}`（容量是正整数，不能同时有 u→v 和 v→u） | `{}` | `{paths: [[s, a, t], [s, b, a, t]]}`：残量网络里的增广路，依次推瓶颈流量；送到最大流即对 |
 | trace | `{code: "...python...", stdin: ""}` | `{ask: [{line: 3, var: total, hit: 2}]}`（`var: "@out"` 问已打印的输出） | 不需要；构建时真的运行代码记录每一步 |
+| plot（secant） | `{mode: secant, f: "x^2", a: 1, hMax: 1}` | `{slope: {target: 2, tol: 0.05}}` | `{h: 0.01}` |
+| plot（riemann） | `{mode: riemann, f: "x^2", a: 0, b: 1, rule: left\|right\|mid, nMax: 200}` | `{errorBelow: 0.01}` | `{n: 50}` |
+| plot（taylor） | `{mode: taylor, series: exp\|sin\|cos\|ln1p, xMax: 3}` | `{at: 1, errorBelow: 0.001}` | `{order: 5}` |
+| plot（limit） | `{mode: limit, f: "sin(x)/x", a: 0}` | `{value: 1, tol: 1e-6}` | `{guess: 1}` |
+| matrix2d | `{start: [[1,0],[0,1]]}` | `{matrix}` / `{det: 0}` / `{maps: [[[1,0],[0,1]]]}` / `{eigvec: [1,1]}`，可加 `tol` | 2×2 数组 `[[0,-1],[1,0]]` |
+| descent | `{f: "(x-3)^2", x0: 0, lr: 0.1}`（`lr` 是滑块的初始学习率，可省），二元加 `vars: [x, y]`、`x0: [2, 1]` | `{target: 3, tol: 0.01, maxSteps: 30}` | `{lr: 0.3, steps: 20}` |
+| sampler | `{dist: coin\|die\|twoDice}` | `{samples: 1000}` | `{n: 1000}` |
+| neuron | `{gate: and\|or\|nand\|xor}` | `{accuracy: 1}` | `{w1: 1, w2: 1, b: -1.5}` |
+| mlp | `{dataset: circle\|xor\|linear, hidden: 0}` | `{accuracy: 0.9}` | `{hidden: 6, activation: tanh, lr: 1, epochs: 600, seed: 1}` |
+| kmeans | `{dataset: blobs3, k: 3}` | `{}` | `{iterations: 10}` |
 
-图组件的约定会显示给玩家：BFS 的“访问顺序”指第一次发现的顺序；DFS 指先序（第一次到达）。
+图组件的约定会显示给玩家：BFS 的“访问顺序”指第一次发现的顺序；DFS 指先序（第一次到达）。Dijkstra 只更新还没确定的点（有负权边时会在结束后显示 Bellman–Ford 的真实距离做对比）；flow 里沿一条已有流量的边反着走等于退回流量。
 
-只有旧课用过的组件（函数图像、矩阵、抽样、梯度下降、神经元、小神经网络、k-means）和图组件的 Dijkstra、拓扑排序、最大流已经归档，参数表在 `archive/README.md`；新课要用时先按那里说的挪回来。
+函数表达式（plot、descent 的 `f`，`src/game/sims/expr.js`）支持 `+ - * / ^`、括号、`2x` 这种省略乘号、`sin cos tan exp log ln sqrt abs tanh sigmoid relu`、常数 `pi e`。没用现成库的原因：只需四则运算和少数函数，expr-eval 自 2022 年未更新，math.js 约 9 MB。
+
+抽样、二维梯度下降、神经元、小神经网络、k-means 还没有课用到：代码在游戏里，实验室条目暂放在 `archive/src/game/ui/lab-archived.js`。课里第一次用到时，把条目挪进 `src/game/app/lab.js`。
 
 **加了新的交互组件或新的模式**：在 `src/game/app/lab.js` 的 `LAB` 里加一条，玩家第一次学完用到它的课，实验室就多出这个实验（单元测试会检查课里的每个实验都在实验室里）。
 

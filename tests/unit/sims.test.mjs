@@ -1,5 +1,5 @@
-// Unit tests for sim logic. Expected values are worked by hand in the comments. The archived sims'
-// tests moved with them: archive/tests/unit/sims-archived.test.mjs.
+// Unit tests for sim logic. Expected values are worked by hand in the comments. The graph sim's
+// Dijkstra, topological sort and max flow modes are in sims-graph.test.mjs, the math sims in sims-math.test.mjs.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { SIMS } from "../../src/game/sims/logic/index.js";

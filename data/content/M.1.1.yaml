@@ -1,0 +1,2077 @@
+skill: M.1.1
+version: 2
+authors: [main-agent]
+brief:
+  why: 微积分的一切都从“越来越接近”开始：导数是割线越来越接近切线，积分是小矩形越分越细，机器学习里的梯度下降也是一步步接近最低点。这一关把“接近”说清楚：数列和函数的极限怎么算、什么时候不存在，无穷小谁更快，连续是什么意思，以及闭区间上连续函数一定成立的几件事。只假设你会中学的代数。
+  outcomes:
+    - 读懂函数、定义域、图像和分段函数，用通项和递推写出数列
+    - 判断数列收敛还是发散，用同除最高次、等比数列、单调收敛定理求数列的极限
+    - 用表格和图像估计函数的极限，算左右极限，认出极限不存在的三种样子
+    - 用极限运算法则、约分、有理化、通分、夹逼定理和 sin x / x → 1 求极限
+    - 用 ε-δ 说清“要多接近有多接近”，给一次函数和 x² 选出 δ
+    - 比较无穷小的阶，用等价无穷小在乘除里化简极限
+    - 判断函数在一点是否连续、间断点属于哪一类，让分段函数连续
+    - 用介值定理和二分法找根，用最值定理和一致连续判断闭区间上的函数
+terms:
+  - term: 函数
+    def: '一条规则：每个输入恰好对应一个输出，写作 f(x)'
+  - term: 定义域
+    def: '能放进函数的所有输入，比如 1/x 的定义域里没有 0'
+  - term: 图像
+    def: '所有点 (x, f(x)) 画在平面上连成的曲线'
+  - term: 分段函数
+    def: '在不同的输入范围里用不同式子的函数，比如出租车计价'
+  - term: 整数
+    def: '没有小数部分的数：…、−2、−1、0、1、2、…'
+  - term: 数列
+    def: '按顺序排好的一串数 a₁, a₂, a₃, …，可以一直写下去'
+  - term: 通项公式
+    def: '直接用序号 n 算出第 n 项的式子，如 aₙ = 3n − 1'
+  - term: 递推公式
+    def: '说明怎样从前一项算出下一项的式子，再给出第一项'
+  - term: 等差数列
+    def: '相邻两项的差都相同的数列：aₙ = a₁ + (n − 1)d'
+  - term: 等比数列
+    def: '相邻两项的比都相同的数列：aₙ = a₁·rⁿ⁻¹'
+  - term: 绝对值
+    def: '去掉负号后的数，|−3| = 3；|a − b| 是 a 和 b 在数轴上的距离'
+  - term: 收敛
+    def: '数列或函数值和某个数 L 的距离能变得要多小有多小，并一直保持'
+  - term: 极限
+    def: '收敛时靠近的那个数 L，写作 lim aₙ = L 或 lim f(x) = L'
+  - term: 发散
+    def: '数列不收敛：越来越大，或者来回跳、不靠近任何一个数'
+  - term: 有界
+    def: '所有项（或函数值）都夹在两个固定的数之间'
+  - term: 单调
+    def: '一直不减（单调递增）或一直不增（单调递减）'
+  - term: 单调收敛定理
+    def: '单调并且有界的数列一定收敛'
+  - term: 左极限
+    def: '只让 x 从比 a 小的一侧靠近 a 时函数的极限，记作 x → a⁻'
+  - term: 右极限
+    def: '只让 x 从比 a 大的一侧靠近 a 时函数的极限，记作 x → a⁺'
+  - term: 单侧极限
+    def: '左极限和右极限的合称'
+  - term: 弧度
+    def: '用单位圆上的弧长量角：一整圈是 2π，半圈是 π'
+  - term: 无穷极限
+    def: 'x → a 时函数值无限变大（+∞）或无限变小（−∞），这时极限不存在'
+  - term: 竖直渐近线
+    def: '直线 x = a，函数在 a 的左边或右边趋于 +∞ 或 −∞'
+  - term: 极限运算法则
+    def: '和、差、积、商（分母极限不为 0）、乘方的极限等于极限的和、差、积、商、乘方'
+  - term: 多项式
+    def: '由 x 的乘方乘上常数再加起来的式子，如 3x³ − x + 7'
+  - term: 有理函数
+    def: '两个多项式相除得到的函数，如 (x² − 1)/(x + 2)'
+  - term: 待定型
+    def: '代入后得到 0/0 这类看不出结果的形式，要先化简再求极限'
+  - term: 夹逼定理
+    def: 'g ≤ f ≤ h，且 g、h 的极限都是 L，那么 f 的极限也是 L'
+  - term: 水平渐近线
+    def: '直线 y = L，x → +∞ 或 x → −∞ 时函数值趋于 L'
+  - term: 无穷小
+    def: '极限为 0 的量，是一个趋于 0 的过程，不是一个很小的固定数'
+  - term: 高阶无穷小
+    def: 'α/β 的极限为 0 时，α 是比 β 高阶的无穷小，记作 α = o(β)'
+  - term: 等价无穷小
+    def: 'α/β 的极限为 1 时，α 和 β 等价，记作 α ~ β'
+  - term: 无穷大
+    def: '绝对值变得比任何数都大的量，如 x → 0 时的 1/x²'
+  - term: 三角不等式
+    def: '|u + v| ≤ |u| + |v|：两段距离之和不小于直接的距离'
+  - term: 间断点
+    def: '函数不连续的点：没定义、极限不存在，或极限不等于函数值'
+  - term: 可去间断点
+    def: '极限存在、但函数值没定义或不等于极限的点：补上或改一个值就连续'
+  - term: 跳跃间断点
+    def: '左右极限都存在但不相等的点'
+  - term: 无穷间断点
+    def: '至少一侧的极限是 +∞ 或 −∞ 的点'
+  - term: 开区间
+    def: '(a, b)：a < x < b 的所有数，不含两端'
+  - term: 闭区间
+    def: '[a, b]：a ≤ x ≤ b 的所有数，包含两端'
+  - term: 介值定理
+    def: '闭区间上连续的 f 取遍 f(a) 和 f(b) 之间的每一个值'
+  - term: 二分法
+    def: '每次取中点，留下两端函数值异号的那一半，逐步缩小根所在的区间'
+  - term: 最值定理
+    def: '闭区间上连续的函数一定取到最大值和最小值'
+  - term: 局部极大值
+    def: 'f(c) 不小于 c 附近所有点的函数值'
+  - term: 临界点
+    def: '区间内部、切线水平或没有确定切线（尖角、竖直切线）的点；局部极值只会出现在这些点'
+  - term: 一致连续
+    def: '存在一个只和 ε 有关、整个区间都通用的 δ'
+
+lessons:
+  - id: functions
+    chapter: 数列与函数极限
+    title: 函数：给一个数，得到一个数
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 出租车起步价 10 元（含前 3 公里），超过 3 公里后每公里 2 元。坐 5 公里要多少钱？
+          options:
+            - text: 14 元
+              correct: true
+            - text: 10 元
+              why: 起步价只包含前 3 公里，后面的 2 公里要另算
+            - text: 20 元
+              why: 前 3 公里已经包含在 10 元里了，只有超出的 2 公里每公里 2 元
+          explain: 10 + 2 × (5 − 3) = 14。每说一个里程，就有唯一一个价钱。
+      - card:
+          title: 函数：一条规则
+          body: |
+            **函数（function）**是一条规则：给它一个输入，它给出**唯一一个**输出。
+
+            常写成 $f(x)$：$f$ 是规则的名字，$x$ 是输入，$f(x)$ 是输出。例如 $f(x) = 2x + 1$，输入 3，得到 $f(3) = 2 \times 3 + 1 = 7$。出租车的价钱也是一个函数：输入公里数，输出价钱。
+      - item:
+          id: f-value
+          type: number
+          prompt: '设 $f(x) = x^2 - 3x$。$f(4)$ 等于多少？'
+          answer: 4
+          explain: 把 4 放进 x 的位置：4² − 3 × 4 = 16 − 12 = 4。
+      - card:
+          title: 能放进去的输入：定义域
+          body: |
+            **定义域（domain）**是能放进函数的所有输入。有的输入会让式子没有意义：
+
+            - $\frac{1}{x}$ 里 $x$ 不能是 0，因为不能除以 0；
+            - $\sqrt{x}$ 里 $x$ 不能是负数，因为负数没有实数平方根。
+      - item:
+          id: domain
+          type: choice
+          prompt: '函数 $f(x) = \frac{1}{x - 2}$ 的定义域里**不包括**哪个数？'
+          options:
+            - text: '2'
+              correct: true
+            - text: '0'
+              why: x = 0 时分母是 0 − 2 = −2，f(0) = −1/2，有意义
+            - text: '−2'
+              why: x = −2 时分母是 −4，f(−2) = −1/4，有意义
+          explain: x = 2 时分母 2 − 2 = 0，不能除以 0。
+      - card:
+          title: 图像：把规则画出来
+          body: |
+            把每个输入 $x$ 和它的输出配成一个点 $(x, f(x))$，画在平面上：横着的是 $x$ 轴，竖着的是 $y$ 轴。所有这样的点连起来，就是函数的**图像（graph）**。
+
+            $f(x) = x^2$ 的图像经过 $(0, 0)$、$(1, 1)$、$(2, 4)$、$(-2, 4)$，是一条开口向上的曲线（抛物线）。
+      - item:
+          id: graph-point
+          type: number
+          prompt: '点 $(3, y)$ 在 $f(x) = x^2 - 1$ 的图像上。$y$ 是多少？'
+          answer: 8
+          explain: 图像上的点是 (x, f(x))，所以 y = f(3) = 9 − 1 = 8。
+      - card:
+          title: 分段函数
+          body: |
+            一个函数可以在不同的输入范围里用不同的式子，这叫**分段函数（piecewise function）**。出租车的价钱 $p(x)$（$x$ 是公里数）：
+
+            $$p(x) = \begin{cases} 10, & 0 < x \le 3 \\ 10 + 2(x - 3), & x > 3 \end{cases}$$
+
+            用的时候先看 $x$ 落在哪一段，再用那一段的式子。
+      - item:
+          id: taxi
+          type: number
+          prompt: 出租车起步价 10 元（含前 3 公里），超过 3 公里后每公里 2 元。坐 7 公里要多少钱？
+          answer: 18
+          unit: 元
+          explain: 7 > 3，用第二段：10 + 2 × (7 − 3) = 18。
+      - card:
+          title: 图像上的一个“洞”
+          body: |
+            $g(x) = \frac{x^2 - 1}{x - 1}$ 在 $x = 1$ 没有定义：分母是 0。
+
+            可是只要 $x \ne 1$，分子 $x^2 - 1 = (x - 1)(x + 1)$，约掉 $x - 1$ 就是 $g(x) = x + 1$。所以 $g$ 的图像是直线 $y = x + 1$ 在 $x = 1$ 处挖掉一个点，像一个“洞”。
+      - item:
+          id: hole-value
+          type: number
+          prompt: '$g(x) = \frac{x^2 - 1}{x - 1}$。$g(1.01)$ 是多少？'
+          answer: 2.01
+          explain: 1.01 ≠ 1，可以约分，g(1.01) = 1.01 + 1 = 2.01。也可以直接算：(1.0201 − 1)/0.01 = 2.01。
+      - item:
+          id: hole-near
+          type: choice
+          prompt: '$g(x) = \frac{x^2 - 1}{x - 1}$。$x$ 越来越接近 1 时（比如 0.999、1.001），$g(x)$ 越来越接近哪个数？'
+          options:
+            - text: '2'
+              correct: true
+            - text: '0'
+              why: 0/0 是把 x = 1 代进去得到的样子，可 x 接近 1 时并不等于 1，这时 g(x) = x + 1
+            - text: 不接近任何数
+              why: 0.999 对应 1.999，1.001 对应 2.001，都在向同一个数靠
+          explain: x ≠ 1 时 g(x) = x + 1，x 接近 1，g(x) 就接近 2。这个“越来越接近”，就是这一关的主角。
+
+  - id: sequences
+    chapter: 数列与函数极限
+    title: 数列：一串有规律的数
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 1, 1/2, 1/4, 1/8, … 每一个数都是前一个的一半，一直写下去。会怎样？
+          options:
+            - text: 越来越接近 0，但每一个数都不等于 0
+              correct: true
+            - text: 写到某一个时变成 0
+              why: 正数的一半还是正数，永远不会正好变成 0
+            - text: 越来越接近 1/2
+              why: 第三个数 1/4 已经比 1/2 小了，后面只会更小
+          explain: 一半的一半……越来越小，和 0 的距离要多小有多小，可没有一个正好是 0。
+      - card:
+          title: 数列
+          body: |
+            **数列（sequence）**是按顺序排好的一串数：$a_1, a_2, a_3, \dots$。$a_n$ 叫第 $n$ 项，$n$ 是它的序号，取 1、2、3……这样的**整数（integer）**（没有小数部分的数）。
+
+            $1, \frac12, \frac14, \frac18, \dots$ 里 $a_1 = 1$，$a_3 = \frac14$。数列可以一直写下去，没有最后一项。
+      - card:
+          title: 两种写法：通项和递推
+          body: |
+            **通项公式（explicit formula）**直接用 $n$ 算出第 $n$ 项：$a_n = \frac{1}{2^{n-1}}$。
+
+            **递推公式（recurrence relation）**说明怎样从前一项得到下一项，再给出第一项：$a_1 = 1$，$a_{n+1} = \frac{a_n}{2}$。
+
+            两种写法描述的是同一个数列。
+      - item:
+          id: explicit
+          type: number
+          prompt: '数列的通项公式是 $a_n = 3n - 1$。$a_5$ 是多少？'
+          answer: 14
+          explain: 把 n = 5 代进去：3 × 5 − 1 = 14。
+      - item:
+          id: recur
+          type: number
+          prompt: '数列 $a_1 = 2$，$a_{n+1} = 2a_n + 1$。$a_4$ 是多少？'
+          answer: 23
+          hint: 递推只能一项一项往后算：先算 a₂。
+          explain: a₂ = 2 × 2 + 1 = 5，a₃ = 2 × 5 + 1 = 11，a₄ = 2 × 11 + 1 = 23。
+      - card:
+          title: 等差数列和等比数列
+          body: |
+            相邻两项的差都一样，叫**等差数列（arithmetic sequence）**：$a_n = a_1 + (n - 1)d$，$d$ 叫公差。$2, 5, 8, 11, \dots$ 的 $d = 3$。
+
+            相邻两项的比都一样，叫**等比数列（geometric sequence）**：$a_n = a_1 r^{n-1}$，$r$ 叫公比。$3, 6, 12, 24, \dots$ 的 $r = 2$。
+      - item:
+          id: geometric
+          type: number
+          prompt: 等比数列 3, 6, 12, 24, … 的第 6 项是多少？
+          answer: 96
+          explain: a₁ = 3，r = 2，a₆ = 3 × 2⁵ = 3 × 32 = 96。
+      - item:
+          id: arithmetic
+          type: number
+          prompt: 等差数列 2, 5, 8, 11, … 的第 10 项是多少？
+          answer: 29
+          explain: a₁ = 2，d = 3，a₁₀ = 2 + (10 − 1) × 3 = 29。
+      - card:
+          title: 例题：从前几项猜通项
+          body: 看前几项找规律，写出通项，再代一个 n 检查。
+          reveal:
+            - title: 第 1 步：1, 4, 9, 16, …
+              body: 依次是 1²、2²、3²、4²，所以 $a_n = n^2$。检查：$a_3 = 9$，对。
+            - title: 第 2 步：−1, 1, −1, 1, …
+              body: 正负交替，奇数项是 −1，偶数项是 1，所以 $a_n = (-1)^n$。检查：$a_1 = -1$，对。
+            - title: 第 3 步：1/2, 2/3, 3/4, …
+              body: 分子是序号 n，分母比分子大 1，所以 $a_n = \frac{n}{n+1}$。检查：$a_2 = \frac23$，对。
+      - item:
+          id: guess-formula
+          type: choice
+          prompt: 数列 2, 4/3, 6/5, 8/7, … 的通项公式是哪一个？
+          options:
+            - text: '$a_n = \frac{2n}{2n - 1}$'
+              correct: true
+            - text: '$a_n = \frac{2n}{2n + 1}$'
+              why: n = 1 时是 2/3，不是 2
+            - text: '$a_n = \frac{n + 1}{n}$'
+              why: n = 2 时是 3/2，不是 4/3
+          explain: 分子是 2、4、6、8，即 2n；分母是 1、3、5、7，即 2n − 1。代 n = 3：6/5，对。
+
+  - id: seq-limit
+    chapter: 数列与函数极限
+    title: 数列的极限：越来越近，近到什么程度
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 数列 aₙ = (n + 1)/n 是 2, 1.5, 1.333…, 1.25, … 它往哪里去？
+          options:
+            - text: 越来越接近 1
+              correct: true
+            - text: 越来越接近 0
+              why: 每一项都是 1 加上一个正数，都比 1 大
+            - text: 越来越大
+              why: 每一项都比前一项小
+          explain: (n + 1)/n = 1 + 1/n，1/n 越来越小，所以向 1 靠近。
+      - card:
+          title: 距离：绝对值
+          body: |
+            说“接近”要先会量距离。$|x|$ 是 $x$ 的**绝对值（absolute value）**：去掉负号，$|-3| = 3$，$|3| = 3$。
+
+            $|a - b|$ 就是数轴上 $a$ 和 $b$ 之间的距离：$|1.25 - 1| = 0.25$，$|0.9 - 1| = 0.1$。
+      - card:
+          title: 收敛和极限
+          body: |
+            如果 $n$ 越来越大时，$|a_n - L|$ 能变得**要多小有多小**，并且之后一直这么小，就说数列**收敛（converge）**到 $L$，$L$ 叫它的**极限（limit）**，写作
+
+            $$\lim_{n \to \infty} a_n = L$$
+
+            $n \to \infty$ 读作“$n$ 趋于无穷”：$n$ 无限地变大。
+      - item:
+          id: not-closer
+          type: choice
+          prompt: '$a_n = 1 + \frac1n$ 的每一项都比前一项更接近 0.5。它的极限是 0.5 吗？'
+          options:
+            - text: 不是，极限是 1
+              correct: true
+            - text: 是，因为越来越接近 0.5
+              why: 每一项都大于 1，和 0.5 的距离永远超过 0.5，不能要多小有多小
+            - text: 没有极限
+              why: 和 1 的距离是 1/n，能要多小有多小
+          explain: “越来越近”不够，要“距离能变得要多小有多小”。离 1 的距离 1/n 做得到，离 0.5 做不到。
+      - card:
+          title: 把“要多小有多小”说成数
+          body: |
+            检查方法：随便给一个很小的正数 $\varepsilon$（希腊字母，读作 epsilon），总能找到一个位置 $N$，从第 $N$ 项以后，每一项都满足 $|a_n - L| < \varepsilon$。
+
+            例如 $a_n = \frac1n$，$L = 0$。给 $\varepsilon = 0.01$：只要 $n > 100$，就有 $\frac1n < 0.01$。$\varepsilon$ 再小，也能找到对应的 $N$。
+      - item:
+          id: eps-n
+          type: number
+          prompt: '数列 $a_n = \frac1n$ 收敛到 0。要让 $|a_n - 0| < 0.001$，$n$ 至少要是几？'
+          answer: 1001
+          explain: 1/n < 0.001 等价于 n > 1000，最小的整数 n 是 1001（n = 1000 时正好等于 0.001，不算小于）。
+      - card:
+          title: 发散
+          body: |
+            不收敛的数列叫**发散（diverge）**。两种常见的样子：
+
+            - $a_n = n^2$：1、4、9……越来越大，超过任何数，记作 $\lim a_n = \infty$；
+            - $a_n = (-1)^n$：−1、1、−1、1……来回跳，不靠近任何一个数。
+      - item:
+          id: which-converges
+          type: choice
+          prompt: 下面哪个数列收敛？
+          options:
+            - text: '$a_n = \frac{(-1)^n}{n}$'
+              correct: true
+            - text: '$a_n = (-1)^n$'
+              why: 它在 −1 和 1 之间来回跳，不靠近任何一个数
+            - text: '$a_n = 2n$'
+              why: 它越来越大，超过任何数
+          explain: (−1)ⁿ/n 虽然正负交替，但和 0 的距离是 1/n，要多小有多小，所以收敛到 0。
+      - card:
+          title: 等比数列 rⁿ 去哪里
+          body: |
+            只看公比 $r$：
+
+            | $r$ | $r^n$ |
+            |---|---|
+            | $-1 < r < 1$ | 趋于 0（如 $0.5^n$：0.5、0.25、0.125……） |
+            | $r = 1$ | 一直是 1 |
+            | $r > 1$ | 越来越大，发散 |
+            | $r \le -1$ | 正负来回跳，发散 |
+      - item:
+          id: power-limit
+          type: choice
+          prompt: 下面哪个数列收敛到 0？
+          options:
+            - text: '$(0.9)^n$'
+              correct: true
+            - text: '$(1.1)^n$'
+              why: 每次乘 1.1，越来越大
+            - text: '$(-1)^n$'
+              why: r = −1，在 −1 和 1 之间来回跳
+          explain: 0.9 在 −1 和 1 之间，乘得越多越小。
+      - card:
+          title: 收敛数列可以四则运算
+          body: |
+            如果 $a_n \to A$，$b_n \to B$，那么 $a_n + b_n \to A + B$，$a_n b_n \to AB$；$b_n$ 和 $B$ 都不为 0 时，$\frac{a_n}{b_n} \to \frac{A}{B}$。
+
+            最常用的一块砖是 $\frac1n \to 0$，所以 $\frac{1}{n^2} = \frac1n \cdot \frac1n \to 0$，$\frac{5}{n} \to 0$。
+      - card:
+          title: 例题：分子分母都变大
+          body: '求 $\lim_{n \to \infty} \frac{3n^2 - n}{2n^2 + 5}$。'
+          reveal:
+            - title: 第 1 步：看出问题
+              body: 分子分母都越来越大，不能直接用商的法则（它们都没有极限）。
+            - title: 第 2 步：同除以最高次 n²
+              body: '$$\frac{3n^2 - n}{2n^2 + 5} = \frac{3 - \frac1n}{2 + \frac{5}{n^2}}$$'
+            - title: 第 3 步：现在可以用法则
+              body: $\frac1n \to 0$，$\frac{5}{n^2} \to 0$，所以极限是 $\frac{3 - 0}{2 + 0} = \frac32$。
+      - item:
+          id: rational-seq
+          type: number
+          prompt: '$\lim_{n \to \infty} \frac{5n + 2}{2n - 1}$ 是多少？'
+          answer: 2.5
+          explain: 同除以 n：(5 + 2/n)/(2 − 1/n) → 5/2 = 2.5。
+      - item:
+          id: rational-seq-zero
+          type: number
+          prompt: '$\lim_{n \to \infty} \frac{n + 3}{n^2 + 1}$ 是多少？'
+          answer: 0
+          explain: 同除以最高次 n²：(1/n + 3/n²)/(1 + 1/n²) → 0/1 = 0。分母长得比分子快。
+
+  - id: bounded-seq
+    chapter: 数列与函数极限
+    title: 有界和单调：不算也知道它收敛
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 0.9, 0.99, 0.999, … 每一项都比前一项大。它会不会越来越大，最后超过任何数？
+          options:
+            - text: 不会，它一直小于 1，越挤越靠近 1
+              correct: true
+            - text: 会，一直在变大就一定会超过任何数
+              why: 每一项都小于 1，变大的幅度越来越小（0.09、0.009……）
+          explain: 一直变大，却被 1 挡住，只能越挤越密地靠向 1。
+      - card:
+          title: 有界
+          body: |
+            如果有一个数 $M$，数列每一项都 $\le M$，就说它有上界；每一项都 $\ge m$，就说它有下界。上下都有，叫**有界（bounded）**。
+
+            $(-1)^n$ 有界：每一项都在 −1 和 1 之间。$a_n = n$ 没有上界。
+      - item:
+          id: bounded-not-conv
+          type: choice
+          prompt: '数列 $a_n = (-1)^n$ 有界吗？收敛吗？'
+          options:
+            - text: 有界，但不收敛
+              correct: true
+            - text: 有界，所以收敛
+              why: 有界只说明它不会跑远，它还可以在两个数之间来回跳
+            - text: 无界，也不收敛
+              why: 每一项都在 −1 和 1 之间，是有界的
+          explain: 有界不等于收敛：(−1)ⁿ 一直在 −1 和 1 之间跳。
+      - card:
+          title: 收敛一定有界
+          body: |
+            反过来，收敛的数列一定有界。从某一项起，各项离极限 $L$ 都不到 1，都夹在 $L - 1$ 和 $L + 1$ 之间；这之前只有有限个项，取它们里最大的和最小的，就把所有项都夹住了。
+      - card:
+          title: 单调
+          body: |
+            每一项都 $\ge$ 前一项，叫单调递增；每一项都 $\le$ 前一项，叫单调递减。两种合称**单调（monotone）**。
+
+            $1 - \frac1n$ 单调递增，$\frac1n$ 单调递减，$(-1)^n$ 不单调。
+      - item:
+          id: monotone
+          type: choice
+          prompt: '数列 $a_n = \frac{n}{n+1}$ 是什么样的？'
+          options:
+            - text: 单调递增，每一项都小于 1
+              correct: true
+            - text: 单调递减
+              why: a₁ = 1/2，a₂ = 2/3，a₃ = 3/4，在变大
+            - text: 没有上界
+              why: n 总比 n + 1 小，所以每一项都小于 1
+          explain: n/(n + 1) = 1 − 1/(n + 1)，减去的部分越来越小，所以递增，并且一直小于 1。
+      - card:
+          title: 单调收敛定理
+          body: |
+            **单调收敛定理（monotone convergence theorem）**：单调并且有界的数列一定收敛。
+
+            递增的数列被一个上界挡住，只能越挤越密，挤向某一个数。注意：定理只告诉你极限存在，没说它是多少，要再想办法算。
+      - card:
+          title: 例题：先证收敛，再求极限
+          body: '数列 $a_1 = 0$，$a_{n+1} = \frac{a_n + 6}{2}$。它收敛吗？极限是多少？'
+          reveal:
+            - title: 第 1 步：算几项，看样子
+              body: 0、3、4.5、5.25……在变大，看起来靠向 6。
+            - title: 第 2 步：证明有上界 6
+              body: 如果 $a_n < 6$，那么 $a_{n+1} = \frac{a_n + 6}{2} < \frac{6 + 6}{2} = 6$。$a_1 = 0 < 6$，于是每一项都小于 6。
+            - title: 第 3 步：证明递增
+              body: $a_{n+1} - a_n = \frac{6 - a_n}{2} > 0$，因为 $a_n < 6$。单调又有界，所以收敛。
+            - title: 第 4 步：求极限
+              body: 设极限是 $L$。递推式两边让 $n \to \infty$：$L = \frac{L + 6}{2}$，解得 $L = 6$。
+      - item:
+          id: sqrt-recur
+          type: number
+          prompt: '数列 $a_1 = 1$，$a_{n+1} = \sqrt{2 + a_n}$ 单调递增、有上界，所以收敛。它的极限是多少？'
+          answer: 2
+          hint: 设极限是 L，两边取极限得到一个关于 L 的方程。
+          explain: L = √(2 + L)，两边平方 L² = L + 2，即 (L − 2)(L + 1) = 0。每一项都是正数，L 不能是 −1，所以 L = 2。前几项：1、1.732、1.932、1.983……
+      - item:
+          id: half-recur
+          type: number
+          prompt: '数列 $a_1 = 0$，$a_{n+1} = \frac{a_n}{2} + 1$ 收敛。它的极限是多少？'
+          answer: 2
+          explain: L = L/2 + 1，所以 L/2 = 1，L = 2。前几项：0、1、1.5、1.75……
+      - card:
+          title: 一个有名的数
+          body: |
+            $\left(1 + \frac1n\right)^n$：$n = 1$ 时是 2，$n = 10$ 时约 2.5937，$n = 1000$ 时约 2.7169。
+
+            可以证明它单调递增，并且每一项都小于 3，所以收敛。它的极限记作 $e$，$e \approx 2.71828$，是微积分里最重要的常数之一。
+      - item:
+          id: why-e
+          type: choice
+          prompt: '为什么可以断定 $\left(1 + \frac1n\right)^n$ 收敛？'
+          options:
+            - text: 它单调递增，并且有上界
+              correct: true
+            - text: 因为它每一项都比前一项大
+              why: 只递增不够：aₙ = n 也一直递增，却越来越大，发散
+            - text: 因为已经算到 n = 1000 了
+              why: 算多少项都不能证明收敛，后面的项可能还会变
+          explain: 单调收敛定理要两个条件：单调，有界。
+
+  - id: limit-intuition
+    chapter: 数列与函数极限
+    title: 函数在一点附近做什么
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 'h(x) = (x² + x − 6)/(x − 2) 在 x = 2 没有定义。x 很接近 2 时（比如 1.999 或 2.001），h(x) 接近多少？'
+          options:
+            - text: '5'
+              correct: true
+            - text: '0'
+              why: 0/0 是把 x = 2 代进去的样子，而 1.999 并不等于 2
+            - text: 没法知道
+              why: 可以把 1.999 代进去算算看
+          explain: x ≠ 2 时 x² + x − 6 = (x − 2)(x + 3)，约掉后 h(x) = x + 3，接近 5。
+      - card:
+          title: 列一张表
+          body: |
+            $f(x) = \frac{x^2 - 1}{x - 1}$，让 $x$ 从两边靠近 1：
+
+            | $x$ | 0.9 | 0.99 | 0.999 | 1.001 | 1.01 | 1.1 |
+            |---|---|---|---|---|---|---|
+            | $f(x)$ | 1.9 | 1.99 | 1.999 | 2.001 | 2.01 | 2.1 |
+
+            不管从左边还是右边，$x$ 越靠近 1，$f(x)$ 越靠近 2。
+      - card:
+          title: 函数的极限
+          body: |
+            如果 $x$ 足够接近 $a$（但不等于 $a$）时，$f(x)$ 能要多接近 $L$ 就多接近 $L$，就说 $x$ 趋于 $a$ 时 $f(x)$ 的极限是 $L$：
+
+            $$\lim_{x \to a} f(x) = L$$
+
+            关键：只看 $a$ 的**附近**，不看 $a$ 本身。$f(a)$ 有没有定义、等于多少，都不影响极限。
+      - item:
+          id: value-irrelevant
+          type: choice
+          prompt: '函数 $k(x)$ 在 $x \ne 1$ 时等于 $x + 1$，另外规定 $k(1) = 5$。$\lim_{x \to 1} k(x)$ 是多少？'
+          options:
+            - text: '2'
+              correct: true
+            - text: '5'
+              why: 5 是 x = 1 这一点上的值，极限只看 1 附近
+            - text: 不存在，因为 k(1) 和旁边的值对不上
+              why: 两边靠近 1 时 k(x) = x + 1 都靠近 2，极限存在；对不上影响的是连续，不是极限
+          explain: x 靠近 1 但不等于 1 时 k(x) = x + 1，靠近 2。
+      - card:
+          title: 动手看看
+          body: |
+            空心圆是图像上的“洞”。下面的表是 $x$ 从左右两边靠近 1 时的函数值（$10^{-k}$ 表示 0.1、0.01、0.001……）。鼠标或手指在图上移动，可以读出每个 $x$ 对应的值。
+          sim:
+            name: plot
+            params: { mode: limit, f: "(x^2-1)/(x-1)", a: 1 }
+      - item:
+          id: sim-limit
+          type: sim
+          prompt: '看表格估计：$\frac{x^2 - 9}{x - 3}$ 在 $x \to 3$ 时的极限是多少？填进下面的框里。'
+          sim: plot
+          params: { mode: limit, f: "(x^2-9)/(x-3)", a: 3 }
+          goal: { value: 6, tol: 0.000001 }
+          solution: { guess: "6" }
+          explain: 表里 2.999 对应 5.999，3.001 对应 6.001。约分也能得到：(x − 3)(x + 3)/(x − 3) = x + 3 → 6。
+      - card:
+          title: 表格也会骗人
+          body: |
+            $f(x) = \frac{\sqrt{x^2 + 9} - 3}{x^2}$ 在 0 附近：$x = 0.1$ 时约 0.16662，$x = 0.001$ 时约 0.16667，看起来靠向 $\frac16$。
+
+            可电脑算 $x = 10^{-8}$ 得到 0：电脑只存大约 16 位有效数字，$9 + 10^{-16}$ 被存成了 9，分子算成 0。真正的极限是 $\frac16$。表格只能帮你猜，确认要靠计算。
+      - item:
+          id: rounding
+          type: choice
+          prompt: '电脑按 $\frac{\sqrt{x^2 + 9} - 3}{x^2}$ 算，$x = 10^{-8}$ 时得到 0，而 $x = 0.001$ 时约 0.16667。$x \to 0$ 的极限是多少？'
+          options:
+            - text: 1/6，x = 10⁻⁸ 时的 0 是舍入造成的
+              correct: true
+            - text: 0，因为最接近 0 的那个 x 算出来是 0
+              why: 那个 0 是电脑只保留约 16 位有效数字造成的：x² + 9 被存成了 9
+            - text: 不存在，因为表格里的数忽然跳了
+              why: 跳的那一下来自舍入，不是函数本身；有理化可以算出极限 1/6
+          explain: 有理化：分子分母同乘 √(x² + 9) + 3，得到 1/(√(x² + 9) + 3) → 1/6。
+      - item:
+          id: limit-neg
+          type: number
+          prompt: '$\lim_{x \to -1} \frac{x^2 - 1}{x + 1}$ 是多少？'
+          answer: -2
+          explain: x ≠ −1 时 x² − 1 = (x + 1)(x − 1)，约掉 x + 1 得 x − 1，x → −1 时靠近 −2。
+
+  - id: one-sided
+    chapter: 数列与函数极限
+    title: 从左边来，从右边来
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 台阶函数 H(x)：x < 0 时等于 0，x ≥ 0 时等于 1。x 靠近 0 时，H(x) 靠近什么？
+          options:
+            - text: 从左边靠近时是 0，从右边靠近时是 1，没有一个共同的数
+              correct: true
+            - text: 靠近 1，因为 H(0) = 1
+              why: H(0) 是 0 这一点上的值，“靠近”只看 0 的附近
+            - text: 靠近 0.5
+              why: H 只取 0 和 1 两个值，从来不在 0.5 附近
+          explain: 两边去的地方不一样，下面就来给它们起名字。
+      - card:
+          title: 左极限和右极限
+          body: |
+            只让 $x$ 从左边（比 $a$ 小的一侧）靠近 $a$，得到**左极限（left-hand limit）** $\lim_{x \to a^-} f(x)$；只从右边靠近，得到**右极限（right-hand limit）** $\lim_{x \to a^+} f(x)$。两者合称**单侧极限（one-sided limit）**。
+
+            台阶函数在 0 处：左极限是 0，右极限是 1。
+      - item:
+          id: sign-left
+          type: number
+          prompt: '$f(x) = \frac{|x|}{x}$（$x \ne 0$）。$\lim_{x \to 0^-} f(x)$ 是多少？'
+          answer: -1
+          explain: x < 0 时 |x| = −x，所以 f(x) = −x/x = −1，左极限就是 −1。（右边 x > 0 时 f(x) = 1。）
+      - card:
+          title: 极限存在的条件
+          body: |
+            $\lim_{x \to a} f(x) = L$ 成立，**当且仅当**左极限和右极限都存在，并且都等于 $L$。
+
+            “当且仅当”的意思是两句话要么都对，要么都错。所以台阶函数在 0 处没有极限：两边去的地方不一样。
+      - card:
+          title: 例题：分段函数在接缝处
+          body: '$f(x) = x + 1$（$x < 2$），$f(x) = x^2 - 1$（$x \ge 2$）。求 $\lim_{x \to 2} f(x)$。'
+          reveal:
+            - title: 第 1 步：左极限用左边那段
+              body: $x < 2$ 时 $f(x) = x + 1$，$x \to 2^-$ 时靠近 3。
+            - title: 第 2 步：右极限用右边那段
+              body: $x > 2$ 时 $f(x) = x^2 - 1$，$x \to 2^+$ 时靠近 $4 - 1 = 3$。
+            - title: 第 3 步：比较
+              body: 左右都是 3，所以 $\lim_{x \to 2} f(x) = 3$。
+      - item:
+          id: piece-jump
+          type: choice
+          prompt: '$f(x) = x + 1$（$x < 2$），$f(x) = 2x$（$x \ge 2$）。$\lim_{x \to 2} f(x)$ 是多少？'
+          options:
+            - text: 不存在
+              correct: true
+            - text: '4'
+              why: 4 只是右极限（也是 f(2)），左边靠近的是 3
+            - text: '3'
+              why: 3 只是左极限，右边靠近的是 2 × 2 = 4
+          explain: 左极限 3，右极限 4，不相等，所以极限不存在。
+      - item:
+          id: piece-k
+          type: number
+          prompt: '$f(x) = 3x - 1$（$x < 1$），$f(x) = x^2 + k$（$x \ge 1$）。$k$ 取多少时 $\lim_{x \to 1} f(x)$ 存在？'
+          answer: 1
+          explain: 左极限 3 × 1 − 1 = 2，右极限 1 + k。要相等：1 + k = 2，k = 1。
+      - card:
+          title: 复习：弧度和正弦
+          body: |
+            下面的例子要用正弦。把角用**弧度（radian）**量：一整圈是 $2\pi$，半圈是 $\pi$，直角是 $\frac{\pi}{2}$。
+
+            $\sin\theta$ 是单位圆上转过角 $\theta$ 的点的高度：$\sin 0 = 0$，$\sin\frac{\pi}{2} = 1$，$\sin\pi = 0$，$\sin\frac{3\pi}{2} = -1$，每转一圈重复一次。$\cos\theta$ 是那个点的横坐标，$\cos 0 = 1$。
+      - item:
+          id: sin-value
+          type: number
+          prompt: '$\sin\frac{5\pi}{2}$ 是多少？'
+          answer: 1
+          explain: 5π/2 = 2π + π/2：多转一整圈回到同一个点，所以和 sin(π/2) 一样，是 1。
+      - card:
+          title: 极限不存在的三种样子
+          body: |
+            1. **跳**：左右极限不相等，如台阶函数在 0 处；
+            2. **冲向无穷**：值越来越大，超过任何数，如 $\frac{1}{x^2}$ 在 0 附近；
+            3. **不停地摆**：如 $\sin\frac{\pi}{x}$。$x = 0.1$、$0.01$ 时它都是 0，可 $x = \frac{2}{101} \approx 0.0198$ 时是 1。越靠近 0，它在 −1 和 1 之间摆得越快，不靠近任何一个数。
+      - item:
+          id: dne-match
+          type: match
+          prompt: 把每个函数和它在 x → 0 时极限不存在的原因配起来。
+          pairs:
+            - [台阶函数（x < 0 时为 0，x ≥ 0 时为 1）, 左右极限不相等]
+            - [1/x², 值越来越大，超过任何数]
+            - [sin(π/x), 在 −1 和 1 之间不停地摆]
+          explain: 跳、冲向无穷、摆动，是极限不存在最常见的三种样子。
+
+  - id: infinite-limits
+    chapter: 数列与函数极限
+    title: 冲向无穷：竖直渐近线
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: x 越来越接近 0 时，1/x² 会怎样？
+          options:
+            - text: 越来越大，超过任何数
+              correct: true
+            - text: 越来越接近 0
+              why: 分母变小，分数反而变大：x = 0.1 时 1/x² = 100
+            - text: 越来越接近 1
+              why: x = 0.01 时已经是 10000
+          explain: x = 0.1、0.01、0.001 时，1/x² 是 100、10000、1000000。
+      - card:
+          title: 无穷极限
+          body: |
+            如果 $x \to a$ 时 $f(x)$ 变得比任何数都大，写作 $\lim_{x \to a} f(x) = +\infty$；变得比任何负数都小，写作 $-\infty$。这叫**无穷极限（infinite limit）**。
+
+            $\infty$ 不是一个数。写“$= +\infty$”是在说：极限不存在，而且是以“越来越大”的方式不存在。
+      - item:
+          id: right-recip
+          type: choice
+          prompt: '$\lim_{x \to 0^+} \frac{1}{x}$ 是什么？'
+          options:
+            - text: '$+\infty$'
+              correct: true
+            - text: '$-\infty$'
+              why: x > 0 时 1/x 是正数，越来越大
+            - text: '0'
+              why: 分母越来越小，1/x 越来越大
+          explain: x = 0.1、0.01、0.001 时 1/x = 10、100、1000。从左边来就是 −∞。
+      - card:
+          title: 竖直渐近线
+          body: |
+            如果 $x \to a$ 时左极限或右极限是 $+\infty$ 或 $-\infty$，直线 $x = a$ 叫 $f$ 的**竖直渐近线（vertical asymptote）**：图像沿着它往上或往下无限延伸。
+
+            $\frac1x$ 有竖直渐近线 $x = 0$：右边冲向 $+\infty$，左边冲向 $-\infty$。
+      - item:
+          id: left-shift
+          type: choice
+          prompt: '$\lim_{x \to 3^-} \frac{1}{x - 3}$ 是什么？'
+          options:
+            - text: '$-\infty$'
+              correct: true
+            - text: '$+\infty$'
+              why: x 比 3 小时 x − 3 是负数，1/(x − 3) 也是负数
+            - text: '0'
+              why: 分母越来越接近 0，分数的绝对值越来越大
+          explain: x = 2.9、2.99 时 x − 3 = −0.1、−0.01，1/(x − 3) = −10、−100。
+      - card:
+          title: 分母为 0 不一定是渐近线
+          body: |
+            $\frac{x + 1}{(x - 2)(x + 1)}$：只要 $x \ne -1$，就能约掉 $x + 1$，变成 $\frac{1}{x - 2}$。
+
+            所以 $x = -1$ 处只是一个洞（极限是 $\frac{1}{-1 - 2} = -\frac13$），$x = 2$ 处才是竖直渐近线。判断方法：先约分，约完以后分母还是 0、分子不是 0 的点，才是竖直渐近线。
+      - item:
+          id: which-asymptote
+          type: choice
+          prompt: '$f(x) = \frac{x - 1}{x^2 - 1}$ 的竖直渐近线是哪一条？'
+          options:
+            - text: 只有 x = −1
+              correct: true
+            - text: x = 1 和 x = −1
+              why: x² − 1 = (x − 1)(x + 1)，x − 1 能约掉，x = 1 处只是一个洞
+            - text: 只有 x = 1
+              why: x = 1 处约分后是 1/(1 + 1) = 1/2，极限存在
+          explain: 约分后 f(x) = 1/(x + 1)，只有 x = −1 让分母为 0。
+      - item:
+          id: hole-limit
+          type: number
+          prompt: '$\lim_{x \to 1} \frac{x - 1}{x^2 - 1}$ 是多少？'
+          answer: 0.5
+          explain: 约分得 1/(x + 1)，x → 1 时是 1/2。
+
+  - id: limit-laws
+    chapter: 数列与函数极限
+    title: 极限运算法则：拆开来算
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: x 越来越接近 2 时，x² + 3x 越来越接近多少？
+          options:
+            - text: '10'
+              correct: true
+            - text: '4'
+              why: 4 只是 x² 那一部分，还要加上 3x 靠近的 6
+            - text: 算不出来，要一个个试
+              why: x² 靠近 4，3x 靠近 6，加起来就行
+          explain: x² → 4，3x → 6，和 → 10。这一课把“拆开来算”说成法则。
+      - card:
+          title: 两块最基本的砖
+          body: |
+            $$\lim_{x \to a} c = c \qquad \lim_{x \to a} x = a$$
+
+            常数不随 $x$ 变，极限就是它自己；$x$ 靠近 $a$，极限就是 $a$。其他的极限，都可以用下面的法则从这两块砖搭起来。
+      - card:
+          title: 极限运算法则
+          body: |
+            设 $\lim_{x \to a} f(x) = L$，$\lim_{x \to a} g(x) = M$，下面这些叫**极限运算法则（limit laws）**：
+
+            | 法则 | 结果 |
+            |---|---|
+            | 和、差 | $\lim (f \pm g) = L \pm M$ |
+            | 常数倍 | $\lim cf = cL$ |
+            | 积 | $\lim fg = LM$ |
+            | 商（$M \ne 0$） | $\lim \frac{f}{g} = \frac{L}{M}$ |
+            | 乘方 | $\lim f^n = L^n$ |
+            | 开方（偶次方根要 $L \ge 0$，且 $f(x) \ge 0$） | $\lim \sqrt[n]{f} = \sqrt[n]{L}$ |
+      - item:
+          id: laws-combo
+          type: number
+          prompt: '已知 $\lim_{x \to a} f(x) = 4$，$\lim_{x \to a} g(x) = -2$。$\lim_{x \to a} \left[f(x)g(x) + 3f(x)\right]$ 是多少？'
+          answer: 4
+          explain: 积的法则得 4 × (−2) = −8，常数倍得 3 × 4 = 12，和是 −8 + 12 = 4。
+      - card:
+          title: 例题：一步步用法则
+          body: '求 $\lim_{x \to 2} (2x^2 - 3x + 1)$。'
+          reveal:
+            - title: 第 1 步：和差拆开
+              body: $\lim 2x^2 - \lim 3x + \lim 1$
+            - title: 第 2 步：常数倍和乘方
+              body: $2\left(\lim x\right)^2 - 3\lim x + 1 = 2 \times 2^2 - 3 \times 2 + 1$
+            - title: 第 3 步：算出来
+              body: $8 - 6 + 1 = 3$。结果和直接把 $x = 2$ 代进去一样。
+      - item:
+          id: cubic
+          type: number
+          prompt: '$\lim_{x \to -1} (x^3 + 2x)$ 是多少？'
+          answer: -3
+          explain: (−1)³ + 2 × (−1) = −1 − 2 = −3。
+      - card:
+          title: 多项式和有理函数：直接代入
+          body: |
+            由 $x$ 的乘方乘上常数再加起来的式子叫**多项式（polynomial）**，如 $3x^3 - x + 7$；两个多项式相除叫**有理函数（rational function）**。
+
+            从法则推出：多项式在任何 $a$ 处的极限就是把 $a$ 代进去；有理函数只要分母在 $a$ 处不为 0，也能直接代入。分母为 0 时商的法则用不上，要另想办法。
+      - item:
+          id: rational-plug
+          type: number
+          prompt: '$\lim_{x \to 3} \frac{x^2 - 1}{x + 1}$ 是多少？'
+          answer: 2
+          explain: 分母 3 + 1 = 4 不为 0，直接代入：(9 − 1)/4 = 2。
+      - item:
+          id: cannot-plug
+          type: choice
+          prompt: 下面哪个极限**不能**直接把数代进去求？
+          options:
+            - text: '$\lim_{x \to 3} \frac{x^2 - 9}{x - 3}$'
+              correct: true
+            - text: '$\lim_{x \to 3} \frac{x^2 + 1}{x - 1}$'
+              why: 分母在 x = 3 时是 2，不为 0，可以直接代入得 5
+            - text: '$\lim_{x \to 1} (4x^5 - x)$'
+              why: 多项式在任何点都能直接代入，得 3
+          explain: 第一个的分母在 x = 3 时是 0，商的法则用不上。
+      - item:
+          id: root-law
+          type: number
+          prompt: '$\lim_{x \to 4} \sqrt{x}\,(x + 1)$ 是多少？'
+          answer: 10
+          explain: 开方的法则得 √4 = 2，再乘 4 + 1 = 5：2 × 5 = 10。
+
+  - id: limit-techniques
+    chapter: 数列与函数极限
+    title: 0/0 怎么办：约分、有理化、通分
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把 x = 3 代进 (x² − 9)/(x − 3)，得到 0/0。这说明 x → 3 时的极限是什么？
+          options:
+            - text: 还看不出来，要先化简
+              correct: true
+            - text: '0'
+              why: 0/0 不是 0：分子分母都在变小，谁更快还不知道
+            - text: '1'
+              why: 0/0 不是“同一个数除以它自己”
+            - text: 不存在
+              why: 化简后是 x + 3，极限是 6，存在
+          explain: 0/0 只说明分子分母都趋于 0，要化简才知道结果。
+      - card:
+          title: 待定型和约分
+          body: |
+            代入后得到 $\frac00$，叫**待定型（indeterminate form）**。最常用的办法是**约分**：分子分母都有因式 $x - a$，在 $x \ne a$ 时约掉它（极限本来就不看 $x = a$），再代入：
+
+            $$\frac{x^2 - 9}{x - 3} = \frac{(x - 3)(x + 3)}{x - 3} = x + 3 \to 6$$
+      - item:
+          id: factor-1
+          type: number
+          prompt: '$\lim_{x \to 2} \frac{x^2 - 4}{x - 2}$ 是多少？'
+          answer: 4
+          explain: x² − 4 = (x − 2)(x + 2)，约掉 x − 2 得 x + 2 → 4。
+      - item:
+          id: factor-2
+          type: number
+          prompt: '$\lim_{x \to 1} \frac{x^2 + x - 2}{x - 1}$ 是多少？'
+          answer: 3
+          hint: 分子在 x = 1 时是 0，所以它有因式 x − 1。
+          explain: x² + x − 2 = (x − 1)(x + 2)，约掉 x − 1 得 x + 2 → 3。
+      - card:
+          title: 例题：有根号就有理化
+          body: '求 $\lim_{x \to 0} \frac{\sqrt{1 + x} - 1}{x}$。'
+          reveal:
+            - title: 第 1 步：认出待定型
+              body: 代入 $x = 0$：$\frac{1 - 1}{0} = \frac00$。分子有根号，分解不了因式。
+            - title: 第 2 步：分子分母同乘“共轭” √(1 + x) + 1
+              body: '利用 $(u - v)(u + v) = u^2 - v^2$：分子变成 $(1 + x) - 1 = x$。$$\frac{\sqrt{1+x} - 1}{x} = \frac{x}{x\left(\sqrt{1 + x} + 1\right)}$$'
+            - title: 第 3 步：约分再代入
+              body: $\frac{1}{\sqrt{1 + x} + 1} \to \frac{1}{1 + 1} = \frac12$。
+      - item:
+          id: conjugate
+          type: number
+          prompt: '$\lim_{x \to 4} \frac{\sqrt{x} - 2}{x - 4}$ 是多少？'
+          answer: 0.25
+          explain: 分子分母同乘 √x + 2：分子变成 x − 4，约掉后是 1/(√x + 2) → 1/4。
+      - card:
+          title: 分数套分数：先通分
+          body: |
+            分子里是两个分数相减时，先通分成一个分数：
+
+            $$\frac{\frac1x - \frac12}{x - 2} = \frac{\frac{2 - x}{2x}}{x - 2} = \frac{-(x - 2)}{2x(x - 2)} = -\frac{1}{2x}$$
+
+            $x \to 2$ 时它趋于 $-\frac14$。
+      - item:
+          id: complex-frac
+          type: number
+          prompt: '$\lim_{x \to 3} \frac{\frac1x - \frac13}{x - 3}$ 是多少？'
+          answer: -0.1111111
+          tolerance: 0.001
+          explain: 1/x − 1/3 = (3 − x)/(3x) = −(x − 3)/(3x)，除以 x − 3 得 −1/(3x) → −1/9。
+      - item:
+          id: steps-order
+          type: order
+          prompt: 用约分求一个 0/0 型的极限，把步骤排好。
+          steps:
+            - 把 x = a 代进去，发现是 0/0
+            - 把分子和分母分解因式
+            - 约掉公因式 x − a（极限不看 x = a 这一点）
+            - 把 a 代进化简后的式子
+          explain: 约分之所以可以做，是因为 x ≠ a；化简后的式子在 a 处不再是 0/0。
+      - item:
+          id: factor-3
+          type: number
+          prompt: '$\lim_{x \to -2} \frac{x^2 + 5x + 6}{x + 2}$ 是多少？'
+          answer: 1
+          explain: x² + 5x + 6 = (x + 2)(x + 3)，约掉 x + 2 得 x + 3 → −2 + 3 = 1。
+
+  - id: squeeze
+    chapter: 数列与函数极限
+    title: 夹逼定理与 sin x / x
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 'x 靠近 0 时，x²·sin(1/x) 靠近什么？（sin 的值总在 −1 和 1 之间。）'
+          options:
+            - text: '0'
+              correct: true
+            - text: 不存在，因为 sin(1/x) 一直在摆
+              why: 摆动被前面的 x² 压扁了：整个值的大小不超过 x²
+            - text: '1'
+              why: 它的绝对值不超过 x²，而 x² 越来越小
+          explain: −x² ≤ x²·sin(1/x) ≤ x²，两边都去 0，中间只能也去 0。
+      - card:
+          title: 夹逼定理
+          body: |
+            如果在 $a$ 附近 $g(x) \le f(x) \le h(x)$，并且 $\lim_{x \to a} g(x) = \lim_{x \to a} h(x) = L$，那么 $\lim_{x \to a} f(x) = L$。
+
+            这叫**夹逼定理（squeeze theorem）**：$f$ 被两个去同一个地方的函数夹着，只能也去那里。
+      - card:
+          title: 用起来
+          body: |
+            $-1 \le \sin\frac1x \le 1$，三边都乘 $x^2$（$x^2 \ge 0$，不等号不变方向）：
+
+            $$-x^2 \le x^2 \sin\frac1x \le x^2$$
+
+            $x \to 0$ 时两边都趋于 0，所以 $\lim_{x \to 0} x^2 \sin\frac1x = 0$。
+      - item:
+          id: squeeze-cos
+          type: choice
+          prompt: '$\lim_{x \to 0} x\cos\frac1x$ 是多少？'
+          options:
+            - text: '0'
+              correct: true
+            - text: 不存在，cos(1/x) 一直在摆
+              why: 它被 −|x| 和 |x| 夹着，两边都去 0
+            - text: '1'
+              why: cos 的值在 −1 和 1 之间，乘上越来越小的 x，整体越来越小
+          explain: −|x| ≤ x·cos(1/x) ≤ |x|，夹逼定理给出 0。
+      - card:
+          title: 最重要的一个极限
+          body: |
+            $$\lim_{x \to 0} \frac{\sin x}{x} = 1$$
+
+            前提是角用弧度量。教材在单位圆里比较三段长度：$\sin x < x < \tan x$（$x$ 是弧长），除以 $\sin x$ 再取倒数，得到 $x$ 在 0 附近时 $\cos x < \frac{\sin x}{x} < 1$；再用夹逼定理：两边都趋于 1。下面的表可以亲眼看到它。
+          sim:
+            name: plot
+            params: { mode: limit, f: "sin(x)/x", a: 0 }
+      - item:
+          id: sim-sin2x
+          type: sim
+          prompt: '看表格估计：$\frac{\sin 2x}{x}$ 在 $x \to 0$ 时的极限是多少？'
+          sim: plot
+          params: { mode: limit, f: "sin(2x)/x", a: 0 }
+          goal: { value: 2, tol: 0.000001 }
+          solution: { guess: "2" }
+          explain: sin(2x)/x = 2 · sin(2x)/(2x)，而 sin(2x)/(2x) → 1，所以极限是 2。
+      - card:
+          title: 例题：凑成 sin(□)/□
+          body: '求 $\lim_{x \to 0} \frac{\sin 3x}{x}$。'
+          reveal:
+            - title: 第 1 步：让分母和 sin 里面一样
+              body: $\frac{\sin 3x}{x} = 3 \cdot \frac{\sin 3x}{3x}$
+            - title: 第 2 步：用重要极限
+              body: $x \to 0$ 时 $3x \to 0$，所以 $\frac{\sin 3x}{3x} \to 1$。
+            - title: 第 3 步：乘回去
+              body: 极限是 $3 \times 1 = 3$。
+      - item:
+          id: sin5x
+          type: number
+          prompt: '$\lim_{x \to 0} \frac{\sin 5x}{2x}$ 是多少？'
+          answer: 2.5
+          explain: sin(5x)/(2x) = (5/2) · sin(5x)/(5x) → 5/2 = 2.5。
+      - item:
+          id: one-minus-cos
+          type: choice
+          prompt: '$\lim_{x \to 0} \frac{1 - \cos x}{x}$ 是多少？'
+          options:
+            - text: '0'
+              correct: true
+            - text: '1'
+              why: 那是 sin x / x 的极限；1 − cos x 比 x 小得多
+            - text: 不存在
+              why: 可以化成 (sin x / x) · (sin x / (1 + cos x))，两个因子都有极限
+          explain: 分子分母同乘 1 + cos x，分子变成 1 − cos²x = sin²x：结果是 (sin x / x) · (sin x / (1 + cos x)) → 1 × 0/2 = 0。
+
+  - id: limits-at-infinity
+    chapter: 数列与函数极限
+    title: 走到很远的地方：水平渐近线
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: x 越来越大（100、10000、1000000……）时，1/x 会怎样？
+          options:
+            - text: 越来越接近 0
+              correct: true
+            - text: 越来越大
+              why: 分母越大，分数越小
+            - text: 先变小，最后变成负数
+              why: x 是正数时 1/x 也一直是正数
+          explain: 1/100、1/10000……越来越接近 0，但都是正的。
+      - card:
+          title: x → ∞ 时的极限
+          body: |
+            $x$ 无限变大时 $f(x)$ 靠近 $L$，写作 $\lim_{x \to \infty} f(x) = L$；$x$ 往负的方向无限变小，写作 $\lim_{x \to -\infty} f(x) = L$。这时直线 $y = L$ 叫**水平渐近线（horizontal asymptote）**。
+
+            $\frac1x$ 两头都趋于 0，水平渐近线是 $y = 0$。
+      - card:
+          title: 有理函数：同除最高次
+          body: |
+            分子分母同除以分母的最高次幂，和数列一样：
+
+            $$\frac{2x^2 + 1}{5x^2 - x} = \frac{2 + \frac{1}{x^2}}{5 - \frac1x} \to \frac25$$
+
+            规律：分子次数小于分母 → 0；次数相等 → 最高次项系数之比；分子次数更大 → 趋于 $+\infty$ 或 $-\infty$，这叫无穷远处的无穷极限。
+      - item:
+          id: hz-equal
+          type: number
+          prompt: '$f(x) = \frac{6x - 1}{3x + 2}$ 在 $x \to \infty$ 时的水平渐近线是 $y = ?$'
+          answer: 2
+          explain: 次数相等，看最高次项系数：6/3 = 2。
+      - item:
+          id: hz-zero
+          type: number
+          prompt: '$\lim_{x \to \infty} \frac{3x + 1}{x^2 + 2}$ 是多少？'
+          answer: 0
+          explain: 分子 1 次、分母 2 次：同除以 x² 得 (3/x + 1/x²)/(1 + 2/x²) → 0。
+      - item:
+          id: hz-inf
+          type: choice
+          prompt: '$\lim_{x \to \infty} \frac{x^3}{x + 1}$ 是什么？'
+          options:
+            - text: '$+\infty$'
+              correct: true
+            - text: '1'
+              why: 次数不同：分子 3 次、分母 1 次，不能只比系数
+            - text: '0'
+              why: 分子次数更大，分子长得比分母快
+          explain: x³/(x + 1) = x² / (1 + 1/x)，分母趋于 1，分子越来越大。
+      - card:
+          title: 多项式由最高次项决定
+          body: |
+            $$x^3 - 100x^2 = x^3\left(1 - \frac{100}{x}\right)$$
+
+            $x \to \pm\infty$ 时括号里趋于 1，所以它和 $x^3$ 的去向一样：$x \to +\infty$ 时趋于 $+\infty$，$x \to -\infty$ 时趋于 $-\infty$。别的项再大，也比不过最高次项。
+      - item:
+          id: poly-end
+          type: choice
+          prompt: '$\lim_{x \to -\infty} (-2x^4 + x)$ 是什么？'
+          options:
+            - text: '$-\infty$'
+              correct: true
+            - text: '$+\infty$'
+              why: x⁴ 总是正的，乘上 −2 就是负的，最高次项决定了去向
+            - text: '0'
+              why: 多项式（不是常数）在两头不会靠近一个数
+          explain: 由最高次项 −2x⁴ 决定：x⁴ → +∞，乘 −2 → −∞。
+      - card:
+          title: 指数函数的两头
+          body: |
+            $2^x$：$x = 10$ 时是 1024，$x = -10$ 时是 $\frac{1}{1024}$。所以
+
+            $$\lim_{x \to +\infty} 2^x = +\infty, \qquad \lim_{x \to -\infty} 2^x = 0$$
+
+            它只在左边有水平渐近线 $y = 0$。
+      - item:
+          id: exp-shift
+          type: number
+          prompt: '$f(x) = 3 + 2^x$。$x \to -\infty$ 时的水平渐近线是 $y = ?$'
+          answer: 3
+          explain: 2^x → 0，所以 3 + 2^x → 3。
+
+  - id: epsilon-delta
+    chapter: 无穷小
+    title: 把“接近”量出来：ε 和 δ
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: f(x) = 2x + 1，f(3) = 7。想让 f(x) 和 7 相差不到 0.1，x 和 3 最多能相差多少？
+          options:
+            - text: '0.05'
+              correct: true
+            - text: '0.1'
+              why: x 变 0.1，2x 就变 0.2，f(x) 差 0.2，超了
+            - text: '0.2'
+              why: f 的变化是 x 变化的 2 倍，x 只能差 0.1 的一半
+          explain: '|f(x) − 7| = 2|x − 3|，要它小于 0.1，就要 |x − 3| < 0.05。'
+      - card:
+          title: 一场挑战
+          body: |
+            “$f(x)$ 能要多接近 $L$ 就多接近”可以想成一场挑战：对方给一个输出的容忍度 $\varepsilon > 0$，你要回答一个输入的范围 $\delta > 0$（读作 delta），保证只要 $x$ 离 $a$ 不到 $\delta$（且 $x \ne a$），$f(x)$ 离 $L$ 就不到 $\varepsilon$。
+
+            不管 $\varepsilon$ 多小你都答得上来，极限才是 $L$。
+      - card:
+          title: 精确定义
+          body: |
+            **极限的精确定义（ε-δ definition）**：$\lim_{x \to a} f(x) = L$ 的意思是，对任意 $\varepsilon > 0$，都存在 $\delta > 0$，使得
+
+            $$0 < |x - a| < \delta \implies |f(x) - L| < \varepsilon$$
+
+            “$\implies$”读作“就能推出”。$0 < |x - a|$ 就是 $x \ne a$：又一次说明极限不看 $a$ 本身。
+      - item:
+          id: delta-linear
+          type: number
+          prompt: '$f(x) = 3x - 2$，$\lim_{x \to 2} f(x) = 4$。对方给 $\varepsilon = 0.03$，你能给的最大的 $\delta$ 是多少？'
+          answer: 0.01
+          explain: '|3x − 2 − 4| = 3|x − 2|，要它 < 0.03，就要 |x − 2| < 0.01。'
+      - card:
+          title: 例题：证明 lim (2x + 1) = 7（x → 3）
+          body: 对任意给定的 $\varepsilon > 0$，找出一个能用的 $\delta$。
+          reveal:
+            - title: 第 1 步：写出要做到的
+              body: $|f(x) - L| = |2x + 1 - 7| < \varepsilon$。
+            - title: 第 2 步：化成 |x − a| 的样子
+              body: $|2x - 6| = 2|x - 3|$。
+            - title: 第 3 步：选 δ
+              body: $2|x - 3| < \varepsilon$ 等价于 $|x - 3| < \frac{\varepsilon}{2}$，所以取 $\delta = \frac{\varepsilon}{2}$。
+            - title: 第 4 步：检查
+              body: 只要 $0 < |x - 3| < \frac{\varepsilon}{2}$，就有 $|f(x) - 7| = 2|x - 3| < \varepsilon$。对任意 $\varepsilon$ 都成立，证毕。
+      - item:
+          id: delta-choice
+          type: choice
+          prompt: '证明 $\lim_{x \to 1} (5x - 3) = 2$ 时，对给定的 $\varepsilon$，取哪个 $\delta$ 一定行？'
+          options:
+            - text: 'δ = ε/5'
+              correct: true
+            - text: 'δ = 5ε'
+              why: x 差 5ε 时，5x − 3 差 25ε，超出了 ε
+            - text: 'δ = ε'
+              why: f 的变化是 x 变化的 5 倍，x 差 ε 时 f 差 5ε
+          explain: '|5x − 3 − 2| = 5|x − 1| < ε 等价于 |x − 1| < ε/5。'
+      - card:
+          title: 无穷小
+          body: |
+            极限是 0 的量叫**无穷小（infinitesimal）**，比如 $x \to 0$ 时的 $x^2$、$\sin x$。
+
+            无穷小不是“很小的数”，而是一个**趋于 0 的过程**：0.0001 是一个固定的数，不是无穷小。用这个说法，$\lim_{x \to a} f(x) = L$ 就是说：$x \to a$ 时 $f(x) - L$ 是无穷小。
+      - item:
+          id: which-infinitesimal
+          type: choice
+          multi: true
+          prompt: x → 0 时，下面哪些是无穷小？（多选）
+          options:
+            - text: '$x^2$'
+              correct: true
+            - text: '$\sin x$'
+              correct: true
+            - text: '$\cos x$'
+              why: x → 0 时 cos x → 1，不是 0
+            - text: '0.000001'
+              why: 它是一个固定的数，不随 x 变，也就不会趋于 0
+          explain: 无穷小要“趋于 0”：x² → 0，sin x → 0。
+      - item:
+          id: gap
+          type: number
+          prompt: '$x \to 2$ 时 $f(x) = 3x + 1$ 的极限是 7，所以 $f(x) - 7$ 是无穷小。$x = 2.001$ 时 $f(x) - 7$ 等于多少？'
+          answer: 0.003
+          explain: f(2.001) = 7.003，减去 7 得 0.003；x 越靠近 2，它越小。
+
+  - id: epsilon-proofs
+    chapter: 无穷小
+    title: 用 ε-δ 证明：x² 和极限的和
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 想让 |x² − 4| < 0.5。只要 |x − 2| < 0.1，够不够？
+          options:
+            - text: 够
+              correct: true
+            - text: 不够
+              why: '|x² − 4| = |x − 2|·|x + 2|，x 在 1.9 到 2.1 之间时 |x + 2| < 4.1，乘积小于 0.41'
+          explain: '|x − 2| < 0.1 时 |x + 2| < 4.1，所以 |x² − 4| < 0.1 × 4.1 = 0.41 < 0.5。'
+      - card:
+          title: 难在 |x + 2| 会变
+          body: |
+            $|x^2 - 4| = |x - 2| \cdot |x + 2|$。$|x - 2|$ 我们能控制，麻烦的是 $|x + 2|$ 跟着 $x$ 变。
+
+            办法：先要求 $|x - 2| < 1$，这时 $1 < x < 3$，所以 $|x + 2| < 5$，于是 $|x^2 - 4| < 5|x - 2|$。再要求 $|x - 2| < \frac{\varepsilon}{5}$ 就行。
+      - card:
+          title: 两个要求一起满足
+          body: |
+            $$\delta = \min\left(1, \frac{\varepsilon}{5}\right)$$
+
+            $\min$ 取两个数里小的那个。$|x - 2| < \delta$ 时两个要求都成立：$|x^2 - 4| < 5|x - 2| < 5 \cdot \frac{\varepsilon}{5} = \varepsilon$。
+      - item:
+          id: min-delta-1
+          type: number
+          prompt: '证明 $\lim_{x \to 2} x^2 = 4$ 时取 $\delta = \min\left(1, \frac{\varepsilon}{5}\right)$。$\varepsilon = 0.5$ 时 $\delta$ 是多少？'
+          answer: 0.1
+          explain: ε/5 = 0.1，比 1 小，所以 δ = 0.1。
+      - item:
+          id: min-delta-2
+          type: number
+          prompt: '证明 $\lim_{x \to 2} x^2 = 4$ 时取 $\delta = \min\left(1, \frac{\varepsilon}{5}\right)$。$\varepsilon = 10$ 时 $\delta$ 是多少？'
+          answer: 1
+          explain: ε/5 = 2，比 1 大，所以 δ = 1。“先要求 |x − 2| < 1”这一条在 ε 很大时起作用。
+      - card:
+          title: 三角不等式
+          body: |
+            证明法则要用**三角不等式（triangle inequality）**：
+
+            $$|u + v| \le |u| + |v|$$
+
+            两段路加起来，不会比直接走过去短。
+      - card:
+          title: 例题：和的法则
+          body: '已知 $\lim f = L$，$\lim g = M$（$x \to a$），证明 $\lim (f + g) = L + M$。'
+          reveal:
+            - title: 第 1 步：目标
+              body: 让 $|f(x) + g(x) - (L + M)| < \varepsilon$。
+            - title: 第 2 步：用三角不等式拆开
+              body: $|(f - L) + (g - M)| \le |f - L| + |g - M|$。
+            - title: 第 3 步：各要一半
+              body: 对 $\frac{\varepsilon}{2}$，$f$ 的极限给出 $\delta_1$，使 $|f - L| < \frac{\varepsilon}{2}$；$g$ 的极限给出 $\delta_2$，使 $|g - M| < \frac{\varepsilon}{2}$。
+            - title: 第 4 步：取小的那个
+              body: $\delta = \min(\delta_1, \delta_2)$ 时两条都成立，和小于 $\frac{\varepsilon}{2} + \frac{\varepsilon}{2} = \varepsilon$。
+      - item:
+          id: why-half
+          type: choice
+          prompt: 证明“和的极限等于极限的和”时，为什么给 f 和 g 各要 ε/2？
+          options:
+            - text: 两个误差加起来要小于 ε，各给一半正好
+              correct: true
+            - text: 因为 f 和 g 一样大
+              why: f 和 g 可以完全不同；ε/2 是在分配“误差的预算”
+            - text: 因为 ε 太大了，要变小一点
+              why: ε 可以任意小；分成两半是因为最后要把两个误差加起来
+          explain: 三角不等式把总误差拆成两个误差之和，每个给 ε/2，加起来不超过 ε。
+      - item:
+          id: delta-min
+          type: number
+          prompt: '证明和的法则时，对 $\frac{\varepsilon}{2}$，$f$ 的极限给出 $\delta_1 = 0.02$，$g$ 的极限给出 $\delta_2 = 0.005$。最后取的 $\delta$ 是多少？'
+          answer: 0.005
+          explain: δ = min(δ₁, δ₂) = 0.005：x 离 a 不到 0.005 时，两个条件都满足。
+
+  - id: no-limit
+    chapter: 无穷小
+    title: 证明极限不存在；单侧和无穷的精确说法
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 台阶函数 H 在 x < 0 时为 0，x ≥ 0 时为 1。对方给 ε = 0.5，你能找到 δ，让 0 附近（不含 0）所有的 H(x) 都离 0.5 不到 0.5 吗？
+          options:
+            - text: 不能
+              correct: true
+            - text: 能，取很小的 δ 就行
+              why: 不管 δ 多小，左边的 H(x) 都是 0，离 0.5 正好是 0.5，不是“不到 0.5”
+          explain: H 的值只有 0 和 1，离 0.5 的距离都是 0.5，不可能小于 0.5。
+      - card:
+          title: 怎样证明“不是 L”
+          body: |
+            要证明 $\lim f = L$ **不**成立，就要找到一个 $\varepsilon$，让任何 $\delta$ 都失败：不管 $\delta$ 多小，都有离 $a$ 不到 $\delta$ 的 $x$，使 $|f(x) - L| \ge \varepsilon$。
+
+            要证明极限根本不存在，就要对**每一个** $L$ 都这样做。
+      - card:
+          title: 例题：|x|/x 在 0 处没有极限
+          body: 设 $f(x) = \frac{|x|}{x}$。证明对任何 $L$，$\varepsilon = 1$ 都会让所有 $\delta$ 失败。
+          reveal:
+            - title: 第 1 步：两边各取一个点
+              body: 不管 $\delta$ 多小，$x = \frac{\delta}{2}$ 处 $f = 1$，$x = -\frac{\delta}{2}$ 处 $f = -1$，它们离 0 都不到 $\delta$。
+            - title: 第 2 步：假设两个都离 L 不到 1
+              body: 那么 $|1 - L| < 1$ 且 $|-1 - L| < 1$。
+            - title: 第 3 步：推出矛盾
+              body: 三角不等式：$2 = |1 - (-1)| \le |1 - L| + |L + 1| < 1 + 1 = 2$，得到 $2 < 2$，不可能。所以总有一个点离 $L$ 至少 1。
+      - item:
+          id: eps-works
+          type: choice
+          prompt: 台阶函数 H 只取 0（x < 0）和 1（x ≥ 0）两个值。要证明它在 0 处对任何 L 都没有极限，下面哪个 ε 一定行？
+          options:
+            - text: 'ε = 0.5'
+              correct: true
+            - text: 'ε = 2'
+              why: 取 L = 0.5 时，0 和 1 离 L 都只有 0.5，小于 2，这个 ε 挡不住
+          explain: 0 和 1 相距 1。如果两个都离 L 不到 0.5，它们之间就不到 0.5 + 0.5 = 1，矛盾。
+      - card:
+          title: 单侧极限的精确说法
+          body: |
+            右极限只看右边：把条件 $0 < |x - a| < \delta$ 换成
+
+            $$0 < x - a < \delta$$
+
+            也就是 $x$ 在 $a$ 的右边，并且离它不到 $\delta$。左极限换成 $0 < a - x < \delta$。
+      - item:
+          id: sqrt-right
+          type: number
+          prompt: '证明 $\lim_{x \to 0^+} \sqrt{x} = 0$：要让 $\sqrt{x} < \varepsilon$，只要 $0 < x < \varepsilon^2$。$\varepsilon = 0.1$ 时 $\delta$ 取多少？'
+          answer: 0.01
+          explain: δ = ε² = 0.01：0 < x < 0.01 时 √x < 0.1。
+      - card:
+          title: 无穷极限的精确说法
+          body: |
+            $\lim_{x \to a} f(x) = +\infty$ 的意思是：对任意 $M > 0$，都存在 $\delta > 0$，使得
+
+            $$0 < |x - a| < \delta \implies f(x) > M$$
+
+            也就是：你说一个多大的数，我都能让 $f$ 超过它。
+      - item:
+          id: delta-infinite
+          type: number
+          prompt: '证明 $\lim_{x \to 0} \frac{1}{x^2} = +\infty$：给定 $M = 10000$，要让 $\frac{1}{x^2} > M$，$\delta$ 最大取多少？'
+          answer: 0.01
+          explain: 1/x² > 10000 等价于 x² < 0.0001，即 |x| < 0.01。一般地取 δ = 1/√M。
+
+  - id: infinitesimal-order
+    chapter: 无穷小
+    title: 无穷小比快慢
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: x → 0 时，x 和 x² 都趋于 0。谁更快？
+          options:
+            - text: x²
+              correct: true
+            - text: x
+              why: x = 0.01 时 x² = 0.0001，比 x 小得多
+            - text: 一样快
+              why: 比一比 x²/x = x，它趋于 0，说明 x² 远比 x 小
+          explain: x = 0.1、0.01、0.001 时，x² 是 0.01、0.0001、0.000001。
+      - card:
+          title: 比值说明快慢
+          body: |
+            两个无穷小 $\alpha$、$\beta$ 比快慢，看 $\frac{\alpha}{\beta}$ 的极限：
+
+            | 极限 | 说法 |
+            |---|---|
+            | 0 | $\alpha$ 是比 $\beta$ 高阶的无穷小，叫**高阶无穷小（higher-order infinitesimal）**，记作 $\alpha = o(\beta)$ |
+            | 不是 0 的数 | 同阶 |
+            | 1 | **等价无穷小（equivalent infinitesimals）**，记作 $\alpha \sim \beta$ |
+      - item:
+          id: same-order
+          type: choice
+          prompt: x → 0 时，3x 和 x 是什么关系？
+          options:
+            - text: 同阶，但不等价
+              correct: true
+            - text: 等价
+              why: 等价要求比值趋于 1，这里 3x/x = 3
+            - text: 3x 是比 x 高阶的无穷小
+              why: 高阶要求比值趋于 0，这里是 3
+          explain: 3x/x = 3，极限是不为 0 的数，所以同阶；不是 1，所以不等价。
+      - item:
+          id: equiv-sum
+          type: choice
+          prompt: x → 0 时，x² + x 和 x 是什么关系？
+          options:
+            - text: 等价
+              correct: true
+            - text: 同阶，但不等价
+              why: (x² + x)/x = x + 1 → 1，比值的极限正好是 1
+            - text: x² + x 是比 x 高阶的无穷小
+              why: 比值趋于 1，不是 0
+          explain: x² 比 x 小得多，x² + x 几乎就是 x。
+      - card:
+          title: 三个常用的等价无穷小（x → 0）
+          body: |
+            | 等价 | 从哪来 |
+            |---|---|
+            | $\sin x \sim x$ | $\frac{\sin x}{x} \to 1$ |
+            | $1 - \cos x \sim \frac{x^2}{2}$ | 下面的例题 |
+            | $\sqrt{1 + x} - 1 \sim \frac{x}{2}$ | 有理化得到 $\frac{\sqrt{1+x} - 1}{x} \to \frac12$ |
+      - card:
+          title: 例题：1 − cos x 和 x² 的阶
+          body: '求 $\lim_{x \to 0} \frac{1 - \cos x}{x^2}$。'
+          reveal:
+            - title: 第 1 步：化成正弦
+              body: 用 $\cos 2\theta = 1 - 2\sin^2\theta$，取 $\theta = \frac{x}{2}$：$1 - \cos x = 2\sin^2\frac{x}{2}$。
+            - title: 第 2 步：凑成 sin(□)/□
+              body: '$$\frac{2\sin^2\frac x2}{x^2} = \frac12 \left(\frac{\sin\frac x2}{\frac x2}\right)^2$$'
+            - title: 第 3 步：取极限，下结论
+              body: 括号里趋于 1，所以极限是 $\frac12$：不为 0，两者同阶；$1 - \cos x \sim \frac{x^2}{2}$。
+      - item:
+          id: cos-ratio
+          type: number
+          prompt: '$\lim_{x \to 0} \frac{1 - \cos x}{x^2}$ 是多少？'
+          answer: 0.5
+          explain: 1 − cos x = 2sin²(x/2)，化成 (1/2)·(sin(x/2)/(x/2))² → 1/2。
+      - card:
+          title: 等价替换：只在乘除里
+          body: |
+            在**乘除**里，可以把一个无穷小因子换成和它等价的、更简单的那个：
+
+            $$\lim_{x \to 0} \frac{\sin 4x}{3x} = \lim_{x \to 0} \frac{4x}{3x} = \frac43$$
+
+            在**加减**里不能随便换：$\frac{\sin x - x}{x^3}$ 里把 $\sin x$ 换成 $x$，分子变成 0，得到 0；可真实的极限是 $-\frac16$。
+      - item:
+          id: replace-product
+          type: number
+          prompt: '$\lim_{x \to 0} \frac{x \sin 2x}{1 - \cos x}$ 是多少？'
+          answer: 4
+          explain: 乘除里替换：sin 2x ~ 2x，1 − cos x ~ x²/2，得 x·2x/(x²/2) = 4。
+      - item:
+          id: replace-sum
+          type: choice
+          prompt: '有人把 $\frac{\sin x - x}{x^3}$ 里的 $\sin x$ 换成 $x$，得到极限 0。对吗？'
+          options:
+            - text: 不对：sin x 在减法里，不能整体换成 x
+              correct: true
+            - text: 对：sin x ~ x，换了不影响结果
+              why: 等价只保证比值趋于 1，sin x − x 这个差比 x 小得多，换掉就把它丢了
+          explain: 真实的极限是 −1/6：sin x 和 x 的差大约是 x³/6，替换把这一部分丢掉了。
+      - card:
+          title: 无穷大
+          body: |
+            绝对值变得比任何数都大的量叫**无穷大（infinitely large quantity）**，比如 $x \to 0$ 时的 $\frac{1}{x^2}$。
+
+            它和无穷小是倒数关系：$\alpha$ 是无穷小并且不等于 0，$\frac{1}{\alpha}$ 就是无穷大；反过来也一样。
+      - item:
+          id: recip
+          type: choice
+          prompt: x → ∞ 时，1/x 是什么？
+          options:
+            - text: 无穷小
+              correct: true
+            - text: 无穷大
+              why: x 是无穷大，它的倒数 1/x 才趋于 0
+            - text: 都不是
+              why: 1/x → 0，正好是无穷小的定义
+          explain: x → ∞ 时 x 是无穷大，倒数 1/x 是无穷小。
+
+  - id: continuity
+    chapter: 连续性
+    title: 连续：笔不用抬起来
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 在 x = 1 附近画下面三个函数的图像，哪一个不用抬笔就能画过去？
+          options:
+            - text: y = x + 1
+              correct: true
+            - text: y = (x² − 1)/(x − 1)
+              why: 它在 x = 1 处没有定义，图像上有一个洞，笔要跳过去
+            - text: x < 1 时 y = 0，x ≥ 1 时 y = 1
+              why: 它在 x = 1 处从 0 跳到 1，笔要抬起来
+          explain: 直线 y = x + 1 在 1 处没有洞也没有跳，这就是“连续”的直观意思。
+      - card:
+          title: 在一点连续的三个条件
+          body: |
+            $f$ 在 $a$ 处**连续（continuous）**，要三件事都成立：
+
+            1. $f(a)$ 有定义；
+            2. $\lim_{x \to a} f(x)$ 存在；
+            3. 两者相等：$\lim_{x \to a} f(x) = f(a)$。
+
+            直观上：图像在 $a$ 处没有洞、没有跳、没有冲向无穷，笔不用抬起来。
+      - item:
+          id: cond-1
+          type: choice
+          prompt: '$g(x) = \frac{x^2 - 1}{x - 1}$ 在 $x = 1$ 处连续吗？'
+          options:
+            - text: 不连续：g(1) 没有定义
+              correct: true
+            - text: 连续：极限是 2
+              why: 极限存在只满足第 2 条；第 1 条就不成立，g(1) 没有定义
+          explain: 三个条件第一个就不满足。
+      - item:
+          id: cond-3
+          type: choice
+          prompt: '$k(x)$ 在 $x \ne 1$ 时等于 $x + 1$，另外规定 $k(1) = 5$。它在 $x = 1$ 处连续吗？'
+          options:
+            - text: 不连续：极限是 2，但 k(1) = 5
+              correct: true
+            - text: 连续：k(1) 有定义，极限也存在
+              why: 还差第 3 条：极限要等于函数值，2 ≠ 5
+          explain: 前两个条件都满足，第三个不满足。
+      - card:
+          title: 例题：补一个值让它连续
+          body: '$f(x) = \frac{x^2 - 4}{x - 2}$（$x \ne 2$），$f(2) = a$。$a$ 取多少时 $f$ 在 $x = 2$ 处连续？'
+          reveal:
+            - title: 第 1 步：求极限
+              body: $x \ne 2$ 时约分得 $f(x) = x + 2$，所以 $\lim_{x \to 2} f(x) = 4$。
+            - title: 第 2 步：让函数值等于极限
+              body: 连续要求 $f(2) = 4$，所以 $a = 4$。
+      - item:
+          id: fill-a
+          type: number
+          prompt: '$f(x) = \frac{x^2 - 9}{x - 3}$（$x \ne 3$），$f(3) = a$。$a$ 取多少时 $f$ 在 $x = 3$ 处连续？'
+          answer: 6
+          explain: 约分得 x + 3，极限是 6，所以 a = 6。
+      - item:
+          id: piece-k
+          type: number
+          prompt: '$f(x) = kx + 1$（$x < 1$），$f(x) = x^2 + 2$（$x \ge 1$）。$k$ 取多少时 $f$ 在 $x = 1$ 处连续？'
+          answer: 2
+          explain: f(1) = 3，右极限 3，左极限 k + 1。要 k + 1 = 3，所以 k = 2。
+      - card:
+          title: 连续让极限好算
+          body: |
+            $f$ 在 $a$ 处连续，求 $\lim_{x \to a} f(x)$ 只要算 $f(a)$。
+
+            多项式、有理函数（分母不为 0 的地方）、$\sin x$、$\cos x$、$\sqrt{x}$（$x > 0$）在它们有定义的每一点都连续。所以之前的“直接代入”，其实就是在用连续性。
+      - item:
+          id: plug-cont
+          type: number
+          prompt: '$\lim_{x \to 0} (\cos x + x^2)$ 是多少？'
+          answer: 1
+          explain: cos x 和 x² 都连续，和也连续，直接代入：cos 0 + 0 = 1。
+
+  - id: discontinuities
+    chapter: 连续性
+    title: 断开的三种样子
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 'g(x) = (x² − 1)/(x − 1) 在 x = 1 处有一个洞。能不能只补上一个点，让它变连续？'
+          options:
+            - text: 能，补上 g(1) = 2
+              correct: true
+            - text: 不能，没有定义的点永远不连续
+              why: 补上的值等于极限 2 时，三个条件就都满足了
+          explain: 极限存在，只是缺了那一点：补上就连续。
+      - card:
+          title: 三种间断点
+          body: |
+            不连续的点叫**间断点（discontinuity）**。常见三种：
+
+            | 类型 | 样子 | 例子 |
+            |---|---|---|
+            | **可去间断点（removable）** | 极限存在，但函数值没有或不等于它 | $\frac{x^2-1}{x-1}$ 在 1 |
+            | **跳跃间断点（jump）** | 左右极限都存在但不相等 | $\frac{\lvert x\rvert}{x}$ 在 0 |
+            | **无穷间断点（infinite）** | 至少一侧是 $\pm\infty$ | $\frac{1}{x^2}$ 在 0 |
+      - item:
+          id: classify
+          type: match
+          prompt: 把每个函数和它在指定点的间断点类型配起来。
+          pairs:
+            - ['(x² − 1)/(x − 1) 在 x = 1', 可去间断点]
+            - ['|x|/x 在 x = 0', 跳跃间断点]
+            - ['1/(x − 3) 在 x = 3', 无穷间断点]
+          explain: 极限存在 → 可去；左右不等 → 跳跃；冲向无穷 → 无穷。
+      - card:
+          title: 例题：一个函数两个间断点
+          body: '找出 $f(x) = \frac{x^2 - x}{x^2 - 1}$ 的间断点，并分类。'
+          reveal:
+            - title: 第 1 步：分解因式
+              body: $x^2 - x = x(x - 1)$，$x^2 - 1 = (x - 1)(x + 1)$。分母在 $x = 1$ 和 $x = -1$ 为 0，这两点没有定义。
+            - title: 第 2 步：x = 1
+              body: 约掉 $x - 1$ 得 $\frac{x}{x + 1} \to \frac12$。极限存在，是可去间断点。
+            - title: 第 3 步：x = −1
+              body: 约分后分母 $x + 1 \to 0$，分子 $x \to -1 \ne 0$，函数值冲向无穷，是无穷间断点。
+      - item:
+          id: repair
+          type: number
+          prompt: '$f(x) = \frac{x^2 - x}{x^2 - 1}$ 在 $x = 1$ 处是可去间断点。把 $f(1)$ 定成多少，它在 1 处就连续了？'
+          answer: 0.5
+          explain: 约分后是 x/(x + 1)，在 1 处的极限是 1/2。
+      - card:
+          title: 向下取整
+          body: |
+            $\lfloor x \rfloor$ 表示不超过 $x$ 的最大整数：$\lfloor 2.7 \rfloor = 2$，$\lfloor 2 \rfloor = 2$，$\lfloor 1.99 \rfloor = 1$。它的图像是一级级的台阶。
+      - item:
+          id: floor-jump
+          type: choice
+          prompt: '$\lfloor x \rfloor$（不超过 x 的最大整数）在 $x = 2$ 处是什么间断点？'
+          options:
+            - text: 跳跃间断点：左极限 1，右极限 2
+              correct: true
+            - text: 可去间断点
+              why: 左右极限不相等，改一个点的值补不上
+            - text: 它在 x = 2 处连续
+              why: x 从左边靠近 2 时值一直是 1，到 2 才变成 2，跳了一下
+          explain: x 比 2 小一点时是 1，比 2 大一点时是 2。
+      - item:
+          id: which-kind
+          type: choice
+          prompt: '$f(x) = \frac{x + 2}{x^2 - 4}$ 在 $x = 2$ 处是什么间断点？'
+          options:
+            - text: 无穷间断点
+              correct: true
+            - text: 可去间断点
+              why: x + 2 只能和 x + 2 约，约完是 1/(x − 2)，在 2 处分母仍是 0、分子不是 0
+            - text: 跳跃间断点
+              why: 左右两边都冲向无穷（左边 −∞，右边 +∞），不是两个有限的值
+          explain: 约分后 f(x) = 1/(x − 2)（x ≠ −2），x = 2 是竖直渐近线。x = −2 处才是可去间断点。
+
+  - id: continuity-interval
+    chapter: 连续性
+    title: 在一整段上连续
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: √x 只对 x ≥ 0 有定义。它在 x = 0 处能算“连续”吗？
+          options:
+            - text: 能算从右边连续：只看有定义的那一边
+              correct: true
+            - text: 不能，因为 0 的左边没有定义
+              why: 在区间的端点，只要求从区间内部那一侧靠近时连续
+          explain: x 从右边靠近 0 时 √x 靠近 0 = √0，所以在 0 处右连续。
+      - card:
+          title: 开区间和闭区间
+          body: |
+            **开区间（open interval）** $(a, b)$：$a < x < b$ 的所有数，不含两端。
+
+            **闭区间（closed interval）** $[a, b]$：$a \le x \le b$ 的所有数，含两端。
+
+            半开半闭也可以：$(0, 1]$ 是 $0 < x \le 1$。
+      - card:
+          title: 在区间上连续
+          body: |
+            $f$ 在开区间 $(a, b)$ 上连续：在里面每一点都连续。
+
+            $f$ 在闭区间 $[a, b]$ 上连续：在 $(a, b)$ 上连续，并且在左端 $a$ 处**右连续**（$\lim_{x \to a^+} f(x) = f(a)$），在右端 $b$ 处**左连续**（$\lim_{x \to b^-} f(x) = f(b)$）。
+      - item:
+          id: on-closed
+          type: choice
+          prompt: 下面哪个函数在闭区间 [−1, 1] 上连续？
+          options:
+            - text: x²
+              correct: true
+            - text: 1/x
+              why: 它在 0 处没有定义，而 0 在 [−1, 1] 里面
+            - text: '|x|/x'
+              why: 它在 0 处没有定义，左右极限也不相等
+          explain: x² 是多项式，处处连续。
+      - card:
+          title: 组合起来还连续
+          body: |
+            连续函数的和、差、积、商（分母不为 0）都连续。
+
+            **复合**也连续：$f(g(x))$ 是先算 $g$，再把结果放进 $f$。如果 $g$ 在 $a$ 处连续、$f$ 在 $g(a)$ 处连续，那么 $f(g(x))$ 在 $a$ 处连续。更一般地，只要 $\lim_{x \to a} g(x) = L$、$f$ 在 $L$ 处连续，就有
+
+            $$\lim_{x \to a} f(g(x)) = f\left(\lim_{x \to a} g(x)\right)$$
+
+            极限可以“穿过”连续函数。
+      - item:
+          id: compose
+          type: number
+          prompt: '$\lim_{x \to 1} \sqrt{x^2 + 3}$ 是多少？'
+          answer: 2
+          explain: x² + 3 → 4，√ 在 4 处连续，所以极限是 √4 = 2。
+      - card:
+          title: 数列也可以穿过连续函数
+          body: |
+            如果 $a_n \to L$，并且 $f$ 在 $L$ 处连续，那么 $f(a_n) \to f(L)$。
+
+            例如 $\frac1n \to 0$，$\cos$ 在 0 处连续，所以 $\cos\frac1n \to \cos 0 = 1$。
+      - item:
+          id: seq-sqrt
+          type: number
+          prompt: '$\lim_{n \to \infty} \sqrt{4 + \frac1n}$ 是多少？'
+          answer: 2
+          explain: 4 + 1/n → 4，√ 在 4 处连续，所以极限是 √4 = 2。
+      - item:
+          id: seq-sin
+          type: number
+          prompt: '$\lim_{n \to \infty} \sin\left(\frac{\pi}{2} \cdot \frac{n}{n + 1}\right)$ 是多少？'
+          answer: 1
+          explain: n/(n + 1) → 1，括号里 → π/2，sin 连续，所以极限是 sin(π/2) = 1。
+      - item:
+          id: floor-trap
+          type: choice
+          prompt: '$1 - \frac1n \to 1$，可 $\left\lfloor 1 - \frac1n \right\rfloor$ 的每一项都是 0（$\lfloor x \rfloor$ 是不超过 x 的最大整数），极限是 0，而 $\lfloor 1 \rfloor = 1$。哪里出了问题？'
+          options:
+            - text: ⌊x⌋ 在 1 处不连续，所以不能把极限穿进去
+              correct: true
+            - text: 1 − 1/n 的极限不是 1
+              why: 1/n → 0，所以 1 − 1/n → 1，这一步没错
+            - text: 数列的极限不能和函数一起算
+              why: 只要函数在极限点连续就可以；这里的问题是 ⌊x⌋ 在 1 处跳了一下
+          explain: 1 − 1/n 从左边靠近 1，⌊x⌋ 在 1 的左边一直是 0，到 1 才跳到 1。
+
+  - id: ivt
+    chapter: 紧致区间上的基本性质
+    title: 介值定理：中间的高度都得经过
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 早上 6 点气温 10 °C，中午 12 点 20 °C。中间某一刻气温一定正好是 15 °C 吗？
+          options:
+            - text: 一定
+              correct: true
+            - text: 不一定
+              why: 气温是连续变化的，从 10 升到 20，不会跳过 15
+          explain: 连续变化的量从一个值走到另一个值，中间每个值都要经过。
+      - card:
+          title: 介值定理
+          body: |
+            **介值定理（intermediate value theorem）**：$f$ 在闭区间 $[a, b]$ 上连续，$N$ 是 $f(a)$ 和 $f(b)$ 之间的任何一个数，那么一定有一个 $c$，$a \le c \le b$，使 $f(c) = N$。$N$ 严格在 $f(a)$、$f(b)$ 之间时，$c$ 在区间内部。
+
+            连续的曲线从 $f(a)$ 的高度走到 $f(b)$ 的高度，中间每个高度都得经过。
+      - card:
+          title: 例题：方程有没有根
+          body: 说明 $x^3 + x - 1 = 0$ 在 0 和 1 之间至少有一个根。
+          reveal:
+            - title: 第 1 步：设函数，确认连续
+              body: 令 $g(x) = x^3 + x - 1$，它是多项式，在 $[0, 1]$ 上连续。
+            - title: 第 2 步：看两端
+              body: $g(0) = -1 < 0$，$g(1) = 1 > 0$。
+            - title: 第 3 步：用定理
+              body: 0 在 −1 和 1 之间，所以有 $c$（$0 < c < 1$）使 $g(c) = 0$：方程有根。
+      - item:
+          id: ivt-interval
+          type: choice
+          prompt: '介值定理能保证 $x^3 + x - 1 = 0$ 在下面哪个区间里有根？'
+          options:
+            - text: (0, 1)
+              correct: true
+            - text: (1, 2)
+              why: g(1) = 1，g(2) = 9，都是正的，0 不在它们之间，定理什么也保证不了
+            - text: (−1, 0)
+              why: g(−1) = −3，g(0) = −1，都是负的，0 不在它们之间
+          explain: 只有 (0, 1) 两端的 g 值一负一正。
+      - card:
+          title: 二分法：把根找出来
+          body: |
+            介值定理还能把根找出来，这叫**二分法（bisection method）**：每次取区间中点 $m$，算 $g(m)$ 的正负，留下两端异号的那一半。
+
+            区间每次减半，做 10 次以后只剩原来的 $\frac{1}{1024}$。电脑解方程，`git bisect` 在几百次提交里找出是哪一次引入了错误，都是这个想法。
+      - card:
+          title: 例题：二分法走三步
+          body: 在 $[0, 1]$ 上找 $g(x) = x^3 + x - 1$ 的根。
+          reveal:
+            - title: 第 1 步：中点 0.5
+              body: $g(0.5) = 0.125 + 0.5 - 1 = -0.375 < 0$，和 $g(1) > 0$ 异号，留下 $[0.5, 1]$。
+            - title: 第 2 步：中点 0.75
+              body: $g(0.75) = 0.421875 + 0.75 - 1 = 0.171875 > 0$，和 $g(0.5) < 0$ 异号，留下 $[0.5, 0.75]$。
+            - title: 第 3 步：中点 0.625
+              body: $g(0.625) = 0.244140625 + 0.625 - 1 \approx -0.1309 < 0$，留下 $[0.625, 0.75]$。根在 0.625 和 0.75 之间。
+      - item:
+          id: bisect-next
+          type: choice
+          prompt: '用二分法找 $g(x) = x^3 + x - 1$ 的根，现在的区间是 $[0.625, 0.75]$（$g(0.625) < 0 < g(0.75)$）。算出 $g(0.6875) \approx 0.0125$。下一步留下哪个区间？'
+          options:
+            - text: '[0.625, 0.6875]'
+              correct: true
+            - text: '[0.6875, 0.75]'
+              why: g(0.6875) 和 g(0.75) 都是正的，同号，这一半里定理不保证有根
+          explain: g(0.625) < 0 < g(0.6875)，异号的是左半段。
+      - item:
+          id: bisect-count
+          type: number
+          prompt: 用二分法，从长度为 1 的区间开始，每一步把区间减半。至少做几步，区间长度才小于 0.001？
+          answer: 10
+          explain: 9 步后长度 1/512 ≈ 0.00195，还不够；10 步后 1/1024 ≈ 0.000977 < 0.001。
+      - card:
+          title: 条件一个也不能少
+          body: |
+            定理要求在闭区间上**连续**。$\frac1x$ 在 $[-1, 1]$ 的两端一负一正（$-1$ 和 $1$），可它从不等于 0：它在 $x = 0$ 处断开了。
+      - item:
+          id: need-cont
+          type: choice
+          prompt: f(−1) < 0 < f(1)，可 f(x) = 0 在 −1 和 1 之间没有解。这可能吗？
+          options:
+            - text: 可能，只要 f 在 [−1, 1] 上不连续
+              correct: true
+            - text: 不可能，介值定理保证有解
+              why: 介值定理要求 f 在 [−1, 1] 上连续；1/x 就是不连续时的反例
+          explain: 例如 1/x：两端异号，却在 0 处断开，跳过了 0。
+
+  - id: extreme-value
+    chapter: 紧致区间上的基本性质
+    title: 最值定理：闭区间才保险
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: f(x) = 1/x 在 0 < x ≤ 1 上有最大值吗？
+          options:
+            - text: 没有
+              correct: true
+            - text: 有，在 x = 1 处
+              why: x = 1 处的值 1 是最小值；越靠近 0，1/x 越大
+            - text: 有，就是 +∞
+              why: ∞ 不是一个数，函数取不到它
+          explain: x 越靠近 0，1/x 越大，没有一个值是最大的。
+      - card:
+          title: 最大值和最小值
+          body: |
+            $f$ 在某个范围里的**最大值（absolute maximum）**，是它在这个范围里**取到**的最大的函数值；最小值同理。
+
+            注意要“取到”：$f(x) = x$ 在 $(0, 1)$ 上，值越来越接近 1，可是取不到 1，所以没有最大值。
+      - card:
+          title: 最值定理
+          body: |
+            **最值定理（extreme value theorem）**：$f$ 在**闭区间** $[a, b]$ 上连续，就一定在这个区间上取到最大值和最小值。
+
+            两个条件缺一不可：区间不闭（如 $(0, 1]$ 上的 $\frac1x$），或函数不连续，都可能取不到。定理的证明要用到实数更深的性质，属于数学分析。
+      - item:
+          id: why-no-max
+          type: choice
+          prompt: '$\frac1x$ 在 $(0, 1]$ 上连续，却没有最大值。这和最值定理矛盾吗？'
+          options:
+            - text: 不矛盾：(0, 1] 不是闭区间
+              correct: true
+            - text: 矛盾，所以定理有例外
+              why: 定理只对闭区间说话，(0, 1] 缺了左端点 0
+            - text: 不矛盾，因为 1/x 不连续
+              why: 1/x 在 (0, 1] 上每一点都连续；问题出在区间不闭
+          explain: 定理要求 [a, b] 两端都包含。x → 0⁺ 时 1/x → +∞，所以没有最大值。
+      - item:
+          id: guaranteed
+          type: choice
+          prompt: 最值定理能保证下面哪个函数在给定区间上有最大值？
+          options:
+            - text: x² 在 [−1, 2] 上
+              correct: true
+            - text: x² 在 (−1, 2) 上
+              why: 开区间不满足定理的条件；这里 x 靠近 2 时 x² 靠近 4，却取不到 4
+            - text: 1/x 在 [−1, 1] 上
+              why: 1/x 在 0 处没有定义，在 [−1, 1] 上不连续
+          explain: 闭区间加连续，两个条件都满足。
+      - card:
+          title: 局部极值
+          body: |
+            如果 $f(c)$ 不小于 $c$ **附近**所有点的函数值，$f(c)$ 叫**局部极大值（local maximum）**；不大于附近所有点的，叫局部极小值。
+
+            局部的不一定是整体最大：两座高山之间的小山包，顶上也是局部极大值。
+      - item:
+          id: local-vs-abs
+          type: choice
+          prompt: 一条山路的高度图上有两个山顶：A 高 800 米，B 高 1200 米。A 是什么？
+          options:
+            - text: 局部极大值，但不是最大值
+              correct: true
+            - text: 最大值
+              why: 整段路上 B 比 A 高，最大值是 1200 米
+            - text: 既不是局部极大值也不是最大值
+              why: A 比它附近的点都高，所以是局部极大值
+          explain: 局部极大值只和附近比；最大值要和整个范围比。
+      - card:
+          title: 极值出在哪里
+          body: |
+            光滑的曲线在局部极值处是“平”的：切线水平。也可能是尖角，比如 $|x|$ 在 0 处。区间内部、曲线是平的或者没有确定切线的点（尖角，或像 $\sqrt[3]{x}$ 在 0 处那样切线竖直），叫**临界点（critical point）**。
+
+            在闭区间上找最大最小值：把端点和临界点的函数值都算出来，比一比。精确地找“平”的位置要用描述变化快慢的工具，这里先用配方和图像。
+      - card:
+          title: 例题：x² − 2x 在 [0, 3] 上
+          body: 求 $f(x) = x^2 - 2x$ 在 $[0, 3]$ 上的最大值和最小值。
+          reveal:
+            - title: 第 1 步：找平的地方
+              body: 配方：$x^2 - 2x = (x - 1)^2 - 1$，最低点在 $x = 1$，那里曲线是平的。
+            - title: 第 2 步：算候选点
+              body: $f(0) = 0$，$f(1) = -1$，$f(3) = 3$。
+            - title: 第 3 步：比较
+              body: 最大值 3（在右端 $x = 3$），最小值 −1（在临界点 $x = 1$）。
+      - item:
+          id: abs-max
+          type: number
+          prompt: '$f(x) = |x - 1|$ 在 $[0, 3]$ 上的最大值是多少？'
+          answer: 2
+          explain: 候选点：端点 x = 0（值 1）、尖角 x = 1（值 0）、端点 x = 3（值 2）。最大是 2。
+      - item:
+          id: abs-min
+          type: number
+          prompt: '$f(x) = x^2 - 4x + 1$ 在 $[0, 5]$ 上的最小值是多少？'
+          answer: -3
+          explain: 配方 (x − 2)² − 3，平的地方在 x = 2，值 −3；端点 f(0) = 1，f(5) = 6。最小是 −3。
+
+  - id: uniform
+    chapter: 紧致区间上的基本性质
+    title: 一致连续：一个 δ 管整段
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: f(x) = 2x。在任何一点，只要 x 的变化小于 0.05，f 的变化就小于 0.1。这个 0.05 在哪个点都能用吗？
+          options:
+            - text: 都能用
+              correct: true
+            - text: 只在 x = 0 附近能用
+              why: 2x 到处一样陡，f 的变化总是 x 变化的 2 倍
+          explain: '|2x − 2y| = 2|x − y|，和你在哪个点无关。'
+      - card:
+          title: 一个 δ 管整个区间
+          body: |
+            $f(x) = 2x$ 在任何一点 $a$：只要 $|x - a| < \frac{\varepsilon}{2}$，就有 $|f(x) - f(a)| < \varepsilon$。这个 $\delta = \frac{\varepsilon}{2}$ 和 $a$ 无关。
+
+            如果能找到一个只和 $\varepsilon$ 有关、整个区间都通用的 $\delta$，就说 $f$ 在这个区间上**一致连续（uniformly continuous）**。
+      - card:
+          title: 反例：越靠近 0 越陡
+          body: |
+            $\frac1x$ 在 $(0, 1]$ 上每一点都连续，可越靠近 0 越陡：$x$ 从 0.01 变到 0.011，只差 0.001，$\frac1x$ 就从 100 变到约 90.9。
+
+            要让变化小于 1，越靠近 0，$\delta$ 就得越小，找不到一个通用的 $\delta$：它在 $(0, 1]$ 上不一致连续。
+      - item:
+          id: steep
+          type: number
+          prompt: '$x$ 从 0.001 变到 0.0011（只差 0.0001），$\frac1x$ 变了多少？（保留一位小数）'
+          answer: 90.9
+          tolerance: 0.05
+          explain: 1/0.001 = 1000，1/0.0011 ≈ 909.09，差约 90.9。x 只动了一点点，1/x 却变了很多。
+      - card:
+          title: 闭区间上一定一致连续
+          body: |
+            **一致连续性定理（Heine–Cantor theorem）**：在闭区间 $[a, b]$ 上连续的函数，一定在 $[a, b]$ 上一致连续。
+
+            例如 $x^2$ 在 $[0, 1]$ 上：$|x^2 - y^2| = |x + y| \cdot |x - y| \le 2|x - y|$，取 $\delta = \frac{\varepsilon}{2}$ 处处通用。$\frac1x$ 的区间 $(0, 1]$ 不闭，所以不矛盾。
+      - item:
+          id: uc-delta
+          type: number
+          prompt: '$x^2$ 在 $[0, 1]$ 上满足 $|x^2 - y^2| \le 2|x - y|$。要让 $|x^2 - y^2| < 0.01$ 对整个区间都成立，通用的 $\delta$ 取多少？'
+          answer: 0.005
+          explain: 2|x − y| < 0.01 只要 |x − y| < 0.005，与 x、y 在 [0, 1] 的什么位置无关。
+      - item:
+          id: uc-unbounded
+          type: choice
+          prompt: x² 在 [0, +∞) 上一致连续吗？
+          options:
+            - text: 不是：x 越大越陡，通用的 δ 找不到
+              correct: true
+            - text: 是：它在每一点都连续
+              why: 每一点连续是普通的连续；一致连续要一个通用的 δ，而 |x² − y²| = |x + y|·|x − y| 里 |x + y| 可以任意大
+          explain: 在 x = 1000 附近，x 差 0.001，x² 就差约 2。区间 [0, +∞) 不是闭区间 [a, b]，定理不适用。
+      - item:
+          id: uc-which
+          type: choice
+          prompt: 一致连续性定理能保证下面哪个函数在给定区间上一致连续？
+          options:
+            - text: √x 在 [0, 4] 上
+              correct: true
+            - text: 1/x 在 (0, 1] 上
+              why: 区间不闭，它也确实不一致连续（越靠近 0 越陡）
+            - text: x² 在全体实数上
+              why: 不是闭区间 [a, b]；它在两头越来越陡，也不一致连续
+          explain: √x 在闭区间 [0, 4] 上连续（0 处右连续），定理直接给出一致连续。
+
+boss:
+  items:
+    - id: seq-boss
+      type: number
+      prompt: '$\lim_{n \to \infty} \frac{3n^2 - n}{2n^2 + 5}$ 是多少？'
+      answer: 1.5
+      explain: 同除以 n²：(3 − 1/n)/(2 + 5/n²) → 3/2。
+    - id: recur-boss
+      type: number
+      prompt: '数列 $a_1 = 1$，$a_{n+1} = \frac{a_n + 8}{3}$ 单调递增、有上界，所以收敛。它的极限是多少？'
+      answer: 4
+      explain: 设极限为 L：L = (L + 8)/3，3L = L + 8，L = 4。前几项：1、3、3.667、3.889……
+    - id: sin-boss
+      type: number
+      prompt: '$\lim_{x \to 0} \frac{\sin 3x}{x}$ 是多少？'
+      answer: 3
+      explain: sin(3x)/x = 3 · sin(3x)/(3x) → 3 × 1 = 3。
+    - id: conj-boss
+      type: number
+      prompt: '$\lim_{x \to 0} \frac{\sqrt{1 + x} - 1}{x}$ 是多少？'
+      answer: 0.5
+      explain: 分子分母同乘 √(1 + x) + 1，得 1/(√(1 + x) + 1) → 1/2。
+    - id: inf-boss
+      type: number
+      prompt: '$\lim_{x \to \infty} \frac{2x^2 + 1}{5x^2 - x}$ 是多少？'
+      answer: 0.4
+      explain: 次数相等，最高次项系数之比 2/5 = 0.4。
+    - id: order-boss
+      type: choice
+      prompt: x → 0 时，1 − cos x 和 x² 是什么关系？
+      options:
+        - text: 同阶，但不等价：比值趋于 1/2
+          correct: true
+        - text: 等价：比值趋于 1
+          why: (1 − cos x)/x² = (1/2)·(sin(x/2)/(x/2))² → 1/2，不是 1
+        - text: 1 − cos x 是比 x² 高阶的无穷小
+          why: 高阶要求比值趋于 0，这里是 1/2
+      explain: 1 − cos x ~ x²/2，所以和 x² 同阶。
+    - id: delta-boss
+      type: number
+      prompt: '证明 $\lim_{x \to 2} (4x - 1) = 7$。对方给 $\varepsilon = 0.02$，你能给的最大的 $\delta$ 是多少？'
+      answer: 0.005
+      explain: '|4x − 1 − 7| = 4|x − 2| < 0.02 等价于 |x − 2| < 0.005。'
+    - id: cont-boss
+      type: number
+      prompt: '$f(x) = \frac{x^2 - 4}{x - 2}$（$x \ne 2$），$f(2) = a$。$a$ 取多少时 $f$ 在 $x = 2$ 处连续？'
+      answer: 4
+      explain: 约分得 x + 2，极限 4，连续要求 f(2) = 4。
+    - id: disc-boss
+      type: choice
+      prompt: '$f(x) = \frac{x + 2}{x^2 - 4}$ 在 $x = -2$ 处是什么间断点？'
+      options:
+        - text: 可去间断点
+          correct: true
+        - text: 无穷间断点
+          why: x + 2 能约掉，约完是 1/(x − 2)，在 −2 处的极限是 −1/4，存在
+        - text: 跳跃间断点
+          why: 约分后左右极限都是 −1/4，相等
+      explain: 极限存在（−1/4）而函数值没有定义，补上 f(−2) = −1/4 就连续。
+    - id: ivt-boss
+      type: choice
+      prompt: 'g(x) = x³ + x − 1。为什么能断定 g(x) = 0 在 0 和 1 之间有根？'
+      options:
+        - text: g 在 [0, 1] 上连续，并且 g(0) = −1 < 0 < 1 = g(1)
+          correct: true
+        - text: 因为 g(0.5) = 0
+          why: g(0.5) = −0.375，不是 0；根在 0.5 和 1 之间
+        - text: 因为 g 是增函数
+          why: 只单调不够，还要两端的值一负一正；连续性也不能少
+      explain: 介值定理：闭区间上连续，0 在 g(0) 和 g(1) 之间。
+    - id: evt-boss
+      type: choice
+      prompt: '$\frac1x$ 在 $(0, 1]$ 上没有最大值。为什么这不违反最值定理？'
+      options:
+        - text: 最值定理要求闭区间，(0, 1] 不含左端点 0
+          correct: true
+        - text: 因为 1/x 在 (0, 1] 上不连续
+          why: 它在 (0, 1] 的每一点都连续；缺的是闭区间这个条件
+        - text: 因为它的最大值是 +∞
+          why: +∞ 不是一个函数值，函数取不到它
+      explain: x → 0⁺ 时 1/x → +∞，区间不闭，定理不适用。

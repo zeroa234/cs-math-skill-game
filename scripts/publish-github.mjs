@@ -19,7 +19,7 @@ import { notPublic } from "./lib/not-public.mjs";
 
 const REMOTE = "https://github.com/zeroa234/cs-math-skill-game.git";
 const ID = { name: "zeroa234", email: "208007470+zeroa234@users.noreply.github.com" }; // as on zeroa234/cs-math-skill-tree
-const EXCLUDE = ["assets/cast/not-public.txt", "scripts/cast/extract-sprites.py", "output/web", "output/apk"];
+const EXCLUDE = ["assets/cast/not-public.txt", "scripts/cast/extract-sprites.py", "output/web", "output/apk", "output/windows"];
 // Words that point at where the sprites came from (the list is in assets/cast/, never published).
 const FORBIDDEN = notPublic(ROOT);
 if (!FORBIDDEN) throw new Error("assets/cast/not-public.txt missing: publish from the author's workspace");

@@ -20,6 +20,23 @@ test("B1: jargon before its definition is caught; defined, inherited or assumed 
   assert.deepEqual(rules({}, [ok]), ["B1"], "defined in a card but missing from terms");
 });
 
+test("B1 in code: a program using a keyword from a later lesson is caught; the teaching lesson, strings, comments and inline code are not", () => {
+  const terms = { terms: [{ term: "循环", def: "重复" }] };
+  const loopCode = "counts = {}\nfor w in 'aba':\n    counts[w] = 1\n";
+  const looped = (extra = {}) => ({ item: q("a", "显示什么？", { code: loopCode, lang: "python", ...extra }) });
+  const teachLoop = lesson([{ card: { body: "**循环（loop）**：重复做。" } }, { item: q("c") }, { item: q("d") }]);
+  // P.1.1, 2026-11-04: the dictionary lesson counted with a for loop two lessons before for was taught
+  assert.deepEqual(rules(terms, [lesson([looped(), { item: q("b") }]), teachLoop]), ["B1"]);
+  assert.deepEqual(rules(terms, [teachLoop, lesson([looped(), { item: q("b") }])]), [], "after the lesson that teaches it");
+  const guessFirst = lesson([{ guess: q("g", "猜一猜？", { code: "for i in range(3):\n    print(i)", lang: "python" }) }, { card: { body: "**循环（loop）**：重复做。" } }, { item: q("c") }, { item: q("d") }]);
+  assert.deepEqual(rules(terms, [guessFirst]), [], "the lesson that teaches it may show it first");
+  assert.deepEqual(rules({}, [lesson([{ item: q("a", "显示什么？", { code: 'print("for while")  # for each', lang: "python" }) }, { item: q("b") }])]), [], "strings and comments");
+  assert.deepEqual(rules({}, [lesson([{ card: { body: "不能用 `for` 当名字。" } }, { item: q("a") }, { item: q("b") }])]), [], "inline code names a keyword");
+  assert.deepEqual(rules({}, [lesson([{ card: { body: "看：\n\n```c\n// look for it\nint format = 1;\n```" } }, { item: q("a") }, { item: q("b") }])]), [], "C comments, words containing a keyword");
+  assert.deepEqual(rules({}, [lesson([{ card: { body: "看：\n\n```python\nwhile True:\n    pass\n```" } }, { item: q("a") }, { item: q("b") }])]), ["B1"], "fenced blocks in cards");
+  assert.deepEqual(rules({}, [lesson([{ card: { body: "**第三方库（third-party library）**要先导入：\n\n```python\nimport pandas as pd\n```" } }, { item: q("a") }, { item: q("b") }])]).filter((r) => r === "B1").length, 1, "import is fine once any of its terms is taught (the remaining B1 is the missing terms entry)");
+});
+
 test("B2, B3, B4: three cards in a row, an overlong card, a graded sim before any demo", () => {
   const card = { card: { body: "一句话。" } };
   assert.deepEqual(rules({}, [lesson([card, card, card, { item: q("a") }, { item: q("b") }])]), ["B2"]);

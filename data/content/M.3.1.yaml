@@ -1,0 +1,2525 @@
+skill: M.3.1
+version: 2
+authors: [main-agent]
+brief:
+  why: 线性代数处理“一排数”和“一张数表”。图像是一张数表，一条数据是一排数，神经网络的每一层是一次矩阵乘法，推荐系统、搜索引擎、3D 游戏都在解线性方程组、做投影、算特征值。这一关从“向量是一列数”讲起，走过消元、矩阵、向量空间、线性变换、正交投影、特征值和 SVD，只假设你会中学代数。
+  outcomes:
+    - 把方程组看成行图（直线、平面相交）和列图（列的线性组合），写成 Ax = b
+    - 用消元和回代解方程组，用消元矩阵、LU 分解、逆矩阵、转置和置换描述消元
+    - 计算矩阵乘法、逆矩阵和行列式，说出它们的规则（不交换、反序、det(AB) = det A · det B）
+    - 求矩阵的列空间、零空间、秩和完全解，判断线性无关，找基、算维数和四个子空间的维数
+    - 写出线性变换的矩阵，复合变换就是矩阵相乘，换一组基让矩阵变简单
+    - 算长度、夹角和投影，用正规方程做最小二乘拟合直线，用 Gram–Schmidt 得到标准正交基
+    - 求特征值和特征向量，对角化矩阵算高次幂，正交对角化对称矩阵，判断正定
+    - 说出 SVD 的几何意义，用它做低秩近似和 PCA，用条件数判断方程组是否病态
+terms:
+  - term: 向量
+    def: '一列有顺序的数，如 (1, 2)；也可以画成从原点出发的箭头'
+  - term: 线性组合
+    def: '把几个向量各乘一个数再加起来：cv + dw'
+  - term: 矩阵
+    def: '排成 m 行 n 列的一张数表，叫 m×n 矩阵'
+  - term: 点积
+    def: '两个向量对应位置相乘再相加：(1, 2)·(3, 4) = 3 + 8 = 11'
+  - term: 消元
+    def: '用一个方程减去另一个方程的倍数，消掉一个未知数'
+  - term: 乘数
+    def: '消元时要减去的倍数 ℓ = 要消掉的数 / 主元'
+  - term: 主元
+    def: '消元时用来消掉下面各行的那个数，在每一行第一个不为 0 的位置'
+  - term: 回代
+    def: '消元成上三角以后，从最后一个方程往上一个个解出未知数'
+  - term: 上三角矩阵
+    def: '主对角线下面全是 0 的方阵'
+  - term: 增广矩阵
+    def: '把右边的 b 作为最后一列接到 A 后面：[A b]'
+  - term: 单位矩阵
+    def: '主对角线全是 1、其余是 0 的方阵 I，Ix = x'
+  - term: 消元矩阵
+    def: '在单位矩阵的 (i, j) 位置放 −ℓ 得到的矩阵 Eᵢⱼ，左乘它就是第 i 行减去 ℓ 倍第 j 行'
+  - term: 置换矩阵
+    def: '把单位矩阵的行换了顺序的矩阵，左乘它就是交换行'
+  - term: 逆矩阵
+    def: '满足 A⁻¹A = AA⁻¹ = I 的矩阵 A⁻¹，把 A 做的事撤销'
+  - term: 可逆
+    def: '有逆矩阵；n×n 矩阵可逆当且仅当有 n 个主元'
+  - term: 转置
+    def: '把行变成列得到的矩阵 Aᵀ：Aᵀ 的 (i, j) 位置是 A 的 (j, i) 位置'
+  - term: 对称矩阵
+    def: '和自己的转置相等的方阵：S = Sᵀ'
+  - term: 行列式
+    def: '方阵对应的一个数 det A；2×2 时是 ad − bc，是列围成的面积（带正负号）'
+  - term: 余子式
+    def: 'Cᵢⱼ = (−1)^(i+j) 乘去掉第 i 行第 j 列后的行列式，用来展开行列式'
+  - term: 向量空间
+    def: '一组向量，里面任意两个相加、任意一个乘数，结果都还在里面，如 ℝⁿ'
+  - term: 子空间
+    def: '向量空间里的一部分，对加法和数乘封闭，一定包含零向量'
+  - term: 列空间
+    def: 'A 的各列所有线性组合组成的子空间 C(A)；Ax = b 有解当且仅当 b 在里面'
+  - term: 零空间
+    def: 'Ax = 0 的所有解组成的子空间 N(A)'
+  - term: 行简化阶梯形
+    def: '消元到底的矩阵 R：主元都是 1，主元上下都是 0'
+  - term: 自由未知数
+    def: '不对应主元列的未知数，可以任意取值'
+  - term: 特解
+    def: '令一个自由未知数为 1、其余为 0 得到的 Ax = 0 的解'
+  - term: 秩
+    def: '矩阵的主元个数 r，也是列空间的维数'
+  - term: 线性无关
+    def: '只有全取 0 的组合才得到零向量：没有一个向量是其他向量的组合'
+  - term: 张成
+    def: '一组向量的所有线性组合正好是某个空间时，说它们张成这个空间'
+  - term: 基
+    def: '线性无关并且张成整个空间的一组向量'
+  - term: 维数
+    def: '空间的任何一组基里向量的个数'
+  - term: 行空间
+    def: 'A 的各行所有线性组合组成的子空间，也就是 C(Aᵀ)'
+  - term: 左零空间
+    def: 'Aᵀy = 0 的所有解组成的子空间 N(Aᵀ)'
+  - term: 线性变换
+    def: '满足 T(cv + dw) = cT(v) + dT(w) 的变换；每个矩阵 A 给出一个：T(x) = Ax'
+  - term: 长度
+    def: '向量 v 的长度 ‖v‖ = √(v·v)'
+  - term: 单位向量
+    def: '长度为 1 的向量；v/‖v‖ 是和 v 同方向的单位向量'
+  - term: 正交
+    def: '两个向量的点积为 0，在图上互相垂直'
+  - term: 三角不等式
+    def: '‖v + w‖ ≤ ‖v‖ + ‖w‖：三角形两边之和不小于第三边'
+  - term: 柯西-施瓦茨不等式
+    def: '|v·w| ≤ ‖v‖‖w‖，所以 cos θ 总在 −1 和 1 之间'
+  - term: 正交补
+    def: '和子空间 V 里每个向量都正交的所有向量组成的子空间 V⊥'
+  - term: 投影
+    def: 'b 在一条直线或一个子空间里最接近它的点 p，误差 b − p 和那个子空间正交'
+  - term: 最小二乘
+    def: 'Ax = b 无解时，取让 ‖b − Ax‖² 最小的 x̂，它满足 AᵀAx̂ = Aᵀb'
+  - term: 标准正交
+    def: '一组向量两两正交，并且长度都是 1'
+  - term: 正交矩阵
+    def: '各列标准正交的方阵 Q，QᵀQ = I，所以 Q⁻¹ = Qᵀ'
+  - term: 特征向量
+    def: '经过 A 变换后方向不变（或正好反向）的非零向量 x：Ax = λx'
+  - term: 特征值
+    def: 'Ax = λx 里的数 λ，是特征向量被拉伸的倍数'
+  - term: 对角化
+    def: '把 A 写成 XΛX⁻¹：X 的列是特征向量，Λ 是特征值排成的对角矩阵'
+  - term: 谱定理
+    def: '对称矩阵 S 可以写成 QΛQᵀ：特征值都是实数，特征向量可以选成标准正交'
+  - term: 正定矩阵
+    def: '特征值全大于 0 的对称矩阵；等价于 x ≠ 0 时 xᵀSx > 0'
+  - term: 奇异值分解
+    def: 'A = UΣVᵀ：任何矩阵都能写成 旋转 × 拉伸 × 旋转，简称 SVD'
+  - term: 奇异值
+    def: 'SVD 里 Σ 对角线上的数 σ₁ ≥ σ₂ ≥ … ≥ 0，是 AᵀA 特征值的平方根'
+  - term: 方差
+    def: '一组数离它们的平均值有多散：各数减平均值后平方，再平均'
+  - term: 主成分分析
+    def: '把数据减去平均后做 SVD，第一个奇异向量是数据散得最开的方向，简称 PCA'
+  - term: 范数
+    def: '矩阵最多能把向量拉长多少倍：‖A‖ = 最大的奇异值 σ_max'
+  - term: 条件数
+    def: 'κ = σ_max/σ_min：b 的相对误差最多被放大成 x 的 κ 倍相对误差'
+  - term: 迭代
+    def: '一遍遍重复同样的计算，每次都用上一次的结果，一步步逼近答案'
+  - term: 预条件
+    def: '解 Ax = b 前先选一个接近 A 又容易求逆的矩阵 S，让迭代走得更快'
+
+lessons:
+  - id: vectors
+    chapter: 线性方程组
+    title: 向量：一列数，一支箭头
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你先向东走 3 步、向北走 1 步，再向东走 1 步、向北走 2 步。最后你在起点的哪里？
+          options:
+            - text: 东 4 步、北 3 步
+              correct: true
+            - text: 东 3 步、北 2 步
+              why: 两次向东的步数要加起来：3 + 1 = 4
+            - text: 东 7 步
+              why: 东和北是两个方向，要分开加，不能混在一起
+          explain: 东和东相加，北和北相加：(3, 1) + (1, 2) = (4, 3)。
+      - card:
+          title: 向量
+          body: |
+            **向量（vector）**是一列有顺序的数，比如 $v = (1, 2)$。它可以画成从原点出发、指向点 $(1, 2)$ 的箭头。
+
+            有两个数的是平面里的向量，三个数的是空间里的向量，$n$ 个数的叫 $n$ 维向量。所有 $n$ 维向量的集合记作 $\mathbb{R}^n$。书上常把向量竖着写成一列。
+      - card:
+          title: 两种运算
+          body: |
+            **加法**：对应位置相加，$(1, 2) + (3, -1) = (4, 1)$。图上就是把两支箭头首尾相接。
+
+            **数乘**：每个数都乘同一个数，$2(1, 2) = (2, 4)$，箭头变长一倍；乘 $-1$ 就反过来。
+      - item:
+          id: add-vec
+          type: choice
+          prompt: '$v = (1, 2)$，$w = (3, -1)$。$2v - w$ 是多少？'
+          options:
+            - text: '(−1, 5)'
+              correct: true
+            - text: '(5, 3)'
+              why: 这是 2v + w；减法要把 w 的每个数变号再加
+            - text: '(−2, 3)'
+              why: 2v 是 (2, 4)，第一个数是 2 − 3 = −1，不是 −2
+          explain: 2v = (2, 4)，减去 w = (3, −1)：(2 − 3, 4 − (−1)) = (−1, 5)。
+      - card:
+          title: 线性组合
+          body: |
+            把向量各乘一个数再加起来：$cv + dw$，叫 $v$ 和 $w$ 的**线性组合（linear combination）**。
+
+            例如 $v = (1, 1)$，$w = (1, -1)$：$3v + 2w = (3, 3) + (2, -2) = (5, 1)$。线性代数的大部分问题都是在问：各取多少倍来组合，能得到想要的向量？
+      - item:
+          id: find-cd
+          type: number
+          prompt: '找数 $c$、$d$，使 $c(1, 1) + d(1, -1) = (5, 1)$。$c$ 是多少？'
+          answer: 3
+          hint: 两个分量各写一个方程：c + d = ?，c − d = ?
+          explain: c + d = 5，c − d = 1，两式相加 2c = 6，c = 3，d = 2。
+      - card:
+          title: 所有的组合是什么形状
+          body: |
+            - 一个非零向量 $v$ 的所有倍数 $cv$：一条过原点的直线；
+            - 空间里两个不在同一条直线上的向量，所有 $cv + dw$：一个过原点的平面；
+            - 空间里三个不在同一个平面上的向量，所有组合：整个三维空间。
+      - item:
+          id: line-comb
+          type: choice
+          prompt: '$c(1, 2)$（$c$ 取所有的数）组成什么？'
+          options:
+            - text: 一条过原点的直线
+              correct: true
+            - text: 整个平面
+              why: 只有一个向量，只能沿它的方向伸缩，到不了直线外面的点
+            - text: 一个点 (1, 2)
+              why: c 可以取所有数，c = 0 是原点，c = 2 是 (2, 4)……连起来是一条直线
+          explain: (1, 2) 的所有倍数排在过原点、斜率为 2 的直线上。
+      - item:
+          id: plane-comb
+          type: choice
+          prompt: '$c(1, 0, 0) + d(0, 1, 0)$ 的所有组合里，有没有 $(0, 0, 1)$？'
+          options:
+            - text: 没有，这些组合的第三个数都是 0
+              correct: true
+            - text: 有，取合适的 c 和 d 就行
+              why: 两个向量的第三个数都是 0，怎么组合第三个数都是 0
+          explain: 这些组合正好是 z = 0 的平面，(0, 0, 1) 不在上面。
+
+  - id: two-pictures
+    chapter: 线性方程组
+    title: 方程组的两张图，和矩阵
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 解方程组 x − 2y = 1，3x + 2y = 11。
+          options:
+            - text: x = 3，y = 1
+              correct: true
+            - text: x = 1，y = 0
+              why: 第一个方程成立，但 3 × 1 + 0 = 3，不是 11
+            - text: x = 5，y = 2
+              why: 第一个方程成立，但 15 + 4 = 19，不是 11
+          explain: 两式相加：4x = 12，x = 3；代回 3 − 2y = 1，y = 1。
+      - card:
+          title: 行图：直线的交点
+          body: |
+            每个方程是平面上的一条直线：$x - 2y = 1$ 经过 $(1, 0)$ 和 $(3, 1)$；$3x + 2y = 11$ 经过 $(3, 1)$ 和 $(1, 4)$。
+
+            两条直线的交点 $(3, 1)$ 同时满足两个方程，就是解。一行一个方程地看，叫**行图**。
+      - card:
+          title: 列图：列的组合
+          body: |
+            把同一个方程组按列来看：
+
+            $$x\begin{bmatrix}1\\3\end{bmatrix} + y\begin{bmatrix}-2\\2\end{bmatrix} = \begin{bmatrix}1\\11\end{bmatrix}$$
+
+            问题变成：两列各取多少倍，组合出右边的向量？这叫**列图**。答案还是 $x = 3$，$y = 1$。
+      - item:
+          id: check-column
+          type: choice
+          prompt: '下面哪个组合等于 $(1, 11)$？'
+          options:
+            - text: '3(1, 3) + 1(−2, 2)'
+              correct: true
+            - text: '1(1, 3) + 3(−2, 2)'
+              why: 结果是 (1 − 6, 3 + 6) = (−5, 9)
+            - text: '3(1, −2) + 1(3, 2)'
+              why: 这是按行取的数，不是按列；列图里每一列是 x 或 y 在两个方程里的系数
+          explain: 3(1, 3) = (3, 9)，加上 (−2, 2) 得 (1, 11)。
+      - card:
+          title: 矩阵
+          body: |
+            把系数排成一张表：
+
+            $$A = \begin{bmatrix}1 & -2\\3 & 2\end{bmatrix}, \quad x = \begin{bmatrix}x\\y\end{bmatrix}, \quad b = \begin{bmatrix}1\\11\end{bmatrix}$$
+
+            这种排成 $m$ 行 $n$ 列的数表叫**矩阵（matrix）**，这个是 2×2 矩阵。方程组就写成 $Ax = b$。第 $i$ 行第 $j$ 列的数记作 $a_{ij}$。
+      - card:
+          title: 怎么算 Ax
+          body: |
+            **按列**：$Ax$ 是 $A$ 各列的组合，组合的倍数就是 $x$ 的各个数。
+
+            **按行**：$Ax$ 的第 $i$ 个数是 $A$ 的第 $i$ 行和 $x$ 的**点积（dot product）**：对应位置相乘再相加。第 1 行：$(1, -2)\cdot(3, 1) = 3 - 2 = 1$。两种算法结果一样。
+      - item:
+          id: ax-row
+          type: number
+          prompt: '$A = \begin{bmatrix}2 & 1\\1 & 3\end{bmatrix}$，$x = (1, 2)$。$Ax$ 的第二个数是多少？'
+          answer: 7
+          explain: 第 2 行 (1, 3) 和 x = (1, 2) 的点积：1 × 1 + 3 × 2 = 7。（第一个数是 2 + 2 = 4。）
+      - item:
+          id: ax-3
+          type: number
+          prompt: '$A = \begin{bmatrix}1 & 0 & 2\\0 & 1 & 1\end{bmatrix}$，$x = (1, 2, 3)$。$Ax$ 的第一个数是多少？'
+          answer: 7
+          explain: 第 1 行 (1, 0, 2) 和 (1, 2, 3) 的点积：1 + 0 + 6 = 7。
+      - card:
+          title: 三个方程、三个未知数
+          body: |
+            三元一次方程的图是空间里的一个平面。三个方程就是三个平面，一般交于一点，那一点就是解。
+
+            列图里，$A$ 有三列，问题是：三列各取多少倍，组合出 $b$？
+      - item:
+          id: shape
+          type: number
+          prompt: '$A$ 是 2×3 矩阵（2 行 3 列）。要能算 $Ax$，$x$ 要有几个数？'
+          answer: 3
+          explain: x 的每个数是一列的倍数，A 有 3 列，所以 x 要有 3 个数；结果 Ax 有 2 个数（每行一个）。
+
+  - id: elimination
+    chapter: 线性方程组
+    title: 消元：一个个消掉未知数
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 方程组 x + y = 5，2x + 3y = 13。第二个方程减去第一个方程的几倍，就能消掉 x？
+          options:
+            - text: 2 倍
+              correct: true
+            - text: 3 倍
+              why: 要消掉的是 x，第二个方程里 x 的系数是 2，所以减 2 倍
+            - text: 1 倍
+              why: 减 1 倍剩下 x + 2y = 8，x 还在
+          explain: 减 2 倍：(2x + 3y) − 2(x + y) = 13 − 10，得到 y = 3。
+      - card:
+          title: 消元、乘数和主元
+          body: |
+            **消元（elimination）**：用一个方程减去另一个方程的倍数，消掉一个未知数。
+
+            $x - 2y = 1$，$3x + 2y = 11$：第二式减去 3 倍第一式，得 $8y = 8$。这个 3 叫**乘数（multiplier）** $\ell$；第一式里用来消掉别人的那个 1 叫**主元（pivot）**。$\ell = \frac{\text{要消掉的数}}{\text{主元}} = \frac31$。
+      - card:
+          title: 回代
+          body: |
+            消元以后方程组变成上三角的样子：
+
+            $$x - 2y = 1, \qquad 8y = 8$$
+
+            从最后一个开始：$y = 1$，代回第一个：$x = 3$。这叫**回代（back substitution）**。
+      - item:
+          id: solve-2
+          type: number
+          prompt: '用消元解：$x + y = 5$，$2x + 3y = 13$。$x$ 是多少？'
+          answer: 2
+          explain: 第二式减 2 倍第一式：y = 3；回代：x = 5 − 3 = 2。
+      - card:
+          title: 例题：三个未知数
+          body: '解 $x + 2y + z = 4$，$2x + 5y + 3z = 9$，$x + 3y + 3z = 6$。'
+          reveal:
+            - title: 第 1 步：用第一式消掉下面两式的 x
+              body: 第二式减 2 倍第一式：$y + z = 1$。第三式减 1 倍第一式：$y + 2z = 2$。
+            - title: 第 2 步：用新的第二式消掉第三式的 y
+              body: $(y + 2z) - (y + z) = 2 - 1$，得 $z = 1$。三个主元是 1、1、1。
+            - title: 第 3 步：回代
+              body: $z = 1$；$y = 1 - z = 0$；$x = 4 - 2y - z = 3$。解是 $(3, 0, 1)$。
+            - title: 第 4 步：检查
+              body: '$3 + 0 + 1 = 4$，$6 + 0 + 3 = 9$，$3 + 0 + 3 = 6$，三式都对。'
+      - item:
+          id: solve-3
+          type: number
+          prompt: '用消元解：$x + y + z = 6$，$2x + 3y + z = 11$，$x + 2y + 3z = 14$。$z$ 是多少？'
+          answer: 3
+          hint: 先用第一式消掉另外两式的 x，再消 y。
+          explain: 第二式减 2 倍第一式：y − z = −1；第三式减第一式：y + 2z = 8；相减得 3z = 9，z = 3，y = 2，x = 1。
+      - card:
+          title: 消元会遇到的三种情况
+          body: |
+            1. **主元位置是 0**：交换上下两行，换来一个不为 0 的主元；
+            2. **得到 0 = 非零的数**：方程互相矛盾，无解（行图里是两条平行线）；
+            3. **得到 0 = 0**：少了一个有用的方程，有无穷多个解（两条直线重合）。
+      - item:
+          id: no-solution
+          type: choice
+          prompt: '$x - 2y = 1$，$2x - 4y = 11$。消元后会怎样？'
+          options:
+            - text: 得到 0 = 9，无解
+              correct: true
+            - text: 得到 0 = 0，有无穷多个解
+              why: 第二式减 2 倍第一式，左边是 0，右边是 11 − 2 = 9，不是 0
+            - text: 有唯一解
+              why: 两个方程的左边成比例，右边不成比例，两条直线平行
+          explain: 第二式减 2 倍第一式：0 = 9，矛盾。
+      - item:
+          id: many-solutions
+          type: choice
+          prompt: '$x - 2y = 1$，$2x - 4y = 2$。消元后会怎样？'
+          options:
+            - text: 得到 0 = 0，有无穷多个解
+              correct: true
+            - text: 无解
+              why: 第二个方程就是第一个的 2 倍，它们说的是同一条直线
+          explain: 第二式减 2 倍第一式得 0 = 0。直线 x − 2y = 1 上每个点都是解。
+      - item:
+          id: swap-rows
+          type: choice
+          prompt: '$0x + 2y = 4$，$3x + 2y = 5$。消元的第一步该做什么？'
+          options:
+            - text: 交换两个方程
+              correct: true
+            - text: 第二式减去第一式的若干倍
+              why: 第一式 x 的系数是 0，不能当主元，乘多少倍都消不掉第二式的 3x
+            - text: 判定无解
+              why: 换一下行就能继续：3x + 2y = 5，2y = 4，解是 y = 2，x = 1/3
+          explain: 主元不能是 0：先交换两行，3 当主元。
+
+  - id: elimination-matrices
+    chapter: 线性方程组
+    title: 把消元写成矩阵
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 消元时，方程里的 x、y、z 其实一直没动，变的只有系数和右边的数。能不能只写数？
+          options:
+            - text: 能，把系数和右边排成一张表来算
+              correct: true
+            - text: 不能，没有字母就不知道哪个是哪个
+              why: 每一列固定对应一个未知数，位置就记住了它是谁
+          explain: 每一列对应一个未知数，只写数就够了。
+      - card:
+          title: 增广矩阵
+          body: |
+            把右边的 $b$ 作为最后一列接到 $A$ 后面，得到**增广矩阵（augmented matrix）** $[A \; b]$：
+
+            $$\left[\begin{array}{ccc|c}1 & 2 & 1 & 4\\2 & 5 & 3 & 9\\1 & 3 & 3 & 6\end{array}\right]$$
+
+            对方程做的消元，就是对这张表的行做同样的运算。
+      - card:
+          title: 单位矩阵和消元矩阵
+          body: |
+            对角线全是 1、其余是 0 的方阵叫**单位矩阵（identity matrix）** $I$，$Ix = x$。
+
+            在 $I$ 的第 $i$ 行第 $j$ 列放上 $-\ell$，得到**消元矩阵（elimination matrix）** $E_{ij}$。左乘它，就是“第 $i$ 行减去 $\ell$ 倍第 $j$ 行”：
+
+            $$E_{21} = \begin{bmatrix}1 & 0 & 0\\-2 & 1 & 0\\0 & 0 & 1\end{bmatrix}$$
+      - item:
+          id: e21
+          type: number
+          prompt: 3×3 的消元矩阵 E₃₁ 要做“第 3 行减去 4 倍第 1 行”。它第 3 行第 1 列的数是多少？
+          answer: -4
+          explain: E₃₁ 是单位矩阵在 (3, 1) 位置放上 −ℓ = −4。
+      - item:
+          id: ea
+          type: number
+          prompt: '$E = \begin{bmatrix}1 & 0\\-3 & 1\end{bmatrix}$，$A = \begin{bmatrix}1 & 2\\3 & 8\end{bmatrix}$。$EA$ 第 2 行第 2 列的数是多少？'
+          answer: 2
+          explain: EA 的第 2 行 = A 的第 2 行减 3 倍第 1 行 = (3 − 3, 8 − 6) = (0, 2)。
+      - card:
+          title: 一串消元矩阵
+          body: |
+            3×3 的消元做三步：$E_{21}$、$E_{31}$、$E_{32}$。合起来就是
+
+            $$E_{32}E_{31}E_{21}A = U$$
+
+            $U$ 是**上三角矩阵（upper triangular matrix）**：对角线下面全是 0，对角线上是主元。最先做的那一步写在最右边，离 $A$ 最近。
+      - item:
+          id: order-e
+          type: choice
+          prompt: 先做 E₂₁，再做 E₃₁，最后做 E₃₂。合起来乘在 A 前面的是哪个？
+          options:
+            - text: E₃₂E₃₁E₂₁
+              correct: true
+            - text: E₂₁E₃₁E₃₂
+              why: 左乘是从右往左起作用的：离 A 最近的最先做
+          explain: E₃₂(E₃₁(E₂₁A))：先算括号最里面的。
+      - card:
+          title: 交换行的矩阵
+          body: |
+            把单位矩阵的两行交换，得到**置换矩阵（permutation matrix）**。左乘它就交换 $A$ 的那两行：
+
+            $$P_{12} = \begin{bmatrix}0 & 1\\1 & 0\end{bmatrix}, \qquad P_{12}\begin{bmatrix}0 & 2\\3 & 2\end{bmatrix} = \begin{bmatrix}3 & 2\\0 & 2\end{bmatrix}$$
+
+            主元位置是 0 时，就靠它换来一个能用的主元。
+      - item:
+          id: p-swap
+          type: choice
+          prompt: 3×3 矩阵 A 左乘下面哪个矩阵，会交换 A 的第 2 行和第 3 行？
+          options:
+            - text: '$\begin{bmatrix}1&0&0\\0&0&1\\0&1&0\end{bmatrix}$'
+              correct: true
+            - text: '$\begin{bmatrix}0&1&0\\1&0&0\\0&0&1\end{bmatrix}$'
+              why: 这个交换的是第 1 行和第 2 行
+            - text: '$\begin{bmatrix}1&0&0\\0&1&0\\0&-1&1\end{bmatrix}$'
+              why: 这是消元矩阵：第 3 行加上 −1 倍第 2 行
+          explain: 把单位矩阵的第 2、3 行交换，就得到交换这两行的置换矩阵。
+
+  - id: matrix-rules
+    chapter: 矩阵
+    title: 矩阵乘矩阵
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个数相乘，ab = ba。两个矩阵相乘，AB 一定等于 BA 吗？
+          options:
+            - text: 不一定
+              correct: true
+            - text: 一定
+              why: 矩阵代表的是一步操作，先做哪一步结果可能不一样
+          explain: 先穿袜子再穿鞋，和先穿鞋再穿袜子，结果不一样。矩阵乘法也看顺序。
+      - card:
+          title: 形状和每个数
+          body: |
+            $A$ 是 $m \times n$，$B$ 是 $n \times p$：$A$ 的列数要等于 $B$ 的行数，$AB$ 是 $m \times p$。
+
+            $AB$ 第 $i$ 行第 $j$ 列的数 = $A$ 的第 $i$ 行和 $B$ 的第 $j$ 列的点积：
+
+            $$\begin{bmatrix}1&2\\3&4\end{bmatrix}\begin{bmatrix}5&6\\7&8\end{bmatrix} = \begin{bmatrix}19&22\\43&50\end{bmatrix}$$
+      - item:
+          id: shape-ab
+          type: number
+          prompt: A 是 2×3 矩阵，B 是 3×4 矩阵。AB 有几列？
+          answer: 4
+          explain: (2×3)(3×4) = 2×4：行数跟 A，列数跟 B。
+      - item:
+          id: entry-ab
+          type: number
+          prompt: '$\begin{bmatrix}1&2\\3&4\end{bmatrix}\begin{bmatrix}5&6\\7&8\end{bmatrix}$ 第 2 行第 1 列的数是多少？'
+          answer: 43
+          explain: A 的第 2 行 (3, 4) 和 B 的第 1 列 (5, 7) 的点积：15 + 28 = 43。
+      - card:
+          title: 按列看
+          body: |
+            $AB$ 的第 $j$ 列 = $A$ 乘 $B$ 的第 $j$ 列。所以 $AB$ 的每一列都是 $A$ 各列的组合。
+
+            还有一种看法：$AB$ = $A$ 的每一列乘 $B$ 的对应一行（列乘行得到一整张矩阵），再全部加起来。四种看法算出来一样。
+      - card:
+          title: 规则
+          body: |
+            | 成立 | 不一定成立 |
+            |---|---|
+            | $(AB)C = A(BC)$（结合） | $AB = BA$ |
+            | $A(B + C) = AB + AC$ | |
+            | $A^pA^q = A^{p+q}$ | |
+
+            例如 $A = \begin{bmatrix}0&1\\0&0\end{bmatrix}$，$B = \begin{bmatrix}0&0\\1&0\end{bmatrix}$：$AB = \begin{bmatrix}1&0\\0&0\end{bmatrix}$，$BA = \begin{bmatrix}0&0\\0&1\end{bmatrix}$。
+      - item:
+          id: always-true
+          type: choice
+          prompt: 对能相乘的矩阵，下面哪个一定成立？
+          options:
+            - text: (AB)C = A(BC)
+              correct: true
+            - text: AB = BA
+              why: 一般不成立，比如 [[0,1],[0,0]] 和 [[0,0],[1,0]] 两种顺序得到不同的结果
+            - text: (A + B)² = A² + 2AB + B²
+              why: 展开是 A² + AB + BA + B²，只有 AB = BA 时才能合并成 2AB
+          explain: 结合律成立，所以连乘时可以先算任意相邻的两个；交换律不成立。
+      - item:
+          id: ba-entry
+          type: number
+          prompt: '$\begin{bmatrix}5&6\\7&8\end{bmatrix}\begin{bmatrix}1&2\\3&4\end{bmatrix}$ 第 1 行第 1 列的数是多少？'
+          answer: 23
+          explain: (5, 6)·(1, 3) = 5 + 18 = 23。反过来乘时这个位置是 19：顺序不同，结果不同。
+      - item:
+          id: power
+          type: number
+          prompt: '$A = \begin{bmatrix}1&1\\0&1\end{bmatrix}$。$A^2 = \begin{bmatrix}1&2\\0&1\end{bmatrix}$，$A^3 = \begin{bmatrix}1&3\\0&1\end{bmatrix}$。$A^5$ 第 1 行第 2 列的数是多少？'
+          answer: 5
+          explain: 每多乘一次 A，右上角加 1：Aⁿ 的右上角是 n。
+
+  - id: inverse
+    chapter: 矩阵
+    title: 逆矩阵：把一步操作撤销
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 数 a ≠ 0 时有倒数 1/a，a × (1/a) = 1。每个不是全 0 的矩阵都有“倒数”吗？
+          options:
+            - text: 不是
+              correct: true
+            - text: 是
+              why: 有的矩阵会把两个不同的向量变成同一个，就没法撤销
+          explain: '[[1,2],[2,4]] 把 (2, −1) 变成 (0, 0)，也把 (0, 0) 变成 (0, 0)：没法知道原来是哪个。'
+      - card:
+          title: 逆矩阵
+          body: |
+            如果 $A^{-1}A = I$ 并且 $AA^{-1} = I$，$A^{-1}$ 叫 $A$ 的**逆矩阵（inverse matrix）**，$A$ **可逆（invertible）**。
+
+            $A$ 做什么，$A^{-1}$ 就撤销什么：$Ax = b$ 时 $x = A^{-1}b$。如果有非零的 $x$ 使 $Ax = 0$，$A$ 就不可逆。
+      - card:
+          title: 2×2 的公式
+          body: |
+            $$\begin{bmatrix}a&b\\c&d\end{bmatrix}^{-1} = \frac{1}{ad - bc}\begin{bmatrix}d&-b\\-c&a\end{bmatrix}$$
+
+            对角线交换，另外两个变号，再除以 $ad - bc$。$ad - bc = 0$ 时不可逆。
+      - item:
+          id: inv-2
+          type: number
+          prompt: '$A = \begin{bmatrix}2&1\\5&3\end{bmatrix}$。$A^{-1}$ 第 2 行第 1 列的数是多少？'
+          answer: -5
+          explain: ad − bc = 6 − 5 = 1，A⁻¹ = [[3, −1], [−5, 2]]。
+      - item:
+          id: singular
+          type: choice
+          prompt: '$\begin{bmatrix}1&2\\2&4\end{bmatrix}$ 可逆吗？'
+          options:
+            - text: 不可逆，ad − bc = 0
+              correct: true
+            - text: 可逆，因为它不是全 0
+              why: 第二行是第一行的 2 倍，4 − 4 = 0，公式里要除以 0
+          explain: 1 × 4 − 2 × 2 = 0。它把 (2, −1) 变成 (0, 0)。
+      - card:
+          title: 乘积的逆要反过来
+          body: |
+            $$(AB)^{-1} = B^{-1}A^{-1}$$
+
+            先穿袜子（$B$）再穿鞋（$A$），脱的时候要先脱鞋（$A^{-1}$）再脱袜子（$B^{-1}$）。检查：$(B^{-1}A^{-1})(AB) = B^{-1}(A^{-1}A)B = B^{-1}B = I$。
+      - item:
+          id: inv-order
+          type: choice
+          prompt: A、B、C 都可逆。(ABC)⁻¹ 是什么？
+          options:
+            - text: C⁻¹B⁻¹A⁻¹
+              correct: true
+            - text: A⁻¹B⁻¹C⁻¹
+              why: ABCx 是先做 C、再做 B、最后做 A；撤销时先撤销 A，所以 A⁻¹ 在最右边（最先作用），C⁻¹ 在最左边
+          explain: 和两个的情况一样，顺序整个倒过来。
+      - card:
+          title: 例题：高斯–若尔当消元求逆
+          body: 把 $[A \; I]$ 消元成 $[I \; A^{-1}]$。求 $A = \begin{bmatrix}2&1\\1&1\end{bmatrix}$ 的逆。
+          reveal:
+            - title: 第 1 步：写出 [A I]
+              body: '$\left[\begin{array}{cc|cc}2&1&1&0\\1&1&0&1\end{array}\right]$'
+            - title: 第 2 步：往下消元
+              body: 第 2 行减 $\frac12$ 倍第 1 行：$\left[\begin{array}{cc|cc}2&1&1&0\\0&\frac12&-\frac12&1\end{array}\right]$
+            - title: 第 3 步：往上消元
+              body: 第 1 行减 2 倍第 2 行：$\left[\begin{array}{cc|cc}2&0&2&-2\\0&\frac12&-\frac12&1\end{array}\right]$
+            - title: 第 4 步：主元变成 1
+              body: 第 1 行除以 2，第 2 行乘 2：右边就是 $A^{-1} = \begin{bmatrix}1&-1\\-1&2\end{bmatrix}$。用公式检查：$ad - bc = 1$，对。
+      - item:
+          id: solve-inv
+          type: number
+          prompt: '$A = \begin{bmatrix}2&1\\5&3\end{bmatrix}$，$A^{-1} = \begin{bmatrix}3&-1\\-5&2\end{bmatrix}$。$Ax = (1, 2)$ 的解 $x$ 的第二个数是多少？'
+          answer: -1
+          explain: x = A⁻¹b = (3 − 2, −5 + 4) = (1, −1)。检查：2 − 1 = 1，5 − 3 = 2。
+      - item:
+          id: inv-test
+          type: choice
+          prompt: 一个 3×3 矩阵消元后只有 2 个主元。它可逆吗？
+          options:
+            - text: 不可逆
+              correct: true
+            - text: 可逆
+              why: n×n 矩阵要有 n 个主元才可逆；少了一个主元，Ax = 0 就有非零解
+          explain: 可逆 ⟺ n 个主元 ⟺ Ax = 0 只有 x = 0。
+
+  - id: lu
+    chapter: 矩阵
+    title: 消元就是分解：A = LU
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同一个 A，要对 1000 个不同的 b 解 Ax = b。每次都从头消元，还是有更省的办法？
+          options:
+            - text: 消元只做一次，把过程记下来反复用
+              correct: true
+            - text: 只能每次从头来
+              why: 消元做的事只和 A 有关，和 b 无关，可以记下来
+          explain: 消元的乘数只看 A。记下来，每来一个新的 b 只要很少的计算。
+      - card:
+          title: L 存着乘数
+          body: |
+            消元把 $A$ 变成上三角的 $U$。把每一步的乘数 $\ell_{ij}$ 放在一个下三角矩阵 $L$ 的对应位置（对角线是 1），就有
+
+            $$A = LU$$
+
+            例：$A = \begin{bmatrix}2&1\\6&8\end{bmatrix}$，$\ell_{21} = 3$，$U = \begin{bmatrix}2&1\\0&5\end{bmatrix}$，$L = \begin{bmatrix}1&0\\3&1\end{bmatrix}$。
+      - item:
+          id: l21
+          type: number
+          prompt: '$A = \begin{bmatrix}1&2\\4&9\end{bmatrix}$ 写成 $A = LU$。$L$ 第 2 行第 1 列的数是多少？'
+          answer: 4
+          explain: 乘数 ℓ₂₁ = 4/1 = 4（第 2 行减 4 倍第 1 行），U = [[1, 2], [0, 1]]。
+      - card:
+          title: 例题：3×3 的 LU
+          body: '分解 $A = \begin{bmatrix}2&1&0\\1&2&1\\0&1&2\end{bmatrix}$。'
+          reveal:
+            - title: 第 1 步：消第 1 列
+              body: $\ell_{21} = \frac12$：第 2 行变成 $(0, \frac32, 1)$。第 3 行第 1 列已经是 0，$\ell_{31} = 0$。
+            - title: 第 2 步：消第 2 列
+              body: $\ell_{32} = 1 \div \frac32 = \frac23$：第 3 行变成 $(0, 0, 2 - \frac23) = (0, 0, \frac43)$。
+            - title: 第 3 步：写出 L 和 U
+              body: '$$L = \begin{bmatrix}1&0&0\\\frac12&1&0\\0&\frac23&1\end{bmatrix}, \quad U = \begin{bmatrix}2&1&0\\0&\frac32&1\\0&0&\frac43\end{bmatrix}$$ 主元是 2、3/2、4/3。'
+      - item:
+          id: u33
+          type: number
+          prompt: '$A = \begin{bmatrix}1&1&0\\1&2&1\\0&1&2\end{bmatrix}$ 消元成上三角 $U$。$U$ 第 3 行第 3 列的数（第三个主元）是多少？'
+          answer: 1
+          explain: 第 2 行减第 1 行：(0, 1, 1)；第 3 行减 1 倍新第 2 行：(0, 0, 1)。主元 1、1、1。
+      - card:
+          title: 用 LU 解方程
+          body: |
+            $Ax = b$ 就是 $L(Ux) = b$。分两步：
+
+            1. 先解 $Lc = b$（从上往下，**前代**）；
+            2. 再解 $Ux = c$（从下往上，回代）。
+
+            消元的大部分工作在分解时做完了，每个新的 $b$ 只要这两步。
+      - item:
+          id: lu-solve
+          type: number
+          prompt: '$L = \begin{bmatrix}1&0\\3&1\end{bmatrix}$，$U = \begin{bmatrix}2&1\\0&5\end{bmatrix}$，$b = (3, 19)$。解 $LUx = b$，$x$ 的第一个数是多少？'
+          answer: 0.5
+          hint: 先解 Lc = b 得到 c，再解 Ux = c。
+          explain: Lc = b：c₁ = 3，c₂ = 19 − 9 = 10。Ux = c：x₂ = 10/5 = 2，x₁ = (3 − 2)/2 = 0.5。
+      - card:
+          title: 要算多少次
+          body: |
+            对 $n \times n$ 的 $A$ 消元大约要 $\frac{n^3}{3}$ 次乘法；有了 $L$ 和 $U$，每个新的 $b$ 只要大约 $n^2$ 次。
+
+            $n = 1000$ 时：分解约 3.3 亿次，每个新的 $b$ 约 100 万次。
+      - item:
+          id: cost
+          type: choice
+          prompt: 对 100×100 的矩阵做消元（分解成 LU），大约要多少次乘法？
+          options:
+            - text: 约 33 万次
+              correct: true
+            - text: 约 1 万次
+              why: 1 万是 n²，那是有了 LU 以后解一个新 b 的量
+            - text: 约 100 次
+              why: 光是消掉第一列就要处理 99 行、每行约 100 个数
+          explain: n³/3 = 1,000,000/3 ≈ 33 万。
+
+  - id: transpose
+    chapter: 矩阵
+    title: 转置、对称和置换
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把一张 2 行 3 列的表沿对角线翻过来，行变成列。新表是几行几列？
+          options:
+            - text: 3 行 2 列
+              correct: true
+            - text: 2 行 3 列
+              why: 原来的 3 列变成了 3 行
+          explain: 行和列互换，形状也互换。
+      - card:
+          title: 转置
+          body: |
+            把 $A$ 的行变成列，得到**转置（transpose）** $A^T$：$A^T$ 第 $i$ 行第 $j$ 列的数是 $A$ 第 $j$ 行第 $i$ 列的数。
+
+            $$A = \begin{bmatrix}1&2&3\\0&6&4\end{bmatrix}, \quad A^T = \begin{bmatrix}1&0\\2&6\\3&4\end{bmatrix}$$
+
+            规则：$(AB)^T = B^TA^T$，$(A^{-1})^T = (A^T)^{-1}$。乘积的转置也要反过来。
+      - item:
+          id: at-entry
+          type: number
+          prompt: '$A = \begin{bmatrix}1&2&3\\0&6&4\end{bmatrix}$。$A^T$ 第 3 行第 1 列的数是多少？'
+          answer: 3
+          explain: Aᵀ 的 (3, 1) 位置是 A 的 (1, 3) 位置：3。
+      - card:
+          title: 对称矩阵
+          body: |
+            和自己的转置相等的方阵 $S = S^T$ 叫**对称矩阵（symmetric matrix）**：沿对角线对折，两边一样，如 $\begin{bmatrix}1&2\\2&5\end{bmatrix}$。
+
+            任何矩阵 $R$ 都能造出对称矩阵：$R^TR$ 是方阵，并且 $(R^TR)^T = R^T(R^T)^T = R^TR$。它第 $i$ 行第 $j$ 列的数是 $R$ 的第 $i$ 列和第 $j$ 列的点积。
+      - item:
+          id: rtr
+          type: number
+          prompt: '$R = \begin{bmatrix}1&2\\3&4\\5&6\end{bmatrix}$。$R^TR$ 第 1 行第 2 列的数是多少？'
+          answer: 44
+          explain: R 的第 1 列 (1, 3, 5) 和第 2 列 (2, 4, 6) 的点积：2 + 12 + 30 = 44。RᵀR = [[35, 44], [44, 56]]，对称。
+      - card:
+          title: 点积也是矩阵乘法
+          body: |
+            向量是一列，转置后是一行，所以点积 $x \cdot y = x^Ty$。
+
+            转置的意义藏在这条式子里：$(Ax)^Ty = x^T(A^Ty)$。左边是 $Ax$ 和 $y$ 的点积，右边是 $x$ 和 $A^Ty$ 的点积。
+      - card:
+          title: 置换矩阵
+          body: |
+            置换矩阵的各行就是 $I$ 的各行换了顺序。$n \times n$ 的置换矩阵一共有 $n!$ 个（$3! = 3 \times 2 \times 1$）。
+
+            它的逆就是它的转置：$P^{-1} = P^T$。消元要换行时，先把行换好再分解：$PA = LU$。
+      - item:
+          id: perm-count
+          type: number
+          prompt: 3×3 的置换矩阵一共有几个（包括单位矩阵）？
+          answer: 6
+          explain: 第 1 行有 3 种选法，第 2 行剩 2 种，第 3 行 1 种：3 × 2 × 1 = 6。
+      - item:
+          id: perm-inverse
+          type: choice
+          prompt: '$P = \begin{bmatrix}0&1&0\\0&0&1\\1&0&0\end{bmatrix}$。$P^{-1}$ 是什么？'
+          options:
+            - text: Pᵀ
+              correct: true
+            - text: P 本身
+              why: 这个 P 把行转了一圈，再做一次 P 不会回到原样（要做三次）
+            - text: 不存在
+              why: 置换只是换顺序，总能换回去
+          explain: 置换矩阵的各列互相正交、长度为 1，所以 PᵀP = I。
+
+  - id: determinant
+    chapter: 矩阵
+    title: 行列式：面积和三条性质
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 矩阵 [[2,0],[0,3]] 把边长 1 的正方形横向拉 2 倍、纵向拉 3 倍。新图形的面积是多少？
+          options:
+            - text: '6'
+              correct: true
+            - text: '5'
+              why: 面积是长乘宽 2 × 3，不是 2 + 3
+            - text: '1'
+              why: 拉伸会改变面积
+          explain: 2 × 3 = 6。这个“面积放大的倍数”就是这一课的主角。
+      - card:
+          title: 2×2 的行列式
+          body: |
+            $$\det\begin{bmatrix}a&b\\c&d\end{bmatrix} = ad - bc$$
+
+            这个数叫**行列式（determinant）**。它是两列（或两行）围成的平行四边形的面积，带正负号：两列的顺序反过来，符号就变。行列式为 0，说明面积被压成了 0，矩阵不可逆。
+      - item:
+          id: det-2
+          type: number
+          prompt: '$\det\begin{bmatrix}3&1\\2&4\end{bmatrix}$ 是多少？'
+          answer: 10
+          explain: 3 × 4 − 1 × 2 = 10。
+      - card:
+          title: 动手看看
+          body: |
+            改矩阵的四个数，看单位正方形（彩色）被变成什么平行四边形。蓝色和橙色的箭头就是两列。行列式就是彩色图形的面积（翻面时为负）。
+          sim:
+            name: matrix2d
+            params: { start: [[2, 1], [1, 2]] }
+      - item:
+          id: sim-det0
+          type: sim
+          prompt: 调出一个不是全 0、但行列式为 0 的矩阵，看正方形被压成什么样。
+          sim: matrix2d
+          params: { start: [[1, 0], [0, 1]] }
+          goal: { det: 0 }
+          solution: [[1, 2], [2, 4]]
+          explain: 行列式为 0 时，两列在同一条直线上，整个平面被压成一条直线，面积为 0，所以不可逆。
+      - card:
+          title: 三条基本性质
+          body: |
+            对任意 $n \times n$ 矩阵，行列式由三条性质决定：
+
+            1. $\det I = 1$；
+            2. 交换两行，行列式变号；
+            3. 对每一行是线性的：一行乘 $t$，行列式乘 $t$；一行拆成两个之和，行列式也拆成两个之和。
+      - card:
+          title: 推出来的性质
+          body: |
+            | 性质 | 结果 |
+            |---|---|
+            | 两行相同 | $\det = 0$ |
+            | 一行减去另一行的倍数（消元） | 不变 |
+            | 三角矩阵 | 对角线相乘 |
+            | 乘积 | $\det(AB) = \det A \cdot \det B$ |
+            | 转置 | $\det A^T = \det A$ |
+
+            所以 $\det A$ = 主元的乘积（换过行就再乘 $-1$）。
+      - item:
+          id: det-lu
+          type: number
+          prompt: '$A = \begin{bmatrix}2&1&0\\1&2&1\\0&1&2\end{bmatrix}$ 消元（不换行）得到的主元是 2、3/2、4/3。$\det A$ 是多少？'
+          answer: 4
+          explain: 消元不改变行列式，上三角矩阵的行列式是对角线之积：2 × 3/2 × 4/3 = 4。
+      - item:
+          id: det-2a
+          type: number
+          prompt: 3×3 矩阵 A 的行列式是 5。det(2A) 是多少？
+          answer: 40
+          explain: 2A 是每一行都乘 2，三行各贡献一个 2：2³ × 5 = 40，不是 2 × 5。
+      - item:
+          id: det-ab
+          type: number
+          prompt: det A = 3，det B = −2（A、B 都是 3×3）。det(AB) 是多少？
+          answer: -6
+          explain: det(AB) = det A · det B = 3 × (−2) = −6。
+
+  - id: cofactors
+    chapter: 矩阵
+    title: 3×3 的行列式、克拉默法则和体积
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 2×2 行列式 ad − bc 有 2 项。3×3 的行列式展开后有几项？
+          options:
+            - text: 6 项
+              correct: true
+            - text: 3 项
+              why: 每一项要从每行、每列各取一个数，3 × 2 × 1 = 6 种取法
+            - text: 9 项
+              why: 一项里不能有两个数来自同一行或同一列
+          explain: 每一项从每行各取一个数、列也各不相同：3! = 6 种。
+      - card:
+          title: 余子式展开
+          body: |
+            沿第一行展开：
+
+            $$\det A = a_{11}C_{11} + a_{12}C_{12} + a_{13}C_{13}$$
+
+            $C_{ij}$ 叫**余子式（cofactor）**：去掉第 $i$ 行第 $j$ 列，剩下的 2×2 行列式，再乘 $(-1)^{i+j}$（正负交替：$+ - +$）。
+      - card:
+          title: 例题：展开一个 3×3
+          body: '求 $\det\begin{bmatrix}1&2&3\\0&4&5\\1&0&6\end{bmatrix}$。'
+          reveal:
+            - title: 第 1 步：第一个数 1
+              body: 去掉第 1 行第 1 列：$\det\begin{bmatrix}4&5\\0&6\end{bmatrix} = 24$，符号 $+$：$1 \times 24 = 24$。
+            - title: 第 2 步：第二个数 2
+              body: 去掉第 1 行第 2 列：$\det\begin{bmatrix}0&5\\1&6\end{bmatrix} = -5$，符号 $-$：$-2 \times (-5) = 10$。
+            - title: 第 3 步：第三个数 3
+              body: 去掉第 1 行第 3 列：$\det\begin{bmatrix}0&4\\1&0\end{bmatrix} = -4$，符号 $+$：$3 \times (-4) = -12$。
+            - title: 第 4 步：加起来
+              body: $24 + 10 - 12 = 22$。
+      - item:
+          id: det-3
+          type: number
+          prompt: '$\det\begin{bmatrix}2&0&1\\1&3&2\\0&1&1\end{bmatrix}$ 是多少？'
+          answer: 3
+          hint: 沿第一行展开，中间那个 0 那一项不用算。
+          explain: 2 × (3 − 2) − 0 + 1 × (1 − 0) = 2 + 1 = 3。
+      - card:
+          title: 大公式有多大
+          body: |
+            $n \times n$ 行列式的“大公式”有 $n!$ 项：每一项从每行每列各取一个数相乘，再按取法配上正负号。4×4 有 24 项，10×10 有 3628800 项。
+
+            所以电脑算行列式不用大公式，而是消元以后把主元乘起来。
+      - item:
+          id: terms-4
+          type: number
+          prompt: 4×4 行列式的大公式有几项？
+          answer: 24
+          explain: 4! = 4 × 3 × 2 × 1 = 24。
+      - card:
+          title: 克拉默法则、逆矩阵和体积
+          body: |
+            **克拉默法则**：$x_j = \frac{\det B_j}{\det A}$，$B_j$ 是把 $A$ 的第 $j$ 列换成 $b$。
+
+            逆矩阵：$A^{-1} = \frac{C^T}{\det A}$（$C$ 是余子式排成的矩阵）。
+
+            体积：三行（或三列）围成的平行六面体的体积是 $|\det A|$。
+      - item:
+          id: cramer
+          type: number
+          prompt: '用克拉默法则解 $2x + y = 5$，$x + 3y = 5$。$x$ 是多少？'
+          answer: 2
+          explain: det A = 6 − 1 = 5；把第 1 列换成 b：det [[5, 1], [5, 3]] = 15 − 5 = 10；x = 10/5 = 2。（y = 1。）
+      - item:
+          id: volume
+          type: number
+          prompt: 一个平行六面体的三条棱是 (1, 0, 0)、(0, 2, 0)、(1, 1, 3)。它的体积是多少？
+          answer: 6
+          explain: 三个向量作为三行，行列式沿第一行展开：1 × (2 × 3 − 0 × 1) = 6。
+      - item:
+          id: triangle
+          type: number
+          prompt: 三角形的三个顶点是 (0, 0)、(4, 1)、(1, 3)。它的面积是多少？
+          answer: 5.5
+          explain: 两条边 (4, 1)、(1, 3) 围成的平行四边形面积是 |4 × 3 − 1 × 1| = 11，三角形是它的一半：5.5。
+  - id: subspaces
+    chapter: 向量空间
+    title: 向量空间和子空间
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 平面上过原点的一条直线，任取上面两个点（看成向量）相加，结果还在这条直线上吗？
+          options:
+            - text: 还在
+              correct: true
+            - text: 不一定
+              why: 直线上的点都是同一个方向向量的倍数，cv + dv = (c + d)v，还是它的倍数
+          explain: 过原点的直线对加法和数乘“关得住”：这一课就讲这种性质。
+      - card:
+          title: 向量空间
+          body: |
+            一组向量，里面任意两个相加、任意一个乘一个数，结果都还在这组里面，就叫一个**向量空间（vector space）**。
+
+            最常见的是 $\mathbb{R}^n$：所有 $n$ 维向量。所有 2×2 矩阵、所有次数不超过 2 的多项式，也满足同样的规则，也是向量空间。
+      - card:
+          title: 子空间
+          body: |
+            向量空间里的一部分，自己也对加法和数乘封闭，叫**子空间（subspace）**。它一定包含零向量（任何向量乘 0 就是它）。
+
+            $\mathbb{R}^2$ 的子空间只有三种：只有零向量 $\{0\}$；过原点的直线；整个 $\mathbb{R}^2$。$\mathbb{R}^3$ 里还多了过原点的平面。
+      - item:
+          id: is-subspace
+          type: choice
+          prompt: 下面哪个是 ℝ² 的子空间？
+          options:
+            - text: 直线 y = 2x
+              correct: true
+            - text: 直线 y = 2x + 1
+              why: 它不过原点：零向量 (0, 0) 不在上面
+            - text: 第一象限（x ≥ 0，y ≥ 0）
+              why: (1, 1) 在里面，乘 −1 得到 (−1, −1) 就出去了
+          explain: 过原点的直线对加法和数乘封闭。
+      - card:
+          title: 列空间
+          body: |
+            $A$ 的各列所有的线性组合，组成 $\mathbb{R}^m$ 的一个子空间，叫**列空间（column space）** $C(A)$。
+
+            $Ax$ 就是各列的组合，所以：$Ax = b$ 有解，当且仅当 $b$ 在 $C(A)$ 里。
+      - item:
+          id: in-column-space
+          type: choice
+          prompt: '$A = \begin{bmatrix}1&0\\4&3\\2&3\end{bmatrix}$。下面哪个 $b$ 能让 $Ax = b$ 有解？'
+          options:
+            - text: (1, 7, 5)
+              correct: true
+            - text: (1, 0, 0)
+              why: 要 x₁ = 1；第二个数 4 + 3x₂ = 0 得 x₂ = −4/3，第三个数就是 2 − 4 = −2，不是 0
+            - text: (0, 0, 1)
+              why: 第一个数要 x₁ = 0，第二个数要 3x₂ = 0，那第三个数也只能是 0
+          explain: (1, 7, 5) = 1 × (1, 4, 2) + 1 × (0, 3, 3)，在列空间里。
+      - item:
+          id: cs-shape
+          type: choice
+          prompt: '$A = \begin{bmatrix}1&0\\4&3\\2&3\end{bmatrix}$ 的列空间在 ℝ³ 里是什么样子？'
+          options:
+            - text: 一个过原点的平面
+              correct: true
+            - text: 整个 ℝ³
+              why: 只有两列，它们的组合最多铺满一个平面，比如 (1, 0, 0) 就组合不出来
+            - text: 一条直线
+              why: 两列不共线（不是倍数关系），组合起来是平面
+          explain: 两个不共线的向量，所有组合是过原点的平面。
+      - item:
+          id: zero-in
+          type: choice
+          prompt: 为什么每个子空间都包含零向量？
+          options:
+            - text: 子空间对数乘封闭，任何向量乘 0 都是零向量
+              correct: true
+            - text: 因为子空间都画在原点附近
+              why: 子空间可以无限大；理由是数乘封闭
+          explain: 只要里面有一个向量 v，0·v = 0 就必须也在里面。
+
+  - id: nullspace
+    chapter: 向量空间
+    title: 零空间：Ax = 0 的全部解
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: Ax = 0 总有解 x = 0。它还可能有别的解吗？
+          options:
+            - text: 可能，当 A 的某一列是其他列的组合时
+              correct: true
+            - text: 不可能
+              why: 比如 A = [[1, 2], [2, 4]]，x = (2, −1) 也让 Ax = 0
+          explain: 第二列是第一列的 2 倍，取 2 倍第一列减第二列，就得到零向量。
+      - card:
+          title: 零空间
+          body: |
+            $Ax = 0$ 的所有解组成一个子空间（两个解相加、乘数，还是解），叫**零空间（nullspace）** $N(A)$，它在 $\mathbb{R}^n$ 里（$n$ 是 $A$ 的列数）。
+
+            要找出它，就把 $A$ 一直消元到最简单的样子。
+      - card:
+          title: 行简化阶梯形
+          body: |
+            消元到底：每个主元除成 1，主元上面和下面都消成 0，得到**行简化阶梯形（reduced row echelon form）** $R$。$Ax = 0$ 和 $Rx = 0$ 的解完全一样。
+
+            有主元的列叫主元列，对应的是主元未知数；其余的列对应**自由未知数（free variable）**，可以任意取值。
+      - item:
+          id: which-free
+          type: choice
+          prompt: '某个 3 个未知数的方程组消元到底得到 $R = \begin{bmatrix}1&0&1\\0&1&1\\0&0&0\end{bmatrix}$。哪个是自由未知数？'
+          options:
+            - text: x₃
+              correct: true
+            - text: x₁
+              why: 第 1 列有主元 1，x₁ 是主元未知数
+            - text: 没有自由未知数
+              why: 只有两个主元，3 个未知数里必有一个是自由的
+          explain: 第 1、2 列有主元，第 3 列没有，所以 x₃ 可以任意取值。
+      - card:
+          title: 例题：秩和零空间的基
+          body: '$A = \begin{bmatrix}1&2&3\\2&4&6\\1&0&1\end{bmatrix}$。找出 $Ax = 0$ 的所有解。'
+          reveal:
+            - title: 第 1 步：消元
+              body: 第 2 行减 2 倍第 1 行：全是 0。第 3 行减第 1 行：$(0, -2, -2)$。把它换到第 2 行。
+            - title: 第 2 步：化成 R
+              body: '第 2 行除以 −2：$(0, 1, 1)$；第 1 行减 2 倍第 2 行：$(1, 0, 1)$。$R = \begin{bmatrix}1&0&1\\0&1&1\\0&0&0\end{bmatrix}$。'
+            - title: 第 3 步：认出自由未知数
+              body: 第 1、2 列有主元，$x_3$ 是自由未知数。主元有 2 个，$A$ 的**秩（rank）**是 $r = 2$。
+            - title: 第 4 步：找出一个解
+              body: 令 $x_3 = 1$：$x_1 + 1 = 0$，$x_2 + 1 = 0$，得 $(-1, -1, 1)$。零空间就是它的所有倍数。
+      - item:
+          id: special-count
+          type: number
+          prompt: '$R = \begin{bmatrix}1&0&2&0\\0&1&0&2\end{bmatrix}$ 是某个 $A$ 的行简化阶梯形。$Ax = 0$ 有几个自由未知数？'
+          answer: 2
+          explain: 4 列里第 1、2 列有主元，第 3、4 列是自由的：4 − 2 = 2 个。
+      - card:
+          title: 特解
+          body: |
+            每个自由未知数轮流取 1、其余自由未知数取 0，解出一个 $Ax = 0$ 的解，叫**特解（special solution）**。零空间就是这些特解的所有组合。
+
+            $R = \begin{bmatrix}1&0&2&0\\0&1&0&2\end{bmatrix}$：$x_3 = 1, x_4 = 0$ 得 $(-2, 0, 1, 0)$；$x_3 = 0, x_4 = 1$ 得 $(0, -2, 0, 1)$。
+      - item:
+          id: in-null
+          type: choice
+          prompt: '$Rx = 0$，$R = \begin{bmatrix}1&0&2&0\\0&1&0&2\end{bmatrix}$。下面哪个向量是解？'
+          options:
+            - text: (−2, −2, 1, 1)
+              correct: true
+            - text: (2, 0, 1, 0)
+              why: 第一行：2 + 2 × 1 = 4，不是 0；符号要反过来
+            - text: (1, 1, 1, 1)
+              why: 第一行：1 + 2 = 3，不是 0
+          explain: 它是两个特解之和：(−2, 0, 1, 0) + (0, −2, 0, 1)。检查：−2 + 2 = 0，−2 + 2 = 0。
+      - card:
+          title: 自由未知数有几个
+          body: |
+            $A$ 是 $m \times n$，秩是 $r$（主元个数），那么自由未知数有 $n - r$ 个，特解也有 $n - r$ 个。
+
+            如果 $n > m$（未知数比方程多），主元最多 $m$ 个，一定有自由未知数：$Ax = 0$ 一定有非零解。
+      - item:
+          id: n-minus-r
+          type: number
+          prompt: A 是 3×5 矩阵，秩是 3。Ax = 0 有几个特解？
+          answer: 2
+          explain: n − r = 5 − 3 = 2。
+      - item:
+          id: wide
+          type: choice
+          prompt: A 是 2×4 矩阵（2 个方程，4 个未知数）。Ax = 0 一定有非零解吗？
+          options:
+            - text: 一定有
+              correct: true
+            - text: 不一定
+              why: 最多 2 个主元，至少有 4 − 2 = 2 个自由未知数，取 1 就是非零解
+          explain: 未知数比方程多，必有自由未知数。
+
+  - id: complete-solution
+    chapter: 向量空间
+    title: Ax = b 的全部解
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 方程 x + 2y = 3 的所有解组成什么？
+          options:
+            - text: 一条直线，但不过原点
+              correct: true
+            - text: 一条过原点的直线
+              why: (0, 0) 代进去是 0，不是 3，所以原点不在上面
+            - text: 一个点
+              why: 一个方程两个未知数，有无穷多个解，比如 (3, 0)、(1, 1)
+          explain: 它是零空间（直线 x + 2y = 0）平移了一下：平移的距离就是一个特殊的解。
+      - card:
+          title: 一个解加上零空间
+          body: |
+            $$x = x_p + x_n$$
+
+            $x_p$ 是 $Ax = b$ 的一个解（常取自由未知数全为 0 求出来的那个），$x_n$ 是零空间里的任意向量。因为 $A(x_p + x_n) = b + 0 = b$。
+
+            $x + 2y = 3$：$x_p = (3, 0)$，零空间是 $(-2, 1)$ 的所有倍数，所以全部解是 $(3, 0) + t(-2, 1)$。
+      - item:
+          id: xp-xn
+          type: number
+          prompt: '$x + 2y = 3$ 的全部解是 $(3, 0) + t(-2, 1)$。$t = 1$ 时 $x$ 是多少？'
+          answer: 1
+          explain: (3, 0) + (−2, 1) = (1, 1)。检查：1 + 2 = 3。
+      - card:
+          title: 例题：什么时候有解
+          body: '$A = \begin{bmatrix}1&3&0&2\\0&0&1&4\\1&3&1&6\end{bmatrix}$，$b = (1, 6, 7)$。'
+          reveal:
+            - title: 第 1 步：对 [A b] 消元
+              body: 第 3 行减第 1 行，再减第 2 行：$(0, 0, 0, 0 \mid 7 - 1 - 6) = (0, 0, 0, 0 \mid 0)$。
+            - title: 第 2 步：判断有没有解
+              body: 最后一行是 $0 = 0$，有解。一般地，要 $b_3 = b_1 + b_2$。
+            - title: 第 3 步：求 xₚ
+              body: 主元列是 1、3，自由未知数 $x_2, x_4$ 取 0：$x_1 = 1$，$x_3 = 6$，$x_p = (1, 0, 6, 0)$。
+            - title: 第 4 步：加上零空间
+              body: 特解 $(-3, 1, 0, 0)$ 和 $(-2, 0, -4, 1)$。全部解：$x_p$ 加上它们的任意组合。
+      - item:
+          id: solvable
+          type: choice
+          prompt: '同样的 $A = \begin{bmatrix}1&3&0&2\\0&0&1&4\\1&3&1&6\end{bmatrix}$，$b = (1, 6, 8)$。$Ax = b$ 有解吗？'
+          options:
+            - text: 没有，因为 8 ≠ 1 + 6
+              correct: true
+            - text: 有，未知数比方程多就一定有解
+              why: 未知数多只保证 Ax = 0 有非零解；Ax = b 还要 b 在列空间里
+          explain: A 的第 3 行是前两行之和，所以 b₃ 必须等于 b₁ + b₂。
+      - card:
+          title: 按秩分四种情况
+          body: |
+            $A$ 是 $m \times n$，秩 $r$：
+
+            | 情况 | 解的个数 |
+            |---|---|
+            | $r = m = n$（方阵可逆） | 恰好 1 个 |
+            | $r = n < m$（高瘦，列满秩） | 0 或 1 个 |
+            | $r = m < n$（矮胖，行满秩） | 无穷多个 |
+            | $r < m$ 且 $r < n$ | 0 或无穷多个 |
+      - item:
+          id: four-cases
+          type: match
+          prompt: 把秩的情况和 Ax = b 解的个数配起来。
+          pairs:
+            - [r = m = n, 恰好 1 个解]
+            - [r = n < m, 0 或 1 个解]
+            - [r = m < n, 无穷多个解]
+            - [r < m 且 r < n, 0 或无穷多个解]
+          explain: r = n 说明没有自由未知数（最多一个解）；r = m 说明没有全 0 的行（一定有解）。
+      - item:
+          id: tall
+          type: choice
+          prompt: A 是 5×3 矩阵，秩是 3。Ax = b 可能有无穷多个解吗？
+          options:
+            - text: 不可能，最多一个
+              correct: true
+            - text: 可能
+              why: r = n = 3，没有自由未知数，零空间只有零向量，不能加任何东西
+          explain: 列满秩时 xₙ 只能是 0：要么无解，要么恰好一个。
+
+  - id: basis
+    chapter: 向量空间
+    title: 线性无关、基和维数
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用 (1, 0)、(0, 1)、(1, 1) 三个向量描述平面上的点。有没有哪一个是多余的？
+          options:
+            - text: 有，(1, 1) = (1, 0) + (0, 1)
+              correct: true
+            - text: 没有，三个都需要
+              why: (1, 1) 能用另外两个组合出来，去掉它，能到的点一个也不少
+          explain: 去掉 (1, 1)，剩下两个照样能组合出平面上每一个点。
+      - card:
+          title: 线性无关
+          body: |
+            如果 $c_1v_1 + \cdots + c_kv_k = 0$ 只有在所有 $c$ 都是 0 时才成立，就说这些向量**线性无关（linearly independent）**；否则线性相关，某一个是其他的组合。
+
+            放进矩阵的列来看：各列线性无关 ⟺ $N(A) = \{0\}$ ⟺ 秩 $r = n$。
+      - item:
+          id: dependent
+          type: choice
+          prompt: (1, 2) 和 (2, 4) 线性无关吗？
+          options:
+            - text: 不是，2(1, 2) − (2, 4) = 0
+              correct: true
+            - text: 是，它们是两个不同的向量
+              why: 不同不够：(2, 4) 是 (1, 2) 的 2 倍，在同一条直线上
+          explain: 一个是另一个的倍数，就线性相关。
+      - item:
+          id: three-in-r2
+          type: choice
+          prompt: ℝ² 里任取 3 个向量，它们会线性无关吗？
+          options:
+            - text: 一定线性相关
+              correct: true
+            - text: 可能无关
+              why: 放成 2×3 矩阵，最多 2 个主元，一定有自由未知数，Ax = 0 有非零解
+          explain: ℝ² 里最多只有 2 个线性无关的向量。
+      - card:
+          title: 张成、基、维数
+          body: |
+            一组向量的所有组合正好是空间 $V$，就说它们**张成（span）** $V$。
+
+            既线性无关又张成 $V$ 的一组向量，叫 $V$ 的一组**基（basis）**。$V$ 的每一组基里向量的个数都一样，这个数叫 $V$ 的**维数（dimension）**。$\mathbb{R}^n$ 的维数是 $n$。
+      - item:
+          id: plane-dim
+          type: number
+          prompt: ℝ³ 里的平面 x + y + z = 0 是一个子空间。它的维数是多少？
+          answer: 2
+          explain: 一个方程、三个未知数，自由未知数 y、z 两个：特解 (−1, 1, 0)、(−1, 0, 1) 是一组基。
+      - card:
+          title: 基不唯一，坐标跟着基变
+          body: |
+            $(1, 0), (0, 1)$ 是 $\mathbb{R}^2$ 的基，$(1, 1), (1, -1)$ 也是。同一个向量在不同的基下有不同的坐标：
+
+            $$(5, 1) = 5(1, 0) + 1(0, 1) = 3(1, 1) + 2(1, -1)$$
+
+            每个向量在一组基下的写法是唯一的（因为基线性无关）。
+      - item:
+          id: coord
+          type: number
+          prompt: '把 $(4, 2)$ 写成 $c_1(1, 1) + c_2(1, -1)$。$c_1$ 是多少？'
+          answer: 3
+          explain: c₁ + c₂ = 4，c₁ − c₂ = 2，相加得 2c₁ = 6，c₁ = 3，c₂ = 1。
+      - item:
+          id: col-dim
+          type: number
+          prompt: '$A = \begin{bmatrix}1&2&3\\2&4&6\\1&0&1\end{bmatrix}$ 的秩是 2。它的列空间的维数是多少？'
+          answer: 2
+          explain: 列空间的维数就是秩：主元列（第 1、2 列）是列空间的一组基。
+
+  - id: four-subspaces
+    chapter: 向量空间
+    title: 四个基本子空间
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个矩阵的行里线性无关的个数，和列里线性无关的个数，有什么关系？
+          options:
+            - text: 一样多
+              correct: true
+            - text: 列多
+              why: 两者都等于主元个数 r，和矩阵是高是矮无关
+            - text: 没有关系
+              why: 消元时主元既占了一行也占了一列，两边各 r 个
+          explain: 都等于秩 r：行秩 = 列秩。
+      - card:
+          title: 四个子空间
+          body: |
+            $m \times n$ 矩阵 $A$，秩 $r$：
+
+            | 子空间 | 在哪里 | 维数 |
+            |---|---|---|
+            | 列空间 $C(A)$ | $\mathbb{R}^m$ | $r$ |
+            | **行空间（row space）** $C(A^T)$ | $\mathbb{R}^n$ | $r$ |
+            | 零空间 $N(A)$ | $\mathbb{R}^n$ | $n - r$ |
+            | **左零空间（left nullspace）** $N(A^T)$ | $\mathbb{R}^m$ | $m - r$ |
+      - item:
+          id: dims
+          type: number
+          prompt: A 是 3×5 矩阵，秩是 2。零空间 N(A) 的维数是多少？
+          answer: 3
+          explain: N(A) 在 ℝ⁵ 里，维数 n − r = 5 − 2 = 3。
+      - item:
+          id: left-dim
+          type: number
+          prompt: A 是 3×5 矩阵，秩是 2。左零空间 N(Aᵀ) 的维数是多少？
+          answer: 1
+          explain: N(Aᵀ) 在 ℝ³ 里，维数 m − r = 3 − 2 = 1。
+      - card:
+          title: 例题：一个矩阵的四个子空间
+          body: '$A = \begin{bmatrix}1&2&3\\2&4&6\\1&0&1\end{bmatrix}$，$m = n = 3$，$r = 2$。'
+          reveal:
+            - title: 列空间（维数 2）
+              body: 主元列第 1、2 列：$(1, 2, 1)$ 和 $(2, 4, 0)$ 是一组基。
+            - title: 行空间（维数 2）
+              body: R 的非零行 $(1, 0, 1)$ 和 $(0, 1, 1)$ 是一组基。
+            - title: 零空间（维数 3 − 2 = 1）
+              body: 特解 $(-1, -1, 1)$。
+            - title: 左零空间（维数 3 − 2 = 1）
+              body: 第 2 行 − 2 × 第 1 行 = 0，所以 $y = (-2, 1, 0)$ 满足 $y^TA = 0$，也就是 $A^Ty = 0$。
+      - item:
+          id: rank-cols
+          type: number
+          prompt: A 是 4×3 矩阵，三列线性无关。左零空间 N(Aᵀ) 的维数是多少？
+          answer: 1
+          explain: 三列无关，秩 r = 3；N(Aᵀ) 在 ℝ⁴ 里，维数 m − r = 4 − 3 = 1。
+      - item:
+          id: rank-nullity
+          type: choice
+          prompt: 对 m×n 矩阵，下面哪个式子总成立？
+          options:
+            - text: dim C(Aᵀ) + dim N(A) = n
+              correct: true
+            - text: dim C(A) + dim N(A) = m
+              why: 列空间在 ℝᵐ 里，零空间在 ℝⁿ 里；r + (n − r) = n，不是 m
+            - text: dim C(A) = n
+              why: 列空间的维数是秩 r，只有列线性无关时才等于 n
+          explain: 行空间和零空间都在 ℝⁿ 里，维数 r + (n − r) = n。
+
+  - id: linear-maps
+    chapter: 线性映射
+    title: 线性变换
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把平面上每个点都向右平移 1 格。原点 (0, 0) 会去哪里？
+          options:
+            - text: (1, 0)
+              correct: true
+            - text: 原地不动
+              why: 平移是所有点都动，原点也不例外
+          explain: 原点被挪走了。下面会看到，这正是平移不算“线性”的原因。
+      - card:
+          title: 线性变换
+          body: |
+            把每个向量 $v$ 变成一个向量 $T(v)$ 的规则，如果满足
+
+            $$T(cv + dw) = cT(v) + dT(w)$$
+
+            就叫**线性变换（linear transformation）**。也就是：先组合再变换，和先变换再组合，结果一样。每个矩阵都给出一个线性变换：$T(x) = Ax$。
+      - item:
+          id: shift
+          type: choice
+          prompt: “每个点向右平移 1 格”是线性变换吗？
+          options:
+            - text: 不是，它把 0 变成了 (1, 0)
+              correct: true
+            - text: 是，它很规则
+              why: 线性变换一定把 0 变成 0：T(0) = T(0·v) = 0·T(v) = 0
+          explain: 线性变换必须满足 T(0) = 0，平移做不到。
+      - item:
+          id: which-linear
+          type: choice
+          prompt: 下面哪个是线性变换？
+          options:
+            - text: T(v₁, v₂) = (2v₁, v₁ + v₂)
+              correct: true
+            - text: T(v₁, v₂) = (v₁², v₂)
+              why: T(2v) 的第一个数是 4v₁²，而 2T(v) 的第一个数是 2v₁²，不相等
+            - text: T(v₁, v₂) = (v₁ + 1, v₂)
+              why: 它把 (0, 0) 变成 (1, 0)，不满足 T(0) = 0
+          explain: 第一个就是矩阵 [[2, 0], [1, 1]] 乘 v。
+      - card:
+          title: 动手看看
+          body: |
+            每个 2×2 矩阵都是平面的一个线性变换：网格还是网格，平行线还是平行线，原点不动。改改四个数，看彩色正方形和两支箭头怎么变。
+          sim:
+            name: matrix2d
+            params: { start: [[1, 1], [0, 1]] }
+      - card:
+          title: 知道两支箭头，就知道一切
+          body: |
+            任何 $v = (v_1, v_2) = v_1(1, 0) + v_2(0, 1)$。线性变换保持组合，所以
+
+            $$T(v) = v_1T(1, 0) + v_2T(0, 1)$$
+
+            只要知道两个基向量变到哪里，所有向量的去处就都定了。
+      - item:
+          id: t-of-v
+          type: number
+          prompt: 线性变换 T 把 (1, 0) 变成 (2, 1)，把 (0, 1) 变成 (−1, 3)。T(3, 2) 的第二个数是多少？
+          answer: 9
+          explain: T(3, 2) = 3(2, 1) + 2(−1, 3) = (6 − 2, 3 + 6) = (4, 9)。
+      - item:
+          id: basis-decides
+          type: choice
+          prompt: 两个线性变换 S、T 在 (1, 0) 和 (0, 1) 上的结果都一样。它们在所有向量上都一样吗？
+          options:
+            - text: 一样
+              correct: true
+            - text: 不一定
+              why: 每个向量都是这两个基向量的组合，线性变换保持组合，结果就被定死了
+          explain: 线性变换由它在一组基上的值完全决定。
+
+  - id: map-matrix
+    chapter: 线性映射
+    title: 线性变换的矩阵
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把平面逆时针转 90°，向量 (1, 0) 会变成什么？
+          options:
+            - text: (0, 1)
+              correct: true
+            - text: (0, −1)
+              why: 那是顺时针转 90°
+            - text: (−1, 0)
+              why: 那是转了 180°
+          explain: 指向东的箭头逆时针转 90° 指向北。
+      - card:
+          title: 列就是基向量的像
+          body: |
+            线性变换 $T$ 的矩阵 $A$：第 1 列是 $T(1, 0)$，第 2 列是 $T(0, 1)$。
+
+            逆时针转 90°：$(1, 0) \to (0, 1)$，$(0, 1) \to (-1, 0)$，所以
+
+            $$A = \begin{bmatrix}0&-1\\1&0\end{bmatrix}$$
+
+            一般地，$m \times n$ 矩阵的第 $j$ 列就是第 $j$ 个基向量的去处。下面就是这个矩阵：蓝箭头 $(1, 0)$ 转到了上方，橙箭头 $(0, 1)$ 转到了左方。
+          sim:
+            name: matrix2d
+            params: { start: [[0, -1], [1, 0]] }
+      - item:
+          id: sim-rotate
+          type: sim
+          prompt: 调出“把平面逆时针转 90°”的矩阵：(1, 0) 要变成 (0, 1)，(0, 1) 要变成 (−1, 0)。
+          sim: matrix2d
+          params: { start: [[1, 0], [0, 1]] }
+          goal: { maps: [[[1, 0], [0, 1]], [[0, 1], [-1, 0]]] }
+          solution: [[0, -1], [1, 0]]
+          explain: 第 1 列填 (1, 0) 的像 (0, 1)，第 2 列填 (0, 1) 的像 (−1, 0)。
+      - item:
+          id: sim-project
+          type: sim
+          prompt: 调出“把平面压扁到 x 轴上”的矩阵：每个点 (x, y) 都落到 (x, 0)。
+          sim: matrix2d
+          params: { start: [[1, 0], [0, 1]] }
+          goal: { maps: [[[1, 0], [1, 0]], [[0, 1], [0, 0]]] }
+          solution: [[1, 0], [0, 0]]
+          explain: (1, 0) 不动，(0, 1) 变成 0：矩阵 [[1, 0], [0, 0]]。它的行列式是 0，整个平面被压成 x 轴。
+      - card:
+          title: 先后做两个变换，就是矩阵相乘
+          body: |
+            先做 $T$（矩阵 $A$），再做 $S$（矩阵 $B$）：$S(T(x)) = B(Ax) = (BA)x$。
+
+            所以复合变换的矩阵是 $BA$：**后做的写在左边**。这也解释了为什么矩阵乘法不交换：先转再压扁，和先压扁再转，一般不一样。
+      - item:
+          id: rotate-twice
+          type: number
+          prompt: '逆时针转 90° 的矩阵是 $\begin{bmatrix}0&-1\\1&0\end{bmatrix}$。连转两次的矩阵第 1 行第 1 列是多少？'
+          answer: -1
+          explain: 两次就是转 180°：[[0, −1], [1, 0]]² = [[−1, 0], [0, −1]]，每个向量都反过来。
+      - item:
+          id: reflect
+          type: choice
+          prompt: 沿直线 y = x 做镜面反射（(x, y) 变成 (y, x)）的矩阵是哪个？
+          options:
+            - text: '$\begin{bmatrix}0&1\\1&0\end{bmatrix}$'
+              correct: true
+            - text: '$\begin{bmatrix}0&-1\\1&0\end{bmatrix}$'
+              why: 这是转 90°：(1, 0) 变成 (0, 1) 没错，但 (0, 1) 变成 (−1, 0)，而反射应该变成 (1, 0)
+            - text: '$\begin{bmatrix}1&0\\0&-1\end{bmatrix}$'
+              why: 这是沿 x 轴的反射：(x, y) 变成 (x, −y)
+          explain: (1, 0) 变成 (0, 1)，(0, 1) 变成 (1, 0)：两列就是这两个像。
+
+  - id: change-basis
+    chapter: 线性映射
+    title: 找一组好的基
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 'A = [[2, 1], [1, 2]]。A 乘 (1, 1) 得到什么？'
+          options:
+            - text: (3, 3)，是 (1, 1) 的 3 倍
+              correct: true
+            - text: (2, 1)
+              why: 那是 A 的第 1 列，也就是 A 乘 (1, 0)
+            - text: (3, 1)
+              why: 第二个数是 1 × 1 + 2 × 1 = 3
+          explain: (2 + 1, 1 + 2) = (3, 3)。在这个方向上，A 只是拉长 3 倍。
+      - card:
+          title: 同一个变换，换个基来看
+          body: |
+            $A = \begin{bmatrix}2&1\\1&2\end{bmatrix}$ 把 $v_1 = (1, 1)$ 变成 $3v_1$，把 $v_2 = (1, -1)$ 变成 $(1, -1) = 1 \cdot v_2$。
+
+            如果用 $v_1, v_2$ 当基，用这组基下的坐标来描述，这个变换的矩阵就是
+
+            $$\begin{bmatrix}3&0\\0&1\end{bmatrix}$$
+
+            一个方向拉长 3 倍，另一个方向不变。同一个变换，好的基让矩阵变成对角的。
+      - item:
+          id: av2
+          type: number
+          prompt: '$A = \begin{bmatrix}2&1\\1&2\end{bmatrix}$，$v_2 = (1, -1)$。$Av_2 = c\,v_2$，$c$ 是多少？'
+          answer: 1
+          explain: Av₂ = (2 − 1, 1 − 2) = (1, −1) = 1 · v₂。
+      - card:
+          title: 换基的公式
+          body: |
+            把新基的向量排成矩阵 $B$ 的各列。一个向量在新基下的坐标是 $B^{-1}x$；同一个变换在新基下的矩阵是
+
+            $$B^{-1}AB$$
+
+            读法从右往左：先把新坐标翻译成普通坐标（$B$），做变换（$A$），再翻译回新坐标（$B^{-1}$）。$A$ 和 $B^{-1}AB$ 叫**相似**的矩阵。
+      - card:
+          title: 例题：在新坐标里做变换
+          body: 用基 $v_1 = (1, 1)$、$v_2 = (1, -1)$，计算 $A = \begin{bmatrix}2&1\\1&2\end{bmatrix}$ 作用在 $x = (4, 2)$ 上。
+          reveal:
+            - title: 第 1 步：换成新坐标
+              body: $(4, 2) = 3v_1 + 1v_2$，新坐标是 $(3, 1)$。
+            - title: 第 2 步：在新坐标里做变换
+              body: 新基下的矩阵是对角的 $\text{diag}(3, 1)$：$(3, 1) \to (9, 1)$。
+            - title: 第 3 步：换回来，检查
+              body: $9v_1 + 1v_2 = (10, 8)$。直接算 $A(4, 2) = (8 + 2, 4 + 4) = (10, 8)$，一样。
+      - item:
+          id: new-coord
+          type: number
+          prompt: '用同样的基 $v_1 = (1, 1)$、$v_2 = (1, -1)$，$A = \begin{bmatrix}2&1\\1&2\end{bmatrix}$ 在这组基下的矩阵是 diag(3, 1)。向量 $(6, 2)$ 经过 $A$ 变换后，在新基下的第一个坐标是多少？'
+          answer: 12
+          explain: (6, 2) = 4v₁ + 2v₂，新坐标 (4, 2)；乘 diag(3, 1) 得 (12, 2)。检查：12v₁ + 2v₂ = (14, 10) = A(6, 2)。
+      - item:
+          id: similar-det
+          type: choice
+          prompt: 相似的矩阵 A 和 B⁻¹AB 的行列式有什么关系？
+          options:
+            - text: 相等
+              correct: true
+            - text: 不一定相等
+              why: det(B⁻¹AB) = det B⁻¹ · det A · det B = det A，det B⁻¹ 和 det B 互为倒数
+          explain: 它们描述同一个变换，面积放大的倍数当然一样。
+
+  - id: length-angle
+    chapter: 内积与正交分解
+    title: 长度、夹角和点积
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 向量 (3, 4) 有多长？
+          options:
+            - text: '5'
+              correct: true
+            - text: '7'
+              why: 长度不是两个数相加，是直角三角形的斜边：√(3² + 4²)
+            - text: '25'
+              why: 25 是长度的平方，还要开方
+          explain: 勾股定理：√(9 + 16) = 5。
+      - card:
+          title: 长度和单位向量
+          body: |
+            点积 $v \cdot v = v_1^2 + v_2^2 + \cdots$ 正好是勾股定理里的平方和，所以 $v$ 的**长度（length）**是
+
+            $$\|v\| = \sqrt{v \cdot v}$$
+
+            长度为 1 的向量叫**单位向量（unit vector）**。任何非零向量除以自己的长度，就是同方向的单位向量：$\frac{(3, 4)}{5} = (0.6, 0.8)$。
+      - item:
+          id: unit
+          type: number
+          prompt: '和 $(1, 2, 2)$ 同方向的单位向量，第一个数是多少？（保留三位小数）'
+          answer: 0.333
+          tolerance: 0.001
+          explain: 长度 √(1 + 4 + 4) = 3，单位向量是 (1/3, 2/3, 2/3)。
+      - card:
+          title: 夹角和正交
+          body: |
+            $$\cos\theta = \frac{v \cdot w}{\|v\|\,\|w\|}$$
+
+            点积为 0 时 $\cos\theta = 0$，夹角 90°，说两个向量**正交（orthogonal）**，也就是垂直。点积为正，夹角小于 90°；为负，大于 90°。
+      - item:
+          id: angle
+          type: number
+          prompt: (1, 0) 和 (1, 1) 的夹角是多少度？
+          answer: 45
+          explain: 点积 1，长度 1 和 √2，cos θ = 1/√2 ≈ 0.7071，θ = 45°。
+      - item:
+          id: orth-check
+          type: choice
+          prompt: (1, 2, −1) 和 (2, −1, 0) 正交吗？
+          options:
+            - text: 正交
+              correct: true
+            - text: 不正交
+              why: 点积 1 × 2 + 2 × (−1) + (−1) × 0 = 0
+          explain: 点积为 0 就正交。
+      - card:
+          title: 两个不等式
+          body: |
+            **柯西-施瓦茨不等式（Schwarz inequality）**：$|v \cdot w| \le \|v\|\,\|w\|$。所以 $\cos\theta$ 总在 −1 和 1 之间。
+
+            **三角不等式（triangle inequality）**：$\|v + w\| \le \|v\| + \|w\|$：三角形两边之和不小于第三边。两个向量同方向时取等号。
+      - item:
+          id: cos-val
+          type: number
+          prompt: '$v = (1, 2)$，$w = (3, 1)$。$\cos\theta$ 是多少？（保留三位小数）'
+          answer: 0.707
+          tolerance: 0.001
+          explain: v·w = 3 + 2 = 5，‖v‖ = √5，‖w‖ = √10，cos θ = 5/√50 ≈ 0.707（45°）。它小于 1，符合柯西-施瓦茨不等式。
+
+  - id: orthogonal
+    chapter: 内积与正交分解
+    title: 四个子空间互相垂直
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: Ax = 0 的意思是 A 的每一行和 x 的点积都是 0。这说明 x 和 A 的每一行是什么关系？
+          options:
+            - text: 正交
+              correct: true
+            - text: 平行
+              why: 点积为 0 是垂直；平行时点积的绝对值最大
+          explain: 每一行·x = 0，就是 x 垂直于每一行。
+      - card:
+          title: 行空间垂直于零空间
+          body: |
+            两个子空间 $V$、$W$ 中任取 $v$、$w$ 都有 $v \cdot w = 0$，就说 $V$ 和 $W$ 正交。
+
+            $Ax = 0$ 说明 $x$ 垂直于 $A$ 的每一行，也就垂直于各行的所有组合：**零空间 ⊥ 行空间**。同理，**左零空间 ⊥ 列空间**。
+      - item:
+          id: row-null
+          type: number
+          prompt: '$A = \begin{bmatrix}1&2&3\\2&4&6\\1&0&1\end{bmatrix}$，$x = (-1, -1, 1)$ 在它的零空间里。$A$ 第 3 行 $(1, 0, 1)$ 和 $x$ 的点积是多少？'
+          answer: 0
+          explain: −1 + 0 + 1 = 0。零空间里的向量和每一行都正交。
+      - card:
+          title: 正交补
+          body: |
+            和子空间 $V$ 里每个向量都正交的**所有**向量，组成**正交补（orthogonal complement）** $V^\perp$。
+
+            零空间不只是和行空间正交，它就是行空间的正交补：$N(A) = C(A^T)^\perp$。两者维数加起来是 $n$：$r + (n - r) = n$。
+      - item:
+          id: complement
+          type: choice
+          prompt: ℝ³ 里，过原点、方向为 (1, 1, 1) 的直线，它的正交补是什么？
+          options:
+            - text: 平面 x + y + z = 0
+              correct: true
+            - text: 直线本身
+              why: (1, 1, 1) 和自己的点积是 3，不是 0
+            - text: 平面 x + y + z = 1
+              why: 正交补是子空间，一定过原点
+          explain: 和 (1, 1, 1) 正交就是 x + y + z = 0，一个维数为 3 − 1 = 2 的平面。
+      - card:
+          title: 每个 x 都能拆成两块
+          body: |
+            $\mathbb{R}^n$ 里的每个 $x$ 都能唯一地拆成 $x = x_r + x_n$：$x_r$ 在行空间，$x_n$ 在零空间。
+
+            $A$ 把 $x_n$ 变成 0，所以 $Ax = Ax_r$：真正“起作用”的只有行空间那一块。
+      - item:
+          id: ax-xr
+          type: choice
+          prompt: x = xᵣ + xₙ（xᵣ 在行空间，xₙ 在零空间）。Ax 等于什么？
+          options:
+            - text: Axᵣ
+              correct: true
+            - text: Axₙ
+              why: Axₙ = 0，零空间里的向量被 A 变成零向量
+            - text: '0'
+              why: 只有 xᵣ = 0 时才是 0
+          explain: Ax = Axᵣ + Axₙ = Axᵣ + 0。
+
+  - id: projection
+    chapter: 内积与正交分解
+    title: 投影：最近的那个点
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 太阳正当头，一根斜放的棍子在地上的影子，是棍子“最贴近地面”的样子。影子端点和棍子端点的连线是什么方向？
+          options:
+            - text: 垂直于地面
+              correct: true
+            - text: 平行于地面
+              why: 光线竖直照下来，连线顺着光线，垂直于地面
+          explain: 影子和棍子端点的连线垂直于地面：这一课就从这个性质出发。
+      - card:
+          title: 投影到一条直线
+          body: |
+            把 $b$ 投影到 $a$ 的方向上，得到 $p = \hat{x}a$。要求误差 $e = b - p$ 和 $a$ 正交：$a \cdot (b - \hat{x}a) = 0$，所以
+
+            $$\hat{x} = \frac{a^Tb}{a^Ta}, \qquad p = \frac{a^Tb}{a^Ta}\,a$$
+
+            这个 $p$ 叫 $b$ 在 $a$ 上的**投影（projection）**，是直线上离 $b$ 最近的点。
+      - card:
+          title: 例题：一个投影
+          body: 求 $b = (1, 2, 2)$ 在 $u = (1, 0, 1)$ 方向上的投影 $p$，和误差 $e = b - p$。
+          reveal:
+            - title: 第 1 步：两个点积
+              body: $u^Tb = 1 + 0 + 2 = 3$，$u^Tu = 1 + 0 + 1 = 2$。
+            - title: 第 2 步：投影
+              body: $p = \frac32(1, 0, 1) = (1.5, 0, 1.5)$。
+            - title: 第 3 步：误差，检查正交
+              body: $e = (1, 2, 2) - (1.5, 0, 1.5) = (-0.5, 2, 0.5)$。$e \cdot u = -0.5 + 0 + 0.5 = 0$，正交。
+      - item:
+          id: proj-line
+          type: number
+          prompt: '把 $b = (1, 1, 1)$ 投影到 $a = (1, 2, 2)$ 的方向上。投影 $p$ 的第一个数是多少？（保留三位小数）'
+          answer: 0.556
+          tolerance: 0.001
+          explain: aᵀb = 5，aᵀa = 9，p = (5/9)(1, 2, 2)，第一个数 5/9 ≈ 0.556。
+      - card:
+          title: 投影矩阵
+          body: |
+            $p = Pb$，投影到直线上的矩阵是 $P = \frac{aa^T}{a^Ta}$（列乘行，是一个矩阵）。
+
+            投影到 $A$ 的列空间：要 $e = b - A\hat{x}$ 和每一列正交，$A^T(b - A\hat{x}) = 0$，所以
+
+            $$A^TA\hat{x} = A^Tb, \qquad P = A(A^TA)^{-1}A^T$$
+      - item:
+          id: p-matrix
+          type: number
+          prompt: '投影到 $a = (1, 1)$ 方向的矩阵 $P = \frac{aa^T}{a^Ta}$。它第 1 行第 2 列的数是多少？'
+          answer: 0.5
+          explain: aaᵀ = [[1, 1], [1, 1]]，aᵀa = 2，P = [[0.5, 0.5], [0.5, 0.5]]。
+      - item:
+          id: p-squared
+          type: choice
+          prompt: 投影矩阵满足 P² = P。为什么？
+          options:
+            - text: 已经在直线上的点，再投影一次不会动
+              correct: true
+            - text: 因为 P 是对称的
+              why: 对称是另一条性质（Pᵀ = P）；P² = P 说的是投影两次和一次一样
+            - text: 因为 P 的数都是 0.5
+              why: 换一个方向 a，P 的数就不同了，P² = P 照样成立
+          explain: Pb 已经在直线上，P(Pb) = Pb。
+
+  - id: least-squares
+    chapter: 内积与正交分解
+    title: 最小二乘：画一条最好的直线
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 三个点 (0, 6)、(1, 0)、(2, 0) 不在一条直线上。还能找一条“最好”的直线吗？
+          options:
+            - text: 能，让各点到直线的竖直误差的平方和最小
+              correct: true
+            - text: 不能，三点不共线就没有直线
+              why: 没有直线正好穿过三点，但可以找一条误差最小的
+          explain: 误差的平方加起来最小：这一课就讲怎么找这条直线。
+      - card:
+          title: 无解时求最好的 x̂
+          body: |
+            直线 $b = C + Dt$ 要穿过三点，就要 $C + 0D = 6$、$C + 1D = 0$、$C + 2D = 0$：三个方程两个未知数，$Ax = b$ 无解。
+
+            退一步：找让误差 $\|b - Ax\|^2$ 最小的 $\hat{x}$，这叫**最小二乘（least squares）**。$A\hat{x}$ 就是 $b$ 在列空间里的投影，所以
+
+            $$A^TA\hat{x} = A^Tb$$
+      - card:
+          title: 例题：过三点的最好直线
+          body: '$A = \begin{bmatrix}1&0\\1&1\\1&2\end{bmatrix}$，$b = (6, 0, 0)$。'
+          reveal:
+            - title: 第 1 步：算 AᵀA 和 Aᵀb
+              body: '$A^TA = \begin{bmatrix}3&3\\3&5\end{bmatrix}$，$A^Tb = (6, 0)$。'
+            - title: 第 2 步：解正规方程
+              body: $3C + 3D = 6$，$3C + 5D = 0$。相减：$2D = -6$，$D = -3$，$C = 5$。
+            - title: 第 3 步：直线和误差
+              body: 最好的直线 $b = 5 - 3t$。在 $t = 0, 1, 2$ 处是 $5, 2, -1$，误差 $e = (1, -2, 1)$，平方和 6。
+      - item:
+          id: ls-slope
+          type: number
+          prompt: 用最小二乘给三个点 (0, 1)、(1, 3)、(2, 4) 拟合直线 b = C + Dt。斜率 D 是多少？
+          answer: 1.5
+          hint: AᵀA 和上面的例题一样是 [[3, 3], [3, 5]]，只有 Aᵀb 变了。
+          explain: Aᵀb = (1 + 3 + 4, 0 + 3 + 8) = (8, 11)。3C + 3D = 8，3C + 5D = 11，相减 2D = 3，D = 1.5（C = 7/6）。
+      - item:
+          id: e-orth
+          type: choice
+          prompt: 例题里误差 e = (1, −2, 1)。它和 A 的两列 (1, 1, 1)、(0, 1, 2) 是什么关系？
+          options:
+            - text: 都正交
+              correct: true
+            - text: 都不正交
+              why: 1 − 2 + 1 = 0，0 − 2 + 2 = 0，两个点积都是 0
+          explain: 正规方程 Aᵀ(b − Ax̂) = 0 说的就是：误差和每一列正交。
+      - card:
+          title: 机器学习里的线性回归
+          body: |
+            用房子的面积、房间数、楼层预测房价：每套房一行，每个因素一列，$A$ 可能有几万行。找一组系数 $\hat{x}$ 让预测误差的平方和最小，解的还是同一个正规方程 $A^TA\hat{x} = A^Tb$。
+      - item:
+          id: why-normal
+          type: choice
+          prompt: 正规方程 AᵀAx̂ = Aᵀb 是从哪个要求推出来的？
+          options:
+            - text: 误差 b − Ax̂ 和 A 的每一列正交
+              correct: true
+            - text: 误差 b − Ax̂ 等于 0
+              why: 误差为 0 就是 Ax = b 有解了，可这里它无解
+            - text: x̂ 的长度最小
+              why: 最小的是误差的长度 ‖b − Ax̂‖，不是 x̂ 的
+          explain: 投影的误差垂直于投影到的空间：Aᵀ(b − Ax̂) = 0。
+
+  - id: gram-schmidt
+    chapter: 内积与正交分解
+    title: 标准正交基和 Gram–Schmidt
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用基 (1, 0)、(0, 1) 和用基 (1, 1)、(1, 2) 表示一个向量，哪个更容易求坐标？
+          options:
+            - text: (1, 0)、(0, 1)：坐标就是向量自己的两个数
+              correct: true
+            - text: 一样容易
+              why: 用 (1, 1)、(1, 2) 要解一个方程组才能得到坐标
+          explain: 互相垂直、长度为 1 的基最好用：坐标用点积就能算出来。
+      - card:
+          title: 标准正交和正交矩阵
+          body: |
+            一组向量两两正交、长度都是 1，叫**标准正交（orthonormal）**。把它们排成矩阵 $Q$ 的列，就有
+
+            $$Q^TQ = I$$
+
+            如果 $Q$ 是方阵，叫**正交矩阵（orthogonal matrix）**，$Q^{-1} = Q^T$。旋转、置换都是正交矩阵；它们不改变长度：$\|Qx\| = \|x\|$。
+      - item:
+          id: q-inverse
+          type: choice
+          prompt: '$Q = \frac{1}{\sqrt2}\begin{bmatrix}1&1\\1&-1\end{bmatrix}$。$Q^{-1}$ 是什么？'
+          options:
+            - text: Qᵀ
+              correct: true
+            - text: −Q
+              why: QᵀQ = I 说明逆就是转置；这里 Qᵀ 正好等于 Q，不是 −Q
+            - text: 不存在
+              why: 两列都是单位向量并且正交，QᵀQ = I，可逆
+          explain: 正交矩阵的逆就是转置（这个 Q 还是对称的，所以 Q⁻¹ = Q）。
+      - card:
+          title: 有了 Q，投影和最小二乘都变简单
+          body: |
+            $Q^TQ = I$，正规方程 $Q^TQ\hat{x} = Q^Tb$ 就变成 $\hat{x} = Q^Tb$：不用解方程。投影是 $p = QQ^Tb$。
+
+            每个坐标就是一个点积：$\hat{x}_i = q_i \cdot b$。
+      - card:
+          title: Gram–Schmidt：把普通的基变成标准正交的
+          body: |
+            给 $a$、$b$：
+
+            1. $A = a$；
+            2. $B = b - \frac{A^Tb}{A^TA}A$：从 $b$ 里减掉它在 $A$ 方向上的投影，剩下的和 $A$ 正交；
+            3. 各自除以长度：$q_1 = \frac{A}{\|A\|}$，$q_2 = \frac{B}{\|B\|}$。
+
+            第三个向量要减掉在 $A$、$B$ 两个方向上的投影，依此类推。
+      - item:
+          id: gs-b
+          type: number
+          prompt: '对 $a = (3, 4)$、$b = (1, 0)$ 做 Gram–Schmidt：$B = b - \frac{a^Tb}{a^Ta}a$。$B$ 的第一个数是多少？'
+          answer: 0.64
+          explain: aᵀb = 3，aᵀa = 25，B = (1, 0) − (3/25)(3, 4) = (1 − 0.36, −0.48) = (0.64, −0.48)。检查：3 × 0.64 + 4 × (−0.48) = 0。
+      - card:
+          title: 例题：三维里的两个向量
+          body: 对 $a = (1, 1, 0)$、$b = (1, 0, 1)$ 做 Gram–Schmidt。
+          reveal:
+            - title: 第 1 步：A = a
+              body: $A = (1, 1, 0)$，$A^TA = 2$，$A^Tb = 1$。
+            - title: 第 2 步：减掉投影
+              body: $B = (1, 0, 1) - \frac12(1, 1, 0) = (0.5, -0.5, 1)$。检查：$A \cdot B = 0.5 - 0.5 + 0 = 0$。
+            - title: 第 3 步：变成单位向量
+              body: $q_1 = \frac{(1, 1, 0)}{\sqrt2}$，$q_2 = \frac{(0.5, -0.5, 1)}{\sqrt{1.5}}$。
+      - item:
+          id: qr
+          type: choice
+          prompt: Gram–Schmidt 给出 A = QR。为什么 R 是上三角矩阵？
+          options:
+            - text: 第 j 个 q 只用到了前 j 个 a，后面的 q 和前面的 a 正交
+              correct: true
+            - text: 因为 Q 是正交矩阵
+              why: Q 正交说明 R = QᵀA，但上三角来自“后造的 q 和先给的 a 垂直”
+          explain: R = QᵀA 的 (i, j) 位置是 qᵢ·aⱼ；i > j 时 qᵢ 和 aⱼ 正交，所以是 0。
+  - id: eigen
+    chapter: 特征值
+    title: 特征值：方向不变的向量
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 'A = [[2, 1], [1, 2]] 会把大多数向量转个方向。有没有方向不变、只被拉长的向量？'
+          options:
+            - text: 有，比如 (1, 1) 被拉长 3 倍
+              correct: true
+            - text: 没有，矩阵总会转动向量
+              why: A(1, 1) = (3, 3)，方向没变；A(1, −1) = (1, −1)，连长度都没变
+          explain: 这些方向特殊的向量，就是这一章的主角。
+      - card:
+          title: 特征向量和特征值
+          body: |
+            如果非零向量 $x$ 满足
+
+            $$Ax = \lambda x$$
+
+            $x$ 叫 $A$ 的**特征向量（eigenvector）**，数 $\lambda$ 叫**特征值（eigenvalue）**：$A$ 作用在 $x$ 上，只是把它拉长 $\lambda$ 倍（$\lambda$ 为负就反向）。下面的演示里，$(1, 1)$ 方向上的格子线只被拉长、没有被转。
+          sim:
+            name: matrix2d
+            params: { start: [[2, 1], [1, 2]] }
+      - item:
+          id: sim-eigvec
+          type: sim
+          prompt: 调一个矩阵，让 (1, 1) 成为它的特征向量（A(1, 1) 要和 (1, 1) 同方向或反方向，并且不是零向量）。
+          sim: matrix2d
+          params: { start: [[1, 0], [0, 2]] }
+          goal: { eigvec: [1, 1] }
+          solution: [[2, 1], [1, 2]]
+          explain: 例如 [[2, 1], [1, 2]]：两行的和相等时，A(1, 1) = (行 1 之和, 行 2 之和) 就是 (1, 1) 的倍数。
+      - card:
+          title: 怎么求：det(A − λI) = 0
+          body: |
+            $Ax = \lambda x$ 就是 $(A - \lambda I)x = 0$。要有非零解 $x$，$A - \lambda I$ 必须不可逆：
+
+            $$\det(A - \lambda I) = 0$$
+
+            $A = \begin{bmatrix}2&1\\1&2\end{bmatrix}$：$(2 - \lambda)^2 - 1 = 0$，$\lambda = 3$ 或 $1$。再对每个 $\lambda$ 解 $(A - \lambda I)x = 0$：$\lambda = 3$ 得 $(1, 1)$，$\lambda = 1$ 得 $(1, -1)$。
+      - item:
+          id: eig-big
+          type: number
+          prompt: '$A = \begin{bmatrix}4&1\\2&3\end{bmatrix}$。它较大的那个特征值是多少？'
+          answer: 5
+          hint: det(A − λI) = (4 − λ)(3 − λ) − 2 × 1。
+          explain: λ² − 7λ + 10 = 0，(λ − 5)(λ − 2) = 0，λ = 5 或 2。
+      - card:
+          title: 迹和行列式
+          body: |
+            对角线之和叫**迹**（trace）。两条有用的检查：
+
+            $$\lambda_1 + \lambda_2 + \cdots = \text{迹}, \qquad \lambda_1\lambda_2\cdots = \det A$$
+
+            $\begin{bmatrix}4&1\\2&3\end{bmatrix}$：$5 + 2 = 7 = 4 + 3$，$5 \times 2 = 10 = 12 - 2$。三角矩阵的特征值就是对角线上的数。
+      - item:
+          id: eigvec-5
+          type: choice
+          prompt: '$A = \begin{bmatrix}4&1\\2&3\end{bmatrix}$ 的特征值 5 对应哪个特征向量？'
+          options:
+            - text: (1, 1)
+              correct: true
+            - text: (1, −2)
+              why: A(1, −2) = (2, −4) = 2(1, −2)，它对应的是特征值 2
+            - text: (1, 0)
+              why: A(1, 0) = (4, 2)，不是 (1, 0) 的倍数
+          explain: A(1, 1) = (5, 5) = 5(1, 1)。
+      - item:
+          id: proj-eig
+          type: choice
+          prompt: 投影矩阵 P 的特征值是什么？
+          options:
+            - text: 1 和 0
+              correct: true
+            - text: 只有 1
+              why: 和投影方向垂直的向量被投成 0，所以 0 也是特征值
+            - text: '0.5'
+              why: 投影要么保留向量（已经在直线上，λ = 1），要么把它变成 0（垂直的，λ = 0）
+          explain: 直线上的向量 Px = x（λ = 1），垂直于直线的 Px = 0（λ = 0）。
+
+  - id: diagonalize
+    chapter: 特征值
+    title: 对角化：算 A 的 100 次方
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 特征向量 x 满足 Ax = 5x。A¹⁰x 是什么？
+          options:
+            - text: 5¹⁰x
+              correct: true
+            - text: 50x
+              why: 每乘一次 A 都是再乘 5，是 5 × 5 × … × 5，不是 5 × 10
+            - text: 算不出来，要先算 A¹⁰
+              why: A 作用在 x 上只是乘 5，乘 10 次就是乘 5¹⁰
+          explain: A²x = A(5x) = 5Ax = 25x，依此类推。
+      - card:
+          title: A = XΛX⁻¹
+          body: |
+            如果 $n \times n$ 的 $A$ 有 $n$ 个线性无关的特征向量，把它们排成 $X$ 的列，特征值排成对角矩阵 $\Lambda$，就有
+
+            $$A = X\Lambda X^{-1}$$
+
+            这叫**对角化（diagonalization）**。于是 $A^k = X\Lambda^kX^{-1}$，而 $\Lambda^k$ 只要把对角线上的数各自乘方。
+      - card:
+          title: 例题：对角化一个 2×2
+          body: '$A = \begin{bmatrix}4&1\\2&3\end{bmatrix}$，特征值 5、2，特征向量 $(1, 1)$、$(1, -2)$。'
+          reveal:
+            - title: 第 1 步：排出 X 和 Λ
+              body: '$X = \begin{bmatrix}1&1\\1&-2\end{bmatrix}$，$\Lambda = \begin{bmatrix}5&0\\0&2\end{bmatrix}$。'
+            - title: 第 2 步：平方
+              body: $A^2 = X\Lambda^2X^{-1}$，$\Lambda^2 = \text{diag}(25, 4)$。$A^2$ 的特征值是 25、4。
+            - title: 第 3 步：直接算来检查
+              body: '$A^2 = \begin{bmatrix}18&7\\14&11\end{bmatrix}$，迹 $29 = 25 + 4$，行列式 $198 - 98 = 100 = 25 \times 4$。对得上。'
+      - item:
+          id: eig-cube
+          type: number
+          prompt: A 的特征值是 5 和 2。A³ 较大的特征值是多少？
+          answer: 125
+          explain: A³x = λ³x，5³ = 125（另一个是 2³ = 8）。
+      - card:
+          title: 不是每个矩阵都能对角化
+          body: |
+            $\begin{bmatrix}1&1\\0&1\end{bmatrix}$ 的特征值是 1（两次），但特征向量只有 $(1, 0)$ 的倍数：凑不出两个线性无关的特征向量，不能对角化。
+
+            特征值互不相同时，特征向量一定线性无关，一定能对角化。
+      - item:
+          id: not-diag
+          type: choice
+          prompt: '$\begin{bmatrix}1&1\\0&1\end{bmatrix}$ 能对角化吗？'
+          options:
+            - text: 不能，只有一个方向的特征向量
+              correct: true
+            - text: 能，它是三角矩阵
+              why: 三角矩阵的特征值好读（1 和 1），但特征向量不够两个
+          explain: (A − I)x = 0 即 [[0, 1], [0, 0]]x = 0，只有 x₂ = 0 的解，全是 (1, 0) 的倍数。
+      - card:
+          title: 斐波那契数
+          body: |
+            $F_{k+2} = F_{k+1} + F_k$（0、1、1、2、3、5、8……）。写成 $u_{k+1} = Au_k$，$A = \begin{bmatrix}1&1\\1&0\end{bmatrix}$，$u_k = (F_{k+1}, F_k)$。
+
+            $A$ 的特征值 $\lambda = \frac{1 \pm \sqrt5}{2} \approx 1.618, -0.618$。$A^k$ 由大的那个主导，所以 $F_k \approx \frac{1.618^k}{\sqrt5}$：$F_{20} = 6765$。
+      - item:
+          id: fib-lambda
+          type: number
+          prompt: '$\begin{bmatrix}1&1\\1&0\end{bmatrix}$ 较大的特征值是多少？（保留三位小数）'
+          answer: 1.618
+          tolerance: 0.001
+          explain: λ² − λ − 1 = 0，λ = (1 + √5)/2 ≈ 1.618，黄金比。
+      - item:
+          id: decay
+          type: choice
+          prompt: u₀ 是 A 的特征向量，特征值 0.5。k 越来越大时 Aᵏu₀ 会怎样？
+          options:
+            - text: 越来越接近零向量
+              correct: true
+            - text: 一直不变
+              why: 每乘一次 A 就乘 0.5，长度一直减半
+            - text: 越来越大
+              why: '|λ| < 1，乘得越多越小'
+          explain: Aᵏu₀ = 0.5ᵏu₀，0.5ᵏ 越来越接近 0。
+
+  - id: symmetric
+    chapter: 特征值
+    title: 对称矩阵：最好的矩阵
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: '[[2, 1], [1, 2]] 的两个特征向量 (1, 1) 和 (1, −1) 是什么关系？'
+          options:
+            - text: 正交
+              correct: true
+            - text: 平行
+              why: 点积 1 − 1 = 0，它们互相垂直
+          explain: 对称矩阵的特征向量总能选成互相垂直的，这一课讲这件事。
+      - card:
+          title: 谱定理
+          body: |
+            对称矩阵 $S = S^T$ 有两个好性质：特征值都是实数；不同特征值的特征向量互相正交。所以可以把特征向量选成标准正交的，排成正交矩阵 $Q$：
+
+            $$S = Q\Lambda Q^T$$
+
+            这叫**谱定理（spectral theorem）**，也叫正交对角化。$X^{-1}$ 换成了 $Q^T$，不用求逆。
+      - card:
+          title: 例题：正交对角化
+          body: '$B = \begin{bmatrix}2&1\\1&2\end{bmatrix}$。写出 $B = Q\Lambda Q^T$。'
+          reveal:
+            - title: 第 1 步：特征值
+              body: $\det(B - \lambda I) = (2 - \lambda)^2 - 1 = 0$，$\lambda = 3, 1$。
+            - title: 第 2 步：单位特征向量
+              body: $\lambda = 3$：$(1, 1)$，除以长度 $\sqrt2$ 得 $q_1 = \frac{(1, 1)}{\sqrt2}$。$\lambda = 1$：$q_2 = \frac{(1, -1)}{\sqrt2}$。
+            - title: 第 3 步：排起来
+              body: '$Q = \frac{1}{\sqrt2}\begin{bmatrix}1&1\\1&-1\end{bmatrix}$，$\Lambda = \begin{bmatrix}3&0\\0&1\end{bmatrix}$，$B = Q\Lambda Q^T$。'
+      - item:
+          id: unit-eig
+          type: number
+          prompt: '$\begin{bmatrix}2&1\\1&2\end{bmatrix}$ 的特征值 3 对应的单位特征向量（第一个数取正），第一个数是多少？（保留三位小数）'
+          answer: 0.707
+          tolerance: 0.001
+          explain: (1, 1)/√2 ≈ (0.707, 0.707)。
+      - item:
+          id: sym-eig
+          type: number
+          prompt: '$S = \begin{bmatrix}3&4\\4&-3\end{bmatrix}$。它正的那个特征值是多少？'
+          answer: 5
+          hint: 用迹和行列式：两个特征值之和是 0，之积是 −9 − 16。
+          explain: λ₁ + λ₂ = 0，λ₁λ₂ = −25，所以 λ = 5 和 −5。
+      - card:
+          title: 拆成投影的和
+          body: |
+            把 $Q\Lambda Q^T$ 按列乘行展开：
+
+            $$S = \lambda_1q_1q_1^T + \lambda_2q_2q_2^T + \cdots$$
+
+            每个 $q_iq_i^T$ 是投影到 $q_i$ 方向的矩阵。对称矩阵就是：沿几个互相垂直的方向，各拉伸 $\lambda_i$ 倍。
+      - item:
+          id: sym-orth
+          type: choice
+          prompt: 一个 3×3 对称矩阵有三个不同的特征值。它的三个特征向量是什么关系？
+          options:
+            - text: 两两正交
+              correct: true
+            - text: 不一定有什么关系
+              why: 对称矩阵不同特征值的特征向量一定正交，这是谱定理的一部分
+          explain: 可以把它们缩放成单位向量，排成正交矩阵 Q。
+
+  - id: positive-definite
+    chapter: 特征值
+    title: 正定矩阵：碗口朝上
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: f(x, y) = 2x² + 2xy + 2y²。除了 (0, 0)，它能取到负数吗？
+          options:
+            - text: 不能，总是正的
+              correct: true
+            - text: 能，比如 x = 1、y = −1
+              why: 2 − 2 + 2 = 2，还是正的；它可以写成 x² + y² + (x + y)²
+          explain: 2x² + 2xy + 2y² = x² + y² + (x + y)²，只要不全为 0 就大于 0。
+      - card:
+          title: 正定矩阵
+          body: |
+            特征值全都大于 0 的对称矩阵叫**正定矩阵（positive definite matrix）**。几种等价的判断：
+
+            1. 所有特征值 $> 0$；
+            2. 消元的主元都 $> 0$；
+            3. 左上角的各个行列式都 $> 0$；
+            4. 对所有非零的 $x$，$x^TSx > 0$。
+
+            2×2 的 $\begin{bmatrix}a&b\\b&c\end{bmatrix}$：$a > 0$ 并且 $ac - b^2 > 0$。
+      - item:
+          id: pd-test
+          type: choice
+          prompt: 下面哪个矩阵是正定的？
+          options:
+            - text: '$\begin{bmatrix}2&1\\1&2\end{bmatrix}$'
+              correct: true
+            - text: '$\begin{bmatrix}1&2\\2&1\end{bmatrix}$'
+              why: ac − b² = 1 − 4 = −3 < 0；它的特征值是 3 和 −1
+            - text: '$\begin{bmatrix}-1&0\\0&-1\end{bmatrix}$'
+              why: 特征值都是 −1，是负定的
+          explain: a = 2 > 0，ac − b² = 4 − 1 = 3 > 0；特征值 3 和 1。
+      - card:
+          title: 能量 xᵀSx
+          body: |
+            $x^TSx$ 叫“能量”。$S = \begin{bmatrix}2&1\\1&2\end{bmatrix}$ 时
+
+            $$x^TSx = 2x^2 + 2xy + 2y^2$$
+
+            正定就是：这个曲面是一个碗口朝上的碗，最低点在原点。机器学习训练时最小化误差，能确定找到最低点的情形，正是误差像这样一个碗。
+      - item:
+          id: energy
+          type: number
+          prompt: '$S = \begin{bmatrix}2&1\\1&2\end{bmatrix}$，$x = (1, -1)$。$x^TSx$ 是多少？'
+          answer: 2
+          explain: Sx = (2 − 1, 1 − 2) = (1, −1)，xᵀSx = 1 × 1 + (−1) × (−1) = 2。
+      - item:
+          id: pd-b
+          type: choice
+          prompt: '$S = \begin{bmatrix}1&b\\b&9\end{bmatrix}$。b 取哪些值时 S 正定？'
+          options:
+            - text: −3 < b < 3
+              correct: true
+            - text: b > 0
+              why: b = 4 时 ac − b² = 9 − 16 < 0，不正定；b 的正负不要紧，要紧的是 b² < 9
+            - text: 任何 b
+              why: b = 3 时 ac − b² = 0，有一个特征值是 0，不是正定
+          explain: a = 1 > 0 总成立，还要 9 − b² > 0，即 |b| < 3。
+      - card:
+          title: AᵀA 总是“半正定”
+          body: |
+            对任何矩阵 $A$：$x^T(A^TA)x = (Ax)^T(Ax) = \|Ax\|^2 \ge 0$。所以 $A^TA$ 的特征值都 $\ge 0$，叫**半正定**。
+
+            当 $A$ 的各列线性无关时，$Ax \ne 0$（$x \ne 0$），$A^TA$ 就是正定的。最小二乘的正规方程能解，靠的就是这一点。
+      - item:
+          id: ata-pd
+          type: choice
+          prompt: A 是 5×3 矩阵，三列线性无关。AᵀA 是什么样的矩阵？
+          options:
+            - text: 3×3 的正定矩阵
+              correct: true
+            - text: 5×5 的正定矩阵
+              why: (3×5)(5×3) = 3×3
+            - text: 可能有负的特征值
+              why: xᵀAᵀAx = ‖Ax‖² 不会是负数
+          explain: 列无关时 x ≠ 0 就有 ‖Ax‖² > 0。
+
+  - id: svd
+    chapter: 特征值
+    title: 奇异值分解：旋转、拉伸、再旋转
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 只有方阵才有特征值。一张 1000×800 的图片（一个长方形的矩阵），有没有类似特征值的东西？
+          options:
+            - text: 有，这一课就讲它
+              correct: true
+            - text: 没有，长方形矩阵没法分析
+              why: 任何形状的矩阵都能分解成“旋转、拉伸、再旋转”，这一课就讲它
+          explain: SVD 对任何形状的矩阵都成立，这是它最有用的地方。
+      - card:
+          title: SVD
+          body: |
+            任何 $m \times n$ 矩阵都能写成
+
+            $$A = U\Sigma V^T$$
+
+            $U$（$m \times m$）和 $V$（$n \times n$）是正交矩阵，$\Sigma$ 只有对角线上有数 $\sigma_1 \ge \sigma_2 \ge \cdots \ge 0$。这叫**奇异值分解（singular value decomposition, SVD）**，$\sigma_i$ 叫**奇异值（singular value）**。它也可以写成 $Av_i = \sigma_iu_i$。
+      - card:
+          title: 怎么求
+          body: |
+            $A^TA = V\Sigma^TU^TU\Sigma V^T = V(\Sigma^T\Sigma)V^T$：这正是对称矩阵 $A^TA$ 的正交对角化。所以
+
+            - $v_i$ 是 $A^TA$ 的单位特征向量；
+            - $\sigma_i = \sqrt{A^TA \text{ 的特征值}}$；
+            - $u_i = \frac{Av_i}{\sigma_i}$。
+      - item:
+          id: sv-diag
+          type: number
+          prompt: '$A = \begin{bmatrix}3&0\\0&-2\end{bmatrix}$。它较小的那个奇异值是多少？'
+          answer: 2
+          explain: AᵀA = [[9, 0], [0, 4]]，特征值 9、4，奇异值 3、2。奇异值不会是负数：−2 的负号放进了 U 里。
+      - card:
+          title: 例题：一个 2×2 的 SVD
+          body: '$A = \begin{bmatrix}3&0\\4&5\end{bmatrix}$。'
+          reveal:
+            - title: 第 1 步：AᵀA
+              body: '$A^TA = \begin{bmatrix}25&20\\20&25\end{bmatrix}$，特征值 $45$ 和 $5$。'
+            - title: 第 2 步：奇异值
+              body: $\sigma_1 = \sqrt{45} = 3\sqrt5 \approx 6.708$，$\sigma_2 = \sqrt5 \approx 2.236$。
+            - title: 第 3 步：v 和 u
+              body: $v_1 = \frac{(1, 1)}{\sqrt2}$，$v_2 = \frac{(1, -1)}{\sqrt2}$。$u_1 = \frac{Av_1}{\sigma_1} = \frac{(1, 3)}{\sqrt{10}}$。
+            - title: 第 4 步：检查
+              body: $\sigma_1\sigma_2 = \sqrt{225} = 15 = |\det A|$。
+      - item:
+          id: sv-product
+          type: number
+          prompt: '$A = \begin{bmatrix}2&1\\0&3\end{bmatrix}$ 的两个奇异值的乘积是多少？'
+          answer: 6
+          explain: σ₁σ₂ = |det A| = |2 × 3 − 1 × 0| = 6（因为 det A = det U · det Σ · det Vᵀ，正交矩阵的行列式是 ±1）。
+      - card:
+          title: 几何意义
+          body: |
+            $A = U\Sigma V^T$ 作用在 $x$ 上分三步：$V^T$ 旋转（或翻转），$\Sigma$ 沿坐标轴拉伸 $\sigma_1, \sigma_2$ 倍，$U$ 再旋转。
+
+            所以单位圆被 $A$ 变成一个椭圆，两个半轴长就是 $\sigma_1$ 和 $\sigma_2$。$A$ 最多能把向量拉长 $\sigma_1$ 倍。
+      - item:
+          id: ellipse
+          type: number
+          prompt: '$A = \begin{bmatrix}3&0\\4&5\end{bmatrix}$ 的奇异值约是 6.708 和 2.236。单位圆被 $A$ 变成的椭圆，最长的半轴约是多少？'
+          answer: 6.708
+          tolerance: 0.001
+          explain: 最长的半轴就是最大的奇异值 σ₁ = 3√5 ≈ 6.708。
+
+  - id: svd-uses
+    chapter: 特征值
+    title: SVD 的用处：压缩图片和找主方向
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一张 1000×1000 的灰度图要存 100 万个数。如果只想存它“最重要的部分”，能少存很多吗？
+          options:
+            - text: 能，用 SVD 只留最大的几个奇异值
+              correct: true
+            - text: 不能，少存一个数图就坏了
+              why: 很多图片的大部分信息集中在前几个奇异值里，丢掉小的只损失一点细节
+          explain: 前 20 个奇异值常常就能留下图片的大样子。
+      - card:
+          title: 低秩近似
+          body: |
+            SVD 按列乘行展开：
+
+            $$A = \sigma_1u_1v_1^T + \sigma_2u_2v_2^T + \cdots + \sigma_ru_rv_r^T$$
+
+            每一项都是秩为 1 的矩阵。只留前 $k$ 项，得到秩为 $k$ 的矩阵 $A_k$，它是所有秩为 $k$ 的矩阵里离 $A$ 最近的（Eckart–Young 定理）。存 $A_k$ 只要存 $k$ 组 $\sigma_i, u_i, v_i$。
+      - item:
+          id: storage
+          type: number
+          prompt: 1000×1000 的图片只留前 20 项（秩 20 的近似）。每一项要存 1 个 σ、1000 个数的 u、1000 个数的 v。一共要存多少个数？
+          answer: 40020
+          explain: 20 × (1 + 1000 + 1000) = 40020，约是原来 100 万个数的 4%。
+      - card:
+          title: 方差
+          body: |
+            一组数离它们的平均值有多散，用**方差（variance）**量：各数减去平均值，平方，加起来，除以（个数 − 1）。
+
+            $3, 5, 7$ 的平均是 5，方差是 $\frac{(-2)^2 + 0^2 + 2^2}{2} = 4$。
+      - card:
+          title: 主成分分析
+          body: |
+            每个样本测了几项数，排成矩阵 $A$ 的一列。先让每一行减去自己的平均值（中心化），再做 SVD：
+
+            第一个奇异向量 $u_1$ 是数据散得最开（方差最大）的方向，叫第一主成分；$\frac{\sigma_i^2}{n-1}$ 是数据在 $u_i$ 方向上的方差。这叫**主成分分析（principal component analysis, PCA）**。
+      - item:
+          id: variance
+          type: number
+          prompt: 1、2、6 这三个数的方差是多少？（按除以个数 − 1 算）
+          answer: 7
+          explain: 平均 3，偏差 −2、−1、3，平方和 4 + 1 + 9 = 14，除以 2 得 7。
+      - card:
+          title: 例题：四个点的主方向
+          body: 四个点 $(2, 1)$、$(-2, -1)$、$(1, 1)$、$(-1, -1)$，平均已经是 $(0, 0)$。
+          reveal:
+            - title: 第 1 步：排成矩阵
+              body: '$A = \begin{bmatrix}2&-2&1&-1\\1&-1&1&-1\end{bmatrix}$，$AA^T = \begin{bmatrix}10&6\\6&4\end{bmatrix}$。'
+            - title: 第 2 步：AAᵀ 的特征值
+              body: $\lambda^2 - 14\lambda + 4 = 0$，$\lambda = 7 \pm \sqrt{45} \approx 13.708, 0.292$。它们就是 $\sigma_1^2, \sigma_2^2$。
+            - title: 第 3 步：第一主成分占多少
+              body: $\frac{13.708}{13.708 + 0.292} \approx 0.979$：约 97.9% 的散布都在第一主成分方向上，两维的数据几乎只用一维就能描述。
+      - item:
+          id: pca-share
+          type: choice
+          prompt: 做 PCA 之前，为什么要先让每一项数减去它的平均值？
+          options:
+            - text: 要找的是数据围绕中心散开的方向，不减平均，第一方向会指向平均值本身
+              correct: true
+            - text: 为了让所有数都变成正的
+              why: 减去平均值后有正有负，目的不是变正
+            - text: 为了让矩阵变成方阵
+              why: 减平均不改变矩阵的形状
+          explain: PCA 看的是“散开”，散开是相对平均值说的。
+
+  - id: numerical
+    chapter: 特征值
+    title: 电脑上怎么算：主元、条件数和迭代
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 电脑做消元时，每个数只保留有限位有效数字。主元很小（比如 0.0001）会出问题吗？
+          options:
+            - text: 会，乘数很大，舍入误差被放大
+              correct: true
+            - text: 不会，电脑算得很准
+              why: 每一步都有一点舍入误差，乘以 10000 倍的乘数后就变得很大
+          explain: 实际的消元会换行，挑最大的那个当主元。
+      - card:
+          title: 部分主元
+          body: |
+            $0.0001x + y = 1$，$x + y = 2$（真解约 $x = 1.0001$，$y = 0.9999$）。只保留 3 位有效数字，用 0.0001 当主元：乘数 10000，$y$ 算出 1，回代 $0.0001x = 0$，$x = 0$——完全错了。
+
+            先交换两行，用 1 当主元，乘数只有 0.0001，得 $y = 1$、$x = 1$：对了。每一列都挑绝对值最大的数当主元，叫**部分主元**。
+      - item:
+          id: pivot-choice
+          type: choice
+          prompt: 第一列是 (0.001, 5, −8)。用部分主元法，哪一行当第一个主元？
+          options:
+            - text: 第三行（−8）
+              correct: true
+            - text: 第一行（0.001）
+              why: 主元太小，乘数就很大，舍入误差会被放大
+            - text: 第二行（5）
+              why: 比的是绝对值，|−8| = 8 比 5 大
+          explain: 挑绝对值最大的：|−8| 最大。
+      - card:
+          title: 范数和条件数
+          body: |
+            矩阵的**范数（norm）** $\|A\|$ 是它最多能把向量拉长的倍数，就是最大的奇异值 $\sigma_{\max}$。
+
+            **条件数（condition number）** $\kappa = \|A\|\,\|A^{-1}\| = \frac{\sigma_{\max}}{\sigma_{\min}}$。$b$ 有一点相对误差，解 $x$ 的相对误差最多被放大 $\kappa$ 倍。$\kappa$ 很大的方程组叫病态的。
+      - item:
+          id: kappa
+          type: number
+          prompt: '$A = \begin{bmatrix}1&0\\0&0.001\end{bmatrix}$ 的条件数是多少？'
+          answer: 1000
+          explain: 奇异值是 1 和 0.001，κ = 1/0.001 = 1000。
+      - card:
+          title: 例题：病态的方程组
+          body: '$x + y = 2$，$x + 1.0001y = 2.0001$。'
+          reveal:
+            - title: 第 1 步：原来的解
+              body: 两式相减：$0.0001y = 0.0001$，$y = 1$，$x = 1$。
+            - title: 第 2 步：右边改动 0.0001
+              body: 把 2.0001 改成 2.0002：$0.0001y = 0.0002$，$y = 2$，$x = 0$。
+            - title: 第 3 步：放大了多少
+              body: $b$ 只变了约 0.005%，$x$ 从 $(1, 1)$ 跳到 $(0, 2)$。这个矩阵的条件数约 40000。
+      - item:
+          id: ill
+          type: number
+          prompt: '$x + y = 2$，$x + 1.0001y = 2.0003$。$x$ 是多少？'
+          answer: -1
+          explain: 相减：0.0001y = 0.0003，y = 3，x = 2 − 3 = −1。右边只差一点点，解差了很多。
+      - card:
+          title: 迭代法和预条件
+          body: |
+            很大的方程组常用**迭代（iteration）**：一遍遍重复同一个简单的计算，每次用上一次的结果。Jacobi 方法把 $A$ 拆成对角部分 $S$ 和其余部分：$Sx_{k+1} = (S - A)x_k + b$。$S$ 是对角的，解起来很快。
+
+            选一个接近 $A$、又容易解的 $S$，叫**预条件（preconditioner）**。$S^{-1}(S - A)$ 的特征值绝对值都小于 1 时，误差越来越小。
+      - item:
+          id: jacobi
+          type: number
+          prompt: 'Jacobi 方法解 $2x - y = 1$，$-x + 2y = 1$：$x_{k+1} = \frac{1 + y_k}{2}$，$y_{k+1} = \frac{1 + x_k}{2}$。从 $(0, 0)$ 出发，第三步后是 $(0.875, 0.875)$。第四步后 $x$ 是多少？'
+          answer: 0.9375
+          explain: (1 + 0.875)/2 = 0.9375。真解是 (1, 1)，误差每步减半（S⁻¹(S − A) 的特征值是 ±0.5）。
+      - item:
+          id: jacobi-error
+          type: number
+          prompt: 一个迭代法每一步把误差乘 0.5。10 步以后，误差变成原来的多少？（保留六位小数）
+          answer: 0.000977
+          tolerance: 0.000001
+          explain: 0.5¹⁰ = 1/1024 ≈ 0.000977。
+
+boss:
+  items:
+    - id: elim-boss
+      type: number
+      prompt: '用消元解：$x + 2y + z = 4$，$2x + 5y + 3z = 9$，$x + 3y + 3z = 6$。$x$ 是多少？'
+      answer: 3
+      explain: 消元得 y + z = 1、y + 2z = 2，所以 z = 1，y = 0，x = 4 − 0 − 1 = 3。
+    - id: inv-boss
+      type: number
+      prompt: '$A = \begin{bmatrix}3&2\\4&3\end{bmatrix}$。$A^{-1}$ 第 1 行第 2 列的数是多少？'
+      answer: -2
+      explain: ad − bc = 9 − 8 = 1，A⁻¹ = [[3, −2], [−4, 3]]。
+    - id: det-boss
+      type: number
+      prompt: '$\det\begin{bmatrix}1&2&3\\0&4&5\\1&0&6\end{bmatrix}$ 是多少？'
+      answer: 22
+      explain: 沿第一行展开：1 × 24 − 2 × (−5) + 3 × (−4) = 24 + 10 − 12 = 22。
+    - id: rank-boss
+      type: number
+      prompt: '$A = \begin{bmatrix}1&2&3\\2&4&6\\1&0&1\end{bmatrix}$ 的零空间的维数是多少？'
+      answer: 1
+      explain: 第 2 行是第 1 行的 2 倍，秩 r = 2，零空间维数 n − r = 3 − 2 = 1，基是 (−1, −1, 1)。
+    - id: dims-boss
+      type: number
+      prompt: A 是 4×6 矩阵，秩是 3。左零空间 N(Aᵀ) 的维数是多少？
+      answer: 1
+      explain: N(Aᵀ) 在 ℝ⁴ 里，维数 m − r = 4 − 3 = 1。
+    - id: map-boss
+      type: number
+      prompt: 线性变换 T 把 (1, 0) 变成 (1, 2)，把 (0, 1) 变成 (3, −1)。T(2, 1) 的第一个数是多少？
+      answer: 5
+      explain: T(2, 1) = 2(1, 2) + 1(3, −1) = (5, 3)。T 的矩阵的两列就是 (1, 2) 和 (3, −1)。
+    - id: proj-boss
+      type: number
+      prompt: '$b = (1, 2, 2)$ 在 $u = (1, 0, 1)$ 方向上的投影 $p$，第一个数是多少？'
+      answer: 1.5
+      explain: p = (uᵀb/uᵀu)u = (3/2)(1, 0, 1) = (1.5, 0, 1.5)，误差 (−0.5, 2, 0.5) 和 u 正交。
+    - id: ls-boss
+      type: number
+      prompt: 用最小二乘给 (0, 6)、(1, 0)、(2, 0) 拟合直线 b = C + Dt。C 是多少？
+      answer: 5
+      explain: AᵀA = [[3, 3], [3, 5]]，Aᵀb = (6, 0)；3C + 3D = 6，3C + 5D = 0，D = −3，C = 5。
+    - id: eig-boss
+      type: number
+      prompt: '$B = \begin{bmatrix}2&1\\1&2\end{bmatrix}$ 较大的特征值是多少？'
+      answer: 3
+      explain: (2 − λ)² − 1 = 0，λ = 3 或 1；单位特征向量 (1, 1)/√2 和 (1, −1)/√2，B = QΛQᵀ。
+    - id: pd-boss
+      type: choice
+      prompt: 下面哪个对称矩阵是正定的？
+      options:
+        - text: '$\begin{bmatrix}4&2\\2&3\end{bmatrix}$'
+          correct: true
+        - text: '$\begin{bmatrix}1&3\\3&4\end{bmatrix}$'
+          why: ac − b² = 4 − 9 = −5 < 0，有一个负的特征值
+        - text: '$\begin{bmatrix}2&2\\2&2\end{bmatrix}$'
+          why: ac − b² = 0，有一个特征值是 0，只是半正定
+      explain: a = 4 > 0，ac − b² = 12 − 4 = 8 > 0。
+    - id: svd-boss
+      type: number
+      prompt: '$A = \begin{bmatrix}3&0\\4&5\end{bmatrix}$。$A^TA$ 较大的特征值是 45。$A$ 最大的奇异值约是多少？（保留三位小数）'
+      answer: 6.708
+      tolerance: 0.001
+      explain: σ₁ = √45 = 3√5 ≈ 6.708。

@@ -17,6 +17,12 @@ const out = path.resolve(process.argv[2] || path.join(ROOT, "temp/shots"));
 fs.mkdirSync(out, { recursive: true });
 const browser = await launchEdge();
 const packs = JSON.parse(fs.readFileSync(path.join(ROOT, "src/gen/content.json"), "utf8"));
+// A maths skill with no content pack yet (its exercise has formulas), for the self-study and music checks.
+// Picked from the tree, not named: these checks used M.1.1 and went stale when its pack was written.
+const TREE_SKILLS = JSON.parse(fs.readFileSync(path.join(ROOT, "src/gen/tree.json"), "utf8")).skills;
+const MATH_NO_PACK = TREE_SKILLS.find((s) => s.id.startsWith("M.") && !packs[s.id] && s.exercise).id;
+// The same for a computing-foundations skill (the check used F.1.2 until its pack was written).
+const FOUNDATION_NO_PACK = TREE_SKILLS.find((s) => s.id.startsWith("F.") && !packs[s.id] && s.exercise).id;
 const errors = [];
 // The game never asks players to grade themselves or to declare a skill known (removed 2026-11-03).
 for (const banned of ["自评", "全做对了", "大多没做出来", "我已经会了", "已会（跳过）"]) {
@@ -62,7 +68,7 @@ for (const [name, viewport, scheme] of [["self-study", DESK, "light"], ["self-st
     const state = JSON.parse(saved);
     if (state.xp !== 123 || state.skills["C.3.5"].lit || state.skills["P.1.1"].lit || state.skills["C.3.5"].selfChapters || state.skills["C.1.1"].lit !== at) errors.push(`[${name}] old save migration changed the wrong progress`);
     await p.waitForFunction(() => document.querySelector(".stats li b")?.textContent.trim() === "1");
-    for (const id of ["M.1.1", "C.3.5", "F.1.2"]) {
+    for (const id of [MATH_NO_PACK, "C.3.5", FOUNDATION_NO_PACK]) {
       await p.goto(url + `#/skill/${id}`);
       await p.waitForSelector(".skill .badge.st-dev");
       if (await p.$('.chapters input, .skill-head [role="progressbar"], .reading-history')) errors.push(`[${name}] ${id} still offers reading progress`);
@@ -103,9 +109,12 @@ await session("home", DESK, async (p, shot) => {
   }
   await p.waitForSelector(".page.pick");
   await shot("1-pick", true);
-  // 我的远征 is the only route that can be chosen; recommended routes and 自己定目标 say 开发中.
+  // 我的远征 and the recommended routes whose every stop is written (算法, opened 2026-11-04) can be chosen;
+  // the other recommended routes and 自己定目标 say 开发中.
   const dev = await p.$$eval(".route-card.dev", (cs) => cs.map((c) => !!c.querySelector("button[disabled]")));
   if (dev.length < 5 || dev.some((d) => !d)) errors.push(`[home] expected greyed-out recommended routes with disabled buttons, got ${JSON.stringify(dev)}`);
+  const openRec = await p.$$eval(".routes:not(.mine) .route-card:not(.dev)", (cs) => cs.map((c) => [c.getAttribute("aria-label"), !!c.querySelector(".btn.primary")]));
+  if (JSON.stringify(openRec) !== JSON.stringify([["算法", true]])) errors.push(`[home] expected the 算法 route open with a start button, got ${JSON.stringify(openRec)}`);
   if ((await p.$$(".routes.mine .route-card:not(.dev) .btn.primary")).length !== 1) errors.push("[home] 我的远征 should offer exactly one start button");
   if (await p.$(".goal-list")) errors.push("[home] the goal picker is open although 自己定目标 is in development");
   await p.click(".routes.mine .route-card .btn.primary");
@@ -332,7 +341,7 @@ await session("music", DESK, async (p) => {
   await expect("lesson", "focus");
   await go("#/boss/C.2.1");
   await expect("final challenge", "challenge");
-  await go("#/boss/M.1.1");
+  await go(`#/boss/${MATH_NO_PACK}`);
   await expect("exercise of a skill without lessons", "explore");
   await go("#/me");
   await p.selectOption(".music-settings select", "chip");

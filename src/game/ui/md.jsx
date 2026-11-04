@@ -27,6 +27,45 @@ if (typeof document !== "undefined") {
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeAll(null); });
 }
 
+// Formulas, tables and code wider than the column scroll sideways (style.css). Phones show no scrollbar, so
+// a cut-off formula looked finished: the side that has more now fades out (classes more-l / more-r, a CSS
+// mask, so it works on any background) and the fade goes when that end is reached. Wide ones also get
+// tabindex=0 so the keyboard can scroll them. Re-checked whenever the page changes, scrolls or resizes.
+const SCROLLERS = ".md .katex-display, .md .katex-line, .md table, .md pre, pre.code";
+// Inline formulas: KaTeX breaks them only after top-level relations and operators (= + − …), as TeX does. A
+// piece with no such break (a list "a, b, c", a wide fraction) can be wider than the line, which widened the
+// whole page; such a formula gets a line of its own (class katex-line) that scrolls and fades like a display one.
+function fitInline(el) {
+  if (el.classList.contains("katex-line") || el.closest(".katex-display, table")) return;
+  const box = el.closest("p, li, blockquote, .md");
+  if (!box) return;
+  const right = box.getBoundingClientRect().right - parseFloat(getComputedStyle(box).paddingRight);
+  if ([...el.getClientRects()].some((r) => r.right > right + 1)) el.classList.add("katex-line");
+}
+function markScroller(el) {
+  const max = el.scrollWidth - el.clientWidth, wide = max > 1;
+  el.classList.toggle("more-l", wide && el.scrollLeft > 1);
+  el.classList.toggle("more-r", wide && el.scrollLeft < max - 1);
+  if (wide) el.tabIndex = 0;
+  else el.removeAttribute("tabindex");
+}
+if (typeof document !== "undefined" && typeof MutationObserver !== "undefined") {
+  let queued = false, refit = false;
+  const markAll = () => {
+    queued = false;
+    // the width changed: put lifted formulas back inline and measure again (fitInline lifts them if still needed)
+    if (refit) { refit = false; document.querySelectorAll(".katex-line").forEach((e) => { e.classList.remove("katex-line", "more-l", "more-r"); e.removeAttribute("tabindex"); }); }
+    document.querySelectorAll(".md .katex").forEach(fitInline);
+    document.querySelectorAll(SCROLLERS).forEach(markScroller);
+  };
+  const later = () => { if (!queued) { queued = true; requestAnimationFrame(markAll); } };
+  const resized = () => { refit = true; later(); };
+  new MutationObserver(later).observe(document.documentElement, { childList: true, subtree: true });
+  window.addEventListener("resize", resized);
+  document.fonts?.ready.then(resized);
+  document.addEventListener("scroll", (e) => { if (e.target instanceof Element && e.target.matches(SCROLLERS)) markScroller(e.target); }, { capture: true, passive: true });
+}
+
 export function renderMd(text, inline = false) {
   if (!text) return "";
   const t = withTerms(String(text));

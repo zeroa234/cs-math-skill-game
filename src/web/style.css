@@ -42,6 +42,7 @@
   --series-2: #eb6834;
   --series-3: #1baf7a;
   --axis: #b3a88f;
+  --grid: #e6dcc6;
     --shadow: none;
   --font: "Fusion Pixel", system-ui, "Microsoft YaHei", "PingFang SC", sans-serif;
   --px: var(--font);
@@ -58,7 +59,7 @@
     --accent: #7187ff; --accent-strong: #a9b6ff; --accent-edge: #4256c9; --accent-ink: #0b0e2b; --accent-soft: #262d5c;
     --good: #52c46a; --good-edge: #2f8a43; --good-soft: #17301f; --good-ink: #08200f; --bad: #f07a7f; --bad-edge: #b8454b; --bad-soft: #3a1f25; --bad-ink: #2a0709;
     --warn: #e9b052; --gold: #f2bd3a; --gold-edge: #b08415; --lit: #f2bd3a; --lit-soft: #3a3019; --pink: #f08cc0;
-    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --axis: #5d5b86;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --grid: #2a2a4c; --axis: #5d5b86;
     --rim: #7474b4; --rim-deep: #4a4a85; --focus: #fff4c2; }
 }
 :root[data-theme="dark"] {
@@ -67,7 +68,7 @@
   --accent: #7187ff; --accent-strong: #a9b6ff; --accent-edge: #4256c9; --accent-ink: #0b0e2b; --accent-soft: #262d5c;
   --good: #52c46a; --good-edge: #2f8a43; --good-soft: #17301f; --good-ink: #08200f; --bad: #f07a7f; --bad-edge: #b8454b; --bad-soft: #3a1f25; --bad-ink: #2a0709;
   --warn: #e9b052; --gold: #f2bd3a; --gold-edge: #b08415; --lit: #f2bd3a; --lit-soft: #3a3019; --pink: #f08cc0;
-  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --axis: #5d5b86;
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --grid: #2a2a4c; --axis: #5d5b86;
     --rim: #7474b4; --rim-deep: #4a4a85; --focus: #fff4c2; }
 
 * { box-sizing: border-box; }
@@ -88,7 +89,12 @@ pre.code, .md pre { background: var(--panel-2); border: 1px solid var(--line); p
 .md table { border-collapse: collapse; margin: 0.6em 0; font-size: var(--fs); display: block; overflow-x: auto; }
 .md th, .md td { border: 1px solid var(--line); padding: 0.3em 0.7em; text-align: left; }
 .md blockquote { margin: 0.5em 0; padding-left: 1em; border-left: 3px solid var(--line); color: var(--ink-2); }
-.md .katex-display { overflow-x: auto; overflow-y: hidden; padding: 0.2em 0; }
+.md .katex-display, .md .katex-line { overflow-x: auto; overflow-y: hidden; padding: 0.2em 0; }
+.md .katex-line { display: block; } /* an inline formula wider than the line gets its own line (ui/md.jsx, fitInline) */
+/* Wider than the column: the side with more fades out (ui/md.jsx, markScroller), since phones hide scrollbars */
+.more-r { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 3em), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 3em), transparent); }
+.more-l { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 3em), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 3em), transparent); }
+.more-l.more-r { -webkit-mask-image: linear-gradient(to right, transparent, #000 3em, #000 calc(100% - 3em), transparent); mask-image: linear-gradient(to right, transparent, #000 3em, #000 calc(100% - 3em), transparent); }
 :focus-visible { outline: var(--p) solid var(--focus); outline-offset: 2px; }
 
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -359,7 +365,7 @@ a.stat-chip:hover { text-decoration: none; background: rgba(255, 255, 255, 0.24)
 .option .why { grid-column: 2; font-size: var(--fs); color: var(--ink-2); }
 .option:disabled { cursor: default; }
 .answer-line { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.6rem 0; }
-.answer-line input, .answer-line textarea, .fields input { font: inherit; padding: 0.5rem 0.7rem; border: var(--p) solid var(--rim); background: var(--panel); color: var(--ink); min-width: 0; }
+.answer-line input, .answer-line textarea, .fields input, .matrix-in input { font: inherit; padding: 0.5rem 0.7rem; border: var(--p) solid var(--rim); background: var(--panel); color: var(--ink); min-width: 0; }
 .answer-line input { flex: 1 1 200px; max-width: 360px; }
 .answer-line textarea { flex: 1 1 100%; font-family: var(--mono); }
 .answer-line.is-correct input, .answer-line.is-correct textarea, input.is-correct { border-color: var(--good); }
@@ -440,12 +446,20 @@ a.stat-chip:hover { text-decoration: none; background: rgba(255, 255, 255, 0.24)
 .plot.graph svg { touch-action: manipulation; }
 .gedge line { stroke: var(--axis); stroke-width: 2; }
 .gedge polygon { fill: var(--axis); }
-.gedge.tree line { stroke-width: 4; }
+.gedge.tree line, .gedge.aug line { stroke-width: 4; }
 .gedge.tree line { stroke: var(--accent); }
 .gedge.tree polygon { fill: var(--accent); }
+.gedge .elabel { fill: var(--ink-2); font: calc(var(--u, 1) * 12px) var(--font); paint-order: stroke; stroke: var(--panel-2); stroke-width: 4px; stroke-linejoin: round; }
+.gedge.full line { stroke: var(--ink-2); }
+.gedge.full polygon { fill: var(--ink-2); }
+.gedge.aug line { stroke: var(--series-2); }
+.gedge.aug polygon { fill: var(--series-2); }
+.gedge.aug.back line { stroke-dasharray: 7 4; }
+.gedge.cut line { stroke: var(--bad); stroke-width: 3; stroke-dasharray: 3 3; }
 .gnode circle { fill: var(--panel); stroke: var(--axis); stroke-width: 2; }
 .gnode .nlabel { fill: var(--ink); font: calc(var(--u, 1) * 12px) var(--font); pointer-events: none; }
 .gnode .nbadge { fill: var(--accent-strong); font: calc(var(--u, 1) * 12px) var(--font); paint-order: stroke; stroke: var(--panel-2); stroke-width: 3px; pointer-events: none; }
+.gnode .nsub { fill: var(--ink-2); font: calc(var(--u, 1) * 12px) var(--mono); paint-order: stroke; stroke: var(--panel-2); stroke-width: 5px; stroke-linejoin: round; pointer-events: none; }
 .gnode.visited circle { fill: var(--accent-soft); stroke: var(--accent); }
 .gnode.current circle { stroke-width: 4; }
 .gnode.candidate circle { stroke: var(--series-3); stroke-width: 3; stroke-dasharray: 4 3; }
@@ -586,8 +600,8 @@ a.stat-chip:hover { text-decoration: none; background: rgba(255, 255, 255, 0.24)
   --notch-2: polygon(0 12px, 6px 12px, 6px 6px, 12px 6px, 12px 0, calc(100% - 12px) 0, calc(100% - 12px) 6px, calc(100% - 6px) 6px, calc(100% - 6px) 12px, 100% 12px, 100% calc(100% - 12px), calc(100% - 6px) calc(100% - 12px), calc(100% - 6px) calc(100% - 6px), calc(100% - 12px) calc(100% - 6px), calc(100% - 12px) 100%, 12px 100%, 12px calc(100% - 6px), 6px calc(100% - 6px), 6px calc(100% - 12px), 0 calc(100% - 12px));
 }
 .card, .lcard, .chapter, .badge, .tag, .hint, .bar-track, .pbar, .coach .say, .reward, .toast, .stat-chip, .dev-tag, .unit-head, .continue .unit-icon, .camp-hero, .route-banner,
-.evidence, .container, .container .cell, .thread, .codelines, .md pre, pre.code, .console, .order-answer, .ch-no, .reveal-part, .plot svg, .option .key,
-.btn, .icon-btn, .option, .chip, .goal-item, .lane-chip, .bit, .slot, .mcard, .topbar nav a, .answer-line input, .answer-line textarea, .fields input, .pick-tools input, .select select, .player-head .close {
+.evidence, .container, .container .cell, .thread, .codelines, .md pre, pre.code, .console, .order-answer, .ch-no, .reveal-part, .plot svg, .readout, .option .key,
+.btn, .icon-btn, .option, .chip, .goal-item, .lane-chip, .bit, .slot, .mcard, .topbar nav a, .answer-line input, .answer-line textarea, .fields input, .matrix-in input, .pick-tools input, .select select, .player-head .close {
   clip-path: var(--notch);
 }
 /* clipped frames draw their focus ring inside: the outline covers the frame and a panel-coloured ring
@@ -596,7 +610,7 @@ a.stat-chip:hover { text-decoration: none; background: rgba(255, 255, 255, 0.24)
   outline: var(--p) solid var(--focus); outline-offset: calc(-1 * var(--p)); box-shadow: inset 0 0 0 3px var(--panel);
 }
 /* thin frames get the same width as everything else, so the notch never breaks a line */
-.chapter, .thread, .codelines, .md pre, pre.code, .plot svg, .container .cell, .select select { border-width: var(--p); }
+.chapter, .thread, .codelines, .md pre, pre.code, .plot svg, .container .cell, .readout, .select select { border-width: var(--p); }
 .chapter { border-color: var(--rim); }
 .tag, .dev-tag, .option .key { border: 0; padding: 1px 6px; }
 .option .key { background: var(--panel-2); }
@@ -673,3 +687,51 @@ h4 { font-size: var(--fs); color: var(--accent-strong); }
 
 /* 我的 → 版本: release notes from GitHub, kept short on screen */
 .release-notes { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 12rem; overflow: auto; background: var(--panel-2); padding: 0.5rem 0.7rem; margin: 0.4rem 0 0.8rem; }
+
+/* math and machine-learning sims (src/game/sims/views/math.jsx) */
+.plot.square { max-width: 340px; }
+.plot .grid { stroke: var(--grid); stroke-width: 1; }
+.plot .axis { stroke: var(--axis); stroke-width: 1.2; }
+.plot .tick { fill: var(--muted); font-size: var(--fs-s); font-family: var(--font); }
+.plot .fn { fill: none; stroke: var(--ink); stroke-width: 2; }
+.plot .fn-2 { fill: none; stroke: var(--series-1); stroke-width: 2; }
+.plot .path { fill: none; stroke: var(--series-2); stroke-width: 2; stroke-dasharray: 4 3; }
+.plot .dot { fill: var(--ink); stroke: var(--panel); stroke-width: 2; }
+.plot .dot-2 { fill: var(--series-2); }
+.plot .hole { fill: var(--panel); stroke: var(--ink); stroke-width: 2; }
+.plot .bar { fill: color-mix(in srgb, var(--series-1) 35%, transparent); stroke: var(--series-1); stroke-width: 1; }
+.plot .expect { stroke: var(--series-2); stroke-width: 2; }
+.plot .marker, .plot .crosshair { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.plot .tgrid { stroke: color-mix(in srgb, var(--series-1) 45%, transparent); stroke-width: 1; }
+.plot .unit { fill: color-mix(in srgb, var(--series-3) 30%, transparent); stroke: var(--series-3); stroke-width: 1.5; }
+.plot .vec { stroke-width: 3; stroke-linecap: round; }
+.plot .v1 { stroke: var(--series-1); }
+.plot .v2 { stroke: var(--series-2); }
+.plot .heat { fill: var(--series-1); }
+.plot .region-1 { fill: color-mix(in srgb, var(--series-2) 22%, transparent); }
+.plot .region-0 { fill: color-mix(in srgb, var(--series-1) 14%, transparent); }
+.plot .pt { stroke: var(--panel); stroke-width: 1.5; }
+.plot .pt-0 { fill: var(--series-1); }
+.plot .pt-1 { fill: var(--series-2); }
+.plot .pt-2 { fill: var(--series-3); }
+.plot .ptlabel { fill: #fff; font-size: var(--fs-s); pointer-events: none; }
+.plot .centroid line { stroke-width: 3; stroke: var(--ink); }
+.readout { position: absolute; left: 8px; top: 8px; font-size: var(--fs-s); background: var(--panel); border: 1px solid var(--line); padding: 0.1rem 0.5rem; pointer-events: none; }
+.legend .li { white-space: nowrap; }
+.sw { display: inline-block; width: 18px; height: 3px; margin-right: 0.35em; }
+.sw-fn { background: var(--ink); }
+.sw-1 { background: var(--series-1); }
+.sw-2 { background: var(--series-2); }
+.slider { display: grid; gap: 0.2rem; margin: 0.6rem 0; max-width: 460px; font-size: var(--fs); }
+.slider input { width: 100%; accent-color: var(--accent); min-height: 30px; }
+.values { border-collapse: collapse; font-size: var(--fs); margin: 0.6rem 0; font-variant-numeric: tabular-nums; display: block; overflow-x: auto; }
+.values-pair { display: flex; flex-wrap: wrap; gap: 0 1rem; }
+.values-pair .values { display: table; }
+.values caption { text-align: left; color: var(--muted); font-size: var(--fs-s); padding: 0.2rem 0; }
+.values th, .values td { border: 1px solid var(--line); padding: 0.2rem 0.5rem; text-align: right; white-space: nowrap; }
+.sim-neuron, .sim-mlp, .sim-kmeans, .sim-matrix { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; }
+.sim-neuron .controls, .sim-mlp .controls, .sim-kmeans .controls { flex: 1 1 240px; }
+.matrix-in { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.matrix-in .bracket { font-size: var(--fs-xxl); line-height: 1; color: var(--muted); }
+.mgrid { display: grid; grid-template-columns: 80px 80px; gap: 0.4rem; }
+.mgrid input { width: 80px; text-align: center; }

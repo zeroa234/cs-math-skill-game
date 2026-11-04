@@ -8,3 +8,4 @@ src/web/outlines.js
 
 # Android release signing key and its passwords: never commit; back it up (needed to ship updates)
 config/android/
+.venv/

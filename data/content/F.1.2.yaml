@@ -1,0 +1,3696 @@
+skill: F.1.2
+version: 2
+authors: [main-agent]
+brief:
+  why: 同一个问题，好的算法和差的算法可以差出几十亿倍。这一关学怎样分析一个算法要花多少时间和内存，以及设计算法的几种基本思路：分治、贪心、动态规划；再把它们用在图（遍历、最短路、网络流和匹配）和字符串（查找、字典树、后缀数组）上。只假设你学过数据结构和证明方法：数组、链表、堆、图的存法、BFS 和 DFS、归纳法、递推式和主定理。代码用 Python。
+  outcomes:
+    - 数出程序的步数，用波浪号近似、大 O、Ω、Θ 描述增长，用倍增实验估计运行时间，按原书的模型估算内存
+    - 画递归树、用主定理解分治的递推式，说出递归和迭代的取舍，证明比较排序至少要 log₂(n!) 次比较
+    - 讲清三次乘法、随机选择、Strassen 和 FFT 为什么比直接的做法快
+    - 用贪心解活动安排、最小生成树（Kruskal、Prim、并查集）、Huffman 编码和 Horn 公式，用交换论证证明它对，并说出集合覆盖上贪心为什么不是最优
+    - 用动态规划解最长递增子序列、编辑距离、最长公共子序列、背包、矩阵链乘法、旅行商和树上的独立集，用聚合、记账、势能三种方法做摊还分析
+    - 求连通分量、拓扑排序和强连通分量，用 Dijkstra、Bellman–Ford、Floyd–Warshall 求最短路并判断负环
+    - 用增广路求最大流和最小割，把二分图匹配化成最大流
+    - 用 Rabin–Karp、KMP 在文本里找模式串，会用字典树、正则表达式和后缀数组
+terms:
+  - term: 代价模型
+    def: '分析算法时约定只数的那种基本操作，如比较次数、数组读写次数'
+  - term: 波浪号近似
+    def: 'g(n) ∼ f(n)：n 越大 g(n)/f(n) 越接近 1；扔掉低阶项，保留最高项的系数'
+  - term: 最坏情况
+    def: '同样大小的输入里最难的那个要花的代价，是对所有输入的保证'
+  - term: 下界
+    def: '证明任何算法都不可能比它更少的代价'
+  - term: 空间复杂度
+    def: '算法运行时临时占用的内存怎样随 n 增长，也用大 O 表示'
+  - term: 字节
+    def: '内存的计量单位，一个字节能存 0 到 255 之间的一个数'
+  - term: 迭代
+    def: '用循环一步一步往前推的重复方式，和函数调用自己的递归相对'
+  - term: 尾递归
+    def: '递归调用是函数返回前的最后一步，调用完直接返回它的结果'
+  - term: 等比数列
+    def: '后一项总是前一项的同一个倍数（公比）的一列数，如 1、2、4、8'
+  - term: 傅里叶变换
+    def: '在 n 个特殊的复数点（n 次单位根）上求多项式的值；分治的快速算法叫 FFT'
+  - term: 贪心算法
+    def: '每一步都挑眼下看起来最好的选项、选了就不再改的算法；要证明了才能用'
+  - term: 交换论证
+    def: '证明贪心对的方法：把最优解里的某个选择换成贪心的选择，结果不变差'
+  - term: 生成树
+    def: '连通无向图里，用一部分边把所有顶点连通、又没有圈的树；n 个顶点有 n − 1 条边'
+  - term: 最小生成树
+    def: '边的权重之和最小的生成树，简称 MST'
+  - term: 并查集
+    def: '维护一个划分的结构：find 查元素所在组的代表，union 把两组合成一组'
+  - term: 前缀码
+    def: '没有一个码字是另一个码字开头的编码，读到一个完整码字就能立刻确定字母'
+  - term: Horn 公式
+    def: '由“几个变量都真 ⇒ 某变量真”的蕴含和“几个变量不能都真”的子句组成的公式'
+  - term: 可满足
+    def: '能给变量赋真假值，让公式的所有子句都成立'
+  - term: 集合覆盖
+    def: '挑出尽量少的子集，使它们合起来包含所有元素的问题'
+  - term: 自然对数
+    def: '以 e ≈ 2.718 为底的对数，写成 ln'
+  - term: 有向无环图
+    def: '没有圈的有向图，简称 DAG；顶点能排成一行，让所有边都从左指向右'
+  - term: 动态规划
+    def: '定下一组子问题，从小到大逐个解，用小问题的答案算大问题的方法'
+  - term: 子序列
+    def: '从一列数或一个串里按原来的先后挑出的一部分，不要求挨着'
+  - term: 记忆化
+    def: '递归时把算过的答案存起来（如存进字典），再遇到同一个子问题直接取用'
+  - term: 编辑距离
+    def: '把一个字符串变成另一个最少要几次插入、删除或替换一个字符'
+  - term: 最长公共子序列
+    def: '两个串都含有的子序列里最长的那个，简称 LCS'
+  - term: 独立集
+    def: '图里一组顶点，任意两个之间都没有边'
+  - term: 二进制
+    def: '只用 0 和 1、逢二进一的写数方法，如 101 表示 5'
+  - term: 摊还分析
+    def: '分析一整串操作合起来最多花多少，再平均到每次操作上'
+  - term: 聚合分析
+    def: '摊还分析的一种：直接算出 n 次操作的总代价，再除以 n'
+  - term: 记账法
+    def: '摊还分析的一种：便宜的操作多收一点存起来，留给以后贵的操作用，存款不能为负'
+  - term: 势能法
+    def: '摊还分析的一种：给状态定一个势能 Φ ≥ 0，摊还代价 = 真实代价 + Φ 的变化'
+  - term: 连通分量
+    def: '无向图里互相能走到的一块顶点；块与块之间没有路'
+  - term: 二分图
+    def: '顶点能分成两组、每条边都连接不同组的图；等价于没有奇数长的圈'
+  - term: 后序
+    def: 'DFS 中一个顶点的出边全部处理完、要退回时记下它的顺序'
+  - term: 逆后序
+    def: '后序倒过来；在有向无环图上就是一个拓扑排序'
+  - term: 强连通分量
+    def: '有向图里互相能到的一组顶点（强连通的等价类）'
+  - term: 强连通
+    def: '有向图里 v 能到 w、w 也能到 v'
+  - term: 松弛
+    def: '看边 u→v：若 dist(u) + 边长 < dist(v)，就把 dist(v) 改小并记下来路'
+  - term: 负环
+    def: '边长之和为负的有向圈；能走到它时最短路没有意义'
+  - term: 流网络
+    def: '每条边有容量、有源点 s 和汇点 t 的有向图；流量不超过容量，中间点流进等于流出'
+  - term: 增广路
+    def: '残量网络里从 s 到 t 的一条路，沿它还能多送流量（可以退回已有的流量）'
+  - term: 残量网络
+    def: '每条边还能正着送“容量 − 流量”、反着退“流量”画成的图'
+  - term: 最大流最小割定理
+    def: '最大流的值等于最小割的容量'
+  - term: 匹配
+    def: '图里一组边，任意两条都不共用顶点'
+  - term: 点覆盖
+    def: '一组顶点，每条边至少有一个端点在里面'
+  - term: 前缀函数
+    def: 'π[i]：s[0..i] 里开头和结尾相同的部分（不能是整段）最长有几个字母'
+  - term: 字典树
+    def: '按字母一层层分岔存字符串的树，单词是从根往下的一条路（trie）'
+  - term: 正则表达式
+    def: '用连接、或（|）、重复（*）和括号描述一组字符串的写法'
+  - term: 非确定状态机
+    def: '读同一个字母可能有几种走法的状态机（NFA）；模拟时同时跟踪所有可能的状态'
+  - term: 后缀数组
+    def: '把一个串的所有后缀按字典序排好后，它们起始位置组成的数组'
+  - term: 后缀
+    def: '从串的某个位置一直到结尾的那一段'
+  - term: 传递闭包
+    def: '和原图顶点相同，v 能走到 w 就有边 v→w 的有向图'
+  - term: 快速排序
+    def: '挑一个支点把数分成比它小、相等、比它大三份，两边递归排好再接起来；平均 O(n log n)'
+lessons:
+  - id: count-steps
+    chapter: 渐近分析
+    title: 数一数：程序要走多少步
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 运行下面的程序，显示的数是多少？
+          code: |
+            n = 10
+            count = 0
+            for i in range(n):
+                for j in range(i + 1, n):
+                    count = count + 1
+            print(count)
+          lang: python
+          options:
+            - text: '45'
+              correct: true
+            - text: '100'
+              why: 里层的 j 从 i + 1 开始，不是从 0 开始；每一对 (i, j) 只数一次，而且 i < j
+            - text: '90'
+              why: 90 是把 (1, 2) 和 (2, 1) 都数了；这里要求 i < j，每一对只数一次
+          explain: i = 0 时里层走 9 次，i = 1 时 8 次……i = 9 时 0 次，一共 9 + 8 + … + 1 = 45 次，也就是 10 个数里挑两个的方法数。
+      - card:
+          title: 运行时间由两样东西决定
+          body: |
+            一个程序要跑多久，原书（algs4 的 1.4 节）说由两样东西决定：**每条语句做一次要多久**，乘上**它被执行了几次**，再全部加起来。
+
+            前一样取决于机器，后一样只取决于程序和输入。分析算法时，我们挑一种最有代表性的基本操作，只数它做了几次。这个约定叫**代价模型（cost model）**，比如“数组被读写的次数”或“比较的次数”。
+      - item:
+          id: two-sum-compares
+          type: number
+          prompt: |
+            下面的函数数一数列表里有几对数加起来等于 0。列表有 1000 个数时，`a[i] + a[j] == 0` 这个比较一共做几次？
+          code: |
+            def count2(a):
+                n = len(a)
+                c = 0
+                for i in range(n):
+                    for j in range(i + 1, n):
+                        if a[i] + a[j] == 0:
+                            c = c + 1
+                return c
+          lang: python
+          answer: 499500
+          hint: 每一对 i < j 比较一次。1000 个数里挑两个有几种挑法？
+          explain: 每一对 $i < j$ 比较一次，一共 $\dfrac{1000 \times 999}{2} = 499500$ 次。一般地是 $\dfrac{n(n-1)}{2}$ 次。
+      - card:
+          title: 三数之和
+          body: |
+            原书的主例子是 3-SUM：数一数有几组三个数加起来等于 0。最直接的写法是三层循环，试遍每一组 $i < j < k$：
+
+            ```python
+            for i in range(n):
+                for j in range(i + 1, n):
+                    for k in range(j + 1, n):
+                        if a[i] + a[j] + a[k] == 0:
+                            c = c + 1
+            ```
+
+            组数是 $\dbinom{n}{3} = \dfrac{n(n-1)(n-2)}{6}$。每组读 3 次数组，所以数组访问约 $\dfrac{n^3}{2}$ 次，原书的结论就是这个数。
+      - item:
+          id: three-sum-10
+          type: number
+          prompt: 三层循环试遍每一组下标 $i < j < k$（每组只试一次）。列表有 10 个数时，一共试几组？
+          answer: 120
+          explain: $\dfrac{10 \times 9 \times 8}{6} = 120$。
+      - card:
+          title: 不是每个操作都只算一步
+          body: |
+            数步数时要小心：看起来是一个操作，不一定是常数步。
+
+            原书 DPV 讲斐波那契数时专门指出：两个很大的数相加，要一位一位地加，位数越多越慢，不能当成一步。algs4 也提醒：“不是基本操作的操作，往往要花不止常数时间。”
+      - item:
+          id: big-add
+          type: choice
+          prompt: 两个 1000 位的十进制整数相加，按小学的竖式，要做大约多少次“一位数加一位数”？
+          options:
+            - text: 约 1000 次
+              correct: true
+            - text: 1 次
+              why: 计算机一次只能加长度固定的数（比如十几位十进制数），1000 位的数要分成很多段一段一段加
+            - text: 约 1000 × 1000 次
+              why: 加法每一位只加一次（再加上进位）；百万次那是竖式乘法
+          explain: 竖式加法每一位做一次，所以要做的次数和位数成正比。分析处理大数的算法（比如很大的斐波那契数）时，加法不能当成一步。
+      - item:
+          id: cost-model-pick
+          type: choice
+          prompt: 要比较两种排序算法谁快，又不想受机器快慢的影响，最合适的代价模型是什么？
+          options:
+            - text: 数一数两个元素之间比较了几次
+              correct: true
+            - text: 用秒表测一次运行时间
+              why: 秒表的结果取决于机器、负载和输入，换台机器就变；代价模型要只取决于算法和输入
+            - text: 数一数程序有几行
+              why: 行数和执行次数无关：一行在循环里可能执行上百万次
+          explain: 排序的核心操作是比较，比较次数只取决于算法和输入，换机器也不变。
+
+  - id: tilde
+    chapter: 渐近分析
+    title: 波浪号：只留最大的那一项
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: $n = 1000$ 时，$\dfrac{n^3}{6} - \dfrac{n^2}{2} + \dfrac{n}{3}$ 和只留第一项的 $\dfrac{n^3}{6}$ 差多少？
+          options:
+            - text: 差不到 1%
+              correct: true
+            - text: 差一半左右
+              why: 后两项和第一项比小得多：n² / 2 只是 n³ / 6 的 3/n
+            - text: 差好几倍
+              why: n 很大时 n³ 比 n² 大得多，后两项几乎可以忽略
+          explain: 两个数分别是 166,167,000 和约 166,666,667，只差 0.3%。$n$ 越大，后面的项越不重要。
+      - card:
+          title: 波浪号近似
+          body: |
+            原书（algs4）的写法：$g(n) \sim f(n)$ 表示 $n$ 越来越大时，$g(n) / f(n)$ 越来越接近 1。这叫**波浪号近似（tilde approximation）**：扔掉低阶的项，但**保留最高项的系数**。
+
+            $$\frac{n^3}{6} - \frac{n^2}{2} + \frac{n}{3} \sim \frac{n^3}{6}, \qquad \frac{n(n-1)}{2} \sim \frac{n^2}{2}$$
+      - item:
+          id: exact-1000
+          type: number
+          prompt: 求 $\dfrac{1000 \times 999 \times 998}{6}$（1000 个数里挑三个的挑法数）。
+          answer: 166167000
+          explain: $1000 \times 999 \times 998 = 997{,}002{,}000$，除以 6 得 166,167,000，和 $\dfrac{1000^3}{6} \approx 166{,}666{,}667$ 只差 0.3%。
+      - item:
+          id: tilde-pick
+          type: choice
+          prompt: 一个程序做了 $3n^2 + 100n + 7$ 次比较。用波浪号近似写是多少？
+          options:
+            - text: ∼ 3n²
+              correct: true
+            - text: ∼ n²
+              why: 波浪号要保留最高项的系数 3；只看增长快慢、不管系数的是大 O
+            - text: ∼ 3n² + 100n
+              why: 100n 是低阶项，n 很大时相对 3n² 可以忽略，要扔掉
+          explain: $n$ 很大时 $(3n^2 + 100n + 7) / (3n^2)$ 越来越接近 1，所以是 $\sim 3n^2$。
+      - card:
+          title: 倍增实验
+          body: |
+            不会数步数时，可以做实验：每次把 $n$ 翻倍，记下运行时间。如果 $T(n) \approx a n^b$，那么
+
+            $$\frac{T(2n)}{T(n)} \approx \frac{a (2n)^b}{a n^b} = 2^b$$
+
+            原书讲义里三层循环的 3-SUM 实测（秒）：
+
+            | n | 1000 | 2000 | 4000 | 8000 |
+            |---|---|---|---|---|
+            | 时间 | 0.1 | 0.8 | 6.4 | 51.1 |
+
+            比值越来越接近 8 = 2³，所以 $b \approx 3$。
+      - item:
+          id: doubling-b
+          type: number
+          prompt: 倍增实验里，$n$ 每翻一倍，运行时间稳定地变成原来的 4 倍。按 $T(n) \approx a n^b$，$b$ 是几？
+          answer: 2
+          explain: $2^b = 4$，所以 $b = 2$：这是平方级的程序，比如两层循环检查所有的对。
+      - item:
+          id: doubling-predict
+          type: number
+          prompt: 3-SUM 的三层循环在 $n = 8000$ 时跑了 51.1 秒，已经知道 $T(n) \approx a n^3$。估计 $n = 16000$ 时要几秒？
+          answer: 408.8
+          tolerance: 1
+          explain: 翻倍乘 $2^3 = 8$：$51.1 \times 8 = 408.8$ 秒。原书讲义用回归算的预测是 408.1 秒，实测 410.8 秒，假设成立。
+      - card:
+          title: 倍增实验的盲点
+          body: |
+            对 $n \log_2 n$ 的程序，$\dfrac{2n \log_2 (2n)}{n \log_2 n} = 2 + \dfrac{2}{\log_2 n}$，$n$ 大时也接近 2，和 $n$ 分不开。原书讲义写明：倍增实验看不出对数因子。
+
+            讲义还点名一个常见错误：把大 O 当成近似值用。大 O 只说“不超过某个常数倍”，近似要用波浪号。
+      - item:
+          id: doubling-blind
+          type: choice
+          prompt: 倍增实验里，时间比值稳定在 2 左右。下面哪个结论最稳妥？
+          options:
+            - text: 增长大约是 n 或 n log n，靠倍增实验分不清
+              correct: true
+            - text: 一定是 n
+              why: n log n 的比值是 2 + 2/log₂n，n 大时也接近 2
+            - text: 一定是 log n
+              why: log n 翻倍后只多 1，比值接近 1，不是 2
+          explain: $n$ 和 $n \log n$ 的倍增比都接近 2，要分清得换别的办法，比如直接数步数。
+
+  - id: big-o
+    chapter: 渐近分析
+    title: 大 O、Ω、Θ 的准确意思
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个算法分别要 $n^2$ 步和 $2n + 20$ 步。哪个说法对？
+          options:
+            - text: n ≤ 5 时 n² 更少，n ≥ 6 起 2n + 20 更少
+              correct: true
+            - text: 2n + 20 一直更少
+              why: n = 5 时 n² = 25，2n + 20 = 30，n² 更少
+            - text: n² 一直更少
+              why: n = 6 时 n² = 36，2n + 20 = 32，从这里起 2n + 20 更少，而且差距越来越大
+          explain: 原书 DPV 用的就是这个例子：小的 $n$ 上 $n^2$ 赢，但从 $n = 6$ 起 $2n + 20$ 一直赢下去。比快慢要看 $n$ 很大时。
+      - card:
+          title: 大 O 的定义
+          body: |
+            F.1.1 里用过大 O 记号。原书 DPV 给的准确定义：$f$ 和 $g$ 是从正整数到正实数的函数，如果有常数 $c > 0$，使得对所有 $n$ 都有
+
+            $$f(n) \le c \cdot g(n)$$
+
+            就写 $f = O(g)$，读作“$f$ 增长得不比 $g$ 快”。它像“$\le$”，只是允许乘一个常数：$10n = O(n)$。Hello 算法的写法多一个 $n_0$：只要求 $n > n_0$ 以后成立，小的 $n$ 不管。
+      - item:
+          id: smallest-c
+          type: number
+          prompt: 要让 $2n + 20 \le c \cdot (n + 1)$ 对所有正整数 $n$ 都成立，常数 $c$ 最小取几？
+          answer: 11
+          hint: 比值 (2n + 20)/(n + 1) 随 n 增大是变大还是变小？
+          explain: 比值 $\dfrac{2n + 20}{n + 1} = 2 + \dfrac{18}{n + 1}$ 随 $n$ 增大而变小，最大在 $n = 1$：$\dfrac{22}{2} = 11$。所以 $c = 11$ 就够，$2n + 20 = O(n + 1)$。原书取的是更松的 $c = 20$，也对。
+      - card:
+          title: Ω 和 Θ
+          body: |
+            有了 $O$（像 $\le$），再定义像 $\ge$ 和 $=$ 的两个：
+
+            - $f = \Omega(g)$：意思是 $g = O(f)$，$f$ 增长得不比 $g$ 慢；
+            - $f = \Theta(g)$：$f = O(g)$ 而且 $f = \Omega(g)$，两者同阶。
+
+            例：$2n + 20 = \Theta(n + 1)$；$n^2 = \Omega(n + 1)$；但 $n^2 \ne O(2n + 20)$，因为 $n^2 / (2n + 20)$ 可以要多大有多大，找不到常数 $c$。
+      - item:
+          id: sqrt-vs
+          type: choice
+          prompt: $f(n) = n^{1/2}$，$g(n) = n^{2/3}$。哪个成立？
+          options:
+            - text: f = O(g)，但 f 不是 Ω(g)
+              correct: true
+            - text: f = Θ(g)
+              why: 比值 g/f = n^(1/6) 会无限变大，两者不同阶
+            - text: f = Ω(g)
+              why: 指数 1/2 < 2/3，f 增长得更慢
+          explain: $n^{1/2} \le n^{2/3}$（取 $c = 1$），所以 $f = O(g)$；反过来 $g/f = n^{1/6}$ 没有上限，所以不是 $\Omega$。
+      - item:
+          id: log-square
+          type: choice
+          prompt: $f(n) = 10 \log n$，$g(n) = \log(n^2)$。哪个成立？
+          options:
+            - text: f = Θ(g)
+              correct: true
+            - text: f = O(g)，但不是 Θ
+              why: log(n²) = 2 log n，两者只差常数倍 5，同阶
+            - text: g 增长得比 f 快很多
+              why: 把平方从对数里拿出来：log(n²) = 2 log n
+          explain: $\log(n^2) = 2\log n$，$f / g = 5$ 是常数，所以 $f = \Theta(g)$。
+      - card:
+          title: 四条化简规则
+          body: |
+            原书 DPV 总结的常用规则：
+
+            1. 常数倍可以去掉：$14n^2$ 写成 $n^2$；
+            2. $a > b$ 时 $n^a$ 压过 $n^b$：$n^2$ 压过 $n$；
+            3. 任何指数压过任何多项式：$3^n$ 压过 $n^5$；
+            4. 任何多项式压过任何对数：$n$ 压过 $(\log n)^3$，所以 $n^2$ 压过 $n \log n$。
+
+            于是 $3n^2 + 4n + 5 = O(n^2)$，只留增长最快的那一项。
+      - item:
+          id: order-growth
+          type: order
+          prompt: 把这些函数按 $n$ 很大时从小到大排好。
+          steps:
+            - log n
+            - √n
+            - n log n
+            - n²
+            - 2ⁿ
+            - n!
+          explain: 对数 < 多项式（$\sqrt n = n^{1/2}$ 也是）；$n \log n$ 介于 $n$ 和 $n^2$ 之间；指数压过多项式；$n!$ 又比 $2^n$ 大（$n \ge 4$ 时 $n! > 2^n$，之后差距越来越大）。
+      - item:
+          id: expo-poly
+          type: choice
+          prompt: $f(n) = n \cdot 2^n$，$g(n) = 3^n$。哪个成立？
+          options:
+            - text: f = O(g)
+              correct: true
+            - text: f = Ω(g)
+              why: f/g = n·(2/3)ⁿ 越来越小，趋向 0
+            - text: f = Θ(g)
+              why: 比值 n·(2/3)ⁿ 不是常数，会越来越小
+          explain: $\dfrac{n 2^n}{3^n} = n \left(\dfrac23\right)^n$，指数 $\left(\dfrac23\right)^n$ 缩小得比 $n$ 变大快，比值越来越小，所以 $f = O(g)$。
+
+  - id: growth-classes
+    chapter: 渐近分析
+    title: 七种增长阶和最坏情况
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 在 1000 个从小到大排好的数里用二分查找找一个数，最坏要比较几次？
+          options:
+            - text: '10'
+              correct: true
+            - text: '500'
+              why: 二分查找每次把范围砍掉一半，不是一个一个看
+            - text: '1000'
+              why: 一个一个看才要 1000 次；二分每比一次范围减半
+          explain: 范围 1000 → 500 → 250 → … → 1，减半约 10 次。原书的结论：最多比较 $1 + \lfloor \log_2 n \rfloor$ 次。
+      - card:
+          title: 常见的七种增长阶
+          body: |
+            原书（algs4）说，大多数常见算法的增长阶是这七种之一：
+
+            | 增长阶 | 名字 | 典型写法 | 翻倍后时间 |
+            |---|---|---|---|
+            | $1$ | 常数 | `a = b + c` | 不变 |
+            | $\log n$ | 对数 | 每次减半（二分查找） | 多一点 |
+            | $n$ | 线性 | 一层循环（找最大值） | ×2 |
+            | $n \log n$ | 线性对数 | 分治（归并排序） | 约 ×2 |
+            | $n^2$ | 平方 | 两层循环（查所有的对） | ×4 |
+            | $n^3$ | 立方 | 三层循环（查所有三元组） | ×8 |
+            | $2^n$ | 指数 | 穷举所有子集 | 平方 |
+      - item:
+          id: match-code
+          type: match
+          prompt: 把写法和它的增长阶连起来。
+          pairs:
+            - [while n > 1 时每次 n = n // 2, log n]
+            - [一层循环把每个元素看一遍, n]
+            - [两层循环检查每一对, n²]
+            - [试遍所有子集, 2ⁿ]
+          explain: 每次减半走 $\log_2 n$ 步；一层循环 $n$ 步；两层循环约 $n^2/2$ 步；$n$ 个元素的子集有 $2^n$ 个。
+      - card:
+          title: 最好、平均、最坏
+          body: |
+            同样的 $n$，不同的输入可能差很多。原书讲义分三种：
+
+            - **最坏情况（worst case）**：最难的输入要花多少，是对所有输入的保证；
+            - **最好情况**：最容易的输入；
+            - **平均情况**：输入随机时平均花多少，要先说清“随机”指什么。
+
+            二分查找：最好 1 次（第一次就中），平均和最坏都约 $\log_2 n$ 次。原书说，心脏起搏器、汽车刹车的软件，要的就是最坏情况的保证。
+      - item:
+          id: bs-million
+          type: number
+          prompt: 在 100 万（$10^6$）个排好序的数里做二分查找，最坏要比较几次？（最多 $1 + \lfloor \log_2 n \rfloor$ 次）
+          answer: 20
+          explain: $2^{19} = 524288 \le 10^6 < 2^{20}$，所以 $\lfloor \log_2 10^6 \rfloor = 19$，最多 20 次。
+      - card:
+          title: 上界、下界、最优
+          body: |
+            原书讲义把算法理论分三件事：**上界**：某个算法对任何输入都不超过的代价；**下界（lower bound）**：证明任何算法都不可能更少；两者只差常数倍时，这个算法就是**最优**的。
+
+            例：在 $n$ 个数里找有没有 0（1-SUM）。看一遍是 $O(n)$；又因为没看过的那个数可能就是 0，任何算法都得看完 $n$ 个，所以是 $\Omega(n)$。看一遍就是最优的，$\Theta(n)$。
+      - item:
+          id: lower-bound-why
+          type: choice
+          prompt: 为什么“在 n 个数里找有没有 0”的任何算法都至少要看 n 个数？
+          options:
+            - text: 如果有一个数没看，它可能正好是 0，算法就会答错
+              correct: true
+            - text: 因为看一遍的程序写起来最简单
+              why: 下界说的是“任何算法都不可能更少”，和哪种写法简单无关
+            - text: 因为 n 个数要占 n 格内存
+              why: 占多少内存和必须读多少个数是两回事
+          explain: 这就是下界证明：任何少看一个数的算法，都能构造一个让它答错的输入（把没看的那个数设成 0）。
+      - item:
+          id: three-sum-gap
+          type: choice
+          prompt: 原书讲义说，3-SUM 已知的算法能做到 $O(n^2 \log n)$，而已证明的下界只有 $\Omega(n)$（至少看一遍所有数）。这说明什么？
+          options:
+            - text: 3-SUM 的最优算法是什么还没有定论
+              correct: true
+            - text: 3-SUM 的最优算法是 Θ(n)
+              why: 下界 Ω(n) 只说不能更少，没人找到线性的算法，上下界之间还有缺口
+            - text: 3-SUM 的最优算法是 Θ(n² log n)
+              why: 要说它最优，得证明下界也是 n² log n，而这还没人证出来
+          explain: 上界和下界之间有缺口时，最优算法就还不知道。讲义把“有没有平方以下的 3-SUM 算法”列为未解决的问题。
+
+  - id: memory
+    chapter: 渐近分析
+    title: 估一估占多少内存
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: |
+            函数 f(n) 在 n > 0 时会调用 f(n − 1)，一直到 f(0) 才不再调用。调用 f(1000) 时，最多有几个 f 的调用同时没有结束？
+          answer: 1001
+          explain: f(1000) 等着 f(999)，f(999) 等着 f(998)……一直到 f(0)，共 1001 个调用叠在调用栈上。递归越深，占的内存越多。
+      - card:
+          title: 空间复杂度
+          body: |
+            时间之外，算法还要占内存。Hello 算法把算法运行时占的内存分成三部分：输入本身、计算中临时用的、输出。分析时一般只算后两部分怎样随 $n$ 增长，叫**空间复杂度（space complexity）**，也用大 O 表示。
+
+            递归调用每层都要在调用栈上占一份地方：递归深度 $n$，空间就至少是 $O(n)$。
+      - item:
+          id: rec-sum-space
+          type: choice
+          prompt: |
+            下面两种求 1 + 2 + … + n 的写法，空间复杂度各是多少？
+          code: |
+            def s1(n):
+                t = 0
+                for i in range(n + 1):
+                    t = t + i
+                return t
+
+            def s2(n):
+                if n == 0:
+                    return 0
+                return n + s2(n - 1)
+          lang: python
+          options:
+            - text: s1 是 O(1)，s2 是 O(n)
+              correct: true
+            - text: 都是 O(1)
+              why: s2 每层递归都在调用栈上占一份，n 层叠在一起
+            - text: 都是 O(n)
+              why: s1 只用了 t 和 i 两个变量，不管 n 多大都一样
+          explain: 循环只用固定几个变量；递归要 $n + 1$ 层调用同时等着，空间 $O(n)$。
+      - card:
+          title: 按原书的模型数字节
+          body: |
+            内存按**字节（byte）**计：一个字节能存 0 到 255 之间的一个数。algs4 用 Java 在 64 位机器上的典型数字：
+
+            | 东西 | 字节 |
+            |---|---|
+            | int / double | 4 / 8 |
+            | 每个对象的固定开销 | 16 |
+            | 对象引用 | 8 |
+            | 数组的头 | 24，再加每个元素 |
+
+            另外，一个对象总共占的字节数要补齐到 8 的倍数。
+      - item:
+          id: int-array
+          type: number
+          prompt: 按原书 Java 的模型，一个有 1000 个 int 的数组占多少字节？（数组头 24 字节，每个 int 4 字节）
+          answer: 4024
+          explain: $24 + 4 \times 1000 = 4024$ 字节，约 4 KB。一般地，$n$ 个 int 的数组是 $4n + 24$ 字节。
+      - card:
+          title: 例题：一个日期对象
+          body: 原书的例子：日期对象里有日、月、年三个 int。
+          reveal:
+            - title: 把字段加起来
+              body: 三个 int：$3 \times 4 = 12$ 字节；对象固定开销 16 字节；合计 28 字节。
+            - title: 补齐到 8 的倍数
+              body: 28 不是 8 的倍数，补 4 字节到 32。所以一个日期对象占 **32 字节**。
+      - item:
+          id: point-object
+          type: number
+          prompt: 按原书 Java 的模型，一个对象里有两个 int 和一个 double，占多少字节？（对象固定开销 16 字节，int 4 字节，double 8 字节，总数补齐到 8 的倍数）
+          answer: 32
+          explain: $16 + 4 + 4 + 8 = 32$，已经是 8 的倍数，不用补。
+      - item:
+          id: python-int
+          type: choice
+          prompt: 在 Python 3.14 里运行 `import sys` 再 `print(sys.getsizeof(1))`，显示 28。这说明什么？
+          options:
+            - text: Python 的一个整数也是一个对象，带着自己的固定开销，比 Java 的 int 大得多
+              correct: true
+            - text: Python 的整数总是 28 位十进制数
+              why: 28 是字节数，不是位数；1 只有一位
+            - text: 原书 Java 的数字在 Python 里也适用
+              why: 不同语言的内存模型不一样，要按所用的语言重新数；但“数一数有几个对象、每个多大”的办法是一样的
+          explain: 模型的数字依赖语言和机器，方法不变：数清有哪些对象、每个占多少，再加起来。这台机器上 `sys.getsizeof([])` 是 56，空列表本身也有开销。
+  - id: fibonacci
+    chapter: 递归
+    title: 斐波那契：同一个数，两种算法
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            按下面的定义算 fib1(5)，函数 fib1 一共被调用几次（包括最开始那一次）？
+          code: |
+            def fib1(n):
+                if n <= 1:
+                    return n
+                return fib1(n - 1) + fib1(n - 2)
+          lang: python
+          options:
+            - text: '15'
+              correct: true
+            - text: '5'
+              why: 每次调用会再调两次，fib1(3)、fib1(2) 这些会被重复调用很多次
+            - text: '6'
+              why: fib1(5) 到 fib1(0) 只有 6 个不同的值，但同一个值会被重复算好几遍
+          explain: fib1(5) 调 fib1(4) 和 fib1(3)，fib1(4) 又调 fib1(3) 和 fib1(2)……fib1(3) 被算了 2 次，fib1(2) 3 次，加起来一共 15 次调用。
+      - card:
+          title: 照着定义写的递归
+          body: |
+            斐波那契数：$F_0 = 0$，$F_1 = 1$，$F_n = F_{n-1} + F_{n-2}$，前几个是 0、1、1、2、3、5、8、13、21、34……
+
+            原书 DPV 的第一个算法 fib1 就是上面那段代码，照抄定义，一定对。原书接着问每个算法都要问的三个问题：它对吗？要花多少时间？能更快吗？
+      - item:
+          id: calls-10
+          type: number
+          prompt: 递归函数 fib1(n)：n ≤ 1 时返回 n，否则返回 fib1(n − 1) + fib1(n − 2)。算 fib1(10) 时，fib1 一共被调用几次（包括最开始那一次）？
+          answer: 177
+          hint: 设 C(n) 是调用次数，C(0) = C(1) = 1，C(n) = C(n − 1) + C(n − 2) + 1，从小往上算。
+          explain: C(0..10) = 1、1、3、5、9、15、25、41、67、109、177。正好是 $2F_{11} - 1 = 2 \times 89 - 1$。调用次数和 $F_n$ 一样按指数增长。
+      - card:
+          title: fib1 为什么慢
+          body: |
+            设 $T(n)$ 是 fib1(n) 的步数。原书数出：$T(n) = T(n-1) + T(n-2) + 3$（检查两次 $n$ 再做一次加法），和 $F_n$ 的递推式一比，就有 $T(n) \ge F_n$。
+
+            而 $F_n \approx 2^{0.694n}$，按指数增长。原书估计：按当时最快的计算机每秒 40 万亿步，fib1(200) 也要 $2^{92}$ 秒以上。
+      - item:
+          id: repeat-2
+          type: number
+          prompt: 用 fib1 算 fib1(10) 时，fib1(2) 被调用了几次？
+          answer: 34
+          hint: fib1(10) 里 fib1(9) 被调 1 次，fib1(8) 被调 2 次，fib1(7) 3 次……这些次数本身是什么数列？
+          explain: fib1(k) 被调用的次数依次是 1、1、2、3、5、8……正是斐波那契数，fib1(2) 被调 $F_9 = 34$ 次。同一个小问题被算了几十遍，这就是慢的原因。
+      - card:
+          title: fib2：从小往上填表
+          body: |
+            ```python
+            def fib2(n):
+                if n == 0:
+                    return 0
+                f = [0] * (n + 1)
+                f[1] = 1
+                for i in range(2, n + 1):
+                    f[i] = f[i - 1] + f[i - 2]
+                return f[n]
+            ```
+
+            每个 $F_i$ 只算一次，加法做 $n - 1$ 次，步数和 $n$ 成正比。原书说，有了它，算 $F_{200}$ 甚至 $F_{200000}$ 都不在话下。
+      - item:
+          id: fib2-adds
+          type: number
+          prompt: 用 fib2 算 fib2(100)，循环里的加法一共做几次？
+          answer: 99
+          explain: i 从 2 到 100，每次一次加法，共 99 次。fib1(100) 的调用次数是 $2F_{101} - 1$，超过 $10^{21}$。
+      - card:
+          title: 大数加法不是一步
+          body: |
+            原书接着做了“更仔细的分析”：$F_n$ 的位数和 $n$ 成正比（原书按计算机里的位算，约 $0.694n$ 位），$F_{100}$ 已经是 21 位的十进制数。这么大的数相加，要一位一位地加，花的时间和位数成正比。
+
+            所以 fib2 实际要做的基本运算和 $n^2$ 成正比，fib1 和 $n F_n$ 成正比。原书的结论：分析太粗（把大数加法当一步）会错，分析太细也没必要，要做对的化简。
+      - item:
+          id: fib2-bits
+          type: choice
+          prompt: 把大数加法的代价也算进去（加法的步数和位数成正比，第 $i$ 个斐波那契数约有 $0.694i$ 位），fib2(n) 的总步数大约和什么成正比？
+          options:
+            - text: n²
+              correct: true
+            - text: n
+              why: 那是把每次加法都当一步；第 i 次加法的数有约 0.694i 位，越加越慢
+            - text: 2ⁿ
+              why: fib2 每个数只算一次，不会按指数增长
+          explain: 第 $i$ 次加法约花 $0.694i$ 步，加起来是 $0.694(2 + 3 + \dots + n)$，和 $n^2$ 成正比。
+
+  - id: recursion-iteration
+    chapter: 递归
+    title: 递归和迭代：调用栈有多深
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            在 Python 里运行 `s2(5000)` 会怎样？
+          code: |
+            def s2(n):
+                if n == 0:
+                    return 0
+                return n + s2(n - 1)
+          lang: python
+          options:
+            - text: 报错，说递归太深
+              correct: true
+            - text: 显示 12502500
+              why: 数学上答案是 12502500，但 Python 默认最多只允许约 1000 层调用叠在一起
+            - text: 一直运行停不下来
+              why: 每层 n 都减 1，会停；问题出在同时叠着的调用太多
+          explain: Python 默认的上限是 1000 层，`s2(5000)` 要叠 5001 层，会报 RecursionError（超过最大递归深度）。改成循环就没有这个问题。
+      - card:
+          title: 迭代和递归
+          body: |
+            Hello 算法把重复做事的写法分两种：
+
+            - **迭代（iteration）**：用循环一步一步往前推，“自下而上”；
+            - 递归：函数调用自己，把问题交给更小的同类问题，“自上而下”。
+
+            递归分两个阶段：一层层往下调用叫“递”，碰到终止条件后一层层带着结果返回叫“归”。
+      - card:
+          title: 调用栈和递归深度
+          body: |
+            还没结束的调用都叠在调用栈上，每层占一份内存。同时叠着的层数叫递归深度。s2(n) 的深度是 $n + 1$，所以空间是 $O(n)$；循环写法只要 $O(1)$。
+
+            Python 用 `sys.getrecursionlimit()` 查上限，默认是 1000。Hello 算法的对比：迭代一般更省内存、没有调用的开销；递归适合树、图、分治这类能自然拆成子问题的情形，代码更短更清楚。
+      - item:
+          id: fib-depth
+          type: number
+          prompt: |
+            用斐波那契的递归写法 fib1（n ≤ 1 时直接返回 n，否则返回 fib1(n − 1) + fib1(n − 2)）算 fib1(10)。调用栈上最多同时叠着几个 fib1 的调用？
+          answer: 10
+          explain: 最深的一条链是 fib1(10) → fib1(9) → … → fib1(1)，共 10 层。调用总数是 177，但同一时刻只有一条链在栈上，所以空间是 $O(n)$，不是 $O(2^n)$。
+      - card:
+          title: 尾递归
+          body: |
+            ```python
+            def s4(n, acc=0):
+                if n == 0:
+                    return acc
+                return s4(n - 1, acc + n)
+            ```
+
+            递归调用是返回前的最后一步，叫**尾递归（tail recursion）**：加法在“递”的路上就做完了，“归”的时候只是层层返回。有的语言能把它自动变成循环；Hello 算法指出 Python、Java、C++ 等大多数语言不做这个优化，所以它的空间还是 $O(n)$。
+      - item:
+          id: which-tail
+          type: choice
+          prompt: 下面哪一种写法是尾递归？
+          options:
+            - text: return f(n - 1, acc * n)
+              correct: true
+            - text: return n * f(n - 1)
+              why: 调用回来以后还要乘 n，递归调用不是最后一步
+            - text: return f(n - 1) + f(n - 2)
+              why: 两个调用都返回以后还要相加，最后一步是加法
+          explain: 尾递归要求“调用完直接返回它的结果”，后面不再做任何运算。
+      - card:
+          title: 用自己的栈代替调用栈
+          body: |
+            调用栈先进后出，和栈一样。所以任何递归都能改写成循环加一个自己管的栈（Hello 算法的“使用迭代模拟递归”）：
+
+            ```python
+            def s3(n):
+                stack = []
+                for i in range(n, 0, -1):
+                    stack.append(i)     # “递”：压栈
+                t = 0
+                while stack:
+                    t = t + stack.pop() # “归”：弹栈
+                return t
+            ```
+
+            自己的栈放在普通内存里，不受 1000 层的限制。点“下一步”，看 s3(3) 先压栈、再弹栈。
+          sim:
+            name: trace
+            params:
+              code: |
+                stack = []
+                for i in range(3, 0, -1):
+                    stack.append(i)
+                t = 0
+                while stack:
+                    t = t + stack.pop()
+                print(t)
+      - item:
+          id: s3-trace
+          type: sim
+          sim: trace
+          prompt: 先在心里走一遍 s3(4)，再填答案。答完可以单步看实际过程。
+          params:
+            code: |
+              stack = []
+              for i in range(4, 0, -1):
+                  stack.append(i)
+              t = 0
+              while stack:
+                  t = t + stack.pop()
+              print(t)
+          goal:
+            ask:
+              - line: 3
+                var: stack
+                hit: 4
+              - line: 6
+                var: t
+                hit: 2
+          explain: 压栈后 stack 是 [4, 3, 2, 1]；先弹出的是最后压进去的 1，再弹出 2，所以第二次加完 t = 3。最后显示 10。
+      - item:
+          id: recursion-choice
+          type: choice
+          prompt: 要在 n 很大（比如一百万）时求 1 + 2 + … + n，用哪种写法最合适？
+          options:
+            - text: 一个 for 循环累加
+              correct: true
+            - text: s2 那样的普通递归
+              why: 要叠一百万层调用，Python 默认 1000 层就会报错，还占 O(n) 内存
+            - text: 尾递归
+              why: Python 不会把尾递归变成循环，照样叠一百万层
+          explain: 简单的重复任务用迭代：$O(1)$ 内存，没有调用开销。递归留给拆成子问题更自然的情形。
+
+  - id: recursion-tree
+    chapter: 递归
+    title: 递归树：一层一层加起来
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: $T(1) = 1$，$T(n) = 2T(n/2) + n$。$T(8)$ 是多少？
+          options:
+            - text: '32'
+              correct: true
+            - text: '24'
+              why: 别忘了最底层 8 个 T(1)，每个是 1，又多 8
+            - text: '64'
+              why: 一层一层算：T(2) = 4，T(4) = 12，T(8) = 2 × 12 + 8
+          explain: $T(2) = 2 + 2 = 4$，$T(4) = 8 + 4 = 12$，$T(8) = 24 + 8 = 32$。也可以按层加：上面三层每层 8，最底层 8 个 $T(1)$ 也是 8，共 32。
+      - card:
+          title: 递归树
+          body: |
+            分治算法的递推式 $T(n) = aT(n/b) + O(n^d)$：大小 $n$ 的问题拆成 $a$ 个大小 $n/b$ 的子问题，拆和合并花 $n^d$。把调用画成树，叫递归树：
+
+            - 第 $k$ 层有 $a^k$ 个子问题，每个大小 $n/b^k$；
+            - 这一层合起来的工作量是 $a^k \left(\dfrac{n}{b^k}\right)^d = n^d \left(\dfrac{a}{b^d}\right)^k$；
+            - 一共 $\log_b n$ 层（再加最底层）。
+
+            总时间就是把每层加起来。
+      - item:
+          id: level-two
+          type: number
+          prompt: $T(n) = 3T(n/2) + n$，$n = 64$。递归树第 2 层（根是第 0 层）合起来的工作量是多少？
+          answer: 144
+          explain: 第 2 层有 $3^2 = 9$ 个子问题，每个大小 $64 / 4 = 16$，合起来 $9 \times 16 = 144$，也就是 $64 \times (3/2)^2$。
+      - card:
+          title: 等比数列求和的三种情况
+          body: |
+            每层工作量是 $n^d$ 乘公比 $r = a/b^d$ 的 $k$ 次方，后一项是前一项的 $r$ 倍，这样的一列数叫**等比数列（geometric series）**。原书 DPV 的习题 0.2 给出求和的结论，用大 Θ 说：
+
+            - $r < 1$（越来越小）：和就是第一项的常数倍，$\Theta(n^d)$；
+            - $r = 1$（每层一样）：和是“项数 × 每项”，$\Theta(n^d \log n)$；
+            - $r > 1$（越来越大）：和是最后一项的常数倍，即最底层的工作量。
+      - item:
+          id: geo-sum
+          type: number
+          prompt: 求 $1 + 2 + 4 + \dots + 2^{10}$。
+          answer: 2047
+          explain: 和是 $2^{11} - 1 = 2047$，不到最后一项 $2^{10} = 1024$ 的 2 倍。公比大于 1 时，和就是最后一项的常数倍。
+      - item:
+          id: leaves-3
+          type: number
+          prompt: $T(n) = 3T(n/2) + n$，$n = 2^{10}$。递归树最底层（大小为 1 的子问题）有几个？
+          answer: 59049
+          explain: 一共往下拆 10 层，每层个数乘 3，最底层有 $3^{10} = 59049$ 个。它等于 $n^{\log_2 3}$：$3^{\log_2 n} = n^{\log_2 3}$。
+      - card:
+          title: 例题：T(n) = 4T(n/2) + n
+          body: 用递归树判断它的增长。
+          reveal:
+            - title: 每层的工作量
+              body: $a = 4$，$b = 2$，$d = 1$。第 $k$ 层有 $4^k$ 个、每个大小 $n/2^k$，合起来 $4^k \cdot n / 2^k = 2^k n$。
+            - title: 公比
+              body: 公比 $r = 4/2 = 2 > 1$，越往下越大，总和是最后一层的常数倍。
+            - title: 最后一层
+              body: 最底层 $k = \log_2 n$，工作量 $2^{\log_2 n} \cdot n = n^2$。所以 $T(n) = \Theta(n^2)$。
+      - item:
+          id: ratio-equal
+          type: choice
+          prompt: $T(n) = 2T(n/2) + n$ 的递归树，每层的工作量有什么规律？
+          options:
+            - text: 每层都是 n，一共约 log₂n 层，总共 Θ(n log n)
+              correct: true
+            - text: 越往下越大，总共 Θ(n²)
+              why: 公比 a/bᵈ = 2/2 = 1，每层一样，不会越来越大
+            - text: 越往下越小，总共 Θ(n)
+              why: 每层 2ᵏ 个子问题、每个 n/2ᵏ，乘起来总是 n
+          explain: 公比是 1，$\log_2 n$ 层每层都是 $n$，加起来 $\Theta(n \log n)$。归并排序就是这样。
+
+  - id: master-theorem
+    chapter: 递归
+    title: 主定理：三种情况从哪里来
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 二分查找：比较一次，然后在一半的范围里接着找。它的递推式是什么？
+          options:
+            - text: T(n) = T(n/2) + O(1)
+              correct: true
+            - text: T(n) = 2T(n/2) + O(1)
+              why: 二分查找只进入一半，另一半直接扔掉，只有一个子问题
+            - text: T(n) = T(n − 1) + O(1)
+              why: 每次扔掉的是一半，不是一个
+          explain: 一个子问题、大小减半、额外工作是常数：$a = 1$，$b = 2$，$d = 0$。
+      - card:
+          title: 原书的主定理
+          body: |
+            DPV 的写法：若 $T(n) = aT(\lceil n/b \rceil) + O(n^d)$，常数 $a > 0$，$b > 1$，$d \ge 0$，则
+
+            $$T(n) = \begin{cases} O(n^d) & d > \log_b a \\ O(n^d \log n) & d = \log_b a \\ O(n^{\log_b a}) & d < \log_b a \end{cases}$$
+
+            三种情况就是递归树的公比 $a/b^d$ 小于、等于、大于 1：$a/b^d < 1$ 和 $d > \log_b a$ 是一回事。证明时先假设 $n$ 是 $b$ 的乘方，免得管向上取整。
+      - item:
+          id: binary-search-rec
+          type: choice
+          prompt: 二分查找 $T(n) = T(\lceil n/2 \rceil) + O(1)$，按主定理是多少？
+          options:
+            - text: O(log n)
+              correct: true
+            - text: O(1)
+              why: d = 0 = log₂1，是“相等”的情况，要乘 log n
+            - text: O(n)
+              why: 只有一个子问题，a = 1，log₂1 = 0，不会到 n
+          explain: $a = 1$，$b = 2$，$d = 0$，$\log_2 1 = 0 = d$，属于相等的情况：$O(n^0 \log n) = O(\log n)$。
+      - item:
+          id: synthesis-3
+          type: match
+          prompt: 把递推式和主定理给的结果连起来。
+          pairs:
+            - [T(n) = 2T(n/2) + n, Θ(n log n)]
+            - [T(n) = 4T(n/2) + n, Θ(n²)]
+            - [T(n) = T(n/2) + 1, Θ(log n)]
+            - [T(n) = 2T(n/2) + n², Θ(n²) 由根决定]
+          explain: $2T(n/2)+n$：$d = 1 = \log_2 2$，相等，$n \log n$。$4T(n/2)+n$：$\log_2 4 = 2 > 1$，$n^2$。$T(n/2)+1$：$\log_2 1 = 0 = d$，$\log n$。$2T(n/2)+n^2$：$d = 2 > 1$，根那一层的 $n^2$ 说了算。
+      - card:
+          title: 例题：三个算法选哪个
+          body: 原书习题 2.4：A 把问题拆成 5 个一半大的子问题，合并花线性时间；B 解 2 个大小 $n - 1$ 的子问题，合并花常数时间；C 拆成 9 个三分之一大的子问题，合并花 $O(n^2)$。
+          reveal:
+            - title: A
+              body: $T(n) = 5T(n/2) + O(n)$，$\log_2 5 \approx 2.32 > 1$，$O(n^{\log_2 5}) \approx O(n^{2.32})$。
+            - title: B
+              body: $T(n) = 2T(n-1) + O(1)$ 不是主定理的形状（子问题只小 1）。展开：每层个数翻倍，共 $n$ 层，$O(2^n)$。
+            - title: C
+              body: $T(n) = 9T(n/3) + O(n^2)$，$\log_3 9 = 2 = d$，相等，$O(n^2 \log n)$。
+            - title: 选哪个
+              body: $n^2 \log n$ 比 $n^{2.32}$ 小（多项式压过对数），选 C。
+      - item:
+          id: log2-5
+          type: number
+          prompt: 求 $\log_2 5$（保留两位小数）。
+          answer: 2.32
+          tolerance: 0.005
+          explain: $2^{2.32} \approx 4.99$，$\log_2 5 \approx 2.3219$。所以 A 是 $O(n^{2.32})$。
+      - card:
+          title: 主定理管不到的
+          body: |
+            主定理只管“$a$ 个一样大的子问题，每个是原来的 $1/b$”。原书习题 2.3 特别提醒：子问题只比原来小 1 的（减治）不在里面，要自己展开：
+
+            - $T(n) = T(n-1) + O(1)$：展开 $n$ 层，每层常数，$O(n)$；
+            - $T(n) = 2T(n-1) + 1$：汉诺塔，$2^n - 1$。
+      - item:
+          id: decrease-n
+          type: choice
+          prompt: $T(n) = T(n-1) + n$，$T(1) = 1$。$T(n)$ 是多少？
+          options:
+            - text: Θ(n²)
+              correct: true
+            - text: Θ(n log n)
+              why: 这不是对半拆的递推式；展开得 1 + 2 + … + n
+            - text: Θ(n)
+              why: 每层的工作量 n、n − 1、…… 加起来不是 n
+          explain: 展开得 $T(n) = n + (n-1) + \dots + 1 = \dfrac{n(n+1)}{2} = \Theta(n^2)$。主定理用不上，展开最直接。
+  - id: karatsuba
+    chapter: 分治
+    title: 大数乘法：四次乘法变三次
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 算 1234 × 5678 时，把每个数拆成前两位和后两位：12、34 和 56、78。按 (12 × 100 + 34) × (56 × 100 + 78) 展开，要做几次“两位数乘两位数”？
+          options:
+            - text: 4 次
+              correct: true
+            - text: 2 次
+              why: 展开后有 12×56、12×78、34×56、34×78 四项
+            - text: 1 次
+              why: 拆开以后是四个乘积相加，不是一个
+          explain: 12×56、12×78、34×56、34×78 四次。下面会看到，其实三次就够。
+      - card:
+          title: 拆成两半
+          body: |
+            把 $n$ 位的数拆成前一半和后一半：$x = 10^{n/2} a + b$，$y = 10^{n/2} c + d$。那么
+
+            $$xy = 10^n \, ac + 10^{n/2} (ad + bc) + bd$$
+
+            乘 $10^k$ 只是在后面补零，加法是线性的。四个乘积各是一个 $n/2$ 位的子问题，所以 $T(n) = 4T(n/2) + O(n)$，按主定理是 $O(n^2)$，和竖式乘法一样，没有变快。（原书 DPV 按计算机里的 0、1 位来拆，道理完全一样。）
+      - item:
+          id: four-rec
+          type: choice
+          prompt: 两个 $n$ 位数相乘，拆成两半后做 4 次 $n/2$ 位的乘法，再花 $O(n)$ 做加法和补零。按主定理，总时间是多少？
+          options:
+            - text: O(n²)
+              correct: true
+            - text: O(n log n)
+              why: a = 4，b = 2，log₂4 = 2 > d = 1，是最底层说了算
+            - text: O(n)
+              why: 光是最底层就有 4^(log₂n) = n² 个一位乘法
+          explain: $T(n) = 4T(n/2) + O(n)$：$\log_2 4 = 2 > 1$，结果是 $O(n^2)$。分成四块不省事。
+      - card:
+          title: 高斯的办法
+          body: |
+            中间那项不用分开算 $ad$ 和 $bc$：
+
+            $$ad + bc = (a + b)(c + d) - ac - bd$$
+
+            $ac$、$bd$ 反正要算，再加一次乘法 $(a+b)(c+d)$ 就得到中间项。原书说这个技巧最早来自高斯算复数乘法。于是只要三个子问题：
+
+            $$T(n) = 3T(n/2) + O(n) = O(n^{\log_2 3}) \approx O(n^{1.59})$$
+
+            （$a + b$ 可能多一位，严格是 $T(n) \le 3T(n/2 + 1) + O(n)$，原书脚注说结果一样。）
+      - card:
+          title: 例题：1234 × 5678
+          body: $a = 12$，$b = 34$，$c = 56$，$d = 78$。
+          reveal:
+            - title: 两个必算的乘积
+              body: $ac = 12 \times 56 = 672$，$bd = 34 \times 78 = 2652$。
+            - title: 第三次乘法给出中间项
+              body: $(a + b)(c + d) = 46 \times 134 = 6164$，中间项 $= 6164 - 672 - 2652 = 2840$。
+            - title: 拼起来
+              body: $672 \times 10^4 + 2840 \times 10^2 + 2652 = 6720000 + 284000 + 2652 = 7006652$。验算：$1234 \times 5678 = 7006652$。
+      - item:
+          id: mid-47-53
+          type: number
+          prompt: 用三次乘法的办法算 47 × 53：$a = 4$，$b = 7$，$c = 5$，$d = 3$。中间项 $ad + bc = (a + b)(c + d) - ac - bd$ 是多少？
+          answer: 47
+          explain: $(4 + 7)(5 + 3) = 88$，$ac = 20$，$bd = 21$，中间项 $88 - 20 - 21 = 47$。验算：$4 \times 3 + 7 \times 5 = 12 + 35 = 47$。最后 $20 \times 100 + 47 \times 10 + 21 = 2491$。
+      - item:
+          id: log2-3
+          type: number
+          prompt: 三个子问题的乘法是 $O(n^{\log_2 3})$。求 $\log_2 3$（保留两位小数）。
+          answer: 1.58
+          tolerance: 0.006
+          explain: $\log_2 3 \approx 1.585$。指数从 2 降到约 1.59：子问题个数是递归树的分叉数，从 4 改成 3 影响很大。
+      - item:
+          id: base-case
+          type: choice
+          prompt: 原书说，实际写三次乘法的程序时，不会一直拆到 1 位。为什么？
+          options:
+            - text: 位数小到机器一条乘法就能算时，直接用机器的乘法更快
+              correct: true
+            - text: 拆到 1 位时算法会出错
+              why: 拆到 1 位也是对的，只是递归本身有开销，小的数不划算
+            - text: 因为主定理只对大的 n 成立
+              why: 主定理说的是增长阶；停在哪一层是常数因子的问题
+          explain: 原书：大多数处理器一步就能乘 16 位或 32 位的数，数小到这个范围就交给它。递归的开销只在大数上才被省下的乘法抵消。
+
+  - id: sorting-bound
+    chapter: 分治
+    title: 排序至少要比较几次
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 只能两两比较大小。要把 3 个不同的数排好，任何方法在最坏情况下至少要比较几次？
+          options:
+            - text: '3'
+              correct: true
+            - text: '2'
+              why: 两次比较只有 2 × 2 = 4 种结果，分不清 3 个数的 6 种排列
+            - text: '6'
+              why: 6 是排列的个数，不是比较次数；三次比较有 8 种结果，已经够了
+          explain: 3 个数有 $3! = 6$ 种可能的顺序，每次比较只有两种结果。两次比较最多分出 4 种情况，不够，所以最坏至少 3 次。
+      - card:
+          title: 归并排序和用队列的写法
+          body: |
+            M.5.3 学过归并排序：拆成两半分别排好，再合并，$T(n) = 2T(n/2) + O(n) = O(n \log n)$。
+
+            原书 DPV 还给了不用递归的写法：把每个数各自当成一列放进队列；反复从队头取出两列合并，放回队尾，直到只剩一列。合并的先后和递归版不同，比较次数同阶。
+      - item:
+          id: merges-8
+          type: number
+          prompt: 用队列写的归并排序排 8 个数：开始时队列里是 8 个单个数的列，每次取出两列合并成一列放回去，直到只剩一列。一共要合并几次？
+          answer: 7
+          explain: 每次合并让列数少 1，从 8 列到 1 列要 7 次。一般地，$n$ 个数要合并 $n - 1$ 次。
+      - card:
+          title: 比较树
+          body: |
+            只靠比较的排序算法，可以画成一棵二叉树：每个内部节点是一次比较，往左还是往右看比较结果；每片叶子是一个排好的顺序。
+
+            $n$ 个数的 $n!$ 种顺序都必须出现在某片叶子上，不然有的输入就排错了。深度为 $d$ 的二叉树最多 $2^d$ 片叶子，所以最坏情况的比较次数（树的深度）至少是 $\log_2 (n!)$。
+      - item:
+          id: lb-4
+          type: number
+          prompt: 只靠两两比较，把 4 个不同的数排好，最坏情况下至少要比较几次？（至少 $\log_2(n!)$ 次，次数是整数）
+          answer: 5
+          explain: $4! = 24$，$2^4 = 16 < 24 \le 32 = 2^5$，所以至少 5 次。
+      - card:
+          title: 为什么是 n log n
+          body: |
+            $n!$ 里有一半的因子不小于 $n/2$，所以 $n! \ge (n/2)^{n/2}$，取对数：
+
+            $$\log_2(n!) \ge \frac{n}{2} \log_2 \frac{n}{2}$$
+
+            这是 $\Omega(n \log n)$。任何只靠比较的排序，最坏都要 $\Omega(n \log n)$ 次比较，归并排序 $O(n \log n)$ 已经是最优的。这是一个下界证明：它对所有可能的算法都成立。
+      - item:
+          id: lb-5
+          type: number
+          prompt: 只靠两两比较，把 5 个不同的数排好，最坏情况下至少要比较几次？
+          answer: 7
+          explain: $5! = 120$，$2^6 = 64 < 120 \le 128 = 2^7$，所以至少 7 次。
+      - item:
+          id: counting-sort
+          type: choice
+          prompt: 原书说这个下界只对“靠比较”的排序成立。下面哪种情况能比 $n \log n$ 更快？
+          options:
+            - text: 要排的是 0 到 99 之间的整数，可以数一数每个数出现几次
+              correct: true
+            - text: 换一种更聪明的比较顺序
+              why: 只要还是靠比较，比较树的论证就成立，至少 log₂(n!) 次
+            - text: 把数分成三份而不是两份
+              why: 分几份都还是比较排序，下界不变
+          explain: 原书习题 2.20：数的范围小时，开一个大小 $M$ 的计数表，$O(n + M)$ 就能排好。它不比较两个元素，所以不受比较树的限制。
+
+  - id: quickselect
+    chapter: 分治
+    title: 找中位数：随机挑一个支点
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 一组数 45、1、10、30、25 的中位数（排好以后正中间的那个）是多少？
+          answer: 25
+          explain: 排好是 1、10、25、30、45，正中间是 25。原书 DPV 就用这组数举例。
+      - card:
+          title: 选第 k 小
+          body: |
+            中位数是“一半比它大，一半比它小”的数。更一般的问题：在列表 $S$ 里找第 $k$ 小的数，记作 selection$(S, k)$。$k = 1$ 是最小值，$k = \lfloor |S|/2 \rfloor$ 是中位数（偶数个时取小的那个）。
+
+            先排序再取是 $O(n \log n)$。分治可以更快：挑一个数 $v$，把 $S$ 分成三份：比 $v$ 小的 $S_L$、等于 $v$ 的 $S_v$、比 $v$ 大的 $S_R$。
+      - card:
+          title: 只进一边
+          body: |
+            原书的例子：$S$ = 2、36、5、21、8、13、11、20、5、4、1，挑 $v = 5$：
+
+            - $S_L$ = 2、4、1；$S_v$ = 5、5；$S_R$ = 36、21、8、13、11、20。
+
+            要第 8 小：$S_L$ 和 $S_v$ 一共只有 5 个，所以答案在 $S_R$ 里，是 $S_R$ 的第 $8 - 5 = 3$ 小。只递归进一份，另外两份直接扔掉。
+      - item:
+          id: select-8
+          type: number
+          prompt: $S$ = 2、36、5、21、8、13、11、20、5、4、1，第 8 小的数是多少？
+          answer: 13
+          hint: 用支点 5 分开后，答案是 S_R = 36、21、8、13、11、20 里的第 3 小。
+          explain: $S_R$ 排好是 8、11、13、20、21、36，第 3 小是 13。直接把 $S$ 排好（1、2、4、5、5、8、11、13、……）也是第 8 个 13。
+      - item:
+          id: select-k
+          type: number
+          prompt: 列表有 20 个数。用支点 $v$ 分成三份后，$S_L$ 有 6 个，$S_v$ 有 2 个，$S_R$ 有 12 个。要找第 15 小，应该在 $S_R$ 里找第几小？
+          answer: 7
+          explain: 前两份一共 8 个，第 15 小在 $S_R$ 里，是它的第 $15 - 8 = 7$ 小。
+      - card:
+          title: 支点怎么挑：随机
+          body: |
+            支点要是正好是中位数，每次减半，$T(n) = T(n/2) + O(n)$，很快；但找中位数正是要解的问题。原书的办法：**随机**挑。
+
+            如果 $v$ 落在排好后的 25% 到 75% 之间，就叫好支点，这时剩下的一份最多是原来的 $\frac34$。一半的数是好支点，就像抛硬币：平均抛 2 次才出正面（设平均要 $E$ 次，$E = 1 + \frac12 E$，得 $E = 2$）。所以平均分两次就缩到 $\frac34$：
+
+            $$T(n) \le T(3n/4) + O(n) = O(n)$$
+      - item:
+          id: why-linear
+          type: choice
+          prompt: 为什么 $T(n) \le T(3n/4) + O(n)$ 得到的是 $O(n)$？
+          options:
+            - text: 每层工作量 n、3n/4、9n/16……是公比小于 1 的等比数列，和是第一项的常数倍
+              correct: true
+            - text: 因为一共只有 log n 层
+              why: 层数确实是对数级，但光数层数得不出 O(n)；要看每层的工作量越来越小
+            - text: 因为每次扔掉了一半
+              why: 这里保证的是剩下不超过 3/4，不是一半；关键是公比 3/4 < 1
+          explain: $n(1 + \frac34 + \frac9{16} + \dots) \le 4n$，所以是 $O(n)$。这就是递归树里“公比小于 1，和由第一项决定”的情况。
+      - item:
+          id: worst-pivot
+          type: choice
+          prompt: 随机选择算法的最坏情况是什么样？
+          options:
+            - text: 每次都恰好挑到最大的数，每次只扔掉一个，共 Θ(n²)
+              correct: true
+            - text: 最坏也是 O(n)
+              why: O(n) 是平均情况；运气极差时每次只排除一个数
+            - text: 最坏是 O(n log n)
+              why: 每次只少一个时，工作量 n + (n−1) + … 加起来是平方级
+          explain: 原书：找中位数时如果依次挑到 36、21……这样的最大值，要做 $n + (n-1) + \dots + \frac n2 = \Theta(n^2)$ 次操作。只是这种运气的概率极小。
+      - item:
+          id: median-robust
+          type: choice
+          prompt: 原书说中位数比平均数更稳。一组 100 个左右大小的数里，有一个被误写成了 10000。会怎样？
+          options:
+            - text: 平均数一下子变得很大，中位数几乎不变
+              correct: true
+            - text: 两个都几乎不变
+              why: 平均数要把 10000 加进总和再除，一个错数就把它拉高很多
+            - text: 中位数变得很大
+              why: 中位数只看排在中间的那个，一个最大的数换成多大都只是排到最后
+          explain: 平均数会被一个极端值拉偏，中位数只看排在中间的数，不受影响。这也是要会找中位数的原因之一。
+      - card:
+          title: 快速排序
+          body: |
+            把选择算法改一处：分成 $S_L$、$S_v$、$S_R$ 以后，不是只进一边，而是两边都递归排好，再按 $S_L$、$S_v$、$S_R$ 接起来。这就是**快速排序（quicksort）**。
+
+            原书：它的最坏情况和随机选择一样是 $\Theta(n^2)$（每次都挑到最大或最小的数），平均是 $O(n \log n)$（习题 2.24）。它和归并排序正好相反：在拆分上下功夫，拆完就不用合并了。
+      - item:
+          id: quicksort-worst
+          type: number
+          prompt: 快速排序每次拿第一个数当支点，三分时其他每个数都要和支点比较一次。对已经排好的 1、2、…、10 排序，一共比较几次？
+          answer: 45
+          explain: 支点 1 时比 9 次，剩下 2..10 全在 $S_R$；支点 2 时比 8 次……加起来 $9 + 8 + \dots + 1 = 45 = \dfrac{10 \times 9}{2}$。每次只排除一个数，这就是 $\Theta(n^2)$ 的最坏情况；随机挑支点就不怕输入本来有序。
+
+  - id: strassen
+    chapter: 分治
+    title: 矩阵乘法：八次变七次
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个 2 行 2 列的数表按矩阵乘法相乘（结果的每一格是“行乘列”：对应位置相乘再相加），一共要做几次数乘数？
+          options:
+            - text: '8'
+              correct: true
+            - text: '4'
+              why: 结果有 4 格，但每格要两次乘法再相加
+            - text: '16'
+              why: 每格是一行的 2 个数和一列的 2 个数对应相乘，2 次，不是 4 次
+          explain: 结果 4 格，每格 2 次乘法，共 8 次。
+      - card:
+          title: 矩阵乘法
+          body: |
+            $X$ 是 $m$ 行 $n$ 列的数表，$Y$ 是 $n$ 行 $p$ 列的数表。乘积 $Z = XY$ 第 $i$ 行第 $j$ 列：$X$ 的第 $i$ 行和 $Y$ 的第 $j$ 列对应位置相乘再相加：
+
+            $$Z_{ij} = \sum_{k=1}^{n} X_{ik} Y_{kj}$$
+
+            例：$\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix} \begin{bmatrix} 5 & 6 \\ 7 & 8 \end{bmatrix} = \begin{bmatrix} 19 & 22 \\ 43 & 50 \end{bmatrix}$，左上角 $1 \cdot 5 + 2 \cdot 7 = 19$。
+      - item:
+          id: entry-43
+          type: number
+          prompt: $\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix} \begin{bmatrix} 5 & 6 \\ 7 & 8 \end{bmatrix}$ 的第 2 行第 1 列是多少？
+          answer: 43
+          explain: 第 2 行 (3, 4) 乘第 1 列 (5, 7)：$3 \times 5 + 4 \times 7 = 15 + 28 = 43$。
+      - item:
+          id: mnp
+          type: number
+          prompt: 一个 2 行 3 列的矩阵乘一个 3 行 4 列的矩阵，按定义一共要做几次数乘数？
+          answer: 24
+          explain: 结果是 2 行 4 列共 8 格，每格 3 次乘法，$2 \times 3 \times 4 = 24$。一般地，$m \times n$ 乘 $n \times p$ 要 $mnp$ 次。
+      - card:
+          title: 分块：还是八次
+          body: |
+            $n \times n$ 的矩阵乘法按定义要 $n^2$ 格、每格 $n$ 次，共 $n^3$ 次。
+
+            分治：把每个矩阵切成四块 $\frac n2 \times \frac n2$ 的小矩阵，$X = \begin{bmatrix} A & B \\ C & D \end{bmatrix}$，$Y = \begin{bmatrix} E & F \\ G & H \end{bmatrix}$。原书指出块可以像数一样乘：
+
+            $$XY = \begin{bmatrix} AE + BG & AF + BH \\ CE + DG & CF + DH \end{bmatrix}$$
+
+            8 个子问题，$T(n) = 8T(n/2) + O(n^2)$，$\log_2 8 = 3$，还是 $O(n^3)$。
+      - card:
+          title: Strassen：七次就够
+          body: |
+            1969 年 Strassen 发现，巧妙地加减以后，7 次块乘法就够了：
+
+            $$\begin{aligned} T(n) &= 7T(n/2) + O(n^2) \\ &= O(n^{\log_2 7}) \approx O(n^{2.81}) \end{aligned}$$
+
+            原书说这组公式“精巧得让人奇怪他怎么想到的”，只给结果，不推导；你也不用背。注意矩阵乘法一般 $XY \ne YX$，块的位置不能随便换。
+          reveal:
+            - title: 七个乘积（原书的写法）
+              body: |
+                $$\begin{aligned} P_1 &= A(F - H) \\ P_2 &= (A + B)H \\ P_3 &= (C + D)E \\ P_4 &= D(G - E) \\ P_5 &= (A + D)(E + H) \\ P_6 &= (B - D)(G + H) \\ P_7 &= (A - C)(E + F) \end{aligned}$$
+            - title: 拼成结果
+              body: |
+                $XY$ 的四块（原书写成一个矩阵）：
+
+                $$\begin{aligned} \text{左上} &= P_5 + P_4 - P_2 + P_6 \\ \text{右上} &= P_1 + P_2 \\ \text{左下} &= P_3 + P_4 \\ \text{右下} &= P_1 + P_5 - P_3 - P_7 \end{aligned}$$
+
+                比如右上角 $P_1 + P_2 = AF - AH + AH + BH = AF + BH$，和分块公式一样。
+      - item:
+          id: log2-7
+          type: number
+          prompt: Strassen 的算法是 $O(n^{\log_2 7})$。求 $\log_2 7$（保留两位小数）。
+          answer: 2.81
+          tolerance: 0.006
+          explain: $2^{2.81} \approx 7.01$，$\log_2 7 \approx 2.807$。
+      - item:
+          id: ratio-1024
+          type: choice
+          prompt: $n = 1024 = 2^{10}$ 的矩阵，一直拆到 1×1。分块法要 $8^{10}$ 次数乘数，Strassen 要 $7^{10}$ 次。前者大约是后者的几倍？
+          options:
+            - text: 约 3.8 倍
+              correct: true
+            - text: 约 1.14 倍
+              why: 那是一层的比 8/7；拆了 10 层，要 (8/7)¹⁰
+            - text: 约 10 倍
+              why: (8/7)¹⁰ = 3.80，没有到 10 倍
+          explain: $(8/7)^{10} \approx 3.80$。每层省八分之一，层数越多省得越多：这正是 $n^3$ 和 $n^{2.81}$ 的差别。
+
+  - id: fft
+    chapter: 分治
+    title: 多项式乘法和快速傅里叶变换
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 把 $(1 + 2x + 3x^2)(2 + x + 4x^2)$ 展开，$x^2$ 前面的系数是多少？
+          answer: 12
+          explain: $x^2$ 来自 $1 \cdot 4x^2$、$2x \cdot x$、$3x^2 \cdot 2$：$4 + 2 + 6 = 12$。原书 DPV 的例子：乘积是 $2 + 5x + 12x^2 + 11x^3 + 12x^4$。
+      - card:
+          title: 按系数乘：平方级
+          body: |
+            $A(x) = a_0 + a_1 x + \dots + a_d x^d$，$B(x)$ 同样。乘积 $C(x) = A(x)B(x)$ 的系数是
+
+            $$c_k = a_0 b_k + a_1 b_{k-1} + \dots + a_k b_0$$
+
+            每个 $c_k$ 都要好几次乘法，全部算完要 $\Theta(d^2)$。数的乘法也是同一个问题（把每一位看成系数），所以快的多项式乘法也能让大数乘法更快。
+      - item:
+          id: coef-x3
+          type: number
+          prompt: $(1 + 2x + 3x^2)(2 + x + 4x^2)$ 展开后 $x^3$ 前面的系数是多少？
+          answer: 11
+          explain: $x^3$ 来自 $2x \cdot 4x^2$ 和 $3x^2 \cdot x$：$8 + 3 = 11$。
+      - card:
+          title: 换一种表示：点的值
+          body: |
+            原书的事实：次数为 $d$ 的多项式，由它在任意 $d + 1$ 个不同点上的值唯一确定（两点确定一条直线）。
+
+            于是另一条路：选 $n \ge 2d + 1$ 个点，算出 $A$、$B$ 在这些点上的值（求值），逐点相乘得到 $C$ 的值（只要 $n$ 次乘法），再从这些值还原 $C$ 的系数。难在求值：$n$ 个点每个都按原样算，又是平方级。
+      - item:
+          id: points-needed
+          type: number
+          prompt: 两个 3 次多项式相乘。按“先求值、逐点相乘、再还原”的办法，至少要在几个不同的点上求值？
+          answer: 7
+          explain: 乘积是 6 次多项式，由 7 个点上的值唯一确定，所以至少 7 个点（$2d + 1 = 7$）。
+      - card:
+          title: 正负成对的点
+          body: |
+            把 $A$ 按偶次项和奇次项分开：$A(x) = A_e(x^2) + x A_o(x^2)$。原书的例子：
+
+            $$3 + 4x + 6x^2 + 2x^3 + x^4 + 10x^5 = (3 + 6x^2 + x^4) + x(4 + 2x^2 + 10x^4)$$
+
+            $A(x)$ 和 $A(-x)$ 用的是同样的 $A_e(x^2)$、$A_o(x^2)$，只是中间的加号变减号。所以在 $\pm x_0, \dots, \pm x_{n/2-1}$ 上求值，只要在 $n/2$ 个点 $x_i^2$ 上算两个一半大的多项式：$T(n) = 2T(n/2) + O(n)$。
+      - item:
+          id: even-part
+          type: choice
+          prompt: $A(x) = 1 + 2x + 3x^2 + 4x^3$ 写成 $A_e(x^2) + x A_o(x^2)$，$A_e(y)$ 是什么？
+          options:
+            - text: 1 + 3y
+              correct: true
+            - text: 2 + 4y
+              why: 那是奇次项拿掉一个 x 以后的 A_o(y)
+            - text: 1 + 3y²
+              why: 偶次项 1 + 3x² 里把 x² 换成 y，得到 1 + 3y
+          explain: 偶次项是 $1 + 3x^2$，把 $x^2$ 换成 $y$ 得 $A_e(y) = 1 + 3y$；奇次项 $2x + 4x^3 = x(2 + 4x^2)$，$A_o(y) = 2 + 4y$。
+      - card:
+          title: 要用复数
+          body: |
+            第二层还想正负成对，就要 $x_i^2$ 本身也正负成对，可平方不会是负的。原书：除非用复数。规定一个新数 $i$，$i^2 = -1$。4 个点 $1, -1, i, -i$：平方是 $1, 1, -1, -1$，还是正负成对；再平方都是 1。
+
+            一般取 $n$ 个这样的点（$n$ 是 2 的乘方，原书叫 $n$ 次单位根），在它们上面求值叫**傅里叶变换（Fourier transform）**；用上面的分治来算，叫快速傅里叶变换（FFT），$O(n \log n)$。原书还证明：还原系数也用同一个 FFT，于是多项式乘法整个是 $O(n \log n)$。
+      - item:
+          id: squares-8
+          type: number
+          prompt: 8 个点每两个正负成一对，每一层把所有点平方。第一层的 8 个点平方后，剩下几个不同的点？
+          answer: 4
+          explain: 正负成对的两个点平方相同，8 个点变成 4 个；FFT 的点再平方又变成 2 个、1 个。每层点数减半，所以递推式是 $T(n) = 2T(n/2) + O(n)$。
+      - item:
+          id: why-complex
+          type: choice
+          prompt: FFT 为什么要用复数点，而不是普通的正负实数？
+          options:
+            - text: 递归到下一层时，要平方后的点仍然正负成对，实数的平方不会是负的
+              correct: true
+            - text: 复数算起来比实数快
+              why: 复数乘法反而更费事；用它是为了让每一层都能正负配对
+            - text: 只有复数能表示多项式的系数
+              why: 系数可以是普通的数；复数只是被选来当求值的点
+          explain: 第一层用 $\pm x$ 没问题，第二层要 $x^2$ 也正负成对，这只有在复数里才做得到，比如 $i^2 = -1$。
+  - id: activity-selection
+    chapter: 贪心
+    title: 活动安排：先选最早结束的
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一间教室，很多活动各有开始和结束时间，时间重叠的不能同时排。想排进尽量多的活动，每次挑哪一个最可靠？
+          options:
+            - text: 和已选的不冲突的活动里，结束得最早的
+              correct: true
+            - text: 最短的
+              why: 一个短活动可能正好横跨两个长活动的交界，把它们都挡掉
+            - text: 开始得最早的
+              why: 最早开始的可能一直持续到最后，一个就占满整个时间
+          explain: 结束得最早，给后面留下的时间最多。下面会证明这样选一定能排到最多。
+      - card:
+          title: 贪心
+          body: |
+            每一步都挑“眼下看起来最好”的选项，选了就不再改，这样的算法叫**贪心算法（greedy algorithm）**。
+
+            活动安排的贪心：把活动按结束时间从早到晚排好，依次看每个活动，和已选的都不冲突就选上。排序 $O(n \log n)$，扫一遍 $O(n)$。
+      - item:
+          id: synthesis-count
+          type: number
+          prompt: 活动（左闭右开，可以首尾相接）：[1,3)、[2,5)、[4,7)、[1,8)、[5,9)、[8,10)、[9,11)、[11,14)、[13,16)。按结束时间贪心，最多能排几个？
+          answer: 4
+          hint: 先选结束最早的 [1,3)，再找开始不早于 3、结束最早的……
+          explain: 依次选 [1,3)、[4,7)、[8,10)、[11,14)，共 4 个。试遍所有组合，也找不到 5 个互不冲突的。
+      - card:
+          title: 交换论证
+          body: |
+            为什么贪心一定最多？用**交换论证（exchange argument）**：
+
+            1. 设 $g$ 是结束最早的活动，任取一个最优解，它的第一个活动是 $o$。$g$ 结束不晚于 $o$，把 $o$ 换成 $g$，和后面的活动仍不冲突，个数不变，还是最优解。
+            2. 所以存在一个以 $g$ 开头的最优解。去掉 $g$ 和与它冲突的活动，剩下的是同样的问题，规模更小；对规模归纳，贪心在剩下的部分也最多。
+      - item:
+          id: exchange-step
+          type: choice
+          prompt: 交换论证的第一步把最优解里的第一个活动 $o$ 换成结束最早的 $g$。换完为什么和后面的活动仍然不冲突？
+          options:
+            - text: g 结束得不比 o 晚，o 后面的活动都在 o 结束后才开始，也就在 g 结束后才开始
+              correct: true
+            - text: 因为 g 比 o 短
+              why: 论证没用到长短；g 可能比 o 长，只要它结束得早
+            - text: 因为 g 开始得比 o 早
+              why: 开始时间不重要，关键是 g 结束不晚于 o
+          explain: 后面的活动开始时间 $\ge$ $o$ 的结束 $\ge$ $g$ 的结束，所以不会和 $g$ 重叠。
+      - item:
+          id: shortest-fails
+          type: number
+          prompt: 活动 [1,5)、[4,7)、[6,10)。如果每次挑“最短的、和已选不冲突的”，能排几个？
+          answer: 1
+          explain: 最短的是 [4,7)（长 3），它和另外两个都重叠，选了它就只能排 1 个；而 [1,5) 和 [6,10) 可以同时排，最多是 2 个。“最短优先”不是正确的贪心。
+      - card:
+          title: 贪心不总是对的
+          body: |
+            贪心快，但不是每个问题都适用，要证明了才能用。Hello 算法的例子：用面值 1、20、50 的硬币凑 60，每次拿能拿的最大面值：50 + 十个 1，共 11 枚；可最好是三个 20，只要 3 枚。
+
+            能用贪心的问题要满足：做了贪心的选择后，剩下的还是同类问题，而且总存在一个包含这个选择的最优解（交换论证证明的就是这一点）。
+      - item:
+          id: coins-greedy
+          type: number
+          prompt: 用面值 1、49、50 的硬币凑 98，每次拿能拿的最大面值，一共拿几枚？
+          answer: 49
+          explain: 先拿 50，剩 48 只能拿 48 个 1，共 49 枚；而 49 + 49 只要 2 枚。贪心差得很远。
+      - card:
+          title: 分数背包
+          body: |
+            Hello 算法的另一个例子：背包有容量限制，物品可以切开只拿一部分，价值按比例算。这叫分数背包。
+
+            贪心：按“每斤值多少钱”从高到低拿，最后一样装不下就只拿能装下的那一部分。为什么对：如果最优解里装了一部分单价低的、却剩下单价高的没拿完，把同样重量换成单价高的，总价值不会变少，又是交换论证。
+      - item:
+          id: fractional
+          type: number
+          prompt: 背包容量 50 斤，物品可以切开拿一部分（价值按比例）。物品：10 斤 60 元、20 斤 100 元、30 斤 120 元。最多能装多少钱？
+          answer: 240
+          explain: 每斤的价钱依次是 6、5、4 元。先拿 10 斤的（60 元），再拿 20 斤的（100 元），剩 20 斤装 30 斤那件的 $\frac23$（80 元），共 240 元。物品不能切开时贪心就不一定对了，要用动态规划。
+
+  - id: mst-cut
+    chapter: 贪心
+    title: 最小生成树和割性质
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 要用光缆把 8 座城市连通（任意两座之间都能通过光缆走到），不要多余的线路。最少要铺几段光缆？
+          options:
+            - text: '7'
+              correct: true
+            - text: '8'
+              why: 8 段就一定会有一个圈，圈上去掉一段照样连通
+            - text: '28'
+              why: 28 是每两座城市都连一段，有大量多余
+          explain: 连通又没有圈的图是树，8 个点的树正好 7 条边。
+      - card:
+          title: 生成树
+          body: |
+            连通的无向图里，取一部分边，把所有顶点连通而且没有圈，叫**生成树（spanning tree）**。原书 DPV 的几条性质：
+
+            - 去掉圈上的一条边，图仍然连通；
+            - $n$ 个顶点的树正好有 $n - 1$ 条边；
+            - 连通、$n$ 个顶点、$n - 1$ 条边的无向图一定是树。
+
+            每条边有权重（如铺设费用），权重之和最小的生成树叫**最小生成树（minimum spanning tree）**，简称 MST。
+      - item:
+          id: mst-edges
+          type: number
+          prompt: 一张连通的无向图有 50 个顶点、300 条边。它的最小生成树有几条边？
+          answer: 49
+          explain: 生成树要连通全部 50 个顶点、没有圈，正好 $50 - 1 = 49$ 条边，和原图有多少条边无关。
+      - card:
+          title: 割性质
+          body: |
+            把顶点分成两组 $S$ 和 $V - S$，叫一个**割（cut）**；两端分在两组的边叫横跨这个割。原书的割性质：
+
+            > 设边集 $X$ 是某棵 MST 的一部分，$X$ 里没有边横跨割 $(S, V - S)$，$e$ 是横跨它的最轻的边。那么 $X \cup \{e\}$ 也是某棵 MST 的一部分。
+
+            证明用交换：取包含 $X$ 的 MST $T$。如果 $e$ 不在 $T$ 里，把 $e$ 加进 $T$ 会形成一个圈，这个圈要回到原来那一组，一定还有另一条横跨的边 $e'$。去掉 $e'$ 得到 $T' = T + e - e'$，仍是生成树，而 $e$ 最轻，$T'$ 不比 $T$ 重。
+      - item:
+          id: why-cross-again
+          type: choice
+          prompt: 割性质的证明里，把 $e$ 加进 $T$ 形成的圈上，为什么一定还有另一条横跨割的边？
+          options:
+            - text: 圈从 S 这边经过 e 到了另一边，要回到出发点就得再横跨一次
+              correct: true
+            - text: 因为 T 是最小生成树
+              why: 这和 T 是不是最小无关，只和“圈要回到起点”有关
+            - text: 因为 e 是最轻的边
+              why: e 最轻用在最后比较重量；“还有一条横跨的边”只靠圈的形状
+          explain: 圈是闭合的：沿着它走一圈回到起点，跨过去几次就要跨回来几次，所以至少两条横跨的边。
+      - card:
+          title: Kruskal 算法
+          body: |
+            把边按权重从小到大排好，依次看每条边：加进来不形成圈就加，形成圈就跳过，直到有 $n - 1$ 条边。
+
+            为什么对：加进 $e = \{u, v\}$ 时它不形成圈，取 $S$ 为当时和 $u$ 连通的那些顶点，已选的边都不横跨这个割，而 $e$ 是横跨它的最轻的边（更轻的边都看过了，要么已选、要么会成圈），由割性质成立。
+      - card:
+          title: 例题：跑一遍 Kruskal
+          body: 顶点 A–E，边和权重：A-B 1、B-C 2、A-C 3、C-D 4、B-D 5、D-E 6、C-E 7。
+          reveal:
+            - title: 前两条
+              body: A-B（1）、B-C（2）都不成圈，加入。
+            - title: A-C（3）
+              body: A 和 C 已经经 B 连通，加了成圈，跳过。
+            - title: C-D（4）、B-D（5）
+              body: C-D 加入；B-D 两端已连通，跳过。
+            - title: D-E（6）
+              body: 加入。已有 4 条边，5 个顶点的生成树完成，总权重 $1 + 2 + 4 + 6 = 13$。
+      - item:
+          id: kruskal-total
+          type: number
+          prompt: 顶点 P、Q、R、S，边和权重：P-Q 4、P-R 1、Q-R 2、Q-S 5、R-S 8、P-S 6。用 Kruskal 求最小生成树，总权重是多少？
+          answer: 8
+          explain: 按权重：P-R 1 加入，Q-R 2 加入，P-Q 4 成圈跳过，Q-S 5 加入，已有 3 条边。总权重 $1 + 2 + 5 = 8$。
+      - item:
+          id: kruskal-skipped
+          type: text
+          prompt: 顶点 A–E，边和权重：A-B 1、B-C 2、A-C 3、C-D 4、B-D 5、D-E 6、C-E 7。用 Kruskal 求最小生成树，凑满 4 条边之前，跳过了哪几条边？（按权重从小到大写，用空格隔开，如 X-Y Z-W）
+          answers:
+            - A-C B-D
+          explain: A-C 加入时 A、C 已经连通；B-D 加入时 B、D 也已经连通，两条都会成圈。
+
+  - id: union-find
+    chapter: 贪心
+    title: 并查集：两个点连没连上
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: Kruskal 每看一条边 u-v，都要判断 u 和 v 是不是已经连通。最直接的办法是从 u 做一次 DFS 看能不能走到 v。如果有 m 条边、n 个顶点，这样一共要花多少？
+          options:
+            - text: 可能到 O(m · n)：每条边都做一次遍历
+              correct: true
+            - text: O(m)
+              why: 每次判断都要走一遍已选的边，不是一步
+            - text: O(log n)
+              why: 那是并查集按秩合并后每次查询的代价，不是 DFS 的
+          explain: 每条边一次 DFS，每次最多走遍 $n$ 个顶点。下面的并查集让每次判断几乎是常数时间。
+      - card:
+          title: 并查集
+          body: |
+            Kruskal 运行中，顶点被分成若干组（已连通的在一组），这是一个划分。**并查集（union-find）**维护这个划分，支持三种操作：
+
+            - makeset(x)：x 自己一组；
+            - find(x)：x 所在组的代表；
+            - union(x, y)：把两组合成一组。
+
+            判断加 u-v 会不会成圈：看 find(u) 是否等于 find(v)。
+      - card:
+          title: 用树来存
+          body: |
+            每组存成一棵树，每个元素记下它的“父亲”，根的父亲是自己，根就是代表：
+
+            ```python
+            def find(x):
+                while parent[x] != x:
+                    x = parent[x]
+                return x
+            ```
+
+            union(x, y) 只要把一棵树的根挂到另一棵树的根下面。查找要走的步数就是树高，所以要让树矮。
+      - item:
+          id: find-root
+          type: text
+          prompt: |
+            并查集用 parent 记每个元素的父亲：parent = {"a": "a", "b": "a", "c": "b", "d": "d", "e": "d", "f": "c"}。find(x) 一直沿 parent 往上走，走到 parent[x] == x 为止，返回这个 x。find("f") 返回什么？
+          answers:
+            - a
+          explain: f → c → b → a，a 的父亲是自己，所以返回 "a"。f 和 b、c 在同一组，和 d、e 不在一组。
+      - card:
+          title: 按秩合并
+          body: |
+            原书给每个根记一个**秩（rank）**，开始都是 0。合并时把秩小的根挂到秩大的根下；秩相同就随便挂一个，新根的秩加 1。
+
+            原书证明：秩为 $k$ 的根，树里至少有 $2^k$ 个元素。所以 $n$ 个元素时秩不超过 $\log_2 n$，树高也不超过 $\log_2 n$，find 和 union 都是 $O(\log n)$。Kruskal 总共 $O(m \log n)$，主要花在给边排序上。
+      - item:
+          id: max-rank
+          type: number
+          prompt: 并查集按秩合并，一共 1000 个元素。任何一个根的秩最大可能是几？（秩为 k 的根至少有 2ᵏ 个元素）
+          answer: 9
+          explain: $2^9 = 512 \le 1000 < 1024 = 2^{10}$，秩为 10 的根要至少 1024 个元素，不可能。所以最大是 9。
+      - card:
+          title: 例题：原书的一串操作
+          body: makeset(A) … makeset(G) 以后依次做 union(A, D)、union(B, E)、union(C, F)、union(C, G)、union(E, A)、union(B, G)。原书的规则：两根的秩不同时，秩小的挂到秩大的下面；秩相同时，第一个参数的根挂到第二个参数的根下面，后者秩加 1。
+          reveal:
+            - title: 前三次
+              body: A 挂到 D 下，B 挂到 E 下，C 挂到 F 下；D、E、F 的秩变成 1。
+            - title: union(C, G)
+              body: find(C) = F（秩 1），G（秩 0）：G 挂到 F 下。
+            - title: union(E, A)
+              body: find(E) = E（秩 1），find(A) = D（秩 1），秩相同：E 挂到 D 下，D 的秩变成 2。
+            - title: union(B, G)
+              body: find(B) = D（秩 2），find(G) = F（秩 1）：F 挂到 D 下。现在所有元素都在 D 这一组，D 是唯一的根。
+      - item:
+          id: path-compression
+          type: choice
+          prompt: 原书的另一个技巧是“路径压缩”：find(x) 走到根以后，把一路经过的每个节点都直接挂到根上。它带来什么？
+          options:
+            - text: 以后再查这些节点只要一步，一长串操作平均下来几乎是常数时间
+              correct: true
+            - text: 每一次 find 都变成 O(1)
+              why: 第一次走那条长路还是要走完；省下的是以后的查找，所以说的是平均（摊还）的代价
+            - text: 树的秩也跟着变小
+              why: 原书特别说明：路径压缩不改任何节点的秩，只是秩不再等于树高
+          explain: 原书证明按秩合并加路径压缩后，一串操作平均每次是 $O(\log^* n)$：$\log^* n$ 是对 $n$ 反复取 $\log_2$ 几次才不超过 1，比如 $\log^* 1000 = 4$。对任何实际的 $n$ 它都不超过 5。
+
+  - id: prim
+    chapter: 贪心
+    title: Prim：让一棵树长大
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 另一种建最小生成树的思路：从一个顶点出发，每次往树上添一条边，把一个新顶点接进来。该添哪条边？
+          options:
+            - text: 一端在树上、一端不在的边里最轻的那条
+              correct: true
+            - text: 全图剩下的边里最轻的那条
+              why: 那条边可能两端都不在树上，加进来就不是“一棵树长大”了，那是 Kruskal
+            - text: 离出发点路程最短的顶点的边
+              why: 生成树只看每条边自己的权重，不看到出发点的总路程
+          explain: 这正是割性质：树上的顶点是 $S$，其余是 $V - S$，横跨的最轻边一定可以加。
+      - card:
+          title: Prim 算法
+          body: |
+            从任意顶点出发，树上的顶点集合是 $S$。每一步取横跨 $(S, V - S)$ 的最轻边，把它另一端的顶点加进 $S$，重复 $n - 1$ 次。
+
+            实现：每个不在树上的顶点 $v$ 记 cost($v$) = 它连到树上的最轻边的权重，放进优先队列。每次取出 cost 最小的 $v$ 加进树，再用 $v$ 的边更新邻居的 cost。用二叉堆是 $O(m \log n)$。
+      - card:
+          title: 例题：从 A 开始
+          body: 顶点 A–E，边：A-B 1、B-C 2、A-C 3、C-D 4、B-D 5、D-E 6、C-E 7。
+          reveal:
+            - title: 树 = {A}
+              body: 横跨的边 A-B 1、A-C 3，取 A-B，加入 B。
+            - title: 树 = {A, B}
+              body: 横跨的边 B-C 2、A-C 3、B-D 5，取 B-C，加入 C。
+            - title: 树 = {A, B, C}
+              body: 横跨的边 C-D 4、B-D 5、C-E 7，取 C-D，加入 D。
+            - title: 树 = {A, B, C, D}
+              body: 横跨的边 D-E 6、C-E 7，取 D-E，加入 E。总权重 13，和 Kruskal 得到的一样。
+      - item:
+          id: prim-order
+          type: text
+          prompt: 还是顶点 A–E、边 A-B 1、B-C 2、A-C 3、C-D 4、B-D 5、D-E 6、C-E 7。这次从 E 开始跑 Prim，顶点加进树的先后顺序是什么？（用空格隔开，如 E X Y Z W）
+          answers:
+            - E D C B A
+          explain: 从 E：D-E 6 比 C-E 7 轻，加 D；再看 C-D 4、B-D 5、C-E 7，加 C；再看 B-C 2、A-C 3、B-D 5，加 B；最后 A-B 1，加 A。总权重 $6 + 4 + 2 + 1 = 13$。
+      - item:
+          id: prim-dense
+          type: choice
+          prompt: 原书 algs4 的习题：把 Prim 的优先队列换成每次直接扫一遍所有顶点的 cost 找最小，时间变成 $O(n^2)$。什么时候这样反而好？
+          options:
+            - text: 边很多的稠密图，m 接近 n² 时
+              correct: true
+            - text: 边很少的稀疏图
+              why: 稀疏图 m 很小，O(m log n) 远小于 O(n²)
+            - text: 永远不会更好
+              why: m 接近 n² 时 O(m log n) 是 n² log n，比 n² 还多一个对数
+          explain: 原书说 $O(n^2)$ 对稠密图是最优的：光读一遍边就要 $n^2$。
+      - item:
+          id: add-constant
+          type: choice
+          prompt: 把图里每条边的权重都加上同一个正数，最小生成树会变吗？
+          options:
+            - text: 不会变
+              correct: true
+            - text: 会变，可能换成边数更少的树
+              why: 每棵生成树都正好 n − 1 条边，大家加的总量一样
+            - text: 会变，权重大的边更不容易被选
+              why: Kruskal 只看边的先后顺序，每条边加同一个数，顺序不变
+          explain: 原书习题的答案：Kruskal 只比较边的大小，加同一个正数（或乘同一个正数）不改变顺序，选出的树不变。每棵生成树的边数都是 $n - 1$，总重量同样多了 $(n - 1)c$。
+
+  - id: huffman
+    chapter: 贪心
+    title: Huffman 编码：常用的字母用短码
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一段很长的文字只有 A、B、C、D 四个字母，每个都用 2 位的 0/1 码（00、01、10、11）。可 A 出现得最多、B 很少。怎样能让总长度更短？
+          options:
+            - text: 让 A 用更短的码，B 用更长的码
+              correct: true
+            - text: 每个字母都换成 1 位
+              why: 1 位只有 0 和 1 两种，分不出 4 个字母
+            - text: 没法更短
+              why: 码长不一定要一样，常出现的用短码就能省
+          explain: 出现得多的用短码、少的用长码，总长度就能变短。难点是码长不一样时，还要能唯一地解开。
+      - card:
+          title: 前缀码
+          body: |
+            码长不一样会有歧义。原书的例子：码字是 {0, 01, 11, 001} 时，001 可以读成 0、01，也可以读成 001。
+
+            解决办法：任何一个码字都不能是另一个码字的开头。这样的码叫**前缀码（prefix-free code）**。前缀码可以画成一棵二叉树：往左是 0，往右是 1，字母都在叶子上。读到叶子就输出一个字母，再回到根。
+      - item:
+          id: which-prefix
+          type: choice
+          prompt: 下面哪一组码字是前缀码？
+          options:
+            - text: 0、10、110、111
+              correct: true
+            - text: 0、01、11
+              why: 0 是 01 的开头，读到 0 时不知道是不是字母结束了
+            - text: 1、10、100、1000
+              why: 1 是其他所有码字的开头
+          explain: 0、10、110、111 里没有一个是另一个的开头。它对应一棵树：0 是左边的叶子，右边再分出 10 和 11x。
+      - card:
+          title: 树的代价
+          body: |
+            第 $i$ 个字母出现 $f_i$ 次、在树里深度是 $d_i$（码长），总长度就是 $\sum f_i d_i$。
+
+            原书的例子（单位：百万次）：A 70、B 3、C 20、D 37。每个字母 2 位要 $130 \times 2 = 260$ 兆位。用 A = 0、D = 11、B = 100、C = 101：
+
+            $$70 \times 1 + 37 \times 2 + 3 \times 3 + 20 \times 3 = 213$$
+
+            只要 213 兆位，少了约 18%。
+      - item:
+          id: cost-small
+          type: number
+          prompt: 字母出现次数 A 5、B 1、C 2、D 2。码字 A = 0、B = 110、C = 111、D = 10。编码后一共多少位？
+          answer: 18
+          explain: 每个字母的次数乘码长再相加：$5 \times 1 + 1 \times 3 + 2 \times 3 + 2 \times 2 = 5 + 3 + 6 + 4 = 18$ 位。每个都用 2 位要 20 位。
+      - card:
+          title: Huffman 算法
+          body: |
+            每次取出出现次数最少的两个，合成一个新节点，次数是两者之和，放回去；重复到只剩一个，就是整棵树的根。用优先队列，$O(n \log n)$。
+
+            为什么对（交换论证）：最少的两个字母可以放在最深的两个兄弟叶子上，否则把它们和最深处的字母对调，总长度不会变长。合成以后，剩下的是少一个字母的同样问题。
+      - card:
+          title: 例题：原书习题 5.13
+          body: 一串只有 A、C、G、T 的长字符串，出现的比例是 A 31%、C 20%、G 9%、T 40%。
+          reveal:
+            - title: 第一次合并
+              body: 最少的是 G 9 和 C 20，合成 29。
+            - title: 第二次合并
+              body: 剩下 29、A 31、T 40，最少的是 29 和 31，合成 60。
+            - title: 第三次合并
+              body: 60 和 T 40 合成 100，这就是根。
+            - title: 读出码长
+              body: T 在第 1 层（1 位），A 在第 2 层（2 位），G、C 在第 3 层（3 位）。例如 T = 0、A = 11、G = 100、C = 101。
+      - item:
+          id: avg-bits
+          type: number
+          prompt: 一串字符串只有 A、C、G、T，出现比例 A 31%、C 20%、G 9%、T 40%。Huffman 编码的码长是 T 1 位、A 2 位、C 3 位、G 3 位。平均每个字母要几位？
+          answer: 1.89
+          explain: $0.40 \times 1 + 0.31 \times 2 + 0.20 \times 3 + 0.09 \times 3 = 0.40 + 0.62 + 0.60 + 0.27 = 1.89$ 位，比固定 2 位省一些。
+      - item:
+          id: file-bits
+          type: number
+          prompt: 原书习题 5.14：字母 a、b、c、d、e 出现的比例是 1/2、1/4、1/8、1/16、1/16。用 Huffman 编码一个 1,000,000 个字母的文件，一共多少位？
+          answer: 1875000
+          hint: 先合并两个 1/16，再一路往上合并。码长分别是多少？
+          explain: 码长 1、2、3、4、4，平均 $\frac12 + \frac24 + \frac38 + \frac4{16} + \frac4{16} = 1.875$ 位，100 万个字母共 1,875,000 位。
+
+  - id: horn
+    chapter: 贪心
+    title: Horn 公式：能不设真就不设
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 侦探手上有几条线索：“如果 x 在场，那么 y 也在场”“x 在场”“y 和 z 不可能都在场”。z 在不在场？
+          options:
+            - text: 不在场
+              correct: true
+            - text: 在场
+              why: x 在场推出 y 在场，而 y 和 z 不能都在场
+            - text: 无法确定
+              why: 从“x 在场”一路推出 y 在场，再用第三条就能定 z
+          explain: x 在场 ⇒ y 在场；y、z 不能都在场 ⇒ z 不在场。原书讲 Horn 公式就用的侦探推理的比喻。
+      - card:
+          title: Horn 公式
+          body: |
+            变量只取真或假。**Horn 公式（Horn formula）**由两种子句组成：
+
+            - 蕴含：左边是几个变量的“且”，右边是一个变量，如 $(z \wedge w) \Rightarrow u$；左边可以是空的，写成 $\Rightarrow x$，意思是 $x$ 为真；
+            - 纯否定子句：几个“非变量”的“或”，如 $(\bar u \vee \bar v \vee \bar y)$，意思是它们不能都为真。
+
+            给变量赋真假，让所有子句都成立，这样的赋值叫满足它；有这样的赋值就说公式是**可满足（satisfiable）**的。
+      - card:
+          title: 吝啬的贪心
+          body: |
+            ```text
+            所有变量先设成假
+            只要还有不成立的蕴含：把它右边的变量设成真
+            最后检查纯否定子句：都成立就输出这个赋值，否则“不可满足”
+            ```
+
+            原书说这个贪心更像“吝啬”：不到非设不可，绝不把变量设成真。为什么对：用不变式，**凡是被设成真的变量，在任何满足的赋值里都必须为真**。所以最后纯否定子句不成立，就没有任何满足的赋值。
+      - item:
+          id: horn-true
+          type: text
+          prompt: Horn 公式：$\Rightarrow a$，$a \Rightarrow b$，$(a \wedge c) \Rightarrow d$，$(\bar b \vee \bar d)$。按吝啬的贪心，最后哪些变量是真？（按字母顺序，用空格隔开）
+          answers:
+            - a b
+          explain: $\Rightarrow a$ 迫使 $a$ 真；$a \Rightarrow b$ 迫使 $b$ 真；$(a \wedge c) \Rightarrow d$ 的左边要 $c$ 也真才起作用，$c$ 是假，$d$ 不用设。最后 $\bar b \vee \bar d$：$d$ 是假，成立。所以 $a$、$b$ 真，公式可满足。
+      - card:
+          title: 例题：原书的公式
+          body: $(w \wedge y \wedge z) \Rightarrow x$，$(x \wedge z) \Rightarrow w$，$x \Rightarrow y$，$\Rightarrow x$，$(x \wedge y) \Rightarrow w$，$(\bar w \vee \bar x \vee \bar y)$，$\bar z$。原书只演示到“依此类推”，我们按算法做完。
+          reveal:
+            - title: 被迫设真
+              body: $\Rightarrow x$ 让 $x$ 真；$x \Rightarrow y$ 让 $y$ 真；$(x \wedge y) \Rightarrow w$ 让 $w$ 真。其余蕴含都已成立，$z$ 保持假。
+            - title: 检查纯否定子句
+              body: $\bar z$ 成立；但 $\bar w \vee \bar x \vee \bar y$ 要求 $w$、$x$、$y$ 不能都真，现在三个都是真，不成立。
+            - title: 结论
+              body: 由不变式，$w$、$x$、$y$ 在任何满足的赋值里都必须为真，所以这个公式不可满足。
+      - item:
+          id: why-stingy
+          type: choice
+          prompt: 吝啬的贪心为什么“不到非设不可，绝不设真”？
+          options:
+            - text: 多设一个真，可能让某个纯否定子句不成立，而本来是有解的
+              correct: true
+            - text: 为了让算法跑得更快
+              why: 跑得快是附带的；吝啬是为了正确：设真越少，纯否定子句越容易成立
+            - text: 因为变量默认就是假
+              why: 默认设假是做法本身，原因在于纯否定子句只怕变量为真
+          explain: 蕴含只会逼变量变真，纯否定子句只怕变量为真。只设被逼的那些，纯否定子句成立的机会最大；被逼的又是任何解都必须真的，所以结果是对的。
+      - item:
+          id: horn-count
+          type: number
+          prompt: Horn 公式：$\Rightarrow p$，$p \Rightarrow q$，$(q \wedge p) \Rightarrow r$，$(r \wedge s) \Rightarrow t$，$(\bar s \vee \bar p)$。按吝啬的贪心，最后有几个变量是真？
+          answer: 3
+          explain: $p$、$q$、$r$ 依次被迫设真；$(r \wedge s) \Rightarrow t$ 要 $s$ 也真才起作用，$s$ 假，$t$ 不设。$\bar s \vee \bar p$：$s$ 假，成立。共 3 个真。
+
+  - id: set-cover
+    chapter: 贪心
+    title: 集合覆盖：贪心不一定最好
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 要在几个镇里建学校，每个镇 30 英里内都要有一所。每次在“能覆盖最多还没被覆盖的镇”的地方建，一定建得最少吗？
+          options:
+            - text: 不一定
+              correct: true
+            - text: 一定
+              why: 原书正好给了一个反例：贪心建 4 所，最少只要 3 所
+          explain: 原书 DPV 的 11 个镇的例子里，贪心先选覆盖最多的 a，最后共建 4 所；可在 b、e、i 建 3 所就够了。
+      - card:
+          title: 集合覆盖
+          body: |
+            **集合覆盖（set cover）**：给定元素集合 $B$ 和它的若干子集 $S_1, \dots, S_m$，挑出尽量少的子集，使它们的并是 $B$。建学校的例子里，$S_x$ 是镇 $x$ 30 英里内的镇。
+
+            贪心：只要还有元素没被覆盖，就挑覆盖“没被覆盖的元素”最多的那个子集。
+      - item:
+          id: greedy-3
+          type: number
+          prompt: $B = \{1, 2, 3, 4, 5, 6\}$，子集 $S_1 = \{1, 2, 3\}$，$S_2 = \{4, 5, 6\}$，$S_3 = \{1, 2, 4, 5\}$。贪心一共挑几个子集？
+          answer: 3
+          explain: 先挑 $S_3$（4 个）；剩 3 和 6，$S_1$、$S_2$ 各只能盖 1 个，再挑两个，共 3 个。可 $S_1$、$S_2$ 两个就够了。
+      - card:
+          title: 差不了太多：k ln n
+          body: |
+            原书的结论：$B$ 有 $n$ 个元素，最优解用 $k$ 个子集，贪心最多用 $k \ln n$ 个。这里 $\ln$ 是**自然对数（natural logarithm）**，以 $e \approx 2.718$ 为底。
+
+            思路：剩下的 $n_t$ 个元素能被最优的 $k$ 个子集盖住，所以总有一个子集盖住至少 $n_t / k$ 个，每步剩下的最多变成原来的 $(1 - \frac1k)$。再用 $1 - x < e^{-x}$（$x \ne 0$）得 $n_t < n e^{-t/k}$，$t = k \ln n$ 时就小于 1，全盖住了。
+      - item:
+          id: bound-1000
+          type: number
+          prompt: 一个集合覆盖问题有 1000 个元素，最优解用 5 个子集。按原书的结论，贪心最多用多少个子集？（求 $5 \ln 1000$，保留一位小数）
+          answer: 34.5
+          tolerance: 0.06
+          explain: $\ln 1000 \approx 6.908$，$5 \times 6.908 \approx 34.5$。贪心可能比最优多，但不会超过约 34.5 个。
+      - item:
+          id: approx-factor
+          type: choice
+          prompt: 原书把“贪心的个数 ÷ 最优的个数”在所有输入上的最大值叫近似比。对集合覆盖的贪心，下面哪个说法对？
+          options:
+            - text: 近似比不超过 ln n，而且有输入能让它接近 ln n
+              correct: true
+            - text: 近似比是 1，贪心总是最优
+              why: 前面的例子贪心用 3 个、最优 2 个，比是 1.5
+            - text: 近似比可能非常大，没有任何保证
+              why: 原书证明了 k ln n 的保证
+          explain: 原书说比值总小于 $\ln n$，有的输入能接近 $\ln n$（习题 5.33）；在被广泛相信的复杂性假设下，多项式时间的算法做不到更小的近似比。
+  - id: dag-dp
+    chapter: 动态规划与摊还分析
+    title: 有向无环图上的最短路：动态规划的骨架
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 有向图的边（箭头和长度）：S→A 1、S→C 2、C→A 4、A→B 6、C→D 3、B→D 1、B→E 2、D→E 1。从 S 到 E 最短多长？
+          options:
+            - text: '6'
+              correct: true
+            - text: '9'
+              why: S→A→B→E 是 1 + 6 + 2 = 9，但走 S→C→D→E 更短
+            - text: '7'
+              why: 7 是到 B 的最短距离；到 E 有 2 + 3 + 1 = 6 的路
+          explain: S→C→D→E：$2 + 3 + 1 = 6$。下面用“按顺序填表”的办法系统地算出来。
+      - card:
+          title: 按拓扑序算距离
+          body: |
+            没有圈的有向图叫**有向无环图（directed acyclic graph，DAG）**。它的顶点可以排成一行，所有边都从左指向右，这就是 M.5.3 学过的拓扑排序。
+
+            到 $v$ 只能经过它的前驱，所以
+
+            $$\text{dist}(v) = \min_{(u, v)} \{\text{dist}(u) + \ell(u, v)\}$$
+
+            按拓扑序从左往右算，轮到 $v$ 时它所有前驱都算好了。每条边只看一次，$O(n + m)$。
+      - item:
+          id: dist-d
+          type: number
+          prompt: DAG 的边：S→A 1、S→C 2、C→A 4、A→B 6、C→D 3、B→D 1、B→E 2、D→E 1。拓扑序 S、C、A、B、D、E。dist(S) = 0，求 dist(D)。
+          answer: 5
+          explain: dist(C) = 2，dist(A) = min(1, 2 + 4) = 1，dist(B) = 1 + 6 = 7，dist(D) = min(dist(B) + 1, dist(C) + 3) = min(8, 5) = 5。
+      - card:
+          title: 什么是动态规划
+          body: |
+            原书 DPV 的说法：**动态规划（dynamic programming）**是先定下一组子问题，从小到大一个一个解，用小问题的答案算大问题，直到全部解完。
+
+            子问题之间“要用谁的答案”构成一张 DAG，只是它没有画出来：子问题是顶点，依赖是边。要做的三件事：定子问题、找出它们之间的关系式、排一个先小后大的顺序。
+      - item:
+          id: longest-e
+          type: number
+          prompt: 同一张 DAG（S→A 1、S→C 2、C→A 4、A→B 6、C→D 3、B→D 1、B→E 2、D→E 1），把关系式里的 min 换成 max，求从 S 到 E 的最长路有多长。
+          answer: 14
+          explain: 按拓扑序：C 2，A max(1, 6) = 6，B 12，D max(13, 5) = 13，E max(12 + 2, 13 + 1) = 14。原书说，换成 max 就是最长路，换成乘积就是“边长乘积最小”的路。
+      - item:
+          id: why-dag
+          type: choice
+          prompt: 为什么这种“按顺序填表”只能用在没有圈的图上？
+          options:
+            - text: 有圈时排不出“所有边都从左到右”的顺序，总有一个点要等一个还没算的前驱
+              correct: true
+            - text: 有圈时最短路一定不存在
+              why: 有圈的图照样有最短路（边长非负时可以用 Dijkstra），只是不能这样一趟算完
+            - text: 有圈时边太多，算不完
+              why: 和边数无关，问题在于没有先后顺序
+          explain: 圈上的每个点都是另一个点的前驱，谁也不能先算。动态规划要的正是子问题之间没有圈。
+
+  - id: lis
+    chapter: 动态规划与摊还分析
+    title: 最长递增子序列和记忆化
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 从 5、2、8、6、3、6、9、7 里按原来的先后挑出一些数，要求一个比一个大。最多能挑几个？
+          answer: 4
+          explain: 比如 2、3、6、9。原书 DPV 就用这一列数举例。
+      - card:
+          title: 子问题：以第 j 个结尾
+          body: |
+            按原来的先后挑出的一些数叫**子序列（subsequence）**；一个比一个大（严格）的叫递增子序列。
+
+            定子问题：$L(j)$ = 以第 $j$ 个数结尾的最长递增子序列的长度。它前面一个数一定是某个 $i < j$、$a_i < a_j$：
+
+            $$L(j) = 1 + \max\{L(i) : i < j,\ a_i < a_j\}$$
+
+            没有这样的 $i$ 时取 0，$L(j) = 1$。答案是所有 $L(j)$ 里最大的那个。
+      - card:
+          title: 例题：5、2、8、6、3、6、9、7
+          body: 从左往右算 $L(j)$，再沿着“前一个是谁”往回找。
+          reveal:
+            - title: 前五个
+              body: 5：1；2：1；8：2（前面有 5、2 比它小）；6：2；3：2（前面只有 2 比它小）。
+            - title: 后三个
+              body: 6（第二个 6）：前面比它小的 5、2、3 里 L 最大是 2，所以是 3；9：前面 L 最大的是第二个 6 的 3，所以是 4；7：同样是 4。
+            - title: 找回序列
+              body: 最大是 4。记下每个 $L(j)$ 是从哪个 $i$ 来的（原书叫 prev），从 9 往回：9 ← 6 ← 3 ← 2，就是 2、3、6、9。
+      - item:
+          id: lis-new
+          type: number
+          prompt: 3、1、4、1、5、9、2、6 的最长递增子序列（严格递增）有几个数？
+          answer: 4
+          explain: L 依次是 1、1、2、1、3、4、2、4，最大是 4，例如 3、4、5、9 或 1、4、5、6。两个 1 不能都选：要严格递增。
+      - card:
+          title: 递归？不了，谢谢
+          body: |
+            $L(j)$ 的关系式直接写成递归也对，但原书说这是“很坏的主意”：同一个 $L(i)$ 会被算很多遍，总次数按指数增长，和 fib1 一样。
+
+            分治的子问题小得多（一半），递归树只有对数层；动态规划的子问题只小一点点，递归树很深、节点极多。所以要么从小到大填表，要么用**记忆化（memoization）**：递归时把算过的答案存进字典，下次直接取。
+      - item:
+          id: memo-size
+          type: number
+          prompt: |
+            运行下面的程序后，字典 memo 里有几项？
+          code: |
+            memo = {}
+            def fib(n):
+                if n <= 1:
+                    return n
+                if n not in memo:
+                    memo[n] = fib(n - 1) + fib(n - 2)
+                return memo[n]
+            fib(30)
+          lang: python
+          answer: 29
+          explain: $n = 2, 3, \dots, 30$ 各存一次，共 29 项（$n \le 1$ 直接返回、不存）。每个值只算一次，从 fib1 的指数级变成线性。
+      - item:
+          id: lis-time
+          type: choice
+          prompt: '按 $L(j) = 1 + \max\{L(i) : i < j,\ a_i < a_j\}$ 从左往右填表，$n$ 个数要花多少时间？'
+          options:
+            - text: O(n²)
+              correct: true
+            - text: O(n)
+              why: 每个 L(j) 都要看它前面所有的 i，不是一步
+            - text: O(2ⁿ)
+              why: 指数级是不存答案、直接递归时的代价；填表每个 L(j) 只算一次
+          explain: 第 $j$ 个要看前面 $j - 1$ 个，加起来约 $n^2/2$。原书指出，数列本来就从小到大排好时最慢，正好是 $O(n^2)$。
+
+  - id: edit-distance
+    chapter: 动态规划与摊还分析
+    title: 编辑距离：两个词差多远
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 每次可以插入、删除或替换一个字母。把 SNOWY 变成 SUNNY 最少要几次？
+          answer: 3
+          explain: 插入 U、把 O 换成 N、删掉 W，共 3 次。原书 DPV 的例子，它还说明了没有更少的办法。
+      - card:
+          title: 编辑距离和对齐
+          body: |
+            把一个字符串变成另一个，最少要几次插入、删除、替换，叫**编辑距离（edit distance）**。原书用“对齐”来看：把两个串上下写，可以插入空格，代价是上下不同的列数：
+
+            ```text
+            S - N O W Y
+            S U N N - Y
+            ```
+
+            这个对齐有 3 列不同（U、N、W），对应插入 U、替换 O 为 N、删除 W。
+      - item:
+          id: kitten
+          type: number
+          prompt: 每次插入、删除或替换一个字母。把 kitten 变成 sitting 最少要几次？
+          answer: 3
+          explain: k 换成 s，e 换成 i，最后插入 g：kitten → sitten → sittin → sitting。这是 Hello 算法里的例子。
+      - card:
+          title: 看最右边一列
+          body: |
+            子问题：$E(i, j)$ = $x$ 的前 $i$ 个字母和 $y$ 的前 $j$ 个字母的编辑距离。最优对齐的最右一列只有三种：
+
+            - $x_i$ 上面、空格下面：删掉 $x_i$，代价 $1 + E(i-1, j)$；
+            - 空格上面、$y_j$ 下面：插入 $y_j$，代价 $1 + E(i, j-1)$；
+            - $x_i$ 对 $y_j$：相同代价 0，不同代价 1（替换），加 $E(i-1, j-1)$。
+
+            取三者最小。边界 $E(i, 0) = i$，$E(0, j) = j$。填一张 $(m+1) \times (n+1)$ 的表，$O(mn)$。
+      - card:
+          title: 例题：AB 和 BA
+          body: 填 $E(i, j)$，行是 AB 的前缀，列是 BA 的前缀。
+          reveal:
+            - title: 边界
+              body: 第 0 行 0、1、2；第 0 列 0、1、2。
+            - title: 第 1 行（A）
+              body: $E(1,1)$：A 对 B 不同，$\min(1 + 1, 1 + 1, 1 + 0) = 1$。$E(1,2)$：A 对 A 相同，$\min(1 + 2, 1 + 1, 0 + 1) = 1$。
+            - title: 第 2 行（B）
+              body: $E(2,1)$：B 对 B 相同，$\min(1 + 1, 1 + 2, 0 + 1) = 1$。$E(2,2)$：B 对 A 不同，$\min(1 + 1, 1 + 1, 1 + 1) = 2$。
+            - title: 答案
+              body: 右下角 $E(2,2) = 2$：AB 变 BA 要 2 次（比如替换两次，或删掉 A 再在末尾插入 A）。
+      - item:
+          id: expo-poly
+          type: number
+          prompt: 原书的例子：EXPONENTIAL 和 POLYNOMIAL 的编辑距离是多少？（每次插入、删除或替换一个字母）
+          answer: 6
+          explain: 原书填完 12 × 11 的表得 6，对应的对齐有 6 列不同。可以用上面的关系式写个程序验证。
+      - item:
+          id: hello-algo
+          type: number
+          prompt: 每次插入、删除或替换一个字母。把 hello 变成 algo 最少要几次？
+          answer: 3
+          explain: hello → ello（删掉 h）→ allo（e 换成 a）→ algo（第二个 l 换成 g），共 3 次。这是 Hello 算法里的另一个例子；填表也得 3。
+      - item:
+          id: table-move
+          type: choice
+          prompt: 原书把编辑距离的表看成一张 DAG：从 $(i-1, j-1)$ 斜着走到 $(i, j)$ 是什么操作？
+          options:
+            - text: 字母相同时是照抄（代价 0），不同时是替换（代价 1）
+              correct: true
+            - text: 插入
+              why: 插入是从 (i, j−1) 横着走过来：y 多用了一个字母，x 没动
+            - text: 删除
+              why: 删除是从 (i−1, j) 竖着走过来：x 少了一个字母，y 没动
+          explain: 斜着走两边各用掉一个字母；竖着走是删除，横着走是插入。编辑距离就是这张 DAG 上的最短路。
+
+  - id: lcs
+    chapter: 动态规划与摊还分析
+    title: 最长公共子序列
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: ABCBDAB 和 BDCABA 里都能按先后挑出的、最长的同一串字母有几个字母？
+          options:
+            - text: '4'
+              correct: true
+            - text: '3'
+              why: BCBA 两个串里都能按先后找到，有 4 个字母
+            - text: '6'
+              why: BDCABA 全部 6 个字母在 ABCBDAB 里排不出这个顺序
+          explain: 比如 BCBA。下面用和编辑距离一样的填表法算出来。
+      - card:
+          title: 关系式
+          body: |
+            两个串都有的子序列里最长的，叫**最长公共子序列（longest common subsequence，LCS）**。设 $L[i][j]$ 是 $x$ 的前 $i$ 个字母和 $y$ 的前 $j$ 个字母的 LCS 长度：
+
+            $$L[i][j] = \begin{cases} L[i-1][j-1] + 1 & x_i = y_j \\ \max(L[i-1][j],\ L[i][j-1]) & x_i \ne y_j \end{cases}$$
+
+            边界 $L[0][j] = L[i][0] = 0$。最后两个字母相同，就一起用上；不同，就至少有一个用不上，去掉它试两边。
+      - card:
+          title: 例题：ABCBDAB 和 BDCABA
+          body: 这是原技能树的综合练习 (2)。
+          reveal:
+            - title: 填表
+              body: 按关系式填 8 × 7 的表（含边界）。右下角 $L[7][6] = 4$。
+            - title: 找出一个 LCS
+              body: 从右下角往回走：字母相同就往左上，记下这个字母；不同就走向较大的那一格。得到 BCBA。
+            - title: 不止一个
+              body: 长度为 4 的 LCS 有三个：BCAB、BCBA、BDAB。
+      - item:
+          id: lcs-new
+          type: number
+          prompt: AGGTAB 和 GXTXAYB 的最长公共子序列有几个字母？
+          answer: 4
+          explain: GTAB：在 AGGTAB 里是第 2、4、5、6 个字母，在 GXTXAYB 里是第 1、3、5、7 个。
+      - item:
+          id: lcs-text
+          type: text
+          prompt: ABCD 和 ACBD 的最长公共子序列有 3 个字母。写出一个。
+          answers:
+            - ABD
+            - ACD
+          explain: ABD 和 ACD 都是。B、C 在两个串里先后相反，只能用上一个。
+      - card:
+          title: 和编辑距离的关系
+          body: |
+            如果只允许插入和删除（不许替换），把 $x$ 变成 $y$：保留一个公共子序列，删掉 $x$ 里其余的，插入 $y$ 里其余的。保留得越多越好，所以最少要
+
+            $$m + n - 2 \cdot \text{LCS}$$
+
+            次。这两个问题用的是同一种子问题：两个前缀。原书把它列为常见的子问题形状之一。
+      - item:
+          id: ins-del
+          type: number
+          prompt: 只允许插入和删除，把 ABCBDAB（7 个字母）变成 BDCABA（6 个字母），最少要几次？（它们的 LCS 长度是 4）
+          answer: 5
+          explain: $7 + 6 - 2 \times 4 = 5$：删掉 ABCBDAB 里不在 LCS 里的 3 个字母，再插入 BDCABA 里缺的 2 个。
+
+  - id: knapsack
+    chapter: 动态规划与摊还分析
+    title: 背包：能装多少价值
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 背包最多装 10 斤。物品（重量、价值）：1 号 6 斤 30 元，2 号 3 斤 14 元，3 号 4 斤 16 元，4 号 2 斤 9 元，每样只有一件。最多能装多少钱的东西？
+          options:
+            - text: 46 元
+              correct: true
+            - text: 48 元
+              why: 48 元是 1 号加两件 4 号，可每样只有一件
+            - text: 44 元
+              why: 1 号 + 2 号是 9 斤 44 元，换成 1 号 + 3 号正好 10 斤、46 元
+          explain: 1 号和 3 号：6 + 4 = 10 斤，30 + 16 = 46 元。这是原书 DPV 的例子。
+      - card:
+          title: 每样可以拿很多件
+          body: |
+            先看简单的版本：每样物品不限件数。子问题 $K(w)$ = 容量 $w$ 能装的最大价值。最优装法里拿掉任意一件物品 $i$，剩下的一定是容量 $w - w_i$ 的最优装法：
+
+            $$K(w) = \max_{i:\ w_i \le w} \{K(w - w_i) + v_i\}$$
+
+            $K(0) = 0$，从 $w = 1$ 填到 $W$。一维的表共 $W + 1$ 格，每格看 $n$ 样物品，$O(nW)$。
+      - card:
+          title: 例题：容量 10、可以重复拿
+          body: 物品（重量、价值）：6 斤 30 元、3 斤 14 元、4 斤 16 元、2 斤 9 元。
+          reveal:
+            - title: K(0) 到 K(5)
+              body: 0、0、9、14、18（两件 2 斤）、23（2 斤 + 3 斤）。
+            - title: K(6) 到 K(10)
+              body: 30、32、39、44、48。例如 $K(10) = \max(K(4) + 30, K(7) + 14, K(6) + 16, K(8) + 9) = \max(48, 46, 46, 48) = 48$。
+            - title: 答案
+              body: 48 元：一件 6 斤的加两件 2 斤的，和原书的答案一样。
+      - item:
+          id: rep-8
+          type: number
+          prompt: 背包容量 8 斤，物品（重量、价值）：6 斤 30 元、3 斤 14 元、4 斤 16 元、2 斤 9 元，每样可以拿任意多件。最多装多少钱？
+          answer: 39
+          explain: $K(8) = \max(K(2) + 30, K(5) + 14, K(4) + 16, K(6) + 9) = \max(39, 37, 34, 39) = 39$：6 斤一件加 2 斤一件。
+      - card:
+          title: 每样只有一件
+          body: |
+            只有一件时，$K(w - w_i)$ 很大也没用：不知道它里面是不是已经用了物品 $i$。要多一维，记下“只用前 $j$ 样”：
+
+            $$K(w, j) = \max\{K(w - w_j,\ j - 1) + v_j,\ K(w,\ j - 1)\}$$
+
+            第一项是拿第 $j$ 样（$w_j \le w$ 时才有），第二项是不拿。表有 $(W + 1) \times (n + 1)$ 格，每格常数时间，还是 $O(nW)$。
+      - item:
+          id: once-9
+          type: number
+          prompt: 背包容量 9 斤，物品（重量、价值）：6 斤 30 元、3 斤 14 元、4 斤 16 元、2 斤 9 元，每样只有一件。最多装多少钱？
+          answer: 44
+          explain: 6 斤 + 3 斤正好 9 斤，30 + 14 = 44 元。别的组合：6 + 2 是 39，4 + 3 + 2 是 39，都更少。
+      - item:
+          id: pseudo-poly
+          type: choice
+          prompt: 背包的算法是 $O(nW)$。原书说它不是多项式时间。为什么？
+          options:
+            - text: 写下容量 W 只要约 log W 位，W 本身却可以是这个长度的指数
+              correct: true
+            - text: 因为 nW 里有两个变量
+              why: 两个变量相乘照样可以是多项式；问题在于 W 和输入长度的关系
+            - text: 因为表格太大放不进内存
+              why: 内存是另一回事；“多项式”是按输入的长度来衡量的
+          explain: 输入的长度和 $\log W$ 成正比。$W$ 很小时这个算法很好用；但 $W$ 是一个 30 位的数时，表就有 $10^{30}$ 格。原书说，背包的两个版本都不太可能有多项式算法。
+
+  - id: chain-matrix
+    chapter: 动态规划与摊还分析
+    title: 矩阵链乘法：先乘哪两个
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 四个矩阵连乘 A × B × C × D。乘法满足结合律，先乘哪两个结果都一样。花的乘法次数也一样吗？
+          options:
+            - text: 可能差很多
+              correct: true
+            - text: 一样
+              why: 结果一样，但中间矩阵的大小不同，次数可以差十几倍
+          explain: 原书 DPV 的例子里，最好和最差的顺序差了 17 倍多。
+      - card:
+          title: 顺序很重要
+          body: |
+            $m \times n$ 乘 $n \times p$ 要 $mnp$ 次乘法。原书的例子：A 是 50 × 20，B 是 20 × 1，C 是 1 × 10，D 是 10 × 100。
+
+            | 顺序 | 乘法次数 |
+            |---|---|
+            | A × ((B × C) × D) | 120,200 |
+            | (A × (B × C)) × D | 60,200 |
+            | (A × B) × (C × D) | 7,000 |
+
+            原书还指出，“每次先做眼下最便宜的那次乘法”的贪心会选第二种，失败了。
+      - item:
+          id: left-to-right
+          type: number
+          prompt: A 是 50 × 20，B 是 20 × 1，C 是 1 × 10，D 是 10 × 100。按 ((A × B) × C) × D 的顺序，一共要几次乘法？
+          answer: 51500
+          explain: A × B：$50 \cdot 20 \cdot 1 = 1000$，得 50 × 1；再乘 C：$50 \cdot 1 \cdot 10 = 500$，得 50 × 10；再乘 D：$50 \cdot 10 \cdot 100 = 50000$。共 51,500。
+      - card:
+          title: 子问题：一段连续的矩阵
+          body: |
+            $A_i$ 是 $m_{i-1} \times m_i$。$C(i, j)$ = 乘完 $A_i \cdots A_j$ 的最少次数，$C(i, i) = 0$。最后一次乘法把它分成 $A_i \cdots A_k$ 和 $A_{k+1} \cdots A_j$，两段乘完分别是 $m_{i-1} \times m_k$ 和 $m_k \times m_j$：
+
+            $$C(i, j) = \min_{i \le k < j} \{C(i, k) + C(k+1, j) + m_{i-1} m_k m_j\}$$
+
+            按链的长度 $j - i$ 从小到大填，表有约 $n^2/2$ 格，每格试 $O(n)$ 个 $k$，共 $O(n^3)$。
+      - item:
+          id: three-chain
+          type: number
+          prompt: 三个矩阵：A 是 10 × 30，B 是 30 × 5，C 是 5 × 60。算 A × B × C 最少要几次乘法？
+          answer: 4500
+          explain: (A × B) × C：$10 \cdot 30 \cdot 5 + 10 \cdot 5 \cdot 60 = 1500 + 3000 = 4500$；A × (B × C)：$30 \cdot 5 \cdot 60 + 10 \cdot 30 \cdot 60 = 9000 + 18000 = 27000$。最少 4500。
+      - item:
+          id: fill-order
+          type: choice
+          prompt: 填 $C(i, j)$ 的表时，为什么要按链的长度 $j - i$ 从小到大，而不是按 $i$ 从小到大？
+          options:
+            - text: C(i, j) 要用的 C(i, k)、C(k+1, j) 都是更短的链，必须先算好
+              correct: true
+            - text: 按 i 从小到大也一样
+              why: C(1, n) 要用 C(2, n)，而 C(2, n) 的 i 更大，按 i 从小到大时它还没算
+            - text: 为了省内存
+              why: 两种顺序的表一样大；问题在于用到的格子有没有先算好
+          explain: 动态规划的顺序要保证“用到的都先算好”。这里用到的都是更短的链，所以按长度填。
+
+  - id: hops-tsp
+    chapter: 动态规划与摊还分析
+    title: 多一维子问题：限边数的最短路和旅行商
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 从 S 到 T 有两条路：S→A→B→C→T，每段长 1；S→D→T，每段长 3。如果最多只能走 2 段，最短多长？
+          options:
+            - text: '6'
+              correct: true
+            - text: '4'
+              why: 4 是不限段数时的最短路，可它走了 4 段
+            - text: 走不到
+              why: S→D→T 只走 2 段，长 6
+          explain: 原书 DPV 的图也是这样：最短路走 4 条边，另一条稍长的只走 2 条。限制边数时答案会变。
+      - card:
+          title: 最多 k 条边的最短路
+          body: |
+            只记“到 $v$ 的距离”不够，还要记用了几条边。子问题 $\text{dist}(v, i)$ = 从 $s$ 到 $v$、恰好用 $i$ 条边的最短长度：
+
+            $$\text{dist}(v, i) = \min_{(u, v)} \{\text{dist}(u, i - 1) + \ell(u, v)\}$$
+
+            开始 $\text{dist}(s, 0) = 0$，其他是 $\infty$。算到 $i = k$，答案是 $\text{dist}(t, i)$ 在 $i \le k$ 里的最小值。每多一层看一遍所有边，$O(km)$。
+      - item:
+          id: hops-3
+          type: number
+          prompt: 边：S→A 1、A→B 1、B→C 1、C→T 1、S→D 3、D→T 3、S→B 3。从 S 到 T，最多走 3 条边，最短多长？
+          answer: 5
+          explain: 3 条边能走 S→B→C→T：$3 + 1 + 1 = 5$。不限边数是 S→A→B→C→T，长 4，但要 4 条边；只走 2 条边是 S→D→T，长 6。
+      - card:
+          title: 旅行商问题
+          body: |
+            从城市 1 出发，每个城市恰好去一次，最后回到 1，总路程最短：这叫旅行商问题。试遍所有顺序要 $(n-1)!$ 种。
+
+            子问题要记下“已经去过哪些城市”：$C(S, j)$ = 从 1 出发，恰好经过集合 $S$ 里每个城市一次，停在 $j$ 的最短路程。最后一步是从某个 $i$ 到 $j$：
+
+            $$C(S, j) = \min_{i \in S,\ i \ne j} \{C(S - \{j\}, i) + d_{ij}\}$$
+
+            答案 $\min_j C(\{1, \dots, n\}, j) + d_{j1}$。共约 $2^n \cdot n$ 个子问题，每个 $O(n)$，总共 $O(n^2 2^n)$。
+      - item:
+          id: tsp-4
+          type: number
+          prompt: 4 个城市，距离：1-2 是 2，1-3 是 9，1-4 是 10，2-3 是 6，2-4 是 4，3-4 是 8（来回一样）。从 1 出发、每个城市去一次、回到 1，最短总路程是多少？
+          answer: 23
+          explain: 三种不同的环路：1-2-3-4-1 是 $2 + 6 + 8 + 10 = 26$；1-2-4-3-1 是 $2 + 4 + 8 + 9 = 23$；1-3-2-4-1 是 $9 + 6 + 4 + 10 = 29$。最短 23。
+      - item:
+          id: tsp-growth
+          type: choice
+          prompt: $n = 20$ 个城市。试遍所有顺序要约 $19! \approx 1.2 \times 10^{17}$ 种；动态规划约 $n^2 2^n$ 步。后者大约是多少？
+          options:
+            - text: 约 4 × 10⁸
+              correct: true
+            - text: 约 1.2 × 10¹⁷
+              why: 那是试遍所有顺序的数量；n²2ⁿ = 400 × 1048576
+            - text: 约 400
+              why: 那只是 n²，还要乘 2²⁰ ≈ 一百万
+          explain: $400 \times 2^{20} \approx 4.2 \times 10^8$，比 $19!$ 小了约 3 亿倍。仍是指数级，但能算的城市数大了很多。
+
+  - id: tree-independent-set
+    chapter: 动态规划与摊还分析
+    title: 树上的最大独立集
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 一排 7 个人站成一列，相邻的两个人不能同时选。最多能选几个人？
+          answer: 4
+          explain: 选第 1、3、5、7 个。这是“一条路上的独立集”，下面推广到树。
+      - card:
+          title: 独立集
+          body: |
+            图里一组顶点，任意两个之间都没有边，叫**独立集（independent set）**。原书说，在一般的图里找最大的独立集被认为很难；但图是一棵树时，线性时间就能做到。
+
+            先随便选一个根。每个顶点下面挂着一棵子树。子问题 $I(u)$ = $u$ 下面那棵子树里最大独立集的大小。
+      - card:
+          title: 选 u，或者不选 u
+          body: |
+            $$I(u) = \max\left\{1 + \sum_{w \text{ 是 } u \text{ 的孙子}} I(w),\ \ \sum_{w \text{ 是 } u \text{ 的孩子}} I(w)\right\}$$
+
+            选了 $u$，它的孩子都不能选，只能接着看孙子；不选 $u$，就看孩子。从叶子往根算（先算完孩子再算自己），子问题个数就是顶点数，$O(n)$。
+      - item:
+          id: why-grandchildren
+          type: choice
+          prompt: 树上最大独立集的关系式里，“选 $u$”那一项为什么加的是孙子的 $I$，而不是孩子的？
+          options:
+            - text: 选了 u，它的孩子都和 u 相邻，不能选；孙子和 u 不相邻，可以接着算
+              correct: true
+            - text: 为了让算法更快
+              why: 这是正确性的要求：选了 u 就不能选孩子
+            - text: 孙子的子树比孩子的大
+              why: 孙子的子树更小；用孙子是因为孩子被 u 挡住了
+          explain: 独立集里不能有相邻的两个点，$u$ 和它的孩子都相邻。所以选 $u$ 时跳过一层，看孙子。
+      - card:
+          title: 例题
+          body: 根 r 有孩子 a、b；a 有孩子 c、d；b 有孩子 e；e 有孩子 f。
+          reveal:
+            - title: 叶子
+              body: c、d、f 都是叶子，$I = 1$。
+            - title: e 和 a
+              body: $I(e) = \max(1 + 0,\ I(f)) = 1$；$I(a) = \max(1 + 0,\ I(c) + I(d)) = 2$。
+            - title: b
+              body: $I(b) = \max(1 + I(f),\ I(e)) = \max(2, 1) = 2$（选 b 和孙子 f）。
+            - title: 根 r
+              body: $I(r) = \max(1 + I(c) + I(d) + I(e),\ I(a) + I(b)) = \max(4, 4) = 4$，例如 r、c、d、f。
+      - item:
+          id: star
+          type: number
+          prompt: 一棵树：中心一个顶点，连着 5 个叶子（叶子之间没有边）。最大独立集有几个顶点？
+          answer: 5
+          explain: 以中心为根：选中心是 $1 + 0 = 1$（孙子没有），不选中心是 5 个叶子各 1，共 5。取最大 5。
+      - item:
+          id: path-7
+          type: number
+          prompt: 7 个顶点连成一条路（1-2-3-4-5-6-7）。以 1 为根看成一棵树，用 $I(u)$ 的关系式从 7 往回算，$I(1)$ 是多少？
+          answer: 4
+          explain: 从叶子 7 往回：$I(7) = 1$，$I(6) = 1$，$I(5) = \max(1 + 1, 1) = 2$，$I(4) = \max(1 + 1, 2) = 2$，$I(3) = 3$，$I(2) = 3$，$I(1) = \max(1 + 3, 3) = 4$。对应的独立集是 1、3、5、7。
+
+  - id: amortized-counter
+    chapter: 动态规划与摊还分析
+    title: 摊还分析：聚合和记账
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个只用 0 和 1 的计数器，每次加 1 时末尾连续的 1 都要变成 0，再把一个 0 变成 1（像 0111 加 1 变 1000，改了 4 位）。从 0 开始加 16 次，一共改多少位？
+          options:
+            - text: 不到 32 位
+              correct: true
+            - text: 大约 16 × 4 = 64 位
+              why: 改 4 位的情况很少；大多数时候只改末尾一两位
+            - text: 正好 16 位
+              why: 有的加 1 要改好几位，比如 0111 → 1000
+          explain: 实际是 31 位，平均每次不到 2 位。下面学怎样证明“平均下来很少”。
+      - card:
+          title: 二进制计数器
+          body: |
+            只用 0 和 1、逢二进一的写数法叫**二进制（binary）**：1、10、11、100、101……分别是 1、2、3、4、5。
+
+            加 1 时，末尾连续的 1 变成 0，再把它前面的 0 变成 1。一次加 1 最坏要改 $k$ 位（$k$ 是位数），可大多数时候很少。algs4 说，**摊还分析（amortized analysis）**给的是“一整串操作”的最坏情况保证：$n$ 次操作合起来最多花多少。
+      - item:
+          id: flips-0111
+          type: number
+          prompt: 二进制计数器从 0111 加 1 变成 1000，改了几位？
+          answer: 4
+          explain: 末尾三个 1 变成 0，第四位的 0 变成 1，共 4 位。
+      - card:
+          title: 聚合分析：把总数加起来
+          body: |
+            **聚合分析（aggregate analysis）**：直接算 $n$ 次操作的总代价，再除以 $n$。
+
+            计数器加 $n$ 次：最低位每次都改，共 $n$ 次；第二位每 2 次改一次，约 $n/2$；第三位约 $n/4$……合起来
+
+            $$n + \frac n2 + \frac n4 + \dots < 2n$$
+
+            所以平均每次加 1 不到 2 位，摊还 $O(1)$。F.1.1 的翻倍扩容也是这样算的。
+      - item:
+          id: flips-16
+          type: number
+          prompt: 二进制计数器从 0 开始加 1，一共加 16 次（加到 16，即 10000）。一共改了多少位？
+          answer: 31
+          explain: 最低位改 16 次，第二位 8 次，第三位 4 次，第四位 2 次，第五位 1 次：$16 + 8 + 4 + 2 + 1 = 31 < 2 \times 16$。
+      - card:
+          title: 记账法：先存钱，后花钱
+          body: |
+            **记账法（accounting method）**：给每种操作定一个摊还代价，便宜的操作多收一点，存在数据结构上，留给以后贵的操作用；只要存款从不为负，总的摊还代价就不少于真实代价。
+
+            计数器：每次加 1 收 2 元。把一个 0 变成 1 花 1 元，另 1 元存在这个 1 上；以后它变回 0 时用这 1 元付。每次加 1 只把一个 0 变成 1，所以 2 元总够用。
+      - item:
+          id: multipop
+          type: number
+          prompt: 一个栈支持 push、pop 和 multipop(k)（弹出 k 个，不足 k 个就全部弹出）。从空栈开始：push 10 次，multipop(4)，push 3 次，multipop(20)。一共真正弹出了几个元素？
+          answer: 13
+          explain: 第一次弹出 4 个，剩 6 个；又 push 3 个，共 9 个；multipop(20) 只弹出 9 个。共 13 个，等于 push 的总数。弹出的总数永远不超过压进去的总数。
+      - item:
+          id: multipop-why
+          type: choice
+          prompt: 用记账法分析这个栈：push 收 2 元、pop 和 multipop 收 0 元。为什么 n 次操作的总代价是 O(n)？
+          options:
+            - text: 每个元素进栈时存下 1 元，弹出它时用这 1 元付，存款从不为负
+              correct: true
+            - text: 因为 multipop 每次最多弹出 k 个
+              why: k 可以很大；关键是每个元素只会被弹出一次
+            - text: 因为栈里元素不会超过 n 个
+              why: 这是真的，但说明不了 n 次 multipop 加起来不会是 n²；要看每个元素只被弹一次
+          explain: 每个元素进栈一次、最多出栈一次。push 多收的 1 元正好付它的出栈，所以总代价不超过 $2n$。
+
+  - id: potential-method
+    chapter: 动态规划与摊还分析
+    title: 势能法：用一个数记住存了多少
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 记账法把钱存在一个个元素上。如果只想用一个数概括“数据结构里一共存了多少钱”，对二进制计数器来说，哪个数最合适？
+          options:
+            - text: 计数器里 1 的个数
+              correct: true
+            - text: 计数器的位数
+              why: 位数只增不减，和以后要付的钱无关
+            - text: 计数器表示的那个数
+              why: 数的大小和以后要改多少位关系不大，比如 1000 很大却只有一个 1
+          explain: 记账法里每个 1 上存着 1 元，存款总数就是 1 的个数。
+      - card:
+          title: 势能法
+          body: |
+            **势能法（potential method）**：给数据结构的每个状态定一个数 $\Phi \ge 0$，叫势能，开始时 $\Phi = 0$。一次操作的摊还代价 = 真实代价 + 势能的变化 $\Delta\Phi$。
+
+            把 $n$ 次加起来，中间的势能一正一负抵消：总摊还代价 = 总真实代价 + 最后的 $\Phi$ − 最初的 $\Phi$ $\ge$ 总真实代价。所以摊还代价是真实代价的上界。
+      - item:
+          id: potential-one
+          type: number
+          prompt: 二进制计数器的势能 $\Phi$ = 1 的个数。从 1011 加 1 变成 1100：真实代价是改了几位，加上 $\Phi$ 的变化，摊还代价是多少？
+          answer: 2
+          explain: 末尾两个 1 变 0，再一个 0 变 1，真实代价 3；1 的个数从 3 变成 2，$\Delta\Phi = -1$。摊还代价 $3 - 1 = 2$。
+      - card:
+          title: 每次加 1 都是 2
+          body: |
+            一次加 1 把末尾 $t$ 个 1 变成 0、一个 0 变成 1：真实代价 $t + 1$，1 的个数变化 $1 - t$。摊还代价
+
+            $$(t + 1) + (1 - t) = 2$$
+
+            不管 $t$ 多大都是 2。势能法的关键是挑一个好的 $\Phi$：贵的操作要让 $\Phi$ 下降，正好抵消它多花的。
+      - item:
+          id: append-amortized
+          type: number
+          prompt: 翻倍扩容的数组：有 $n$ 个元素、容量 $c$，取势能 $\Phi = 2n - c$。容量满（$n = c$）时再加一个，要复制 $n$ 个元素再写 1 个（真实代价 $n + 1$），容量变成 $2n$。这次的摊还代价是多少？
+          answer: 3
+          explain: 之前 $\Phi = 2n - n = n$，之后 $\Phi = 2(n + 1) - 2n = 2$，$\Delta\Phi = 2 - n$。摊还代价 $(n + 1) + (2 - n) = 3$。不扩容时真实代价 1，$\Delta\Phi = 2$，也是 3。OI Wiki 的均摊分析用的就是这个势能。
+      - item:
+          id: append-16
+          type: number
+          prompt: 数组开始容量 1，满了就翻倍并复制全部元素。从空开始加 16 个元素，“写一个元素”和“复制一个元素”都算 1，一共花多少？
+          answer: 31
+          explain: 写 16 次；容量从 1 到 2、2 到 4、4 到 8、8 到 16 时各复制 1、2、4、8 个，共 15。总共 31，不超过 $3 \times 16 = 48$。
+      - item:
+          id: when-worst
+          type: choice
+          prompt: algs4 指出：链表实现的栈每个操作最坏都是常数时间；可扩容数组实现的栈只是“摊还”常数时间。什么场合要选前者？
+          options:
+            - text: 不能容忍任何一次操作突然变慢的实时系统
+              correct: true
+            - text: 要处理很多很多操作的时候
+              why: 操作很多时摊还的保证照样成立，总时间一样是 O(n)
+            - text: 永远选前者
+              why: 数组实现常数更小、更省内存，多数场合更好；只是偶尔有一次很慢
+          explain: 摊还保证的是一串操作的总时间，单独一次扩容可能要 $O(n)$。algs4 的问答里也说：一般的垃圾回收只做到摊还常数时间，实时系统要用每次都保证常数时间的。
+  - id: components
+    chapter: 图的遍历
+    title: 连通分量、最少几步和二分图
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一张无向图有 13 个顶点。从顶点 0 做一次 DFS，只走到了 0–6 这 7 个顶点。能说明什么？
+          options:
+            - text: 图不连通，剩下 6 个顶点在别的块里
+              correct: true
+            - text: DFS 写错了
+              why: DFS 会走到所有和起点连通的顶点；没走到的说明和 0 之间根本没有路
+            - text: 剩下 6 个顶点没有边
+              why: 它们之间可以有边，只是和 0–6 这一块不连通
+          explain: 这是 algs4 的 tinyG：从 0 出发只能到 0–6，7、8 自成一块，9–12 又是一块。
+      - card:
+          title: 连通分量
+          body: |
+            无向图里，从 $v$ 能走到 $w$ 就说它们连通。“连通”是等价关系，等价类叫**连通分量（connected component）**：一块之内互相能到，块与块之间没有路。
+
+            algs4 的做法：依次看每个顶点，没标记过就从它做一次 DFS，把走到的都标上同一个编号，编号加 1。总共 $O(n + m)$，之后问“$v$ 和 $w$ 连不连通”只要比较编号，$O(1)$。
+      - item:
+          id: tiny-g
+          type: number
+          prompt: algs4 的 tinyG：13 个顶点 0–12，边是 0-5、4-3、0-1、9-12、6-4、5-4、0-2、11-12、9-10、0-6、7-8、9-11、5-3。它有几个连通分量？
+          answer: 3
+          explain: '{0, 1, 2, 3, 4, 5, 6}、{7, 8}、{9, 10, 11, 12}，共 3 个。原书讲义也给出 3 个连通分量。'
+      - card:
+          title: BFS 给出最少几步
+          body: |
+            F.1.1 说过 BFS 第一次发现一个顶点时，走的是边数最少的路。algs4 把它写成定理，并用两个数组记下来：distTo[$v$] 是从起点到 $v$ 最少几条边，edgeTo[$v$] 是第一次到达 $v$ 走的那条边。沿 edgeTo 从 $v$ 往回走到起点，倒过来就是一条最短的路。
+
+            BFS 的代价也是 $O(n + m)$。
+      - item:
+          id: dist-to
+          type: number
+          prompt: algs4 的 tinyCG：6 个顶点 0–5，边是 0-5、2-4、2-3、1-2、0-1、3-4、3-5、0-2。从 0 做 BFS，distTo[4] 是多少？
+          answer: 2
+          explain: 0 的邻居是 5、1、2（距离 1）；4 和 2 相邻，所以距离 2（0-2-4）。原书讲义的 distTo 是 0、1、1、2、2、1。
+      - card:
+          title: 二分图
+          body: |
+            顶点能分成两组、每条边都连接不同组的两个点，这样的图叫**二分图（bipartite graph）**。判断方法（algs4 列为 DFS 的应用）：从一个点开始涂色，邻居涂相反的颜色；遇到一条边两头同色，就不是二分图。
+
+            一个图是二分图，当且仅当它没有长度为奇数的圈：沿圈走，颜色交替，奇数步回到起点颜色就对不上了。
+      - item:
+          id: bipartite-which
+          type: choice
+          prompt: 下面哪张图是二分图？
+          options:
+            - text: 4 个点围成一圈（正方形的四条边）
+              correct: true
+            - text: 3 个点两两相连（三角形）
+              why: 三角形是长度 3 的奇圈，第三个点和前两个都相邻，涂不成两色
+            - text: 5 个点围成一圈
+              why: 长度 5 是奇数，绕一圈回来颜色冲突
+          explain: 正方形按顶点交替涂两色就行；三角形和五边形都是奇圈。
+      - item:
+          id: cc-query
+          type: choice
+          prompt: 已经算好了每个顶点的连通分量编号。现在要回答一百万次“v 和 w 连不连通”。每次要多久？
+          options:
+            - text: O(1)，比较两个编号
+              correct: true
+            - text: O(n + m)，每次做一次 DFS
+              why: 编号已经算好了，不用再遍历
+            - text: O(log n)
+              why: 编号存在数组里，按下标直接取，一步
+          explain: algs4：花 $O(n + m)$ 预先算好编号，之后每次查询常数时间。
+
+  - id: topo-dfs
+    chapter: 图的遍历
+    title: DFS 的后序和拓扑排序
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 课程之间有先修关系（有向边 u→v 表示 u 要先学）。从某门课开始做 DFS，最先“全部走完、退回来”的会是哪种课？
+          options:
+            - text: 后面没有别的课要依赖它的课
+              correct: true
+            - text: 最基础、没有先修的课
+              why: DFS 先往深处走，最深处（没有后续）的课最先走完
+            - text: 编号最小的课
+              why: 走完的先后看图的结构，不看编号
+          explain: DFS 一路往下，走到没有出边的点才开始退回。最先完成的是“最后才学”的课，所以把完成的顺序倒过来，就是一个合理的学习顺序。
+      - card:
+          title: 前序、后序、逆后序
+          body: |
+            有向图上做 DFS，algs4 记三种顺序：
+
+            - 前序：第一次到达一个顶点时记下；
+            - **后序（postorder）**：它的所有出边都处理完、要退回时记下；
+            - **逆后序（reverse postorder）**：后序倒过来。
+
+            对有向无环图，逆后序就是一个拓扑排序。用 DFS 求拓扑排序只要 $O(n + m)$。
+      - card:
+          title: 例题：五门课
+          body: 邻接表 a → [b, c]，b → [d]，c → [d]，d → []，e → [c]。按 a、b、c、d、e 的顺序找还没访问的点做 DFS。
+          reveal:
+            - title: 从 a 出发
+              body: a → b → d。d 没有出边，最先完成；退回 b，b 完成。再从 a 到 c，c 的邻居 d 已访问，c 完成；a 完成。后序目前是 d、b、c、a。
+            - title: 再从 e 出发
+              body: b、c、d 都访问过了，e 的邻居 c 已访问，e 完成。后序是 d、b、c、a、e。
+            - title: 倒过来
+              body: 逆后序 e、a、c、b、d。检查每条边：a→b、a→c、b→d、c→d、e→c，都是前面指向后面。
+      - item:
+          id: rev-post
+          type: text
+          prompt: 有向无环图的邻接表：p → [q, r]，q → [s]，r → [s]，s → []，t → [p]。按 p、q、r、s、t 的顺序找还没访问的点做 DFS（邻居也按表里的先后）。逆后序是什么？（用空格隔开）
+          answers:
+            - t p r q s
+          explain: 从 p：p → q → s，s 完成、q 完成；p → r，r 的邻居 s 已访问，r 完成；p 完成。后序 s、q、r、p。再从 t：邻居 p 已访问，t 完成。后序 s、q、r、p、t，倒过来 t、p、r、q、s。
+      - card:
+          title: 为什么逆后序是拓扑序
+          body: |
+            要证：对每条边 $v \to w$，$w$ 比 $v$ 先完成。algs4 分三种情况看调用 dfs($v$) 的那一刻：
+
+            1. dfs($w$) 已经调用过并结束了：$w$ 先完成；
+            2. dfs($w$) 还没调用：它会在 dfs($v$) 里面被调用，并在 $v$ 之前完成；
+            3. dfs($w$) 调用了但还没结束：说明调用栈上有一条从 $w$ 到 $v$ 的路，加上 $v \to w$ 就成了圈，有向无环图里不可能。
+      - item:
+          id: case-three
+          type: choice
+          prompt: 上面第 3 种情况（dfs($w$) 已调用但没结束时，又发现了边 $v \to w$）如果真的发生了，说明什么？
+          options:
+            - text: 图里有圈，不存在拓扑排序
+              correct: true
+            - text: DFS 访问的顺序错了
+              why: 顺序没错；这正是 DFS 判断有向图有没有圈的办法
+            - text: v 和 w 是同一个顶点
+              why: 不一定；只要调用栈上有从 w 到 v 的路，加上 v → w 就是圈
+          explain: algs4 的定理：有向图有拓扑排序，当且仅当它是有向无环图。DFS 时碰到“指向调用栈上的点”的边，就找到了圈。
+      - card:
+          title: 你来排
+          body: 每次只能点一个“指向它的点都已排好”的点。点“让算法走一步”看可以排哪些。
+          sim:
+            name: graph
+            params:
+              mode: topo
+              directed: true
+              nodes: [{ id: a, x: 40, y: 60 }, { id: b, x: 150, y: 30 }, { id: c, x: 150, y: 150 }, { id: d, x: 270, y: 90 }, { id: e, x: 40, y: 170 }]
+              edges: [[a, b], [a, c], [b, d], [c, d], [e, c]]
+      - item:
+          id: topo-sim
+          type: sim
+          sim: graph
+          prompt: 课程先修关系（箭头从先学的指向后学的）。按拓扑排序点一遍。
+          params:
+            mode: topo
+            directed: true
+            nodes: [{ id: p, x: 40, y: 40 }, { id: q, x: 150, y: 40 }, { id: r, x: 40, y: 160 }, { id: s, x: 150, y: 160 }, { id: t, x: 260, y: 100 }, { id: u, x: 330, y: 40 }]
+            edges: [[p, q], [p, s], [r, s], [q, t], [s, t], [t, u], [q, u]]
+          goal: {}
+          solution: [p, r, q, s, t, u]
+          explain: p、r 没有先修，可以先排；q 等 p，s 等 p 和 r；t 等 q 和 s；u 最后。比如 r、p、s、q、t、u 也对。
+      - item:
+          id: post-not-topo
+          type: choice
+          prompt: algs4 的习题：把后序（不倒过来）直接当拓扑排序用，行不行？
+          options:
+            - text: 不行，后序正好把每条边的终点排在起点前面
+              correct: true
+            - text: 行，和逆后序一样
+              why: 后序里 w 比 v 先完成，正好是反的
+            - text: 只在图连通时行
+              why: 和连不连通无关，方向本身就反了
+          explain: 对每条边 $v \to w$，$w$ 先完成，后序里 $w$ 在前。拓扑排序要 $v$ 在前，所以要倒过来。
+
+  - id: scc
+    chapter: 图的遍历
+    title: 强连通分量
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一张有向图的边：1→2、2→3、3→1、3→4。从 4 能走回 1 吗？
+          options:
+            - text: 不能
+              correct: true
+            - text: 能，因为 1 能走到 4
+              why: 有向图的边只能顺着走，从 4 没有出边
+          explain: 1、2、3 之间互相能到；4 只进不出。有向图里“能到”不是对称的。
+      - card:
+          title: 强连通
+          body: |
+            有向图里，$v$ 能到 $w$、$w$ 也能到 $v$，就说它们**强连通（strongly connected）**。它是等价关系（algs4 写出了自反、对称、传递三条），等价类叫**强连通分量（strongly connected component）**。
+
+            有向无环图里没有两个点互相能到，每个顶点自己是一个强连通分量。把每个分量缩成一个点，得到的图一定没有圈。
+      - item:
+          id: own-scc
+          type: number
+          prompt: 有向图的边：1→2、2→3、3→1、3→4、4→5、5→6、6→4、6→7。它有几个强连通分量？
+          answer: 3
+          explain: '{1, 2, 3} 互相能到，{4, 5, 6} 互相能到，7 只进不出自成一个。共 3 个。'
+      - card:
+          title: Kosaraju–Sharir 算法
+          body: |
+            algs4 的做法只要两遍 DFS：
+
+            1. 把所有边反过来得到反向图，在反向图上做 DFS，求出逆后序；
+            2. 在原图上做 DFS，但按第 1 步的逆后序挑起点。每次从构造函数里发起的一次 dfs 走到的那些点，正好是一个强连通分量。
+
+            总共 $O(n + m)$。
+      - item:
+          id: tiny-dg
+          type: number
+          prompt: algs4 的 tinyDG：13 个顶点 0–12，22 条有向边：4→2、2→3、3→2、6→0、0→1、2→0、11→12、12→9、9→10、9→11、7→9、10→12、11→4、4→3、3→5、6→8、8→6、5→4、0→5、6→4、6→9、7→6。它有几个强连通分量？
+          answer: 5
+          explain: '{0, 2, 3, 4, 5}、{1}、{6, 8}、{7}、{9, 10, 11, 12}，共 5 个，和原书讲义一致。'
+      - item:
+          id: dag-scc
+          type: choice
+          prompt: algs4 的习题：一个有 10 个顶点的有向无环图有几个强连通分量？
+          options:
+            - text: 10 个，每个顶点自己一个
+              correct: true
+            - text: 1 个
+              why: 有向无环图里没有两个点互相能到
+            - text: 取决于边数
+              why: 不管有多少条边，没有圈就没有互相能到的两个点
+          explain: 两个点互相能到就组成了一个圈。没有圈，每个点只和自己强连通。
+      - item:
+          id: scc-reverse
+          type: choice
+          prompt: 把一张有向图的所有边都反过来，强连通分量会变吗？
+          options:
+            - text: 不变
+              correct: true
+            - text: 会变，因为能到的方向都反了
+              why: v 能到 w、w 能到 v，反过来后仍然互相能到
+          explain: “互相能到”反过来还是“互相能到”。algs4 的习题由此说明：第一遍和第二遍在原图和反向图上对调，结果也对。
+
+  - id: dijkstra
+    chapter: 最短路
+    title: Dijkstra：一次确定一个点
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 有向图的边和长度：s→a 4、s→b 1、b→a 2、a→c 1、b→c 5、c→t 3、a→t 6。从 s 到 t 最短多长？
+          answer: 7
+          explain: s→b→a→c→t：$1 + 2 + 1 + 3 = 7$。这是原技能树的综合练习 (5)。
+      - card:
+          title: 松弛
+          body: |
+            给每个顶点记一个暂定距离 dist，起点 0，其余 $\infty$。看一条边 $u \to v$（长 $w$）：如果 $\text{dist}(u) + w < \text{dist}(v)$，就把 dist($v$) 改小，并记下 $v$ 是从 $u$ 来的。algs4 管这叫**松弛（relaxation）**。
+
+            所有最短路算法都在松弛，区别只在按什么顺序松弛哪些边。
+      - card:
+          title: Dijkstra 算法
+          body: |
+            边长都不为负时：每次从还没确定的点里，取 dist 最小的那个，它的距离就确定了；再松弛它的所有出边。用优先队列取最小，$O(m \log n)$。
+
+            点“让算法走一步”，看综合练习 (5) 那张图上每一步确定的是谁。
+          sim:
+            name: graph
+            params:
+              mode: dijkstra
+              directed: true
+              start: s
+              nodes: [{ id: s, x: 30, y: 110 }, { id: a, x: 140, y: 40 }, { id: b, x: 140, y: 180 }, { id: c, x: 240, y: 110 }, { id: t, x: 330, y: 40 }]
+              edges: [[s, a, 4], [s, b, 1], [b, a, 2], [a, c, 1], [b, c, 5], [c, t, 3], [a, t, 6]]
+      - item:
+          id: dij-sim
+          type: sim
+          sim: graph
+          prompt: 从 s 出发跑 Dijkstra，按确定最短距离的先后点出每个顶点。
+          params:
+            mode: dijkstra
+            directed: true
+            start: s
+            nodes: [{ id: s, x: 30, y: 110 }, { id: a, x: 120, y: 40 }, { id: b, x: 120, y: 180 }, { id: c, x: 220, y: 110 }, { id: d, x: 260, y: 190 }, { id: t, x: 330, y: 60 }]
+            edges: [[s, a, 2], [s, b, 5], [a, b, 1], [a, c, 6], [b, c, 2], [b, d, 7], [c, d, 1], [c, t, 5], [d, t, 2]]
+          goal: {}
+          solution: [s, a, b, c, d, t]
+          explain: 距离依次确定：s 0、a 2、b 3（经 a）、c 5（经 b）、d 6（经 c）、t 8（经 d）。
+      - card:
+          title: 为什么对
+          body: |
+            取出 $v$ 时，它的 dist 是所有未确定点里最小的。任何别的到 $v$ 的路，都要先从已确定的点出去、经过某个未确定的点 $u$，到 $u$ 已经不比 dist($v$) 短；后面的边长又不为负，只会更长。所以 dist($v$) 就是最短距离。
+
+            algs4 讲义的说法：每条边只在它的起点被确定时松弛一次，之后 $\text{dist}(w) \le \text{dist}(v) + w$ 一直成立，结束时就是最短路。
+      - item:
+          id: tiny-ewd
+          type: number
+          prompt: algs4 的 tinyEWD 上从 0 出发，到 6 的最短路是 0→2（0.26）、2→7（0.34）、7→3（0.39）、3→6（0.52）。这条路有多长？
+          answer: 1.51
+          explain: $0.26 + 0.34 + 0.39 + 0.52 = 1.51$，和原书讲义输出的 0 to 6 (1.51) 一致。
+      - item:
+          id: prim-vs-dij
+          type: choice
+          prompt: Dijkstra 和贪心一章的 Prim 写法几乎一样：都用优先队列，每次取 key 最小的点。key 有什么不同？
+          options:
+            - text: Prim 的 key 是连到树上的那一条边的权重；Dijkstra 的 key 是从起点出发的整条路的长度
+              correct: true
+            - text: 没有不同，两者求的是同一棵树
+              why: 两者的 key 不同，求出的树一般也不同：比如 s 到 b 的边长 3、s 到 a 的边长 2、a 到 b 的边长 2，最小生成树用 s-a、a-b，最短路树用 s-a、s-b
+            - text: Dijkstra 的 key 是边数
+              why: 那是 BFS；Dijkstra 加的是边的长度
+          explain: 原书 DPV：Prim 里一个点的值是从集合出发最轻的那一条边，Dijkstra 里是到这个点的整条路长。两者运行时间相同，但结果一般不同。
+
+  - id: negative-edges
+    chapter: 最短路
+    title: 负权边：Bellman–Ford 和负环
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 边：s→a 2、s→b 3、b→a −2。Dijkstra 从 s 出发，先确定 a 的距离是 2。a 的真实最短距离是多少？
+          options:
+            - text: '1'
+              correct: true
+            - text: '2'
+              why: s→b→a 是 3 + (−2) = 1，更短
+            - text: '3'
+              why: 3 是到 b 的距离，到 a 走 s→b→a 只要 1
+          explain: Dijkstra 在 a 的 dist 最小时就把它定死了，没想到后面经过 b 还能变短。负权边打破了“后面只会更长”。
+      - card:
+          title: 负权和负环
+          body: |
+            边长可以是负的（比如表示收益），这时 Dijkstra 的证明不成立：经过一个更远的点再走负边，可能更近。
+
+            有向圈上的边长加起来是负数，叫**负环（negative cycle）**。algs4：从起点能走到负环时，绕一圈就短一点，“最短路”没有意义。从 $s$ 到 $v$ 有最短路，当且仅当有路可走，而且路上的点都不在负环上。
+      - card:
+          title: Bellman–Ford
+          body: |
+            不挑顺序，把所有边都松弛一遍，叫一轮。做 $n - 1$ 轮：最短路最多 $n - 1$ 条边，第 $i$ 轮之后，边数不超过 $i$ 的最短路都已找到。
+
+            如果第 $n$ 轮还有边能松弛，说明有负环。每轮 $O(m)$，共 $O(nm)$。algs4 的改进版只松弛“上一轮 dist 变过的点”发出的边。
+      - item:
+          id: bf-rounds
+          type: number
+          prompt: 一张有向图有 6 个顶点，没有负环。Bellman–Ford 最多要做几轮“把所有边松弛一遍”，就能保证所有最短距离都对了？
+          answer: 5
+          explain: 最短路不会重复经过顶点，最多 $6 - 1 = 5$ 条边。第 $i$ 轮后，边数不超过 $i$ 的最短路都已算对，5 轮就够。
+      - card:
+          title: 例题：边的顺序很糟时
+          body: 边按这个顺序松弛：c→d 1、b→c 1、a→b 1、s→a 1。起点 s。
+          reveal:
+            - title: 第 1 轮
+              body: c→d、b→c、a→b 时 c、b、a 都还是 $\infty$，不变；s→a 让 dist(a) = 1。
+            - title: 第 2 轮
+              body: a→b 让 dist(b) = 2（前两条仍不变）。
+            - title: 第 3、4 轮
+              body: 第 3 轮 dist(c) = 3，第 4 轮 dist(d) = 4。这条路有 4 条边，用了 4 轮；5 个顶点最多 $n - 1 = 4$ 轮。
+      - item:
+          id: add-constant-sp
+          type: choice
+          prompt: 为了去掉负权边，有人把每条边都加上同一个正数，使它们都不为负，再跑 Dijkstra。algs4 的习题问：最短路会变吗？
+          options:
+            - text: 可能变：边数多的路被多加了好几次
+              correct: true
+            - text: 不会变
+              why: 一条路加了“边数 × 常数”，边多的路吃亏，最短路可能换成边少的
+            - text: 只有距离的数值变，路不变
+              why: 不同的路边数不同，增加的量不同，哪条最短都可能变
+          explain: algs4 习题 4.4.1 的答案是“错”：每条边加同一个数会改变最短路。这和最小生成树不同：生成树的边数都一样。
+      - card:
+          title: 有向无环图和套利
+          body: |
+            有向无环图按拓扑序松弛，每条边一次，$O(n + m)$，负权也没问题，把 min 换成 max 还能求最长路。
+
+            algs4 的套利例子：1000 美元换 741 欧元，再换 1012.206 加元，再换回 1007.14497 美元，白赚 7 美元多。把汇率 $r$ 换成边长 $-\ln r$，乘积大于 1 就变成了长度之和小于 0：找套利就是找负环。
+      - item:
+          id: arbitrage
+          type: number
+          prompt: 1000 美元按 0.741 换成欧元，再按 1.366 换成加元，再按 0.995 换回美元。最后有多少美元？（保留到小数点后 5 位）
+          answer: 1007.14497
+          tolerance: 0.000005
+          explain: $1000 \times 0.741 \times 1.366 \times 0.995 = 1007.14497$。三个汇率的乘积大于 1，对应的 $-\ln r$ 之和小于 0：一个负环。
+
+  - id: floyd-warshall
+    chapter: 最短路
+    title: 所有点对：Floyd–Warshall
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 要算出一张图里每两个点之间的最短距离（n 个点）。边长都不为负。最直接的办法是什么？
+          options:
+            - text: 从每个点出发各跑一次 Dijkstra
+              correct: true
+            - text: 只跑一次 Dijkstra
+              why: 一次只给出从一个起点出发的距离
+            - text: 跑一次 BFS
+              why: BFS 只数边数，不管边长
+          explain: 跑 $n$ 次 Dijkstra 是 $O(nm \log n)$。下面的 Floyd–Warshall 用动态规划，代码只有三层循环，还能处理负权边（没有负环时）。
+      - card:
+          title: 一次多放进一个中转点
+          body: |
+            顶点编号 $1, \dots, n$。子问题：$\text{dist}(i, j, k)$ = 从 $i$ 到 $j$、中间只准经过 $1, \dots, k$ 的最短长度。放进 $k$ 以后，要么不经过 $k$，要么经过 $k$ 一次（没有负环时不会经过两次）：
+
+            $$\text{dist}(i, j, k) = \min\{\text{dist}(i, j, k-1),\ \text{dist}(i, k, k-1) + \text{dist}(k, j, k-1)\}$$
+
+            $\text{dist}(i, j, 0)$ 是直接的边长（没有边是 $\infty$）。
+      - card:
+          title: 三层循环
+          body: |
+            ```python
+            for k in range(n):
+                for i in range(n):
+                    for j in range(n):
+                        if d[i][k] + d[k][j] < d[i][j]:
+                            d[i][j] = d[i][k] + d[k][j]
+            ```
+
+            $O(n^3)$。原书 DPV 写成三维的表，又指出只要一张 $n \times n$ 的表原地更新就行。$k$ 一定要在最外层：先把“只经过 $1..k$”这一层全部算完，才能进下一层。
+      - item:
+          id: fw-14
+          type: number
+          prompt: 有向图的边：1→2 4、1→3 1、3→2 2、2→4 1、3→4 5。用 Floyd–Warshall 算出从 1 到 4 的最短距离。
+          answer: 4
+          explain: 直接没有 1→4。经过 3：1→3→4 是 6；经过 3 和 2：1→3→2→4 是 $1 + 2 + 1 = 4$。最短 4。
+      - item:
+          id: k-outer
+          type: choice
+          prompt: Floyd–Warshall 的三层循环里，为什么中转点 $k$ 必须放在最外层？
+          options:
+            - text: 算第 k 层要用到第 k − 1 层的全部结果，得先把一层算完
+              correct: true
+            - text: 放在哪一层都一样
+              why: k 放在里层时，d[i][k] 和 d[k][j] 可能还没用上前面的中转点，结果会错
+            - text: 为了让程序跑得更快
+              why: 三种放法都是 n³ 次；问题是对不对
+          explain: 关系式里 $\text{dist}(i, j, k)$ 用到 $\text{dist}(i, k, k-1)$ 和 $\text{dist}(k, j, k-1)$，必须先有完整的第 $k - 1$ 层。
+      - item:
+          id: neg-cycle-diag
+          type: choice
+          prompt: Floyd–Warshall 跑完后，怎么看出图里有负环？
+          options:
+            - text: 某个 d[i][i] 变成了负数
+              correct: true
+            - text: 某个 d[i][j] 是 ∞
+              why: ∞ 只说明 i 到不了 j
+            - text: 某个 d[i][j] 是负数
+              why: 有负权边时，没有负环也可能有负的距离
+          explain: 从 $i$ 出发绕一圈回到 $i$ 长度为负，就是一个负环。OI Wiki 还介绍了 Johnson 算法：先用 Bellman–Ford 给每个点算一个“势” $h$，把边长改成 $w + h(u) - h(v) \ge 0$，再从每个点跑 Dijkstra。
+      - card:
+          title: 传递闭包：谁能到谁
+          body: |
+            algs4 讲有向图时定义了**传递闭包（transitive closure）**：顶点不变，$v$ 能走到 $w$ 就连一条 $v \to w$。只问“能不能到”、不问多远时，把 Floyd–Warshall 的“相加”换成“并且”、“取小”换成“或者”：
+
+            ```python
+            r[i][j] = r[i][j] or (r[i][k] and r[k][j])
+            ```
+
+            algs4 的做法是从每个顶点各做一次 DFS：空间 $n^2$，时间 $n(n + m)$。
+      - item:
+          id: closure-count
+          type: number
+          prompt: 有向图的边 1→2、2→3、3→4。它的传递闭包里（不算顶点到自己）一共有几条边？
+          answer: 6
+          explain: 1 能到 2、3、4；2 能到 3、4；3 能到 4。共 $3 + 2 + 1 = 6$ 条。
+  - id: max-flow
+    chapter: 网络流与匹配
+    title: 网络流和增广路
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 水管网：s→a、s→b、a→b、a→t、b→t 每根每秒最多流 1 升。从 s 到 t 每秒最多能送几升？
+          options:
+            - text: 2 升
+              correct: true
+            - text: 1 升
+              why: s→a→t 和 s→b→t 两条路互不相干，可以同时送
+            - text: 3 升
+              why: 从 s 出去只有 s→a、s→b 两根管子，每秒最多 2 升
+          explain: 走 s→a→t 和 s→b→t 各送 1 升，从 s 出去的两根管子都满了，不可能更多。
+      - card:
+          title: 流网络
+          body: |
+            有向图，每条边有一个容量（正数），一个源点 $s$、一个汇点 $t$，叫**流网络（flow network）**。给每条边一个流量，满足两条规矩：
+
+            - 每条边的流量在 0 和容量之间；
+            - 除了 $s$、$t$，每个点流进多少就流出多少。
+
+            流进 $t$ 的总量叫流的值。要求值最大的流：最大流。
+      - item:
+          id: conservation
+          type: number
+          prompt: 一个流网络里，顶点 v 有三条进来的边，流量分别是 2、3、1；有两条出去的边，其中一条流量是 4。另一条出去的边流量是多少？
+          answer: 2
+          explain: 流进 $2 + 3 + 1 = 6$，流出也要是 6，所以另一条是 $6 - 4 = 2$。
+      - card:
+          title: 增广路和残量网络
+          body: |
+            从全 0 开始，找一条还能多送的 $s$ 到 $t$ 的路，送它能送的最多（路上最紧的那一段），叫**增广路（augmenting path）**。
+
+            关键是可以“退回”：边 $u \to v$ 上已经有流量 $f$，就可以沿 $v \to u$ 反着走，等于把这些流量退回去。每条边还能正着送 $c - f$、反着退 $f$，画出来叫**残量网络（residual network）**。在残量网络里找不到 $s$ 到 $t$ 的路，就停。这就是 Ford–Fulkerson 方法。
+      - card:
+          title: 退回的作用
+          body: 开头那个水管网（容量都是 1）。先送 s→a→b→t，s→a、a→b、b→t 都满了，像是走不通了；可 s→b 和 a→t 还空着。沿 s→b 走到 b，再沿 a→b 反着走回 a，再走 a→t，又能送 1。自己选路试试，或者点“让算法走一步”。
+          sim:
+            name: graph
+            params:
+              mode: flow
+              directed: true
+              start: s
+              sink: t
+              nodes: [{ id: s, x: 40, y: 100 }, { id: a, x: 160, y: 30 }, { id: b, x: 160, y: 170 }, { id: t, x: 280, y: 100 }]
+              edges: [[s, a, 1], [s, b, 1], [a, b, 1], [a, t, 1], [b, t, 1]]
+      - item:
+          id: undo-why
+          type: choice
+          prompt: 先沿 s→a→b→t 送了 1 升（每根管子容量 1，还有 s→b、a→t 两根没用）。下一条增广路 s→b→a→t 里的“b→a”是什么意思？
+          options:
+            - text: 把 a→b 上的那 1 升退回去，让它改走 a→t
+              correct: true
+            - text: 新开一根从 b 到 a 的水管
+              why: 图里没有 b→a 这根管子；反着走只是退回已有的流量
+            - text: 这条路不合法
+              why: 残量网络里允许反着走有流量的边，这正是 Ford–Fulkerson 能纠正早先选择的原因
+          explain: 合起来，a→b 上的流量变回 0，实际的流是 s→a→t 和 s→b→t，值为 2。不能退回的话，第一步走错就再也到不了最大流。
+      - item:
+          id: flow-sim
+          type: sim
+          sim: graph
+          prompt: algs4 的 tinyFN（顶点改成了字母）。依次找增广路，把流送到最大。
+          params:
+            mode: flow
+            directed: true
+            start: s
+            sink: t
+            nodes: [{ id: s, x: 30, y: 110 }, { id: a, x: 120, y: 30 }, { id: b, x: 120, y: 190 }, { id: c, x: 250, y: 70 }, { id: d, x: 250, y: 150 }, { id: t, x: 340, y: 110 }]
+            edges: [[s, a, 2], [s, b, 3], [a, c, 3], [a, d, 1], [b, c, 1], [b, d, 1], [c, t, 2], [d, t, 3]]
+          goal: {}
+          solution:
+            paths: [[s, a, c, t], [s, b, d, t], [s, b, c, a, d, t]]
+          explain: 比如 s→a→c→t 送 2，s→b→d→t 送 1，再 s→b→c→a→d→t 送 1（c→a 是把 a→c 上的流退回 1）。最大流是 4。
+
+  - id: min-cut
+    chapter: 网络流与匹配
+    title: 最大流最小割
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个流网络里，把顶点分成两组，s 在一组、t 在另一组；从 s 那组指向 t 那组的边，容量加起来是 4。最大流可能是 5 吗？
+          options:
+            - text: 不可能
+              correct: true
+            - text: 可能
+              why: 所有从 s 到 t 的流都要穿过这两组的分界，而能穿过去的容量一共只有 4
+          explain: 不管怎么送，流都要从 s 那一组跨到 t 那一组，跨过去的边总容量只有 4。
+      - card:
+          title: 割和它的容量
+          body: |
+            把顶点分成两组 $A$、$B$，$s \in A$、$t \in B$，叫一个 $s$-$t$ 割。从 $A$ 指向 $B$ 的边的容量之和叫割的容量（$B$ 指向 $A$ 的边不算）。
+
+            algs4 讲义的引理：任何流穿过任何割的净流量都等于流的值。所以**任何流的值 ≤ 任何割的容量**。
+      - item:
+          id: cut-cap
+          type: number
+          prompt: 流网络（tinyFN）的边和容量：s→a 2、s→b 3、a→c 3、a→d 1、b→c 1、b→d 1、c→t 2、d→t 3。割 A = {s, b}，B = {a, c, d, t}，容量是多少？
+          answer: 4
+          explain: 从 A 指向 B 的边：s→a 2、b→c 1、b→d 1，共 4。所以这个网络的最大流不超过 4。
+      - card:
+          title: 最大流最小割定理
+          body: |
+            algs4 讲义的三个说法等价：(i) 有一个割的容量等于流 $f$ 的值；(ii) $f$ 是最大流；(iii) 残量网络里没有增广路。
+
+            所以**最大流的值 = 最小割的容量**，叫**最大流最小割定理（max-flow min-cut theorem）**。从 (iii) 到 (i) 的构造：Ford–Fulkerson 停下时，取 $A$ = 残量网络里从 $s$ 能走到的点。跨出 $A$ 的边都满了，跨回 $A$ 的边都是 0，割的容量正好等于流的值。
+      - item:
+          id: find-cut
+          type: choice
+          prompt: 水管网 s→a、s→b、a→b、a→t、b→t 容量都是 1，已经送到最大流 2（s→a→t、s→b→t）。残量网络里从 s 能走到哪些点？它们给出的最小割容量是多少？
+          options:
+            - text: 只有 s 自己；割 {s} 的容量是 2
+              correct: true
+            - text: s、a、b；割的容量是 3
+              why: s→a、s→b 都满了，残量网络里从 s 一步也走不出去
+            - text: 所有点；没有割
+              why: 能走到 t 就说明还有增广路，可已经是最大流了
+          explain: s 出去的两条边都满了，只剩 s。割 {s} 跨出去的是 s→a、s→b，容量 $1 + 1 = 2$，等于最大流。
+      - card:
+          title: 整数和选路
+          body: |
+            容量都是整数时，每次增广至少加 1，所以一定会停，而且算出的最大流每条边都是整数（algs4 和 6.046J 讲义都写成定理）。
+
+            但路选得不好会很慢：讲义的例子是 4 条容量 100 的边加中间一条容量 1 的边，如果每次都绕中间那条只送 1，要 200 次。容量换成 $10^9$ 就要 20 亿次。每次选边数最少的增广路（用 BFS 找，Edmonds–Karp），增广次数最多 $O(nm)$，总时间 $O(nm^2)$。
+      - item:
+          id: bad-paths
+          type: number
+          prompt: 流网络：s→a、s→b、a→t、b→t 的容量都是 1000，中间 a→b 容量 1。如果每次增广都用上 a→b（正着或退回），每次只送 1，要增广几次才到最大流？
+          answer: 2000
+          explain: 最大流是 2000，每次只加 1，要 2000 次。改用 BFS 找最短的增广路，s→a→t 和 s→b→t 两次就完了。
+      - item:
+          id: integer-flow
+          type: choice
+          prompt: 所有容量都是整数。下面哪个说法对？
+          options:
+            - text: 一定存在每条边流量都是整数的最大流
+              correct: true
+            - text: 最大流可能是 2.5
+              why: 最大流 = 最小割的容量，而割的容量是整数之和
+            - text: Ford–Fulkerson 可能永远停不下来
+              why: 每次至少加 1，最大流又有限，一定会停（容量是无理数时才可能不停）
+          explain: 从全 0 出发，每次增广的量是整数，流量一直是整数。这个整数性正是把匹配化成最大流时要用的。
+
+  - id: bipartite-matching
+    chapter: 网络流与匹配
+    title: 二分图匹配
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 4 个学生投 4 份工作，每人只能去一份、每份只要一人。A 能做 w 或 x，B 只能做 w，C 能做 x 或 y，D 只能做 y。最多能安排几个人？
+          answer: 3
+          explain: B 只能 w，D 只能 y，于是 A 只能 x，C 的 x、y 都被占了。最多 3 人，比如 B-w、A-x、D-y。
+      - card:
+          title: 匹配
+          body: |
+            二分图里一组边，没有两条共用一个顶点，叫**匹配（matching）**；边数最多的叫最大匹配。
+
+            化成最大流（algs4 讲义）：加源点 $s$ 连到左边每个点，右边每个点连到汇点 $t$，容量都是 1；原来的边从左指向右。因为最大流可以是整数，每个左边点最多送出 1、每个右边点最多收到 1，流量为 1 的中间边正好构成一个匹配：最大流的值 = 最大匹配的边数。
+      - item:
+          id: match-flow
+          type: number
+          prompt: 二分图：左边 1、2、3，右边 x、y、z。边 1-x、1-y、2-x、3-x。加源点 s 连到左边每个点、右边每个点连到汇点 t，容量都是 1，原来的边改成从左指向右。这个流网络的最大流是多少？
+          answer: 2
+          explain: x 被 1、2、3 都想要，但只能给一个；1 还能去 y。所以最大匹配 2（如 1-y、2-x），最大流也是 2。
+      - card:
+          title: 增广路就是交替路
+          body: |
+            在流网络里找增广路，翻回二分图就是：从一个没匹配的左边点出发，走一条不在匹配里的边，再走一条在匹配里的边，这样交替，到一个没匹配的右边点。把路上的边“在不在匹配里”全部对调，匹配就多 1。
+
+            Erickson 的书说：匹配是最大的，当且仅当没有这样的交替路。
+      - item:
+          id: alternating
+          type: choice
+          prompt: 当前匹配是 {A-x}。还有边 B-x、A-y，B 和 y 都没匹配。交替路 B-x-A-y 对调以后，匹配变成什么？
+          options:
+            - text: '{B-x, A-y}'
+              correct: true
+            - text: '{A-x, B-y}'
+              why: 图里没有 B-y 这条边；对调是把路上的边“在 / 不在匹配”互换
+            - text: '{A-x, B-x, A-y}'
+              why: A 和 x 不能同时在两条匹配边上；A-x 对调后离开匹配
+          explain: 路上的边 B-x（不在）、x-A（在）、A-y（不在）对调后：B-x、A-y 进来，A-x 出去。匹配从 1 条变成 2 条。
+      - card:
+          title: 最小点覆盖
+          body: |
+            一组顶点，每条边至少有一个端点在里面，叫**点覆盖（vertex cover）**。6.046J 的 Recitation 7：点覆盖在一般的图上是 NP 难的（至今没有已知的多项式时间算法），在二分图上却能用最大流解：二分图里最小点覆盖的大小等于最大匹配的大小（OI Wiki 称为 Kőnig 定理）。
+
+            直观地看，每条匹配边至少要一个端点进覆盖，所以覆盖至少和匹配一样大；定理说正好一样大。
+      - item:
+          id: cover-size
+          type: number
+          prompt: 二分图：左边 A、B、C、D，右边 w、x、y、z。边 A-w、A-x、B-w、C-x、C-y、D-y。最小点覆盖有几个顶点？
+          answer: 3
+          explain: 最大匹配是 3（如 A-x、B-w、D-y），所以最小点覆盖也是 3，比如 {w, x, y}：每条边的右端都是 w、x、y 之一。
+  - id: substring-search
+    chapter: 字符串匹配与索引
+    title: 子串查找：暴力、指纹和跳着找
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 在 20 个 A 后面跟一个 B 的文本里找 AAAAAB。从文本的每个位置开始，一个字母一个字母对，对不上就换下一个位置。大约要比较多少次？
+          options:
+            - text: 约 100 次
+              correct: true
+            - text: 约 21 次
+              why: 每个开始位置都要对 6 个字母才发现最后一个不对
+            - text: 约 6 次
+              why: 6 次只够检查一个位置
+          explain: 前 15 个位置每个都比到第 6 个字母才失败（各 6 次），第 16 个位置找到：共 $15 \times 6 + 6 = 96$ 次。
+      - card:
+          title: 暴力查找
+          body: |
+            在长 $N$ 的文本里找长 $M$ 的模式：对每个位置 $i$，从模式第 0 个字母开始比，对不上就换 $i + 1$。
+
+            algs4：最坏要约 $MN$ 次比较，例子正是 AAAA…AB 这样的重复串。平时的文本里通常很快就对不上，所以典型情况只要约 $1.1N$ 次。还有一个毛病：失败后文本要倒回去重新比。
+      - item:
+          id: brute-count
+          type: number
+          prompt: 暴力查找在文本 ABABDABABCABABCABAB 里找 ABABCABAB（每个位置从左往右比，对不上就换下一个位置），找到第一次出现时，一共比较了多少次字母？
+          answer: 20
+          explain: 位置 0 比到第 5 个字母（D 对 C）失败，5 次；位置 1、2、3、4 各 1、3、1、1 次；位置 5 全部对上，9 次。共 $5 + 1 + 3 + 1 + 1 + 9 = 20$ 次。
+      - card:
+          title: Rabin–Karp：比指纹
+          body: |
+            把长 $M$ 的子串看成一个数，对一个大素数 $Q$ 取余，叫它的指纹（哈希）。algs4 的例子：数字串、$R = 10$、$Q = 997$，模式 26535 的指纹是 $26535 \bmod 997 = 613$。
+
+            文本 3141592653589793 每个长 5 的窗口：508、201、715、971、442、929、613……第 6 个窗口（从下标 6 开始）指纹相同，一查确实是 26535。下一个窗口的指纹由上一个算出来：去掉最高位、乘 10、加上新的一位，再取余，每步常数时间。
+      - item:
+          id: window-hash
+          type: number
+          prompt: 求 $41592 \bmod 997$（Rabin–Karp 里窗口 41592 的指纹）。
+          answer: 715
+          explain: $997 \times 41 = 40877$，$41592 - 40877 = 715$。和 algs4 列出的第三个窗口一致。
+      - item:
+          id: rk-collision
+          type: choice
+          prompt: 两个不同的串指纹也可能相同。algs4 说 Rabin–Karp 有两个版本。“拉斯维加斯版”指纹相同时还要逐个字母核对一遍。它的特点是什么？
+          options:
+            - text: 结果一定对，只是运气极差时会变慢
+              correct: true
+            - text: 一定是线性时间，但偶尔会报错
+              why: 那是“蒙特卡洛版”：指纹相同就直接报告，不核对
+            - text: 和暴力查找一样慢
+              why: 只有指纹相同时才核对，Q 够大时极少出现假的相同
+          explain: 蒙特卡洛版总是线性时间、极小概率出错；拉斯维加斯版总是对、极小概率变慢。$Q$ 取足够大的随机素数时，假的相同的概率很小。
+      - card:
+          title: Boyer–Moore：从右往左比，跳着走
+          body: |
+            模式和文本对齐后，从模式的最后一个字母往前比。文本里那个对不上的字母如果根本不在模式里，模式可以整个跳过去。
+
+            先记下每个字母在模式里最右出现的位置 right[c]（不出现记 −1）。在模式第 $j$ 位对不上文本字母 $c$ 时，往右跳 $\max(1,\ j - \text{right}[c])$。algs4：典型情况只要约 $N / M$ 次比较，但只用这一条规则时最坏仍是 $MN$。
+      - item:
+          id: right-e
+          type: number
+          prompt: 模式 NEEDLE（位置从 0 数）。Boyer–Moore 的 right['E']（E 在模式里最右出现的位置）是几？
+          answer: 5
+          explain: E 出现在位置 1、2、5，最右的是 5。同理 right['N'] = 0，right['D'] = 3，right['L'] = 4，其他字母 −1。
+
+  - id: prefix-function
+    chapter: 字符串匹配与索引
+    title: 前缀函数：自己和自己比
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 串 ABABAB 的开头几个字母和末尾几个字母相同，而且不能是整个串。这样的部分最长有几个字母？
+          options:
+            - text: 4（ABAB）
+              correct: true
+            - text: 2（AB）
+              why: AB 可以，但 ABAB 既是开头也是结尾，更长
+            - text: '6'
+              why: 不许取整个串本身
+          explain: ABAB 是开头（ABAB|AB），也是结尾（AB|ABAB）。
+      - card:
+          title: 前缀函数
+          body: |
+            对串 $s$ 的每个位置 $i$，看 $s[0..i]$ 这一段：它的开头和结尾相同的部分（不能是整段）最长有几个字母，记作 $\pi[i]$。这叫**前缀函数（prefix function）**。约定 $\pi[0] = 0$。
+
+            例：$s$ = ABABCABAB，$\pi$ = 0、0、1、2、0、1、2、3、4。比如 $\pi[3] = 2$：ABAB 的开头 AB 和结尾 AB 相同。
+      - item:
+          id: pi-aabaab
+          type: text
+          prompt: 写出 AABAAB 的前缀函数 π（6 个数，用空格隔开）。
+          answers:
+            - 0 1 0 1 2 3
+          explain: A：0；AA：A 首尾相同，1；AAB：0；AABA：1；AABAA：AA，2；AABAAB：AAB，3。
+      - card:
+          title: 一趟算完
+          body: |
+            ```python
+            def prefix(s):
+                pi = [0] * len(s)
+                for i in range(1, len(s)):
+                    j = pi[i - 1]
+                    while j > 0 and s[i] != s[j]:
+                        j = pi[j - 1]
+                    if s[i] == s[j]:
+                        j = j + 1
+                    pi[i] = j
+                return pi
+            ```
+
+            OI Wiki 的两步改进：$\pi[i]$ 最多比 $\pi[i-1]$ 多 1；对不上时不必从头试，跳到 $\pi[j-1]$ 接着试。$j$ 每步最多加 1，减的总数不超过加的总数，所以整个是 $O(n)$。
+      - item:
+          id: pi-last
+          type: number
+          prompt: 用前缀函数的算法算 ABACABAB。最后一个 $\pi$ 值（整个串首尾相同的最长部分）是多少？
+          answer: 2
+          explain: ABACABA 的 π 是 3（ABA）；下一个字母 B 和 s[3] = C 对不上，跳到 π[2] = 1，s[1] = B 对上了，于是 1 + 1 = 2（结尾 AB 和开头 AB）。
+      - card:
+          title: 例题：综合练习 (6) 的 π
+          body: 模式 P = ABABCABAB，一步步算 π。
+          reveal:
+            - title: 前五个
+              body: A：0；AB：0；ABA：1（A）；ABAB：2（AB）；ABABC：C 和谁都对不上，0。
+            - title: 后四个
+              body: ABABCA：1；ABABCAB：2；ABABCABA：3；ABABCABAB：4（ABAB）。
+            - title: 结果
+              body: π = [0, 0, 1, 2, 0, 1, 2, 3, 4]。
+
+  - id: kmp-search
+    chapter: 字符串匹配与索引
+    title: KMP：文本不回头
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 在文本里找 ABABC。已经对上了 ABAB，下一个文本字母是 A 不是 C。暴力查找会把模式右移一格、从头比。其实可以直接从模式的第几个字母接着比？
+          options:
+            - text: 从第 3 个字母（A）接着比，前面的 AB 已知是对上的
+              correct: true
+            - text: 只能从头比
+              why: 刚对上的 ABAB 结尾的 AB 正好是模式开头的 AB，不用再比
+            - text: 跳过这个文本字母，从下一个开始
+              why: 这个 A 可能正是下一次匹配的一部分，不能跳过
+          explain: ABAB 首尾相同的最长部分是 AB（$\pi = 2$），所以模式前 2 个字母已经对上，接着拿模式第 3 个字母 A 和文本的 A 比。
+      - card:
+          title: KMP 匹配
+          body: |
+            $j$ 表示模式已经对上了几个字母。读文本的下一个字母 $c$：
+
+            - 对上了（$c = P[j]$）：$j$ 加 1；$j$ 到了 $M$ 就找到一次，再令 $j = \pi[M-1]$ 接着找；
+            - 对不上：令 $j = \pi[j-1]$ 再试，直到对上或 $j = 0$。
+
+            文本的位置只往前走，从不倒回。algs4：总共最多访问 $M + N$ 个字母，$O(M + N)$。
+      - card:
+          title: 例题：综合练习 (6)
+          body: 在 T = ABABDABABCABABCABAB 里找 P = ABABCABAB（π = 0 0 1 2 0 1 2 3 4），位置从 0 数。
+          reveal:
+            - title: 开头
+              body: ABAB 对上（$j = 4$），T[4] = D 对 C 不上：$j = \pi[3] = 2$，D 对 A 不上，$j = \pi[1] = 0$，D 对 A 还不上，跳过 D。
+            - title: 第一次找到
+              body: 从 T[5] 起 ABABCABAB 全部对上，$j = 9$：在位置 5 找到。令 $j = \pi[8] = 4$。
+            - title: 第二次找到
+              body: 接着读 CABAB，都对上：$j$ 从 4 到 9，在位置 10 找到。答案：5 和 10。
+      - item:
+          id: overlap
+          type: text
+          prompt: 在 ABABABA 里找 ABA，所有出现的起始位置（从 0 数，可以重叠）是哪些？（用空格隔开）
+          answers:
+            - 0 2 4
+          explain: 位置 0、2、4 各有一个 ABA，它们互相重叠。KMP 找到一个后令 $j = \pi[2] = 1$，保留结尾的 A，所以重叠的也能找到。
+      - card:
+          title: 另一种看法：有限状态机
+          body: |
+            algs4 把 KMP 写成一台状态机：状态 = 模式已经对上了几个字母，读一个文本字母就按表转到下一个状态，到状态 $M$ 就是找到了。模式 ABABAC 的表（字母表只有 A、B、C）：
+
+            | 读到 | 0 | 1 | 2 | 3 | 4 | 5 |
+            |---|---|---|---|---|---|---|
+            | A | 1 | 1 | 3 | 1 | 5 | 1 |
+            | B | 0 | 2 | 0 | 4 | 0 | 4 |
+            | C | 0 | 0 | 0 | 0 | 0 | 6 |
+
+            建表要 $O(RM)$（$R$ 是字母表大小），之后每个文本字母只查一次表。
+      - item:
+          id: dfa-state
+          type: number
+          prompt: 模式 ABABAC 的状态机（状态 0 开始；读 A 时 0→1、1→1、2→3、3→1、4→5；读 B 时 1→2、3→4、5→4，其余回 0；读 C 时只有 5→6，其余回 0）。依次读 B、C、B、A、A、B、A 后在状态几？
+          answer: 3
+          explain: B、C、B 都停在 0；A 到 1；A 还是 1；B 到 2；A 到 3。状态 3 表示模式的前 3 个字母 ABA 已经对上。
+      - item:
+          id: kmp-vs-brute
+          type: choice
+          prompt: 和暴力查找比，KMP 最大的好处是什么？
+          options:
+            - text: 最坏也是线性时间，文本不用倒回去，可以边读边找
+              correct: true
+            - text: 平时的文本上比暴力快很多
+              why: algs4 的表里两者典型情况都约 1.1N；KMP 赢在最坏情况
+            - text: 不需要任何预先的计算
+              why: KMP 要先算 π（或状态表），只是只和模式有关
+          explain: 暴力最坏 $MN$ 且要倒回文本；KMP 最坏 $M + N$，文本只读一遍，适合数据一边到达一边找。
+
+  - id: tries
+    chapter: 字符串匹配与索引
+    title: 字典树：按字母一层层分岔
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 手机输入法要在一大堆单词里列出所有以 sh 开头的。存这堆单词，哪种办法最自然？
+          options:
+            - text: 按第一个字母分岔，再按第二个字母分岔……，sh 下面挂着的就是答案
+              correct: true
+            - text: 哈希表
+              why: 哈希表按整个单词算位置，以 sh 开头的单词散落在各处，要全扫一遍
+            - text: 一个没排序的列表
+              why: 每次都要把所有单词看一遍
+          explain: 共用开头的单词走同一条路，到 s、h 之后下面就是所有以 sh 开头的单词。
+      - card:
+          title: 字典树
+          body: |
+            **字典树（trie）**：每个节点按下一个字母分出最多 $R$ 个孩子（$R$ 是字母表大小）。一个单词就是从根往下的一条路；单词在哪个节点结束，就在那里记下它的值。algs4 的例子：by、sea、sells、she、shells、shore、the。
+
+            查找：从根出发，按单词的字母一步步往下走，最多看 $L$ 个字母（$L$ 是单词长度），和单词总数无关。查不到的往往在头几个字母就走不下去了。
+      - item:
+          id: trie-nodes
+          type: number
+          prompt: 把 by、sea、sells、she、shells、shore、the 放进字典树。包括根在内一共有几个节点？（每个节点对应一个不同的开头，根对应空串）
+          answer: 20
+          hint: 数不同的开头：b、by、s、se、sea、sel、……
+          explain: 不同的非空开头有 19 个（b、by、s、se、sea、sel、sell、sells、sh、she、shel、shell、shells、sho、shor、shore、t、th、the），加上根共 20 个。
+      - card:
+          title: 按开头查
+          body: |
+            字典树擅长和“开头”有关的查询（algs4 列出的）：
+
+            - 以 sh 开头的所有单词：走到 s→h，把下面的单词都列出来：she、shells、shore；
+            - 某个词最长的、是单词的开头：shellsort 往下走，经过的单词节点里最长的是 shells。
+
+            代价是空间：每个节点要留 $R$ 个孩子的位置，大多是空的。algs4 的实测里，256 路的字典树在一份大数据上内存不够；三叉搜索树（每个节点只有小于、等于、大于三个孩子）省得多。
+      - item:
+          id: prefix-se
+          type: text
+          prompt: 字典树里有 by、sea、sells、she、shells、shore、the。以 se 开头的单词有哪些？（按字母顺序，用空格隔开）
+          answers:
+            - sea sells
+          explain: 走到 s→e，下面挂着 sea 和 sells。
+      - item:
+          id: longest-prefix
+          type: text
+          prompt: 字典树里有 by、sea、sells、she、shells、shore、the。shoreline 的开头里，最长的、正好是一个单词的是哪个？
+          answers:
+            - shore
+          explain: 沿 s→h→o→r→e 走，经过的单词节点只有 shore，再往下的 l 没有分岔了。
+      - item:
+          id: trie-vs-bst
+          type: choice
+          prompt: algs4 说字典树的查找“命中时要看全部 L 个字母，没命中时常常头几个字母就知道了”。和二叉搜索树比，它的好处是什么？
+          options:
+            - text: 查找次数只和单词长度有关，和单词有多少个无关
+              correct: true
+            - text: 更省内存
+              why: 恰好相反，每个节点留 R 个位置，很费内存
+            - text: 能处理任何类型的键
+              why: 字典树利用的是“键是一串字母”这个结构，只适合字符串一类的键
+          explain: 二叉搜索树每次比较的是整个字符串，要比 $\log n$ 次；字典树每层只看一个字母，走 $L$ 层。
+
+  - id: regex
+    chapter: 字符串匹配与索引
+    title: 正则表达式和非确定状态机
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 规则“任意多个 a 或 b，最后以 abb 结尾”。下面哪个串符合？
+          options:
+            - text: babb
+              correct: true
+            - text: abba
+              why: 它以 bba 结尾，不是 abb
+            - text: ab
+              why: 至少要有结尾的 abb 三个字母
+          explain: babb = b + abb。这样的规则可以写成正则表达式 (a|b)*abb。
+      - card:
+          title: 正则表达式
+          body: |
+            **正则表达式（regular expression）**用三种运算描述一组串：
+
+            - 连接：ab 表示 a 后面跟 b；
+            - 或：a|b 表示 a 或 b；
+            - 重复：a* 表示 0 个或多个 a（algs4：(a|b)* 重复的是整个“a 或 b”，每次可以选不同的一个）。
+
+            括号决定先后。例：(a|b)*abb 是“以 abb 结尾的 a、b 串”。
+      - item:
+          id: regex-count
+          type: number
+          prompt: 只由 a、b 组成、长度正好是 3 的串一共 8 个。其中有几个符合正则表达式 (a|b)*b？
+          answer: 4
+          explain: (a|b)*b 就是“以 b 结尾”，前两个字母任意：$2 \times 2 = 4$ 个（aab、abb、bab、bbb）。
+      - card:
+          title: 同时跟踪好几个状态
+          body: |
+            正则表达式可以变成一台**非确定状态机（NFA）**：读同一个字母时可能有好几种走法。模拟它时，不去一条条试，而是记下“此刻可能在的所有状态”，每读一个字母整体往前推一步。
+
+            algs4：建这台机器 $O(M)$，模拟 $O(MN)$（$M$ 是表达式长度，$N$ 是文本长度），不会出现指数爆炸。
+      - item:
+          id: backtracking
+          type: choice
+          prompt: algs4 测了 Java 1.4.2 用 (a|aa)*b 匹配一串 a 后跟 c 的时间：每多 2 个 a，时间依次是 1.6、3.7、9.7、23.2、62.2、161.6 秒。这说明什么？
+          options:
+            - text: 时间按指数增长：库里的实现在挨个回溯尝试
+              correct: true
+            - text: 时间按线性增长
+              why: 线性的话每次只多一点；这里每次乘约 2.5
+            - text: 是机器太慢了
+              why: 换快的机器只省常数倍，挡不住每多 2 个字母就乘 2.5
+          explain: 每多 2 个 a 时间乘约 2.3 到 2.7。algs4：大多数库用回溯实现，在一些简单的输入上就会指数级地慢；同时跟踪所有状态的模拟是 $O(MN)$。
+      - item:
+          id: regex-match
+          type: choice
+          prompt: 下面哪个串符合正则表达式 a(b|c)*d？
+          options:
+            - text: abcbd
+              correct: true
+            - text: abcb
+              why: 表达式最后是 d，串必须以 d 结尾
+            - text: bcd
+              why: 表达式开头是 a，串必须以 a 开头
+          explain: abcbd = a + (b、c、b) + d。中间的 (b|c)* 可以是任意多个 b 或 c，包括 0 个（ad 也符合）。
+
+  - id: suffix-array
+    chapter: 字符串匹配与索引
+    title: 后缀数组：把所有结尾排好
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: banana 的所有“从某个位置到结尾”的部分：banana、anana、nana、ana、na、a。按字典顺序排，第一个是哪个？
+          options:
+            - text: a
+              correct: true
+            - text: ana
+              why: a 是 ana 的开头，短的排在前面
+            - text: banana
+              why: b 比 a 大，以 a 开头的都排在前面
+          explain: 以 a 开头的有 a、ana、anana，其中最短的 a 排第一。
+      - card:
+          title: 后缀数组
+          body: |
+            从位置 $i$ 到结尾的那一段叫第 $i$ 个**后缀（suffix）**。把所有后缀按字典序排好，记下它们的起始位置，这一列数叫**后缀数组（suffix array）**。
+
+            algs4 的例子 ABRACADABRA!（12 个字符）排好后：!、A!、ABRA!、ABRACADABRA!、ACADABRA!、ADABRA!、BRA!、BRACADABRA!、CADABRA!、DABRA!、RA!、RACADABRA!，起始位置 11、10、7、0、3、5、8、1、4、6、9、2。
+      - item:
+          id: sa-banana
+          type: text
+          prompt: banana（位置从 0 数）的后缀数组是什么？（6 个起始位置，用空格隔开）
+          answers:
+            - 5 3 1 0 4 2
+          explain: 排好的后缀：a（5）、ana（3）、anana（1）、banana（0）、na（4）、nana（2）。
+      - card:
+          title: 最长重复子串
+          body: |
+            一段子串出现了两次，它就是两个后缀的共同开头。排好序后，开头最像的后缀挨在一起，所以只要看相邻两个后缀的最长公共前缀（LCP）。最大的那个就是最长重复子串。
+
+            ABRACADABRA! 里，ABRA! 和 ABRACADABRA! 相邻，公共前缀 ABRA 长 4，是最大的：最长重复子串是 ABRA。algs4 说这用在计算生物学和查抄袭上。
+      - item:
+          id: lrs-banana
+          type: text
+          prompt: banana 的最长重复子串（出现至少两次、可以重叠）是什么？
+          answers:
+            - ana
+          explain: 相邻后缀 ana 和 anana 的公共前缀是 ana，长 3，是最大的。ana 出现在位置 1 和 3，两次重叠。
+      - card:
+          title: 在后缀数组里查词
+          body: |
+            一个词在文本里出现，就是某个后缀以它开头。后缀已经排好，就能二分查找：algs4 说要 $O(K \log N)$ 次比较字母（$K$ 是词长，每次比较最多看 $K$ 个字母），所有以它开头的后缀挨在一起，个数就是出现次数。
+
+            直接把 $N$ 个后缀当字符串排序，比较时最坏要看很长，algs4 提醒在 Java 里取子串还要复制，可能变成平方级；有专门的构造算法，这里不展开。
+      - item:
+          id: lcp-abra
+          type: number
+          prompt: ABRA! 和 ABRACADABRA! 的最长公共前缀有几个字母？
+          answer: 4
+          explain: 前 4 个字母 ABRA 相同，第 5 个一个是 !、一个是 C。
+      - item:
+          id: mississippi
+          type: text
+          prompt: mississippi 的最长重复子串是什么？（可以重叠）
+          answers:
+            - issi
+          explain: 后缀 ississippi（位置 1）和 issippi（位置 4）排序后相邻，公共前缀 issi 长 4，是相邻后缀里最长的。
+boss:
+  items:
+    - id: b-theta
+      type: choice
+      prompt: $f(n) = 100n + \log n$，$g(n) = n + (\log n)^2$。哪个成立？
+      options:
+        - text: f = Θ(g)
+          correct: true
+        - text: f = O(g)，但不是 Θ
+          why: f/g 越来越接近 100，是常数倍，所以也是 Ω
+        - text: g 增长得比 f 快
+          why: (log n)² 比 n 增长得慢，g 的主项还是 n
+      explain: 两者的主项都是 $n$（任何多项式压过对数），$f/g$ 越来越接近 100，所以同阶。这是原书 DPV 习题 0.1 的一题。
+    - id: b-master
+      type: choice
+      prompt: $T(n) = 8T(n/2) + n^3$。按主定理，$T(n)$ 是多少？
+      options:
+        - text: Θ(n³ log n)
+          correct: true
+        - text: Θ(n³)
+          why: log₂8 = 3 = d，是“相等”的情况，每层都是 n³，要乘层数 log n
+        - text: Θ(n⁴)
+          why: 没有哪一层会到 n⁴；公比 8/2³ = 1，每层一样
+      explain: $a = 8$，$b = 2$，$d = 3$，$\log_2 8 = 3 = d$：$\Theta(n^3 \log n)$。原书习题 2.5(e)。
+    - id: b-sort6
+      type: number
+      prompt: 只靠两两比较，把 6 个不同的数排好，最坏情况下至少要比较几次？
+      answer: 10
+      explain: $6! = 720$，$2^9 = 512 < 720 \le 1024 = 2^{10}$，比较树至少 10 层，所以至少 10 次。
+    - id: b-huffman
+      type: number
+      prompt: 一段文字里字母 a、b、c、d、e、f 分别出现 45、13、12、16、9、5 次。用 Huffman 编码，编码后一共多少位？
+      answer: 224
+      hint: 每次合并最少的两个：5 和 9、12 和 13……最后数出每个字母的码长。
+      explain: 合并顺序 5+9=14，12+13=25，14+16=30，25+30=55，45+55=100。码长 a 1、b c d 各 3、e f 各 4：$45 + 3(13 + 12 + 16) + 4(9 + 5) = 45 + 123 + 56 = 224$ 位。
+    - id: b-mst
+      type: number
+      prompt: 无向图的边和权重：A-B 4、A-C 2、B-C 5、B-D 10、C-E 3、D-E 4、D-F 11、E-F 8。最小生成树的总权重是多少？
+      answer: 21
+      explain: Kruskal：A-C 2、C-E 3、A-B 4、D-E 4 依次加入；B-C 5 成圈跳过；E-F 8 加入，已 5 条边。总权重 $2 + 3 + 4 + 4 + 8 = 21$。
+    - id: b-lis
+      type: number
+      prompt: 10、9、2、5、3、7、101、18 的最长递增子序列（严格递增）有几个数？
+      answer: 4
+      explain: '例如 2、3、7、18 或 2、5、7、101。按 $L(j) = 1 + \max\{L(i) : i < j,\ a_i < a_j\}$ 填表，最大是 4。'
+    - id: b-knap
+      type: number
+      prompt: 背包容量 7。物品（重量、价值）：(1, 1)、(3, 4)、(4, 5)、(5, 7)，每样只有一件。最多装多少价值？
+      answer: 9
+      explain: 重 3 和重 4 的两件正好 7，价值 $4 + 5 = 9$。其他：5 + 1 是 8，5 一件是 7。
+    - id: b-doubling
+      type: number
+      prompt: 原技能树的综合练习 (4)：动态数组开始容量 1，每次满了就把容量翻倍并复制全部元素。从空开始 append 1000 次，一共复制了多少个元素？
+      answer: 1023
+      explain: 容量为 1、2、4、……、512 时各满一次，复制 $1 + 2 + \dots + 512 = 1023$ 个，小于 $2 \times 1000$。加上 1000 次写入，总代价小于 $3n$，摊还每次 $O(1)$。
+    - id: b-scc
+      type: number
+      prompt: 有向图的边：a→b、b→c、c→a、b→d、d→e、e→d。它有几个强连通分量？
+      answer: 2
+      explain: '{a, b, c} 互相能到，{d, e} 互相能到；从 d、e 回不到 a、b、c。共 2 个。'
+    - id: b-dijkstra
+      type: text
+      prompt: 原技能树的综合练习 (5)：边 s→a 4、s→b 1、b→a 2、a→c 1、b→c 5、c→t 3、a→t 6。用 Dijkstra 从 s 出发，写出顶点确定距离（出队）的顺序。（用空格隔开）
+      answers:
+        - s b a c t
+      explain: s 0；b 1；a 经 b 是 3；c 经 a 是 4；t 经 c 是 7。边长不能为负：Dijkstra 依赖“出队时距离已经最终确定”，负边可能让之后的路更短。
+    - id: b-maxflow
+      type: number
+      prompt: 流网络的边和容量：s→a 10、s→b 5、a→b 15、a→t 5、b→t 10。最大流是多少？
+      answer: 15
+      explain: s→a→t 送 5，s→a→b→t 送 5，s→b→t 送 5，共 15。割 {s} 的容量是 $10 + 5 = 15$，所以不可能更多。
+    - id: b-pi
+      type: text
+      prompt: 写出 ABAABA 的前缀函数 π（6 个数，用空格隔开）。
+      answers:
+        - 0 0 1 1 2 3
+      explain: A：0；AB：0；ABA：1；ABAA：1（A）；ABAAB：2（AB）；ABAABA：3（ABA）。

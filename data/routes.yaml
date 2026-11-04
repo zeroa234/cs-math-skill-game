@@ -126,7 +126,7 @@ recommended:
         - { name: roadmap.sh 网络安全, url: "https://roadmap.sh/cyber-security" }
 
   - id: algo
-    status: dev
+    status: open
     name: 算法
     goal: F.1.2
     tagline: 从第一个证明走到“同样的问题，怎样快上万倍”

@@ -19,7 +19,8 @@ const ajv = new Ajv({ allErrors: true, strict: false });
 const validateSchema = ajv.compile(JSON.parse(fs.readFileSync(path.join(ROOT, "data/content.schema.json"), "utf8")));
 
 export function runPyTrace(code, stdin = "") {
-  const r = spawnSync("python", ["-I", path.join(ROOT, "scripts/lib/pytrace.py")], { input: JSON.stringify({ code, stdin }), encoding: "utf8", env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
+  // -X utf8: -I ignores PYTHONIOENCODING, and traced code with Chinese text fails on Windows without UTF-8 mode
+  const r = spawnSync("python", ["-I", "-X", "utf8", path.join(ROOT, "scripts/lib/pytrace.py")], { input: JSON.stringify({ code, stdin }), encoding: "utf8", env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
   if (r.status !== 0) throw new Error(`pytrace failed: ${r.stderr}`);
   return JSON.parse(r.stdout);
 }

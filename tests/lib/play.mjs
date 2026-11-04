@@ -22,7 +22,15 @@ export async function answerCorrectly(p, item) {
   if (item.type === "number") { await p.fill(`${q} .answer-line input`, String(item.answer)); return true; }
   if (item.type === "text") { await p.fill(`${q} .answer-line input`, item.answers[0]); return true; }
   if (item.type === "order") {
-    for (const step of item.steps) await p.locator(`${q} .order-pool .chip`, { hasText: step }).first().click();
+    // Whole-text match, like match pairs below: a step can be part of another ("log n" in "n log n").
+    for (const step of item.steps) {
+      const want = await shown(p, step);
+      const chips = p.locator(`${q} .order-pool .chip`);
+      const n = await chips.count();
+      let hit = false;
+      for (let i = 0; i < n && !hit; i++) if ((await chips.nth(i).textContent()).trim() === want) { await chips.nth(i).click(); hit = true; }
+      if (!hit) return false;
+    }
     return true;
   }
   if (item.type === "match") {
