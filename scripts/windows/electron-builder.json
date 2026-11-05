@@ -1,6 +1,6 @@
 {
   "appId": "local.csmathskillgame.desktop",
-  "productName": "点亮之路",
+  "productName": "计算机大学习",
   "files": ["main.cjs", "game/**/*"],
   "directories": { "output": "dist" },
   "win": {

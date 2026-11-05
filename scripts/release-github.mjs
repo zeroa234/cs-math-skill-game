@@ -1,7 +1,7 @@
 // Creates the GitHub release v<version> for the version in package.json, after the source snapshot
 // is pushed (scripts/publish-github.mjs --push), and attaches the APK. The in-app update check reads
 // this release (src/game/app/update.js). See docs/android.md "发新版本".
-//  - notes: docs/releases/<version>.md; APK: output/apk/点亮之路-<version>.apk; PC version: the game
+//  - notes: docs/releases/<version>.md; APK: output/apk/计算机大学习-<version>.apk; PC version: the game
 //    publish-github.mjs built from HEAD (temp/publish/repo/output/web), zipped
 //  - the APK must pack that same game, file for file (so it was built from the same commit, with
 //    nothing uncommitted), or nothing is released
@@ -22,7 +22,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REPO = "zeroa234/cs-math-skill-game";
 const version = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).version;
 const tag = `v${version}`;
-const apk = path.join(ROOT, "output/apk", `点亮之路-${version}.apk`);
+const apk = path.join(ROOT, "output/apk", `计算机大学习-${version}.apk`);
 const notes = path.join(ROOT, "docs/releases", `${version}.md`);
 for (const f of [apk, notes]) if (!fs.existsSync(f)) throw new Error(`missing ${path.relative(ROOT, f)}`);
 
@@ -54,17 +54,17 @@ const zip = path.join(stage, `${folder}-web.zip`);
 execFileSync(TAR, ["-a", "-c", "-f", zip, "-C", stage, folder]); // -a: zip, from the file name
 
 const assets = [
-  [apk, `cs-math-skill-game-${version}.apk`, `点亮之路 ${version}（安卓）`, "application/vnd.android.package-archive"],
-  [zip, `cs-math-skill-game-${version}-web.zip`, `点亮之路 ${version}（电脑版：解压后双击 index.html）`, "application/zip"],
+  [apk, `cs-math-skill-game-${version}.apk`, `计算机大学习！ ${version}（安卓）`, "application/vnd.android.package-archive"],
+  [zip, `cs-math-skill-game-${version}-web.zip`, `计算机大学习！ ${version}（电脑版：解压后双击 index.html）`, "application/zip"],
 ];
 const win = path.join(ROOT, "output/windows", `cs-math-skill-game-${version}-windows-x64-setup.exe`);
 if (fs.existsSync(win)) {
   const { verifyInstaller } = await import("./windows/verify-installer.mjs");
   await verifyInstaller(win, web);
-  assets.push([win, path.basename(win), `点亮之路 ${version}（Windows x64 安装版）`, "application/vnd.microsoft.portable-executable"]);
+  assets.push([win, path.basename(win), `计算机大学习！ ${version}（Windows x64 安装版）`, "application/vnd.microsoft.portable-executable"]);
 } else console.warn(`no ${path.relative(ROOT, win)}: released without the Windows installer (node scripts/windows/build-installer.mjs)`);
 
-const want = { tag_name: tag, target_commitish: head.sha, name: `点亮之路 ${version}`, body: fs.readFileSync(notes, "utf8").trim(), draft: false, prerelease: false };
+const want = { tag_name: tag, target_commitish: head.sha, name: `计算机大学习！ ${version}`, body: fs.readFileSync(notes, "utf8").trim(), draft: false, prerelease: false };
 const old = tryJson([`repos/${REPO}/releases/tags/${tag}`]);
 const rel = old ? json(["-X", "PATCH", `repos/${REPO}/releases/${old.id}`, "--input", "-"], { name: want.name, body: want.body }) : json(["-X", "POST", `repos/${REPO}/releases`, "--input", "-"], want);
 if (rel.name !== want.name || rel.body.replace(/\r\n/g, "\n") !== want.body.replace(/\r\n/g, "\n")) throw new Error("the release's name or notes came back different (encoding?)");

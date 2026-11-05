@@ -1,6 +1,6 @@
 {
   "appId": "local.csmathskillgame.app",
-  "appName": "点亮之路",
+  "appName": "计算机大学习",
   "webDir": "output/web",
   "android": {
     "path": "src/android"

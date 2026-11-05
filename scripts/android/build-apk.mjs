@@ -1,5 +1,5 @@
 // Builds the Android app: web build -> `cap sync` (copies output/web into src/android) -> Gradle release
-// build signed with config/android/ -> output/apk/点亮之路-<versionName>.apk. See docs/android.md.
+// build signed with config/android/ -> output/apk/计算机大学习-<versionName>.apk. See docs/android.md.
 // Tool locations default to this machine's D: drive installs and can be overridden by the usual env vars.
 // usage: node scripts/android/build-apk.mjs [--skip-web]
 import fs from "node:fs";
@@ -40,7 +40,7 @@ run(path.join(androidDir, process.platform === "win32" ? "gradlew.bat" : "gradle
 
 const versionName = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).version; // build.gradle reads it too
 const built = path.join(androidDir, "app/build/outputs/apk/release/app-release.apk");
-const out = path.join(ROOT, "output/apk", `点亮之路-${versionName}.apk`);
+const out = path.join(ROOT, "output/apk", `计算机大学习-${versionName}.apk`);
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.copyFileSync(built, out);
 console.log(`${path.relative(ROOT, out)}  ${(fs.statSync(out).size / 1048576).toFixed(1)} MB`);

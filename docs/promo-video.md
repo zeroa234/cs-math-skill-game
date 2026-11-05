@@ -1,5 +1,8 @@
 # 宣传片：我把计算机专业做成了一款游戏
 
+> **第一版，已弃用**（2026-11-05 用户评价：像在“念游戏”，不像广告或 PV）。第二版的方案见 [promo-video-v2.md](promo-video-v2.md)。
+> 本文和 `src/promo/`、`scripts/promo/`、`data/promo/` 里的旧名“点亮之路”故意不改：它们是用来重新生成这一版的，第二版做完后会被替换。
+
 约 1 分 48 秒（107.7 s），1920×1080 / 30 fps，H.264 + AAC，响度 -16 LUFS。鲸鱼娘旁白 + 像素字幕 + 游戏自己的背景音乐和 8-bit 音效。
 成片 `output/promo/cs-math-game-promo.mp4`，封面 `output/promo/cover-{16x9,4x3,3x4,9x16}.png` 和 `cover.jpg`（像素塔 + 大标题 + 鲸鱼娘姐妹半身），
 混音前的画面 `cs-math-game-promo.raw.mp4`（只换 BGM 时从它重混，不用重渲）。都不入库，按下面的步骤重新生成。还没有发布。

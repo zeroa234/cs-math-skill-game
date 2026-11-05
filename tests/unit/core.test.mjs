@@ -323,7 +323,7 @@ test("update check: version order, and what GitHub's answer means", async () => 
   assert.equal(isNewer("1.1.0", "1.1.0"), false);
   assert.equal(isNewer("1.0.2", "1.1.0"), false);
   const reply = (status, body) => async () => ({ ok: status === 200, status, json: async () => body });
-  const rel = { tag_name: "v9.0.0", body: "新课", html_url: "https://github.com/x/releases/tag/v9.0.0", assets: [{ name: "点亮之路-9.0.0.apk", browser_download_url: "https://example.org/a.apk" }] };
+  const rel = { tag_name: "v9.0.0", body: "新课", html_url: "https://github.com/x/releases/tag/v9.0.0", assets: [{ name: "计算机大学习-9.0.0.apk", browser_download_url: "https://example.org/a.apk" }] };
   assert.deepEqual(await checkUpdate(reply(200, rel)), { latest: "9.0.0", newer: true, notes: "新课", download: "https://example.org/a.apk", page: rel.html_url });
   assert.equal((await checkUpdate(reply(200, { ...rel, tag_name: "v0.0.0" }))).newer, false);
   await assert.rejects(checkUpdate(reply(404, {})), /还没有发布过版本/);

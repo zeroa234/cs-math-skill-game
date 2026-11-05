@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/images/banner.webp" alt="点亮之路：像素风的“星图学院”标题画面" width="820">
+  <img src="docs/images/banner.webp" alt="计算机大学习！：像素风的“星图学院”标题画面" width="820">
 </p>
 
-<h1 align="center">点亮之路</h1>
+<h1 align="center">计算机大学习！</h1>
 
 <p align="center">
   把计算机专业和它要用的数学，做成一款<b>一次一小课</b>的像素风学习游戏。<br>
@@ -61,8 +61,8 @@
 
 ## 下载和游玩
 
-- **安卓 App**：在 [发布页](https://github.com/zeroa234/cs-math-skill-game/releases/latest) 下载 `cs-math-skill-game-<版本>.apk`（标着“点亮之路”），第一次安装时允许“安装未知应用”。以后 App 每天自己检查一次有没有新版本（“我的”页最下面也能手动检查），覆盖安装进度不丢。
-- **Windows 安装版**：在发布页下载 `cs-math-skill-game-<版本>-windows-x64-setup.exe`，双击安装（只装给当前用户，不用管理员权限），开始菜单里打开“点亮之路”，不用联网。新版本要重新下载安装，进度保留。
+- **安卓 App**：在 [发布页](https://github.com/zeroa234/cs-math-skill-game/releases/latest) 下载 `cs-math-skill-game-<版本>.apk`（标着“计算机大学习”），第一次安装时允许“安装未知应用”。以后 App 每天自己检查一次有没有新版本（“我的”页最下面也能手动检查），覆盖安装进度不丢。
+- **Windows 安装版**：在发布页下载 `cs-math-skill-game-<版本>-windows-x64-setup.exe`，双击安装（只装给当前用户，不用管理员权限），开始菜单里打开“计算机大学习”，不用联网。新版本要重新下载安装，进度保留。
 - **电脑版 ZIP**：在发布页下载 `cs-math-skill-game-<版本>-web.zip`，解压后双击里面的 `index.html`，用浏览器玩，不用联网。
 - **网页版**：[在线打开](https://zeroa234.github.io/cs-math-skill-game/)，需要网络连接。进度存在浏览器里，可以导出和导入。
 

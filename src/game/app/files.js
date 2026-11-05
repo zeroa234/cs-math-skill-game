@@ -22,4 +22,4 @@ export async function saveTextFile(name, text) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-export const saveName = (what = "存档") => `点亮之路-${what}-${new Date().toISOString().slice(0, 10)}.json`;
+export const saveName = (what = "存档") => `计算机大学习-${what}-${new Date().toISOString().slice(0, 10)}.json`;

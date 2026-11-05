@@ -10,7 +10,7 @@
 node scripts/android/build-apk.mjs     # npm run build → cap sync → Gradle 签名发布版
 ```
 
-产物：`output/apk/点亮之路-<版本>.apk`（不含音乐时约 9.5 MB；背景音乐约 18 MB 也打包在里面）。脚本会检查签名密钥在不在，不在就停下，避免打出装不上的未签名包；还会检查要打进 APK 的网页文件里没有指向导师素材来源的词（词表在不公开的 `assets/cast/not-public.txt`，和发布公开仓库时的检查共用 `scripts/lib/not-public.mjs`），因为 APK 也公开放在发布页上。
+产物：`output/apk/计算机大学习-<版本>.apk`（不含音乐时约 9.5 MB；背景音乐约 18 MB 也打包在里面）。脚本会检查签名密钥在不在，不在就停下，避免打出装不上的未签名包；还会检查要打进 APK 的网页文件里没有指向导师素材来源的词（词表在不公开的 `assets/cast/not-public.txt`，和发布公开仓库时的检查共用 `scripts/lib/not-public.mjs`），因为 APK 也公开放在发布页上。
 
 需要的工具（这台机器都装在 D 盘，脚本默认用这些路径；换机器时用同名环境变量覆盖）：
 
@@ -40,7 +40,7 @@ keytool -genkeypair -keystore config/android/release.jks -storetype PKCS12 -alia
 3. 写更新说明 `docs/releases/<版本>.md`（App 的“检查更新”会原样显示它，用纯文本就好），提交。
 4. `node scripts/publish-github.mjs --push` 把源码快照推到 [zeroa234/cs-math-skill-game](https://github.com/zeroa234/cs-math-skill-game)。
    然后 `node scripts/windows/build-installer.mjs` 用这份快照构建出的游戏打 Windows 安装包（见下面“Windows 安装版”）。
-5. `node scripts/release-github.mjs` 建 `v<版本>` 的发布，附上 APK、电脑版 zip 和 Windows 安装包（有这个版本的安装包才附，附之前同样核对里面的游戏）（`output/web` 打包成 `cs-math-skill-game-<版本>-web.zip`，只有游戏文件，解压后双击 `index.html`）：说明取自第 3 步的文件，APK 以 `cs-math-skill-game-<版本>.apk` 上传（GitHub 会改掉文件名里的中文），中文名“点亮之路 <版本>（安卓）”作为显示标签；中文以 UTF-8 JSON 交给 gh，再读回来比对，上传后的 sha256 要和本地一致。
+5. `node scripts/release-github.mjs` 建 `v<版本>` 的发布，附上 APK、电脑版 zip 和 Windows 安装包（有这个版本的安装包才附，附之前同样核对里面的游戏）（`output/web` 打包成 `cs-math-skill-game-<版本>-web.zip`，只有游戏文件，解压后双击 `index.html`）：说明取自第 3 步的文件，APK 以 `cs-math-skill-game-<版本>.apk` 上传（GitHub 会改掉文件名里的中文），中文名“计算机大学习！ <版本>（安卓）”作为显示标签；中文以 UTF-8 JSON 交给 gh，再读回来比对，上传后的 sha256 要和本地一致。
 
 App 每天最多自动检查一次 `https://api.github.com/repos/zeroa234/cs-math-skill-game/releases/latest`（`src/game/app/update.js`），发现新版本就在营地显示“有新版本 [下载] [以后再说]”；“我的”页最下面可以随时手动检查。下载的是发布页上的 APK，安装要本人确认（安卓不允许商店外的 App 静默更新）；同包名、同签名，覆盖安装进度还在。请求只有这一个 GET，不带任何玩家数据；GitHub 对未登录请求每个 IP 每小时限 60 次，一天一次远远够用。
 

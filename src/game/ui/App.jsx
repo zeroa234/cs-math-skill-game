@@ -59,7 +59,7 @@ function Game({ unsaved }) {
     <>
       {!immersive && (
         <header class="topbar">
-          <a class="brand" href={href()} aria-label="点亮之路，回营地"><span class="logo"><Icon name="sparkle" size={24} /></span><span class="brand-text">点亮之路</span></a>
+          <a class="brand" href={href()} aria-label="计算机大学习！，回营地"><span class="logo"><Icon name="sparkle" size={24} /></span><span class="brand-text">计算机大学习！</span></a>
           <nav aria-label="主导航">{nav.map(([k, label, h]) => <a href={h} class={active(k) ? "active" : ""} aria-current={active(k) ? "page" : undefined}>{label}</a>)}</nav>
           <button type="button" class="icon-btn" aria-pressed={sound} aria-label={sound ? "声音：开（点一下关闭音效和音乐）" : "声音：关（点一下打开）"} title={sound ? "关闭声音" : "打开声音"} onClick={toggleSound}><Icon name={sound ? "volume" : "mute"} size={24} /></button>
         </header>

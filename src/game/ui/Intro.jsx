@@ -61,7 +61,7 @@ export function Intro() {
       <button type="button" class="btn small skip" onClick={finish}>跳过开场</button>
       {k < 0 ? (
         <div class="title-card">
-          <h1>点亮之路</h1>
+          <h1>计算机大学习！</h1>
           <p>计算机与数学的星图 · 一次一小课，一路点亮</p>
           <div class="row center" style={{ alignItems: "flex-end", gap: "1.6rem", margin: "1rem 0 1.4rem" }}>
             <Sprite who="black" action="wave" then="idle" scale={2} />
