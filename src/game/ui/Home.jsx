@@ -40,8 +40,8 @@ export function Home() {
     <div class="page home">
       <section class="camp-hero pixel-bg" style={{ backgroundImage: `url(${artFor(active)})` }}>
         <div>
-          <h1>{fresh ? "欢迎来到星图学院" : "营地"}</h1>
-          <p>{active ? `正在进行：${active.name}（${KIND_LABEL[active.kind]}）` : `${g.tree.skills.length} 个技能、每一条“要先学”的连线都有大学课程作证据。一次一小课，一路点亮。`}</p>
+          <h1>{fresh ? "欢迎参加计算机大学习！" : "营地"}</h1>
+          <p>{active ? `正在进行：${active.name}（${KIND_LABEL[active.kind]}）` : `${g.tree.skills.length} 个技能、每一条“要先学”的连线都有大学课程作证据。一次一小课，把技能一个个点亮。`}</p>
           <div class="camp-stats">
             <span class="stat-chip" title="学徒等级"><Icon name="zap" /> Lv.{lv.level} · {lv.into}/{lv.span}</span>
             <span class="stat-chip" title="今天获得的经验">今天 +{todayXp(p)}</span>

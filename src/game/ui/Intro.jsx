@@ -8,7 +8,7 @@ import { play } from "../app/sound.js";
 import { CAST, Portrait, Sprite } from "./cast.jsx";
 
 const LINES = [
-  { who: "black", text: `欢迎来到星图学院。天上那棵由星星连成的树，就是计算机和数学要学的 ${g.tree.skills.length} 个技能。` },
+  { who: "black", text: `欢迎参加计算机大学习！天上那棵由星星连成的树，就是计算机和数学要学的 ${g.tree.skills.length} 个技能。` },
   { who: "blue", text: "每颗星都要先点亮它下面连着的星——就像先会写程序，才学得动操作系统！" },
   { who: "black", text: "每次只学一小课：先猜一猜，再看讲解，再动手做。答错不扣任何东西，我们会告诉你错在哪。" },
   { who: "blue", text: "每一章还会告诉你去哪本书、哪门公开课深入。准备好了吗？挑一条远征出发吧！" },
@@ -62,7 +62,7 @@ export function Intro() {
       {k < 0 ? (
         <div class="title-card">
           <h1>计算机大学习！</h1>
-          <p>计算机与数学的星图 · 一次一小课，一路点亮</p>
+          <p>计算机专业和它要用的数学 · 一次一小课</p>
           <div class="row center" style={{ alignItems: "flex-end", gap: "1.6rem", margin: "1rem 0 1.4rem" }}>
             <Sprite who="black" action="wave" then="idle" scale={2} />
             <Sprite who="blue" action="wave" then="idle" scale={2} flip />

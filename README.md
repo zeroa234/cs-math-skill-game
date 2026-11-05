@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/banner.webp" alt="计算机大学习！：像素风的“星图学院”标题画面" width="820">
+  <img src="docs/images/banner.webp" alt="计算机大学习！：像素风的标题画面，夜空里的星星连成一棵树" width="820">
 </p>
 
 <h1 align="center">计算机大学习！</h1>
