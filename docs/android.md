@@ -57,6 +57,11 @@ node scripts/windows/build-installer.mjs   # 先要 publish-github.mjs 生成了
 - 打完后自动检查两件事：用 electron-builder 下载的 7-Zip 和它自带的 asar 把安装包拆开，里面的游戏要和发布的逐文件相同（`scripts/windows/verify-installer.mjs`，发布脚本上传前也跑一遍）；再无界面地启动解包出的程序，用 DevTools 端口确认它显示出游戏的第一屏。
 - 桌面入口 `scripts/windows/main.cjs`：游戏文件经私有的 `skill-game://` 协议提供（安全上下文，存档和读文件跟网页版一样），`game/` 以外的路径一律拒绝；教材和课程链接用系统浏览器打开。存档在 `%APPDATA%\cs-math-skill-game`，卸载时保留。
 - 没有代码签名证书，第一次运行时 Windows SmartScreen 可能提示“未知发布者”，点“仍要运行”。程序不自动更新，新版本要重新下载安装（覆盖安装，进度保留）。
+- 改名不影响覆盖安装（1.3.1 从“点亮之路”改成“计算机大学习”时查过 NSIS 模板）：
+  - 新安装包按 `appId` 算出的卸载注册表键找到旧版，先卸掉再装，不会装出两份。
+  - 一键、只装给当前用户时，安装目录取程序包名，不取 `productName`，所以目录不变。
+  - 只有开始菜单快捷方式的名字跟 `productName` 走。
+  - 存档目录写死在 `main.cjs` 里，也不跟名字走。
 
 ## 文件在哪
 
