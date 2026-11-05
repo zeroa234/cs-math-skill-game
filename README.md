@@ -104,7 +104,7 @@ npm test             # 单元测试；端到端、无障碍、手机宽度等见
 | [docs/development.md](docs/development.md) | 内容明细、界面一览、目录、测试、内容是怎么来的、和原技能树相比改了什么、自写的部分 |
 | [docs/android.md](docs/android.md) | 安卓 App：打包、签名、发新版本、自动检查更新、和网页版的差别 |
 | [docs/recommended-routes.md](docs/recommended-routes.md) | 八条推荐远征怎么选的 |
-| [docs/promo-video.md](docs/promo-video.md) | 宣传片怎么做：文稿、真实游戏截图、像素 3D 镜头、旁白和渲染步骤 |
+| [docs/promo-video-v2.md](docs/promo-video-v2.md) | 宣传片方案（制作中）：纯音乐 PV 和广告向两个版本 |
 | [reports/](reports/) | 启发式评估和手机版复查、逐节覆盖表、KTH 课程先修交叉核对、调研 |
 
 ## 已知限制

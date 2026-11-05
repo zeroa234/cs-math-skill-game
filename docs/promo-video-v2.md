@@ -1,6 +1,6 @@
 # 宣传片第二版：方案
 
-状态：**方案已定，宣传片还没开工**（2026-11-05）。改名已在 1.3.1 完成（见下文“改名”）。做完后本文件改写成和 [promo-video.md](promo-video.md) 一样的“怎么重新生成”说明。
+状态：**方案已定，宣传片还没开工**（2026-11-05）。改名已在 1.3.1 完成（见下文“改名”）。第一版已整个删除（代码、截图、配音、成片），只在 git 历史里（提交 `a1577962`）。做完后本文件改写成“怎么重新生成”的说明。
 
 要做两个版本，画面骨架共用：
 
@@ -15,7 +15,7 @@
 
 ## 为什么重做
 
-第一版（[promo-video.md](promo-video.md)，1 分 48 秒，鲸鱼娘旁白）被否定，原话是“不像广告或 PV，而是在念游戏”。逐帧看过后的原因：
+第一版（1 分 48 秒，鲸鱼娘旁白，已删除）被否定，原话是“不像广告或 PV，而是在念游戏”。逐帧看过后的原因：
 
 - 开头 10 秒讲的是作者（“上次我把计算机专业做成了一棵技能树”），游戏本身第 10 秒以后才出现。
 - 七成画面是整窗截图装在框里，字小得要暂停才读得清，字幕再把旁白复述一遍。
@@ -64,7 +64,7 @@
 | S3 一课的流程 | 11–21 s | 先猜 → 选错：红色反馈栏，妹妹 `coy` 害羞 → 再做 → 答对：经验弹出，“连续学习天数”的火苗 +1 | 截图：课程各步、结算、营地；经验数值取游戏真实结算，不编 |
 | S4 动手试 | 21–29 s | 三个交互实验，卡拍快切，每个只裁出在动的那块：调度做出竞态（x = 1，屏幕一红，PV 版音乐在这里骤停一下）→ 页面置换点要换出的页 → 图搜索一圈圈扩开 | 截图：race、replace、BFS（每点一步拍一张） |
 | S5 整个专业 | 29–38 s | 镜头从路径往后拉，变成整张技能地图，星星一颗颗亮起、连上线 | 截图：地图页；亮起和连线在 Remotion 里补 |
-| S6 点亮 | 38–45 s | 结业挑战计分涨过 80% → 点亮页：妹妹 `cast`、姐姐 `dance`、像素彩带 → 塔上的关卡一路亮到塔顶（全片高潮） | 截图 `boss-*`；Blender 塔（`scripts/promo/blender-route.py`） |
+| S6 点亮 | 38–45 s | 结业挑战计分涨过 80% → 点亮页：妹妹 `cast`、姐姐 `dance`、像素彩带 → 塔上的关卡一路亮到塔顶（全片高潮） | 截图：结业挑战、点亮页；Blender 像素 3D 的塔（新做） |
 | S7 落版 | 45–63 s | 见下文“落版页” | |
 
 同类镜头不超过三个（S4 正好三个）。字不压在忙乱的画面上，和画面错开放。
@@ -129,7 +129,7 @@
 - Windows：`scripts/windows/electron-builder.json` 的 `productName`。
 - 发布：`scripts/release-github.mjs`（Release 标题、附件说明）、`scripts/android/build-apk.mjs`（APK 文件名）、`tests/unit/core.test.mjs` 的样例。
 - 文档：`README.md`、`LICENSE`、`docs/android.md`；横幅图 `docs/images/banner.webp` 和 README 截图要用新标题重拍。
-- 第一版宣传片的代码（`src/promo/`、`scripts/promo/blender-route.py`、`data/promo/script.json`）随第二版一起换掉。
+- 第一版宣传片：已整个删除，不用再管。
 
 不改的，以及为什么改了不会出问题：
 - 安卓 `appId`（`local.csmathskillgame.app`）不变，覆盖安装后进度还在。
@@ -145,16 +145,41 @@ Windows 覆盖升级（1.3.1 时查过 electron-builder 26.18.0 的 NSIS 模板�
 
 ## 技术做法
 
-复用第一版的管线（见 [promo-video.md](promo-video.md)）：
-- Remotion 工程 `src/promo/`：`lib/ui.tsx` 的像素边框、镜头 `Shot`、打字机 `TypeText`、像素溶解 `Wipe`、彩带 `Confetti`；`lib/sprite.tsx` 的导师精灵。
-- 截图脚本 `scripts/promo/capture-game.mjs`：加拍新镜头，包括路线页（手机尺寸）、选错、结算、营地火苗、地图。
-- 游戏音效 `scripts/promo/sfx.mjs`。
-- Blender 塔 `scripts/promo/blender-route.py`：它原来按旁白时间轴驱动，要改成读节拍网格。
+**从头做，不沿用第一版的任何文件**（用户 2026-11-05 决定）。第一版的代码、截图、配音、Blender 渲染、成片和封面都已删除：游戏改了名，旧截图和旧配音里都是旧名字；旧场景和“整窗截图加字幕”的版式也正是第一版失败的原因。
 
-两版在同一个 Remotion 工程里，各是一个 composition（`PV`、`Ad`），共用 S1–S7 的场景组件。第一版的 `Promo` composition 在第二版做完后删掉，git 历史里还留着。
+工具仍建议用 Remotion：画面要靠代码生成，做事的 agent 没法操作 After Effects 这类图形界面软件；Remotion 画的是网页（React + CSS），游戏的像素字体、像素边框和截图都能直接用，配音和音效也能按帧对齐。新工程放 `src/promo/`，脚本放 `scripts/promo/`，文稿和数据放 `data/promo/`，成片放 `output/promo/`（沿用本项目的目录约定）；用当时的稳定版，版本在 `package.json` 里写死。
+
+Remotion 官方现成的包，自己写之前先看它们够不够：
+- `@remotion/transitions`：段与段之间的转场序列。
+- `@remotion/layout-utils`：量字宽、让大字刚好撑满一行（`fitText`）。
+- `@remotion/lottie`：以后如果有人用 After Effects 或 LottieFiles 做了动画，可以直接放进来。
+- `@remotion/motion-blur` 不用：运动模糊会把像素画糊掉。
+
+两版在同一个工程里，各是一个 composition（`PV`、`Ad`），共用 S1–S7 的场景组件。
+
+### 第一版踩过的坑
+
+这些是关于游戏和工具的事实，不依赖旧文件，从头做照样会遇到：
+- **截图要可复现。** 存档里打开“减少动画”（`settings.reduceMotion`），这样角色不动、不放彩带、开场文字直接显示；要动的部分都在视频里补。
+- **导师在视频里补。** 截图时把导师精灵藏起来，记下她们站的位置，视频里在原位按帧播放 `assets/cast/sprites/<black|blue>/<动作>.webp` 动画条。动画条的帧怎么排，看游戏的 `src/game/ui/cast.jsx`。
+- **截图时自动答题。** 用游戏自己的 `tests/lib/play.mjs` 按正确答案往前走；浏览器统一用 `scripts/lib/edge.mjs` 开（系统 Edge，临时文件放 `temp/`）。
+- **开场对白要等字出完再点。** 每点一下之前等这句打完，否则这一下只是“把这句打完”。
+- **页面置换按标签找页。** 每一步可选页的顺序跟着页框变，要按页的标签找要点的那个，不能按位置。
+- **游戏音效离线合成。** 从 `src/game/app/sound.js` 读出 ZzFX 参数，用 ZzFX 1.4.0 的 `buildSamples` 合成成 wav。
+- **Remotion 的无头浏览器只装一份。** 第一次渲染会把它下载到当前目录的 `node_modules/.remotion`（约 110 MB），所以脚本都在 `src/promo` 里跑。
+- **Remotion 的临时文件别写到 C 盘。** 它会往系统 TEMP 写打包副本和 Chrome 配置，曾经占到 70 GB。渲染、抽帧前把 `TEMP` / `TMP` 指到 `temp/promo/tmp`，完了删掉。
+- **Blender 像素 3D：**
+  - `render.filter_size = 0` 才是硬边；
+  - 几段画面共用一套调色板（ffmpeg `palettegen` / `paletteuse`，`dither=none`），否则段与段、帧与帧之间颜色会跳；
+  - 中间片用 yuv444p，像素边上不串色；
+  - 发光太强会把颜色洗成白色。
+- **配音管线不在本仓库。** 用 `projects/os-review-bilingual` 的 Breeze 管线（`narrate.py --out`、`align-narration.py`、`qc-narration.py`、`mix-bgm.py`）。
+- **第一版各步用时**（RTX 3080）：Breeze 合成 13 句约 40 s；截图约 3.5 分钟；Blender 两段约 8 分钟；成片渲染加混音约 10 分钟。
+
+第一版的旧代码只在 git 历史里，要查某个做法可以用 `git show a1577962:projects/cs-math-skill-game/<路径>`（比如 `src/promo/src/lib/sprite.tsx`、`scripts/promo/capture-game.mjs`）。只当参考，不要恢复。
 
 要新做的：
-- **节拍网格**：用现成的 [allin1](https://github.com/mir-aidj/all-in-one)（All-In-One Music Structure Analyzer）算拍点、强拍和段落（前奏 / 主歌 / 副歌……），写进 `src/promo/public/build/beats.json`。它在 Windows 上依赖的 NATTEN 不好装，放在 WSL 里跑。画面取帧用“第几段第几拍”，替换第一版的“旁白说到哪个字”（`w(beat, word)`）。广告版的台词仍然用第一版的逐字对齐（`word-times.mjs`）。
+- **节拍网格**：用现成的 [allin1](https://github.com/mir-aidj/all-in-one)（All-In-One Music Structure Analyzer）算拍点、强拍和段落（前奏 / 主歌 / 副歌……），写进 `src/promo/public/build/beats.json`。它在 Windows 上依赖的 NATTEN 不好装，放在 WSL 里跑。PV 版画面取帧用“第几段第几拍”。广告版按台词逐字对齐的时刻取帧（对齐用 Breeze 管线的 `align-narration.py`）。
 - **动效组件**：
   - 像素手机框。
   - 裁剪推近的镜头（只露出要看的那块）。
@@ -167,7 +192,7 @@ Windows 覆盖升级（1.3.1 时查过 electron-builder 26.18.0 的 NSIS 模板�
   - 广告版用轻快的垫底曲。
   - 两版都以 -16 LUFS 出片。
 - **配音（广告版）**：用 os-review-bilingual 的 Breeze 管线（`narrate.py --out`、对齐、质检）。现在只有一个鲸鱼娘参考音色，两姐妹要两个声音：给另一位找第二个参考音，或者同一音色调出两种语气。先各合成一句给用户听，用户定了再合成全部。
-- 输出放 `output/promo-v2/pv/`、`output/promo-v2/ad/`（成片、混音前的画面、封面）。
+- 输出放 `output/promo/pv/`、`output/promo/ad/`（成片、混音前的画面、封面）。
 
 ## 做的顺序和验收
 
@@ -177,8 +202,8 @@ Windows 覆盖升级（1.3.1 时查过 electron-builder 26.18.0 的 NSIS 模板�
 4. 配乐候选 2–3 首给用户听，定 PV 版和广告版各用哪首。
 5. **15 秒样片**（S1–S3，PV 版）：用户确认动效对路再往下做。
 6. 两版全片加落版页；落版页两版共用。
-7. 封面：每版一张 16:9，沿用第一版的封面做法。
-8. 本文件改写成重新生成的说明，第一版的说明标为“已弃用”。
+7. 封面：每版一张 16:9，用新画面的静帧，加大标题和两位导师。
+8. 本文件改写成重新生成的说明，README 和 `docs/development.md` 里指向它的地方同步改。
 
 每一步验收：
 - 抽帧看实际观看尺寸：1080p 全屏，以及 B 站手机竖着拿时的横屏小窗。字要读得清。

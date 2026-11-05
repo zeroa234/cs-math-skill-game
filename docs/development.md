@@ -48,7 +48,7 @@ README 只放玩家和第一次来的人要看的东西；这里是内容明细�
 | `src/game/app/` | 路由（`router.js`）、存档和玩家操作（`state.js`、`actions.js`）、实验室（`lab.js`）、背景图（`art.js`）、音效和背景音乐（`sound.js`、`music.js`）、更新检查（`update.js`）、App 里才生效的部分（`native.js`） |
 | `tests/` | 见下面“测试” |
 | `scripts/publish-github.mjs`、`scripts/release-github.mjs`、`scripts/readme-images.mjs`、`.github/workflows/pages.yml`、`docs/releases/` | 发布到 GitHub：源码快照（去掉不公开词表和精灵提取脚本）、重新构建网页版并检查导师能显示、文字里没有不公开的词；建发布、附 APK 和电脑版 zip（更新说明在 `docs/releases/<版本>.md`）；README 截图；Pages 部署 `output/web`（步骤见 [android.md](android.md)“发新版本”） |
-| `data/promo/`、`scripts/promo/`、`src/promo/` | 宣传片：旁白文稿、截图 / 数据 / 音效 / Blender 像素 3D / 封面脚本、Remotion 画面（做法见 [promo-video.md](promo-video.md)）；成片和封面在 `output/promo/`，不入库 |
+| `docs/promo-video-v2.md` | 宣传片方案（制作中）：第一版已删除，第二版从头做，做好后放 `data/promo/`、`scripts/promo/`、`src/promo/`，成片在 `output/promo/`（不入库） |
 | `scripts/lib/edge.mjs` | 所有要开浏览器的测试和脚本共用：找系统 Edge、把它的临时文件放进 `temp/`、构建后游戏的地址 |
 | `assets/` | 像素背景（`bg/`，来源和提示词见其 README）、导师素材（`cast/`，来源、处理和限制见其 README）、像素字体（`fonts/`，OFL）、背景音乐（`music/`，CC0，来源见其 README） |
 | `scripts/cast/` | 背景像素化、导师立绘的裁切；导师精灵的提取脚本只在作者本地（它读的是作者本地的渲染结果） |

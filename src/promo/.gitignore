@@ -1,9 +1,0 @@
-node_modules/
-# 构建产物（scripts/promo/ 生成）与素材副本（来源见 docs/promo-video.md）
-public/build/
-public/fonts/
-public/shots/
-public/blender/
-public/sfx/
-public/cast/
-public/bg/
