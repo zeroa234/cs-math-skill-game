@@ -37,6 +37,15 @@ test("route stops respect every required prerequisite and cover every goal", () 
   }
 });
 
+test("every open campaign stop has validated interactive lessons and outline coverage", () => {
+  for (const route of tree.routes.filter((r) => r.status === "open")) {
+    for (const id of planRoute(g, route).stops) {
+      assert.equal(content[id]?.version, 2, route.id + ": " + id + " needs a v2 pack");
+      assert.equal(content[id].coverage, true, route.id + ": " + id + " needs outline coverage");
+    }
+  }
+});
+
 test("routes.yaml: the author's own route is OS; recommended routes carry evidence; ids are unique", () => {
   const own = tree.routes.filter((r) => r.kind === "own");
   assert.deepEqual(own.map((r) => r.id), ["goal:C.2.1"]);

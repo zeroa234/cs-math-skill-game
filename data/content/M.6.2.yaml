@@ -1,0 +1,465 @@
+skill: M.6.2
+version: 2
+brief:
+  why: 拿到一批零件的长度，你要决定能对生产线说多少。统计推断会把样本中的规律和它的不确定性一起报告。
+  outcomes:
+    - 区分抽样分布、点估计与最大似然
+    - 计算和解读均值区间与假设检验
+    - 判断大样本近似和重抽样何时适用
+terms:
+  - term: 抽样分布
+    def: 在同一抽样方案下重复抽样，统计量会形成的分布。
+  - term: 估计量
+    def: 从样本计算参数估计的规则。
+  - term: 自助法
+    def: 重复生成与原样本同大小的样本并重算统计量，估计它的波动。
+  - term: 似然
+    def: 把观测固定，将模型给这些观测的联合概率或密度看成参数的函数。
+  - term: 置信区间
+    def: 由数据构造的区间，所用方法在重复抽样中按给定比例覆盖真参数。
+  - term: 零假设
+    def: 检验中作为参照的参数或数据生成陈述。
+  - term: 显著性水平
+    def: 事先设定的第一类错误概率控制水平。
+  - term: 参数
+    def: 用来描述总体或确定某个模型的量。
+lessons:
+  - id: sampling
+    chapter: 抽样分布
+    title: 想象重新取样一百次
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两次从同一条生产线各取一小批零件，平均长度必定相同吗？
+          options:
+            - text: 通常不同
+              correct: true
+            - text: 必定相同，因为来自同一生产线
+              why: 总体不变也会有样本波动。
+          explain: 样本构成会随抽取改变。
+      - card:
+          title: 把统计量看作随机结果
+          body: '**抽样分布（sampling distribution）**。样本均值每次都有一个值，分布取决于总体和样本量。样本最大值也是统计量。若独立抽 n 次，最大值不超过 x 的概率就是每个观测都不超过 x 的概率相乘。'
+      - item:
+          id: max
+          type: number
+          prompt: 独立抽 2 个 [0,1] 上的均匀随机数。最大值不超过 0.5 的概率是多少？
+          answer: 0.25
+          explain: 两个都要不超过 0.5，概率为 0.5²。
+      - card:
+          title: 从累计概率推密度
+          body: 对独立同分布连续样本，最大值的累计分布为 F(x)ⁿ。对它求导可得密度 nF(x)ⁿ⁻¹ f(x)。若抽样遗漏一个群体，多抽一些同类样本不会自动修复偏差。
+      - item:
+          id: sample-bias
+          type: choice
+          prompt: 只从白班抽零件，想推断白班和夜班。把白班样本翻倍有什么限制？
+          options:
+            - text: 样本变大就一定代表夜班
+              why: 未观察到的群体不因重复白班而加入。
+            - text: 会降低白班估计的随机波动，仍可能漏掉夜班差异
+              correct: true
+          explain: 抽样设计决定哪些群体被代表。
+  - id: estimators
+    chapter: 估计
+    title: 估计的方法与这次答案
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你说用三件物品的平均值估重，和你今天称出 2 千克，是同一回事吗？
+          options:
+            - text: 两者都永远等于 2
+              why: 统计规则不固定某次数据。
+            - text: 前者是方法，后者是这次结果
+              correct: true
+          explain: 换一组样本，方法一样，结果会变。
+      - card:
+          title: 从规则到数字
+          body: '**估计量（estimator）**代入实际数据给点估计。需要估计的模型量称为**参数（parameter）**。偏差是估计量的期望减真值；均方误差等于方差加偏差的平方。小样本里可能接受些偏差以换较小波动。'
+      - item:
+          id: mse
+          type: number
+          prompt: 某估计量方差为 3，偏差为 −2。均方误差是多少？
+          answer: 7
+          explain: 平方后偏差项为 4，与方差相加。
+      - card:
+          title: 把样本特征对到理论特征
+          body: 矩估计令样本的均值等特征与理论的相应值相等，再解参数。充分统计量保留样本关于参数的信息。若联合模型能分为依赖该统计量与参数的一部分，乘只依赖数据的一部分，分解定理可用来确认充分性。
+      - item:
+          id: moments
+          type: choice
+          prompt: 某个模型的理论均值是 2θ，样本均值是 8。用均值作矩估计，θ 是多少？
+          options:
+            - text: '8'
+              why: 把样本均值当成了参数本身。
+            - text: '4'
+              correct: true
+          explain: 令 2θ=8 再解参数。
+  - id: asymptotics
+    chapter: 渐近理论与决策
+    title: 样本很多时，估计会怎样
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 扩大独立样本量之后，平均误差通常变小。原先的系统偏差也一定消失吗？
+          options:
+            - text: 一定，所有估计规则最终都正确
+              why: 固定加一个偏移的规则仍会偏。
+            - text: 要看估计规则会不会留下偏差
+              correct: true
+          explain: 增大样本只控制一部分误差。
+      - card:
+          title: 趋近真值与近似分布
+          body: 一致性说估计随样本量增大依概率靠近真值。渐近正态说放大后的估计误差在规定条件下接近正态。最大似然法选让观测相对最相容的参数，许多正规模型下具备这两种性质。边界参数、非唯一参数或重尾可能破坏条件。
+      - item:
+          id: limit
+          type: choice
+          prompt: 样本均值始终再加 1，真实总体均值固定。即使原均值一致，加 1 后如何？
+          options:
+            - text: 仍一致，因为样本量变大
+              why: 随机误差减少不会改变固定偏移。
+            - text: 收敛到真均值加 1
+              correct: true
+          explain: 固定偏移不会随样本量消失。
+      - card:
+          title: 信息与标准误
+          body: |-
+            在正规情形，单参数最大似然估计的近似方差是 1/(nI)，I 为单个观测的 Fisher 信息；多参数用信息矩阵的逆。对参数再做平滑变换时，Delta 方法用变换在真值附近的导数缩放标准误，多个输入用相应方向的导数。
+
+            在已拟合参数处用对数似然曲率估计信息，可数值求近似区间；先核对曲率、拟合和样本条件。
+      - item:
+          id: delta
+          type: number
+          prompt: θ 的估计标准误为 0.1，估计值约为 2。用 Delta 近似求 3θ 的标准误。
+          answer: 0.3
+          explain: 乘 3 的规则导数为 3，标准误乘 3。
+  - id: bootstrap
+    chapter: 渐近理论与决策
+    title: 用现有样本模仿重新抽样
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 只有一批数据，还想看统计结果会波动多大。怎样用现有数据做一个模拟？
+          options:
+            - text: 反复从已有数据中有放回抽取
+              correct: true
+            - text: 每次只把全体数据重新排序
+              why: 统计量若只看数值，换顺序仍是同一个结果。
+          explain: 有放回才会让每轮组成变化。
+      - card:
+          title: 重抽以后重算
+          body: '**自助法（bootstrap）**。非参数做法从原数据有放回抽。参数做法先拟合模型，再从拟合模型模拟新数据并重新拟合。t 分布或 Pareto 重尾模型要额外留意样本和尾部假设。'
+      - item:
+          id: bootstrap-kind
+          type: match
+          prompt: 配对重抽方法和生成数据方式。
+          pairs:
+            - - 从原观测有放回抽相同数量
+              - 非参数自助法
+            - - 从拟合的分布模拟相同数量
+              - 参数自助法
+          explain: 先确定要把原经验分布还是拟合分布当作生成器。
+      - card:
+          title: 保留统计量自己的计算过程
+          body: 每轮从生成的数据重算参数或其变换，最后汇总模拟值的标准误或分位点。独立观测适合逐条重抽；时间序列若直接打散，会破坏相邻依赖。重尾样本和极端分位点也可能让朴素区间表现不稳。
+      - item:
+          id: redo
+          type: choice
+          prompt: 要估算方差估计量的波动，每个模拟样本应怎么处理？
+          options:
+            - text: 对该样本重新计算方差估计
+              correct: true
+            - text: 只记录每轮的均值
+              why: 均值是另一个统计量。
+          explain: 只反复抄原结果无法得到波动分布。
+  - id: decision
+    chapter: 渐近理论与决策
+    title: 同一份证据可以支持不同的动作
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 错报会让整批零件返工，漏报可能危及客户。两种错的代价一样吗？
+          options:
+            - text: 应分别计算
+              correct: true
+            - text: 错的次数一样，代价必定一样
+              why: 一次漏检和一次返工的后果可能差别很大。
+          explain: 动作取决于两类错误带来的后果。
+      - card:
+          title: 两种错误与发现能力
+          body: 把实际上没变化却报警称为第一类错误，把实际有变化却未发现称为第二类错误。给定真实变化时能发现的概率叫功效。其他条件相同，更多独立数据通常更能区分目标差异，样本量规划应先说清希望检测多大的效应。
+      - item:
+          id: power
+          type: number
+          prompt: 真实均值偏移时，一个规则漏报的概率是 0.2。它在这种偏移下的功效是多少？
+          answer: 0.8
+          explain: 发现和漏报在这个设定下互补。
+      - card:
+          title: 用先前信息更新判断
+          body: 贝叶斯估计把关于参数的先验与数据提供的支持相乘并归一化，得到后验。先验可以来自已有研究或明确的假设；后验仍依赖模型。用损失衡量动作的代价后，可选择期望损失较小的动作。
+      - item:
+          id: action
+          type: choice
+          prompt: 同一组证据下漏报危害变大，应先比较什么？
+          options:
+            - text: 不同决策规则的漏报、误报和对应损失
+              correct: true
+            - text: 只比较样本均值是否改变
+              why: 数据相同也可因代价不同而选不同动作。
+          explain: 代价变化可能改变适合采用的阈值。
+  - id: likelihood
+    chapter: 似然
+    title: 让观测告诉你哪个参数更合适
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 十次抛币出了九次正面。比较正面率 0.5 和 0.9 时，应该固定哪部分？
+          options:
+            - text: 固定参数，换不同的观测
+              why: 那是在求数据的概率分布。
+            - text: 固定观测的结果，比较两个假设对它的支持
+              correct: true
+          explain: 这一轮数据已经发生，变化的是模型参数。
+      - card:
+          title: 固定数据，给参数打分
+          body: '**似然（likelihood）**。独立观测的贡献相乘，取对数后可相加。最大似然估计选使它最大的参数；多个参数就一起比较。参数影响分布支持范围时，最大值可能在边界。'
+      - card:
+          title: 例题：数泊松事件
+          body: 独立观测 x₁…xₙ 服从泊松(λ)。
+          reveal:
+            - title: 找出含 λ 的部分
+              body: 对数似然为 −nλ+Σxᵢ lnλ 加与 λ 无关的项。
+            - title: 找峰值
+              body: 若总数正，导数为 −n+Σxᵢ/λ，等于零时 λ̂=样本均值；全零时最大值在 0。
+            - title: 解释估计性质
+              body: 均值的期望是 λ，因此这个估计量无偏。
+      - item:
+          id: poisson
+          type: number
+          prompt: 泊松观测为 0、2、4。最大似然率是多少？
+          answer: 2
+          explain: 三个次数相加为 6，除以 3。
+      - item:
+          id: boundary
+          type: choice
+          prompt: 样本来自 [0,θ] 均匀分布。θ 不能小于最大观测。似然在合法范围随 θ 变小而上升，应选哪里？
+          options:
+            - text: 取最大观测作为 θ̂
+              correct: true
+            - text: 取比最大观测更小的值
+              why: 那样最大观测不可能出现。
+          explain: 这是最小合法 θ，也是边界上的最高似然。
+  - id: numeric-mle
+    chapter: 似然
+    title: 峰值写不出来就先找范围
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你找山顶，手里只有几个位置的高度。先测几处再细找有什么用？
+          options:
+            - text: 只测一个点就能保证找到全局峰值
+              why: 周围和远处都可能更高。
+            - text: 能先找值得继续检查的区域
+              correct: true
+          explain: 少量候选点可以指出一个起始范围。
+      - card:
+          title: 网格、优化与复核
+          body: 先在合法范围列一组参数算对数似然，取最大候选，再用细网格或数值优化。牛顿法可用局部斜率和曲率找导数为零的位置。R 或 Python 都有现成的优化工具；检查边界、多初值、收敛状态与目标值。
+      - item:
+          id: grid
+          type: number
+          prompt: 参数候选 1、2、3 的对数似然分别为 −7、−3、−5。网格中选哪个参数？
+          answer: 2
+          explain: −3 是三项中最大，对应参数 2。
+      - item:
+          id: fit
+          type: choice
+          prompt: 一次搜索报告成功，但从另一个初值到达更高的对数似然。说明什么？
+          options:
+            - text: 应该总保留第一次，因为先到
+              why: 搜索先后不是候选优劣的证据。
+            - text: 第一次可能只找到局部峰或提前停下，需要继续核对
+              correct: true
+          explain: 收敛状态不等于已证明全局最大。
+  - id: intervals
+    chapter: 置信区间
+    title: 给估计一个会随样本变化的范围
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同一尺寸用两批数据估计，两个范围能略有偏移吗？
+          options:
+            - text: 能，区间也由样本计算
+              correct: true
+            - text: 不能，区间完全固定
+              why: 通常总体参数固定，算出来的区间在变。
+          explain: 换一批观测，中心与宽度都可能变化。
+      - card:
+          title: 长期覆盖率说的是方法
+          body: '**置信区间（confidence interval）**。正态总体独立样本、总体标准差未知时，用样本均值 ± t 临界值 × s/√n。估计下一个单独观测还要加上个体波动，所以预测区间通常更宽。'
+      - card:
+          title: 例题：十个零件
+          body: 样本 4.8、5.1、5.3、4.9、5.4、5.0、5.2、4.7、5.1、5.5，假设独立正态。
+          reveal:
+            - title: 算中心与标准误
+              body: 均值为 5.1，样本标准差约 0.2582，标准误约 0.08165。
+            - title: 用 t 系数撑开区间
+              body: 自由度 9，给定 2.262，95% 区间约 [4.9153, 5.2847]。
+            - title: 区分下一件零件
+              body: 预测单件用 s√(1+1/n) 替代 s/√n，范围更宽。
+      - item:
+          id: upper
+          type: number
+          prompt: 均值估计 10，标准误 0.5，临界系数 2。对称区间的上界是多少？
+          answer: 11
+          explain: 从均值加 2×0.5，得到 11。
+      - item:
+          id: coverage
+          type: choice
+          prompt: 重复用同一 95% 置信区间构造方法，95% 在经典解释中指什么？
+          options:
+            - text: 已观察的区间里每个参数有 95% 概率
+              why: 经典方法的概率陈述针对抽样过程。
+            - text: 长期构造出的区间约 95% 覆盖固定真参数
+              correct: true
+          explain: 变动的是抽样得到的区间。
+  - id: tests
+    chapter: 检验
+    title: 先约定无变化，再找不相容证据
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 机器平时均值设为 10，今天抽到 9.9。只凭这个差能判故障吗？
+          options:
+            - text: 只要不同就能证明故障
+              why: 连续观测几乎总会与标称值有差。
+            - text: 还要知道随机波动有多大
+              correct: true
+          explain: 很小的差在稳定条件下也可能出现。
+      - card:
+          title: 把怀疑写成可以检验的形式
+          body: '**零假设（null hypothesis）**常写为无变化，例如 μ=10。**显著性水平（significance level）**。p 值是在参照假设下得到至少同样极端统计量的概率。比例检验按二项模型或适用的大样本近似。'
+      - card:
+          title: 例题：十个零件是否以 5.3 为均值
+          body: 给定样本均值 5.1、标准误约 0.08165，独立正态且总体方差未知。
+          reveal:
+            - title: 给出双侧备择
+              body: 'H₀: μ=5.3，H₁: μ≠5.3。'
+            - title: 按波动尺度算距离
+              body: t=(5.1−5.3)/0.08165≈−2.449，自由度 9。
+            - title: 看两边的尾
+              body: 双侧 p 约 0.0368，小于 0.05，按规则拒绝 H₀。
+      - item:
+          id: pvalue
+          type: choice
+          prompt: 双侧检验 p=0.03，预设水平 0.05。应怎样写结果？
+          options:
+            - text: 按规则拒绝参照假设，并报告效应大小和区间
+              correct: true
+            - text: 参照假设为真的概率是 3%
+              why: p 值是在参照假设成立的前提下计算的。
+          explain: p 小说明观测在参照模型下较不相容。
+      - card:
+          title: 已知波动和未知波动要区分
+          body: 正态总体均值的检验，已知总体方差可按标准正态；未知时用估计标准差并按 t 分布。相同模型、相同显著性水平下，双侧检验可通过对应置信区间是否包含参照值来判断。
+      - item:
+          id: fail
+          type: choice
+          prompt: p 比预设阈值大，最合适的表述是什么？
+          options:
+            - text: 证实两组完全一样
+              why: 未达到拒绝条件无法证明完全相等。
+            - text: 目前证据不足以按该规则拒绝参照假设
+              correct: true
+          explain: 可能差异小，也可能试验功效不足。
+  - id: wald
+    chapter: 检验
+    title: 用‘离假设几倍波动’统一比较
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个偏差数值相同，一个估计很稳，一个抖得很厉害。哪个偏差更值得留意？
+          options:
+            - text: 先比较偏差是各自波动的几倍
+              correct: true
+            - text: 只要偏差一样就同样有力
+              why: 还需要考虑不确定性。
+          explain: 同样距离放在不同波动尺上含义不同。
+      - card:
+          title: 用估计的误差尺做近似
+          body: Wald 检验把估计与参照值的差除以估计标准误。正规大样本下可用正态临界值，多参数约束可用二次型配卡方近似。边界、小样本或不可靠标准误都会影响近似。
+      - item:
+          id: wald
+          type: number
+          prompt: 估计值 0.8，参照值 0.5，标准误 0.1。Wald 标准化统计量是多少？
+          answer: 3
+          explain: (0.8−0.5)/0.1=3。
+      - item:
+          id: report
+          type: choice
+          prompt: 检验发现一个很小的差异，但样本量极大。还应该报告什么？
+          options:
+            - text: 只报告拒绝与否
+              why: 这个结论不足以判断业务影响。
+            - text: 估计的效应大小及其不确定性
+              correct: true
+          explain: 显著性描述数据与参照模型的相容性，实际意义取决于差有多大。
+boss:
+  items:
+    - id: maximum
+      type: number
+      prompt: 三个独立 [0,1] 均匀随机数都不超过 0.5 的概率是多少？
+      answer: 0.125
+      explain: 三个 1/2 相乘。
+    - id: mse
+      type: number
+      prompt: 方差 2、偏差 3，均方误差是多少？
+      answer: 11
+      explain: 2+3²=11。
+    - id: power
+      type: number
+      prompt: 给定真实偏移的漏报概率 0.15，功效是多少？
+      answer: 0.85
+      explain: 功效等于 1 减该条件下的漏报概率。
+    - id: poisson
+      type: number
+      prompt: 泊松观测 1、3、5，最大似然率是多少？
+      answer: 3
+      explain: 最大似然估计是样本均值。
+    - id: predict
+      type: choice
+      prompt: 同一正态样本上，单个新观测的预测区间通常比总体均值的置信区间怎样？
+      options:
+        - text: 一样宽，因为数据相同
+          why: 推断目标不同。
+        - text: 更宽，含个体的随机波动
+          correct: true
+      explain: 预测承担均值估计和个体两种不确定性。
+    - id: test
+      type: choice
+      prompt: 预先设定显著性水平 0.01，计算 p=0.02。结论是什么？
+      options:
+        - text: 未达到拒绝条件
+          correct: true
+        - text: 在 0.01 水平拒绝
+          why: 所需证据强度未达到。
+      explain: p 高于 0.01。

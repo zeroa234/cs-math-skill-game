@@ -1,0 +1,707 @@
+skill: C.3.2
+version: 2
+brief:
+  why: 网页卡住时，问题可能在本地无线链路、跨网路由、传输重试或名字查询。沿着一个请求走一遍，你就能逐层缩小排查范围。
+  outcomes:
+    - 从帧到应用报文追踪一次通信
+    - 计算 IPv4 子网并按前缀和代价选路
+    - 解释拥塞、域名解析和 Web 通信的分工
+terms:
+  - term: 封装
+    def: 一层把上层数据当作载荷，加入自己的控制信息后交给下层。
+  - term: 帧
+    def: 链路层传送的一份数据，包含边界、链路信息和承载内容。
+  - term: MAC 地址
+    def: 链路层用于标记接口的地址。
+  - term: ARP
+    def: 在本地 IPv4 链路查询下一跳 IP 对应的 MAC 地址。
+  - term: 子网
+    def: 共享同一网络前缀的一组地址。
+  - term: 端口
+    def: 传输协议用于把收到的数据交给相应通信端点的编号。
+  - term: 三次握手
+    def: TCP 用 SYN、SYN-ACK、ACK 同步双方初始序号的过程。
+  - term: 最长前缀匹配
+    def: 匹配多条路由时，选网络前缀位数最长的一条。
+  - term: 链路状态路由
+    def: 各路由器通告自己的链路，再基于拼出的拓扑计算路径。
+  - term: 距离向量路由
+    def: 路由器和邻居交换目的距离，用到邻居的代价加上邻居的报告来更新。
+  - term: 自治系统
+    def: 由一个管理体系运行并有共同对外路由策略的一组网络。
+  - term: BGP
+    def: 自治系统之间交换前缀可达信息和路径属性的路由协议。
+  - term: 拥塞
+    def: 流量超过路径某处能持续处理的能力，导致排队、丢包或标记。
+  - term: 拥塞窗口
+    def: 发送端按拥塞反馈限制可在途数据的窗口。
+  - term: DNS
+    def: 按域名查找地址等记录的分布式名字系统。
+  - term: HTTP
+    def: Web 应用表达请求及响应的协议。
+  - term: 广播
+    def: 把消息发送给一个指定网络范围内的所有接收者。
+  - term: 向量
+    def: 此处指按目的地排成一组的距离数据。
+lessons:
+  - id: layers
+    chapter: 链路/IP/TCP/UDP
+    title: 送出一封网页请求
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 浏览器的请求要经过家中路由器和远处服务器。路由器需要懂网页内容吗？
+          options:
+            - text: 只需读自己转发所需的信息
+              correct: true
+            - text: 要先渲染网页才能转发
+              why: 请求还未到提供网页的应用。
+          explain: 每段设备只处理它承担的那一层工作。
+      - card:
+          title: 在每一层套一份信封
+          body: '**封装（encapsulation）**像在信纸外加信封。HTTP 表达浏览器要什么，TCP 管理端到端的字节，IP 标明跨网的两端，以太网只负责送到下一段的邻居。物理层把位变成可传输的信号。'
+      - item:
+          id: stack
+          type: order
+          prompt: 给使用 TCP 的 HTTP 请求排列发出时的封装顺序。
+          steps:
+            - 形成 HTTP 请求
+            - 加 TCP 首部
+            - 加 IP 首部
+            - 加以太网帧头与帧尾
+          explain: 应用内容进入 TCP，再由 IP 跨网，最后由本地链路把这一跳送出去。
+      - card:
+          title: 能运多少与要等多久
+          body: 带宽（bandwidth）描述单位时间能传多少位，延迟（latency）描述一次传送要等多久。光纤、电缆、无线电提供不同的链路条件。线路编码规定怎样把位表示成信号变化，帮助接收方识别数据和时钟。
+      - item:
+          id: send-time
+          type: number
+          prompt: 一段教学链路每秒发送 1000 位。一份 2000 位的数据独占链路，忽略传播和处理时间，发送完需几秒？
+          answer: 2
+          explain: 发送时间等于长度除以发送速率，2000 ÷ 1000 = 2 秒。
+      - card:
+          title: 为什么分成小包
+          body: 大文件分成一小份一小份发送，多台机器就能在同一条链路上穿插使用它。程序通过套接字把数据交给网络软件。接收方沿相反的层次把控制信息去掉，把内容交给应用。
+      - item:
+          id: forward
+          type: choice
+          prompt: 路由器收到要继续转发的 IP 包，通常会重做哪一份包装？
+          options:
+            - text: 下一跳链路的帧
+              correct: true
+            - text: HTTP 请求的正文
+              why: 正文属于通信两端的应用。
+          explain: 下一段链路的接收者变了，链路包装随下一跳重建。
+  - id: ethernet
+    chapter: 链路/IP/TCP/UDP
+    title: 从这台机器送到邻居
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同一教室多台电脑接在一台交换机上，收件人如何知道哪份数据给它？
+          options:
+            - text: 数据带着链路上的收件标记
+              correct: true
+            - text: 按谁先开机就发给谁
+              why: 开机顺序无法表达收件人。
+          explain: 本地链路需要一套自己的收件标记。
+      - card:
+          title: 一段链路上的包装
+          body: 一份链路数据有可识别的边界，叫**帧（frame）**。以太网用 **MAC 地址（MAC address）**标识本地的接口。交换机按来帧的源地址学习出口。**广播（broadcast）**把帧送给本地范围内的所有接口。VLAN 能把一台交换机划为多个逻辑广播域。
+      - item:
+          id: learn
+          type: choice
+          prompt: 交换机从端口甲收到源为 X 的以太网帧。以后给 X 的帧优先送哪边？
+          options:
+            - text: 端口甲
+              correct: true
+            - text: 一定从所有端口发
+              why: 未知目的时才需要在相应广播域内泛洪。
+          explain: 交换机用来帧的源 MAC 地址学习出端口。
+      - card:
+          title: 先认出错误，再决定怎么补救
+          body: CRC 随帧带上校验结果，收端重算后可发现许多传输错误。需要可靠传送的链路协议可以用确认和超时重传补救。多台设备共用介质时，还要用介质访问规则协调；Wi‑Fi 先侦听信道再争用，家庭光纤和有线以太网的接入方式不同。
+      - item:
+          id: crc
+          type: choice
+          prompt: 接收方重算 CRC 与帧尾的结果不同。下一步是什么？
+          options:
+            - text: 丢弃损坏的帧，由相应重传机制恢复
+              correct: true
+            - text: 根据 CRC 还原整帧
+              why: 校验信息远短于帧，不能确定原始内容。
+          explain: 检测能指出有错误。校验值通常无法单独还原原数据。
+      - card:
+          title: 知道邻居的 IP，怎样送给它
+          body: '**ARP（Address Resolution Protocol）**用广播问邻居谁拥有目标 IP，再按答复发帧。若 IP 目的地在外网，查询的是下一跳网关的地址；IP 包中的目的仍是远端。PPP 则用在点到点链路上，不需要在一群邻居里挑收件人。'
+      - item:
+          id: gateway
+          type: choice
+          prompt: 电脑要给另一网络的服务器发 IPv4 包，路由表要求经本地网关。应该用 ARP 查谁？
+          options:
+            - text: 本地网关的链路地址
+              correct: true
+            - text: 远端服务器的 MAC 地址
+              why: ARP 查询留在当前链路。
+          explain: 当前帧只送到网关，IP 包继续保留服务器为最终目的。
+  - id: ip
+    chapter: 链路/IP/TCP/UDP
+    title: 一段地址划多大
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两台电脑门牌的开头相同，能立刻断定它们在同一网络吗？
+          options:
+            - text: 只要第一段数字相同就一定在一起
+              why: 网络边界不总落在十进制的分段上。
+            - text: 还得知道比较多少位
+              correct: true
+          explain: 边界决定哪些位用来识别网络。
+      - card:
+          title: 用多少位认出网络
+          body: IPv4 地址由 32 位组成，写成四段。**子网（subnet）**可写成地址加 `/n`，表示高 n 位是网络前缀，叫 CIDR 写法。路由器也用前缀来合并和匹配成组的目的地址。
+      - card:
+          title: 例题：找出 /26 的边界
+          body: 求 192.168.10.77/26 所在子网。
+          reveal:
+            - title: 找块大小
+              body: 主机部分是 32 − 26 = 6 位，每块 64 个地址。
+            - title: 找出 77 落在哪一块
+              body: 最后一段的分界是 0、64、128、192，77 落在 64 到 127。
+            - title: 区分边界和普通主机
+              body: 网络地址是 .64，广播地址是 .127，普通可分配主机是 .65 到 .126，共 62 个。
+      - item:
+          id: block
+          type: number
+          prompt: 普通 IPv4 /27 子网有 5 个主机位，排除网络地址和广播地址，可分给主机多少个地址？
+          answer: 30
+          explain: 共有 2 的 5 次方等于 32 个地址，扣掉两端后剩 30 个。
+      - card:
+          title: IP 包在途中怎样变化
+          body: IPv4 通过 TTL 限制转发寿命。超过链路最大包长时 IPv4 在允许时可分片，IPv6 中途路由器不会替发送端分片。IPv6 用 128 位和十六进制表示。组播则把一份流量送给订阅组的接收者，转发节点按需复制。
+      - item:
+          id: ipv6
+          type: choice
+          prompt: IPv6 路由器发现包超过下一段链路的最大包长，会怎样？
+          options:
+            - text: 丢包并用 ICMPv6 报告包太大
+              correct: true
+            - text: 路由器必定把它切碎后继续送
+              why: 这是 IPv4 在某些条件下的行为。
+          explain: 发送端可以据此缩小包。途中路由器不替 IPv6 发送端分片。
+      - item:
+          id: prefix
+          type: choice
+          prompt: 192.168.10.150/26 的网络地址是什么？
+          options:
+            - text: 192.168.10.128
+              correct: true
+            - text: 192.168.10.150
+              why: 网络地址把主机位全部置零。
+            - text: 192.168.10.192
+              why: 192 已进入下一块。
+          explain: /26 的每块 64 个地址，150 落在 128 到 191。
+  - id: transport
+    chapter: 链路/IP/TCP/UDP
+    title: 寄一张明信片，还是开一条通道
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 实时对话掉了一小段声音，补送到几秒后才到，有什么问题？
+          options:
+            - text: 它可能已经赶不上播放时间
+              correct: true
+            - text: 只要补送就一定更好
+              why: 实时数据常有播放期限。
+          explain: 及时到达和等齐内容是不同的目标。
+      - card:
+          title: 把内容交给正确的程序
+          body: '**端口（port）**让一台机器同时运行多种服务。UDP 逐份发送数据报，保留每份消息的边界，但自身不保证送达或顺序。实时媒体可在 UDP 上用 RTP 标出顺序和播放时间。'
+      - item:
+          id: transport-kind
+          type: match
+          prompt: 把需求和传输方式配对。
+          pairs:
+            - - 应用自行处理丢失的独立消息
+              - UDP
+            - - 希望按序接收一串可靠字节
+              - TCP
+          explain: UDP 保留数据报边界，TCP 为应用提供连续的可靠字节流。
+      - card:
+          title: TCP 怎样让双方同意开始
+          body: '**三次握手（three-way handshake）**里，客户端提出初始序号 x，服务端提出 y 并确认 x，客户端再确认 y。第三步让服务端知道自己的初始序号已被对方接收。'
+      - item:
+          id: handshake
+          type: order
+          prompt: 给一次正常 TCP 建连排顺序。
+          steps:
+            - 客户发 SYN
+            - 服务端发 SYN-ACK
+            - 客户发 ACK
+          explain: 双方各送出自己的初始序号，也各收到一次确认。
+      - card:
+          title: 可靠字节流怎样前进
+          body: TCP 按字节编号，确认号通常指向下一个期望的连续字节。漏掉的字节会重传。接收窗口告诉对方自己还能接收多少，发送方还要考虑网络拥挤程度。一次 `recv` 可能只读到半条应用消息，也可能合在一起读到几条。
+      - item:
+          id: ack
+          type: number
+          prompt: TCP 已连续收到序号 50 到 59 的字节，此前也没有缺口。下一个累计确认号是多少？
+          answer: 60
+          explain: 确认号是下一个还在等待的字节序号。
+  - id: forwarding
+    chapter: 路由
+    title: 下一跳只走一段
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 快递每到一个中转站都会检查路线。每站必须一次决定从头到尾的完整路线吗？
+          options:
+            - text: 按自己的表决定下一站就能转发
+              correct: true
+            - text: 每个站都要把全部中转顺序写进包
+              why: 一般 IP 转发根据目的地址和本地表进行。
+          explain: 每站重复选下一跳，最终把包送到目标网。
+      - card:
+          title: 越具体的目的地越优先
+          body: '**最长前缀匹配（longest prefix match）**让默认路由和更细的去向共存。实现可用按位分叉的数据结构找匹配。路由负责算表，转发负责逐包查表。'
+      - item:
+          id: lpm
+          type: choice
+          prompt: 表里有 10.0.0.0/8 走 A、10.1.0.0/16 走 B，目的 10.1.2.3。走哪里？
+          options:
+            - text: B
+              correct: true
+            - text: A，因为范围更大
+              why: 查表优先最长匹配。
+          explain: 两条都匹配，/16 约束了更多高位。
+      - card:
+          title: 转发标记与移动锚点
+          body: MPLS 可给包加标签，中间设备按标签交换来转发。设备移动到另一网络时，原来的 IP 位置和当前接入位置可能不同；一种设计把流量先送到原地址的锚点，再通过隧道转给当前位置。
+      - item:
+          id: forward-kind
+          type: match
+          prompt: 区分三种处理。
+          pairs:
+            - - 用目的前缀查下一跳
+              - IP 转发
+            - - 中途按标签转送
+              - MPLS
+            - - 锚点转送给新的接入位置
+              - 移动转发
+          explain: 三种机制分别解决普通逐跳转发、标签转发和移动后的定位。
+  - id: routing
+    chapter: 路由
+    title: 在地图上算一张转发表
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 从 A 到 C 直走费用 4，先到 B 花 1 再到 C 花 2，哪条便宜？
+          options:
+            - text: 一定选经过站点更少的一条
+              why: 费用可以和经过几站无关。
+            - text: 先经 B
+              correct: true
+          explain: 经过的边代价相加，1 + 2 比 4 小。
+      - card:
+          title: 链路状态先拼出地图
+          body: '**链路状态路由（link-state routing）**把路由器当点、链路当边。OSPF 采用这类方法。Dijkstra 每次确认目前代价最低的未确定节点，再尝试经该点缩短邻居距离。边代价应非负。'
+          sim:
+            name: graph
+            params:
+              mode: dijkstra
+              directed: false
+              start: A
+              nodes:
+                - id: A
+                  x: 45
+                  'y': 92
+                - id: B
+                  x: 120
+                  'y': 45
+                - id: C
+                  x: 205
+                  'y': 120
+                - id: D
+                  x: 295
+                  'y': 65
+              edges:
+                - - A
+                  - B
+                  - 1
+                - - A
+                  - C
+                  - 4
+                - - B
+                  - C
+                  - 2
+                - - B
+                  - D
+                  - 5
+                - - C
+                  - D
+                  - 1
+      - item:
+          id: spf
+          type: sim
+          sim: graph
+          params:
+            mode: dijkstra
+            directed: false
+            start: A
+            nodes:
+              - id: A
+                x: 45
+                'y': 92
+              - id: B
+                x: 120
+                'y': 45
+              - id: C
+                x: 205
+                'y': 120
+              - id: D
+                x: 295
+                'y': 65
+            edges:
+              - - A
+                - B
+                - 1
+              - - A
+                - C
+                - 4
+              - - B
+                - C
+                - 2
+              - - B
+                - D
+                - 5
+              - - C
+                - D
+                - 1
+          goal: {}
+          solution:
+            - A
+            - B
+            - C
+            - D
+          prompt: 从 A 出发，依次点出最短距离被确认的节点。
+          explain: A 为 0，B 为 1，经 B 到 C 为 3，再经 C 到 D 为 4。
+      - card:
+          title: 距离向量只问邻居
+          body: '**向量（vector）**在这里是按目的地列出的距离表。**距离向量路由（distance-vector routing）**如 RIP，和邻居交换这份表。链路失效时，邻居可能相互相信过时路线，距离反复增大。代价可按跳数或链路质量定义。'
+      - item:
+          id: distance
+          type: choice
+          prompt: 邻居 B 报告到 D 的代价为 3，从自己到 B 代价为 2。候选路线总代价是多少？
+          options:
+            - text: '5'
+              correct: true
+            - text: '3'
+              why: 这只包含 B 到 D 的部分。
+          explain: 从自己先到 B，再走 B 的路线，总共 2 + 3。
+      - item:
+          id: next-hop
+          type: choice
+          prompt: A 到 D 最短路径是 A → B → C → D。A 表里 D 的下一跳写谁？
+          options:
+            - text: B
+              correct: true
+            - text: C
+              why: A 应先交给相邻的 B。
+            - text: D
+              why: 直接交给 D 需要有相应直连路径。
+          explain: 转发表只记录当前节点要交给谁。
+  - id: bgp
+    chapter: 路由
+    title: 不同组织怎样告诉彼此能到哪
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 经过两家公司机房的路更短，其中一家拒绝帮外人中转。还能只按最短选吗？
+          options:
+            - text: 选最短就能让对方同意
+              why: 路径代价不能决定对方是否出口这条路线。
+            - text: 还要遵守各组织的转发约定
+              correct: true
+          explain: 跨组织路线受商业和管理策略影响。
+      - card:
+          title: 管理边界里的路由
+          body: 一个组织控制的路由域称为 **自治系统（autonomous system，AS）**。域内协议可以用区域减少状态传播；跨自治系统使用 **BGP（Border Gateway Protocol）**。通告带着经过的自治系统序列；看到自己的编号已在序列里，就可避免形成环。
+      - item:
+          id: loop
+          type: choice
+          prompt: AS 甲收到一条 AS 路径，里面已经有甲。应怎样处理？
+          options:
+            - text: 拒绝采用这条包含自己的路径
+              correct: true
+            - text: 把自己再加一次，作为更可信的路线
+              why: 这会保留环路。
+          explain: 再经这条路径会绕回自身。
+      - card:
+          title: 由策略决定接受和转告
+          body: 网络可优先选择客户路由，按约定决定把哪些路由转告别的邻居。域内可以在同一套代价下找较短路线，BGP 先服从本地策略。路径长度是判断因素之一。
+      - item:
+          id: policy
+          type: choice
+          prompt: 较长的客户路线和较短的非客户路线都能到同一前缀。运营商设客户路线优先，会选哪条？
+          options:
+            - text: 总选 AS 路径最短的一条
+              why: BGP 还要应用路由策略。
+            - text: 较长的客户路线
+              correct: true
+          explain: 本地策略可以优先于 AS 路径长度。
+  - id: queues
+    chapter: 拥塞控制
+    title: 路口堆起一长串包
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一分钟来十辆车，出口一分钟只能放六辆，持续这样会怎样？
+          options:
+            - text: 只要出口一直在用就不会积压
+              why: 出口吞吐小于到达速度。
+            - text: 排队会增长，装不下时还会丢
+              correct: true
+          explain: 进入速度长期超过离开速度，等待的量只会累积。
+      - card:
+          title: 瓶颈会把包留在路口
+          body: '**拥塞（congestion）**使排队延迟变长。先进先出让先到的包先走，队列满时可尾丢弃。公平排队把不同流分开分配机会。服务质量策略还可以给延迟敏感的流量留资源。'
+      - item:
+          id: queue
+          type: number
+          prompt: 一个队列原来为空，一轮进 9 个包并能发 6 个，容量足够。轮末还有几个？
+          answer: 3
+          explain: 净增加 9 − 6 = 3 个。
+      - card:
+          title: 接收方慢与路上堵
+          body: 接收窗口约束接收端能放下多少。**拥塞窗口（congestion window）**约束发送端为了保护网络能放多少在途数据。主动队列管理可以在排满之前发出拥塞信号；ECN 在端点和设备支持时可用标记提示拥塞。
+      - item:
+          id: causes
+          type: match
+          prompt: 把现象和对应控制配对。
+          pairs:
+            - - 接收程序处理太慢，接收缓存快满
+              - 流量控制
+            - - 沿途路由器的队列越来越长
+              - 拥塞控制
+          explain: 两种窗口保护的对象不同，发送量同时受二者约束。
+  - id: cwnd
+    chapter: 拥塞控制
+    title: 让发送速度跟着反馈变
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 刚走上一条陌生的路，你要判断它能载多少货。先试少量还是一开始压到满？
+          options:
+            - text: 先试少量，再根据反馈增加
+              correct: true
+            - text: 先不看反馈一直加
+              why: 反馈能告诉你何时需要减速。
+          explain: 没有路径容量信息时，可以逐步探测。
+      - card:
+          title: 一趟来回观察一次
+          body: '**拥塞窗口（congestion window，cwnd）**常用 MSS 表示，MSS 是单个 TCP 段的最大数据量。教学模型里，慢启动每个往返近似翻倍；达到慢启动门限后，拥塞避免每个往返大约加一个 MSS。'
+      - card:
+          title: 例题：从 1 长到门限
+          body: 在简化模型中从 1 MSS 开始，门限为 8 MSS，无丢包。
+          reveal:
+            - title: 到门限前成倍增加
+              body: 各轮开始依次为 1、2、4、8 MSS。
+            - title: 到门限后逐步试探
+              body: 接下来两轮开始为 9、10 MSS。
+      - item:
+          id: round
+          type: number
+          prompt: 简化模型中初始 2 MSS，门限 8 MSS，无丢包。第 4 个往返开始时窗口为多少 MSS？
+          answer: 9
+          explain: 各轮开始为 2、4、8、9。第三轮已经达到门限。
+      - card:
+          title: 丢包时改变策略
+          body: 在 Reno 风格的教学模型里，超时后大幅降低窗口并重新探测，多个重复确认可触发快重传并进入快恢复。CUBIC 改变窗口增长曲线，其他算法也可用时延或估计的交付速率；前面的翻倍例子有指定条件。
+      - item:
+          id: loss
+          type: choice
+          prompt: 发送方接连收到多个重复确认，提示后续字节到了但前面有缺口。Reno 可做什么？
+          options:
+            - text: 快重传缺口处的数据
+              correct: true
+            - text: 增加接收窗口来填上缺口
+              why: 接收窗口反映接收缓存空间，无法补发丢包。
+          explain: 重复确认提供了缺口线索，可以先于定时器行动。
+  - id: dns
+    chapter: 名称系统与应用协议
+    title: 把名字变成可连接的位置
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你记得服务的名字，却不知道它的 IP。浏览器可以先问谁？
+          options:
+            - text: 路由器逐个询问所有服务器
+              why: 全网逐个问代价很高，也没有这样的全局广播。
+            - text: 提供名字查询的服务
+              correct: true
+          explain: 应用先拿到可使用的地址，再发起连接。
+      - card:
+          title: 按层级寻找负责的人
+          body: '**DNS（Domain Name System）**通常由本地递归解析器代查。缓存未命中时，它可从根问到顶级域，再问该域的权威服务器。A 记录给 IPv4，AAAA 给 IPv6，CNAME 指向另一个名字。'
+      - item:
+          id: resolve
+          type: order
+          prompt: 假设各层缓存均未命中，给递归解析器查询一个普通域名的过程排序。
+          steps:
+            - 询问根服务器
+            - 询问顶级域服务器
+            - 询问权威服务器
+          explain: 逐层得到更接近目标的指引，最终由负责该域的权威服务器回答。
+      - card:
+          title: 缓存多久，监测什么
+          body: DNS 记录的 TTL 表示可缓存多久，和 IP 的转发寿命是两个字段。缓存期内直接复用可减轻查询负担。运维还可用 SNMP 等采集设备计数，结合解析耗时和失败率定位名字查询问题。
+      - item:
+          id: ttl
+          type: choice
+          prompt: 权威服务器刚换了地址，本地解析器还有未过期旧缓存。怎样解释旧地址仍被返回？
+          options:
+            - text: 缓存条目在允许的保存期内仍可能被复用
+              correct: true
+            - text: 说明浏览器一定连到了假服务器
+              why: 正常缓存也会产生一段新旧并存期。
+          explain: 权威修改不会自动推送给每个缓存。
+  - id: http
+    chapter: 名称系统与应用协议
+    title: 让应用读懂收到的字节
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 顾客说‘给我菜单’，柜台回‘这是菜单’。网站通信也需要分清这两个动作吗？
+          options:
+            - text: 两边都只发菜单就可以
+              why: 服务器需要先收到访问意图。
+            - text: 需要，客户端发请求，服务器回响应
+              correct: true
+          explain: 把动作说清楚，两边才知道何时收、何时发。
+      - card:
+          title: 同一条线路能承载不同约定
+          body: '**HTTP（Hypertext Transfer Protocol）**的请求可带方法、路径、首部和内容，响应带状态等信息。邮件中 SMTP 负责交付，MIME 表示附件等内容，IMAP 用于访问邮箱。RPC 把远端操作包装成调用，网络故障时仍要处理超时与重复。'
+      - item:
+          id: apps
+          type: match
+          prompt: 给应用任务配协议。
+          pairs:
+            - - 请求网页内容
+              - HTTP
+            - - 传递邮件到另一邮件服务器
+              - SMTP
+            - - 访问服务器上的邮箱
+              - IMAP
+          explain: 名字、Web 内容和邮件各有应用层约定。
+      - card:
+          title: 在已有网络上再建一层
+          body: 覆盖网络在已有网络上建立逻辑连接。CDN 从近处交付内容，流媒体还可分段调整质量。HTTPS 为 HTTP 提供加密与认证。HTTP/2 可在一条连接并行处理多个流，HTTP/3 使用 QUIC。WebSocket 建连后支持双向消息。
+      - item:
+          id: cdn
+          type: choice
+          prompt: 许多用户反复请求同一份大文件，怎样减少他们去远处源站的流量？
+          options:
+            - text: 用近处的 CDN 节点缓存并提供副本
+              correct: true
+            - text: 把每个用户的浏览器改成权威 DNS
+              why: DNS 提供名字记录，无法缓存并交付文件内容。
+          explain: 近端命中可以省去远端取回这份内容。
+      - card:
+          title: 例题：本机 TCP 回显
+          body: 用 Python socket 在本机搭一个只处理一条连接的回显服务。
+          reveal:
+            - title: 等待客户端
+              body: 服务端用 `socket.create_server(('127.0.0.1', 9000))` 建立监听，再 `accept()` 取出连接。
+            - title: 逐块接收和原样发回
+              body: 连接上循环 `recv(1024)`，读到数据就 `sendall(data)`，读到空字节串就结束。
+            - title: 让客户验证
+              body: 客户用 `create_connection` 连本机，发 `b'hello'`，关闭自己的发送方向，再一直读到空，把收到的块拼起来。
+      - item:
+          id: echo
+          type: choice
+          prompt: 客户端一次 sendall 发出 hello，服务器第一次 recv 只得到 he。该怎样回显全部内容？
+          options:
+            - text: 把 he 当成整条消息并立即关闭
+              why: 这样会漏掉尚未读取的字节。
+            - text: 继续接收后续字节并原样发送，直到读到结束
+              correct: true
+          explain: TCP 不保留每次发送的边界。逐块处理可以还原字节流。
+boss:
+  items:
+    - id: encapsulation
+      type: order
+      prompt: 把普通 TCP 上的网页请求从应用到链路的封装排好。
+      steps:
+        - HTTP 请求
+        - TCP 段
+        - IP 包
+        - 以太网帧
+      explain: 应用内容先入传输层，再装进 IP，最后为本地链路加帧包装。
+    - id: hosts
+      type: number
+      prompt: 一个普通 IPv4 /26 子网扣除网络和广播地址，可用地址有多少？
+      answer: 62
+      explain: 主机位有 6 位，64 个地址扣掉两端。
+    - id: acknowledge
+      type: choice
+      prompt: 哪一条消息告诉服务端客户端已经收到服务端的初始序号？
+      options:
+        - text: 第一步 SYN
+          why: 这时服务端还没发出自己的序号。
+        - text: 第三步 ACK
+          correct: true
+      explain: 服务端先用 SYN-ACK 发自己的序号，客户端随后确认。
+    - id: route
+      type: choice
+      prompt: 从 A 到 D 的最短路线是 A→B→C→D。A 的下一跳写谁？
+      options:
+        - text: B
+          correct: true
+        - text: D
+          why: D 是最终目的。
+      explain: A 负责第一跳。
+    - id: cwnd
+      type: number
+      prompt: 简化模型初始窗口 1 MSS，门限 8 MSS，无丢包。第 6 轮开始时窗口为多少 MSS？
+      answer: 10
+      explain: 按轮是 1、2、4、8、9、10。
+    - id: dns-cache
+      type: choice
+      prompt: 名字解析器已有未过期的记录，此次查询先怎么办？
+      options:
+        - text: 直接使用匹配的缓存记录
+          correct: true
+        - text: 每次都先问根服务器
+          why: 递归查询结果能在有效期内复用。
+      explain: 通常无需重复询问根和权威服务器。
+    - id: recv
+      type: choice
+      prompt: TCP 的一次读取只有应用预期长度的一半，怎样处理？
+      options:
+        - text: 认定另一半已经永久丢失
+          why: 另一半可能稍后到达。
+        - text: 继续读取并按应用的消息格式判断是否收齐
+          correct: true
+      explain: TCP 交付字节流，读取边界由当时可用字节等因素决定。

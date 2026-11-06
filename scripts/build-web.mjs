@@ -1,7 +1,7 @@
 // Bundles the game into output/web/ as plain files that open with a double click (file://):
 // one IIFE script (no ES modules, which browsers block on file://), the stylesheet, KaTeX's CSS and
 // fonts, and the lazily loaded knowledge-map outlines.
-// usage: node scripts/build-web.mjs [--watch]
+// usage: node scripts/build-web.mjs [--watch] [--toy]
 // CAST=none (or no assets/cast/ at all, e.g. after replacing the characters) builds without the
 // mentor characters; the game then simply shows no mentors. WEB_OUT=<dir> writes somewhere other than output/web.
 import fs from "node:fs";
@@ -9,9 +9,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import * as esbuild from "esbuild";
+import { toyTree } from "./lib/toy-content.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const OUT = path.resolve(process.env.WEB_OUT || path.join(ROOT, "output/web"));
+const TOY = process.argv.includes("--toy");
+const OUT = path.resolve(process.env.WEB_OUT || path.join(ROOT, TOY ? "output/toy/web" : "output/web"));
 const VERSION = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).version;
 const CAST = process.env.CAST !== "none" && fs.existsSync(path.join(ROOT, "assets/cast/sprites.json"));
 fs.mkdirSync(path.join(OUT, "fonts"), { recursive: true });
@@ -34,8 +36,21 @@ const options = {
   logLevel: "info",
 };
 
+if (TOY) options.plugins.push({
+  name: "toy-content",
+  setup(build) {
+    build.onLoad({ filter: /[\\/]gen[\\/]tree\.json$/ }, ({ path: file }) => ({
+      contents: JSON.stringify(toyTree(JSON.parse(fs.readFileSync(file, "utf8")))),
+      loader: "json",
+    }));
+  },
+});
+
 function copyStatic() {
-  for (const f of ["index.html", "style.css", "outlines.js"]) fs.copyFileSync(path.join(ROOT, "src/web", f), path.join(OUT, f));
+  for (const f of ["index.html", "style.css"]) fs.copyFileSync(path.join(ROOT, "src/web", f), path.join(OUT, f));
+  const outlineFile = path.join(OUT, "outlines.js");
+  if (TOY) fs.rmSync(outlineFile, { force: true });
+  else fs.copyFileSync(path.join(ROOT, "src/web/outlines.js"), outlineFile);
   // resolved like an import, so a copy of the project inside it (scripts/publish-github.mjs builds
   // the published snapshot in temp/publish/repo) finds the project's node_modules too
   const katexDist = path.join(path.dirname(createRequire(import.meta.url).resolve("katex/package.json")), "dist");
@@ -63,5 +78,5 @@ if (process.argv.includes("--watch")) {
   await esbuild.build(options);
   copyStatic();
   const size = (f) => (fs.statSync(path.join(OUT, f)).size / 1024).toFixed(0) + " KB";
-  console.log(`${path.relative(ROOT, OUT).split(path.sep).join("/")}: app.js ${size("app.js")}, outlines.js ${size("outlines.js")}${CAST ? "" : ", without the cast"}`);
+  console.log(`${path.relative(ROOT, OUT).split(path.sep).join("/")}: app.js ${size("app.js")}${TOY ? "" : ", outlines.js " + size("outlines.js")}${CAST ? "" : ", without the cast"}`);
 }

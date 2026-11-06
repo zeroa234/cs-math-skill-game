@@ -1,0 +1,362 @@
+skill: A.4.1
+version: 2
+brief:
+  why: 离线准确的模型上线后，还要面对新数据、故障与回滚。你会追踪一次预测用过的版本，安排训练与上线，并判断何时需要干预。
+  outcomes:
+    - 记录数据与模型的来源及可回滚版本
+    - 设计一致的特征、训练、测试和部署流程
+    - 区分漂移类型并核算监测指标
+terms:
+  - term: 数据血缘
+    def: 记录数据从来源、处理、快照到产物的关系，以便追溯结果。
+  - term: 训练–服务偏差
+    def: 训练与服务采用不同数据语义、预处理或特征产生方式，导致输入不一致。
+  - term: 训练管线
+    def: 按依赖组织数据检查、特征处理、训练、评估与注册等任务。
+  - term: 数据漂移
+    def: 线上输入分布相对参考分布发生变化。
+  - term: 概念漂移
+    def: 给定输入后目标的关系随时间发生变化。
+lessons:
+  - id: versions
+    chapter: 数据/模型版本
+    title: 给一次预测留下可追溯的来路
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 线上预测今天变了，团队只留了一个叫 final 的模型。能找出用了哪批数据吗？
+          options:
+            - text: 只看最后修改日期就能恢复全部信息
+              why: 时间无法确定训练样本、代码和配置。
+            - text: 需要保存训练来路和不可变版本
+              correct: true
+          explain: 文件名相同不能说明里面是哪次结果。
+      - card:
+          title: 记录一次训练的输入和输出
+          body: '**数据血缘（data lineage）**。版本记录可含数据快照和切分、特征代码、训练配置、依赖和随机种子、指标与模型文件标识。产品先确定使用目标、错误代价和服务约束，再设计收集、训练、服务与反馈。'
+      - item:
+          id: lineage
+          type: match
+          prompt: 给待查问题配优先查的版本。
+          pairs:
+            - - 当时包含了哪些训练记录
+              - 数据快照和切分
+            - - 训练时用了哪个特征处理规则
+              - 代码及特征版本
+            - - 哪份模型实际处理了某次请求
+              - 部署记录与模型标识
+          explain: 一次模型训练有多种输入；部署的模型还要关联到这次训练。
+      - card:
+          title: 注册记录和上线别名分开
+          body: 模型注册表关联模型版本、训练记录、指标与审核状态。上线可以把一个可变别名指向已批准的不可变版本。回滚时把别名切回旧版本，并确认该版本所需特征和输入约定还在。
+      - item:
+          id: rollback
+          type: choice
+          prompt: 线上版本出问题，要快速恢复昨天的模型。哪份记录最有用？
+          options:
+            - text: 昨天部署指向的精确模型版本及对应特征版本
+              correct: true
+            - text: 只记住昨天模型叫 latest
+              why: 可变名称可能早已指向别的版本。
+          explain: 回滚需要一套相容的产物和处理规则。
+  - id: features
+    chapter: 特征服务
+    title: 让训练和上线读到同一份含义
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 训练用过去 30 天消费额，线上却用全部历史。模型收到同名字段会怎样？
+          options:
+            - text: 只要列名相同，模型就会自动换算
+              why: 模型只接收值，无法猜出两边各用了什么窗口。
+            - text: 两边数值含义不同，预测可能失真
+              correct: true
+          explain: 同一列名没有保证相同的计算口径。
+      - card:
+          title: 预处理也属于服务的一部分
+          body: '**训练–服务偏差（training-serving skew）**。版本化清洗、编码和缩放规则，让训练与服务复用。对同一请求重放并比对特征，也能检查差异。探索时先看缺失与异常，再决定处理方式。'
+      - item:
+          id: scaler
+          type: choice
+          prompt: 训练时用训练均值与标准差缩放。服务收到新请求后该怎样缩放？
+          options:
+            - text: 每个请求各自重算一套新均值和标准差
+              why: 这样会改变模型输入的尺度含义。
+            - text: 用训练时保存的缩放统计量
+              correct: true
+          explain: 训练与服务对数值尺度应保持一致。
+      - card:
+          title: 离线回放也遵守时钟
+          body: 特征存储可提供离线训练快照与低延迟在线读取。按事件时间连接时只能使用预测当时已知的值，防止未来信息泄漏。大量数据可分批或分布式处理，但字段定义、时间和版本仍要一致。
+      - item:
+          id: point-in-time
+          type: choice
+          prompt: 预测 6 月 1 日的订单，标签在 6 月 3 日才知道。哪份数据可以作 6 月 1 日的输入？
+          options:
+            - text: 在 6 月 1 日预测前已可见的订单历史
+              correct: true
+            - text: 6 月 3 日记录的退款结果
+              why: 未来结果在预测时不可获得。
+          explain: 回放也必须模拟当时能获得的信息。
+  - id: pipeline
+    chapter: 训练管线
+    title: 让每次重训有可复查的步骤
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个人跑同一次训练得到不同结果，最先该问哪部分？
+          options:
+            - text: 只看谁的准确率更高
+              why: 准确率不能说明差异来自哪一步。
+            - text: 数据、代码、依赖和配置分别是什么
+              correct: true
+          explain: 按版本对比，比只对比模型名字更容易找到差异。
+      - card:
+          title: 把训练拆成带输入输出的任务
+          body: '**训练管线（training pipeline）**。每步记录参数、输入版本、指标和日志。命令行可让相同步骤重复运行，编排器安排依赖与失败重试。脚本、文档、风格检查和提交前检查帮助团队复现。'
+      - item:
+          id: train-steps
+          type: order
+          prompt: 给一次新数据训练排顺序。规定评估通过才注册。
+          steps:
+            - 校验输入快照和字段
+            - 生成训练与验证特征
+            - 训练并记录参数与指标
+            - 通过独立评估后注册候选模型
+          explain: 数据质量与变换先核对，再训练、评价并登记。
+      - card:
+          title: 重试要有明确边界
+          body: 失败后重复执行某个任务时，用稳定的运行标识和原子提交产物，避免重试写出两个相冲突的版本。调参比较的是验证集表现；最终报告还要留独立测试，并核对重要分组。
+      - item:
+          id: retry
+          type: choice
+          prompt: 注册任务写成功后网络响应丢了，系统重试。怎样避免重复注册两个版本？
+          options:
+            - text: 每次重试随机改新标识
+              why: 服务就无法识别这是同一次操作。
+            - text: 用稳定的任务或产物标识识别已成功的同一次写入
+              correct: true
+          explain: 重试应能确认是否已提交。
+  - id: checks
+    chapter: 训练管线
+    title: 让代码、数据、模型各有门槛
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 代码测试全绿，但训练数据把金额从元改成分。测试模型前还该查什么？
+          options:
+            - text: 代码全绿就能证明数据没变
+              why: 代码测试未必覆盖真实输入。
+            - text: 检查字段单位、类型与取值范围
+              correct: true
+          explain: 代码能运行，并不保证数据含义符合预期。
+      - card:
+          title: 三类检查对应三种风险
+          body: 代码测试验证特征函数和边界输入；数据测试查字段、范围、缺失、时间和重复；模型测试看阈值、关键分组、延迟与资源。CI 可自动跑检查，CD 把通过的版本送往指定环境，生产审批和回滚按服务要求配置。
+      - item:
+          id: tests
+          type: match
+          prompt: 给变化配最直接的检查。
+          pairs:
+            - - 特征函数把缺失误算成零
+              - 代码单测
+            - - 上游取消了必填列
+              - 数据契约检查
+            - - 关键分组的验证召回明显下降
+              - 模型评估门槛
+          explain: 检查越早靠近错误来源，越容易定位。
+      - item:
+          id: slice
+          type: choice
+          prompt: 总体准确率持平，但少量高风险用户的错误显著增加。部署门槛该怎样设？
+          options:
+            - text: 增加关键分组的指标与样本量检查
+              correct: true
+            - text: 只保留总体指标
+              why: 重要分组问题可能因此漏过。
+          explain: 总体平均可能掩盖少数群体的退化。
+  - id: serve
+    chapter: 部署
+    title: 新模型先接触流量，再决定是否放大
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 想看新版在真实请求上会答什么，又不希望用户先看到。可以把同一请求复制过去吗？
+          options:
+            - text: 必须立刻把全部用户改用新版
+              why: 可先做观察或小流量验证。
+            - text: 可以在独立路径记录结果，不把新版回答返回用户
+              correct: true
+          explain: 这能观察线上输入对新版的影响。
+      - card:
+          title: 按响应时机选择服务形态
+          body: 批量预测适合每天集中处理；在线服务按请求立即回应；流式预测随事件到来处理。影子部署复制请求给新版但忽略其用户响应，金丝雀让一小部分用户真正使用新版。两者都要预设观察指标与停止条件。
+      - item:
+          id: release
+          type: match
+          prompt: 配对部署需求和方式。
+          pairs:
+            - - 每晚重算库存需求
+              - 批量预测
+            - - 复制流量测新版，用户仍收到旧响应
+              - 影子部署
+            - - 逐步让少量用户收到新版响应
+              - 金丝雀发布
+          explain: 关键在何时返回结果，以及新版是否向用户回结果。
+      - card:
+          title: 例题：一个最小推理接口
+          body: 约定 POST /predict 接收数值特征 x，返回预测值。
+          reveal:
+            - title: 在进程启动时加载
+              body: FastAPI 的 lifespan 可把模型加载到 app.state；请求处理复用该实例。
+            - title: 在边界定义请求类型
+              body: 'Pydantic BaseModel 声明 x: float，FastAPI 校验请求结构；必要时限制范围与非有限值。'
+            - title: 固定响应与版本
+              body: |-
+                路由从请求模型取 x，调用已加载的模型，返回预测及模型版本。传错结构时，接口给出校验错误。
+
+                这是可运行的玩具接口。启动时把模型规则放到进程状态，声明有限浮点数作为输入。若 x 为 3，应返回预测值 7。
+
+                ```python
+                from contextlib import asynccontextmanager
+
+                from fastapi import FastAPI
+                from pydantic import BaseModel, FiniteFloat
+
+                class Input(BaseModel):
+                    x: FiniteFloat
+
+                @asynccontextmanager
+                async def lifespan(app: FastAPI):
+                    # Toy model artifact: y = 2x + 1
+                    app.state.model = lambda x: 2 * x + 1
+                    yield
+
+                app = FastAPI(lifespan=lifespan)
+
+                @app.post("/predict")
+                def predict(body: Input):
+                    return {"prediction": app.state.model(body.x), "model_version": "demo-1"}
+                ```
+      - item:
+          id: load
+          type: choice
+          prompt: 模型文件读取很慢，而且同一进程要处理许多请求。通常何时加载？
+          options:
+            - text: 每次请求都从头读模型文件
+              why: 无谓增加延迟并扩大故障面。
+            - text: 在进程启动时加载，每次请求复用
+              correct: true
+          explain: 这样避免把重复 I/O 放进每次预测，并可在启动失败时拒绝流量。
+  - id: monitor
+    chapter: 监测与漂移
+    title: 输入变了，模型还管用吗
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 训练时购物多在白天，上线后夜间购物变多。能仅凭时间分布变了证明模型错了吗？
+          options:
+            - text: 一定，任何输入变化都表示精度崩溃
+              why: 模型可能在两种时段都能预测。
+            - text: 要再检查有标签的实际效果
+              correct: true
+          explain: 输入变化提示风险，不能直接确定预测关系变坏。
+      - card:
+          title: 输入与关系分别看
+          body: '**数据漂移（data drift）**。**概念漂移（concept drift）**。监控还应看错误率、延迟、缺失、线上表现和关键分组；标签迟到时，可先用代理指标告警，再补效果证据。'
+      - item:
+          id: drifts
+          type: match
+          prompt: 给变化选分类。
+          pairs:
+            - - 夜间访问的占比增加
+              - 数据漂移
+            - - 同样历史条件下的退货规律变了
+              - 概念漂移
+            - - 请求变慢但当前输入和标签关系没有已知变化
+              - 服务指标退化
+          explain: 输入占比变化和相同条件下结果关系变化是两种证据。
+      - card:
+          title: 例题：把参考分布与当前分布比较
+          body: 参考四桶各 0.25，当前为 0.10、0.20、0.30、0.40。PSI 定义为各桶 (当前−参考)×ln(当前/参考) 的和。
+          reveal:
+            - title: 先算第一桶
+              body: (0.10−0.25)×ln(0.10/0.25) 约 0.1374。
+            - title: 再求和
+              body: 四桶贡献总和约 0.2282。
+            - title: 用预设规则解释
+              body: 按本例经验线 0.2 需调查。样本量、分桶、平滑和真实指标会影响解释，阈值按服务验证。
+      - item:
+          id: trigger
+          type: choice
+          prompt: PSI 超过团队阈值，下一步怎样做？
+          options:
+            - text: 检查哪些桶变了，并核对标签表现、数据管线与采集变化
+              correct: true
+            - text: 立刻用当前数据自动覆盖生产模型
+              why: 变化可能源于坏数据或监测口径。
+          explain: 告警给出优先调查线索，改模型前要找原因。
+boss:
+  items:
+    - id: version
+      type: choice
+      prompt: 要复现昨天的训练，哪份信息组合合适？
+      options:
+        - text: 数据快照、代码、配置、依赖和产物版本
+          correct: true
+        - text: 一个叫 final 的模型文件
+          why: 只剩结果时无法复原输入与过程。
+      explain: 每一环都可能改变结果，需要能回溯。
+    - id: features
+      type: choice
+      prompt: 训练按最近 7 天计数，线上按 30 天。优先修什么？
+      options:
+        - text: 只提高在线模型的超时时间
+          why: 时延设置不影响特征含义。
+        - text: 统一有版本的特征逻辑并重放比对
+          correct: true
+      explain: 输入语义不一致会让模型读到不同的量。
+    - id: pipeline
+      type: choice
+      prompt: 同一次任务重试时，应怎样登记模型？
+      options:
+        - text: 重复发一个随机版本
+          why: 无法分辨是否已经成功。
+        - text: 用稳定标识去重并保证只提交完整产物
+          correct: true
+      explain: 重试可以恢复失败，又不会制造冲突版本。
+    - id: serve
+      type: choice
+      prompt: 只有 1% 用户真正收到新版结果，这是什么发布方式？
+      options:
+        - text: 金丝雀发布
+          correct: true
+        - text: 影子部署
+          why: 影子输出不影响用户回复。
+      explain: 少量真实用户用新版，可按指标扩大或回滚。
+    - id: psi
+      type: number
+      prompt: PSI 有两项桶贡献 0.07、0.05。总和是多少？
+      answer: 0.12
+      explain: 按定义把各桶贡献相加。
+    - id: concept
+      type: choice
+      prompt: 输入分布相近，但同一输入条件下标签关系改变。这是什么？
+      options:
+        - text: 概念漂移
+          correct: true
+        - text: 只由输入分布定义的数据漂移
+          why: 这里变化的是给定输入后的目标。
+      explain: 变化发生在输入与目标的关系。

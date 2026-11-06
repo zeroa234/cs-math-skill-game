@@ -11,7 +11,9 @@ const LINES = [
   { who: "black", text: `欢迎参加计算机大学习！天上那棵由星星连成的树，就是计算机和数学要学的 ${g.tree.skills.length} 个技能。` },
   { who: "blue", text: "每颗星都要先点亮它下面连着的星——就像先会写程序，才学得动操作系统！" },
   { who: "black", text: "每次只学一小课：先猜一猜，再看讲解，再动手做。答错不扣任何东西，我们会告诉你错在哪。" },
-  { who: "blue", text: "每一章还会告诉你去哪本书、哪门公开课深入。准备好了吗？挑一条远征出发吧！" },
+  { who: "blue", text: g.tree.meta.edition === "toy"
+    ? "技能地图会告诉你先学什么、接着学什么。准备好了吗？挑一条远征出发吧！"
+    : "每一章还会告诉你去哪本书、哪门公开课深入。准备好了吗？挑一条远征出发吧！" },
 ];
 
 const done = () => store.update((d) => { d.settings.introSeen = true; });

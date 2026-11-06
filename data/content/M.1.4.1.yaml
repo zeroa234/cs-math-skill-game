@@ -1,0 +1,511 @@
+skill: M.1.4.1
+version: 2
+brief:
+  why: 模型的误差通常同时受许多权重影响。你会先固定其他输入看单个变化，再把变化合起来，最后判断应该沿哪边走。
+  outcomes:
+    - 算偏导、方向导数、梯度和雅可比矩阵
+    - 在隐式关系与坐标变换中使用链式法则
+    - 用二阶近似判断极值并理解牛顿步
+terms:
+  - term: 偏导数
+    def: 只让一个输入变化，其余输入固定时得到的导数。
+  - term: 全微分
+    def: 多元函数在一点的线性变化，等于各偏导乘相应输入增量后相加。
+  - term: 单位向量
+    def: 长度为 1 的方向量。
+  - term: 方向导数
+    def: 在指定方向上每单位距离的瞬时变化率。
+  - term: 隐函数
+    def: 由方程在某处附近确定的输出函数，即使它没有单独写成显式公式。
+  - term: 逆函数定理
+    def: 连续可微的映射在一点的导数可以撤销时，附近存在可微的局部逆映射。
+  - term: 梯度
+    def: 标量函数全部偏导组成的方向量，指向局部增长最快的方向。
+  - term: 矩阵
+    def: 按行和列排列的一组数。
+  - term: 雅可比矩阵
+    def: 把向量映射的各输出对各输入的偏导按行与列排成的矩阵。
+  - term: 行列式
+    def: 方阵描述的线性变换对有向面积或体积的倍率。
+  - term: 海森矩阵
+    def: 用各输入的二阶偏导组成的矩阵。
+  - term: 微分方程
+    def: 含未知函数及其导数的方程。
+  - term: 向量
+    def: 可以用有序分量表示的量，常用来记录大小和方向。
+  - term: 可逆
+    def: 能由输出唯一还原输入。
+  - term: 点积
+    def: 两个向量对应分量相乘再求和。
+  - term: 线性变换
+    def: 保持向量加法和数乘的映射。
+lessons:
+  - id: partials
+    chapter: 偏导数
+    title: 先拧一只旋钮
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 有两个旋钮调温度。要量第一个的效果，第二个怎么放？
+          options:
+            - text: 两个一起随意转
+              why: 两只旋钮的作用会混在一起。
+            - text: 固定在指定位置
+              correct: true
+          explain: 这样才知道变化来自哪个输入。
+      - card:
+          title: 冻结其他输入
+          body: '**偏导数（partial derivative）**记为 fₓ、fᵧ 等。f(x,y)=x²y 对 x 求导，先把 y 当常数，得到 2xy；对 y 求导得到 x²。三个以上输入也一次只让一个变化。'
+      - item:
+          id: partial-x
+          type: number
+          prompt: f(x,y)=x²y。fₓ(2,3) 等于多少？
+          answer: 12
+          explain: 先保留 y 作常数得 2xy，再把 2、3 代入。
+      - card:
+          title: 对一个斜率继续求导
+          body: 对 fₓ 再按 y 求导是一个混合偏导。若两个混合偏导在点附近连续，先 x 后 y 与先 y 后 x 相同。带未知函数及其导数的方程叫**微分方程（differential equation）**。用到偏导的叫偏微分方程，比如热传导方程把温度的时间偏导和空间二阶偏导联系起来。
+      - item:
+          id: mixed
+          type: choice
+          prompt: f(x,y)=x²y+e^(xy)。先求 x 偏导，再求 y 偏导，结果是哪一项？
+          options:
+            - text: 2x+y e^(xy)
+              why: 后一项的 y 也随 y 变化，需要分别求导。
+            - text: 2x+(1+xy)e^(xy)
+              correct: true
+          explain: fₓ=2xy+y e^(xy)，对后一项用乘积法则。
+  - id: differential
+    chapter: 全微分
+    title: 用切平面估计一点小变化
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 站在缓坡上一小步，能用脚边坡度估算高度变化吗？
+          options:
+            - text: 小范围内可以近似
+              correct: true
+            - text: 必须重走整座山才有估计
+              why: 小步变化只需要附近的斜率信息。
+          explain: 平滑曲面局部接近一张平面。
+      - card:
+          title: 各方向的贡献相加
+          body: '**全微分（total differential）**。对于平滑的 z=f(x,y)，dz=fₓ dx+fᵧ dy，切平面高度是 f(a,b)+dz。只有某点存在偏导并不足以保证可微；偏导在附近连续是一个常用充分条件。三个输入就多加一项。'
+      - card:
+          title: 例题：两小步改变平方和
+          body: f=x²+y²，从 (1,2) 移到 (1.02,1.97)。
+          reveal:
+            - title: 找两条斜率
+              body: fₓ=2、fᵧ=4。
+            - title: 用小步加权
+              body: dz=2×0.02+4×(−0.03)=−0.08，近似值 4.92。
+            - title: 用原式比较
+              body: 精确值 4.9213，差 0.0013。
+      - item:
+          id: linear
+          type: number
+          prompt: 在 (1,2) 处估算 f=x²+y²。若 dx=0.1、dy=0，线性近似的新值是多少？
+          answer: 5.2
+          explain: 原来是 5，高度按 x 斜率 2 增加约 0.2。
+      - item:
+          id: condition
+          type: choice
+          prompt: 只检查某点的两个偏导存在，就能断定所有小位移都能由切平面近似吗？
+          options:
+            - text: 还需要可微性，例如验证邻域内偏导连续
+              correct: true
+            - text: 总能，两条斜率存在就够
+              why: 某些曲面沿斜线的变化会违背该平面。
+          explain: 沿坐标轴测得斜率，还没控制任意方向小位移的误差。
+  - id: directions
+    chapter: 方向导数
+    title: 沿斜线每走一步升多少
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两次沿同一朝向出发，一次走半米，一次走一米。要比较坡度，该除以什么？
+          options:
+            - text: 不用除，直接比高度
+              why: 走得更远本身就会影响高度差。
+            - text: 各自走的距离
+              correct: true
+          explain: 每单位距离的高度变化才可比较。
+      - card:
+          title: 用长度 1 描述方向
+          body: 有大小和方向的量可写成**向量（vector）**。**单位向量（unit vector）**长度为 1。把位移 (3,4) 除以长度 5 得到 (0.6,0.8)。**方向导数（directional derivative）**。对可微函数，用两个偏导分别乘单位方向的分量后相加。
+      - item:
+          id: slope
+          type: number
+          prompt: 某点 fₓ=2、fᵧ=4。沿单位方向 (0.6,0.8) 的方向导数是多少？
+          answer: 4.4
+          explain: 用偏导加权，2×0.6+4×0.8=4.4。
+      - item:
+          id: unit
+          type: choice
+          prompt: 要比较向 (6,8) 走的每单位距离变化，应代入哪个方向？
+          options:
+            - text: (6,8)
+              why: 直接代入会多算 10 倍的步长。
+            - text: (0.6,0.8)
+              correct: true
+          explain: 长度为 10，除以 10 后仍指向同一边。
+  - id: implicit
+    chapter: 隐函数与逆函数定理
+    title: 方程没解开，也能找斜率
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 地图只给出等高线方程，没单写 y=…。能知道曲线在某处往哪倾吗？
+          options:
+            - text: 可以尝试沿方程求变化
+              correct: true
+            - text: 必须先有全局显式公式
+              why: 局部关系有时已足够求导。
+          explain: 在曲线上移动时，等式仍要成立。
+      - card:
+          title: 让两边保持相等
+          body: '**隐函数（implicit function）**。在 F(x,y,z)=0 附近，若 F 连续可微且 F_z≠0，可局部解出 z(x,y)，并由 Fₓ+F_z zₓ=0 得 zₓ=−Fₓ/F_z。曲面局部能用自由坐标描述。'
+      - card:
+          title: 例题：球面上一小块
+          body: x²+y²+z²=3，在 (1,1,1) 求 z 对 x、y 的偏导。
+          reveal:
+            - title: 检查可以用 z 作为输出
+              body: F_z=2z=2，不为零。
+            - title: 沿两种输入变化
+              body: Fₓ=Fᵧ=2，因此 zₓ=zᵧ=−1。
+      - item:
+          id: implicit-slope
+          type: number
+          prompt: x²+z²=5，在 (x,z)=(1,2) 附近把 z 看作 x 的函数。z′ 是多少？
+          answer: -0.5
+          explain: 2x+2z z′=0，所以 z′=−x/z=−1/2。
+      - card:
+          title: 能不能把输入输出反过来
+          body: '**逆函数定理（inverse function theorem）**。一元情形常检查导数非零。多元情形检查描述局部变化的方阵能否反向还原，也就是**可逆（invertible）**；这个条件只给附近保证。'
+      - item:
+          id: inverse
+          type: choice
+          prompt: 一个函数在某点附近连续可微，且该点导数不为零。定理保证什么？
+          options:
+            - text: 存在该点附近的可微逆函数
+              correct: true
+            - text: 整个定义域都只有一个反函数
+              why: 局部结论不能排除远处折回来。
+          explain: 导数可逆给出局部可逆性。
+  - id: gradient
+    chapter: 标量场梯度
+    title: 把最陡方向直接读出来
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同一点上，分别沿东和北测出斜率。可以推测往哪边最陡吗？
+          options:
+            - text: 把两份斜率一起考虑
+              correct: true
+            - text: 只选东或北其中之一
+              why: 更陡的方向可能在两者中间。
+          explain: 平滑曲面的小步变化由两个分量共同决定。
+      - card:
+          title: 把偏导排成一支箭头
+          body: '**梯度（gradient）**。沿单位方向的变化率是梯度与方向的**点积（dot product）**，即逐项相乘再相加。最大值等于梯度长度，非零时沿梯度方向取得。等值曲线切线方向高度不变，所以和非零梯度垂直。'
+      - card:
+          title: 例题：三项偏导就是箭头
+          body: f=x²y+yz³，在 (1,2,1) 处找最大变化率。
+          reveal:
+            - title: 分别求三个偏导
+              body: 得到 (2xy, x²+z³, 3yz²)，该点是 (4,2,6)。
+            - title: 长度和单位方向分开
+              body: 最大变化率是 √56，方向为 (4,2,6)/√56。
+      - item:
+          id: norm
+          type: number
+          prompt: 某点梯度为 (3,4)，沿单位方向的最大变化率是多少？
+          answer: 5
+          explain: 梯度长度 √(3²+4²)=5。
+      - item:
+          id: contour
+          type: choice
+          prompt: 在梯度非零处，沿等值曲线的切线移动，瞬时变化率是多少？
+          options:
+            - text: '0'
+              correct: true
+            - text: 等于梯度长度
+              why: 这个值在沿梯度方向时才达到。
+          explain: 切线方向与梯度垂直，点积为零。
+  - id: jacobian
+    chapter: 向量映射导数（雅可比矩阵）
+    title: 有两个输出，就写两行斜率
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 调亮度和音量两个按钮，设备报告两项读数。要记每个按钮对每个读数的影响，需要几项？
+          options:
+            - text: 四项
+              correct: true
+            - text: 只需要两项
+              why: 一个输入可能同时改变两个输出。
+          explain: 两个读数各有两个输入的变化率。
+      - card:
+          title: 行跟输出，列跟输入
+          body: '**矩阵（matrix）**。**雅可比矩阵（Jacobian matrix）**。g(u,v)=(u+v,uv) 的第一行是 (1,1)，第二行是 (v,u)。把这个矩阵乘小位移，可近似得到输出变化。'
+      - item:
+          id: jac-element
+          type: number
+          prompt: g(u,v)=(u+v,uv)。在 (2,3) 处，雅可比第二行第一列是多少？
+          answer: 3
+          explain: 第二个输出是 uv，对第一个输入 u 求偏导得到 v=3。
+      - card:
+          title: 局部伸缩也能读出来
+          body: 平面**线性变换（linear transformation）**可把一个小矩形变成平行四边形；有符号面积倍率是**行列式（determinant）**，面积实际用其绝对值。局部可逆时倍率非零。
+      - item:
+          id: scale
+          type: number
+          prompt: 变换 (u,v) ↦ (2u,3v) 让一小块面积变成多少倍？
+          answer: 6
+          explain: 两个互相垂直的方向分别放大 2、3 倍，面积倍率为 6。
+  - id: chain
+    chapter: 链式法则与坐标变换
+    title: 先改中间量，再改最终量
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你改变按钮，亮度随之改变，耗电又随亮度变。怎么算按钮对耗电的影响？
+          options:
+            - text: 沿经过亮度的路径把两段变化率相乘
+              correct: true
+            - text: 只看最后一段
+              why: 最后一段漏掉按钮实际改变亮度的幅度。
+          explain: 若还有别的中间量，也要计算它们的贡献。
+      - card:
+          title: 多条路径的贡献相加
+          body: 如果 h 读 g 的两个输出，就按路径把内外两段偏导相乘再相加。矩阵记法是 D(h∘g)=Dh·Dg，Dh 在中间值 g(u,v) 处计算。单个或多个自由输入都按同一原则。
+      - card:
+          title: 例题：经过两条路
+          body: g(u,v)=(u+v,uv)，h(x,y)=x²+y²。在 (1,2) 求组合对 u 的偏导。
+          reveal:
+            - title: 找到当前中间值
+              body: x=3、y=2；h 对 x、y 的偏导分别为 6、4。
+            - title: 分别乘内层偏导
+              body: x 对 u 为 1，y 对 u 为 2，总和 6×1+4×2=14。
+      - item:
+          id: chain-v
+          type: number
+          prompt: 同样 g(u,v)=(u+v,uv)，h=x²+y²。在 (1,2) 求组合对 v 的偏导。
+          answer: 10
+          explain: 两个外层斜率为 6、4，内层对 v 分别为 1、1，相加为 10。
+      - card:
+          title: 坐标换元要改小块的大小
+          body: 二重积分换坐标时，用雅可比行列式绝对值换面积。极坐标 x=r cosθ、y=r sinθ，面积乘 r。三重积分用三维行列式换体积，例如圆柱坐标的体积元乘 r；还要一起换积分区域。
+      - item:
+          id: polar
+          type: choice
+          prompt: 在极坐标中对小块积分，dr 与 dθ 的乘积应乘哪一项？
+          options:
+            - text: '1'
+              why: 同样的角度间隔在不同半径处不是同样的长度。
+            - text: r
+              correct: true
+          explain: 半径越大，相同转角对应的弧越长。
+  - id: hessian
+    chapter: 二阶偏导矩阵（海森矩阵）
+    title: 斜率也有变化速度
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 某点四周一边上坡、一边下坡，当地点的斜率都可能是 0 吗？
+          options:
+            - text: 不可能，零斜率一定是谷底
+              why: 马鞍中心可以有零梯度。
+            - text: 可能，坡度可以从该点向各边变化
+              correct: true
+          explain: 只看一阶斜率无法描述周围形状。
+      - card:
+          title: 把二阶偏导放进表
+          body: '**海森矩阵（Hessian matrix）**。对二元函数，对角是 fₓₓ、fᵧᵧ，非对角是混合偏导。内部极值的候选点先找梯度为零的点；二阶表能区分附近往哪边弯。'
+      - card:
+          title: 例题：两点，两个判断
+          body: f=x³−3x+y²−2y。
+          reveal:
+            - title: 令两个偏导为零
+              body: 3x²−3=0、2y−2=0，候选点 (1,1)、(−1,1)。
+            - title: 比较二阶方向
+              body: 二阶表对角为 6x、2，混合项为 0。第一点两方向上弯，为局部极小值；第二点方向相反，为鞍点。
+            - title: 代回比较
+              body: 两点值分别为 −3 与 1。
+      - item:
+          id: saddle
+          type: choice
+          prompt: f=x²−y² 在 (0,0) 的两条轴方向一升一降。该点是哪一类？
+          options:
+            - text: 局部极小值
+              why: 沿 y 轴立刻能找到更低的值。
+            - text: 鞍点
+              correct: true
+          explain: 沿 x 轴升，沿 y 轴降，附近既有高点也有低点。
+      - item:
+          id: inconclusive
+          type: choice
+          prompt: 二元二阶判别式等于 0 时，可以直接断定是最小值吗？
+          options:
+            - text: 不能，需要更多信息
+              correct: true
+            - text: 可以，等于 0 就代表向上弯
+              why: 零判别式没有给出这个保证。
+          explain: 二阶项在某些方向可能消失，高阶项会决定结果。
+  - id: taylor-extrema
+    chapter: 二阶近似与极值判别
+    title: 小范围再加上一点弯曲
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用直线估坡，走稍远时偏差变大。再加哪类信息会有帮助？
+          options:
+            - text: 加上附近怎么弯
+              correct: true
+            - text: 只把切线平移
+              why: 平移不会改变曲率。
+          explain: 用二阶变化描述偏离切线的部分。
+      - card:
+          title: 二阶近似包括曲率
+          body: 在 a 点移动小步 d，二阶泰勒近似是 f(a)+∇f(a)·d+½ dᵀH(a)d。检查闭且有界区域的最大最小时，还要看边界。仅查内部的零梯度会漏掉可能在边缘达到的极值。
+      - item:
+          id: quadratic
+          type: number
+          prompt: f(x,y)=x²+2y²，在原点的小步 d=(1,2) 上，二阶项等于多少？
+          answer: 9
+          explain: 二阶项在此就是 x²+2y²，1+2×4=9。
+      - card:
+          title: 只能沿约束走时
+          body: 若移动被限制在 g(x,y)=c 且约束梯度非零，局部极值处沿约束切线的变化为零。拉格朗日乘数法写成 ∇f=λ∇g，再连同约束求候选。还要检查不规则点与边界。
+      - item:
+          id: constraint
+          type: choice
+          prompt: 沿单位圆找 f=x 的最大值，还要检查 x²+y²=1 上的点吗？
+          options:
+            - text: 不用，因为 fₓ=1，整个圆无最大值
+              why: 连续函数在这个闭且有界的圆上仍有最大值。
+            - text: 要，最大值 (1,0) 就在约束曲线上
+              correct: true
+          explain: 所有合法移动都留在圆上，不能只解无约束梯度为零。
+  - id: newton
+    chapter: 二阶近似与极值判别
+    title: 先顺着坡走，再利用弯曲
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同一条山谷横向很陡、沿谷很缓。两边都跨一样大的步子会怎样？
+          options:
+            - text: 每次一定更靠近最低点
+              why: 步子太大可能让损失变大。
+            - text: 横向可能越过谷底来回跳
+              correct: true
+          explain: 同一步长在陡方向更容易走过头。
+      - card:
+          title: 用学习率控制步长
+          body: 梯度下降更新 x←x−η∇f。η 太大容易跨过谷底，太小走得慢。二维实验里 y 方向的曲率更大，试着改变 η，观察两条方向上每一步的位移。
+          sim:
+            name: descent
+            params:
+              mode: 2d
+              f: x^2 + 10y^2
+              vars:
+                - x
+                - 'y'
+              x0:
+                - 2.5
+                - 1.5
+              lr: 0.05
+      - item:
+          id: step
+          type: number
+          prompt: f(x,y)=x²+10y²，从 (2,1) 用学习率 0.05 做一次梯度下降。新的 y 是多少？
+          answer: 0
+          explain: y 的斜率是 20，更新 1−0.05×20=0。
+      - card:
+          title: 用二阶项估出合适的步子
+          body: 若二阶矩阵 H 可逆，牛顿优化步解 H d=−∇f 再更新 x+d。在正曲率的二次模型里，它直接瞄准模型的最低点。远离最低点时曲率模型可能不可靠，常缩短步长或加保护。
+      - item:
+          id: newton-risk
+          type: choice
+          prompt: 为什么不在任意点都无条件接受完整牛顿步？
+          options:
+            - text: 局部二阶模型可能不准，曲率还可能不适合找最小值
+              correct: true
+            - text: 因为牛顿步从不使用斜率
+              why: 它同时使用梯度和二阶信息。
+          explain: 试步或阻尼可以减小走偏的风险。
+boss:
+  items:
+    - id: partial
+      type: number
+      prompt: f=x²y，fₓ(3,2) 等于多少？
+      answer: 12
+      explain: 2xy=12。
+    - id: diff
+      type: number
+      prompt: fₓ=3、fᵧ=2，dx=0.1、dy=−0.1。全微分是多少？
+      answer: 0.1
+      explain: 3×0.1−2×0.1=0.1。
+    - id: direction
+      type: number
+      prompt: 某点偏导为 (3,4)，向单位方向 (1,0) 的方向导数是多少？
+      answer: 3
+      explain: 只取 x 分量。
+    - id: implicit
+      type: number
+      prompt: x²+z²=2，在 (1,1) 处 z′ 等于多少？
+      answer: -1
+      explain: 按等式求导得 −x/z。
+    - id: gradient
+      type: number
+      prompt: 梯度为 (6,8)，单位距离内的最大变化率是多少？
+      answer: 10
+      explain: 长度为 √(36+64)=10。
+    - id: jacobian
+      type: number
+      prompt: g=(u+v,uv)，第二个输出对 v 的偏导在 u=4 时是多少？
+      answer: 4
+      explain: uv 对 v 求导得 u。
+    - id: composition
+      type: number
+      prompt: h=x²，x=2u，在 u=3 时 h 对 u 的导数是多少？
+      answer: 24
+      explain: x=6，2x 再乘 2，得到 24。
+    - id: curvature
+      type: choice
+      prompt: 在临界点附近，两个主方向的二阶变化一正一负。该点是哪类？
+      options:
+        - text: 鞍点
+          correct: true
+        - text: 局部极小值
+          why: 下降方向排除局部极小。
+      explain: 周围有方向向上，也有方向向下。
+    - id: extreme
+      type: choice
+      prompt: 求闭矩形上的最大值，检查完内部零梯度点后还要看哪里？
+      options:
+        - text: 边和角
+          correct: true
+        - text: 只看中心
+          why: 没有定理把极值限制到中心。
+      explain: 最大值可能在边界。

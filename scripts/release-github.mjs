@@ -28,7 +28,6 @@ for (const f of [apk, notes]) if (!fs.existsSync(f)) throw new Error(`missing ${
 
 const gh = (args, input) => execFileSync("gh", ["api", ...args], { input, encoding: "utf8", stdio: ["pipe", "pipe", "inherit"], maxBuffer: 1 << 26 });
 const json = (args, body) => JSON.parse(gh(args, body === undefined ? undefined : Buffer.from(JSON.stringify(body), "utf8")) || "null");
-const tryJson = (args) => { try { return json(args); } catch { return null; } };
 
 // the public main must be this version's snapshot (publish-github.mjs commits as "v<version>")
 const head = json([`repos/${REPO}/commits/main`]);
@@ -64,12 +63,12 @@ if (fs.existsSync(win)) {
   assets.push([win, path.basename(win), `计算机大学习！ ${version}（Windows x64 安装版）`, "application/vnd.microsoft.portable-executable"]);
 } else console.warn(`no ${path.relative(ROOT, win)}: released without the Windows installer (node scripts/windows/build-installer.mjs)`);
 
-const want = { tag_name: tag, target_commitish: head.sha, name: `计算机大学习！ ${version}`, body: fs.readFileSync(notes, "utf8").trim(), draft: false, prerelease: false };
-const old = tryJson([`repos/${REPO}/releases/tags/${tag}`]);
+const want = { tag_name: tag, target_commitish: head.sha, name: `计算机大学习！ ${version}`, body: fs.readFileSync(notes, "utf8").trim(), draft: true, prerelease: false };
+const old = json([`repos/${REPO}/releases?per_page=100`, "--paginate", "--slurp"]).flat().find((release) => release.tag_name === tag);
+if (old && old.target_commitish !== head.sha) throw new Error(`${tag} already targets a different commit`);
 const rel = old ? json(["-X", "PATCH", `repos/${REPO}/releases/${old.id}`, "--input", "-"], { name: want.name, body: want.body }) : json(["-X", "POST", `repos/${REPO}/releases`, "--input", "-"], want);
 if (rel.name !== want.name || rel.body.replace(/\r\n/g, "\n") !== want.body.replace(/\r\n/g, "\n")) throw new Error("the release's name or notes came back different (encoding?)");
 
-console.log(rel.html_url);
 for (const [file, name, label, type] of assets) {
   for (const a of rel.assets || []) if (a.name === name) gh(["-X", "DELETE", `repos/${REPO}/releases/assets/${a.id}`]);
   const asset = json(["-X", "POST", "-H", `Content-Type: ${type}`, `https://uploads.github.com/repos/${REPO}/releases/${rel.id}/assets?name=${name}&label=${encodeURIComponent(label)}`, "--input", file]);
@@ -77,3 +76,7 @@ for (const [file, name, label, type] of assets) {
   if (asset.digest && asset.digest !== `sha256:${sha}`) throw new Error(`${name}: uploaded ${asset.digest}, local sha256:${sha}`);
   console.log(`  ${asset.name} (${asset.label}) ${(asset.size / 1048576).toFixed(1)} MB, sha256 ${asset.digest ? "matches" : "not reported by GitHub"}: ${sha}`);
 }
+
+const published = rel.draft ? json(["-X", "PATCH", `repos/${REPO}/releases/${rel.id}`, "--input", "-"], { draft: false, make_latest: "true" }) : rel;
+if (published.draft) throw new Error(`${tag} is still a draft`);
+console.log(published.html_url);

@@ -96,7 +96,7 @@ recommended:
         - { name: roadmap.sh DevOps（初学者版）, url: "https://roadmap.sh/devops-beginner" }
 
   - id: ai
-    status: dev
+    status: open
     name: 人工智能：机器学习与深度学习
     goal: A.2.3
     was: [dl]
@@ -112,7 +112,7 @@ recommended:
         - { name: roadmap.sh AI 与数据科学家, url: "https://roadmap.sh/ai-data-scientist" }
 
   - id: security
-    status: dev
+    status: open
     name: 网络安全
     goal: S.2.2
     also: [C.1.1, C.2.1, C.3.2, C.4.2]

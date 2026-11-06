@@ -1,0 +1,461 @@
+skill: C.4.2
+version: 2
+brief:
+  why: 一个活动网站平时很闲，开抢时却要接住大量请求。你会练习挑服务、算容量和账单，并设计一台机器或一个机房组出故障时仍能服务的方案。
+  outcomes:
+    - 区分云服务模型及客户的管理责任
+    - 计算扩缩容副本数和教学账单
+    - 为多租户应用选择隔离、编排与容灾方案
+terms:
+  - term: IaaS
+    def: 供应商提供基础计算资源，客户管理操作系统及其上的软件。
+  - term: PaaS
+    def: 供应商管理运行平台，客户部署并管理自己的应用和数据。
+  - term: 共享责任
+    def: 云供应商与客户分别保护自己管理的层和资源，边界随服务与合同改变。
+  - term: 弹性
+    def: 按负载变化取得或释放资源，使容量与需求相适应。
+  - term: 可用区
+    def: 区域内有独立或隔离基础设施的故障域。
+  - term: 多租户
+    def: 多组客户共用平台资源，同时保持身份、数据、网络和资源用量等边界。
+  - term: 编排
+    def: 自动协调部署、资源分配、重启与扩缩等操作，使现状靠近期望。
+  - term: 无服务器
+    def: 平台管理执行资源，应用由请求或事件触发，通常按配置的用量计费。
+  - term: 调度
+    def: 根据资源需求和策略，为工作分配执行机会或执行节点。
+lessons:
+  - id: models
+    chapter: IaaS/PaaS
+    title: 把哪些活交给云服务
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你只想把自己写的程序部署出去，不打算维护运行环境。租到一台空机器就够吗？
+          options:
+            - text: 还要自己配置环境，或者选带运行环境的平台
+              correct: true
+            - text: 空机器已经替你维护应用环境
+              why: 租到计算资源与托管应用环境是两项不同服务。
+          explain: 空机器给你控制权，安装和维护还得有人做。
+      - card:
+          title: 从自己装系统到直接使用软件
+          body: 租虚拟机、存储和网络是 **IaaS（Infrastructure as a Service）**。只部署应用并由供应商管理运行环境是 **PaaS（Platform as a Service）**。直接使用在线邮箱这样的完整软件叫 SaaS。云资源可以通过接口按需创建；靠近设备处理请求的地方也叫边缘。
+      - item:
+          id: services
+          type: match
+          prompt: 把三种任务配给最适合的服务。
+          pairs:
+            - - 自选系统版本并安装内核模块
+              - IaaS
+            - - 部署应用代码，由平台打补丁维护运行环境
+              - PaaS
+            - - 登录后直接使用在线邮箱
+              - SaaS
+          explain: 控制层次越低，自行维护的范围通常越大。
+      - card:
+          title: 责任随控制权移动
+          body: '**共享责任（shared responsibility）**。供应商负责机房和硬件。租虚拟机时，客户还要维护客户操作系统；租托管平台时，平台补丁通常由供应商负责，客户仍要保护自己的账号、数据和访问配置。'
+      - item:
+          id: patch
+          type: choice
+          prompt: 团队用 IaaS 运行自己装的 Linux。客户操作系统出现安全补丁，通常由谁安排安装？
+          options:
+            - text: 机房硬件供应商必定替租户安装
+              why: 供应商未必能进入客户安装的系统。
+            - text: 租用虚拟机的团队
+              correct: true
+          explain: 供应商维护云基础设施，团队控制虚拟机内部的软件。
+      - item:
+          id: fit
+          type: choice
+          prompt: 应用需要平台没有提供的内核特性，又必须自行安装。应该优先评估哪种模型？
+          options:
+            - text: IaaS，并确认虚拟机支持该特性
+              correct: true
+            - text: PaaS，因为维护工作越少越合适
+              why: 托管平台不一定允许修改系统内核。
+          explain: 自己管理系统的范围较大，仍要核对供应商的底层限制。
+  - id: elasticity
+    chapter: 弹性
+    title: 让容量追上流量
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 售票在开抢时突然很忙，半小时后恢复平静。该一直开着高峰所需的机器吗？
+          options:
+            - text: 必须一直保持峰值机器数
+              why: 如果系统支持伸缩，可以按策略缩回。
+            - text: 可以按需求增减机器
+              correct: true
+          explain: 峰后释放资源通常能减少空闲成本。
+      - card:
+          title: 扩容量与调整容量
+          body: '**弹性（elasticity）**。给单台机器增加资源叫纵向扩展，增加实例数叫横向扩展。处理无关请求时横向扩展常有效；数据也可以按键拆成分片，某个热点键仍可能挤满一个分片。'
+      - item:
+          id: hot-key
+          type: choice
+          prompt: 分片系统里绝大多数请求都找同一个键。只增加空分片就能把该键的负载摊开吗？
+          options:
+            - text: 还要处理热点，例如缓存读请求或调整数据分布
+              correct: true
+            - text: 会自动把一个键平均分到所有分片
+              why: 新分片不一定能分担原有热点。
+          explain: 普通按键分片会把同一个键留在同一处。
+      - card:
+          title: 例题：按利用率留余地
+          body: 峰值 5000 请求/秒，每实例最大容量 200 请求/秒，目标利用率 70%。
+          reveal:
+            - title: 算每台目标容量
+              body: 200 × 0.70 = 140 请求/秒。
+            - title: 用峰值除以容量
+              body: 5000 ÷ 140 约为 35.7。
+            - title: 取足够的整台数
+              body: 向上取整到 36 台。
+      - item:
+          id: replicas
+          type: number
+          prompt: 峰值 950 请求/秒，每台最大容量 100 请求/秒，目标利用率 80%。按均匀分流的模型，需要几台？
+          answer: 12
+          explain: 每台按 80 请求/秒算，950 ÷ 80 = 11.875，向上取整为 12 台。
+      - card:
+          title: 等待新实例真正能接客
+          body: 实例从创建到健康就绪需要时间。扩容可参考排队、CPU、延迟等，缩容要让在途请求收尾，并给容量变化留稳定窗口。容量估算先给候选值，再用压测验证依赖和瓶颈。
+      - item:
+          id: warm-up
+          type: choice
+          prompt: 流量每周固定时间激增，新实例从创建到就绪有等待时间。怎样降低刚开场时的排队？
+          options:
+            - text: 提前准备部分容量，再按反馈伸缩
+              correct: true
+            - text: 把报警设在服务已经超时时才开始创建
+              why: 用户在等待实例启动期间仍会超时。
+          explain: 启动延迟意味着流量到来后才创建可能来不及。
+  - id: availability
+    chapter: 弹性
+    title: 少一间机房，网站还能开
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 备用网站和主站在同一机房，共用一套供电。机房停电时谁能接班？
+          options:
+            - text: 总会有一个副本幸存
+              why: 副本数量无法分隔同一故障来源。
+            - text: 两份网站可能一起掉线
+              correct: true
+          explain: 它们共享同一个故障来源。
+      - card:
+          title: 把副本放在不同故障范围
+          body: 云区域（region）是地理范围，**可用区（availability zone）**适合分开部署应用副本。负载均衡器把请求送给健康实例。前端跨区后，数据库、存储、网络入口也要检查是否仍有单点。
+      - item:
+          id: resilience
+          type: match
+          prompt: 把故障和相应的设计动作配对。
+          pairs:
+            - - 某个应用实例停止响应
+              - 健康检查后停止分流给它
+            - - 整组机房掉线
+              - 剩余可用区有健康实例和容量
+            - - 数据主节点掉线
+              - 使用跨区的备份节点及故障切换
+          explain: 逐一检查应用、入口和存储所依赖的故障域。
+      - card:
+          title: 数据复制也会有取舍
+          body: 跨地复制可以挡住单地点故障。等远端确认再报告成功能减少已确认数据丢失的风险，但写入会等得更久。异步复制更快，故障时最近的写入可能还在路上。健康探测也可能误判，故障切换须避免两个节点同时自认主。
+      - item:
+          id: failover
+          type: choice
+          prompt: 应用跨区，但所有实例都依赖一个可用区中的单台数据库。该区失效后会怎样？
+          options:
+            - text: 应用进程可能还在运行，但依赖数据库的请求会失败
+              correct: true
+            - text: 负载均衡器会自动重建数据库
+              why: 把请求改送另一台应用实例并不能恢复数据库。
+          explain: 业务可用性由整条依赖链决定。
+  - id: tenants
+    chapter: 多租户
+    title: 共用机房，钥匙各管各的
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个团队租了同一栋楼的办公室，能互用对方的钥匙吗？
+          options:
+            - text: 同楼的人应能打开所有门
+              why: 租用同一设施不构成授权。
+            - text: 每队只应进入获准的房间
+              correct: true
+          explain: 共享设施仍需要各自的访问边界。
+      - card:
+          title: 分开管理，再约束访问
+          body: '**多租户（multi-tenancy）**。Kubernetes 可用命名空间分组，再用基于角色的访问规则（RBAC）、网络策略和资源配额约束谁能访问、流量能去哪、能用多少。'
+      - item:
+          id: boundaries
+          type: match
+          prompt: 把三种要求和对应机制配对。
+          pairs:
+            - - 只允许甲团队修改甲项目的应用
+              - 基于角色的访问规则
+            - - 禁止甲项目直接连乙项目的内部服务
+              - 网络策略
+            - - 限制甲项目占用的计算额度
+              - 资源配额
+          explain: 管理名称的范围、连通性和资源上限需要分别配置。
+      - card:
+          title: 衡量共享带来的代价
+          body: 共享机器能省成本，但一个团队耗尽资源或共用组件出故障，可能影响别的团队。专用集群能减少共享故障和信任范围，代价是更多容量和运维。涉及隐私和合规时还要核对数据落在哪、谁可读、访问如何留记录。
+      - item:
+          id: isolation
+          type: choice
+          prompt: 两个互不信任的团队只建了不同命名空间，还没配访问和网络规则。接下来该怎样处理？
+          options:
+            - text: 补齐权限、网络和资源策略，并按风险评估是否需要专用集群
+              correct: true
+            - text: 分组后已经自动满足所有隔离要求
+              why: 仅创建命名空间无法表达每项访问与配额政策。
+          explain: 命名空间能分组，隔离强度取决于其他控制和底层配置。
+  - id: cluster
+    chapter: 编排
+    title: 从期望数量到真正运行
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你设了三个工作点，一个坏了。谁会把数量恢复到三？
+          options:
+            - text: 需要有一方持续对照目标和现状
+              correct: true
+            - text: 写过数字就能自动运行，谁都不用观察
+              why: 设置只是目标，控制过程才会采取行动。
+          explain: 写下数量之后，还要有人观察与执行。
+      - card:
+          title: 描述目标，让控制器反复核对
+          body: '**编排（orchestration）**。Kubernetes 的控制平面提供接口和控制器，节点执行工作。**调度（scheduling）**在这里是为工作选择可用节点。Pod 是安排到节点的基本单位，可以装一组紧密协作的容器。容器以镜像为启动模板，OpenStack 等平台也可编排虚拟机资源。'
+      - item:
+          id: control
+          type: order
+          prompt: 给一个未被安排到节点的新 Pod 排出正常路径。
+          steps:
+            - 控制平面收到新 Pod 的目标
+            - 调度器筛选并选择节点
+            - 节点取得镜像并启动容器
+          explain: 调度器先找可用节点并绑定，节点再负责执行。
+      - card:
+          title: 先剔除放不下的机器
+          body: 调度器先按资源需求、约束等筛出合格节点，再给候选打分。节点上的组件向控制平面汇报并运行分配来的 Pod。云控制器可对接云负载均衡器、节点等云资源。
+      - item:
+          id: placement
+          type: choice
+          prompt: 一个节点的剩余内存低于 Pod 的内存请求。即使它离用户最近，应先怎样处理？
+          options:
+            - text: 从符合条件的候选中排除它
+              correct: true
+            - text: 先按距离得高分，然后忽略内存不足
+              why: 打分无法使不满足要求的节点变为合格。
+          explain: 先满足硬约束，才在剩下的候选里比优先级。
+  - id: workloads
+    chapter: 编排
+    title: 给不同任务选不同控制器
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 有的程序要一直在线，有的跑完每天的报表就退出。应该用同一种方式一直重启它们吗？
+          options:
+            - text: 所有任务结束后都立即无限重启
+              why: 报表完成后应等下次计划时间。
+            - text: 在线服务维持副本，报表任务关注是否完成
+              correct: true
+          explain: 两类工作有不同的结束条件。
+      - card:
+          title: 按运行方式分类
+          body: Deployment 管理无状态服务的滚动更新，借 ReplicaSet 保持副本数量。StatefulSet 适合需要稳定身份或存储关联的实例。DaemonSet 可在符合条件的每个节点布置一个日志代理。Job 追求任务完成，CronJob 按时间创建 Job。
+      - item:
+          id: controllers
+          type: match
+          prompt: 给任务选控制器。
+          pairs:
+            - - 滚动更新一组无状态网页进程
+              - Deployment
+            - - 保留副本身份和对应存储
+              - StatefulSet
+            - - 每个适用节点运行采集程序
+              - DaemonSet
+            - - 每天创建一次报表任务
+              - CronJob
+          explain: 要维持副本、维持身份、随节点布置或定时完成，分别选不同控制器。
+      - card:
+          title: 指标驱动副本数量
+          body: 水平自动扩缩器（HPA）可按指标调整副本。简化的 CPU 规则用当前副本数乘以当前平均利用率与目标利用率之比，再向上取整。CPU 利用率相对于资源请求计算；实际控制器还有上限、容差、缺测处理和稳定策略。
+      - card:
+          title: 例题：目标每份六成
+          body: 当前 3 个副本，平均利用率 90%，目标 60%，忽略容差和限幅。
+          reveal:
+            - title: 算倍率
+              body: 90 ÷ 60 = 1.5。
+            - title: 算并取整
+              body: 3 × 1.5 = 4.5，向上取整到 5 个。
+      - item:
+          id: hpa
+          type: number
+          prompt: 简化 HPA 模型中当前 4 个副本，平均利用率 75%，目标 50%。忽略容差和限幅，期望几个？
+          answer: 6
+          explain: 4 × 75 ÷ 50 = 6。
+  - id: serverless
+    chapter: 无服务器与成本模型
+    title: 程序由事件叫醒
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 图片每天偶尔上传几次，需要你写的程序做缩略图。程序可以在有新图时才启动吗？
+          options:
+            - text: 必须让一台自管机器不停轮询
+              why: 事件触发是一种可用的服务模型。
+            - text: 可以让上传事件触发处理
+              correct: true
+          explain: 平台可以按事件调度代码，减少空闲运行。
+      - card:
+          title: 平台准备机器，事件调用函数
+          body: '**无服务器（serverless）**的一种形态是 FaaS。函数可由上传或定时事件触发。新环境准备时可能遇到冷启动，空闲是否收费还取决于预置容量和具体计费规则。'
+      - item:
+          id: cold-start
+          type: choice
+          prompt: 一个函数很久没有运行，新请求要先等运行环境准备。这段等待叫什么？
+          options:
+            - text: 冷启动开销
+              correct: true
+            - text: 数据分片
+              why: 分片描述数据如何拆开存放。
+          explain: 准备环境发生在执行请求的代码之前。
+      - card:
+          title: 换台机器也能继续服务
+          body: 无状态实例可以换来换去。登录会话放在共享会话存储，文件放对象存储，业务数据放数据库。函数还可能收到重试事件，可用事件 ID 记录已经处理过的工作，避免重复扣费。
+      - item:
+          id: external
+          type: match
+          prompt: 把需要跨实例保存的内容分给合适位置。
+          pairs:
+            - - 用户登录会话
+              - 共享会话存储
+            - - 用户上传的图片
+              - 对象存储
+            - - 订单记录
+              - 数据库
+          explain: 实例销毁时，外部服务仍保留这些状态。
+  - id: cost
+    chapter: 无服务器与成本模型
+    title: 用用量算一张账单
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两家报价分别按常开小时和按事件处理量计算。能只比较页面上的单价数字吗？
+          options:
+            - text: 还要让两种报价对应同一份用量
+              correct: true
+            - text: 数字小的一家必定便宜
+              why: 每小时和每次调用的单价不能直接相比。
+          explain: 不同计费单位需要先转成同一期间的总费用。
+      - card:
+          title: 把常态与尖峰分开
+          body: 假设持续运行的资源能按每小时折扣承诺，短暂需求用按需。实例账单等于单价乘总实例小时。函数账单可能含调用次数、运行时长和内存等用量，还要单列网络流量、存储与承诺费用。价格、折扣和区域都须按实际合同检查。
+      - card:
+          title: 例题：常用买折扣，尖峰按需
+          body: 30 天。基线 10 台常开，折扣每台 0.06 美元/小时；峰值每天另用 20 台 4 小时，按需 0.10 美元/小时。
+          reveal:
+            - title: 算基线
+              body: 30 × 24 = 720 小时，10 × 720 × 0.06 = 432 美元。
+            - title: 算额外高峰
+              body: 20 × 4 × 30 × 0.10 = 240 美元。
+            - title: 合计并比较
+              body: 合计 672 美元。全部按需是 960 美元，差 288 美元，即 30%。
+      - item:
+          id: monthly
+          type: number
+          prompt: 30 天，2 台常开，每台每小时 0.05 美元；每天另用 1 台 2 小时，单价 0.10 美元。只计实例费用，总价多少美元？
+          answer: 78
+          explain: 基线是 2 × 720 × 0.05 = 72，高峰是 30 × 2 × 0.10 = 6，合计 78 美元。
+      - item:
+          id: tradeoff
+          type: choice
+          prompt: 团队打算按整月承诺买下短促活动的全部额外机器。先应核对什么？
+          options:
+            - text: 只要承诺价每小时低就该买满
+              why: 还需要看要为多少个小时付费。
+            - text: 按两种费率和运行时数比较整月总价
+              correct: true
+          explain: 折扣小时价低，付费小时更多时仍可能更贵。
+boss:
+  items:
+    - id: service-model
+      type: match
+      prompt: 把服务和客户得到的东西配好。
+      pairs:
+        - - IaaS
+          - 可装自己系统的虚拟机资源
+        - - PaaS
+          - 能部署应用的托管平台
+        - - SaaS
+          - 登录即用的软件
+        - - FaaS
+          - 事件触发执行的函数
+      explain: 从基础资源到完整应用，供应商承担的层次逐渐增加。
+    - id: capacity
+      type: number
+      prompt: 每台最大容量 200 请求/秒，目标利用率 70%。峰值 5000 请求/秒，按均匀分配需几台？
+      answer: 36
+      explain: 目标容量每台 140 请求/秒，5000 ÷ 140 后向上取整。
+    - id: tenancy
+      type: choice
+      prompt: 限制不同租户间流量，已建命名空间后还应配置什么？
+      options:
+        - text: 明确允许连接的网络策略，并确认网络组件执行它
+          correct: true
+        - text: 只给各空间起不同名字
+          why: 名称不同不会自动阻断流量。
+      explain: 分组给出范围，网络策略描述可通过的流量。
+    - id: workload
+      type: choice
+      prompt: 一个服务要升级版本并持续维护多个无状态副本。适合哪种 Kubernetes 控制器？
+      options:
+        - text: CronJob
+          why: CronJob 定时创建任务。
+        - text: Deployment
+          correct: true
+      explain: 它管理滚动更新，并通过 ReplicaSet 维持副本。
+    - id: stateless
+      type: choice
+      prompt: 要让任意副本处理用户后续的登录请求，会话应怎么放？
+      options:
+        - text: 放在副本都可访问的共享会话存储
+          correct: true
+        - text: 只放首个副本的本地内存
+          why: 请求落到另一个副本时就读不到。
+      explain: 副本替换后仍能查到同一个会话。
+    - id: saving
+      type: number
+      prompt: 基线折扣价按月 432 美元，高峰按需 240 美元。全按需总价 960 美元。组合每月省多少美元？
+      answer: 288
+      explain: 组合是 432 + 240 = 672，960 − 672 = 288。
+    - id: zones
+      type: choice
+      prompt: 应用的目标是撑过任一单个可用区故障。哪一方案更符合要求？
+      options:
+        - text: 入口、应用和数据层都安排跨区，并验证剩余区容量及故障切换
+          correct: true
+        - text: 所有副本留在同一区，数量翻倍
+          why: 该区故障可同时影响全部副本。
+      explain: 链路上任一关键层只在一个区都可能拖垮整体。

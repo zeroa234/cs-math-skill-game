@@ -30,6 +30,7 @@ export function SkillView({ id }) {
   const st = stateOf(p, id);
   const lane = laneOf(skill);
   const pack = packs[id];
+  const toy = g.tree.meta.edition === "toy";
   const lang = p.settings.sourceLang || "zh";
   const lit = st.status === "lit";
   const boss = bossFlow(skill, pack);
@@ -55,7 +56,7 @@ export function SkillView({ id }) {
 
       <section>
         <h2>章节</h2>
-        {!pack && <p class="small muted">互动课开发中。可以按前后置指引和“去哪深入”的教材自学，也可以直接查看综合练习与参考答案；自学不记录完成、不点亮技能。</p>}
+        {!pack && <p class="small muted">{toy ? "互动课开发中。这里可以查看章节和前后置技能。" : "互动课开发中。可以按前后置指引和“去哪深入”的教材自学，也可以直接查看综合练习与参考答案；自学不记录完成、不点亮技能。"}</p>}
         <ol class="chapters">
           {st.chapters.map((c, i) => {
             const done = st.done[i];
@@ -73,7 +74,7 @@ export function SkillView({ id }) {
                   {c.kind === "lesson" ? (
                     canOpen ? <a class={"btn small" + (done ? " ghost" : " primary")} href={href("lesson", id, c.key)}>{done ? "再练" : "开始"}</a> : <span class="small muted lock"><Icon name="lock" label="未解锁" /></span>
                   ) : null}
-                  <button type="button" class="btn small ghost" aria-expanded={openCh === i} onClick={() => setOpenCh(openCh === i ? null : i)}>去哪深入</button>
+                  {!toy && <button type="button" class="btn small ghost" aria-expanded={openCh === i} onClick={() => setOpenCh(openCh === i ? null : i)}>去哪深入</button>}
                 </div>
                 {openCh === i && (
                   <div class="ch-more">
@@ -84,13 +85,13 @@ export function SkillView({ id }) {
               </li>
             );
           })}
-          <li class={"chapter boss" + (lit ? " done" : "") + (st.bossOpen ? "" : " locked")}>
+          {(!toy || pack) && <li class={"chapter boss" + (lit ? " done" : "") + (st.bossOpen ? "" : " locked")}>
             <div class="ch-row">
               <span class="ch-no"><Icon name="crown" /></span>
               <div class="ch-main"><div class="ch-title">{pack ? "结业挑战" : "综合练习"}</div><div class="small muted">{boss.graded ? `${boss.items.length} 道题，第一次答对 ${Math.round(PASS_SHARE * 100)}% 点亮` : skill.exercise ? `约 ${skill.exercise.minutes} 分钟，覆盖 ${skill.exercise.covers.join("、")}，不计分` : "资料整理中"}</div></div>
               {!pack ? <a class="btn small primary" href={href("boss", id)}>查看题目与答案</a> : lit ? <span class="badge st-lit"><Icon name="sparkle" /> 已点亮</span> : st.bossOpen ? <a class="btn small primary" href={href("boss", id)}>挑战</a> : <span class="small muted">学完全部核心章后开放</span>}
             </div>
-          </li>
+          </li>}
         </ol>
         {skill.chapterOrder.basis !== "original" && skill.chapterOrder.basis !== "extension" && <p class="small muted">章节顺序按主教材《{skill.chapterOrder.source}》的讲授顺序排列。</p>}
       </section>
@@ -102,12 +103,14 @@ export function SkillView({ id }) {
           {skill.recommended.length > 0 && <><h4>推荐先学（不挡路）</h4><ul class="prereqs">{skill.recommended.map((r) => <li><SkillLink id={r.id} /><div class="small">{r.why}</div></li>)}</ul></>}
         </div>
         <div class="card">
-          <h3>课程证据</h3>
-          <ul class="evidence-list">
+          <h3>{toy ? "后续技能" : "课程证据"}</h3>
+          {!toy && <ul class="evidence-list">
             {skill.courses.map((c) => <li><a href={c.url} target="_blank" rel="noopener">{c.school} · {c.course}</a><blockquote class="small">{c.prereq}</blockquote>{c.content && <div class="small muted">课程内容：{c.content}</div>}</li>)}
             {(skill.kth || []).map((k) => <li><a href={k.url} target="_blank" rel="noopener">KTH · {k.code} {k.name}（{k.credits} 学分）</a><blockquote class="small">{k.quote}</blockquote><div class="small muted">{k.fit}。{k.needs.length ? "先修与技能树一致：" + k.needs.map((n) => `${n.courses} → ${g.byId.get(n.skill).name}${n.inClosure ? " ✓" : " ✗"}`).join("；") : ""}{k.note ? " " + k.note : ""}（{k.fetched} 读取）</div></li>)}
-          </ul>
-          {skill.unlocks.length > 0 && <><h4>后续技能</h4><p>{skill.unlocks.map((u) => <SkillLink id={u} />)}</p></>}
+          </ul>}
+          {skill.unlocks.length > 0
+            ? <>{!toy && <h4>后续技能</h4>}<p>{skill.unlocks.map((u) => <SkillLink id={u} />)}</p></>
+            : toy && <p class="small muted">暂无后续技能。</p>}
         </div>
       </section>
 

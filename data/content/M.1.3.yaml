@@ -1,0 +1,331 @@
+skill: M.1.3
+version: 2
+brief:
+  why: 雨量和速度会随时间变化。积分让你用许多小段的贡献算出总量，也给后面的概率密度提供了计算工具。
+  outcomes:
+    - 用黎曼和与原函数计算定积分
+    - 用换元与分部积分找原函数
+    - 用极限判断反常积分是否有有限值
+terms:
+  - term: 黎曼和
+    def: 把区间分段，用取样高度乘以段宽后求和。
+  - term: 定积分
+    def: 分段加细后黎曼和的极限，计入曲线相对横轴的正负。
+  - term: 微积分基本定理
+    def: 连续函数的累积积分求导会回到被积函数，定积分可用原函数端点差求值。
+  - term: 换元积分
+    def: 反用链式法则，用新的量及其微分把积分改写成较简单的形式。
+  - term: 反常积分
+    def: 区间无限或被积函数在边界附近无界时，用普通积分的极限来定义。
+  - term: 原函数
+    def: 求导后等于指定函数的函数。
+  - term: 变量
+    def: 可以取不同值的量。
+lessons:
+  - id: riemann
+    chapter: 定积分
+    title: 用窄矩形拼出面积
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 曲线下面放几个矩形，矩形越窄会怎样？
+          options:
+            - text: 矩形越多，误差必定越大
+              why: 更窄的矩形能更贴近局部高度。
+            - text: 通常能更贴近曲线
+              correct: true
+          explain: 对这里的平滑曲线，缩小每段宽度可减少近似误差。
+      - card:
+          title: 每段宽度乘高度
+          body: '**黎曼和（Riemann sum）**将曲边区域用矩形近似。等分成 n 段，每段宽 Δx = (b−a)/n。Σ 表示把每段的贡献加起来，取样点可以是段的左端、右端或中点。'
+      - card:
+          title: 例题：四块地算两块
+          body: 用两个左端矩形近似 [0,2] 上 f(x)=x 的面积。
+          reveal:
+            - title: 先找宽度
+              body: 宽度为 1。
+            - title: 选高度并相加
+              body: 左端是 0 和 1，高度相同，所以面积和为 0×1 + 1×1 = 1。
+      - item:
+          id: right
+          type: number
+          prompt: 用两个右端矩形近似 [0,2] 上 f(x)=x 的面积，和是多少？
+          answer: 3
+          explain: 右端为 1 和 2，每段宽 1，所以是 1 + 2。
+      - card:
+          title: 看分段加密的效果
+          body: 拖动矩形数，比较左端近似和真实面积。这里曲线递增，左端矩形在曲线下。
+          sim:
+            name: plot
+            params:
+              mode: riemann
+              f: x^2
+              a: 0
+              b: 1
+              rule: left
+              nMax: 200
+      - item:
+          id: error
+          type: sim
+          sim: plot
+          params:
+            mode: riemann
+            f: x^2
+            a: 0
+            b: 1
+            rule: left
+            nMax: 200
+          goal:
+            errorBelow: 0.02
+          solution:
+            'n': 50
+          prompt: 增加左端矩形，直到误差小于 0.02。
+          explain: 把宽度缩小后，每段没有覆盖到的面积随之减少。
+  - id: signed-area
+    chapter: 定积分
+    title: 过轴以后，总量可以扣减
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 先向前走 3 米，再退 1 米。位移和总路程一样吗？
+          options:
+            - text: 位移是 2 米，路程是 4 米
+              correct: true
+            - text: 都是 4 米
+              why: 位移需要抵消后退的部分。
+          explain: 一段向后时，方向影响位移而不影响路程。
+      - card:
+          title: 正负都累进一个数
+          body: '**定积分（definite integral）**写成 ∫ₐᵇ f(x) dx。横轴上方记正，下方记负。连续函数在闭区间上可积。若问几何总面积，应对 |f| 求积分，或者在过轴点处分段。'
+      - item:
+          id: area
+          type: number
+          prompt: 曲线在轴上方面积为 5，在下方面积为 2。它在这个区间上的定积分是多少？
+          answer: 3
+          explain: 下方贡献 −2，总和 5 − 2 = 3。
+      - card:
+          title: 拆开区间与交换方向
+          body: 在同一方向把相邻区间相加，可得整个区间的积分。交换上下限会改符号。对直线与横轴组成的区域，也可先算三角形或矩形，再根据位置标符号。
+      - item:
+          id: reverse
+          type: number
+          prompt: 已知 f 从 0 到 3 的积分为 6，从 3 到 1 的积分为 −4。从 0 到 1 的积分是多少？
+          answer: 2
+          explain: 按有向区间相接，[0,3] 加 [3,1] 抵消了 [1,3]，所以 6 − 4 = 2。
+  - id: fundamental
+    chapter: 微积分基本定理与反常积分
+    title: 累积量的斜率等于当下速度
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个水箱当前进水很快。记录总进水量的曲线在此时会怎样？
+          options:
+            - text: 保持水平
+              why: 还在快速进水时，总量会继续变大。
+            - text: 向上变得更陡
+              correct: true
+          explain: 总量对时间的变化率就是此刻流入速度。
+      - card:
+          title: 一条定理的两个方向
+          body: '**微积分基本定理（fundamental theorem of calculus）**。若 F(x)=∫ₐˣ f(t)dt，则 F′(x)=f(x)。若 G′=f，积分从 a 到 b 就是 G(b)−G(a)。连续函数的区间平均值还会在某一点取到。'
+      - card:
+          title: 例题：变动的上限
+          body: F(x)=∫₀ˣ² e^(−t²) dt，求 F′(x)。
+          reveal:
+            - title: 先对上限求导
+              body: 若上限记 u，累积函数对 u 的导数为 e^(−u²)。
+            - title: 乘上限变化率
+              body: u=x²，u′=2x，故 F′(x)=2x e^(−x⁴)。
+      - item:
+          id: chain
+          type: choice
+          prompt: 若 F(x)=从 0 到 3x 的 cos(t) 积分，F′(x) 是什么？
+          options:
+            - text: 3 cos(3x)
+              correct: true
+            - text: cos(3x)
+              why: 还要乘上限变化率。
+          explain: 先把被积函数取在 3x，再乘上限导数 3。
+      - item:
+          id: sine
+          type: number
+          prompt: sin x 在 0 到 π 的定积分是多少？
+          answer: 2
+          explain: 原函数是 −cos x，代上下限得到 1 − (−1)=2。
+  - id: substitution
+    chapter: 微积分基本定理与反常积分
+    title: 把复合形式换成一个新字母
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 连续几步都在用 1+x²，把它记作 u 能省什么？
+          options:
+            - text: 会让积分凭空消失
+              why: 还要换微分与积分范围。
+            - text: 能集中处理反复出现的那部分
+              correct: true
+          explain: 把里层算式换成一个名字能看清结构。
+      - card:
+          title: 把里外两层都换掉
+          body: '**换元积分（integration by substitution）**。可以取不同值的量叫**变量（variable）**。例如 u=1+x² 时 du=2x dx，∫2x/(1+x²)dx 就成了 ∫du/u，答案为 ln(1+x²)+C。'
+      - card:
+          title: 例题：换元也换上下限
+          body: 计算 ∫₀¹ 2x(1+x²)dx。
+          reveal:
+            - title: 换变量和范围
+              body: u=1+x²，du=2x dx，上下限分别是 1、2。
+            - title: 对新变量算端点差
+              body: u²/2 从 1 到 2 的差是 3/2。
+      - item:
+          id: sub-value
+          type: number
+          prompt: ∫₀² 2x(1+x²)dx 的值是多少？
+          answer: 12
+          explain: u 从 1 到 5，端点差是 (25−1)/2=12。
+      - item:
+          id: bounds
+          type: choice
+          prompt: 从 x 积分换成 u 积分之后，应该怎么写范围？
+          options:
+            - text: 把两个 x 端点代入 u(x)，使用对应的 u 端点
+              correct: true
+            - text: 不管变量怎么换，保留 x 端点数字
+              why: 同一数字通常代表不同位置。
+          explain: 符号和端点必须说的是同一个变量。
+  - id: improper
+    chapter: 微积分基本定理与反常积分
+    title: 区间没边，先划一条临时界线
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一直往右画曲线，曲线越来越低。总面积一定无限吗？
+          options:
+            - text: 只要区间无限，面积就一定无限
+              why: 一些快速衰减的曲线有有限总面积。
+            - text: 不一定，要看面积增长是否有界
+              correct: true
+          explain: 变低的速度会影响无限多段的总和。
+      - card:
+          title: 用极限定义超出普通范围的积分
+          body: '**反常积分（improper integral）**。先积分到有限的 B，再令 B→∞；若端点有奇异性，则从端点内侧逼近。区间中间有奇异点时，两侧分别求极限。'
+      - card:
+          title: 例题：向右无限延长
+          body: 分别考察 x⁻² 与 x⁻¹ 从 1 到无穷。
+          reveal:
+            - title: 算到有限右界
+              body: 前者为 1−1/B，后者为 ln B。
+            - title: 让边界趋向无穷
+              body: 前者趋于 1，后者无界。非负函数若被一个已知可积的函数压在下面，也可用比较判断收敛。
+      - item:
+          id: singular
+          type: number
+          prompt: ∫₀¹ x⁻¹ᐟ² dx 收敛，值是多少？
+          answer: 2
+          explain: 从 ε 到 1 的积分是 2−2√ε，ε 向 0 时趋于 2。
+      - item:
+          id: comparison
+          type: choice
+          prompt: 在 x≥1 上，非负函数始终不超过 1/x²。它在 [1,∞) 的积分会怎样？
+          options:
+            - text: 收敛，积分不超过 1
+              correct: true
+            - text: 必发散，因为右端点无限
+              why: 函数足够小，累积仍可有上界。
+          explain: 它的部分积分单调增长并受可积上界限制。
+  - id: antiderivative
+    chapter: 不定积分
+    title: 从导数倒查原来的函数
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个函数只差一个固定高度，它们的斜率会不同吗？
+          options:
+            - text: 更高的函数斜率一定更大
+              why: 高度差不随位置改变。
+            - text: 斜率相同
+              correct: true
+          explain: 固定高度不会随输入改变。
+      - card:
+          title: 原函数是一整家
+          body: '**原函数（antiderivative）**。例如 x³/3 的导数是 x²，因任意常数求导为零，不定积分写作 x³/3+C。用幂规则时要单独处理 x⁻¹，它的原函数是 ln|x|+C。指数和三角形式也可通过求导反查。'
+      - item:
+          id: reverse-power
+          type: choice
+          prompt: ∫x³ dx 应该写成什么？
+          options:
+            - text: 3x²+C
+              why: 这是直接对 x³ 求导。
+            - text: x⁴/4+C
+              correct: true
+          explain: 对 x⁴/4 求导得到 x³。
+      - card:
+          title: 例题：把导数从一因子移到另一因子
+          body: 用分部积分求 ∫x eˣ dx。
+          reveal:
+            - title: 回想乘积法则
+              body: 由 (uv)′=u′v+uv′ 得 ∫u dv = uv−∫v du。
+            - title: 挑选容易化简的因子
+              body: 令 u=x，dv=eˣdx，则 du=dx，v=eˣ。
+            - title: 把剩下的积分算完
+              body: x eˣ − ∫eˣdx = (x−1)eˣ+C。
+      - item:
+          id: parts
+          type: choice
+          prompt: 用分部积分处理 ∫x cos x dx，令 u=x 时应取哪项作 v？
+          options:
+            - text: −sin x
+              why: 它的导数是 −cos x。
+            - text: sin x
+              correct: true
+          explain: dv=cos x dx，反过来求导得到 v=sin x。
+boss:
+  items:
+    - id: riemann
+      type: number
+      prompt: 在 [0,2] 上用两段宽 1 的右端矩形近似 f(x)=x²。面积和多少？
+      answer: 5
+      explain: 用高度 1² 和 2² 相加。
+    - id: signed
+      type: number
+      prompt: 上方面积 7，下方面积 3。带符号积分为多少？
+      answer: 4
+      explain: 轴下贡献为 −3。
+    - id: variable-end
+      type: choice
+      prompt: F(x)=从 0 到 x² 的 sin(t) 积分。F′(x) 是什么？
+      options:
+        - text: sin(x²)
+          why: 漏掉上限的变化率。
+        - text: 2x sin(x²)
+          correct: true
+      explain: 把被积函数取在上限，再乘上限导数。
+    - id: improper-test
+      type: choice
+      prompt: 1/x 从 1 到无穷的反常积分收敛吗？
+      options:
+        - text: 收敛到 1
+          why: 收敛到 1 的是 1/x² 的这个积分。
+        - text: 发散，ln B 随 B 无界
+          correct: true
+      explain: 把积分先算到有限端点 B，最后再看极限。
+    - id: antiderivative
+      type: choice
+      prompt: 哪一项是不定积分 ∫x eˣ dx？
+      options:
+        - text: xeˣ+C
+          why: 求导会多出一项 eˣ。
+        - text: (x−1)eˣ+C
+          correct: true
+      explain: 求导得到 eˣ+(x−1)eˣ=xeˣ。

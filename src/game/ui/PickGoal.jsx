@@ -126,8 +126,8 @@ function GoalPicker({ p }) {
               <div class="small muted">目标</div>
               <h3 style={{ margin: "0 0 0.3rem" }}>{g.byId.get(goal).name}</h3>
               <p class="small">{g.byId.get(goal).desc}</p>
-              <p class="small"><b>{ps.stops} 站</b> · {ps.withContent} 站有互动课（{hours(ps.minutes)}），其余是“按章读资料 + 综合练习”。</p>
-              <ol>{preview.stops.map((id) => <li class={packs[id] ? "has-lessons" : ""}>{g.byId.get(id).name}{packs[id] ? "" : "（自学）"}</li>)}</ol>
+              <p class="small"><b>{ps.stops} 站</b> · {ps.withContent} 站有互动课（{hours(ps.minutes)}），{g.tree.meta.edition === "toy" ? "其余可查看章节。" : "其余是“按章读资料 + 综合练习”。"}</p>
+              <ol>{preview.stops.map((id) => <li class={packs[id] ? "has-lessons" : ""}>{g.byId.get(id).name}{packs[id] ? "" : g.tree.meta.edition === "toy" ? "（开发中）" : "（自学）"}</li>)}</ol>
               <button type="button" class="btn primary wide" disabled={!playable(preview)} onClick={() => setRoute(preview.id)}>以它为目标出发</button>
             </>
           ) : (

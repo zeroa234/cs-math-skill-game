@@ -10,7 +10,8 @@
 // Fails (exit 1) on console errors, page errors or a lesson that cannot be finished.
 import fs from "node:fs";
 import path from "node:path";
-import { answerAnything, playLesson as play, lessonsToWalk } from "./lib/play.mjs";
+import { answerAnything, finishAllLessons, playLesson as play, lessonsToWalk } from "./lib/play.mjs";
+import { indexTree, planRoute } from "../src/game/core/graph.js";
 import { ROOT, GAME_URL as url, launchEdge } from "../scripts/lib/edge.mjs";
 
 const out = path.resolve(process.argv[2] || path.join(ROOT, "temp/shots"));
@@ -19,7 +20,8 @@ const browser = await launchEdge();
 const packs = JSON.parse(fs.readFileSync(path.join(ROOT, "src/gen/content.json"), "utf8"));
 // A maths skill with no content pack yet (its exercise has formulas), for the self-study and music checks.
 // Picked from the tree, not named: these checks used M.1.1 and went stale when its pack was written.
-const TREE_SKILLS = JSON.parse(fs.readFileSync(path.join(ROOT, "src/gen/tree.json"), "utf8")).skills;
+const TREE = JSON.parse(fs.readFileSync(path.join(ROOT, "src/gen/tree.json"), "utf8"));
+const TREE_SKILLS = TREE.skills;
 const MATH_NO_PACK = TREE_SKILLS.find((s) => s.id.startsWith("M.") && !packs[s.id] && s.exercise).id;
 // The same for a computing-foundations skill (the check used F.1.2 until its pack was written).
 const FOUNDATION_NO_PACK = TREE_SKILLS.find((s) => s.id.startsWith("F.") && !packs[s.id] && s.exercise).id;
@@ -109,12 +111,11 @@ await session("home", DESK, async (p, shot) => {
   }
   await p.waitForSelector(".page.pick");
   await shot("1-pick", true);
-  // 我的远征 and the recommended routes whose every stop is written (算法, opened 2026-11-04) can be chosen;
-  // the other recommended routes and 自己定目标 say 开发中.
+  // Completed campaigns can be chosen; unfinished recommendations and custom goals say 开发中.
   const dev = await p.$$eval(".route-card.dev", (cs) => cs.map((c) => !!c.querySelector("button[disabled]")));
   if (dev.length < 5 || dev.some((d) => !d)) errors.push(`[home] expected greyed-out recommended routes with disabled buttons, got ${JSON.stringify(dev)}`);
   const openRec = await p.$$eval(".routes:not(.mine) .route-card:not(.dev)", (cs) => cs.map((c) => [c.getAttribute("aria-label"), !!c.querySelector(".btn.primary")]));
-  if (JSON.stringify(openRec) !== JSON.stringify([["算法", true]])) errors.push(`[home] expected the 算法 route open with a start button, got ${JSON.stringify(openRec)}`);
+  if (JSON.stringify(openRec) !== JSON.stringify([["人工智能：机器学习与深度学习", true], ["网络安全", true], ["算法", true]])) errors.push(`[home] expected AI, 网络安全 and 算法 with start buttons, got ${JSON.stringify(openRec)}`);
   if ((await p.$$(".routes.mine .route-card:not(.dev) .btn.primary")).length !== 1) errors.push("[home] 我的远征 should offer exactly one start button");
   if (await p.$(".goal-list")) errors.push("[home] the goal picker is open although 自己定目标 is in development");
   await p.click(".routes.mine .route-card .btn.primary");
@@ -185,11 +186,10 @@ await session("home", DESK, async (p, shot) => {
 
 await session("packs", DESK, async (p, shot) => {
   const only = process.env.E2E_PACKS ? new Set(process.env.E2E_PACKS.split(",")) : null;
-  const walk = lessonsToWalk(packs);
+  const walk = lessonsToWalk(only ? Object.fromEntries(Object.entries(packs).filter(([id]) => only.has(id))) : packs);
   console.log(`packs: ${Object.values(walk).flat().length} lessons${process.env.FULL === "1" ? " (FULL)" : " (every item type and component, and the widest code; FULL=1 for all)"}`);
-  for (const [skill] of Object.entries(packs)) {
-    if (only && !only.has(skill)) continue;
-    for (const l of walk[skill]) {
+  for (const [skill, lessons] of Object.entries(walk)) {
+    for (const l of lessons) {
       await p.goto(url + `#/lesson/${skill}/${l.id}`);
       await p.waitForSelector(".player");
       if (!(await playLesson(p, `${skill}/${l.id}`, l))) errors.push(`[packs] ${skill}/${l.id} did not finish`);
@@ -199,6 +199,49 @@ await session("packs", DESK, async (p, shot) => {
     await shot(skill);
   }
 });
+
+const graph = indexTree(TREE);
+for (const [campaign, total, updated] of [
+  ["security", 9, ["C.2.2", "C.3.2", "C.4.2", "S.2.2"]],
+  ["ai", 14, ["M.1.3", "M.1.4.1", "M.6.1", "M.6.2", "A.2.1", "M.6.2.2", "A.2.3", "A.4.1"]],
+]) {
+  await session(campaign, DESK, async (p, shot) => {
+    const route = planRoute(graph, TREE.routes.find((r) => r.id === campaign));
+    const newStops = route.stops.filter((id) => updated.includes(id));
+    if (newStops.length !== updated.length) throw new Error("new skills must be on the campaign");
+    await p.click(".intro .skip");
+    await p.goto(url + "#/pick");
+    const card = p.locator(".route-card").filter({ has: p.getByRole("heading", { name: route.name, exact: true }) });
+    const facts = await card.locator(".facts").innerText();
+    if (!facts.includes(total + " 站 · " + total + " 站有互动课")) throw new Error("campaign is missing playable stops");
+    await card.locator(".btn.primary").click();
+    const trail = "#/route/" + campaign;
+    await p.waitForURL(url + trail);
+    await p.waitForSelector(".units .unit");
+    if (await p.locator(".units .unit").count() !== total) throw new Error("unexpected stop count");
+    await p.evaluate((ids) => {
+      const key = "cs-math-skill-game/progress";
+      const save = JSON.parse(localStorage.getItem(key));
+      const at = new Date().toISOString();
+      for (const id of ids) save.skills[id] = { lit: at, boss: { graded: true, auto: 1 } };
+      localStorage.setItem(key, JSON.stringify(save));
+    }, route.stops.filter((id) => !updated.includes(id)));
+    // The packs session walks the lessons. Exercise the new challenges through the route.
+    await finishAllLessons(p, Object.fromEntries(newStops.map((id) => [id, packs[id]])));
+    for (const id of newStops) {
+      await p.locator(".trail li.current .start-pop .btn").click();
+      await p.waitForURL(url + "#/boss/" + id);
+      await p.click(".boss-brief .btn.primary");
+      const flow = packs[id].boss.items.map((item) => ({ kind: "item", item }));
+      if (!(await playLesson(p, campaign + "/" + id, { flow }))) throw new Error(id + " challenge did not finish");
+      await p.waitForSelector(".lit-mark");
+      await p.locator(".celebrate .btn.primary").click();
+      await p.waitForSelector(".units");
+    }
+    if (!(await p.locator(".route-banner .small").first().innerText()).includes(total + " / " + total)) throw new Error("campaign did not light every stop");
+    await shot("completed");
+  });
+}
 
 // The whole loop on one skill: every chapter → final challenge → lit → next stops open →
 // cards come due (moved into the past in storage) → a review session runs to completion.

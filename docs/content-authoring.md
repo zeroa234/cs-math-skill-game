@@ -91,7 +91,7 @@ npm run build && npm run e2e                             # 每一课按正确答
 
 写完课再逐行核对一遍。覆盖表不全的包不算写完，也不计入路线卡片上的“已写好”：构建按 C1 检查每个包，通过才给它标上 `coverage: true`（`src/game/app/state.js` 的 `routeStats` 只数两条都满足的站）。
 
-**现状**：2026-11-03 先对照了 P.1.1 和 P.2.2，结果在 `reports/coverage-audit.md`，两站随后补齐。“我的远征”的 5 站（P.1.1、P.2.2、F.1.1、C.1.1、C.2.1）都已按两条标准写完，覆盖表全部通过 C1。另外 13 个技能的旧版包不达标，已归档到 `archive/data/content/`；其中 M.1.1、M.1.2、M.3.1、P.2.3、M.5.3、F.1.2 已按两条标准重写，旧包已删，其余的技能现在和其他没有互动课的技能一样。
+**现状**：2026-11-03 先对照了 P.1.1 和 P.2.2，结果在 `reports/coverage-audit.md`，两站随后补齐。“我的远征”的 5 站（P.1.1、P.2.2、F.1.1、C.1.1、C.2.1）都已按两条标准写完，覆盖表全部通过 C1。另外 13 个技能的旧版包不达标，已归档到 `archive/data/content/`；其中 M.1.1、M.1.2、M.3.1、P.2.3、M.5.3、F.1.2、C.3.2 以及人工智能远征的五个归档技能都已重写。归档目录里的早期材料仅供查阅。
 
 ## 一课的结构
 
@@ -170,7 +170,7 @@ npm run build && npm run e2e                             # 每一课按正确答
 
 函数表达式（plot、descent 的 `f`，`src/game/sims/expr.js`）支持 `+ - * / ^`、括号、`2x` 这种省略乘号、`sin cos tan exp log ln sqrt abs tanh sigmoid relu`、常数 `pi e`。没用现成库的原因：只需四则运算和少数函数，expr-eval 自 2022 年未更新，math.js 约 9 MB。
 
-抽样、二维梯度下降、神经元、小神经网络、k-means 还没有课用到：代码在游戏里，实验室条目暂放在 `archive/src/game/ui/lab-archived.js`。课里第一次用到时，把条目挪进 `src/game/app/lab.js`。
+抽样、二维梯度下降、神经元、小型神经网络和 k-means 由人工智能远征的课程引入。二维梯度下降的 `params.mode` 为 `2d`，便于实验室把它和一维实验分别登记。
 
 **加了新的交互组件或新的模式**：在 `src/game/app/lab.js` 的 `LAB` 里加一条，玩家第一次学完用到它的课，实验室就多出这个实验（单元测试会检查课里的每个实验都在实验室里）。
 

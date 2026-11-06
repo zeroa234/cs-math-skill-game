@@ -1,0 +1,697 @@
+skill: S.2.2
+version: 2
+brief:
+  why: 一条网页请求会经过邻居、网关、名字服务和远端服务器。你会用虚构网络追踪各层信任了谁，再为它选择隔离、加密、检测和响应办法。
+  outcomes:
+    - 根据证据区分常见网络攻击与普通故障
+    - 设计有状态防火墙规则与分区
+    - 核对 TLS 证书、计算告警可信度并选择安全监测点
+terms:
+  - term: 在途攻击者
+    def: 能观察目标通信路径上的流量，并可能丢弃、修改或注入数据的对手。
+  - term: ARP 欺骗
+    def: 在本地链路用伪造 ARP 消息污染 IP 到 MAC 的对应关系。
+  - term: DHCP
+    def: 为主机自动分配地址，并下发网关、DNS 等网络设置的协议。
+  - term: 路由劫持
+    def: 错误通告使本应到某个网络前缀的流量被引向其他网络。
+  - term: SYN 洪泛
+    def: 大量发起 TCP 握手却未完成，试图消耗服务端半开连接资源。
+  - term: DNS 缓存投毒
+    def: 使解析器接受并缓存伪造记录，后续查询可能被引到错误位置。
+  - term: DNSSEC
+    def: 用数字签名和委派建立 DNS 记录来源与完整性验证的扩展。
+  - term: 网络分段
+    def: 按职责或风险把网络分区，并只允许跨区所需的流量。
+  - term: 零信任
+    def: 根据身份、设备状态和资源策略核验访问，不凭网络位置默认授信。
+  - term: 有状态防火墙
+    def: 记录连接状态，结合方向、地址、端口等信息决定包是否可通过。
+  - term: 入侵检测
+    def: 从网络或主机上的证据发现可疑行为并报警。
+  - term: TLS
+    def: 通过加密、完整性保护和身份认证保护应用通信的协议。
+  - term: 前向保密
+    def: 长期身份密钥日后泄露时，过去用临时密钥协商的会话仍能保持保密。
+lessons:
+  - id: adversaries
+    chapter: 协议攻击面
+    title: 先问对方能碰到什么
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同一教室里的陌生人能听到你大声说的密码，远处的人只能往教室寄信。两人能做的事一样吗？
+          options:
+            - text: 要分别判断他们看得到什么、能改什么
+              correct: true
+            - text: 一样，只要能寄信就能听见谈话
+              why: 能发送消息不等于能观察传送中的其他内容。
+          explain: 所在位置决定一部分能力。
+      - card:
+          title: 先从位置推能力
+          body: '**在途攻击者（on-path attacker）**可能看到请求与回应。离开路径的对手往往只能尝试猜测和伪造。先列能看到、能改动和能阻断的东西，再按风险确定防护。'
+      - item:
+          id: visibility
+          type: match
+          prompt: 把观察线索与能力配对。
+          pairs:
+            - - 读到未加密的消息内容
+              - 窃听
+            - - 把自制应答冒充成原服务器回应
+              - 仿冒
+            - - 让真实回应始终送不出去
+              - 阻断
+          explain: 区分观察、伪造和阻断，有助于选对应防护。
+      - card:
+          title: 三层有三种标记
+          body: 本地以太网用 MAC 地址送帧，跨网络用 IP 指向目的地，端口再把传输交给程序。连接是端点维护的一段通信状态，包是单次传送的单位。ARP 在本地链路查询 IPv4 到 MAC 的对应关系。
+      - item:
+          id: neighbors
+          type: choice
+          prompt: 主机想给外网服务发数据，得先按路由交给本地网关。哪个标记用于交付这一步的帧？
+          options:
+            - text: 本地网关的 MAC 地址
+              correct: true
+            - text: 远端服务的端口
+              why: 端口用于把数据交给程序。
+          explain: 最终服务保留在 IP 目的中，本地交付到下一跳。
+      - card:
+          title: 需要保护的东西
+          body: 消息只让授权人读是机密性，内容免遭未授权修改是完整性，服务在需要时能用是可用性。面对同一协议，偷看、篡改和阻断会破坏不同目标。
+      - item:
+          id: property
+          type: choice
+          prompt: 业务消息未被读取或修改，但请求持续被丢弃，用户无法访问服务。首先受损的是哪一项？
+          options:
+            - text: 可用性
+              correct: true
+            - text: 机密性
+              why: 没有证据表明有人读到消息内容。
+          explain: 用户需要时用不了服务。
+  - id: local-spoof
+    chapter: 协议攻击面
+    title: 邻居冒充网关时
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 地址簿突然被换了，同一个门牌被指向陌生人。你送信前最该查什么？
+          options:
+            - text: 门牌和收件人的对应关系
+              correct: true
+            - text: 把信再发送一次就够了
+              why: 仍使用假记录会重复送错。
+          explain: 被改动的是将门牌对应到谁的那条记录。
+      - card:
+          title: 同网段的假应答
+          body: '**ARP 欺骗（ARP spoofing）**可能让主机把本该发给网关的帧交给别的设备。交换机可用动态 ARP 检查验证绑定，固定设备也可使用静态绑定。端到端保护仍可限制被转发时内容遭读取或篡改。'
+      - item:
+          id: arp
+          type: choice
+          prompt: 同一网段多台主机突然把网关 IP 对应到一台陌生设备的 MAC。哪条线索最吻合？
+          options:
+            - text: 外网权威 DNS 改了域名记录
+              why: 那会影响域名查出的地址，与当前网关绑定不同。
+            - text: ARP 绑定遭到污染
+              correct: true
+          explain: 变化发生在本地 IP 到链路标记的映射。
+      - card:
+          title: 第一次接入时，谁发配置
+          body: '**DHCP（Dynamic Host Configuration Protocol）**给入网设备配置地址、网关和名字服务。设备先寻找服务器，再收到提议、请求配置并等待确认。假服务器可送来错误配置。交换机可只信任指定端口的回复，记录合法租约供 ARP 检查。'
+      - item:
+          id: match
+          type: match
+          prompt: 把问题与优先查看的证据配对。
+          pairs:
+            - - 网关 IP 对应的链路地址突变
+              - ARP 表与交换机绑定
+            - - 刚入网就获得错误的网关和 DNS
+              - DHCP 租约与回复来源
+          explain: 一个改变邻居绑定，一个可能改变接入设置。
+      - item:
+          id: dhcp-snoop
+          type: choice
+          prompt: 普通接入口接来一台冒充 DHCP 服务的设备。什么措施直接限制它发配置？
+          options:
+            - text: 只从授权的交换机端口接受 DHCP 服务器回复
+              correct: true
+            - text: 只给服务器换网页证书
+              why: 证书不决定本地 DHCP 回复是否进网。
+          explain: 假设备位于不受信端口，其服务器回复可被拦下。
+  - id: routing-attacks
+    chapter: 协议攻击面
+    title: 路由通告里的两种越界
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个陌生车站通知其他站‘整个校区都由我负责’。查验的第一件事是什么？
+          options:
+            - text: 它有没有权通告这段去向
+              correct: true
+            - text: 只看谁先发通告
+              why: 先到的通告也可能不正确。
+          explain: 听到通告与确认它有权发通告是两步。
+      - card:
+          title: 通告一段别人拥有的前缀
+          body: '**路由劫持（route hijacking）**可由误配置或恶意行为引起。另一类问题叫路由泄露，即把本来只允许在一定范围内传播的路线通告给了不该收到的邻居。'
+      - item:
+          id: route-events
+          type: match
+          prompt: 区分两种路由异常。
+          pairs:
+            - - 运营商声称自己是别人前缀的起源
+              - 起源劫持
+            - - 把从一个上游学来的路由又通告给另一个上游
+              - 可能的路由泄露
+          explain: 一个是起源归属不符，一个是跨出了允许传播的范围。
+      - card:
+          title: 源地址与路由起源分别验证
+          body: 入口源地址过滤核对包声称的来源是否符合这个入口。路由源验证用 RPKI 授权记录检查某前缀是否由获准的自治系统起源，还要看允许的前缀长度。它无法独自检查整条路径的所有传播约束。
+      - item:
+          id: different
+          type: choice
+          prompt: 一个网络收到源地址明显不应来自客户链路的包。哪种控制直接处理它？
+          options:
+            - text: 只做 BGP 路由源验证
+              why: 路由验证针对前缀通告，并不逐个检查客户发送的 IP 包。
+            - text: 在接收客户流量的入口做源地址过滤
+              correct: true
+          explain: 这里需要检查包头所称来源与入口的关系。
+      - card:
+          title: 把不同控制用在对应位置
+          body: MANRS 提倡过滤、源地址防伪造、协调和发布可验证信息等运行实践。BGPsec 用签名保护传播的路径信息；FCBGP 是另一种路径验证方案。源地址验证体系关注流量声称来自何处，部署时仍要根据拓扑选合适策略。
+      - item:
+          id: origin
+          type: choice
+          prompt: 路由源验证通过，能证明对方整条 AS 路径都遵守出口策略吗？
+          options:
+            - text: 可以，起源授权已经验证每个邻居
+              why: 它没有逐一核对传播策略。
+            - text: 还要用相应机制或监测检查路径与出口策略
+              correct: true
+          explain: 起源授权覆盖的是前缀与起源之间的关系。
+  - id: transport-attacks
+    chapter: 协议攻击面
+    title: 连接没建完，等待区先坐满
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 前台为每位预约者保留座位，但大量人登记后从不出现。后来的人会怎样？
+          options:
+            - text: 预约没完成就不会占任何资源
+              why: 前台已经为每个等待者留下座位。
+            - text: 可能找不到空位
+              correct: true
+          explain: 保留资源让人有机会在完成前占住它。
+      - card:
+          title: 把半开的连接留得太多
+          body: '**SYN 洪泛（SYN flood）**会妨碍正常连接。SYN cookie 可把验证所需的信息编码进服务端的初始序号，在收到有效最终确认前减少为半开连接保留的状态。'
+      - item:
+          id: state
+          type: choice
+          prompt: 大量请求停在三次握手的前两步，服务端半开队列已满。哪项机制直接减少为每个半开连接留状态？
+          options:
+            - text: SYN cookie
+              correct: true
+            - text: 改用更长的 DNS 缓存期
+              why: 这不改变 TCP 监听端为握手保存的状态。
+          explain: 服务端能在最后一步用返回的确认检查握手，而少保留前置状态。
+      - card:
+          title: 连接里的冒充与反射
+          body: 猜中合适的 TCP 序号等条件时，对手可能注入报文。随机初始序号增加离途猜测难度，应用数据还可用加密协议保护内容与来源。UDP 自身不握手，某些开放服务会向伪造源地址发送比请求更大的响应，形成反射放大。
+      - item:
+          id: symptoms
+          type: match
+          prompt: 把现象与攻击类型配对。
+          pairs:
+            - - 未完成的握手挤满等待资源
+              - SYN 洪泛
+            - - 连接中突然出现伪造数据
+              - TCP 注入
+            - - 许多服务器向受害者返回它没发起的响应
+              - 反射放大
+          explain: 半开连接、假数据和反射流量影响不同环节。
+      - card:
+          title: 让服务忙在不同环节
+          body: 拒绝服务也可能发生在应用层，例如大量触发昂贵的查询。由大量来源一起发动时称 DDoS，来源可能是被控制的设备。按连接或任务限速、缓存和上游流量清洗分别缓解不同瓶颈。
+      - item:
+          id: costly
+          type: choice
+          prompt: 大量正常建连后的请求反复触发昂贵查询。最直接的缓解点在哪里？
+          options:
+            - text: 只调整半开队列
+              why: 应用层消耗发生在握手之后。
+            - text: 限制或缓存昂贵的应用操作，并监测真实使用需求
+              correct: true
+          explain: 握手已经完成，实际瓶颈在应用处理。
+  - id: dns-poison
+    chapter: 协议攻击面
+    title: 名字查询先收到了假回信
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你请朋友查地址，一封假信赶在真信前到了。朋友把答案记在本子里，会影响谁？
+          options:
+            - text: 只影响伪造者自己
+              why: 假答案被存下后还可能被复用。
+            - text: 后来依赖这条记录的人也可能收到假地址
+              correct: true
+          explain: 记录一旦缓存，影响会超过最早的查询者。
+      - card:
+          title: 抢在正确回答之前
+          body: '**DNS 缓存投毒（DNS cache poisoning）**要骗过待答查询的匹配条件，例如查询名、类型、事务编号和传输端点。随机化事务编号及源端口增加离途猜测难度。在途对手可以直接观察条件。'
+      - item:
+          id: randomize
+          type: choice
+          prompt: 对手看不到查询，只能伪造回复。为什么给查询选择随机源端口有帮助？
+          options:
+            - text: 对手还需要猜中回复要发往的端口
+              correct: true
+            - text: 随机端口会为 DNS 内容签名
+              why: 端口随机化提高猜测难度，签名属于另一种机制。
+          explain: 匹配条件增加，伪造回复更难被接受。
+      - card:
+          title: 委派中附带的资料也有范围
+          body: 递归解析器沿根、顶级域、权威查找。回复可能含回答、委派或附带地址。Bailiwick 检查约束允许缓存的附带记录范围。经典 Kaminsky 攻击反复针对新名字抢答，试图让解析器缓存错误的委派；缓存与签名验证应共同考虑。
+      - item:
+          id: bailiwick
+          type: choice
+          prompt: 解析器查询甲域时，回复额外声称能给无关的乙域指定服务器。优先采取什么动作？
+          options:
+            - text: 不把越出授权范围的附带记录当成可信资料缓存
+              correct: true
+            - text: 先缓存，以后有查询再看
+              why: 先保存假记录已经会影响后续查询。
+          explain: 回答甲域没有授予该服务器任意更改乙域委派的权力。
+  - id: dnssec
+    chapter: 协议攻击面
+    title: 沿着委派验证签名
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一封公告附了公章，但你从未见过这个章。只看章存在，能证明公告可信吗？
+          options:
+            - text: 还需要知道这个章可信的理由
+              correct: true
+            - text: 有章就可信
+              why: 攻击者也能给自己的公告盖章。
+          explain: 从信任的来源逐层核验比只看有无盖章可靠。
+      - card:
+          title: 从已信任的钥匙往下查
+          body: '**DNSSEC（DNS Security Extensions）**从信任锚开始，父区的 DS 把信任连到子区 DNSKEY，子区的 RRSIG 可验证成组记录。区签名密钥通常签普通记录，密钥签名密钥通常负责 DNSKEY 记录集。'
+      - item:
+          id: verify
+          type: order
+          prompt: 给验证已签名子区的一组 DNS 记录排顺序。已持有可信父区密钥。
+          steps:
+            - 确认父区签名保护的 DS
+            - 用 DS 对照子区 DNSKEY 并验证密钥记录集
+            - 用获信任的子区密钥核对回答的签名
+          explain: 先把信任交给正确的子区密钥，再用它验证回答。
+      - card:
+          title: 回答没有这个名字，也可以有凭据
+          body: NSEC 或 NSEC3 可用签名证明请求的名字或记录类型不存在。签名可让接收方检查来源和内容。旁观者能否读到查询内容，取决于是否另用了加密传输。
+      - item:
+          id: no-confidentiality
+          type: choice
+          prompt: 启用 DNSSEC 后，明文 DNS 请求里的域名还会被路径上的观察者看见吗？
+          options:
+            - text: 会，签名验证与查询加密是不同功能
+              correct: true
+            - text: 不会，签名自动把域名隐藏
+              why: 签名可校验内容，并不会自动加密它。
+          explain: DNSSEC 验证记录来源和完整性。路径上的明文仍可被读取。
+  - id: segments
+    chapter: 分段
+    title: 把一栋楼分成几道门
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 访客只需到大厅取件。如果大厅能直通机房，会多出什么风险？
+          options:
+            - text: 从大厅就可能直接接触机房
+              correct: true
+            - text: 只要大厅不放文件就不会影响机房
+              why: 机房的访问路径仍然暴露。
+          explain: 划门禁边界可以限制一个入口出问题后的影响。
+      - card:
+          title: 按职责限制区与区之间的流量
+          body: '**网络分段（network segmentation）**可把访客、应用和管理放进不同子网或 VLAN，再在边界检查跨区访问。DMZ 是为对外服务划出的隔离区域。NAT 改写地址，有时也改端口，访问许可仍由相应规则决定。'
+      - item:
+          id: zones
+          type: match
+          prompt: 按用途分区。
+          pairs:
+            - - 供外部用户访问的 Web 入口
+              - DMZ
+            - - 工程师配置基础设施
+              - 管理区
+            - - 来访者临时上网
+              - 访客区
+          explain: 公开服务、访客和设备管理可用不同区域，并设置跨区许可。
+      - card:
+          title: 进内网之后还要检查请求
+          body: '**零信任（zero trust）**可以与分段一起用。为每个资源请求核验身份和权限，只给工作所需范围，并持续观察会话状态。'
+      - item:
+          id: least
+          type: choice
+          prompt: 访客电脑已连上同一栋楼的无线网，能否直接进入内部管理应用？
+          options:
+            - text: 能，只要来自大楼的地址
+              why: 同一位置也可以有未经授权的人和设备。
+            - text: 仍须根据资源策略验证身份、设备和权限
+              correct: true
+          explain: 接入网络只建立连通，管理应用需要单独的访问授权。
+  - id: firewall
+    chapter: 防火墙
+    title: 给出站和回包写规则
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 访客登记进入后要从同一个门离开。门卫怎样区分他与想借机闯入的人？
+          options:
+            - text: 查有没有对应的已登记通行
+              correct: true
+            - text: 只看两人是否用了同一扇门
+              why: 走同一扇门无法证明动作属于同一次通行。
+          explain: 记录先前的通行，有助于识别这次动作的关系。
+      - card:
+          title: 从只看一包到记住连接
+          body: '**有状态防火墙（stateful firewall）**能把符合连接状态的回包与外部主动新连区分。只检查单包的过滤器没有这一份连接记录。应用层代理可以解析更高层信息，也会增加部署复杂度。'
+      - card:
+          title: 例题：只开必要的门
+          body: 假定三个区为内网、DMZ、外网。内网可向外网访问网页，外网只能访问 DMZ 的 Web 服务器 TCP 443。
+          reveal:
+            - title: 给新连接定许可
+              body: 允许内网 → 外网的 TCP 80 和 443；允许外网 → DMZ 指定 Web 主机的 TCP 443。
+            - title: 给对应的回包定许可
+              body: 允许属于已放行连接的回程流量。
+            - title: 处理其余访问
+              body: 拒绝余下新连接，按需记录拒绝事件。
+      - item:
+          id: policy
+          type: match
+          prompt: 规则允许外网访问 DMZ Web 的 TCP 443，允许内网向外访问网页及其回包，拒绝其他新连接。分别判断三种流量。
+          pairs:
+            - - 外网发起到 DMZ Web 主机的 TCP 443
+              - 匹配公开服务许可
+            - - 外网发来对应内网已建立网页连接的回包
+              - 匹配连接状态许可
+            - - 外网尝试新连内网的管理端口
+              - 匹配默认拒绝
+          explain: 允许方向、目标和连接状态要一并核对。
+      - card:
+          title: 从策略开始验规则
+          body: 先写谁需要去哪里，再核对规则顺序和默认动作。宽泛的许可放在前面可能盖过细规则。防火墙可限制连通、记录事件，已允许的业务流量仍可能含有问题，服务端自身还要做授权和输入检查。
+      - item:
+          id: shadow
+          type: choice
+          prompt: 按首条匹配判定的防火墙把‘允许任意到内网’放在‘拒绝访客到内网’之前。访客请求会怎样？
+          options:
+            - text: 先匹配宽泛许可并被放行
+              correct: true
+            - text: 后面的拒绝会自动覆盖
+              why: 后续规则没有机会再匹配这份流量。
+          explain: 判断在首条匹配处已经结束。
+  - id: detection
+    chapter: 入侵检测
+    title: 一千次报警里，有多少值得追
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 教室每天几乎没有火情，报警器偶尔误响。响的时候一定有火吗？
+          options:
+            - text: 要结合火情有多罕见和误响频率
+              correct: true
+            - text: 一定有火，报警器平常很准
+              why: 准确性还要看发生火情和没有火情两类情况。
+          explain: 稀有事件的误报即使只占少量，也可能超过真警报。
+      - card:
+          title: 找线索的三种规则
+          body: '**入侵检测（intrusion detection）**可在网络侧看流量（NIDS），也可在主机侧看进程和日志（HIDS）。签名匹配已知模式，异常检测找偏离基线的行为，规范检测找违反明确约束的操作。IPS 还能按配置主动拦截。'
+      - item:
+          id: types
+          type: match
+          prompt: 把检测动作配给策略。
+          pairs:
+            - - 命中已知恶意消息的固定特征
+              - 签名检测
+            - - 突然偏离这台机器平常的连接数量
+              - 异常检测
+            - - 一条操作违反协议的许可顺序
+              - 规范检测
+          explain: 签名看已知模式，异常看历史偏离，规范看规则边界。
+      - card:
+          title: 先分真攻击与正常事件
+          body: 误报是把正常事件报成攻击，漏报是把攻击放过。检测率的分母是真攻击数，误报率的分母是正常事件数。所有告警中真正攻击的比例，还要用真告警除以真告警与误报的总和。
+      - card:
+          title: 例题：基率如何改变告警
+          body: 一天有 100 万事件，10 个是攻击。检测率 99%，误报率 0.1%。算期望比例。
+          reveal:
+            - title: 数真告警
+              body: 10 × 0.99 = 9.9 个。
+            - title: 数误报
+              body: 999990 × 0.001 = 999.99 个。
+            - title: 除以所有告警
+              body: 9.9 ÷ (9.9 + 999.99)，约 0.98%。小数表示多次观察的期望。
+      - item:
+          id: precision
+          type: number
+          prompt: 某段时间有 10 条真实攻击告警和 90 条误报。真实告警占百分之几？填 0 到 100 的百分数。
+          answer: 10
+          explain: 告警共 100 条，真实告警占 10 ÷ 100 = 10%。
+      - item:
+          id: triage
+          type: choice
+          prompt: 告警量很大，而抽查确认大多数是误报。哪种处理能让分析人员更聚焦？
+          options:
+            - text: 按资产和其他证据关联告警，检查分级与误报来源
+              correct: true
+            - text: 把所有告警都当成攻击已经发生
+              why: 告警是线索，需要结合证据核实。
+          explain: 这样可提高优先处理队列的信号质量，同时要留意漏报。
+  - id: tls
+    chapter: 传输保护与网络监测
+    title: 看浏览器怎样认出服务器
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 有人用自己的钥匙锁住给你的回信，说自己是银行。上锁就能确认身份吗？
+          options:
+            - text: 能，上锁证明对端一定是真银行
+              why: 陌生人也有自己的钥匙。
+            - text: 还要确认钥匙属于要访问的银行
+              correct: true
+          explain: 保密与确认对端身份是两项工作。
+      - card:
+          title: 先协商，再证明身份
+          body: '**TLS（Transport Layer Security）**用于 HTTPS。以 TLS 1.3 的常见证书握手为例，双方交换临时密钥材料并导出握手密钥。服务器发证书和对握手记录的签名来证明身份，再用 Finished 核对双方所见的握手。'
+      - item:
+          id: hello
+          type: order
+          prompt: 给常见的 TLS 1.3 完整服务器证书握手排顺序，省略可选消息。
+          steps:
+            - 客户端发 ClientHello 和临时密钥材料
+            - 服务端回 ServerHello 和自己的临时密钥材料
+            - 服务端发受握手密钥保护的证书、证明与 Finished
+            - 客户端验证后发自己的 Finished
+          explain: 临时密钥用于握手保护，客户端随后核对证书、签名和 Finished。
+      - card:
+          title: 这张证书能证明哪个名字
+          body: 浏览器检查证书链能连到可信根、签名和有效期正确、名称匹配当前目标，还按实现策略处理吊销。证书有效只证明对应身份，页面是否合乎你的用途还需要另外判断。
+      - item:
+          id: hostname
+          type: choice
+          prompt: 证书可信且未过期，但只覆盖另一个域名。能通过当前站点的名称验证吗？
+          options:
+            - text: 只要链可信就可以接受
+              why: 签发关系无法补足名称不匹配。
+            - text: 不能通过，证书还得覆盖当前访问的主机名
+              correct: true
+          explain: 可信机构签出的证书只为它列出的身份作证明。
+      - card:
+          title: 以后泄露一把旧钥匙会怎样
+          body: '**前向保密（forward secrecy）**取决于使用临时密钥协商等条件。提前发送的 TLS 1.3 早期数据有重放风险，涉及转账等不可安全重复的操作应避免用这种早期数据。IPsec 可保护 IP 层，VPN 可借它建立隧道。'
+      - item:
+          id: replay
+          type: choice
+          prompt: 一次转账若被重复提交就会多扣款。TLS 1.3 的早期数据适合发这种请求吗？
+          options:
+            - text: 适合，因为加密消息一定无法重放
+              why: 加密和防止重复使用是两件事。
+            - text: 应避免，并由应用防止同一笔交易被重复处理
+              correct: true
+          explain: 早期数据有重放风险，应用还要为交易建立一次性约束。
+  - id: monitoring
+    chapter: 传输保护与网络监测
+    title: 从日志拼出一条时间线
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 听到报警但没看见原因。记下哪里、何时以及发生什么，比只记‘响了’多什么？
+          options:
+            - text: 能把不同来源的记录按事件关联起来
+              correct: true
+            - text: 差不多，只要把报警数量加起来
+              why: 总数无法还原单个事件的来路。
+          explain: 时间和来源有助于定位，也可保留原始线索。
+      - card:
+          title: 观察放在合适的位置
+          body: 边界网络探针可看连接方向、时间、长度等元数据。TLS 通常会隐藏应用内容，能结合有授权的服务日志观察请求结果。先确定要回答的问题，再决定采哪些字段、看多久、谁能看。
+      - item:
+          id: sensors
+          type: match
+          prompt: 给监测需求选第一观察点。
+          pairs:
+            - - 哪台设备向外发送的流量突然增加
+              - 网络流量元数据
+            - - 哪次已登录操作在应用里失败
+              - 服务端应用日志
+            - - 哪个程序刚在主机上启动
+              - 主机事件日志
+          explain: 网络和主机看到的线索不同，可用时间和关联标记汇合。
+      - card:
+          title: 保留证据，也限制采集
+          body: 统一时间来源、保护原始日志和访问记录，可降低事后分析时的歧义。蜜罐可在隔离环境收集探查线索。大范围采集可能暴露用户行为；应明确授权和用途，去除不必要的敏感字段，限定保留期。
+      - item:
+          id: privacy
+          type: choice
+          prompt: 团队只需要统计短时失败率。哪种记录更符合这个目标？
+          options:
+            - text: 保留分组、时间和成功失败状态，限制访问和保留期
+              correct: true
+            - text: 长期保存所有请求正文和凭证
+              why: 失败率不需要采集凭证或全部正文。
+          explain: 能算出指标，减少不必要的敏感内容。
+  - id: wifi
+    chapter: 无线链路安全
+    title: 能收到无线电，不等于能看内容
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 房间外也能收到无线信号。怎样让路过的人听到信号也读不懂数据？
+          options:
+            - text: 只改一个陌生人没见过的网络名
+              why: 名字用来标识网络，没有加密数据。
+            - text: 让无线链路使用经过验证的加密机制
+              correct: true
+          explain: 无线电覆盖边界不适合承担保密。
+      - card:
+          title: 保护的是这一跳
+          body: 设备接入 Wi‑Fi 时要和接入点建立链路保护。WEP 已失去安全性；WPA 是演进中的过渡方案，现代部署可选 WPA2 的 AES-CCMP 或 WPA3。WPA2-Personal 共享密码，WPA3-Personal 用 SAE 进行口令认证。
+      - item:
+          id: scope
+          type: choice
+          prompt: 设备和接入点之间启用了无线链路加密。访问远端网页，还需要 HTTPS 吗？
+          options:
+            - text: 需要，HTTPS 为浏览器和网站之间提供端到端保护
+              correct: true
+            - text: 不需要，接入点会自动保护路径中每一段
+              why: 从接入点再向外的路段需要另外保护。
+          explain: 无线保护只覆盖设备到接入点的一段。
+      - card:
+          title: 连上接入点时发生了什么
+          body: 设备先找到并关联接入点。个人网络和企业网络以不同方式建立或取得共享的基础密钥，随后四次握手确认密钥持有并建立保护这次连接的密钥。冒牌接入点也能宣布同一网络名，所以还要验证它能否完成可信认证。
+      - card:
+          title: 让每个使用者有自己的身份
+          body: WPA2-Enterprise 可通过 802.1X 和 EAP 按账号或证书认证。正确验证认证服务器的证书能降低接入冒牌热点的风险。不同用户可分别停用凭据，降低共用密码泄露的影响。
+      - item:
+          id: evil-twin
+          type: choice
+          prompt: 旁边出现和校园网同名的热点，系统提示认证服务器证书不匹配。应该怎样做？
+          options:
+            - text: 点继续，名字相同已经足够
+              why: 任意接入点都可能配置同一个网络名。
+            - text: 停止连接，用可信渠道核对校园网配置
+              correct: true
+          explain: 同名只能说明热点声称用了这个名字，证书不匹配需要查证。
+boss:
+  items:
+    - id: layer-threat
+      type: match
+      prompt: 把攻击场景和优先防护配好。
+      pairs:
+        - - 假应答污染本地网关 IP 到 MAC 的绑定
+          - 动态 ARP 检查
+        - - 发来的包声称来自不可能从该入口出现的网段
+          - 入口源地址过滤
+        - - 半开 TCP 连接占满等待资源
+          - SYN cookie
+        - - 递归解析器尝试识别伪造的已签名域名记录
+          - DNSSEC 验证
+      explain: 防护要针对攻击成立的那一层和那份状态。
+    - id: trust
+      type: choice
+      prompt: 一个已在内网的设备请求管理员资源。按零信任怎么处理？
+      options:
+        - text: 只看内网地址后直接放行
+          why: 攻击者或未授权设备也可能在内网。
+        - text: 核对身份、设备和所请求权限，再决定是否允许
+          correct: true
+      explain: 连通位置只是上下文之一，管理资源仍要单独授权。
+    - id: stateful
+      type: match
+      prompt: 规则只放行外网到 DMZ Web 的 TCP 443 新连接和相应回包。判断三种流量。
+      pairs:
+        - - 外网新连 DMZ Web 的 443
+          - 许可新建连接
+        - - 该 DMZ 连接的合法回包
+          - 按已有连接许可
+        - - 外网新连内网管理服务
+          - 默认拒绝
+      explain: 状态检查允许对应回包，其余新连接要单独匹配。
+    - id: base-rate
+      type: number
+      prompt: 某检测器得到 20 个真告警和 180 个误报。真告警占多少百分比？填 0 到 100。
+      answer: 10
+      explain: 总告警 200 个，20 ÷ 200 = 10%。
+    - id: certificate
+      type: choice
+      prompt: 浏览器连到 shop.example，服务端证书有效且签发链可信，但名称只覆盖 mail.example。该如何处理？
+      options:
+        - text: 直接接受，两个域名看起来在一个组织
+          why: 证书必须覆盖正在访问的服务身份。
+        - text: 判定名称校验失败
+          correct: true
+      explain: 证书有效期和可信链都不能替代目标名称校验。
+    - id: retention
+      type: choice
+      prompt: 监测目标只需每小时连接数，哪条采集方案合适？
+      options:
+        - text: 优先采集带时间的连接计数并设有限保留
+          correct: true
+        - text: 把所有人的通信正文永久留存
+          why: 这样会采集超出目标的敏感内容。
+      explain: 满足监测用途，无需暴露应用正文。
+    - id: wifi-auth
+      type: choice
+      prompt: 公司要在员工离职时停掉他的无线接入，同时避免全员换共享密码。哪种配置合适？
+      options:
+        - text: 用企业级接入，按个人身份发凭据并核对服务证书
+          correct: true
+        - text: 所有人继续共用一个预共享密码
+          why: 共用密码不能只撤销一个人的使用权。
+      explain: 单个凭据可以独立撤销，其他人继续工作。

@@ -1,0 +1,422 @@
+skill: M.6.2.2
+version: 2
+brief:
+  why: 回归让你把预测、效应和误差一起说明。你会拟合一条线、检查哪些数据改变了它，再决定该怎样限制复杂度。
+  outcomes:
+    - 拟合并解释简单、多元与广义线性模型
+    - 读残差图并区分均值估计与个体预测
+    - 用验证集比较正则化和候选模型
+terms:
+  - term: 回归
+    def: 用一个或多个输入估计数值输出或其条件平均值的方法。
+  - term: 设计矩阵
+    def: 按观测排成行、按模型项排成列的矩阵，截距常用全 1 列。
+  - term: 广义线性模型
+    def: 指定输出的分布，用链接函数把条件均值与输入的线性组合联系起来。
+  - term: 残差
+    def: 实际观测减去模型拟合值。
+  - term: 正则化
+    def: 在拟合目标中加入复杂度约束或惩罚，以减少对训练噪声的依赖。
+  - term: 链接
+    def: 广义线性模型中，把条件均值转换为输入线性得分的函数。
+lessons:
+  - id: line
+    chapter: 线性/广义线性模型
+    title: 怎样选一条贴近数据的线
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 图上两条线都穿过点云，怎样选贴得更近的一条？
+          options:
+            - text: 先约定怎样量每个点的误差
+              correct: true
+            - text: 选看起来最高的一条
+              why: 高低本身不表示接近程度。
+          explain: 用同一把尺比较才能复现选择。
+      - card:
+          title: 把竖直偏差平方相加
+          body: '**回归（regression）**。简单模型写 y=β₀+β₁x+ε，ε 表示随机误差。最小二乘拟合让预测与观测之差的平方和最小；常见假设是条件均值正确、误差独立且方差恒定。'
+      - card:
+          title: 例题：五对数据拟合直线
+          body: 数据为 (1,2)、(2,3)、(3,5)、(4,4)、(5,6)。
+          reveal:
+            - title: 先以均值为中心
+              body: x̄=3、ȳ=4。x 的离差平方和为 10，x 与 y 离差乘积和为 9。
+            - title: 算斜率和截距
+              body: 斜率 9/10=0.9，截距 4−0.9×3=1.3。
+            - title: 比较剩下的误差
+              body: 总离差平方和 10，拟合误差平方和 1.9，R²=1−1.9/10=0.81。
+      - item:
+          id: prediction
+          type: number
+          prompt: 直线 ŷ=1.3+0.9x。在 x=2 处预测多少？
+          answer: 3.1
+          explain: 1.3+0.9×2=3.1。
+      - card:
+          title: 描述关联时要说清单位
+          body: 斜率 0.9 表示 x 多一个单位，拟合的平均 y 多 0.9 单位。决定系数 R² 比较模型与只用平均值的误差；数值高无法证明因果，也无法保证新样本预测好。
+      - item:
+          id: causal
+          type: choice
+          prompt: 观察数据里，x 的回归斜率为正。能断定人为提高 x 会增加 y 吗？
+          options:
+            - text: 能，正斜率已经证明干预有效
+              why: 拟合描述现有数据中的关联。
+            - text: 还要排除混杂并核对因果设计
+              correct: true
+          explain: 观察关联可能由其他共同因素造成。
+  - id: multiple
+    chapter: 线性/广义线性模型
+    title: 把多个解释量写进同一张表
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 预测房价时同时有面积和地段。面积的影响要和哪类房子比？
+          options:
+            - text: 尽量在相同地段等条件下比
+              correct: true
+            - text: 只看最大的房子
+              why: 面积和地段可能一起变。
+          explain: 多输入模型的单个系数按其他输入固定来解释。
+      - card:
+          title: 一行是一份观察
+          body: '**设计矩阵（design matrix）**。最小二乘的正规方程为 XᵀXβ̂=Xᵀy。列线性无关时系数唯一；实际计算常用 QR 或 SVD，避免显式求逆。'
+      - card:
+          title: 例题：把五对数放进正规方程
+          body: x=1,2,3,4,5，y=2,3,5,4,6，含截距。
+          reveal:
+            - title: 写两列
+              body: 第一列全 1，第二列填 x。
+            - title: 按列做内积
+              body: XᵀX=[[5,15],[15,55]]，Xᵀy=(20,69)。
+            - title: 解方程
+              body: 先消掉截距，得斜率 0.9，再代回得截距 1.3。
+      - item:
+          id: xtx
+          type: number
+          prompt: 含截距的三行设计矩阵，预测量 x 为 1、2、3。XᵀX 的右下的数是多少？
+          answer: 14
+          explain: 第二列与自身做内积，1²+2²+3²=14。
+      - card:
+          title: 多出来的项有多大帮助
+          body: 可用一般线性 F 检验比较同一批数据上的嵌套模型，看新增项减少的误差平方和是否超过噪声预期。偏 R² 表示这组项消掉了简化模型中多少剩余变差。有重复输入时，可把拟合不足和同输入下的纯误差分开。
+      - item:
+          id: nested
+          type: choice
+          prompt: 要检验两个新增预测量作为整体有无帮助，应比较哪两个模型？
+          options:
+            - text: 把两模型分别用不同样本拟合后直接做嵌套 F 检验
+              why: 同一批观测才提供可比较的误差分解。
+            - text: 原模型与加入两项的嵌套模型
+              correct: true
+          explain: 对比它们的剩余误差，计入增加的自由度。
+  - id: glm
+    chapter: 线性/广义线性模型
+    title: 输出有边界时，给直线加一层连接
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你预测一个病人是否复诊，直线给出概率 1.3。这个数可以直接当概率吗？
+          options:
+            - text: 可以，超过 1 只是特别确定
+              why: 概率上界仍为 1。
+            - text: 需要换成适合概率范围的模型
+              correct: true
+          explain: 概率必须落在 0 到 1 之间。
+      - card:
+          title: 先写线性得分，再连接到均值
+          body: '**广义线性模型（generalized linear model）**指定输出分布。**链接（link function）**把条件均值转成线性得分。二分类的逻辑回归用对数几率链接，反过来把得分送入 sigmoid；泊松回归常用对数链接，指数后的均值始终为正。'
+      - item:
+          id: links
+          type: match
+          prompt: 按目标给模型配典型链接。
+          pairs:
+            - - 连续近似正态的产量
+              - 恒等链接
+            - - 是否续约
+              - 对数几率链接
+            - - 固定时段次数
+              - 对数链接
+          explain: 输出的取值范围和随机模型共同决定链接。
+      - card:
+          title: 区分两种‘非直线’
+          body: 把 x² 加入预测项，模型仍可对系数线性。某些生长曲线中参数在指数的内部，需要非线性回归与数值优化。链接函数和非线性参数模型各解决不同问题。
+      - item:
+          id: logit-zero
+          type: number
+          prompt: 逻辑回归得分为 0，对应的概率为多少？
+          answer: 0.5
+          explain: sigmoid(0)=1/(1+1)=0.5。
+  - id: predictors
+    chapter: 线性/广义线性模型
+    title: 让输入更贴近问题
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 会员和非会员的价格差，是否可能随商品数量变化？
+          options:
+            - text: 可能，需要表示二者合在一起的影响
+              correct: true
+            - text: 不可能，每一项永远只单独作用
+              why: 模型可以表达一项效果依赖另一项。
+          explain: 同一数量差在不同组里可能对应不同价格变化。
+      - card:
+          title: 指示项和交互项
+          body: 把是否会员编码为 0 或 1。模型中加会员项，可允许两组截距不同；再加会员×数量，可允许两组斜率不同。多组有截距时通常留一组作基准，免得所有组指示列之和等于截距列。
+      - item:
+          id: interaction
+          type: number
+          prompt: 模型 ŷ=2+3x+4g+2xg，g=0 或 1。g=1 时 x 的斜率是多少？
+          answer: 5
+          explain: 此组的含 x 项为 3x+2x。
+      - card:
+          title: 变换也要留下解释
+          body: 取对数可以用相对变化解释乘法趋势，但普通对数要求输入为正。可只变换输入、只变换输出、或两边都变换。Box–Cox 可搜索合适的幂变换；多项式适合曲线，样本外外推要检查稳定性。
+      - item:
+          id: log
+          type: choice
+          prompt: 一组输出包含零。拟合 log(y) 前先做什么？
+          options:
+            - text: 直接把零的对数记为零
+              why: ln 1 才为零。
+            - text: 核对变换条件，并按数据机制选可解释的处理
+              correct: true
+          explain: 直接取普通对数对零没有有限值。
+  - id: diagnostics
+    chapter: 残差诊断与不确定性
+    title: 让残差告诉你哪里没拟合好
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 模型在小值时误差很小、大值时误差四散。画一条平均线够吗？
+          options:
+            - text: 还应检查误差宽度是否随预测改变
+              correct: true
+            - text: 够，均值看起来合适就无须检查
+              why: 不均匀的波动会影响区间。
+          explain: 中心位置和分散程度需要分别检查。
+      - card:
+          title: 先算观测减拟合
+          body: '**残差（residual）**。画残差对拟合值、对预测量的图：弯曲提示均值形式遗漏，漏斗形提示条件方差变化。按采集顺序画图可看依赖，用正态概率图可查尾部与形状。'
+      - item:
+          id: shapes
+          type: match
+          prompt: 给图上的形状配优先检查项。
+          pairs:
+            - - 残差随拟合值呈明显弧形
+              - 均值结构
+            - - 残差散布宽度呈漏斗形
+              - 等方差假设
+            - - 按时间出现成串同号误差
+              - 独立性
+          explain: 不同形状提供线索，仍需结合采样和模型。
+      - card:
+          title: 图是起点，推断要看修正
+          body: 可用残差检验补充图形证据。方差随条件变化时，可用异方差稳健标准误，或用可信的方差模型做加权最小二乘。时间依赖可用相应的时间序列模型或误差方法。
+      - item:
+          id: funnel
+          type: choice
+          prompt: 漏斗形残差在均值拟合合理时主要影响哪件事？
+          options:
+            - text: 普通同方差标准误和区间可能不可靠
+              correct: true
+            - text: 所有点的斜率必定立刻反号
+              why: 方差模式无法推出这个结论。
+          explain: 散布宽度随预测改变，原误差尺度假设被破坏。
+  - id: influence
+    chapter: 残差诊断与不确定性
+    title: 一个远点能把直线拉歪吗
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个点离大多数人的输入很远，刚好落在拟合线上。它一定改变了结论吗？
+          options:
+            - text: 一定，因为输入远就有巨大残差
+              why: 输入的位置和预测误差是两件事。
+            - text: 要看删掉它后拟合变化多大
+              correct: true
+          explain: 位置远表示有杠杆，真实影响还看残差与模型。
+      - card:
+          title: 区分远输入、大残差和大影响
+          body: 杠杆值高意味着输入离中心较远；学生化残差把误差按其波动尺度调整；Cook 距离衡量某点改变整体拟合的程度。先核对来源，再比较含与不含该点的结果，避免只为好看删点。
+      - item:
+          id: unusual
+          type: match
+          prompt: 给诊断信号配对象。
+          pairs:
+            - - 输入组合少见
+              - 高杠杆
+            - - 相对于自身波动的偏差大
+              - 学生化残差大
+            - - 移走一条记录时拟合明显改变
+              - 影响大
+          explain: 三个度量针对不同问题。
+      - card:
+          title: 多个输入几乎在讲同一件事
+          body: 多重共线性会使各自系数难分开，标准误可能增大。某列的 VIF=1/(1−R²)，R² 来自用其他列预测它的回归。可用更合适的独立观测、领域删选或惩罚稳定模型。
+      - item:
+          id: vif
+          type: number
+          prompt: 用其他输入预测某一输入的 R² 为 0.8。该输入的 VIF 是多少？
+          answer: 5
+          explain: 1/(1−0.8)=5。
+  - id: uncertainty
+    chapter: 残差诊断与不确定性
+    title: 问平均结果，还是下一件结果
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 说同类房子的平均价，与猜下一套卖价，哪个通常更不确定？
+          options:
+            - text: 下一套的成交价
+              correct: true
+            - text: 平均价更不确定，因为要考虑更多房
+              why: 平均可消掉一部分个体波动。
+          explain: 单套价格除了均值估计误差，还有个体差异。
+      - card:
+          title: 同一个预测点，两种范围
+          body: 均值响应的区间估计相同输入下的平均响应。新响应的预测区间还加上新误差的方差。斜率与截距也可用其标准误形成区间；离数据中心更远时，均值估计通常更不稳定。
+      - item:
+          id: interval
+          type: choice
+          prompt: 同一个新 x，拟合给出条件平均区间和单个新 y 的预测区间。哪个通常更宽？
+          options:
+            - text: 条件平均区间
+              why: 平均对象没有那一份单件波动。
+            - text: 单个新 y 的预测区间
+              correct: true
+          explain: 它既含均值拟合的不确定性，又含新观测的波动。
+      - item:
+          id: se
+          type: number
+          prompt: 拟合均值标准误为 2，单个新误差标准差为 3，彼此独立。新预测误差的方差是多少？
+          answer: 13
+          explain: 方差相加，2²+3²=13。
+  - id: selection
+    chapter: 正则化
+    title: 用新数据判断复杂一点值不值
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 模型多加一项后，训练误差变小了。就一定要保留这项吗？
+          options:
+            - text: 一定保留，训练误差更低就是更好
+              why: 预测新数据需要另做验证。
+            - text: 要看在没参与拟合的数据上怎样
+              correct: true
+          explain: 额外自由度也能拟合已有数据中的噪声。
+      - card:
+          title: 先选候选，再用同一把尺
+          body: 逐步选择每轮尝试加或删预测项，最佳子集比较组合。调整 R²、Mallows Cp、AIC 或 BIC 用不同方式考虑模型大小。PRESS 汇总逐个留出观测的预测误差，k 折交叉验证按组轮换留出。
+      - item:
+          id: select
+          type: choice
+          prompt: 比较两个模型的测试误差之前，你反复看了测试集并据此挑模型。该测试误差有什么问题？
+          options:
+            - text: 它也被用于选模型，可能过于乐观
+              correct: true
+            - text: 反复看能消除选择的偏差
+              why: 它让选择越来越贴近该测试样本。
+          explain: 评价集一旦影响选择，就需要另留最终评估集。
+      - card:
+          title: 划分方式符合使用场景
+          body: 随机 k 折适合可交换观测。预测未来用过去训练、后来验证；同一人的多条记录常应一起放入同一折。输入的变换规则也只能用每折的训练部分拟合。
+      - item:
+          id: groups
+          type: choice
+          prompt: 同一个人有多次测量，模型以后用于新的人。怎样划折？
+          options:
+            - text: 把每次测量独立打散
+              why: 相同人的记录可能泄漏到训练和验证两边。
+            - text: 按人分组，使同一个人只落在同一折
+              correct: true
+          explain: 验证要模拟没见过此人的场景。
+  - id: penalties
+    chapter: 正则化
+    title: 让很大的系数付一点代价
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个模型都贴得差不多，一个用许多极大系数互相抵消。哪个可能对小噪声更敏感？
+          options:
+            - text: 大系数相互抵消的模型
+              correct: true
+            - text: 只要训练误差相等，就一样稳定
+              why: 样本外变化可能暴露不同敏感性。
+          explain: 小输入变化可能破坏这种抵消。
+      - card:
+          title: 在误差后加一项代价
+          body: '**正则化（regularization）**。岭回归加系数平方和，通常缩小系数；Lasso 加绝对值和，可把部分系数变成 0。通常先在训练数据上标准化预测量，截距常不惩罚。'
+      - item:
+          id: ridge
+          type: number
+          prompt: 岭回归里两项被惩罚系数为 2、−3，权重 λ=0.5。平方惩罚项多少？
+          answer: 6.5
+          explain: 0.5×(4+9)=6.5。
+      - item:
+          id: choose-lambda
+          type: choice
+          prompt: 选惩罚强度 λ，哪个依据更合适？
+          options:
+            - text: 在正确划分的验证数据上比较误差
+              correct: true
+            - text: 用最终测试集反复调 λ
+              why: 这样会污染最后的评价。
+          explain: λ=0 往往训练拟合更紧，验证才衡量泛化。
+boss:
+  items:
+    - id: line
+      type: number
+      prompt: 拟合 ŷ=1.3+0.9x，在 x=5 时预测多少？
+      answer: 5.8
+      explain: 代入得到 1.3+4.5。
+    - id: r2
+      type: number
+      prompt: 总离差平方和 10，残差平方和 1.9，R² 是多少？
+      answer: 0.81
+      explain: 1−1.9/10=0.81。
+    - id: glm
+      type: choice
+      prompt: 预测一个单位时间的计数，常见的广义线性模型是哪种？
+      options:
+        - text: 带对数链接的泊松回归
+          correct: true
+        - text: 二分类逻辑回归
+          why: 二分类只表示两类。
+      explain: 均值为正，输出为计数。
+    - id: residual
+      type: choice
+      prompt: 残差图的宽度随拟合值增大。先质疑哪项？
+      options:
+        - text: 等方差假设
+          correct: true
+        - text: 输入只能为整数
+          why: 图形没有表达这个问题。
+      explain: 大小不同的拟合值对应了不同波动。
+    - id: regularize
+      type: choice
+      prompt: 希望有些预测量系数被压到 0，常考虑哪项？
+      options:
+        - text: 无惩罚的最小二乘
+          why: 目标没有鼓励系数变为零。
+        - text: Lasso
+          correct: true
+      explain: 绝对值惩罚可在零点产生稀疏解。

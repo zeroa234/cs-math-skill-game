@@ -716,7 +716,7 @@ lessons:
             | (A·B)′ = A′ + B′ | 德摩根定律 |
             | (A + B)′ = A′·B′ | 德摩根定律 |
 
-            化简以后门更少、电路更小更快。
+            化简后，需要的逻辑门更少，电路更小更快。
       - item:
           id: simplify-b
           type: choice

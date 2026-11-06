@@ -14,7 +14,7 @@ import { VERSION, useFoundUpdate, dismissUpdate } from "../app/update.js";
 
 export function nextAction(p, st) {
   if (!st) return null;
-  if (!st.hasContent) return { label: "互动课开发中，可查看自学资料", hash: href("skill", st.skill.id), no: <Icon name="book" size={36} /> };
+  if (!st.hasContent) return { label: g.tree.meta.edition === "toy" ? "互动课开发中，可查看章节" : "互动课开发中，可查看自学资料", hash: href("skill", st.skill.id), no: <Icon name="book" size={36} /> };
   if (st.status === "locked") return { label: "先学它要求的技能", hash: href("skill", st.skill.id) };
   if (st.nextChapter) {
     const ch = st.nextChapter;

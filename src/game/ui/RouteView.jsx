@@ -84,7 +84,7 @@ export function RouteView({ id }) {
         </div>
         <aside class="card side-quests">
           <h3>顺路推荐</h3>
-          <p class="small muted">不挡路，学了会更顺。理由来自技能树的课程证据。</p>
+          <p class="small muted">{g.tree.meta.edition === "toy" ? "不挡路，学了会更顺。" : "不挡路，学了会更顺。理由来自技能树的课程证据。"}</p>
           {r.sideQuests.length ? (
             <ul>{r.sideQuests.map((q) => <li><SkillLink id={q.id} /> <span class="small muted">对 {q.for.map((f) => g.byId.get(f.id).name).join("、")} 有帮助</span></li>)}</ul>
           ) : <p class="small">这条路线没有推荐的顺路技能。</p>}
@@ -103,7 +103,7 @@ function DevStops({ r, stats }) {
       <ol>
         {r.stops.map((sid) => {
           const pack = packs[sid];
-          return <li><a href={href("skill", sid)}>{g.byId.get(sid).name}</a> <span class="small muted">{pack ? (pack.version >= 2 ? "互动课 · 已按新标准写好" : "互动课 · 待重写") : "互动课开发中 · 可看自学资料"}</span></li>;
+          return <li><a href={href("skill", sid)}>{g.byId.get(sid).name}</a> <span class="small muted">{pack ? (pack.version >= 2 ? "互动课 · 已按新标准写好" : "互动课 · 待重写") : g.tree.meta.edition === "toy" ? "互动课开发中 · 可查看章节" : "互动课开发中 · 可看自学资料"}</span></li>;
         })}
       </ol>
     </section>

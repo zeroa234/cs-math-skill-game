@@ -9,7 +9,7 @@
 //     built from HEAD alone, never from uncommitted or untracked files in the workspace
 //  3. refuses if any text still names where the sprites were rendered, or if the built game does not
 //     load its mentors; commits as the author's GitHub identity (no AI attribution). --push pushes main.
-// usage: node scripts/publish-github.mjs [--push]          (self-written glue)
+// usage: node scripts/publish-github.mjs [--game-only] [--push]          (self-written glue)
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
@@ -19,7 +19,9 @@ import { notPublic } from "./lib/not-public.mjs";
 
 const REMOTE = "https://github.com/zeroa234/cs-math-skill-game.git";
 const ID = { name: "zeroa234", email: "208007470+zeroa234@users.noreply.github.com" }; // as on zeroa234/cs-math-skill-tree
-const EXCLUDE = ["assets/cast/not-public.txt", "scripts/cast/extract-sprites.py", "output/web", "output/apk", "output/windows"];
+const PRIVATE = ["assets/cast/not-public.txt", "scripts/cast/extract-sprites.py", "scripts/promo/qc-voice.py"];
+const EXCLUDE = [...PRIVATE, "output/web", "output/apk", "output/windows"];
+const PROMO = ["data/promo", "scripts/promo", "src/promo", "docs/promo-video-v2.md"];
 // Words that point at where the sprites came from (the list is in assets/cast/, never published).
 const FORBIDDEN = notPublic(ROOT);
 if (!FORBIDDEN) throw new Error("assets/cast/not-public.txt missing: publish from the author's workspace");
@@ -30,6 +32,7 @@ const run = (cmd, args, opts = {}) => execFileSync(cmd, args, { encoding: "utf8"
 const git = (...args) => run("git", ["-C", DIR, "-c", "core.autocrlf=false", ...args]);
 const top = run("git", ["-C", ROOT, "rev-parse", "--show-toplevel"]);
 const prefix = path.relative(top, ROOT).replace(/\\/g, "/");
+const headTree = (dir) => dir ? `HEAD:${dir}` : "HEAD";
 const head = run("git", ["-C", ROOT, "rev-parse", "--short", "HEAD"]);
 const version = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).version;
 if (run("git", ["-C", ROOT, "status", "--porcelain", "--untracked-files=no", "."])) console.warn("note: uncommitted changes are not published (HEAD only, the built game too)");
@@ -42,25 +45,34 @@ if (!fs.existsSync(path.join(DIR, ".git"))) {
 try { git("pull", "-q", "--ff-only", "origin", "main"); } catch { /* empty remote */ }
 for (const e of fs.readdirSync(DIR)) if (e !== ".git") fs.rmSync(path.join(DIR, e), { recursive: true, force: true });
 const tar = path.join(path.dirname(DIR), "snapshot.tar");
-run("git", ["-C", top, "-c", "core.autocrlf=false", "archive", "--format=tar", "-o", tar, `HEAD:${prefix}`]);
+run("git", ["-C", top, "-c", "core.autocrlf=false", "archive", "--format=tar", "-o", tar, headTree(prefix)]);
 run(TAR_EXE, ["-xf", tar, "-C", DIR]);
 const TREE = path.join(path.dirname(DIR), "tree");
 fs.rmSync(TREE, { recursive: true, force: true });
 fs.mkdirSync(TREE);
-run("git", ["-C", top, "-c", "core.autocrlf=false", "archive", "--format=tar", "-o", tar, `HEAD:${path.posix.join(path.posix.dirname(prefix), "cs-math-skill-tree")}`, "output/skilltree.json", "output/outlines.json"]);
+const treeSource = path.resolve(ROOT, "../cs-math-skill-tree");
+const treeTop = run("git", ["-C", treeSource, "rev-parse", "--show-toplevel"]);
+const treePrefix = run("git", ["-C", treeSource, "rev-parse", "--show-prefix"]).replace(/\/$/, "");
+run("git", ["-C", treeTop, "-c", "core.autocrlf=false", "archive", "--format=tar", "-o", tar, headTree(treePrefix), "output/skilltree.json", "output/outlines.json"]);
 run(TAR_EXE, ["-xf", tar, "-C", TREE]);
 fs.rmSync(tar);
 
 // 2. drop what stays private, build the game in the snapshot (node_modules: this project's, found
 //    by walking up from temp/publish/repo, as for any import)
 for (const p of EXCLUDE) fs.rmSync(path.join(DIR, p), { recursive: true, force: true });
+if (process.argv.includes("--game-only")) {
+  // Keep the public version of unrelated promo material in a game release.
+  const publicPromo = git("ls-tree", "-r", "-z", "--name-only", "origin/main", "--", ...PROMO).split("\0").filter(Boolean);
+  for (const p of PROMO) fs.rmSync(path.join(DIR, p), { recursive: true, force: true });
+  if (publicPromo.length) git("restore", "--source=origin/main", "--worktree", "--", ...publicPromo);
+}
 run("node", ["scripts/build-data.mjs", "--tree", TREE], { cwd: DIR });
 run("node", ["scripts/build-web.mjs"], { cwd: DIR, env: { ...process.env, WEB_OUT: "", CAST: "" } });
 
 // 3. checks, then one commit
 git("add", "-A");
 const files = git("ls-files", "-z").split("\0").filter(Boolean);
-if (files.some((f) => EXCLUDE.slice(0, 2).includes(f) || f.startsWith("config/android/"))) {
+if (files.some((f) => PRIVATE.includes(f) || f.startsWith("config/android/"))) {
   throw new Error("a private file is in the snapshot");
 }
 const leakCount = files.filter((f) => {

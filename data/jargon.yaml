@@ -8,6 +8,42 @@
 # traced program that contains one of a term's keywords uses that term. Added 2026-11-04 after a player
 # found a for loop in P.1.1's "改动列表和字典", two lessons before for is taught.
 terms:
+  # Systems programming, networking, cloud and network security
+  - 原子操作
+  - 进程间通信
+  - I/O 多路复用
+  - 数据竞争
+  - MAC 地址
+  - 最长前缀匹配
+  - 链路状态路由
+  - 距离向量路由
+  - 自治系统
+  - 拥塞窗口
+  - 共享责任
+  - 多租户
+  - 可用区
+  - 在途攻击者
+  - ARP 欺骗
+  - SYN 洪泛
+  - DNS 缓存投毒
+  - 网络分段
+  - 有状态防火墙
+  - 前向保密
+  # Calculus, statistics, machine learning and MLOps
+  - 反常积分
+  - 雅可比矩阵
+  - 海森矩阵
+  - 中心极限定理
+  - 抽样分布
+  - 设计矩阵
+  - 广义线性模型
+  - 损失函数
+  - 表示学习
+  - 数据血缘
+  - 训练–服务偏差
+  - 训练管线
+  - 数据漂移
+  - 概念漂移
   # programming basics
   - 源代码
   - 代码块

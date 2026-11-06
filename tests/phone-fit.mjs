@@ -121,8 +121,9 @@ for (const h of ["#/", "#/route/goal:C.2.1", "#/me", "#/map"]) { await go(h); aw
 await finishAllLessons(p, packs);
 await go("#/lab");
 await fit("#/lab (every experiment)");
-const programs = await p.$$eval(".lab-item select option", (o) => o.length);
-for (let i = 1; i < programs; i++) { await p.selectOption(".lab-item select", String(i)); await fit(`#/lab program ${i + 1}`); }
+const programSelect = p.locator(".lab-item").filter({ has: p.getByRole("heading", { name: "Python 单步执行", exact: true }) }).locator("select");
+const programs = await programSelect.locator("option").count();
+for (let i = 1; i < programs; i++) { await programSelect.selectOption(String(i)); await fit(`#/lab program ${i + 1}`); }
 
 await browser.close();
 if (errors.length) { console.log(`ERRORS (${errors.length}, screenshots in temp/phone-fit/):\n` + errors.join("\n")); process.exit(1); }

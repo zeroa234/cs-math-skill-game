@@ -1,0 +1,540 @@
+skill: A.2.1
+version: 2
+brief:
+  why: 你会用同一批数据试着预测数值、区分类别和发现分组。每次先明确能从哪些信息学习，再用留出的数据检查判断。
+  outcomes:
+    - 区分回归、分类、聚类、降维及半监督任务
+    - 手算一次拟合更新与一次聚类迭代
+    - 设计特征和验证流程以防信息泄漏
+terms:
+  - term: 损失函数
+    def: 给预测与目标之间的差异打分，训练尝试让分数变小。
+  - term: 聚类
+    def: 按相似程度把无标签样本分成若干组。
+  - term: 表示学习
+    def: 从数据学习一组数值特征，以保留对目标有用的信息。
+  - term: 特征工程
+    def: 将原始输入清洗、编码或变换成模型可用的特征。
+  - term: 预处理
+    def: 拟合之前对原始输入进行清洗、编码、变换或缩放。
+lessons:
+  - id: linear
+    chapter: 回归/分类
+    title: 让预测误差推动一条线
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 给定房屋面积和历年售价，要预测另一套房的售价。输出应是什么样？
+          options:
+            - text: 一组无名字的房屋
+              why: 那是分组目标。
+            - text: 一个数值
+              correct: true
+          explain: 每条训练样本都可提供目标数值。
+      - card:
+          title: 先约定什么叫预测好
+          body: '**损失函数（loss function）**。回归预测数值，可用误差平方的平均值。直线 ŷ=wx+b 容易解释；多个输入可给每项一个权重。还可用附近样本做 K 近邻回归，比较它在新数据上的误差。'
+      - card:
+          title: 例题：从水平线迈一步
+          body: 数据 (1,1)、(2,3)、(3,2)、(4,5)，用均方误差，初始 w=b=0。
+          reveal:
+            - title: 先算预测减真实
+              body: 四个预测都是 0，误差为 −1、−3、−2、−5。
+            - title: 把误差转成两条斜率
+              body: ∂L/∂w=2×平均(误差×x)=−16.5，∂L/∂b=2×平均误差=−5.5。
+            - title: 朝减小误差的方向更新
+              body: 学习率 0.01，w 变成 0.165，b 变成 0.055。若一次求最小二乘，中心化斜率为 1.1、截距为 0。
+      - item:
+          id: intercept
+          type: number
+          prompt: b=0，损失对 b 的导数为 −4，学习率 0.1。一步后 b 是多少？
+          answer: 0.4
+          explain: 更新是 0−0.1×(−4)=0.4。
+      - item:
+          id: interpret
+          type: choice
+          prompt: 业务方要说明各输入如何影响预测，优先比较哪个性质？
+          options:
+            - text: 只看训练误差最低
+              why: 低训练误差未必能回答影响来自哪里。
+            - text: 模型的可解释性和验证误差
+              correct: true
+          explain: 直线易解释，但也应核对解释能否成立以及预测表现。
+  - id: classify
+    chapter: 回归/分类
+    title: 给类别打分，再按阈值决定
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 判断一封邮件是否可疑，输出应表达什么？
+          options:
+            - text: 类别或属于该类的概率
+              correct: true
+            - text: 一定要预测一项连续物理量
+              why: 目标是类别。
+          explain: 这是分类问题。
+      - card:
+          title: 从线性得分到概率
+          body: 逻辑回归用 sigmoid 把得分 z 转成 p=1/(1+e^(−z))。二分类的交叉熵对真实类分配极低概率时给出很大惩罚。概率能用于比较不同决策阈值，再按错误代价选最终类别。
+      - item:
+          id: sigmoid
+          type: number
+          prompt: 逻辑回归得分 z=0 时，预测正类概率是多少？
+          answer: 0.5
+          explain: e 的零次方为 1，得到 1/(1+1)。
+      - card:
+          title: 让梯度说出错在何处
+          body: 对标签 y∈{0,1}，交叉熵写作 −y ln p−(1−y)ln(1−p)，对得分的导数为 p−y。配上线性得分，权重梯度每项就是误差乘输入。平方误差也能用于概率评分，交叉熵与伯努利似然直接对应。
+      - item:
+          id: score-grad
+          type: number
+          prompt: 真实类别 y=1，预测概率 p=0.2。交叉熵对得分的导数 p−y 是多少？
+          answer: -0.8
+          explain: 0.2−1=−0.8，更新时会推动得分增大。
+      - card:
+          title: 有的模型先描述类别，再反推
+          body: 生成式分类器先描述各类数据和类比例，再用贝叶斯规则反推类别。逻辑回归直接估计给定输入的类别概率。两者都要用与目标匹配的验证数据比较。
+      - item:
+          id: generative
+          type: choice
+          prompt: 一个分类器先分别拟合‘正常邮件’与‘可疑邮件’的词出现概率，再结合两类先验。这是哪种思路？
+          options:
+            - text: 只拟合一条回归直线
+              why: 该流程并未把类别当成连续响应来拟合。
+            - text: 生成式分类
+              correct: true
+          explain: 先拟合类条件下的数据分布，再反推类别。
+  - id: trees-margin
+    chapter: 回归/分类
+    title: 用问答切分，或用边界分开
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用几条规则给植物分类，每一步问叶长或颜色。它能画成什么？
+          options:
+            - text: 只能画成一条直线
+              why: 逐级切分可以形成不同区域。
+            - text: 一棵依次分流的树
+              correct: true
+          explain: 每个问题把样本送到不同分支。
+      - card:
+          title: 不同方式组合许多树
+          body: 决策树选能改善分组纯度或预测误差的切分。装袋让多个重抽样模型投票，随机森林还在切分时随机选特征候选。提升法逐步拟合当前不足；贝叶斯加性回归树用先验约束树之和。
+      - item:
+          id: ensemble
+          type: match
+          prompt: 把组合方式与做法配对。
+          pairs:
+            - - 多份重抽样模型并行投票
+              - 装袋
+            - - 装袋基础上随机抽取分裂候选特征
+              - 随机森林
+            - - 后面的树补前面的错误
+              - 提升
+          explain: 多个弱模型怎样训练、怎样组合，会产生不同效果。
+      - card:
+          title: 给分类边界留安全带
+          body: 支持向量分类器尽量让分界离附近样本远，同时允许一部分违例。核方法可在特征空间形成更灵活边界；多类问题可组合多个二分类器。逻辑回归更直接输出概率，支持向量机原始得分常需额外校准。
+      - item:
+          id: margin
+          type: choice
+          prompt: 两条直线都分对训练点，最大间隔的做法会优先选哪条？
+          options:
+            - text: 离最靠近边界的点也较远的一条
+              correct: true
+            - text: 随便选一条贴着最近点的
+              why: 小间隔更容易被小变化越过。
+          explain: 边界附近的小扰动更不容易跨线。
+  - id: clusters
+    chapter: 聚类
+    title: 先分给最近的中心，再移动中心
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 地图上有三团点但没有类别名。能先找有哪些团吗？
+          options:
+            - text: 必须有每个点的正确标签才能分组
+              why: 聚类的目标之一是探索未知分组。
+            - text: 可以按点的位置和相似度尝试分组
+              correct: true
+          explain: 这类学习只给输入，不给类别答案。
+      - card:
+          title: 来回做两件事
+          body: '**聚类（clustering）**。k-means 先把点给最近中心，再把每组的均值当新中心。它试图降低组内距离平方和，初始中心、量纲与 k 都会影响结果。'
+          sim:
+            name: kmeans
+            params:
+              dataset: blobs3
+              k: 3
+      - card:
+          title: 例题：一维分组
+          body: 数据 1、2、3、10、11、12，中心从 1 和 2 开始。
+          reveal:
+            - title: 第一轮分配
+              body: 1 单独一组，其余进第二组。新中心为 1 和 7.6。
+            - title: 第二轮重分
+              body: 中间界线为 4.3，所以 1、2、3 一组，10、11、12 一组。新中心为 2 和 11。
+            - title: 再检查分配
+              body: 分界 6.5 下分组不变，算法停下。
+      - item:
+          id: mean
+          type: number
+          prompt: 一组点为 2、4、9，k-means 更新后的该组中心是多少？
+          answer: 5
+          explain: 均值是 (2+4+9)/3=5。
+      - card:
+          title: 需要一棵分组树时
+          body: 层次聚类从小组逐步合并，可在树的不同高度切出组。最近、最远、平均等组间距离规则会改变树。两种聚类都要检查量纲、噪声和结果是否适合实际任务。
+      - item:
+          id: scale
+          type: choice
+          prompt: 同时用米和毫米描述不同维度，较大的数字尺度主导距离。应先考虑什么？
+          options:
+            - text: 把中心数固定到最大
+              why: 更多中心不能修复不同量纲。
+            - text: 选择有意义的缩放和距离
+              correct: true
+          explain: 否则分组可能主要反映单位选择。
+  - id: pca
+    chapter: 降维
+    title: 把点云压到变化大的轴上
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 大多数点沿一条斜线分布。只留一项位置量，选横轴还是顺着斜线？
+          options:
+            - text: 顺着主要变化方向能保留更多差异
+              correct: true
+            - text: 总选横轴
+              why: 横轴未必是扩展最大的方向。
+          explain: 沿较长方向观察，点较容易区分。
+      - card:
+          title: 先居中，再找变化大的方向
+          body: 主成分分析先减去各列平均，再找投影方差最大的单位方向。协方差矩阵的最大特征值给这条轴上的方差，特征值之和给总方差。后续轴与之前的轴正交。
+      - card:
+          title: 例题：一对一起涨落的输入
+          body: 协方差矩阵为 [[2,1],[1,2]]。
+          reveal:
+            - title: 试同向与反向
+              body: (1,1) 和 (1,−1) 乘进去分别变成原向量的 3 倍和 1 倍。
+            - title: 选变化较大的轴
+              body: 第一方向是 (1,1)/√2 或相反朝向。
+            - title: 算保留的比例
+              body: 解释方差比例为 3/(3+1)=0.75。
+      - item:
+          id: explained
+          type: number
+          prompt: 两个主成分的方差分别为 8、2。仅保留第一主成分，保留的总方差比例是多少？
+          answer: 0.8
+          explain: 8 除以 10。
+      - item:
+          id: target
+          type: choice
+          prompt: PCA 保留了方差很大的方向。该方向一定最能预测类别吗？
+          options:
+            - text: 还要用标签和验证数据检查
+              correct: true
+            - text: 一定，方差最大的方向天然有最强类别信息
+              why: 方差大与预测价值是不同性质。
+          explain: PCA 只依据输入变化，可能忽略方差较小的预测信号。
+  - id: reduced-regression
+    chapter: 降维
+    title: 先压缩，再拿压缩结果去预测
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 输入很多，许多列几乎重复，能先合并方向再拟合吗？
+          options:
+            - text: 输入越多越能保证新样本准确
+              why: 在样本少时自由度过多反而可能不稳。
+            - text: 可以比较压缩后的预测效果
+              correct: true
+          explain: 减少重复信息可能使拟合更稳。
+      - card:
+          title: 压缩轴可以看不看标签
+          body: 主成分回归先做 PCA，再用保留的成分拟合目标。偏最小二乘在构造方向时也考虑与目标的关系。拟合前的输入变换叫**预处理（preprocessing）**。列数接近或超过样本数时，无惩罚的系数可能不唯一或波动大。
+      - item:
+          id: pcr-pls
+          type: match
+          prompt: 把过程与方法配对。
+          pairs:
+            - - 先按输入方差找方向，再拟合
+              - 主成分回归
+            - - 找同时与目标相关的成分
+              - 偏最小二乘
+          explain: 构造方向时是否参考目标，是两者的重要区别。
+      - item:
+          id: leak
+          type: choice
+          prompt: 要在交叉验证中决定保留多少主成分，应在哪里估计压缩方向？
+          options:
+            - text: 先用全体数据求好方向再切折
+              why: 验证数据已经影响了预处理。
+            - text: 在每一折的训练部分重新估计
+              correct: true
+          explain: 验证折应模拟尚未接触的新数据。
+  - id: representation
+    chapter: 表示
+    title: 同一对象可以有几种可计算的写法
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 要比较两部电影，给它们两个编号就足够描述相似性吗？
+          options:
+            - text: 编号只能标识，还需要能反映相似性的量
+              correct: true
+            - text: 编号相近一定说明电影相似
+              why: 编号往往没有距离含义。
+          explain: 把对象变成模型能用的形式会改变能学到什么。
+      - card:
+          title: 选择模型能读取的表示
+          body: '**表示学习（representation learning）**。可以把电影或用户写成短的向量，使内积近似评分。假设空间是模型能表达的预测规则集合，选择表示也会改变这个集合。'
+      - item:
+          id: id
+          type: choice
+          prompt: 商品编号 101 与 102 只代表不同商品。直接用编号差衡量相似性有什么问题？
+          options:
+            - text: 差 1 足以证明相似
+              why: 编号可按录入顺序随意分配。
+            - text: 编号本身没有提供这样的距离关系
+              correct: true
+          explain: 相似性应来自属性或行为。
+      - card:
+          title: 用结构补缺值
+          body: 评分表里未评分通常表示未知。若评分表近似由少数兴趣方向决定，可拟合低秩矩阵，只让已有评分参与拟合，再预测空格。把空格填成 0 会把未观察误当负评分。
+      - item:
+          id: completion
+          type: choice
+          prompt: 一部片缺少某位用户的评分。训练矩阵补全时，应该先把这个空格当作真实 0 分吗？
+          options:
+            - text: 保留为未观测，用已有评分拟合表示
+              correct: true
+            - text: 全当作 0，空白一定表示厌恶
+              why: 没有评分可能只是没看过。
+          explain: 未知并没有告诉我们该用户不喜欢。
+  - id: features
+    chapter: 特征工程与学习设置
+    title: 把一列原始值展开成有意义的特征
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用时刻预测交通量，半夜 23 点与 0 点在数字上差很多。表示能否更合理？
+          options:
+            - text: 可以用体现周期的特征
+              correct: true
+            - text: 时刻只有原始整数一种合法写法
+              why: 可以依据场景变换输入。
+          explain: 模型需要看见时刻首尾相邻。
+      - card:
+          title: 先说明每列是什么
+          body: '**特征工程（feature engineering）**。可按训练数据计算缩放、用指示列表达类别、加交互项。基展开为同一输入生成若干函数值，如 x 与 x²，仍可对系数线性拟合。'
+      - item:
+          id: basis
+          type: number
+          prompt: 输入 x=3，用 x 与 x² 做基展开。第二个特征是多少？
+          answer: 9
+          explain: 第二个函数是平方。
+      - card:
+          title: 弯曲和光滑能分开调
+          body: 阶梯函数按区间给不同值；样条由分段多项式拼合，结点是拼接位置。平滑样条惩罚过强的弯曲；局部回归更看重附近数据。广义可加模型把多个平滑效应加起来。
+      - item:
+          id: spline
+          type: choice
+          prompt: 希望一条曲线在不同区间弯曲程度不同，接缝仍平顺。什么是常见选择？
+          options:
+            - text: 样条
+              correct: true
+            - text: 给每个样本单独一个任意值
+              why: 这样没有在接缝处共享结构。
+          explain: 分段多项式可在结点处加连续或光滑条件。
+  - id: select-features
+    chapter: 特征工程与学习设置
+    title: 留下能帮新样本的输入
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 加了 100 个乱数列，训练误差更低。该奖励这个模型吗？
+          options:
+            - text: 先查看没有参与拟合的数据
+              correct: true
+            - text: 训练误差下降就证明乱数有意义
+              why: 误差下降可能只是额外自由度造成。
+          explain: 过多列可能让模型碰巧贴住训练结果。
+      - card:
+          title: 比较列的选择和系数的限制
+          body: 最佳子集比较若干列组合，逐步选择分次加删。岭惩罚把系数缩小，Lasso 还能使一些系数为零。惩罚强度和列选择都应在训练与验证流程中确定。
+      - item:
+          id: shrink
+          type: match
+          prompt: 给需求配常用手段。
+          pairs:
+            - - 更偏好整体平滑缩小
+              - 岭回归
+            - - 更偏好部分系数直接为零
+              - Lasso
+          explain: 需要平滑缩小与需要直接删去部分输入时，可以试不同约束。
+      - item:
+          id: pipeline
+          type: choice
+          prompt: 先在全体数据上挑与标签最相关的列，再做验证，风险是什么？
+          options:
+            - text: 标签信息提前进入选择，验证误差可能偏乐观
+              correct: true
+            - text: 没有风险，因为训练过程还没开始
+              why: 选择列本身已经用了验证标签。
+          explain: 特征选择也属于需要只在训练部分拟合的步骤。
+  - id: validation
+    chapter: 特征工程与学习设置
+    title: 用下一份数据当裁判
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一位学生记住了练习册，换一套题就失误。模型会有类似问题吗？
+          options:
+            - text: 会，训练表现可能比新样本好得多
+              correct: true
+            - text: 只要练习册做对就等于理解
+              why: 还要看能否迁移。
+          explain: 记住训练细节不保证能应对新情况。
+      - card:
+          title: 先明确学习信号
+          body: 有标签的预测是监督学习；探索无标签结构是无监督学习。评价连续目标可用均方误差，分类可看准确率及不同错误代价。训练误差 2%、验证误差 15% 是过拟合或分布差异的线索，先检查划分。
+      - card:
+          title: 误差来自几个地方
+          body: 过于简单可能偏差大，过于灵活可能随样本变化而波动大。可简化模型、加惩罚或收集更有代表性的数据。k 折轮流用一折验证，其余训练；留一法每次仅留一个。训练集、验证集、最终测试集各司其职。
+      - item:
+          id: roles
+          type: match
+          prompt: 把集合与作用配对。
+          pairs:
+            - - 估权重
+              - 训练集
+            - - 比较超参数
+              - 验证集
+            - - 最终报告对未用数据的表现
+              - 测试集
+          explain: 拟合、调参与独立报告不能混用同一份结果。
+      - item:
+          id: kfold
+          type: choice
+          prompt: 5 折交叉验证中每一折应当当验证折几次？
+          options:
+            - text: 五次
+              why: 每轮都留同一折会失去轮换。
+            - text: 一次
+              correct: true
+          explain: 每轮换一折，其余四折训练，最后汇总验证误差。
+      - card:
+          title: 重抽与分折回答不同问题
+          body: Bootstrap 有放回抽样，可估计指标波动；交叉验证用折外数据估预测表现。分类数据稀少时可考虑按类分层；遇到时间或同一个体多行记录时，保持顺序或按组划分优先。
+      - item:
+          id: forecast
+          type: choice
+          prompt: 上线要预测未来月份，验证应怎么划分？
+          options:
+            - text: 只用过去训练，较晚月份验证
+              correct: true
+            - text: 把未来月份混进训练，再验证过去
+              why: 这会让训练使用上线时未知的信息。
+          explain: 验证顺序要模拟部署时能获得的信息。
+  - id: semi-supervised
+    chapter: 特征工程与学习设置
+    title: 少量标注和大量未标注怎样合用
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 手头有 20 张已标注照片和很多未标注照片。可以同时利用吗？
+          options:
+            - text: 未标注照片必定能提高所有分类器
+              why: 不合适的假设会产生错误。
+            - text: 可以，但要检查两批数据是否有相容的结构
+              correct: true
+          explain: 未标注数据可以提供分布线索。
+      - card:
+          title: 先确认未标注数据能提供什么
+          body: 半监督学习在少量标签之外利用无标签结构。聚类再贴标假设同一团大致同类；生成模型可用 EM 在估计标签和更新参数之间轮换，但可能停在局部峰，模型有误或参数不可识别时，更多未标注数据也会误导。
+      - item:
+          id: cluster-label
+          type: choice
+          prompt: 同一团照片包含许多不同标签。把团里所有照片赋给团内一个已有标签会怎样？
+          options:
+            - text: 必定更准，因为每张现在都有标签
+              why: 生成的标签需要用真实标签验证。
+            - text: 可能把大量照片贴错
+              correct: true
+          explain: 团内同类这一假设与数据不符。
+      - card:
+          title: 让模型提出待核对的标签
+          body: 自训练把有把握的预测当伪标签再拟合，可能放大初期错误。协同训练用不同视角的模型互相提供标签，例如文本和图像；视角应各自有信息、错误不能总重合。用独立真标签验证收益。
+      - item:
+          id: guard
+          type: choice
+          prompt: 自训练每轮都把所有伪标签当成真标签。误差可能怎样变化？
+          options:
+            - text: 每轮错误必减少
+              why: 伪标签来自现有模型，不保证正确。
+            - text: 早期错标会被重复学习并扩大
+              correct: true
+          explain: 应约束加入规则并看独立真标注效果。
+boss:
+  items:
+    - id: grad
+      type: number
+      prompt: w=0，损失对 w 的导数是 −6，学习率 0.1。更新后 w 多少？
+      answer: 0.6
+      explain: 0−0.1×(−6)=0.6。
+    - id: logit
+      type: number
+      prompt: 二分类逻辑模型得分 0 时正类概率为多少？
+      answer: 0.5
+      explain: sigmoid(0)=1/2。
+    - id: cluster
+      type: number
+      prompt: k-means 一组有 3、6、9，更新中心是多少？
+      answer: 6
+      explain: 取三者平均。
+    - id: pca
+      type: number
+      prompt: 主成分方差为 9 和 3，保留第一项的比例是多少？
+      answer: 0.75
+      explain: 9/(9+3)=0.75。
+    - id: missing
+      type: choice
+      prompt: 评分矩阵中的空白格代表没有观测。应如何处理？
+      options:
+        - text: 用已观测评分拟合，空格留作预测
+          correct: true
+        - text: 把空格一律标成零分
+          why: 会将未知变成强负信号。
+      explain: 未评分与评分为零不同。
+    - id: testing
+      type: choice
+      prompt: 哪个集合用来给已选定的模型做最后一次独立评价？
+      options:
+        - text: 测试集
+          correct: true
+        - text: 训练集
+          why: 它已参与拟合。
+      explain: 调参和选择完成后才使用。

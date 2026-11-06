@@ -28,7 +28,9 @@ export function BossView({ id, mode }) {
   const testOut = mode === "test";
   const boss = bossFlow(skill, packs[id]);
   const back = <a class="btn" href={href("skill", id)}>回技能页</a>;
-  if (!st.hasContent) return <SelfStudyExercise skill={skill} back={back} />;
+  if (!st.hasContent) return g.tree.meta.edition === "toy"
+    ? <Notice title="结业挑战开发中">{back}</Notice>
+    : <SelfStudyExercise skill={skill} back={back} />;
   if (st.status === "locked") return <Notice title="还没解锁">先学完它要求的技能：{st.missing.map((m) => g.byId.get(m).name).join("、")}。{back}</Notice>;
   if (!testOut && !st.bossOpen) return <Notice title="结业挑战还没开放">学完全部核心章后开放。{boss.graded && <> 已经会了？可以试试<a href={href("boss", id, "test")}>跳级挑战</a>。</>}{back}</Notice>;
 

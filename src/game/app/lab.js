@@ -1,8 +1,7 @@
 // 实验室: the experiments (interactive widgets) the player has met in lessons, to play with again,
 // not graded. It grows by one entry each time a finished lesson brings an experiment the player had
 // not met before; experiments not met yet are simply not listed. Entries match lessons by
-// core/lesson.js simKey. Sims no lesson uses any more are archived with their entries
-// (archive/src/game/ui/lab-archived.js).
+// core/lesson.js simKey.
 import { simKey, lessonSims } from "../core/lesson.js";
 import { lessonKey } from "../core/rules.js";
 
@@ -22,6 +21,13 @@ export const LAB = [
     { name: "plot", title: "泰勒多项式", try: "阶数越高，sin x 在多宽的范围里被贴住？", params: { mode: "taylor", series: "sin", xMax: 6, maxOrder: 15 } },
     { name: "plot", title: "黎曼和", try: "增加矩形个数，误差怎么变？", params: { mode: "riemann", f: "x^2", a: 0, b: 1, rule: "left", nMax: 200 } },
     { name: "descent", title: "梯度下降（一维）", try: "x² + 10 sin x 有两个山谷。从 x = 3 出发走 40 步，停在哪里？它是最低的那个吗？", params: { f: "x^2 + 10*sin(x)", x0: 3, lr: 0.05 } },
+  ] },
+  { group: "概率与机器学习", items: [
+    { name: "descent", title: "梯度下降（二维、狭长山谷）", try: "x²+10y² 在 y 方向陡得多。学习率稍大时，观察两条方向怎样来回震荡。", params: { mode: "2d", f: "x^2 + 10y^2", vars: ["x", "y"], x0: [2.5, 1.5], lr: 0.05 } },
+    { name: "sampler", title: "大数定律", try: "抽得越多，频率越接近理论概率吗？", params: { dist: "twoDice" } },
+    { name: "neuron", title: "一个神经元", try: "调出 AND；再试试 XOR——为什么怎么调都差一个点？", params: { gate: "xor" } },
+    { name: "mlp", title: "小小神经网络", try: "隐藏层为 0 时只能画直线；加到 4–6 个 tanh 神经元再训练。", params: { dataset: "circle", hidden: 0, epochs: 400, lr: 1 } },
+    { name: "kmeans", title: "k-means 聚类", try: "一步步看中心怎样移到三团点的中间。", params: { dataset: "blobs3", k: 3 } },
   ] },
   { group: "计算机组成", items: [
     { name: "bits", title: "位与补码", try: "拨出 −1、−128、127；看同一串位按有符号/无符号读的差别。", params: { bits: 8, signed: true, start: 0 } },

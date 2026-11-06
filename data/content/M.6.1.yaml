@@ -1,0 +1,403 @@
+skill: M.6.1
+version: 2
+brief:
+  why: 相同的过程每次可能得到不同结果。把结果、规则和不确定性写清楚，你就能解释检测误报、抽样和模型预测中的概率。
+  outcomes:
+    - 计算有限情形和条件概率
+    - 读懂常见分布、期望与方差
+    - 说明大数定律与中心极限定理各管什么
+terms:
+  - term: 样本空间
+    def: 一次随机试验所有可能基本结果的集合。
+  - term: 条件概率
+    def: 给定事件 B 已发生后，A 在这个缩小范围内的概率。
+  - term: 随机变量
+    def: 把随机结果映射到数值的规则。
+  - term: 概率密度
+    def: 连续分布按区间积分得到概率的非负函数，总面积为 1。
+  - term: 期望
+    def: 按各结果的概率加权得到的平均值，连续情形用积分。
+  - term: 方差
+    def: 随机值与其期望之差的平方的期望。
+  - term: 大数定律
+    def: 在规定条件下，样本平均随样本量增大趋近总体期望。
+  - term: 中心极限定理
+    def: 在适用条件下，中心化并按标准差缩放的和或均值的分布趋近标准正态。
+lessons:
+  - id: outcomes
+    chapter: 概率空间
+    title: 先把所有可能的结果排开
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两枚公平硬币一同抛，恰好一枚正面的机会会和两枚都正面一样吗？
+          options:
+            - text: 一样，都是一个说法
+              why: 一句话可包含多个同样可能的基本结果。
+            - text: 恰好一枚正面有两种位置，机会更大
+              correct: true
+          explain: 把两枚硬币区分开，就能数出这两种结果。
+      - card:
+          title: 先定规则，再谈机会
+          body: '**样本空间（sample space）**包含正正、正反、反正、反反。事件是结果的集合。概率空间还指定哪些事件可赋概率，以及各事件的概率；互斥事件相加，全部结果的概率为 1。等可能时用有利数除以总数。'
+      - item:
+          id: coin
+          type: number
+          prompt: 两枚独立公平硬币恰好一枚正面，概率是多少？
+          answer: 0.5
+          explain: 正反、反正两种，占四种等可能结果的一半。
+      - card:
+          title: 选人时要不要记顺序
+          body: 从 4 人选 2 人分别当队长和队员，有 4×3=12 种排列。不分职责时，每对被数了两次，组合数是 6。模拟可重复生成公平结果，观察频率；模拟的规则先要符合题设。
+      - item:
+          id: choose
+          type: number
+          prompt: 从 4 人里选 2 人，只看是哪两个人，有多少种？
+          answer: 6
+          explain: 先数 4×3，再除以每组两种排列。
+  - id: conditional
+    chapter: 条件概率
+    title: 得知新消息后，重新确定分母
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 知道某个家庭至少有一只猫后，还要把没有猫的家庭算进分母吗？
+          options:
+            - text: 只看符合新信息的家庭
+              correct: true
+            - text: 仍拿全部家庭当分母
+              why: 这会算成未经更新的比例。
+          explain: 分母描述现在仍有可能的范围。
+      - card:
+          title: 只在已知范围内看
+          body: '**条件概率（conditional probability）**写作 P(A|B)=P(A∩B)/P(B)，要求 P(B)>0。两颗独立公平骰子至少一颗是 6 的有 11 对，有两对和为 7，所以条件概率为 2/11。若得知 B 并不改变 A 的概率，则 A、B 独立。'
+      - item:
+          id: dice
+          type: number
+          prompt: 两颗独立公平骰子的点数和为 7，未提供任何附加条件，概率是多少？
+          answer: 0.16666666666666666
+          explain: 和为 7 的有 6 个有序对，全部 36 个。
+      - card:
+          title: 例题：检测阳性后看哪个群体
+          body: 患病率 1%，患病检测阳性概率 95%，健康检测阳性概率 10%。
+          reveal:
+            - title: 先列可能人数
+              body: 取 10000 人的期望人数，患病 100，健康 9900。
+            - title: 只留下阳性
+              body: 患病阳性 95，健康阳性 990。
+            - title: 除以全部阳性
+              body: 95/(95+990) 约为 8.76%。这就是按新消息反推的贝叶斯规则。
+      - item:
+          id: reverse
+          type: choice
+          prompt: P(阳性|患病) 和 P(患病|阳性) 用的是同一个分母吗？
+          options:
+            - text: 分母分别是全部患病者和全部阳性者
+              correct: true
+            - text: 交换两者后数值一定相同
+              why: 两个群体规模可能差很多。
+          explain: 判断条件写在竖线右边，两种分组通常不同。
+      - card:
+          title: 连续情形也要重定范围
+          body: 连续结果用区间下面的密度面积算概率。若在 [0,4] 均匀取数，已知取值小于 2，则剩下 [0,2]，落在 [0,1] 的条件概率是 1/2。门后换奖游戏也要交代主持人按什么规则开门，条件不同，答案可不同。
+      - item:
+          id: uniform
+          type: number
+          prompt: 在 [0,6] 均匀取数，已知它小于 3。它小于 2 的条件概率是多少？
+          answer: 0.6666666666666666
+          explain: 在留下的长度 3 中取有利长度 2。
+  - id: random-variable
+    chapter: 随机变量
+    title: 把结果量成一个数
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 抛两枚硬币只记录正面枚数，正反和反正会被记录成不同数吗？
+          options:
+            - text: 一个记 0，一个记 1
+              why: 两次结果里都只有一枚正面。
+            - text: 都会记为 1
+              correct: true
+          explain: 结果可以不同，但同一个测量方式可给同一个值。
+      - card:
+          title: 规定从结果到数的映射
+          body: '**随机变量（random variable）**。以 X 记两枚硬币正面数，X=1 的概率由正反和反正相加。分布描述这些数值的机会。累计分布 F(x)=P(X≤x) 只会随 x 增大或不变。'
+      - item:
+          id: cdf
+          type: number
+          prompt: 两枚独立公平硬币的正面数 X，F(1)=P(X≤1) 等于多少？
+          answer: 0.75
+          explain: 除了正正，另外三种结果都满足。
+      - card:
+          title: 连续结果看一段面积
+          body: '**概率密度（probability density）**。一条线上的单点宽度为零，因此连续情形单点概率为零。模拟均匀数可从同一范围重复抽取，统计落入区间的比例。一般理论要求事件可测，使概率计算一致。'
+      - item:
+          id: point
+          type: choice
+          prompt: 连续均匀地在 0 到 1 取数，恰好取到 0.5 的概率是什么？
+          options:
+            - text: '0'
+              correct: true
+            - text: 1/2
+              why: 1/2 可对应长度为一半的区间。
+          explain: 单点没有长度，密度在单点的值不等于该点的概率。
+  - id: distributions
+    chapter: 分布
+    title: 先看生成规则，再挑分布
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 统计十次投篮中的命中数，和等到下一次来车的时间一样吗？
+          options:
+            - text: 两者都只能取整数
+              why: 等待时间可以落在两个整秒之间。
+            - text: 前者数次数，后者量连续时间
+              correct: true
+          explain: 两类过程能取的值及其生成规则不同。
+      - card:
+          title: 两类常用计数
+          body: |-
+            伯努利分布记一次成功或失败。固定 n 次独立且同一成功率的次数服从二项分布，某个次数的概率还要乘选出成功位置的组合数。泊松分布适合描述固定范围内以恒定强度独立出现的事件数；世代模型中每一代的个体各自产生后代，也称 branching process。
+
+            非负整数 X 的概率生成函数是 G(s)=E[s^X]。展开后各幂的系数就是对应的概率；独立计数相加时，两份生成函数相乘。
+      - item:
+          id: models
+          type: match
+          prompt: 给模型配例子。
+          pairs:
+            - - 固定 10 次独立试验的成功次数
+              - 二项分布
+            - - 固定时间的稀疏独立到达数量
+              - 泊松分布
+            - - 同强度泊松到达间隔
+              - 指数分布
+          explain: 次数固定、等待时间和单位区间事件数属于不同问题。
+      - card:
+          title: 连续分布从哪里来
+          body: 均匀分布在区间内密度恒定，正态分布在均值附近更集中。指数分布常用来表示以恒定速率等待下一事件。若 X 服从速率 λ 的指数分布，P(X>t)=e^(−λt)。条件下再等 s 的概率等于直接等待 s，称为无记忆性。
+      - card:
+          title: 例题：已经等了两分钟
+          body: X 服从速率 2 的指数分布。
+          reveal:
+            - title: 条件是等过两分钟
+              body: 分母 P(X>2)=e⁻⁴。
+            - title: 分子要求超过三分钟
+              body: P(X>3)=e⁻⁶，二者相除为 e⁻²，与 P(X>1) 相同。
+      - item:
+          id: exp-tail
+          type: number
+          prompt: X 服从速率 2 的指数分布，P(X>1) 约为多少？用 6 位小数作答。
+          answer: 0.1353352832366127
+          explain: 代入生存概率公式 e^(−2×1)，约为 0.135335。
+  - id: moments
+    chapter: 期望与极限定理
+    title: 把许多可能值浓缩成两个数
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个开奖方案平均奖金一样，一个常给中等奖，另一个多是零但偶尔很高。感觉一样吗？
+          options:
+            - text: 平均一样就说明分布一样
+              why: 同一平均值可对应不同的波动。
+            - text: 平均相同，起伏不同
+              correct: true
+          explain: 还要描述数值离平均水平有多远。
+      - card:
+          title: 先找中心，再量分散
+          body: '**期望（expectation）**。**方差（variance）**。可用 E[X²]−E[X]² 计算，标准差是其平方根。指数分布速率 λ 的期望为 1/λ，方差为 1/λ²。'
+      - card:
+          title: 例题：两种价格的起伏
+          body: X 等概率取 0 和 4。
+          reveal:
+            - title: 算中心
+              body: E[X]=(0+4)/2=2。
+            - title: 算偏差平方
+              body: 两边离 2 都是 2，所以方差为 4。
+      - item:
+          id: variance
+          type: number
+          prompt: X 等概率取 0 和 6，方差为多少？
+          answer: 9
+          explain: 中心为 3，两个偏差的平方均为 9。
+      - card:
+          title: 和的平均可以拆开
+          body: |-
+            E[X+Y]=E[X]+E[Y]，无需独立。独立时，和的方差也相加；有相关时还涉及两倍协方差。若要求和的整个分布，要列出能组成该和的情形并加概率，连续情形可用卷积积分。Markov 界用非负随机量的期望约束大值概率，Chebyshev 界用方差控制偏离。
+
+            连续量也可看矩母函数 E[e^(tX)]，存在时可用它在零处的导数求矩。
+      - item:
+          id: sum-variance
+          type: number
+          prompt: 独立 X、Y 的方差分别是 2 和 3，X+Y 的方差是多少？
+          answer: 5
+          explain: 独立时协方差为零，方差直接相加。
+  - id: laws
+    chapter: 期望与极限定理
+    title: 长期频率为什么会靠近理论值
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一枚公平硬币连出三次反面。下一枚会更容易正面来‘补偿’吗？
+          options:
+            - text: 是的，长期规律要求下一次偿还
+              why: 长期频率可以靠大量新结果缩小偏差，无需下一次改变概率。
+            - text: 下一次正面的机会仍是 1/2
+              correct: true
+          explain: 在独立试验中，已经出现的结果不改变下一次。
+      - card:
+          title: 多抽样通常让平均更稳
+          body: '**大数定律（law of large numbers）**。独立同分布且方差有限时，样本均值方差为 σ²/n，偏离固定误差的概率随 n 减小。强大数定律在适用条件下给出几乎必然的长期收敛。'
+          sim:
+            name: sampler
+            params:
+              dist: twoDice
+      - item:
+          id: fraction
+          type: choice
+          prompt: 为什么大量抛硬币之后正面频率更稳定？
+          options:
+            - text: 后一次结果会主动补上前一次偏差
+              why: 独立性排除了这种补偿机制。
+            - text: 许多独立结果平均后，随机偏离的影响变小
+              correct: true
+          explain: 均值方差按 1/n 缩小。单次结果仍然随机。
+      - item:
+          id: average-spread
+          type: number
+          prompt: 独立样本单项方差是 4，取 100 项平均后的方差是多少？
+          answer: 0.04
+          explain: 和的方差是 100×4，除以 100 的平方得到 0.04。
+  - id: normal-limit
+    chapter: 期望与极限定理
+    title: 给总数换一个共同的刻度
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把多次独立的小误差加起来，能不能用一条光滑曲线估计总误差？
+          options:
+            - text: 在适用条件下可以用正态曲线近似
+              correct: true
+            - text: 无论条件如何，和的形状总和单个误差一样
+              why: 相加后的波动形状可以改变。
+          explain: 总体分布的形状可帮助估计尾部概率。
+      - card:
+          title: 分布近似和均值收敛解决不同问题
+          body: '**中心极限定理（central limit theorem）**。常见条件是独立同分布、有有限且非零方差。伯努利试验的和是成功次数，连续独立情形也可用此定理；Berry–Esseen 在额外矩条件下约束近似误差。'
+      - card:
+          title: 例题：100 次公平抛硬币
+          body: 用正态近似求正面次数至少 60。
+          reveal:
+            - title: 确定均值和标准差
+              body: 均值 50，方差 25，标准差 5。
+            - title: 把整数边界折到中间
+              body: 事件从 59.5 起，标准化得 (59.5−50)/5=1.9。
+            - title: 读右尾
+              body: 标准正态大于 1.9 的概率约 0.0287。
+      - item:
+          id: z
+          type: number
+          prompt: 独立公平抛硬币 100 次，用连续性修正求次数至少 55 的右尾，换成标准正态时，右尾起点 z 是多少？
+          answer: 0.9
+          explain: 用下界 54.5，减均值 50 再除以 5。
+      - item:
+          id: conditions
+          type: choice
+          prompt: 样本全是同一个随机值反复复制，能直接套独立样本的中心极限定理吗？
+          options:
+            - text: 不能，这些项没有提供独立的变化
+              correct: true
+            - text: 能，只要样本量够多
+              why: 重复复制同一个值并不会平均掉它的偏差。
+          explain: 经典近似先检查独立性和方差条件。
+  - id: advanced-limits
+    chapter: 期望与极限定理
+    title: 读高级概率结论时先看条件
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把一次测量精度越来越高，与连续多天的测量都稳定下来，是同一种保证吗？
+          options:
+            - text: 两个说法总能相互替换
+              why: 序列能有越来越小的单次风险，却反复在某些样本路径出错。
+            - text: 要分清每次出错的概率与整条序列的表现
+              correct: true
+          explain: 每次的风险趋小和长期路径结论力度不同。
+      - card:
+          title: 三种常见收敛
+          body: 依概率收敛要求任意固定误差的超限概率趋零；几乎必然收敛说几乎每条路径最终收敛；依分布收敛只比较分布，在极限分布函数的连续点收敛。特征函数把分布转成复指数的期望，可用来研究依分布收敛。
+      - item:
+          id: limit-kind
+          type: match
+          prompt: 给描述配收敛方式。
+          pairs:
+            - - 固定误差的超限概率趋零
+              - 依概率收敛
+            - - 几乎每一条路径都收敛
+              - 几乎必然收敛
+            - - 在连续点上比较累计概率的极限
+              - 依分布收敛
+          explain: 三种说法分别看超限概率、路径、分布。
+      - card:
+          title: 交换次序和引入信息
+          body: 把期望移过极限前要检查条件，例如存在可积的统一控制。截断可先限制极端值，再分析尾部；随机级数看部分和的收敛。耦合把不同随机量放在同一空间比较。条件期望按已知信息重新取平均，可再取期望回到总体。
+      - item:
+          id: tower
+          type: choice
+          prompt: 把人按所在班级分组，算各班平均分后怎样得到全体平均？
+          options:
+            - text: 用班级人数比例给各班均分加权
+              correct: true
+            - text: 不论班级大小，把班均分直接平均
+              why: 不同人数的组在全体中权重不同。
+          explain: 这是先按已知信息求期望，再对信息的分布取期望。
+boss:
+  items:
+    - id: dice
+      type: number
+      prompt: 两颗独立公平骰子，已知至少一颗是 6，点数和为 7 的概率是多少？
+      answer: 0.18181818181818182
+      explain: 条件范围 11 对，其中 (1,6)、(6,1) 符合。
+    - id: coin
+      type: number
+      prompt: 三次独立公平抛硬币，全部正面的概率是多少？
+      answer: 0.125
+      explain: 三个独立的 1/2 相乘。
+    - id: cdf
+      type: choice
+      prompt: F(3)=P(X≤3)，这个累计概率是否包括 X=3？
+      options:
+        - text: 只算小于 3
+          why: 那要用严格小于号。
+        - text: 包括
+          correct: true
+      explain: 符号 ≤ 明确包含端点。
+    - id: exp
+      type: number
+      prompt: 速率 2 的指数分布的期望是多少？
+      answer: 0.5
+      explain: 用 1/λ。
+    - id: normal
+      type: choice
+      prompt: 在经典条件下，中心极限定理讨论哪一件事？
+      options:
+        - text: 每个单独样本都变成正态
+          why: 采样数量不改变单次抽样的分布。
+        - text: 标准化后的和或均值分布趋近正态
+          correct: true
+      explain: 它给的是分布形状，大数定律才描述未缩放样本均值的收敛。

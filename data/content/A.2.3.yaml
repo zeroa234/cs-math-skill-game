@@ -1,0 +1,405 @@
+skill: A.2.3
+version: 2
+brief:
+  why: 一条分界线做不到的判断，多层网络可以先造中间特征，再组合。你会从一颗神经元算到多层网络如何找到更新方向。
+  outcomes:
+    - 算一个小网络的前向值和反向梯度
+    - 解释深层训练的稳定性和正则化手段
+    - 按正确顺序写出训练与评估循环
+terms:
+  - term: 神经元
+    def: 对输入加权求和，加偏置，再用激活规则产生输出的单元。
+  - term: 反向传播
+    def: 从损失向输入方向按链式法则传播梯度，并复用中间结果。
+lessons:
+  - id: neuron
+    chapter: 神经网络
+    title: 先加权，再决定要不要亮灯
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个开关都开才亮灯，可以先给开关计分再判断吗？
+          options:
+            - text: 需要记住按开关的先后
+              why: 这个规则只看两个开关的当前状态。
+            - text: 可以，两项各得一分，只有总分足够才亮
+              correct: true
+          explain: 相加后过阈值能表达两项同时满足。
+      - card:
+          title: 一个单元完成一次判断
+          body: '**神经元（neuron）**。感知机用阈值，超过 0 输出 1。用 (1,1) 作权重、−1.5 作偏置，仅 (1,1) 输入时为正。sigmoid 把阶跃换成平滑的分数。'
+          sim:
+            name: neuron
+            params:
+              gate: xor
+      - item:
+          id: and-score
+          type: number
+          prompt: 权重为 (1,1)，偏置 −1.5，输入 (1,0)。阈值前的得分是多少？
+          answer: -0.5
+          explain: 1×1+1×0−1.5=−0.5。
+      - item:
+          id: xor
+          type: choice
+          prompt: 两对角点为 1、另两点为 0，能用一个直线阈值全分开吗？
+          options:
+            - text: 不能，两组点的连线在中心相交
+              correct: true
+            - text: 能，调高偏置就能只留下两对角点
+              why: 偏置移动整条线，无法弯折它。
+          explain: 任何一条直线都不能把两个对角连线完整分到不同侧。
+  - id: layers
+    chapter: 神经网络
+    title: 让几个单元合作画出弯曲的边界
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一道直栅栏围不住一片区域。多几道能帮忙吗？
+          options:
+            - text: 可以先判断多个边界，再组合判断
+              correct: true
+            - text: 不能，多少条判断都只等于一条
+              why: 加入非线性后，可以表达不同区域。
+          explain: 中间的多项判断给最后一层更多信息。
+      - card:
+          title: 输入层、隐藏层、输出层
+          body: 一层先算 z=Wx+b，再应用激活。未直接作为结果的层叫隐藏层；它的输出供后续层使用。若每层都只做线性加偏置，多层仍可合并为一次仿射变换。非线性激活让组合表达更丰富。
+      - item:
+          id: roles
+          type: match
+          prompt: 给网络中的位置配职责。
+          pairs:
+            - - 接收像素等特征
+              - 输入
+            - - 把多项输入变成中间表示
+              - 隐藏层
+            - - 输出各类别分数
+              - 输出层
+          explain: 输入进入网络，经中间表示后产生任务输出。
+      - card:
+          title: 从直线到环形分界
+          body: 试把隐藏单元设为 0 训练，再改为多个 tanh 单元重训。比较同一演示数据上的分界和准确率。真实手写数字分类可把像素送进网络，让最后一层给每个数字类别打分，再用没参与拟合的图检查。
+          sim:
+            name: mlp
+            params:
+              dataset: circle
+              hidden: 0
+              epochs: 400
+              lr: 1
+      - item:
+          id: nonlinear
+          type: choice
+          prompt: 把两个不带非线性激活的仿射层串起来，分界一定变弯吗？
+          options:
+            - text: 仍可合并为一个仿射层
+              correct: true
+            - text: 一定，层数超过一层就能弯折
+              why: 弯折需要非线性或不同结构。
+          explain: 代入后一层会得到矩阵乘积和新偏置。
+  - id: train
+    chapter: 训练
+    title: 用误差决定权重怎样移动
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个权重稍增就让错误更大。小步训练该朝哪边？
+          options:
+            - text: 减小权重
+              correct: true
+            - text: 继续增大
+              why: 这会沿着此点的局部上升方向走。
+          explain: 先沿损失局部下降方向试一步。
+      - card:
+          title: 训练循环的四个动作
+          body: 前向算预测，损失量差，反向得梯度，再更新。小批量 SGD 每次用一小批样本估计梯度。分类交叉熵惩罚对真类的低概率；学习率大易越过低点，小则移动慢。
+      - item:
+          id: one-step
+          type: number
+          prompt: 参数原为 2，损失梯度为 3，学习率 0.1，一步 SGD 后是多少？
+          answer: 1.7
+          explain: 2−0.1×3=1.7。
+      - card:
+          title: 记住刚才的方向
+          body: |-
+            一种动量约定是 v←βv+g、w←w−ηv。Adam 维护梯度与梯度平方的指数移动平均，做初期偏差修正后，用一阶量除以二阶量平方根加稳定项，再乘学习率更新。两者仍需验证学习率与稳定性。
+
+            写成 m←β₁m+(1−β₁)g、v←β₂v+(1−β₂)g²，再用 m̂=m/(1−β₁ᵗ)、v̂=v/(1−β₂ᵗ)，参数减去 ηm̂/(√v̂+ε)。
+      - item:
+          id: train-order
+          type: order
+          prompt: 把一次正常的小批量更新排好。
+          steps:
+            - 用当前参数算输出
+            - 用目标算损失
+            - 反向算各参数梯度
+            - 优化器更新参数
+          explain: 更新前要先得到由当前权重和这批数据产生的梯度。
+  - id: deep-train
+    chapter: 训练
+    title: 层层相乘后，信号会缩小或放大
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把一个数连续乘很多次 0.5，它会怎样？
+          options:
+            - text: 越来越小
+              correct: true
+            - text: 反而每次翻倍
+              why: 乘的是 0.5，不是 2。
+          explain: 反复乘小于 1 的正数，结果会快速减小。
+      - card:
+          title: 信号经过多层会失衡
+          body: 反传要连乘局部导数，长期小于 1 可让早期层梯度很小，过大可让梯度爆炸。sigmoid 饱和区斜率小。ReLU 正半轴斜率为 1，常改善这类问题；负半轴的梯度为 0，长期不激活的单元也会遇到困难。
+      - item:
+          id: product
+          type: number
+          prompt: 简化链上三段局部导数都是 0.5，乘积是多少？
+          answer: 0.125
+          explain: 0.5×0.5×0.5=0.125。
+      - card:
+          title: 初始信号先保持在可用范围
+          body: 随机初始化能让不同单元从不同状态开始。ReLU 的 He 初始化常令权重方差为 2/输入数，抵消一部分激活归零的影响。可结合激活分布、梯度和验证曲线调整结构、批大小与学习率。
+      - item:
+          id: he
+          type: number
+          prompt: ReLU 层一个单元有 50 个输入，用方差 2/输入数的规则，初始权重方差是多少？
+          answer: 0.04
+          explain: 2÷50=0.04。
+  - id: regularize
+    chapter: 正则化和深层表示
+    title: 训练分数进步时，也要看新样本
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 训练集越来越准，验证集却开始变差。该如何决定要保留哪轮？
+          options:
+            - text: 总选最后一轮
+              why: 可能过度贴住了训练样本。
+            - text: 按事先定义的验证指标保留合适的一轮
+              correct: true
+          explain: 训练最久未必对新数据最好。
+      - card:
+          title: 三个办法改变模型学习的机会
+          body: 权重衰减使大权重付出代价；dropout 在训练时随机屏蔽部分激活，评估时按实现恢复完整网络；早停监测验证表现，保留合适的检查点。数据增强用保持标签的变换增加有效样本。
+      - item:
+          id: method
+          type: match
+          prompt: 给操作配方法。
+          pairs:
+            - - 训练时随机屏蔽部分单元输出
+              - dropout
+            - - 按验证指标停止并回到表现最好的一轮
+              - 早停
+            - - 让大权重付出额外代价
+              - 权重衰减
+          explain: 它们分别约束权重、训练时的激活和训练轮数。
+      - card:
+          title: 一批一批地调节中间值
+          body: 批归一化训练时用批内统计量调整中间值，再学习缩放和平移。评估通常用累积的统计量。它主要改变训练的数值条件和稳定性，也可能带来正则效果；训练与评估的开关要正确设置。
+      - item:
+          id: mode
+          type: choice
+          prompt: 含 dropout 或批归一化的模型评估时，为什么通常切换到评估模式？
+          options:
+            - text: 为了评估时继续更新权重
+              why: 评估应观察当前模型，不更新它。
+            - text: 让这些层采用评估规则，结果可比较
+              correct: true
+          explain: 训练行为与部署时的统计处理可能不同。
+  - id: deep-features
+    chapter: 正则化和深层表示
+    title: 让近处的小形状组成更大的图案
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同样的笔画出现在图片左边或右边，需要学两套完全不同的检测规则吗？
+          options:
+            - text: 可以让同一个检测器在各处扫描
+              correct: true
+            - text: 一定要为每个位置单独记一份
+              why: 多个位置可以共享相同的局部特征。
+          explain: 共享规则能识别多处出现的局部模式。
+      - card:
+          title: 卷积在不同位置共享小权重表
+          body: 卷积层用同一小窗口在图上滑动，记录局部匹配程度。逐层可把边缘组合成笔画与较大结构；池化或步幅改变空间分辨率。检查学到的表示可看激活图，或用定量测试衡量对变换的稳定性。
+      - item:
+          id: shared
+          type: choice
+          prompt: 同一个局部模式移到相邻位置，卷积层为什么仍可能响应？
+          options:
+            - text: 整张图总被变成一个像素
+              why: 局部响应保留空间信息。
+            - text: 同一组局部权重也会扫到新位置
+              correct: true
+          explain: 权重在空间位置间共享。
+      - card:
+          title: 能表达，还要能学到
+          body: 足够宽的适当非线性网络可近似紧域上的连续函数。证明思路可用多层平滑台阶拼出局部变化。近似能力不决定需要多少训练数据，也不保证优化成功；深度、卷积和其他结构影响表达成本。
+      - item:
+          id: universal
+          type: choice
+          prompt: 知道某网络族能近似很多函数，能保证手头的训练算法找到合适参数吗？
+          options:
+            - text: 能，存在近似等于算法必到全局最优
+              why: 存在性没有给出学习算法的保证。
+            - text: 仍要分别验证表达能力、优化与泛化
+              correct: true
+          explain: 存在某组权重，与能学到并在新样本上表现好，是不同问题。
+  - id: backward
+    chapter: 反向传播
+    title: 从输出误差倒着分账
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 输出误差来自两个中间结果。要知道某个早期权重贡献多少，应该沿什么走？
+          options:
+            - text: 沿它影响输出的每条路径，把局部变化乘起来再加
+              correct: true
+            - text: 只看权重离输出有几层
+              why: 层数不提供导数的数值。
+          explain: 多个路径会一起影响最后误差。
+      - card:
+          title: 重复使用已算出的导数
+          body: '**反向传播（backpropagation）**。逐层先用转置权重把误差信号送回，再逐元素乘激活的导数。这个逐元素乘法也称 Hadamard 积。权重梯度来自本层误差与上一层激活的外积。'
+      - card:
+          title: 例题：手算两层 ReLU 网络
+          body: 输入 (1,2)，真实值 1。第一层权重 [[1,−1],[0.5,1]]，偏置 (0,0)。第二层权重 (1,−2)，偏置 0.5。损失为误差平方的一半。
+          reveal:
+            - title: 先算前向值
+              body: 第一层得分 (−1,2.5)，激活 (0,2.5)，输出 −4.5。
+            - title: 把输出误差传回
+              body: 输出梯度 −5.5，第二层偏置梯度也是 −5.5，权重梯度为 (0,−13.75)。
+            - title: 乘回第一层局部变化
+              body: ReLU 负处斜率 0，正处斜率 1，第一层误差信号 (0,11)。与输入做外积得两行 (0,0)、(11,22)。
+      - item:
+          id: back-bias
+          type: number
+          prompt: 预测 3、真实 1，损失为 ½(预测−真实)²。最后一层直接加偏置。对偏置的导数是多少？
+          answer: 2
+          explain: 对预测求导是 3−1，预测对偏置导数为 1。
+      - item:
+          id: inactive
+          type: choice
+          prompt: 某隐藏单元的 ReLU 输入是负数。该样本经此激活向前一层传的梯度怎样？
+          options:
+            - text: 在此处乘 0
+              correct: true
+            - text: 乘 1
+              why: 这是正半轴的导数。
+          explain: ReLU 在严格负数处局部恒为零。
+  - id: torch-loop
+    chapter: 反向传播
+    title: 让框架记住计算，再按顺序更新
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把两份答案相加以后再改权重，和每轮只用本批答案，得到的更新会相同吗？
+          options:
+            - text: 未必，要先决定是否希望累加
+              correct: true
+            - text: 总相同，上一轮答案会自行消失
+              why: 许多框架的默认反传会把梯度累加。
+          explain: 训练框架可以保留上次计算出的梯度。
+      - card:
+          title: 按一次更新的边界清空梯度
+          body: |-
+            PyTorch 的 optimizer.zero_grad() 清掉旧梯度，model(x) 前向，loss_fn 算损失，loss.backward() 反传，optimizer.step() 更新。框架保存前向图上的中间信息，反向无需从头对每个参数重算。
+
+            每批 x 是两列特征，y 是类别编号。交叉熵直接接收未转成概率的类别得分。
+
+            ```python
+            import torch
+            from torch import nn
+
+            # Two inputs, three hidden units, two class scores.
+            model = nn.Sequential(nn.Linear(2, 3), nn.ReLU(), nn.Linear(3, 2))
+            loss_fn = nn.CrossEntropyLoss()
+            optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+
+            def train_epoch(loader):
+                model.train()
+                for x, y in loader:
+                    optimizer.zero_grad()
+                    logits = model(x)
+                    loss = loss_fn(logits, y)
+                    loss.backward()
+                    optimizer.step()
+            ```
+      - item:
+          id: loop
+          type: order
+          prompt: 按每批独立更新的常见写法排列调用。
+          steps:
+            - optimizer.zero_grad()
+            - model(x) 与 loss_fn
+            - loss.backward()
+            - optimizer.step()
+          explain: 先清旧梯度，再形成计算和梯度，最后更新。
+      - card:
+          title: 单独评估与有意累积
+          body: 验证时用 model.eval()，并在 no_grad 环境测指标。若为模拟更大批量而有意跨小批累积，要按有效批量归一化，并只在累积开始清梯度、结束更新。
+      - item:
+          id: accumulate
+          type: choice
+          prompt: 每批本来应独立更新，却忘记 zero_grad()。会发生什么？
+          options:
+            - text: 框架自动把旧梯度永远覆盖
+              why: 默认反传的累加行为不会自己清空。
+            - text: 旧梯度可能累加到本批梯度中
+              correct: true
+          explain: 更新方向混入此前的数据和参数状态。
+boss:
+  items:
+    - id: xor
+      type: choice
+      prompt: 一个只用直线阈值的神经元能完全分开 XOR 吗？
+      options:
+        - text: 能，只要把学习率调足够大
+          why: 问题来自表达能力。
+        - text: 不能，两组对角线相交
+          correct: true
+      explain: 没有一条直线能把两组对角点分在两边。
+    - id: sgd
+      type: number
+      prompt: 参数 5，梯度 4，学习率 0.25。一步 SGD 后是多少？
+      answer: 4
+      explain: 5−0.25×4=4。
+    - id: regular
+      type: choice
+      prompt: 训练持续改善但验证开始变差。哪个方法用验证表现保留早期权重？
+      options:
+        - text: 无限延长训练
+          why: 更多迭代可能加重对训练噪声的拟合。
+        - text: 早停
+          correct: true
+      explain: 依据验证指标选择检查点。
+    - id: backprop
+      type: number
+      prompt: 输出为 4，目标 2，损失为 ½(输出−目标)²。输出梯度是多少？
+      answer: 2
+      explain: 求导得到 4−2。
+    - id: zero
+      type: choice
+      prompt: PyTorch 每批独立更新时，哪一步避免上次梯度混进本次？
+      options:
+        - text: model.eval()
+          why: 它切换部分层的行为，不清梯度。
+        - text: optimizer.zero_grad()
+          correct: true
+      explain: 框架默认会累加梯度。

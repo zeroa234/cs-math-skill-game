@@ -1,0 +1,666 @@
+skill: C.2.2
+version: 2
+brief:
+  why: 两个程序同时读写数据时，问题可能只在某个罕见顺序下出现。你会沿着文件、管道和线程的执行过程找到这个顺序，再选合适的同步办法。
+  outcomes:
+    - 追踪文件操作和父子进程通信
+    - 用互斥锁、条件变量和原子操作保护共享数据
+    - 从工具报告定位未同步的访问
+terms:
+  - term: 条件变量
+    def: 线程等共享条件发生变化的同步工具，醒来并拿回锁后须再次检查条件。
+  - term: 原子操作
+    def: 从其他线程观察时，作为一个不可分割的操作生效。
+  - term: 内存模型
+    def: 规定并发访问允许观察到哪些值和顺序，以及什么操作能建立同步。
+  - term: 进程间通信
+    def: 分开的进程通过管道、共享映射、套接字等机制交换信息。
+  - term: I/O 多路复用
+    def: 一个线程用一次等待观察多个 I/O 对象是否就绪。
+  - term: 数据竞争
+    def: 多个线程访问同一位置，至少一个写入，并且访问没有必要的同步。
+  - term: 进程
+    def: 正在运行的程序及其由操作系统管理的状态与资源。
+  - term: 地址空间
+    def: 进程可使用的一套内存地址，通常与其他进程分开。
+  - term: 线程
+    def: 同一个进程内的一条执行路线。
+  - term: 临界区
+    def: 访问共享状态、需要按约定互斥执行的代码。
+  - term: 互斥锁
+    def: 同一时刻只让一个持有者通过的同步工具。
+  - term: 信号量
+    def: 保存可用额度，可让线程等到额度或归还额度的同步工具。
+  - term: 死锁
+    def: 多个执行方各自等待其他方释放资源，导致无法继续。
+  - term: 自旋锁
+    def: 等待期间反复检查锁状态，直到能获得锁的同步工具。
+  - term: 竞态条件
+    def: 程序结果依赖并发操作的先后时机，某些交错产生错误。
+lessons:
+  - id: syscalls
+    chapter: 系统调用
+    title: 向操作系统借一扇门
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 程序要读另一块磁盘的数据，谁来协调设备？
+          options:
+            - text: 任何程序都能直接改设备
+              why: 那会让程序绕开权限检查，也难以协调多个请求。
+            - text: 操作系统
+              correct: true
+          explain: 设备和权限由操作系统管理。
+      - card:
+          title: 程序怎样求助
+          body: 运行中的程序叫**进程（process）**，内核为它管理文件和设备。打开文件时，进程把路径和打开方式交给内核检查。这样的主动请求入口叫系统调用。处理中断或异常时，处理器也会把控制交给内核。
+      - card:
+          title: 分出孩子，再装载程序
+          body: '**地址空间（address space）**是进程可使用的一套内存地址。`fork` 成功后，父进程拿到孩子的进程号，孩子拿到 0，两者各有独立地址空间。`exec` 成功时换入新程序，进程号保留。父进程可用 `waitpid` 回收孩子，也可用 `ps` 查看进程状态。'
+      - item:
+          id: requests
+          type: match
+          prompt: 把 Unix 接口和工作配对。
+          pairs:
+            - - open
+              - 按路径取得打开的文件
+            - - close
+              - 释放当前进程持有的文件描述符
+            - - waitpid
+              - 等待指定子进程的状态变化
+          explain: 这些接口分别管理文件和进程，失败时要查看返回值。
+      - item:
+          id: fork
+          type: choice
+          prompt: 父进程调用 `fork` 返回 −1。应该走哪条路径？
+          options:
+            - text: 让孩子继续
+              why: 这次没有产生孩子。
+            - text: 按进程号 −1 记作成功
+              why: −1 是这个接口的错误返回。
+            - text: 检查错误并处理创建失败
+              correct: true
+          explain: −1 表示没有创建孩子。只有孩子看到 0，父进程成功时看到正的进程号。
+      - card:
+          title: 失败从返回值开始
+          body: 许多 Unix 接口以 −1 报错。先确认返回值表示失败，再读 `errno` 区分找不到文件、权限不足等原因。`open` 成功返回一个文件描述符。它也可能是 0，所以不能把 0 当作失败。
+      - item:
+          id: open-zero
+          type: choice
+          prompt: '`open` 返回 0，应该怎样看？'
+          options:
+            - text: 打开成功，返回的文件描述符恰好是 0
+              correct: true
+            - text: 路径不存在
+              why: 这一类失败应返回 −1。
+          explain: 描述符只是非负整数。关闭标准输入后，0 可以被分配给新文件。
+  - id: io
+    chapter: 系统调用
+    title: 追踪一次文件读写
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你请程序读文件末尾的四个字母，文件只剩两个。程序会怎样？
+          options:
+            - text: 必须凑齐四个才有结果
+              why: 普通文件到末尾时没有剩余内容可凑。
+            - text: 有可能只收到剩下的两个
+              correct: true
+          explain: 系统接口报告实际传输量。
+      - card:
+          title: 返回值告诉你走了多远
+          body: Unix 将普通文件、终端和许多设备统一为可读写对象。`read` 返回读到的字节数，返回 0 通常表示读到结尾，返回 −1 要处理错误。`write` 也可能只写一部分。需要完整传输时记录偏移并继续，遇到 `EINTR` 等可重试错误时按接口约定处理。RIO 是教材中封装这类循环的例子。
+      - item:
+          id: remaining
+          type: number
+          prompt: 还要写出 10 字节。第一次 write 成功写出 6 字节，下一次从未写部分继续，应请求写多少字节？
+          answer: 4
+          explain: 已经交给系统 6 字节，剩下 10 − 6 = 4 字节。
+      - card:
+          title: 两个号码可以指向同一处
+          body: '`stat` 读取文件大小和权限等元数据，`readdir` 枚举目录中的名字。`dup2` 可以让另一个描述符指向同一个打开记录，两者共享文件偏移。命令行的输出重定向可以先打开目标文件，再让标准输出的描述符指向它。'
+      - item:
+          id: redirect
+          type: choice
+          prompt: 要把程序原本打印到终端的内容写入文件，哪种做法会改变标准输出的去向？
+          options:
+            - text: 打开目标文件，把它复制到标准输出的描述符位置
+              correct: true
+            - text: 只打开文件，继续原样打印
+              why: 打开新文件不改变已有描述符。
+          explain: 程序仍向标准输出写，内核按新的指向把数据送到文件。
+      - card:
+          title: 写入库的暂存区
+          body: C 的 `fwrite` 可以先把内容放在库的暂存区里，到适当时机才交给内核。`fflush` 将库内暂存交给下层，持久写入磁盘还涉及系统级同步。需要控制描述符和等待行为时用 Unix I/O，需要格式化与缓冲时通常选标准 I/O。
+      - item:
+          id: api
+          type: match
+          prompt: 按任务选择接口。
+          pairs:
+            - - 格式化输出金额
+              - printf
+            - - 查询文件权限
+              - stat
+            - - 依次取目录中的名字
+              - readdir
+          explain: 格式化、文件状态和目录枚举由不同接口负责。
+  - id: mutex
+    chapter: 锁
+    title: 等到队列里有东西
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 取餐窗口空着，你刚被叫到，另一个人先拿走最后一份。你该怎么办？
+          options:
+            - text: 凭通知伸手取餐
+              why: 通知与实际取餐之间，库存可能已经变化。
+            - text: 再检查一次还有没有餐
+              correct: true
+          explain: 通知告诉你可以重查，实际库存可能已变化。
+      - card:
+          title: 用同一把锁守住约定
+          body: 同一个进程可有多条执行路线，称为**线程（thread）**。如果两条路线同时改队列，数量、队头和队尾必须保持一致。把访问共享队列的代码划进**临界区（critical section）**，进入前取得同一把**互斥锁（mutex）**，离开时释放。
+      - item:
+          id: scope
+          type: choice
+          prompt: 出队时更新队头和数量，应怎样持锁？
+          options:
+            - text: 每次更新分别加锁
+              why: 两次锁之间，另一个线程仍可能看到不一致的状态。
+            - text: 两次更新都在同一个临界区内
+              correct: true
+          explain: 这样其他遵守同一把锁的线程只能看见更新前或更新后的状态。
+      - card:
+          title: 等待时先让别人进入
+          body: '**条件变量（condition variable）**让取餐者睡着等通知。`pthread_cond_wait` 会原子地释放锁并等待，返回前重新取得锁。把检查写在 `while` 中，因为醒来的线程可能发现队列已被其他人取空。**信号量（semaphore）**则保存可用额度，可以用来数资源份数。'
+      - card:
+          title: 例题：一格取件柜
+          body: 取件者看见柜子空着。
+          reveal:
+            - title: 等待时让出锁
+              body: 持锁检查数量为零，在循环中等待 `not_empty`。
+            - title: 放件后发通知
+              body: 放件者持锁放入并更新数量，通知 `not_empty` 后解锁。
+            - title: 取走并释放空间
+              body: 取件者重新持锁，检查有货才取，再通知 `not_full`。
+      - item:
+          id: take
+          type: order
+          prompt: 给一个有界队列安排取件操作。进入时已经持锁。
+          steps:
+            - 循环检查为空就等待
+            - 取出队头并减少数量
+            - 通知有空位
+            - 释放锁
+          explain: 取件后才有新的空位，通知生产者后再释放锁。
+  - id: threads
+    chapter: 锁
+    title: 分工与两把锁
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 四个人数四段书架，要总数。每数一本都挤到同一张纸上记，有更好的安排吗？
+          options:
+            - text: 四个人一起改同一个数字
+              why: 未经协调的更新可能相互覆盖。
+            - text: 各自记小计，最后合并
+              correct: true
+          explain: 每个人能独立推进，最后才需要汇总。
+      - card:
+          title: 让线程写自己的位置
+          body: |-
+            用 `pthread_create` 启动工作线程。把数组分成互不重叠的区间，每个线程读一段、写自己的小计槽位。主线程 `pthread_join` 等所有工作线程结束再读小计。每个工作线程应拿到独立的区间参数，避免共用一个不断变化的循环变量。
+
+            数组每两项交给一名工作线程。`jobs[k]` 是每人的独立记录。先猜总数，再看完整程序。
+
+            ```c
+            #include <pthread.h>
+            #include <stdio.h>
+
+            struct job {
+                const int *start;
+                size_t count;
+                int sum;
+            };
+
+            static void *sum_part(void *arg) {
+                struct job *job = arg;
+                for (size_t i = 0; i < job->count; i++) {
+                    job->sum += job->start[i];
+                }
+                return NULL;
+            }
+
+            int main(void) {
+                int numbers[] = {1, 1, 3, 4, 1, 2, 3, 3};
+                struct job jobs[4];
+                pthread_t workers[4];
+                for (size_t k = 0; k < 4; k++) {
+                    jobs[k] = (struct job){numbers + 2 * k, 2, 0};
+                    if (pthread_create(&workers[k], NULL, sum_part, &jobs[k])) return 1;
+                }
+                int total = 0;
+                for (size_t k = 0; k < 4; k++) {
+                    if (pthread_join(workers[k], NULL)) return 1;
+                    total += jobs[k].sum;
+                }
+                printf("%d\n", total);
+                return 0;
+            }
+            ```
+      - item:
+          id: sum
+          type: number
+          prompt: 四个已经 join 的工作线程分别写下 2、7、3、6。总和是多少？
+          answer: 18
+          explain: 主线程在四个工作线程结束后求和，2 + 7 + 3 + 6 = 18。
+      - card:
+          title: 等待可以形成环
+          body: 甲持有 A 等 B，乙持有 B 等 A。两边都走不下去，就是**死锁（deadlock）**。死锁需要互斥、占有并等待、资源不可被强行剥夺、循环等待四项同时成立。统一规定先拿 A 再拿 B，或第二把拿不到就先释放第一把，分别打破其中一项。
+          sim:
+            name: threads
+            params:
+              shared:
+                x: 0
+              locks:
+                - a
+                - b
+              threads:
+                - name: 甲
+                  steps:
+                    - lock a
+                    - lock b
+                    - unlock b
+                    - unlock a
+                - name: 乙
+                  steps:
+                    - lock b
+                    - lock a
+                    - unlock a
+                    - unlock b
+      - item:
+          id: deadlock
+          type: sim
+          sim: threads
+          params:
+            shared:
+              x: 0
+            locks:
+              - a
+              - b
+            threads:
+              - name: 甲
+                steps:
+                  - lock a
+                  - lock b
+                  - unlock b
+                  - unlock a
+              - name: 乙
+                steps:
+                  - lock b
+                  - lock a
+                  - unlock a
+                  - unlock b
+          goal:
+            deadlock: true
+          solution:
+            - 0
+            - 1
+          prompt: 安排甲和乙，使它们各持一把锁，然后都走不下去。
+          explain: 甲持 a 等 b，乙持 b 等 a，形成循环等待。
+      - card:
+          title: 函数能否被同时使用
+          body: 多个线程调用仍能正确工作的函数称为线程安全（thread safety）。只用参数和自己的局部变量处理数据，通常也更易做到可重入（reentrancy），即一次执行被打断时能安全再次进入。用锁保护静态缓冲区可让普通并行调用安全，持锁时被打断后再次调用仍可能卡住。
+      - item:
+          id: reentrant
+          type: choice
+          prompt: 一个函数持互斥锁时被同一线程的信号处理函数打断，处理函数再次调用它。为什么可能停住？
+          options:
+            - text: 第二次调用在等第一次释放锁，而第一次尚未恢复
+              correct: true
+            - text: 锁会为第二次调用建立新的缓冲区
+              why: 锁只协调进入，缓冲区没有自动分身。
+          explain: 互斥保护普通并发调用，信号打断时的再次进入还有额外要求。
+  - id: atomic
+    chapter: 原子操作
+    title: 一次交接要完整
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个人读同一个计数牌，各加一再写回。两人都先读到 0。会写出什么？
+          options:
+            - text: 两人都写 1
+              correct: true
+            - text: 第二个人自动写 2
+              why: 他计算时读到的仍是 0。
+          explain: 两人用同一个旧值计算，最后保留 1。
+      - card:
+          title: 把三步合成一次
+          body: '**原子操作（atomic operation）**能让读、改、写一次生效。C11 的 `atomic_fetch_add` 更新原子变量并返回旧值。若它从 8 开始，被两个线程各加 1，返回旧值的先后是 8、9，最终为 10。'
+      - item:
+          id: fetch
+          type: number
+          prompt: 一个原子计数器初值为 5，两个线程各执行一次 fetch_add(1)，都完成后是多少？
+          answer: 7
+          explain: 两次更新都生效，所以是 5 + 1 + 1。
+      - card:
+          title: 硬件能提供什么
+          body: 交换并测试（test-and-set）设锁为占用并拿到原值，拿到空闲值才进。比较并交换（compare-and-swap）只在当前值符合预期时写入。LL/SC 是另一对原语：先带保留读，再尝试有条件写，失去保留就重试。**自旋锁（spinlock）**在等待时反复检查，适合经权衡后使用。
+      - item:
+          id: primitives
+          type: match
+          prompt: 把动作和原语配对。
+          pairs:
+            - - 置为占用并取回旧标志
+              - test-and-set
+            - - 当前值等于预期才换新值
+              - compare-and-swap
+            - - 尝试提交带保留读之后的写入
+              - LL/SC
+          explain: 三种原语的成功条件不同。
+      - item:
+          id: whole
+          type: choice
+          prompt: 账户扣款要同时检查余额并更新余额。两个分别原子的读和写能保住这一约定吗？
+          options:
+            - text: 还需要保护整个检查并更新的过程
+              correct: true
+            - text: 每一步原子就够了
+              why: 组合仍能被其他线程插入。
+          explain: 另一线程仍能在原子读与原子写之间修改余额。可以用同一把锁包住两步。
+  - id: memory
+    chapter: 内存模型
+    title: 看见标志时，也看见数据
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同一份工作单先填内容，再贴好‘完成’。同事看到贴纸时，要能放心读哪部分？
+          options:
+            - text: 随便哪一版内容
+              why: 贴纸若没有交接约定，读到旧内容也有可能。
+            - text: 这次已经填好的内容
+              correct: true
+          explain: 贴纸有用的前提是它和那次写入建立了交接。
+      - card:
+          title: 线程共享什么
+          body: 同一进程里的线程可以通过共享内存交换数据，各自的调用栈用来保存本线程的调用。拿到指向另一个线程局部对象的指针也可能访问它，前提是对象还活着且访问已同步。缓存一致性主要处理同一个位置的写入传播和顺序。
+      - item:
+          id: same-location
+          type: choice
+          prompt: 同一个变量的更新能在各核心间传播。能直接推出另一个变量的写入也按源码先后被看见吗？
+          options:
+            - text: 还要看两处访问之间的内存顺序规则
+              correct: true
+            - text: 可以，每处写入能传播就能保证全局顺序
+              why: 这两个位置仍可能被不同顺序观察。
+          explain: 单位置的一致性和多位置的访问顺序是两个层面。
+      - card:
+          title: 用标志交接内容
+          body: '**内存模型（memory model）**约束共享读写。生产者先写数据，再以 release 写原子标志。消费者以 acquire 读到这次发布的值后，才能据此读取那次发布前的数据。发布端和读取端通过同一次交接建立了顺序。'
+      - card:
+          title: 例题：读取工作单
+          body: 只有一次发布，消费者随后要读取。
+          reveal:
+            - title: 先填
+              body: 写入共享数据。
+            - title: 发出完成标记
+              body: 用 release 写原子标记。
+            - title: 确认接到本次交接
+              body: 用 acquire 读取标记，读到本次写入后再取共享数据。
+      - item:
+          id: orders
+          type: match
+          prompt: 把 C++ 原子内存序和用途配对。
+          pairs:
+            - - 独立计数，单个计数器仍原子
+              - relaxed
+            - - 发布普通数据给读到标记的线程
+              - release/acquire
+            - - 为这类原子操作提供统一的全序
+              - seq_cst
+          explain: relaxed 可以满足独立计数，release/acquire 可以发布数据，seq_cst 额外约束相应操作的全局顺序。
+  - id: pipe
+    chapter: IPC与竞态检测
+    title: 父子进程传一封信
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 写信窗口还开着，信箱暂时空了。收信者能断定以后也没有信吗？
+          options:
+            - text: 空箱就等于结束
+              why: 写的一方还可以再写入。
+            - text: 不能，窗口仍可能送来信
+              correct: true
+          explain: 暂时为空和发送结束要分开判断。
+      - card:
+          title: 从内核中穿过
+          body: '**进程间通信（interprocess communication，IPC）**让独立进程传数据。`pipe(fd)` 建立管道，`fd[0]` 读、`fd[1]` 写；在 `fork` 前创建，两边会继承这两个描述符。约定孩子写、父亲读后，各自关闭不用的一端。'
+      - card:
+          title: 例题：父进程读到结束
+          body: 孩子要通过 POSIX 管道发 `hello`。
+          reveal:
+            - title: 准备两端
+              body: 先 `pipe` 再 `fork`。失败时走错误处理。
+            - title: 让孩子发信
+              body: 子进程关闭读端，循环写完整消息，再关闭写端。
+            - title: 让父进程读到末尾
+              body: |-
+                父进程先关闭自己的写端，循环读到 0，再关闭读端并等待孩子。
+
+                下面的小程序中，父进程读到管道结束，把内容打印成一行。示例遇到系统接口出错就停止。用 POSIX 环境运行，预期看到 `hello`。
+
+                ```c
+                #include <stdio.h>
+                #include <sys/wait.h>
+                #include <unistd.h>
+
+                int main(void) {
+                    int fd[2];
+                    if (pipe(fd) == -1) return 1;
+                    pid_t child = fork();
+                    if (child == -1) return 1;
+                    if (child == 0) {
+                        close(fd[0]);
+                        ssize_t sent = write(fd[1], "hello", 5);
+                        close(fd[1]);
+                        _exit(sent == 5 ? 0 : 1);
+                    }
+
+                    close(fd[1]);
+                    char buf[16];
+                    ssize_t n;
+                    while ((n = read(fd[0], buf, sizeof buf)) > 0) {
+                        if (fwrite(buf, 1, n, stdout) != (size_t)n) return 1;
+                    }
+                    close(fd[0]);
+                    int status;
+                    if (waitpid(child, &status, 0) == -1 || n < 0) return 1;
+                    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) return 1;
+                    puts("");
+                    return 0;
+                }
+                ```
+      - item:
+          id: child
+          type: order
+          prompt: 把孩子通过管道发送消息的步骤排好。约定父进程接收且进程均已创建。
+          steps:
+            - 关闭继承的读端
+            - 写出完整消息
+            - 关闭写端并退出
+          explain: 关闭不用的一端，写完再关实际使用的一端，另一侧才能读到结束。
+      - card:
+          title: 同一台机器上的几种通道
+          body: FIFO 是有名字的管道，可以让另一个进程按路径打开。共享 `mmap` 把同一份存储映射给双方，需要单独同步；Unix 域套接字支持本机的双向通信。信号适合通知事件，例如子进程状态变化，传输成段数据更适合管道。
+      - item:
+          id: eof
+          type: choice
+          prompt: 父进程已经读走全部数据，但自己忘了关写端，孩子已关写端。阻塞读会怎样？
+          options:
+            - text: 等后续数据，当前还不能报告结束
+              correct: true
+            - text: 立即返回 0
+              why: 仍有一个打开的写端。
+          explain: 管道没数据且所有写端关闭时，读才返回 0。
+  - id: multiplex
+    chapter: IPC与竞态检测
+    title: 同时守住几扇门
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个柜员只盯住空窗口，旁边排了队。怎样发现别处有人？
+          options:
+            - text: 一次查看哪些窗口有活
+              correct: true
+            - text: 一直等空窗口来人
+              why: 其他窗口可能一直无人处理。
+          explain: 收到就绪提示后再处理对应窗口。
+      - card:
+          title: 先等就绪，再读
+          body: '**I/O 多路复用（I/O multiplexing）**让服务程序用 `select` 或 `poll` 等一组描述符，Linux 还提供 `epoll`。若连接 A 没数据而 B 可读，程序可处理 B，避免在 A 的阻塞读上停住。就绪也可能表示连接结束，要检查实际返回值。'
+      - item:
+          id: ready
+          type: choice
+          prompt: 一个连接还没发来完整消息，等待接口报告可读。下一步是什么？
+          options:
+            - text: 先读已经可用的数据，并检查读到了多少
+              correct: true
+            - text: 认为一整条消息已经到齐
+              why: 可读的字节数可能少于一条消息。
+          explain: 就绪表示有进展的机会，消息边界仍由上层协议决定。
+      - card:
+          title: 连接的两份描述符
+          body: 客户程序请求服务，服务器在监听套接字上 `accept`。成功时它返回专门服务该客户的连接套接字，原监听套接字还能接下一位。服务程序可以给每个连接一个进程或线程，也可以一个线程管理多条连接。
+      - item:
+          id: socket
+          type: match
+          prompt: 把接口和职责配起来。
+          pairs:
+            - - listen
+              - 让服务套接字接收连接请求
+            - - accept
+              - 取得单条已接收连接
+            - - read
+              - 从该连接取数据
+          explain: 监听与交换数据在不同的描述符上。
+  - id: race
+    chapter: IPC与竞态检测
+    title: 看懂一份竞态报告
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个错误平时不出现，偶尔两个人一起操作才出现。要记录什么？
+          options:
+            - text: 记录两边操作发生的顺序
+              correct: true
+            - text: 只记最终结果
+              why: 同一个结果可能来自多种交错。
+          explain: 顺序可以帮你还原哪次操作被盖掉或越过。
+      - card:
+          title: 把相冲突的访问标出来
+          body: '**数据竞争（data race）**在 C/C++ 中可能导致未定义行为。更广义的**竞态条件（race condition）**还包括逻辑先后有问题，例如两个已经加锁的操作分别检查和使用同一资源，中间被别的线程抢走。'
+      - item:
+          id: pair
+          type: choice
+          prompt: 两线程读同一个配置值，配置初始化后再也没人写。单看这两次读，会构成数据竞争吗？
+          options:
+            - text: 不会，两次都是读
+              correct: true
+            - text: 会，只要两个线程碰到同一变量
+              why: 并发读本身不是冲突。
+          explain: 数据竞争至少需要一次冲突写入。仍应保证初始化已正确发布。
+      - card:
+          title: 两种寻找线索的办法
+          body: Eraser 追踪一个共享位置历次访问共同持有的锁，候选锁集合变空时可提示问题。ThreadSanitizer 在运行时观察被测路径的访问和同步关系。一次运行没报告，只说明本次覆盖的执行里工具没发现问题。
+      - card:
+          title: 例题：修报告指向的计数器
+          body: 报告给出一个读位置和一个写位置。
+          reveal:
+            - title: 找同一个对象
+              body: 确认两条线程访问的是同一个计数器。
+            - title: 确定共享约定
+              body: 独立计数可用原子加。如果还要和其他字段一起更新，用同一把锁。
+            - title: 重跑并扩大覆盖
+              body: 多跑不同安排，也检查仍没被执行的路径。
+      - item:
+          id: repair
+          type: choice
+          prompt: 两个线程分别持不同的锁更新同一个计数器。怎样补齐保护？
+          options:
+            - text: 给较慢的线程再加一把只由它自己持有的锁
+              why: 其他线程仍可以同时访问。
+            - text: 让两边用同一把锁保护同一个计数器
+              correct: true
+          explain: 两把不同的锁能被同时持有，不能为这个共享对象提供互斥。
+boss:
+  items:
+    - id: pipe-end
+      type: choice
+      prompt: 父进程用管道读孩子写出的内容。缓冲区为空，要收到结束还需要什么？
+      options:
+        - text: 所有写端都关闭
+          correct: true
+        - text: 所有读端都关闭
+          why: 父进程还要用它自己的读端。
+      explain: 否则空缓冲区只是暂时没数据。
+    - id: lock-order
+      type: choice
+      prompt: 甲乙都必须拿两把锁 A 和 B。哪条约定打破循环等待？
+      options:
+        - text: 两边都先拿 A 再拿 B
+          correct: true
+        - text: 甲先 A，乙先 B
+          why: 两边各占一把时会相互等。
+      explain: 持有 B 的线程在这个过程里不会反过来等 A。
+    - id: cond
+      type: choice
+      prompt: 两位消费者被通知有货，一个先取完。第二个从 wait 回来该怎么做？
+      options:
+        - text: 持锁重新判断队列是否为空
+          correct: true
+        - text: 直接出队
+          why: 条件可能已经不成立。
+      explain: 等待返回时锁已取回，但共享条件可能已变。
+    - id: counter
+      type: number
+      prompt: 原子计数器初值 20，三个线程各 fetch_add(1) 一次。全部完成后的值是多少？
+      answer: 23
+      explain: 每次原子加都能生效，总共加 3。
+    - id: publish
+      type: choice
+      prompt: 写线程先填共享数据，然后发布标志。读线程 acquire 读到那次 release 的标志后，接下来该做什么？
+      options:
+        - text: 读取对应的共享数据
+          correct: true
+        - text: 改用 relaxed 读另一个标志即可读取任意共享对象
+          why: 同步只覆盖满足相应条件的交接。
+      explain: 这次 release/acquire 建立同步，把写数据排在读数据之前。
+    - id: diagnose
+      type: match
+      prompt: 把报告或现象与对应概念连起来。
+      pairs:
+        - - 互等对方占着的锁
+          - 死锁
+        - - 无同步地同时读写同一位置
+          - 数据竞争
+        - - 接收方确认读到发布方的完成标记
+          - release/acquire 交接
+      explain: 等待、竞争和交接各有不同的证据。

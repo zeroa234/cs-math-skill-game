@@ -45,7 +45,7 @@ export function Profile() {
       </section>
       <section class="card">
         <h2>设置</h2>
-        <label class="select">“去哪深入”显示 <select value={p.settings.sourceLang} onChange={(e) => set("sourceLang", e.currentTarget.value)}><option value="zh">中文资料优先</option><option value="en">英文资料优先</option><option value="both">中英文都显示</option></select></label>
+        {g.tree.meta.edition !== "toy" && <label class="select">“去哪深入”显示 <select value={p.settings.sourceLang} onChange={(e) => set("sourceLang", e.currentTarget.value)}><option value="zh">中文资料优先</option><option value="en">英文资料优先</option><option value="both">中英文都显示</option></select></label>}
         <label class="check"><input type="checkbox" checked={!!p.settings.reduceMotion} onChange={(e) => set("reduceMotion", e.currentTarget.checked)} /> 减少动画（角色不动、不放彩带、开场文字直接显示）</label>
         <label class="check"><input type="checkbox" checked={p.settings.sound !== false} onChange={(e) => set("sound", e.currentTarget.checked)} /> 声音（音效和音乐一起开关；顶栏右边的喇叭按钮也能切换）</label>
         <label class="check"><input type="checkbox" checked={p.settings.music !== false} disabled={p.settings.sound === false} onChange={(e) => set("music", e.currentTarget.checked)} /> 背景音乐</label>

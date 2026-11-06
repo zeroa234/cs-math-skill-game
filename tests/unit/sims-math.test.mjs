@@ -2,7 +2,7 @@
 // Moved back from archive/tests/unit/sims-archived.test.mjs on 2026-11-04 with the sims.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { trainMlp, dataset, riemann, integrate, taylor, descend, kmeansRun, neuronAccuracy, LOGIC } from "../../src/game/sims/logic/math.js";
+import { sample, trainMlp, dataset, riemann, integrate, taylor, descend, kmeansRun, neuronAccuracy, LOGIC } from "../../src/game/sims/logic/math.js";
 import { compile, fx } from "../../src/game/sims/expr.js";
 
 test("expr: precedence, implicit multiplication, functions", () => {
@@ -30,6 +30,14 @@ test("gradient descent on (x-3)^2: lr 0.1 converges, lr 1.1 diverges", () => {
   assert.ok(descend({ f: "(x-3)^2", x0: 0 }, 1.1, 200).diverged);
   const two = descend({ f: "x^2 + 10y^2", vars: ["x", "y"], x0: [2, 1] }, 0.05, 200);
   assert.ok(Math.hypot(...two.x) < 1e-3);
+});
+
+test("sampler: extending a seeded run preserves prior dice draws", () => {
+  const draws = sample("twoDice", 100, 7);
+  assert.deepEqual(draws.slice(0, 20), sample("twoDice", 20, 7));
+  assert.equal(draws.length, 100);
+  assert.ok(draws.every((value) => Number.isInteger(value) && value >= 2 && value <= 12));
+  assert.ok(new Set(draws).size > 1);
 });
 
 test("a single neuron solves AND but cannot solve XOR", () => {

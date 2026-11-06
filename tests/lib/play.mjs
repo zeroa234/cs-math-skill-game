@@ -42,6 +42,19 @@ export async function answerCorrectly(p, item) {
     }
     return true;
   }
+  if (item.type === "sim" && item.sim === "plot" && item.params.mode === "riemann") {
+    await p.locator(q + ' .sim-plot input[type="range"]').fill(String(item.solution.n));
+    return true;
+  }
+  if (item.type === "sim" && item.sim === "threads") {
+    for (const i of item.solution) await p.locator(q + " .sim-threads .thread button").nth(i).click();
+    return true;
+  }
+  if (item.type === "sim" && item.sim === "graph" && Array.isArray(item.solution)) {
+    const buttons = p.locator(q + " .sim-graph .btns");
+    for (const id of item.solution) await buttons.getByRole("button", { name: id, exact: true }).click();
+    return true;
+  }
   return false;
 }
 
@@ -68,7 +81,7 @@ export async function answerAnything(p) {
   else if (await p.$(`${q} .sim .btn.small:not([disabled])`)) await p.click(`${q} .sim .btn.small:not([disabled])`);
 }
 
-// Walks a lesson to its summary (`.celebrate`, or `done` for other flows). With `lesson`, non-sim
+// Walks a lesson to its summary (`.celebrate`, or `done` for other flows). With `lesson`, supported
 // items are answered correctly and must be graded correct on the first try (else pushed to `errors`).
 // `onStep(label)` runs on every screen before its bottom button is pressed (label: 检查/继续/…).
 export async function playLesson(p, tag, lesson, { errors = [], onStep, done = ".celebrate" } = {}) {
@@ -85,7 +98,7 @@ export async function playLesson(p, tag, lesson, { errors = [], onStep, done = "
       const firstTime = !seen.has(id);
       seen.add(id);
       let mode = "any";
-      if (item && item.type !== "sim" && firstTime && (await answerCorrectly(p, item))) mode = "correct";
+      if (item && firstTime && (await answerCorrectly(p, item))) mode = "correct";
       if (await btn.isDisabled()) await answerAnything(p);
       if (await btn.isDisabled()) { errors.push(`[${tag}] could not answer item ${id}`); return false; }
       if (onStep) await onStep("answer " + id);
