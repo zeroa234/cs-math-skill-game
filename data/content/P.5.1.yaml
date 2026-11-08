@@ -1,0 +1,992 @@
+skill: P.5.1
+version: 2
+brief:
+  why: 你会从打开一张网页开始，做出一个可用键盘操作的问好页面。它会把名字发给服务器、显示返回的问候，并在请求失败时给出能看懂的提示。
+  outcomes:
+    - 读懂 HTTP 消息、状态码、浏览器缓存和跨源限制
+    - 用 HTML、CSS 和 JavaScript 构建界面，并连接可测试的服务端接口
+    - 区分身份核验与权限检查，让页面支持键盘、辅助技术和触屏
+terms:
+  - {term: URL, def: 定位网络资源的地址，可以包含协议、主机、端口、路径和查询。}
+  - {term: 地址, def: 用于找到资源或网络目的地的标识。}
+  - {term: 客户端, def: 发起请求的软件，在网页例子中通常是浏览器。}
+  - {term: 服务器, def: 接收请求并返回结果的程序或运行它的机器。}
+  - {term: HTTP, def: 约定客户端与服务器如何表示请求和响应的一组规则。}
+  - {term: HTTPS, def: 通过加密和身份核验机制保护的 HTTP 通信。}
+  - {term: 请求, def: 客户端发送给服务器的消息，说明想对哪个资源做什么。}
+  - {term: 响应, def: 服务器对一次请求返回的消息，包含结果状态及附带信息。}
+  - {term: 状态码, def: 响应里表示处理结果类型的三位数字。}
+  - {term: 缓存, def: 保存之前取得的副本，供之后满足条件时重用。}
+  - {term: HTML, def: 描述网页的内容和结构的标记语言。}
+  - {term: 超链接, def: 选择后可前往另一个文档或同一文档某一位置的元素。}
+  - {term: 链接, def: 页面中可用于导航到一个位置的指向。}
+  - {term: 表单, def: 将一组输入和提交操作组织在一起的网页元素。}
+  - {term: CSS, def: 描述网页外观和排版的样式语言。}
+  - {term: 选择器, def: CSS 规则中指定匹配哪些元素的部分。}
+  - {term: JavaScript, def: 浏览器执行的编程语言，用于根据数据和操作更新页面。}
+  - {term: 事件, def: 浏览器发出的某件事已经发生的通知，例如用户点击按钮。}
+  - {term: 组件, def: 一块封装了界面表示和相关行为的可复用界面单元。}
+  - {term: API, def: 软件对外约定的使用方式，包括可做的操作、输入和返回格式。}
+  - {term: JSON, def: 一种用文本表示数值、字符串、数组和对象等数据的格式。}
+  - {term: 数组, def: 在这里指按位置排列的一组值。}
+  - {term: Promise, def: JavaScript 中代表某项操作将来成功或失败的对象。}
+  - {term: 同源, def: 两个 URL 的协议、主机和端口都相同。}
+  - {term: CORS, def: 服务器用 HTTP 响应头告诉浏览器，哪些外部来源可读取响应。}
+  - {term: DOM, def: 浏览器把文档表示成的节点树，程序可以读写这些节点。}
+  - {term: 会话, def: 用来把同一个用户跨多次请求的状态关联起来的记录。}
+  - {term: Cookie, def: 浏览器保存并在满足发送条件的 HTTP 请求中附带的一小段数据。}
+  - {term: 认证, def: 核验来访者是谁。}
+  - {term: 授权, def: 判断某个主体能否执行某项操作。}
+  - {term: JWT, def: 一种可携带声明的令牌格式，常用签名来核验内容是否被改过。}
+  - {term: 可访问性, def: 让不同能力、设备和输入方式的使用者都能完成任务的设计目标。}
+lessons:
+  - id: web-trip
+    chapter: HTTP应用
+    title: 输入网址以后，浏览器到哪里去取页面
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你第一次在另一台电脑上打开课程站。浏览器知道页面要显示什么之前，通常要向谁取得内容？
+          options: [{text: 向提供课程的另一端取得, correct: true}, {text: 光看网址文字就能画出整页, why: 网址指向内容，里面没有整页的文字和图片。}]
+          explain: 网址先告诉浏览器去哪找，再由提供内容的一端回答。
+      - card:
+          title: 把网址分成几份来读
+          body: |
+            **地址（address）**是找目的地的标识。`https://learn.example/lessons?id=3` 是**URL（Uniform Resource Locator）**。`https` 选通信方式，`learn.example` 指网站，`/lessons` 是资源路径，`id=3` 是可传给网站的查询信息。
+      - item:
+          id: url-parts
+          type: match
+          prompt: 将 `https://learn.example/lessons?id=3` 的部分配给各自作用。
+          pairs: [[https, 选通信方式], [learn.example, 指定主机名], [/lessons, 指定资源路径], [id=3, 给资源提供查询信息]]
+          explain: 查找哪台机器、访问其中哪个资源和附带什么信息，是不同层次的问题。
+      - card:
+          title: 从找网站走到拿到内容
+          body: |
+            发起访问的浏览器是**客户端（client）**，回答它的是**服务器（server）**。**HTTP（Hypertext Transfer Protocol）**规定双方怎样写消息。**HTTPS（HTTP Secure）**保护通信。浏览器发出**请求（request）**，服务器返回**响应（response）**。
+          reveal:
+            - title: 找到主机并建立安全通信
+              body: 对一次全新的常规 HTTPS 访问，先用域名系统（DNS）查到主机的 IP 地址。以 HTTP/2 为例，接着建立 TCP 连接，再用 TLS 核验服务器并加密通信。HTTP/3 使用 QUIC，连接过程不同。
+            - title: 取文档和所需资源
+              body: 浏览器请求文档。收到后读取它的结构，并按需要请求样式、脚本和图片。浏览器解释这些内容，把页面排版并画出来。
+            - title: 让不同工具有共同的规则
+              body: HTTP、HTML 和 CSS 都有公开标准。服务器与浏览器可独立实现同样的消息和页面约定，开发者仍需在目标浏览器上验证兼容性。
+      - item:
+          id: browser-order
+          type: order
+          prompt: 没有可重用的连接或本地副本。一次使用 HTTP/2 的新 HTTPS 页面访问，按顺序排出简化流程。
+          steps: [解析网址并查主机的网络位置, 建立 TCP 和 TLS 连接, 发出 HTTP 请求并取得响应, 解析文档并获取页面资源, 排版并绘制页面]
+          explain: 要先知道去哪，再建立能送消息的连接，收到页面内容后才能绘制。
+  - id: messages
+    chapter: HTTP应用
+    title: 从请求和响应读出谁做了什么
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一人想看文章，另一人想发布文章。网页服务器怎样区分这两种意图？
+          options: [{text: 两人只要到同一个网址就必定做同一件事, why: 请求还可以带不同的操作方式。}, {text: 请求里要写明想执行的动作, correct: true}]
+          explain: 要读请求的动作和目标，才能知道客户端想做什么。
+      - card:
+          title: 操作和目标一起写
+          body: |
+            请求包含方法、目标、说明附加信息的头部，以及可选的正文。`GET /articles/5` 表示读取第 5 篇，GET 按约定不应要求改变资源。`POST /articles` 可把新文章交给服务器处理，重复发送可能重复创建。
+      - item:
+          id: method
+          type: choice
+          prompt: 客户端发来一篇尚未存在的文章，想让服务器分配新编号并创建它。常见约定是哪一个？
+          options: [{text: POST /articles，正文放新文章, correct: true}, {text: GET /articles 并让它顺手创建, why: GET 应用于读取，缓存和预取工具也可能发出它。}]
+          explain: POST 可交给集合处理创建，GET 保持读取的语义。
+      - card:
+          title: 读处理结果和附加说明
+          body: |
+            **状态码（status code）**是响应里的三位结果编号。头部可以说明正文格式、下一步位置等。正文可带资源或错误描述，有些响应没有正文。200 是成功，201 是已创建，204 是成功且没有正文，301 是永久迁移。
+      - item:
+          id: success-status
+          type: match
+          prompt: 给三种成功结果匹配约定的状态码。
+          pairs: [[返回查到的文章, '200'], [创建了新文章, '201'], [删除成功且没有响应正文, '204']]
+          explain: 编号告诉客户端后续该展示内容、定位新资源，还是结束操作。
+      - card:
+          title: 区分输入、身份、权限和故障
+          body: |
+            400 表示请求有误，401 表示需要有效的身份凭据，403 表示服务器理解请求但拒绝执行，404 表示没找到或不公开目标，500 表示服务器发生意外错误。返回 301 时通常用 Location 告知新位置。
+      - item:
+          id: failure-status
+          type: match
+          prompt: 在这组约定中，把场景与状态码配对。
+          pairs: [[请求格式无法处理, '400'], [需要登录但凭据缺失, '401'], [当前用户没有所需权限, '403'], [文章不存在, '404'], [服务器发生未预期错误, '500']]
+          explain: 错误类别不同，客户端就能分别提示改输入、登录、查权限或稍后重试。
+  - id: cache
+    chapter: HTTP应用
+    title: 文件没变就重用上次拿到的副本
+    minutes: 11
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一张头像刚下载过。再打开同一个页面时，浏览器一定要再拿一遍完整图片吗？
+          options: [{text: 一定每次都要重新传完整图片, why: 副本满足约定时可直接重用。}, {text: 如果已有合用的副本，可以重用, correct: true}]
+          explain: 让副本复用之前，先确定什么时候可以相信它。
+      - card:
+          title: 副本何时还能用
+          body: |
+            **缓存（cache）**保留之前取得的副本。服务器可用 `Cache-Control` 说明它能保留多久。带内容标识的文件名，例如 `site.abcd.css`，更新内容时换名，同一个名字就适合长期缓存。公共副本不能误存只给某个用户的响应。
+      - item:
+          id: fingerprint
+          type: choice
+          prompt: site.abcd.css 可以长期重用。你要让用户立即读到新版样式，页面应怎样引用？
+          options: [{text: 继续引用原文件名并期望客户端丢掉副本, why: 仍在有效期内的副本可能直接被使用。}, {text: 把新版放在新名称，并更新页面里的引用, correct: true}]
+          explain: 名称变化后浏览器会查询新资源，而旧引用仍能用旧副本。
+      - card:
+          title: 问服务器是否有变化
+          body: |
+            服务器可给响应附 `ETag`，像给当前版本贴标签。需要核对时，浏览器把旧标签放进 `If-None-Match`。资源没变时返回 304，告诉浏览器沿用本地副本；变了就可用 200 发送当前内容和新标签。
+      - item:
+          id: unchanged
+          type: choice
+          prompt: 客户端带着旧标签询问图片，服务器核对后发回 304。接下来浏览器显示哪一份？
+          options: [{text: 304 正文里的整张新图, why: 304 不提供新资源正文。}, {text: 本地原来保存的图片副本, correct: true}]
+          explain: 304 表示资源未修改，省下了重新传输完整文件。
+  - id: html
+    chapter: 前后端
+    title: 先让浏览器读懂一张页面的结构
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 只把一行文字放大，读屏软件就能知道它是文章标题吗？
+          options: [{text: 还要用能表达标题的标记, correct: true}, {text: 只看字号就够, why: 大字也可能只是装饰，字号不代表结构。}]
+          explain: 浏览器需要表达用途的标记，才能给其他工具读出结构。
+      - card:
+          title: 文字周围的标记说明用途
+          body: |
+            **HTML（HyperText Markup Language）**表达内容结构。`<h1>问好</h1>` 是一级标题，开始和结束标记包着内容。`<main>` 放页面主要内容，`<p>` 放一段文字。完整文档用 `<head>` 放页面标题等说明，`<body>` 放页面内容。
+      - item:
+          id: tags
+          type: match
+          prompt: 把用途与相应 HTML 标记配对。
+          pairs: [[页面主标题, h1], [主要内容区域, main], [一段文字, p], [浏览器标签页里的标题, title]]
+          explain: 选标记先看内容的用途，样式可以另外修改。
+      - card:
+          title: 给导航和图片加上需要的信息
+          body: |
+            可前往另一位置的**超链接（hyperlink）**简称**链接（link）**。`<a href="/help">帮助</a>` 用 href 指定目标。`<img src="/map.png" alt="从入口直走到服务台">` 用 src 指图片位置，用 alt 表达图片所传达的关键信息。装饰图片可用空 alt。
+      - item:
+          id: meaningful-link
+          type: choice
+          prompt: 需要一处能打开 /help 的导航，哪种写法同时告诉读者目的地？
+          options: [{text: '`<a href="/help">帮助</a>`', correct: true}, {text: '`<p>点击这里</p>`', why: 它是段落，没有导航目标，也没有描述目的地。}]
+          explain: a 提供导航行为，href 提供目标，文字让使用者知道去哪。
+  - id: forms
+    chapter: 前后端
+    title: 给输入框配一个看得见的名字
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 输入框里的“请输入姓名”在你打字后就消失。怎样让人打完仍知道填的是什么？
+          options: [{text: 把名字放在输入框旁，并让两者关联, correct: true}, {text: 只保留输入时会消失的说明, why: 打字后它就不再提示字段的用途。}]
+          explain: 可见的标签能帮助读者和辅助工具持续辨认字段。
+      - card:
+          title: 浏览器会把字段名和输入一起送出
+          body: |
+            **表单（form）**把输入和提交动作放在一起。`action` 选接收位置，`method` 选请求方法。`label` 的 `for` 对应输入的 `id`。`name` 则决定发出时用什么字段名。
+
+            ```html
+            <form action="/api/greet" method="get">
+              <label for="name">你的名字</label>
+              <input id="name" name="name" required maxlength="40">
+              <button type="submit">问好</button>
+            </form>
+            ```
+      - item:
+          id: field
+          type: choice
+          prompt: input 的 id 是 nickname，name 是 user。用 GET 发送填写的 Mei，查询部分用什么名字？
+          options: [{text: nickname，因为它给元素命名, why: id 用来定位元素或关联标签。}, {text: user，因为它是发送时的字段名, correct: true}]
+          explain: label 关联 id，服务器按 name 找到提交的值。
+      - card:
+          title: 在浏览器提醒，在服务器复查
+          body: |
+            `required` 提醒必填，`maxlength` 可限制正常输入的长度。GET 表单把数据放到网址的查询部分，适合只读查询。POST 表单把字段放入正文，常用于变更数据。调用者可以绕过网页，服务器仍要核对收到的值。
+      - item:
+          id: client-validation
+          type: choice
+          prompt: 网站输入框已经设置 required。服务器收到缺少名字的请求，应怎样处理？
+          options: [{text: 按服务端规则拒绝或给出约定的默认值, correct: true}, {text: 直接认为每个请求一定有名字, why: 请求也可能来自没有这个表单的其他客户端。}]
+          explain: 页面检查改善填写体验，服务器检查保护真实的数据处理。
+  - id: style
+    chapter: 前后端
+    title: 选中元素，再决定颜色和占用空间
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 页面有多个段落，你只想把提示文字染蓝。需要把每段文字都改一遍吗？
+          options: [{text: 可以给提示加同一标记，再只改这一类的样式, correct: true}, {text: 必须修改所有段落, why: 样式可以按不同标记选择元素。}]
+          explain: 先说清要影响哪些元素，再写一次样式。
+      - card:
+          title: 结构文件和样式文件各管一件事
+          body: |
+            **CSS（Cascading Style Sheets）**决定颜色、大小和排版。`.hint { color: navy; }` 中 `.hint` 是**选择器（selector）**，匹配 `class="hint"` 的元素。`p` 匹配所有段落，`#out` 匹配指定 id。用 `<link rel="stylesheet" href="/site.css">` 引入样式文件。
+      - item:
+          id: class-selector
+          type: choice
+          prompt: 只有 class="notice" 的元素需要提示样式。用哪个 CSS 选择器？
+          options: [{text: 'p', why: 这样会选中所有段落，也可能漏掉有类名的其他元素。}, {text: '.notice', correct: true}, {text: '#notice', why: 井号按 id 选，不按 class 选。}]
+          explain: 点号选类名，可以让多种元素共享样式。
+      - card:
+          title: 颜色有竞争，空间有边界
+          body: |
+            同来源、同重要性且同一层的规则冲突时，选择器更具体者胜出，具体程度相同则后写者胜出。盒模型从里到外是内容、内边距、边框、外边距。像素 `px` 是长度单位，`rem` 按根元素字号换算，百分比的基准取决于属性。
+          reveal:
+            - title: 先确定宽度计算范围
+              body: 默认 content-box 的 width 只量内容。设 width 为 100 px，左右内边距各 10 px，左右边框各 2 px。
+            - title: 把两边内边距和边框加进去
+              body: 从外侧边框到另一侧是 100 + 10 + 10 + 2 + 2 = 124 px。改用 border-box 后，设置的 width 已包含边框和内边距，外边距仍另算。
+      - item:
+          id: box
+          type: number
+          prompt: 默认 content-box。内容宽 80 px，左右内边距各 8 px，左右边框各 1 px。边框外沿之间有多宽，单位 px？
+          answer: 98
+          explain: 内容 80，加两个 8 和两个 1，得到 98。
+  - id: layout
+    chapter: 前后端
+    title: 卡片既能横排，也能在手机上换行
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一排卡片放到窄屏时只看得到前两张。你希望怎样调整？
+          options: [{text: 让内容在空间不足时换行或改为单列, correct: true}, {text: 固定桌面宽度，请使用者缩小整页, why: 使用者得付出额外操作，还可能看不清文字。}]
+          explain: 布局可以根据可用空间改变，而内容仍保持完整。
+      - card:
+          title: 选择主方向或同时安排横纵位置
+          body: |
+            Flexbox 擅长沿一个主方向排列，如按钮横排，用 `gap` 留空隙，`flex-wrap: wrap` 允许换行。Grid 用行和列安排整张版面，`grid-template-columns: 1fr 1fr` 将可用的网格空间分成两份。
+      - item:
+          id: layout-kind
+          type: match
+          prompt: 为两个设计任务选择起点。
+          pairs: [[单行工具栏里的按钮对齐, Flexbox], [多行多列并要求列边界对齐的卡片网格, Grid]]
+          explain: 一个主方向用 Flexbox 较直接，需要行列共同约束时可用 Grid。
+      - card:
+          title: 从最窄的可用排版起步
+          body: |
+            响应式设计让同一页面随窗口和使用条件调整。先做单列，再用媒体查询 `@media (min-width: 48rem)` 在空间够时改为双列。手机文档可加 `<meta name="viewport" content="width=device-width, initial-scale=1">`，并用实际窄宽度测试。
+      - item:
+          id: narrow
+          type: choice
+          prompt: 页面默认单列，媒体查询只在窗口足够宽时改为双列。窗口比阈值窄时显示几列？
+          options: [{text: 单列, correct: true}, {text: 两列，因为媒体查询写在最后, why: 查询条件不成立时，该规则不会生效。}]
+          explain: 先满足媒体查询条件，查询里的布局才会参加样式竞争。
+  - id: javascript
+    chapter: 前后端
+    title: 让一次按钮操作引发一段程序
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 问好按钮每次要读到你刚输入的名字，应该在打开页面时就读一次，还是等你操作后再读？
+          options: [{text: 等你操作后再读, correct: true}, {text: 只在打开页面时读, why: 那时你可能还没填，之后的输入也读不到。}]
+          explain: 把读取和显示安排在按钮操作发生之后。
+      - card:
+          title: 用熟悉的变量和函数读 JavaScript
+          body: |
+            **JavaScript**是浏览器可执行的语言。`const` 建立不能重新绑定的名字，`let` 建立可再赋值的名字。对象用属性名访问，如 `person.name`。下面先把表示一人的对象传给函数，再打印结果。
+
+            ```javascript
+            const person = { name: "Mei" };
+            function greeting(person) {
+              return "你好，" + person.name;
+            }
+            console.log(greeting(person));
+            ```
+      - item:
+          id: output
+          type: choice
+          prompt: 当 person.name 是 Mei，代码打印 "你好，" + person.name。会显示什么？
+          options: [{text: 你好，person.name, why: 点号取对象里的值，不会保留变量写法。}, {text: 你好，Mei, correct: true}]
+          explain: person.name 读取属性，字符串加法把文字接在一起。
+      - card:
+          title: 浏览器通知发生了操作
+          body: |
+            按钮点下、表单提交等都能产生**事件（event）**。网页可以登记处理函数，浏览器在事件发生时运行它。开发者工具的 Console 可看错误与打印结果，Sources 可暂停并查看值。先复现再检查实际收到的输入。
+      - item:
+          id: event-handler
+          type: choice
+          prompt: 点击问好没有变化。你怀疑按钮没有执行登记的代码，先怎样区分？
+          options: [{text: 在处理函数入口加断点或打印，再点击一次, correct: true}, {text: 先把网页字体改大, why: 字体无法证明函数有没有执行。}]
+          explain: 先确认浏览器是否到达处理动作，再检查数据和显示。
+  - id: react
+    chapter: 前后端
+    title: 让界面跟着保存的状态更新
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同样的计数按钮出现在两个位置，每个都要记自己的点击次数。能复用写法吗？
+          options: [{text: 可以复用按钮的定义，并让两份实例各记次数, correct: true}, {text: 只能复制代码或让两边显示同一个数字, why: 可复用定义可以创建多个有独立状态的实例。}]
+          explain: 把外观和行为写一次，使用时放入多个位置。
+      - card:
+          title: 把小块界面写成可复用的函数
+          body: |
+            **组件（component）**是一块可复用的界面。React 用函数写组件，函数返回像 HTML 的 JSX。外层可用属性（props）给组件传值。例如 `<Counter label="点赞" />` 把文字交给 Counter。
+      - item:
+          id: props
+          type: choice
+          prompt: 同一个 Counter 要分别显示“点赞”和“收藏”。这两个标签从外层交给组件，放在哪里？
+          options: [{text: 放在各自的 label 属性中, correct: true}, {text: 把标签固定写进 Counter 函数, why: 固定文字会让两个实例都显示同一标签。}]
+          explain: 属性提供每次使用时的输入，因此同一定义可显示不同内容。
+      - card:
+          title: 为一份组件记住上一次的值
+          body: |
+            `useState(0)` 给每份组件创建初始值为 0 的状态。点击时用 `setCount` 请求更新，React 用新状态重新计算该显示什么。`c => c + 1` 用当时排队处理到的旧值计算下一个值。
+
+            ```jsx
+            import { useState } from "react";
+
+            export default function Counter({ label }) {
+              const [count, setCount] = useState(0);
+              return (
+                <button onClick={() => setCount(c => c + 1)}>
+                  {label} {count}
+                </button>
+              );
+            }
+            ```
+      - item:
+          id: independent
+          type: choice
+          prompt: 页面放了两个独立的 Counter，初始都显示 0。只点第一个一次，两个值依次是什么？
+          options: [{text: 1 和 1, why: 两个实例各有自己的状态。}, {text: 1 和 0, correct: true}, {text: 0 和 0, why: 第一个按钮请求了状态更新。}]
+          explain: 共享的是组件的定义，各个实例的状态由各自操作更新。
+  - id: toolchain
+    chapter: 前后端
+    title: 从本地页面走到可交付的网站文件
+    minutes: 11
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你有一份含 JSX 的页面。双击这份代码，所有浏览器都会直接读懂吗？
+          options: [{text: 先用项目工具生成浏览器能读的文件, correct: true}, {text: 任何浏览器都自动执行 JSX, why: JSX 是开发用的写法，需要转换。}]
+          explain: 先确认浏览器拿到的文件格式，再安排开发和发布步骤。
+      - card:
+          title: 区分开发服务与发布产物
+          body: |
+            简单页面可直接写 HTML、CSS 和 JavaScript。React 项目可用 Vite：npm 安装项目声明的依赖，开发服务帮助本地预览，构建命令将 JSX 转换成浏览器能运行的 JavaScript，并输出 HTML、脚本和样式等文件。
+      - item:
+          id: preview
+          type: match
+          prompt: 给三个任务配上常用步骤。
+          pairs: [[让两台机器按同一份依赖记录安装, npm ci], [改文件时马上在本机看效果, 启动开发服务], [生成准备上传的文件, 执行发布构建]]
+          explain: 安装提供工具，预览用于开发，构建产物才是要部署的文件。
+      - card:
+          title: 上线前用实际产物验证
+          body: |
+            Tailwind 用 `flex`、`gap-2` 等工具类组合样式，项目工具生成需要的 CSS。上线可把静态构建产物放到提供文件的服务上。发布前按实际网址验证页面、静态文件路径和接口位置，尤其要测子路径下的访问。
+      - item:
+          id: deploy
+          type: choice
+          prompt: 本地能访问 /logo.svg，网站发布在 /course/ 下后却找不到图片。该先核对什么？
+          options: [{text: 发布路径下浏览器请求的实际 URL 和资源存放位置, correct: true}, {text: 只重新安装 npm 包, why: 本地安装完成并不能修正网站的文件路径。}]
+          explain: 浏览器按最终 URL 找文件。根路径和项目子路径可能指到不同位置。
+  - id: rest
+    chapter: API
+    title: 让另一段程序知道怎样读写资源
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 手机应用和网页都要查同一份文章。网站可以给它们同一种机器能读的答复吗？
+          options: [{text: 可以，先约定访问方式和结果格式, correct: true}, {text: 只能都收到同一张页面截图, why: 服务可提供结构化数据给不同界面。}]
+          explain: 机器能读的共同约定让各端自己决定怎么显示。
+      - card:
+          title: 用方法与路径说出操作
+          body: |
+            **API（application programming interface）**是软件提供的使用约定。REST 风格的 HTTP 接口用路径指资源，再用方法说动作。读文章用 `GET /articles/5`，移除它可用 `DELETE /articles/5`。成功且无需正文时可回 204。
+      - item:
+          id: delete
+          type: choice
+          prompt: 在使用集合 /articles 的 REST 风格 API 中，怎样请求删除编号为 5 的文章？
+          options: [{text: GET /articles/5, why: GET 只应请求读取。}, {text: DELETE /articles/5, correct: true}]
+          explain: 路径选中那篇文章，DELETE 说明想移除它。
+      - card:
+          title: 让双方按同一个数据结构读写
+          body: |
+            **数组（array）**是一串按位置排列的值。**JSON（JavaScript Object Notation）**用文本表示对象、数组等数据。`{"message":"你好，Mei"}` 是 JSON 对象，键和文字都用双引号。响应的 `Content-Type: application/json` 声明正文格式。
+      - item:
+          id: json-field
+          type: choice
+          prompt: 响应正文是 {"message":"你好，Mei"}。解析成 JavaScript 对象 data 后怎样取到问候？
+          options: [{text: data.message, correct: true}, {text: 'data[0]，因为它是第一个字段', why: 这里是有命名属性的对象。}]
+          explain: 对象里的问候用键 message 命名。
+      - card:
+          title: 约好列表大小、错误和变化
+          body: |
+            数据很多时可用查询限制一页的数量，并返回读下一页的位置。约定错误码与可读说明，例如 `{"code":"name_required"}`。旧客户端还在用时，改变字段含义前先兼容旧约定，必要时发布新版本路径。
+      - item:
+          id: api-change
+          type: choice
+          prompt: 旧客户端从 JSON 的 message 取文字。服务器想改成 greeting，应先怎样处理？
+          options: [{text: 保持旧约定可用，再让客户端迁移到新约定, correct: true}, {text: 直接换名，只要仍是 JSON 就不会有问题, why: 数据格式相同也可能失去约定的字段。}]
+          explain: 接口的契约包括字段名和意义，客户端会依赖这些细节。
+  - id: async
+    chapter: API
+    title: 等网络时，让页面能继续响应
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 等候下载时，你还想滚动页面。程序是否需要一直停在原地等待？
+          options: [{text: 可以先交给浏览器做，结果到了再处理, correct: true}, {text: 必须等文件到达才能响应任何输入, why: 浏览器可以在等待期间处理其他操作。}]
+          explain: 把启动任务和处理结果分开，等候期间就能回到界面工作。
+      - card:
+          title: 用一个对象代表未来的结果
+          body: |
+            **Promise** 表示尚未结束或已经成功、失败的操作。`then` 登记成功后的处理，`catch` 登记失败处理。`async` 函数返回 Promise。`await` 让当前函数先等结果，浏览器仍可去做其他事。
+      - item:
+          id: awaiting
+          type: choice
+          prompt: async 函数用 await 等响应时，哪个动作仍可发生？
+          options: [{text: 浏览器处理另一个滚动事件, correct: true}, {text: 同一个函数在结果还没到时就把它当成已读取, why: 这次函数继续前仍需等待该结果。}]
+          explain: 等候的是当前函数，浏览器没有被这个等待堵住。
+      - card:
+          title: 自己为异步接口提供成功与失败出口
+          body: |
+            `new Promise` 接收两个回报结果的函数，成功时用 `resolve`，失败时用 `reject`。例如把旧的计时回调包成 `new Promise(resolve => setTimeout(resolve, 100))`。一个已经完成的 Promise 仍可让后续处理接收它的结果。
+      - card:
+          title: 把长计算交给另一个执行环境
+          body: |
+            网络等待与长计算不同。很长的同步计算仍会挡住界面。Web Worker 可接收数据，在与界面分开的执行环境中计算，再发消息回页面。工作者不能直接改页面上的元素。
+      - item:
+          id: background
+          type: match
+          prompt: 为三种需求挑合适的机制。
+          pairs: [[等服务器给结果再继续此函数, await], [处理异步操作的失败, catch], [将耗时的图像计算移出界面的主要执行环境, Web Worker]]
+          explain: Promise 组织结果处理，Worker 可以把实际计算移出界面的执行环境。
+  - id: fetch
+    chapter: API
+    title: 从请求得到一条可显示的问候
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你发出请求，网站回了“没找到”。从浏览器的角度，通信失败了吗？
+          options: [{text: 收到了答复，但想执行的操作失败了, correct: true}, {text: 没有收到任何 HTTP 响应, why: 网站已经用响应说明目标没找到。}]
+          explain: 有响应和响应表示成功是两回事。
+      - card:
+          title: 用浏览器提供的接口发请求
+          body: |
+            `fetch` 返回一个 Promise，成功收到 HTTP 响应时得到响应对象，404 也会到这一步。要检查 `res.ok`，再用 `res.json()` 读取并解析正文。没连上时，`fetch` 会报告失败。较早的浏览器代码也常用 XMLHttpRequest 发请求。
+      - item:
+          id: ok
+          type: choice
+          prompt: fetch 收到 404。怎样避免把错误正文当成成功结果？
+          options: [{text: 只等待 fetch 完成，完成就代表成功, why: HTTP 404 也是一个收到的响应。}, {text: 先看 res.ok 或 res.status，再走对应的处理, correct: true}]
+          explain: fetch 到了响应阶段后，要由客户端检查服务器报告的状态。
+      - card:
+          title: 把名字作为查询值发出去
+          body: |
+            把 `&` 这样的符号直接拼进网址会被看成字段分隔符。`URLSearchParams` 会按查询规则编码名字。把下面函数保存为 greet.js，页面可以等待它返回一条文字。
+
+            ```javascript
+            async function getGreeting(name) {
+              const query = new URLSearchParams({ name });
+              const res = await fetch("/api/greet?" + query);
+              if (!res.ok) {
+                throw new Error("HTTP " + res.status);
+              }
+              const data = await res.json();
+              return data.message;
+            }
+            ```
+          reveal:
+            - title: 构造一个明确的查询值
+              body: 输入 Mei & Lin 时，查询里把空格和 & 编码。服务器按 name 解码后仍读到完整的 Mei & Lin。
+            - title: 核对结果再使用正文
+              body: 先看 res.ok，再把正文解析为 JSON。成功时返回 message，调用者可以把它写到页面的文字位置。
+      - item:
+          id: request-steps
+          type: order
+          prompt: 输入 Mei & Lin，服务器约定用 name 接收名字，用 message 返回问候。如何读到问候？
+          steps: [把完整名字编码成 name 查询值, 用 fetch 发送查询, 检查 HTTP 状态是否成功, 解析 JSON 并读取 message]
+          explain: 正确编码保住输入边界，检查状态后才读取约定的成功字段。
+  - id: origins
+    chapter: API
+    title: 浏览器何时允许读取另一个站点的答复
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你正登录自己的邮箱，随后打开一张陌生网页。陌生页面里的脚本能随意读取邮箱的答复吗？
+          options: [{text: 浏览器通常会限制这种读取, correct: true}, {text: 只要两页在同一浏览器就能互读, why: 浏览器会按来源隔开页面的脚本权限。}]
+          explain: 浏览器需要区分脚本来自哪里，以及对方允许谁读。
+      - card:
+          title: 协议、主机、端口一起决定来源
+          body: |
+            **同源（same origin）**指协议、主机和端口相同，路径可以不同。同源策略通常限制页面脚本读取其他来源的响应。通过网址导航、加载图片等与脚本读取数据是不同操作，浏览器的限制不同。
+      - item:
+          id: same-origin
+          type: choice
+          prompt: 页面来源是 `https://site.example`。哪个 URL 与它同源？
+          options: [{text: '`https://api.site.example/data`', why: 子域名不同就是不同主机。}, {text: '`https://site.example/help`', correct: true}, {text: '`https://site.example:8443/data`', why: HTTPS 默认端口是 443，这里的端口不同。}]
+          explain: 路径不会改变来源，主机和端口变化会改变来源。
+      - card:
+          title: 由服务器给出允许读取的来源
+          body: |
+            **CORS（Cross-Origin Resource Sharing）**让服务器通过 `Access-Control-Allow-Origin` 等响应头声明允许的来源。部分请求先由浏览器发 OPTIONS 预检，询问方法和头部是否获准。带凭据时须明确允许来源并启用凭据，不能以 * 代替来源。
+          reveal:
+            - title: 确定哪两个来源在通信
+              body: 页面在 `https://site.example`，天气接口在 `https://weather.example`。先用公开接口的说明确认它是否支持浏览器访问。
+            - title: 区分跨源许可和数据权限
+              body: 第三方若允许该来源，浏览器可按规则把结果交给脚本。只供服务器持有的密钥放在自己的服务端。服务端仍要限制客户端能查询什么。
+      - item:
+          id: blocked-read
+          type: choice
+          prompt: 网页调用一个不允许该来源的第三方接口。脚本可单方面加什么请求头来获得读取许可吗？
+          options: [{text: 要由接口服务器给出有效的响应头, correct: true}, {text: 脚本自己写 Access-Control-Allow-Origin 就能读, why: 浏览器核对的是服务端答复。}]
+          explain: CORS 允许读取是服务端声明的，不能由调用方给自己授权。
+  - id: dom
+    chapter: 浏览器
+    title: 把结果写进页面，再试一次键盘操作
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 问候文字到了，网页想只换掉结果区域。要重新下载整张网页吗？
+          options: [{text: 可以只更新显示问候的位置, correct: true}, {text: 每换一行字都要重下载整页, why: 浏览器允许程序修改文档中的单个元素。}]
+          explain: 找到要显示结果的那一处，再改它的文字。
+      - card:
+          title: 文档在浏览器里是一棵可读写的树
+          body: |
+            **DOM（Document Object Model）**把文档组织成节点树。`getElementById("out")` 用 id 找结果元素。`textContent` 把结果按文字显示。Web Components 可注册自定义元素，例如 `<greet-panel>`，并用 Shadow DOM 封装内部结构和样式。
+      - item:
+          id: text-result
+          type: choice
+          prompt: 返回的问候里含 `<em>Mei</em>`，你要连尖括号原样显示。用哪个属性？
+          options: [{text: innerHTML, why: 它会解析字符串里的标记。}, {text: textContent, correct: true}]
+          explain: textContent 将内容按文字处理，保留原样。
+      - card:
+          title: 把页面和取问候的函数接起来
+          body: 用下面的页面当作 public/index.html，把下两步涉及的 JavaScript 都放在 public/greet.js。
+          reveal:
+            - title: 给控件和结果位置各一个名字
+              body: |
+                `defer` 让脚本等 HTML 读完再运行。`role="status"` 让辅助工具可报告等待与结果。
+
+                ```html
+                <!doctype html>
+                <html lang="zh-CN">
+                <head>
+                  <meta charset="utf-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1">
+                  <title>问好</title>
+                  <script src="/greet.js" defer></script>
+                </head>
+                <body>
+                  <main>
+                    <h1>问好</h1>
+                    <form id="greet" action="/api/greet" method="get">
+                      <label for="name">你的名字</label>
+                      <input id="name" name="name" required>
+                      <button type="submit">问好</button>
+                    </form>
+                    <p id="out" role="status"></p>
+                  </main>
+                </body>
+                </html>
+                ```
+            - title: 接住提交动作并保留原页面
+              body: |
+                脚本先放入前面写的 `getGreeting` 函数，再追加下方代码。监听 `submit` 可同时接住按钮点击和输入框中的 Enter。`preventDefault()` 取消默认跳转，保留界面来显示结果。
+
+                ```javascript
+                const form = document.getElementById("greet");
+                const nameInput = document.getElementById("name");
+                const out = document.getElementById("out");
+                const button = form.querySelector("button");
+
+                form.addEventListener("submit", async event => {
+                  event.preventDefault();
+                  if (button.disabled) return;
+                  button.disabled = true;
+                  out.textContent = "正在问好";
+                  try {
+                    out.textContent = await getGreeting(nameInput.value);
+                  } catch {
+                    out.textContent = "没有取到问候，请检查输入后重试";
+                  } finally {
+                    button.disabled = false;
+                  }
+                });
+                ```
+      - item:
+          id: submit-event
+          type: choice
+          prompt: 你希望用户在输入框按 Enter 或点击提交按钮时都能留在原页显示结果。应该监听什么？
+          options: [{text: 只监听按钮的 pointerdown, why: 按键提交并不会产生鼠标按下的事件。}, {text: 监听表单 submit 并阻止默认跳转, correct: true}]
+          explain: 两种输入方式最终都可以提交表单，统一在提交处处理即可。
+  - id: storage
+    chapter: 浏览器
+    title: 浏览器怎样记住界面设置或离线内容
+    minutes: 11
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你只想让这台电脑下次打开时还用深色界面。一定要发给服务器保存吗？
+          options: [{text: 可以保存在这个浏览器里, correct: true}, {text: 每项显示偏好都必须存到服务器, why: 浏览器也提供本地存储。}]
+          explain: 保存地点取决于要不要跨设备共享。
+      - card:
+          title: 在来源自己的空间保存一个值
+          body: |
+            `localStorage.setItem("theme", "dark")` 保存字符串，`getItem("theme")` 读取，没有值时返回 `null`。关闭再打开通常仍保留，同源页面可读，使用者也可以清除。页面里的脚本能读它，适合存界面偏好。
+      - item:
+          id: preferences
+          type: choice
+          prompt: 同源网页重开后想读深色偏好，你也允许用户清除。优先把它放在哪？
+          options: [{text: localStorage, correct: true}, {text: 每次重新从空的临时变量猜, why: 页面重新加载后，临时变量要重新初始化。}]
+          explain: 浏览器的本地存储能跨页面加载保留小量字符串。
+      - card:
+          title: 按数据规模和离线需要选工具
+          body: |
+            `sessionStorage` 按标签页保存临时数据，可跨同一页签的重新加载。IndexedDB 适合较多可索引记录。Service Worker 是浏览器运行的特殊脚本，可接手部分请求，用预存资源支持离线。它需要安全上下文，开发时 localhost 通常也可用。
+      - item:
+          id: storage-tools
+          type: match
+          prompt: 给三种保存需求匹配一种起点。
+          pairs: [[单个标签页内短期保留表单草稿, sessionStorage], [在浏览器内按键查找大量本地记录, IndexedDB], [网络断开时仍回答某些页面资源请求, Service Worker]]
+          explain: 需求分别关乎存活时间、数据访问方式和是否接手网络请求。
+  - id: render
+    chapter: 浏览器
+    title: 先让首屏出现，再安排其余工作
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一篇文章末尾有一张大图，开头只有标题和摘要。怎样更快读到开头？
+          options: [{text: 优先送达首屏需要的内容, correct: true}, {text: 全部大图都下载完才展示标题, why: 首屏不依赖末尾的图片。}]
+          explain: 先找出用户最早需要看到什么，再排下载和运行顺序。
+      - card:
+          title: 读取结构、计算样式、布局并绘制
+          body: |
+            浏览器解析 HTML 得到 DOM，读取 CSS 建立样式规则表示（CSSOM）。据此确定哪些内容要显示，布局计算大小和位置，绘制生成像素。同步脚本可能暂停文档解析，`defer` 可在文档解析后运行适用的外部脚本。
+      - item:
+          id: paint-order
+          type: order
+          prompt: 浏览器已经拿到基本 HTML 和 CSS。给简化的显示步骤排序。
+          steps: [解析文档和样式规则, 算出要显示的内容及其样式, 布局确定位置和大小, 绘制画面]
+          explain: 先理解内容和显示要求，才能把它们放到具体位置并绘制。
+      - card:
+          title: 少传一点，晚做一点，靠近一点
+          body: |
+            用合适尺寸、压缩格式和延迟加载处理首屏以外的图。拆开脚本，先送首屏用得上的部分。可把静态文件缓存到离用户近的 CDN 节点。服务器或静态生成器也可先产出可显示的 HTML。用开发者工具的 Network 看资源实际到达顺序。
+      - item:
+          id: slow-first-paint
+          type: choice
+          prompt: 下载列表显示首屏前加载了许多当前看不到的大图。先尝试哪项？
+          options: [{text: 缩减图像大小并延后首屏外图片的加载, correct: true}, {text: 强制优先下载所有图片, why: 这会让当前用不上的文件竞争网络。}]
+          explain: 先减少首屏前必须完成的工作，再用相同网络条件测量。
+  - id: greet-server
+    chapter: 服务端
+    title: 服务端只处理符合约定的名字
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同一服务收到 / 和 /api/greet 两个访问。能让一个给出页面、另一个给出问候数据吗？
+          options: [{text: 可按请求路径选择处理方式, correct: true}, {text: 一个服务只能返回一种内容, why: 它可以按目标返回不同结果。}]
+          explain: 先按访问目标分流，再处理各自的输入和结果。
+      - card:
+          title: 让方法和路径指向具体处理函数
+          body: |
+            路由（route）把方法和路径配给处理函数。Flask 是 Python 的 Web 框架。`@app.get("/")` 把 GET / 交给紧跟的函数。`request.args` 提供解码后的查询字段。`jsonify` 创建 JSON 响应。
+      - item:
+          id: routing
+          type: choice
+          prompt: GET / 用于打开页面，GET /api/greet 用于查询问候。服务器最先根据什么区分它们？
+          options: [{text: 路径，两条访问的 HTTP 方法相同, correct: true}, {text: 方法，因为两条 GET 会执行完全不同的协议规则, why: 两者方法相同，路径才指向不同资源。}]
+          explain: 路由可同时看方法和路径，这里用路径区分即可。
+      - card:
+          title: 按约定读入名字并返回 JSON
+          body: 安装 Flask 后把代码保存为 app.py。让 public 目录里有前面写的 index.html 和 greet.js。用 `python -m flask --app app run` 启动本地开发服务，在浏览器打开 Flask 显示的本机网址。
+          reveal:
+            - title: 取查询值，去掉首尾空白
+              body: 若没传 name 就以空字符串开始。去掉首尾空白后只接受 1 到 40 个字符。失败时返回带说明的 400，客户端可提示修改输入。
+            - title: 用 JSON 返回约定的字段
+              body: |
+                ```python
+                from flask import Flask, jsonify, request
+
+                app = Flask(__name__, static_folder="public", static_url_path="")
+
+                @app.get("/")
+                def home():
+                    return app.send_static_file("index.html")
+
+                @app.get("/api/greet")
+                def greet():
+                    name = request.args.get("name", "").strip()
+                    if not 1 <= len(name) <= 40:
+                        return jsonify(code="invalid_name"), 400
+                    return jsonify(message=f"你好，{name}")
+                ```
+            - title: 用正常输入和异常输入各试一次
+              body: 查询名字 Mei & Lin，应成功并返回 message 为“你好，Mei & Lin”。直接访问 /api/greet 而没有查询，应得到 400 和 invalid_name。
+      - item:
+          id: empty-name
+          type: choice
+          prompt: 问候接口先去掉名字两边的空白，再要求 1 到 40 字。收到只有空格的名字时应做什么？
+          options: [{text: 回 400，指出输入不合要求, correct: true}, {text: 只要原始字符串不空就回 200, why: 规则对去掉空白后的名字生效。}]
+          explain: 去掉空白后为空，不符合最短长度。
+      - item:
+          id: full-stack
+          type: order
+          prompt: 用户从问好表单发出有效名字，请按顺序排列操作直到文字出现在页面上。
+          steps: [浏览器编码名字并发出查询, 服务端读查询并校验名字, 服务端返回 JSON, 浏览器检查状态后把问候写入结果元素]
+          explain: 界面、消息与服务端各有一步，定位失败时可按顺序逐段检查。
+  - id: server-data
+    chapter: 服务端
+    title: 服务读写资料时，先确认输入与权限
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你能看到自己的订单。把网址末尾的订单号换成别人的号码，也应让你看吗？
+          options: [{text: 应重新核对这份订单能否给当前人看, correct: true}, {text: 只要能写出号码就该返回订单, why: 号码可以猜到，知道号码不代表有权查看。}]
+          explain: 请求的目标和来访者的权限需要分别检查。
+      - card:
+          title: 让接口在读写前守好边界
+          body: |
+            数据库保存可查询的资料，例如每笔订单的编号和归属。服务器先验证收到的值，再检查当前人能否访问指定资料。查询时把用户提供的值作为数据传给查询工具，避免把它直接拼成查询命令。返回字段只保留客户端需要的部分。
+      - item:
+          id: own-order
+          type: choice
+          prompt: 订单接口确认来访者已登录。返回订单之前还应检查哪一项？
+          options: [{text: 该用户是否有权看这个订单, correct: true}, {text: 订单号是否长得够像其他订单号, why: 编号格式正常仍可能指向别人的订单。}]
+          explain: 每次操作都要根据对象和来访者判断访问资格。
+      - card:
+          title: 框架不同，处理边界仍相同
+          body: |
+            Django 用 URL 配置把访问交给处理函数（view），也自带查询数据库的工具。Express 在 Node.js 里可用 `app.get("/path", handler)` 安排路由。由服务商运行维护、用户经网络使用的应用属于软件即服务（SaaS），例如在线文档编辑器。
+          reveal:
+            - title: 让框架帮忙处理常用边界
+              body: 'Django 用 `request.session` 保存跨请求状态，`request.user` 提供当前用户。模板默认转义变量，表单变更需防跨站伪造。Express 处理函数用 `res.json(...)` 回数据。两边都要按操作核对权限。'
+            - title: 核对发布环境
+              body: '开发时的小型服务主要供本地调试。发布要为 Django 或 Express 安排正式运行工具、静态资源、日志和环境配置。用正式运行方式试一次页面和 API，检查它们读取的是预期的数据。'
+      - item:
+          id: deploy-api
+          type: match
+          prompt: 给后端问题匹配最适合先检查的位置。
+          pairs: [[访问正确网址却进错处理函数, 路由规则], [能看到别人订单, 服务端对象权限检查], [开发时能连数据但上线后无法连接, 实际部署的连接配置与日志]]
+          explain: 先确认故障发生在分流、权限还是运行环境，再检查对应信息。
+  - id: sessions
+    chapter: 认证集成与可访问性
+    title: 登录后每次访问怎样认出同一个人
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你登录后又打开“我的订单”。服务如何知道后一次访问仍属于你？
+          options: [{text: 浏览器可以附上已获发的登录凭据, correct: true}, {text: 服务器看到同一个商品就知道是谁, why: 多个用户可以看同一个商品。}]
+          explain: 第二次访问也需要可验证的来访者信息。
+      - card:
+          title: 先核验是谁，再核对能做什么
+          body: |
+            **认证（authentication）**核验来访者是谁。**授权（authorization）**决定能做什么。HTTP 需要凭据时可回 401，并用 `WWW-Authenticate` 说明方式。Basic 方式将用户名和口令编码放入 `Authorization`，通信要用 HTTPS 保护。
+      - item:
+          id: auth-or-policy
+          type: match
+          prompt: 把核验动作与任务配对。
+          pairs: [[确定请求来自已经登录的 Mei, 认证], [检查 Mei 能否删除这篇文章, 授权]]
+          explain: 已核验身份后，还要按每次操作的资源检查权限。
+      - card:
+          title: 用一段短凭据关联服务端记录
+          body: |
+            **会话（session）**把多次访问的状态关联起来。服务端可保存用户会话，通过 `Set-Cookie` 让浏览器保存随机会话编号。**Cookie** 是浏览器记下并按条件随请求附送的数据。后续请求送出编号，服务器查记录，注销可让记录失效。
+          reveal:
+            - title: 建立凭据
+              body: 用 HTTPS 登录。服务端用适合口令的带盐哈希核对口令。身份核验成功后生成新会话编号。多因素认证可额外要求另一类证明，高风险操作可要求重新核验。
+            - title: 限制浏览器何时使用凭据
+              body: '`Secure` 要求通过安全连接发送，`HttpOnly` 限制脚本直接读取，`SameSite` 按跨站场景限制发送。设置合适的范围和有效期，并检查服务端状态。浏览器也可清除 Cookie。'
+            - title: 让退出动作撤销登录
+              body: 服务端先作废会话，再用匹配范围的过期 Cookie 清理浏览器副本。跟踪用 Cookie 会关联用户在不同时间的访问，应减少不必要的记录和跨站传送。
+      - item:
+          id: cookie-flags
+          type: match
+          prompt: 将会话 Cookie 的属性与直接作用配对。
+          pairs: [[Secure, 要求安全连接才能发送], [HttpOnly, 限制页面脚本直接读取], [SameSite, 按跨站场景限制随请求发送]]
+          explain: 三个属性分别处理传输、脚本读取和跨站发送。
+      - item:
+          id: logout
+          type: choice
+          prompt: 站点采用服务端会话，想让别人持有的旧会话编号也无法继续使用。退出时最重要的是哪一步？
+          options: [{text: 服务端作废旧会话记录, correct: true}, {text: 只清除退出者浏览器里的 Cookie, why: 另一份仍有效的编号可能继续通过核验。}]
+          explain: 服务端查不到有效记录，就不会再承认那个编号。
+  - id: oidc
+    chapter: 认证集成与可访问性
+    title: 通过可信的身份提供方登录
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用学校账号登录课程站。你应该在哪一方的页面输入学校口令？
+          options: [{text: 学校确认过的登录页面, correct: true}, {text: 把学校口令直接交给课程站, why: 课程站可以接收身份核验结果，无需收集学校口令。}]
+          explain: 用户向身份提供方核验，应用再读取可验证的结果。
+      - card:
+          title: 区分获准调用接口和知道用户是谁
+          body: |
+            OAuth 2.0 用于让应用取得有限的访问许可。OpenID Connect（OIDC）在它之上提供用户身份信息。用户在可信提供方登录。完成后应用使用经核验的 ID token 确认身份，并可建立自己的会话。
+      - item:
+          id: identity-protocol
+          type: match
+          prompt: 把要解决的问题配给相关协议。
+          pairs: [[允许应用读取我授权的日历信息, OAuth 2.0 的授权], [让课程站核验身份提供方确认的用户, OpenID Connect]]
+          explain: 访问许可和身份结果服务于不同的决定。
+      - card:
+          title: 让发起登录的一方才能兑换短期授权码
+          body: |
+            授权码流程先把用户带到提供方，再带短期码返回应用。应用在后续请求中用码换令牌。PKCE 让应用先提交由随机验证值算出的挑战，兑换时再交原值。只截获授权码的人缺少兑换所需的验证值。
+          reveal:
+            - title: 准备并发起跳转
+              body: 应用生成随机验证值，保存它并发送 S256 挑战。另用 state 将返回结果与本次浏览器操作关联，回跳位置用提供方预先登记的 URL。
+            - title: 回来后核对并兑换
+              body: 核对返回的 state。用短期授权码和刚保存的验证值兑换令牌。服务端检查值与挑战是否对应。
+            - title: 验证身份结果再登录
+              body: 用成熟的 OIDC 库校验身份令牌的签名、签发者、受众、有效期及本次使用的 nonce 等信息。都通过后，应用建立自己的登录状态。
+      - item:
+          id: pkce
+          type: choice
+          prompt: 某人只拿到了回跳里的授权码，没有应用保存的随机验证值。PKCE 怎样限制兑换？
+          options: [{text: 令牌端需要原验证值以核对先前挑战, correct: true}, {text: 只要码未过期就一定能兑换, why: 提供方还要核对 PKCE 验证值。}]
+          explain: 挑战在发起时记录，兑换时必须证明掌握对应的原值。
+      - card:
+          title: 明白令牌能证明什么以及怎样失效
+          body: |
+            **JWT（JSON Web Token）**可携带身份或权限声明。用签名核验它来自可信签发者且内容没被改动，机密性需要额外保护。用服务端会话可立即作废记录；独立校验的短期令牌通常有效到到期，提早撤销需要额外机制。
+      - item:
+          id: jwt-check
+          type: choice
+          prompt: API 收到结构正确的已签名 JWT。还要做什么才可使用其中的用户信息？
+          options: [{text: 直接读取内容，因为 JSON 能成功解析, why: 攻击者也能造出格式正确的内容。}, {text: 按可信规则检查签名、签发者、受众和期限，再检查操作权限, correct: true}]
+          explain: 令牌格式帮助传递声明，核验和对象权限检查决定能否相信并执行。
+  - id: accessibility
+    chapter: 认证集成与可访问性
+    title: 只用键盘也能完成问好
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你拔掉鼠标，能不能找到输入框并提交？怎么做才能知道？
+          options: [{text: 实际用 Tab、输入和 Enter 从头操作, correct: true}, {text: 只看屏幕截图是否好看, why: 截图看不到焦点移动与按键行为。}]
+          explain: 要用不同操作方式完成同一个任务，才能发现哪里被卡住。
+      - card:
+          title: 首先使用本来就有语义的控件
+          body: |
+            **可访问性（accessibility）**让不同能力和设备的使用者都能完成任务。用 `label` 给输入框命名，`button` 提供原生按钮行为。使用 Tab 检查焦点顺序，保留可见的焦点轮廓，用文字与颜色一起表示错误。
+      - item:
+          id: native-control
+          type: choice
+          prompt: 两个元素样式相同。提交问好表单时，优先用哪个？
+          options: [{text: 只有鼠标事件的 div, why: 还需额外实现焦点、键盘操作和可识别的语义。}, {text: 有明确名称的原生 button, correct: true}]
+          explain: 原生按钮已经提供辅助工具可识别的角色和键盘交互。
+      - card:
+          title: 提供辅助工具需要的状态变化
+          body: |
+            WAI-ARIA 可补充角色、名称和状态。例子用 `role="status"` 提供动态提示，焦点可以继续留在输入区域。给自定义控件添加角色时，还要补齐键盘与焦点行为。浏览器的可访问性树可查看工具实际收到的角色和名称。
+      - item:
+          id: a11y-test
+          type: order
+          prompt: 核对问好页的键盘路径，按使用顺序排好。
+          steps: [用 Tab 找到有可见焦点的名字输入框, 输入名字, 用 Enter 提交, 确认结果出现且可由辅助工具感知]
+          explain: 从找到输入到得到结果都是任务的一部分。自动检查后仍要亲手操作和听读屏结果。
+  - id: accessible-media
+    chapter: 认证集成与可访问性
+    title: 在窄屏和不同感知条件下读到同样的信息
+    minutes: 11
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 公告视频里有重要日期，但车上听不到声音。页面还能用什么传达日期？
+          options: [{text: 提供准确的字幕或文字稿, correct: true}, {text: 只把声音调得更大, why: 用户仍可能无法听到声音。}]
+          explain: 同一关键信息可以用另一种形式提供。
+      - card:
+          title: 给图片、声音和颜色准备补充信息
+          body: |
+            信息图片用 alt 表达作用，装饰图用空 alt。视频提供字幕，需要时描述画面信息，音频可给文字稿。文字与背景要有足够对比。必填和错误用文字表达，颜色可提供额外线索。
+      - item:
+          id: alternatives
+          type: match
+          prompt: 给三种访问问题配适合的处理。
+          pairs: [[听不到视频里的说话声, 提供字幕], [看不到路线示意图, 文字描述路线], [无法区分红色与绿色的输入提示, 增加可读的状态文字]]
+          explain: 让关键信息由可替代的形式传达。
+      - card:
+          title: 手指和小屏也要能操作
+          body: |
+            窄屏让内容重新排版，放大文字时检查是否遮挡。控件留出足够的触碰区域和间隔，重要功能别只靠悬停或复杂手势。先在浏览器模拟小屏，再用真实触屏和辅助工具走一遍输入、提交和错误恢复。
+      - item:
+          id: touch
+          type: choice
+          prompt: 手机上看不到只有鼠标悬停才出现的“提交”动作。怎样修好？
+          options: [{text: 提供可见、可点击且能用键盘到达的提交控件, correct: true}, {text: 把悬停区缩得更小以免占空间, why: 缩小区域仍无法让触屏完成悬停。}]
+          explain: 提供可发现的控件，并检查不同输入方式都能触发。
+boss:
+  items:
+    - id: visit
+      type: order
+      prompt: 首次通过 HTTP/2 打开 HTTPS 网站，没有现成连接。从输入 URL 开始，排序到看到文档内容。
+      steps: [找到主机的网络位置, 建立 TCP 和 TLS 连接, 请求并接收文档, 解析并绘制页面]
+      explain: 客户端先连上对应服务，再请求资源，浏览器接到内容后负责显示。
+    - id: frontend
+      type: choice
+      prompt: 网页有一个要提交的姓名输入。哪种安排同时支持鼠标、键盘和辅助工具？
+      options: [{text: 用可见 label 关联 input，并使用原生提交按钮, correct: true}, {text: 用没有文字的图形配合鼠标悬停, why: 悬停限制了操作方式，图形也没有给字段命名。}]
+      explain: 使用浏览器能识别的控件及名称，可覆盖常用输入方式。
+    - id: api
+      type: choice
+      prompt: 应用用 fetch 读 /articles/5，服务器回 404。接下来应怎么处理？
+      options: [{text: 检查响应状态并展示文章找不到, correct: true}, {text: 直接把正文当作文章结构, why: 请求虽有答复，内容可能是错误详情。}]
+      explain: HTTP 状态决定采用成功格式还是错误处理。
+    - id: browser
+      type: match
+      prompt: 为浏览器任务选最直接的接口或字段。
+      pairs: [[将可能包含尖括号的问候按原文字显示, textContent], [让同一浏览器下次仍记住界面主题, localStorage], [允许指定外部页面读取接口响应, CORS 响应头]]
+      explain: 显示、存储和跨源读取分属浏览器的不同机制。
+    - id: server
+      type: choice
+      prompt: 用户已经登录，访问订单接口时传入了一个有效的订单编号。返回数据前服务器还要确认什么？
+      options: [{text: 订单编号至少有多位就足够安全, why: 长编号仍可泄露或被交换。}, {text: 当前用户拥有访问这笔订单的权限, correct: true}]
+      explain: 对象权限随访问目标改变，要在服务器按次检查。
+    - id: session
+      type: choice
+      prompt: 站点的会话 Cookie 代表登录。用户退出后，即使旧编号被人保留，也希望无法继续使用。站点需要什么动作？
+      options: [{text: 只隐藏页面右上角用户名, why: 页面变化无法影响服务端是否认可旧凭据。}, {text: 在服务端让会话失效，并让浏览器清理对应 Cookie, correct: true}]
+      explain: 服务端失效会使后续提交的旧编号无法对应有效登录状态。
+    - id: mobile
+      type: choice
+      prompt: 订单页用红绿区分失败和成功，并且没有其他信息。哪种修改更容易让所有用户理解结果？
+      options: [{text: 给两种结果各写清楚的文字，保留合适对比度, correct: true}, {text: 只增加饱和度，仍只用颜色, why: 有些用户仍无法靠颜色分辨结果。}]
+      explain: 文字给出可读的状态，也能交给辅助工具。

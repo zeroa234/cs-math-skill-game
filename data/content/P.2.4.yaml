@@ -1,0 +1,741 @@
+skill: P.2.4
+version: 2
+brief:
+  why: 你和同伴正在改同一个小程序。你会保存每次改动的来路，停住程序找错，只重做需要重做的部分，并让另一台电脑重复同样的检查。
+  outcomes:
+    - 用 Git 保存、合并和撤销改动，区分本地历史和共享历史
+    - 重现程序的问题并用断点检查，按现象选择测量工具
+    - 从 C 源文件构建程序，用锁定的依赖执行自动检查
+terms:
+  - {term: 仓库, def: 保存项目历史与 Git 管理信息的地方。}
+  - {term: 暂存区, def: Git 为下次提交准备的文件版本清单。}
+  - {term: 提交, def: Git 的一条历史记录，指向项目快照和前序提交。}
+  - {term: 分支, def: Git 中随新提交前进的命名指针。}
+  - {term: 冲突, def: Git 无法自动决定应如何合并的改动。}
+  - {term: 变基, def: 将选定改动在新起点上重放，通常产生新的提交。}
+  - {term: 远程仓库, def: Git 为另一个可交换提交的仓库保存的访问位置。}
+  - {term: 调试, def: 重现问题，找到实际结果偏离预期的位置并修正。}
+  - {term: 变量, def: 程序里用于查找当前值的名字。}
+  - {term: 调试器, def: 可暂停程序、逐行执行并查看当时状态的工具。}
+  - {term: 断点, def: 让调试器在指定位置暂停程序的设置。}
+  - {term: 循环, def: 让程序重复执行一段操作的结构。}
+  - {term: 下标, def: 用来选择序列中某一项的位置编号，Python 从零开始。}
+  - {term: 调用, def: 要求程序执行另一个可复用的代码单元。}
+  - {term: 栈帧, def: 当前一次调用的记录，可用来检查它执行到哪里和有哪些局部数据。}
+  - {term: 系统调用, def: 程序向操作系统请求打开文件、读写等服务的入口。}
+  - {term: 内存, def: 程序运行时用来存放和读取数据的空间。}
+  - {term: 内存泄漏, def: 已用不到的空间未被释放，积累后可能耗尽可用空间。}
+  - {term: 越界, def: 访问超出获准范围的位置。}
+  - {term: 性能分析, def: 测量时间或空间花在哪里，以定位主要开销。}
+  - {term: 基准测试, def: 用固定条件和工作量反复测量一段任务的表现。}
+  - {term: 源代码, def: 人写下并交给语言工具处理的程序文本。}
+  - {term: 编译, def: 把源代码翻译成另一种可供后续处理的形式。}
+  - {term: 编译器, def: 执行这种翻译的工具，例如 GCC。}
+  - {term: 目标文件, def: 单个 C 文件编译后可供链接的产物，常用后缀是 .o。}
+  - {term: 链接, def: 将目标文件和需要的库组合起来并接通跨文件的引用。}
+  - {term: 可执行文件, def: 操作系统能启动的程序文件。}
+  - {term: 头文件, def: C 中供多个源文件引用的声明等内容，常用后缀是 .h。}
+  - {term: 构建规则, def: 指明产物、输入和更新产物所用命令的一条规则。}
+  - {term: 虚拟环境, def: 让某个 Python 项目拥有独立解释器入口和安装位置的目录。}
+  - {term: 解释器, def: 在这里指负责执行 Python 程序的工具。}
+  - {term: 第三方库, def: 项目从外部取得并重复使用的代码。}
+  - {term: 锁文件, def: 保存解析后的精确依赖树及可用完整性信息的文件。}
+  - {term: 参数, def: 提供给命令或一段可重复使用的代码的信息。}
+  - {term: 命令行参数, def: 启动命令时传给它的选项和值。}
+  - {term: 环境变量, def: 以名字和值传递给程序的一组外部设置。}
+  - {term: 退出状态, def: 命令结束时向发起者报告结果的数字。}
+  - {term: 测试用例, def: 一组具体输入、执行条件和预期结果。}
+  - {term: 持续集成, def: 小批合入共享代码，并为变更自动运行统一的检查。}
+lessons:
+  - id: snapshots
+    chapter: Git
+    title: 选好哪些改动进入下一次记录
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你修了首页的错字，还写了一份没完成的草稿。能先只为错字留下一条历史记录吗？
+          options: [{text: 可以先挑首页, correct: true}, {text: 必须把整个目录的新改动都收进去, why: Git 可以先选好要记录的文件版本。}]
+          explain: 先挑改好的文件，再把选中的版本保存下来。
+      - card:
+          title: 用三处位置看懂 Git
+          body: |
+            在终端窗口里输入命令，由接收命令的 Shell 程序启动 Git。Git **仓库（repository）**里有项目的历史。你直接编辑的文件位于工作区。`git add` 把当时的文件版本放到**暂存区（staging area）**，作为下次记录的候选。
+      - card:
+          title: 一次记录有自己的身份
+          body: |
+            **提交（commit）**记录项目的一份快照、前序记录、作者和说明。Git 用由内容计算出的标识存取对象，同一内容的文件对象可以复用。改了内容或前序记录，新的提交标识通常会变化。
+      - item:
+          id: areas
+          type: match
+          prompt: 把三种状态和各自所在的位置配对。
+          pairs: [[刚在编辑器里修改的文件, 工作区], [通过 git add 选定的版本, 暂存区], [已写入项目历史的快照, 提交]]
+          explain: 编辑、选择和保存是三个动作。暂存之后再编辑，需要再选一次才会记录最新版。
+      - card:
+          title: 只把首页修复记下来
+          body: 在新建的练习目录里已有改好的 home.txt 和未写完的 draft.txt。
+          reveal:
+            - title: 建好仓库并看现状
+              body: '用 `git init -b main` 建仓库。用 `git status` 看 Git 目前识别出的变化。'
+            - title: 核对将要记录的内容
+              body: '运行 `git add home.txt` 和 `git diff --cached`。后者比较暂存区和当前历史，草稿还留在工作区。'
+            - title: 保存一次有说明的改动
+              body: '运行 `git commit -m "Fix home typo"`。用 `git log --oneline` 回看这条记录。'
+      - item:
+          id: staged-again
+          type: choice
+          prompt: 你暂存了 home.txt，随后又改了文件。怎样让最新内容进入接下来的一次提交？
+          options:
+            - {text: 直接用 git commit, why: 上次暂存的版本仍保存在暂存区。}
+            - {text: 再用 git add home.txt 后提交, correct: true}
+            - {text: 用 git log --oneline, why: 它只显示已有的历史记录。}
+          explain: 每次 git add 都以文件当时的版本更新暂存区。
+      - item:
+          id: first-save
+          type: order
+          prompt: 在已建好的仓库里，按顺序只记录刚改好的 notes.txt，并核对结果。
+          steps: [git add notes.txt, git diff --cached, git commit -m "Update notes", git log --oneline]
+          explain: 先选择版本，再检查候选差异。写入历史后，用 log 核对提交。
+  - id: branches
+    chapter: Git
+    title: 在支线上完成一个改动
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 想在保留一份可用版本的同时试做新功能，怎样更容易追踪两边的变化？
+          options: [{text: 给两条历史各取一个名字, correct: true}, {text: 只给每份文件换一个名字, why: 改名无法保存各次修改之间的关系。}]
+          explain: 给开发线命名，能知道每条线当前走到哪份记录。
+      - card:
+          title: 名字跟着历史向前走
+          body: |
+            从 main 开出 feature 时，两者最初指向同一条记录。**分支（branch）**是会随提交移动的名字。通常 `HEAD` 指向当前选中的分支。选中 feature 再提交，feature 往前走，main 仍指向原处。
+      - item:
+          id: pointer
+          type: choice
+          prompt: main 和 feature 原来都指向 A。你在 feature 提交了 B。main 现在指向哪里？
+          options: [{text: B, why: 新提交只推动当前分支。}, {text: A, correct: true}]
+          explain: HEAD 指向 feature，刚创建的 B 只让 feature 前进。
+      - card:
+          title: 把两次改动带回 main
+          body: 假设仓库已有 main，当前工作区干净。
+          reveal:
+            - title: 开出并选中支线
+              body: '运行 `git switch -c feature`。'
+            - title: 每做完一步就留下记录
+              body: '改完首页后 `git add home.txt` 并 `git commit -m "Fix title"`。另改帮助页，再 `git add help.txt` 并 `git commit -m "Clarify help"`。'
+            - title: 站到接收改动的一侧
+              body: '运行 `git switch main`，再 `git merge feature`。若 main 还是共同起点，Git 可直接把 main 推到 feature 尖端，这叫快进（fast-forward）。'
+      - item:
+          id: direction
+          type: order
+          prompt: 从 main 开始，写完 help.txt 的改动后把 feature 带回 main。如何安排操作？
+          steps: [git switch -c feature, 编辑并保存 help.txt, git add help.txt, git commit -m "Update help", git switch main, git merge feature]
+          explain: 提交前停在 feature，合并时停在接收结果的 main。
+      - item:
+          id: fast-forward
+          type: choice
+          prompt: feature 领先 main，main 从分叉后没有新提交。默认合并怎样更新 main？
+          options: [{text: 必然新建一个有两个前序的记录, why: main 可以沿现有历史直接前进。}, {text: 把 main 移到 feature 的提交, correct: true}]
+          explain: 旧 main 是 feature 的祖先，因此有现成的历史可沿用。
+  - id: conflicts
+    chapter: Git
+    title: 两边改了同一行时怎么选
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你把营业时间改成周六上午，同伴把同一行改成周六下午。仅凭文本，电脑能知道哪个符合真实安排吗？
+          options: [{text: 要由了解安排的人来决定, correct: true}, {text: 一律选修改时间较晚的一行, why: 改得晚无法证明内容符合实际。}]
+          explain: 电脑能标出分歧，人要把意图变成最终的文本。
+      - card:
+          title: 从共同起点比较两边
+          body: |
+            两边各有新提交时，Git 比较共同起点和两边的版本。它能合并互不干扰的改动，成功时通常新建一条有两个前序的记录。若 Git 无法决定怎样合并某处，出现**冲突（merge conflict）**。
+      - item:
+          id: parents
+          type: choice
+          prompt: main 和 feature 从共同起点各自前进，默认合并成功后如何保留两条历史？
+          options: [{text: 新记录有两条前序线, correct: true}, {text: 删掉 feature 历史才能合并, why: 合并可保留两边提交的来路。}]
+          explain: 这次两边已分叉，合并提交通过两个前序保留历史。
+      - card:
+          title: 处理 Git 标出的分歧
+          body: '合并时 `git status` 显示 hours.txt 有分歧。两边分别写上午和下午，团队确认全天营业。'
+          reveal:
+            - title: 找到两份内容
+              body: '在文件里查看 `<<<<<<<`、`=======` 和 `>>>>>>>` 之间的内容。'
+            - title: 让文件变成最终结果
+              body: '把整个标记块改成“周六全天营业”。保存并检查结果，再 `git add hours.txt` 标记已解决。'
+            - title: 完成或停止这次合并
+              body: '解决完所有冲突后运行 `git commit`。若想放弃尚未完成的合并，在合并前工作区干净的情况下用 `git merge --abort` 回到起点。'
+      - item:
+          id: resolve
+          type: order
+          prompt: 同事已确认正确文本，你正在合并而且 Git 标出冲突。给完成合并的动作排序。
+          steps: [找出带标记的冲突位置, 写入确认过的结果并移除标记, 暂存已解决的文件, 提交合并结果]
+          explain: Git 等待的是确认过的文件内容，暂存后才把它纳入合并提交。
+      - card:
+          title: 换一个起点再重放
+          body: |
+            在自己的 feature 上运行 `git rebase main`，相当于把 feature 的改动移到当前 main 之后逐条重放。这个动作叫**变基（rebase）**，新前序通常意味着新提交标识。遇到冲突就改文件、暂存，再 `git rebase --continue`。
+      - item:
+          id: rebase
+          type: choice
+          prompt: feature 只在本机，你想让它的提交接在最新 main 之后，保留一条直线。选哪项？
+          options: [{text: 在 feature 上运行 git rebase main, correct: true}, {text: 在 feature 上运行 git merge main, why: 已分叉时它会保留两条前序线。}]
+          explain: 变基在新起点重放改动，适合尚未分享的历史。
+  - id: remotes
+    chapter: Git
+    title: 先看同伴交来的历史
+    minutes: 10
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你想先看看同伴的新改动，仍保留手上的工作版本。应该一步拿回并应用，还是分开两步？
+          options: [{text: 一定要拿回后直接应用, why: 获取和整合可以分开。}, {text: 先拿回记录查看，再决定如何应用, correct: true}]
+          explain: 先知道对方改了什么，再决定怎么纳入自己的版本。
+      - card:
+          title: 一份历史可以有多个副本
+          body: |
+            **远程仓库（remote repository）**是另一份可交换历史的仓库，可以在服务器或另一个目录。`git clone` 复制现有仓库并通常把来源记作 `origin`。`git fetch origin` 获取记录并更新本地所记的远端位置，例如 `origin/main`。
+      - item:
+          id: fetch
+          type: choice
+          prompt: 只运行 git fetch origin，当前检出的 main 会自动被远端内容替换吗？
+          options: [{text: 会替换当前文件, why: fetch 只取记录并更新远端跟踪位置。}, {text: 当前 main 保持原位, correct: true}]
+          explain: origin/main 是本机记住的远端位置，和本地 main 是两个名字。
+      - card:
+          title: 取回、整合、发出
+          body: |
+            `git pull` 先取回，再按设置合并或变基。`git push -u origin feature` 把 feature 发给 origin 并设好跟踪关系，可发起审查请求，让维护者合入 main。若共享分支因落后而拒绝推送，先取回并整合新变化。
+      - item:
+          id: exchange
+          type: match
+          prompt: 为三个合作动作选命令。
+          pairs: [[只拿回对方的记录, git fetch], [取回并尝试整合到当前分支, git pull], [把自己的提交交给远端, git push]]
+          explain: 分开这三个动作，遇到拒绝就能定位失败发生在交换还是整合。
+  - id: undo
+    chapter: Git
+    title: 用已经共享的记录纠正错误
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 三个人都下载了同一份错误记录。你怎样让三个人能沿用已经下载的历史？
+          options: [{text: 再发一条纠正记录, correct: true}, {text: 悄悄把旧记录换掉, why: 别人的工作可能已经接在那条记录后。}]
+          explain: 追加纠正记录可以保留共同来路。
+      - card:
+          title: 只在本机的最后一条记录
+          body: |
+            在未共享的线尾，`git commit --amend -m "New message"` 重新制作最近的提交，暂存的内容也会被纳入。`git reset --soft HEAD~1` 把当前分支移到前一条记录，保留暂存区和工作区。`--hard` 会重置这两处，可能丢掉未记录的改动。
+      - item:
+          id: soft
+          type: choice
+          prompt: 一条提交只在本机。你想撤回这条记录，同时把它改过的内容留在暂存区。工作区原本干净，该选什么？
+          options: [{text: git reset --hard HEAD~1, why: 这样会连工作区与暂存区一起重置。}, {text: git reset --soft HEAD~1, correct: true}, {text: git revert HEAD, why: 它会保留旧记录再追加反向记录。}]
+          explain: soft 只移动分支位置。原本干净时，撤回的内容仍在暂存区。
+      - card:
+          title: 公共历史通过追加来修正
+          body: |
+            `git revert <提交标识>` 尝试把那条记录的改动反向应用，再创建一条新提交。`git restore 文件名` 则可把暂存版覆盖到工作区，用前先看 `git diff`。整理个人历史时，`git rebase -i` 可重排或合并提交，`git reflog` 可查本地引用曾指向哪里。
+      - item:
+          id: shared
+          type: match
+          prompt: 把目标和适合的操作配对。
+          pairs: [[只更改未共享的最近一次提交说明, git commit --amend], [共享线保留历史并抵消错误改动, git revert], [查本地分支移动前的位置, git reflog]]
+          explain: 选操作之前先判断记录是否已共享，并决定是否要保留原来的提交标识。
+  - id: debugger
+    chapter: 调试器
+    title: 先让问题稳定地出现
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 程序偶尔算错合计。应该先找一份一定会算错的输入，还是先把整段代码改写一遍？
+          options: [{text: 先整段重写, why: 同时改变很多地方，很难知道原来哪一步出错。}, {text: 先留下能重现问题的输入和正确结果, correct: true}]
+          explain: 同一份输入可以用来定位错误，也能在改完后核对。
+      - card:
+          title: 从可观察的差异开始
+          body: |
+            程序应把 2、5、7 加成 14，却显示 7。**调试（debugging）**先记录输入、预期和实际，缩小到最短的出错路径。临时用 `print` 显示中间值，或用带时间和级别的日志记录少量关键事件。
+      - item:
+          id: repro
+          type: choice
+          prompt: 你怀疑每份输入的最后一项没被算上。哪条记录最适合交给同伴复查？
+          options: [{text: 输入 2、5、7，预期 14，实际 7, correct: true}, {text: 只说程序有时错, why: 同伴缺少能稳定重现的输入和预期。}]
+          explain: 输入和两种结果都有了，就能确认是否碰到同一个问题。
+      - card:
+          title: 停住再看当时的值
+          body: |
+            程序用名字记住值，叫**变量（variable）**。**调试器（debugger）**能暂停并读出这些值。编辑器、运行与调试集成在一起的开发环境叫 IDE。点行号旁的圆点可设**断点（breakpoint）**，执行到这一行、尚未执行该行时停住。
+      - item:
+          id: inspect
+          type: choice
+          prompt: 想看暂停时任意一个值，又不想为了每个值加一条打印后重跑，怎么做？
+          options: [{text: 用调试器查看暂停时的变量, correct: true}, {text: 只看程序最后一行的输出, why: 结束后的输出无法还原每个中间值。}]
+          explain: 暂停保留当前执行状态，打印则需要事先选好要输出的值。
+  - id: breakpoint
+    chapter: 调试器
+    title: 在少算最后一项的位置停住
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 点餐单上依次是 2、5、7 元，机器算出 7 元。你会先查哪一项有没有被读到？
+          options: [{text: 末尾的 7 元, correct: true}, {text: 只查开头的 2 元, why: 前两项相加就能得到机器显示的 7 元。}]
+          explain: 这个结果与只算前两项吻合，可以先检验机器有没有读到末尾。
+      - card:
+          title: 看重复动作何时结束
+          body: |
+            **循环（loop）**让程序重复执行。Python 中，**下标（index）**从 0 开始，下面的三个值对应 0、1、2。`len(xs)` 数出有三项。循环每轮把 `i` 加 1，但它的检查写的是 `i < len(xs) - 1`。
+
+            ```python
+            xs = [2, 5, 7]
+            i = 0
+            total = 0
+            while i < len(xs) - 1:
+                total += xs[i]
+                i += 1
+            print(total)
+            ```
+      - item:
+          id: boundary
+          type: choice
+          prompt: 总共有 3 项，i 到 2 时会检查 i < 3 - 1。下一轮会执行吗？
+          options: [{text: 会，2 是合法位置, why: 位置合法，但这条判断排除了 2。}, {text: 不会，2 < 2 不成立, correct: true}]
+          explain: 这里恰好挡住最后一个合法的位置。
+      - card:
+          title: 在条件成立时才暂停
+          body: |
+            把例子存为 sum_items.py，用 `python -m pdb sum_items.py` 打开。**调用（call）**把执行交给另一段可复用的代码。每次调用有自己的**栈帧（stack frame）**，记录当前执行位置和数据。
+          reveal:
+            - title: 停在检查边界之前
+              body: '输入 `b 4, i == len(xs) - 1`，再用 `c` 继续。逗号后是停下所需的条件，所以前两轮不停。把断点设在检查这一行，即使循环体进不去也能停。'
+            - title: 读出位置并核对下一步
+              body: '`p i` 得到 2，`p len(xs)` 得到 3。`n` 执行当前行并在当前层接着停，`s` 可进入调用内部，`where` 查看调用路径。执行这次检查后走到 `print(total)`。'
+            - title: 改边界后重跑
+              body: '把检查改成 `i < len(xs)`，保留同一份输入重跑，应显示 14。GDB 或 IDE 也能用条件断点执行同样的排查。'
+      - item:
+          id: stop-line
+          type: choice
+          prompt: 你只想在最后一项的位置检查循环是否继续。条件断点适合放在哪里？
+          options: [{text: 只放到循环体的加法行, why: 边界错误会使这一轮根本到不了加法。}, {text: 放到检查是否继续的那一行，并限定最后一项的位置, correct: true}]
+          explain: 把断点设在可能作出错误决定的那一步。
+      - item:
+          id: repaired
+          type: number
+          prompt: 程序把 4、6、8 逐项加起来。修复少算末项的问题后，合计是多少？
+          answer: 18
+          explain: 修复后会加入 4、6 和最后的 8，所以合计是 18。
+  - id: diagnose
+    chapter: 调试器
+    title: 程序找不到文件或用光空间时看哪里
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 程序说“找不到设置文件”。只看最终这一句话，能知道它在哪个目录找过吗？
+          options: [{text: 还得看它实际尝试打开的路径, correct: true}, {text: 一定就是你打开的目录, why: 程序可以选择其他目录。}]
+          explain: 先取到它实际向电脑请求的路径。
+      - card:
+          title: 看程序向系统请求了什么
+          body: |
+            打开文件这类工作要请操作系统帮忙。这样的入口叫**系统调用（system call）**。Linux 上可用 `strace -e trace=openat ./app` 查程序请求打开了哪些路径。若程序自己记录过相关路径，先读日志通常更快。
+      - item:
+          id: paths
+          type: choice
+          prompt: 日志只有“打开失败”，你想在 Linux 看到程序交给操作系统的路径。先做哪项？
+          options: [{text: 只增加日志保存天数, why: 这不会让旧日志多出缺失的路径。}, {text: 用 strace 观察打开文件的请求, correct: true}]
+          explain: 跟踪把交给系统的路径和返回结果列出来。
+      - card:
+          title: 区分留着不用和用了不该用的
+          body: |
+            **内存（memory）**是运行中的程序存取数据的空间。申请的空间用完仍没释放，可能形成**内存泄漏（memory leak）**。访问超出获准范围的位置叫**越界（out-of-bounds access）**。这两种问题需要分别定位。
+      - card:
+          title: 让检查工具指出来源
+          body: |
+            在 Linux 上，Valgrind Memcheck 可报告无效读写和泄漏。AddressSanitizer 可在生成程序时插入检查，也能抓到多种无效访问。先用可重现的输入让工具报告，再沿报告中的位置找首次错误。
+      - item:
+          id: symptoms
+          type: match
+          prompt: 将观察到的现象和要调查的方向配对。
+          pairs: [[每次处理完都遗忘释放旧空间, 内存泄漏], [试图读第 4 个位置而只分到 3 个, 越界], [找不到配置且不知道程序试了哪里, 系统调用跟踪]]
+          explain: 一个工具的报告可给出证据，调查方向由实际发生的动作决定。
+  - id: profile
+    chapter: 调试器
+    title: 先量耗时再决定改哪里
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你能让保存进度更快，也能让生成图片更快。该先改哪一部分？
+          options: [{text: 先测哪些工作让用户等最久, correct: true}, {text: 一定先改代码行数最多的部分, why: 文本长度无法说明运行时花费。}]
+          explain: 找到主要等待来源后，再估算改动能省下多少时间。
+      - card:
+          title: 从总时间走到各处花费
+          body: |
+            `time` 可报告整次运行经过多久，系统监控工具能显示 CPU 和内存使用。要知道哪段代码用得最多，就做**性能分析（profiling）**。CPU 分析器如 Linux `perf` 可以抽查 CPU 正在执行的位置，内存分析器可以追踪空间申请及大小。
+      - item:
+          id: measure
+          type: match
+          prompt: 按问题选择一种测量方式。
+          pairs: [[一次完整运行经过多久, 整体计时], [哪段代码花掉大量 CPU 时间, CPU 性能分析], [哪里申请了大量仍保留的空间, 内存性能分析]]
+          explain: 总耗时、CPU 工作位置和空间来源是三类证据。
+      - card:
+          title: 同一份工作才能作对照
+          body: |
+            **基准测试（benchmark）**是在固定条件下重复执行一项任务并测量。比较修改前后时，用同一输入、设备和运行方式，记录多轮结果。准备动作、后台负载和刚启动时的开销都可能影响单次读数。
+          reveal:
+            - title: 找出主要开销
+              body: '一次运行中读取用 80 ms，计算用 20 ms，两段依次执行，总计 100 ms。先看耗时较大的读取。'
+            - title: 估算改动后的总时间
+              body: '读取快一倍后只用 40 ms，计算仍是 20 ms，总计 60 ms。再用原来的输入重复测量，检查读数是否接近预测。'
+      - item:
+          id: total
+          type: number
+          prompt: 某工具先读文件 60 ms，再计算 30 ms。只让读取耗时减半，计算不变，总共需要多少 ms？
+          answer: 60
+          explain: 读取变成 30 ms，再加上计算的 30 ms。
+      - item:
+          id: repeat
+          type: choice
+          prompt: 新版本一次跑得快，旧版本那一轮用了另一份输入。怎样确认加速？
+          options: [{text: 比各自最快的那一次, why: 输入与偶然负载还会混入比较。}, {text: 用同一输入和设备重复测新旧两版, correct: true}]
+          explain: 固定工作量和环境，才能把变化更有把握地归因于版本。
+  - id: make-rules
+    chapter: 构建
+    title: 让 Make 决定哪份产物过期了
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一本小册子分两页印好，你只改了第二页。两页的纸都必须重印吗？
+          options: [{text: 只重印有变化的一页，再重新装订, correct: true}, {text: 每次都得先重新印完两页, why: 没变的一页还能继续用。}]
+          explain: 保留可复用的中间产物，可以节省下一次工作。
+      - card:
+          title: C 程序可以分开准备再组合
+          body: |
+            人写下的程序叫**源代码（source code）**。**编译（compilation）**把它翻译成可供后续使用的形式。GCC 是一个**编译器（compiler）**。用 `gcc -c main.c -o main.o` 可以从 main.c 生成**目标文件（object file）** main.o。
+      - card:
+          title: 从两份中间产物得到程序
+          body: |
+            **链接（linking）**把目标文件和需要的库组合起来，接通跨文件的引用。`gcc -o app main.o util.o` 生成可以启动的**可执行文件（executable）**。C 的**头文件（header）**可以保存两个源文件都需要知道的声明。
+      - item:
+          id: compile-or-link
+          type: match
+          prompt: 把动作和得到的产物配对。
+          pairs: [[只翻译 util.c 得到一份可组合的中间产物, util.o], [合并 main.o 和 util.o 得到可运行程序, app]]
+          explain: 分开生成目标文件，输入没变时就能复用它。
+      - card:
+          title: 写下输入和更新命令
+          body: |
+            **构建规则（build rule）**的首行写“产物: 所需输入”，下一行用 Tab 开头写命令。例子适用于有 GNU Make 和 GCC 的环境。`CC` 和 `CFLAGS` 是可复用的设置。GNU Make 内置从 .c 生成 .o 的规则，因此最后两行只要补足输入。
+
+            ```make
+            CC = gcc
+            CFLAGS = -Wall -g
+            app: main.o util.o
+            	$(CC) $(CFLAGS) -o app main.o util.o
+            main.o: main.c util.h
+            util.o: util.c util.h
+            ```
+          reveal:
+            - title: 先检查目标文件
+              body: '运行 `make` 时，默认目标是 app。每份 .o 不存在或比任一输入旧，就先更新那份 .o。'
+            - title: 再检查最终程序
+              body: '若只改 util.c，util.o 更新，main.o 复用。app 比新的 util.o 旧，于是重新链接。'
+      - item:
+          id: source-change
+          type: order
+          prompt: Makefile 规定 main.o 来自 main.c，util.o 来自 util.c，app 需要两份 .o。只改 util.c 后，按执行顺序列出动作。
+          steps: [改动并保存 util.c, 编译得到新的 util.o, 用两份目标文件链接 app]
+          explain: util.o 的输入更新了，app 的一个输入也随之更新。main.o 的输入未动，可以复用。
+      - item:
+          id: header-change
+          type: choice
+          prompt: Makefile 中 main.o 和 util.o 都列出 util.h 为输入。产物原先齐全，只改 util.h 后，哪份 .o 会重建？
+          options: [{text: 两份都重建, correct: true}, {text: 只重建 util.o，因为文件名开头一样, why: 规则里两份产物都声明了这个输入。}]
+          explain: 是否过期取决于依赖关系与时间，文件名相似性不起作用。
+  - id: build-graph
+    chapter: 构建
+    title: 声明完整输入才能安全重用产物
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个印刷员各印一页，两页都印好后才能装订。两页可以同时开印吗？
+          options: [{text: 必须先后印，最后一步才能装订, why: 两页之间没有前后依赖。}, {text: 可以同时印，两页结束再装订, correct: true}]
+          explain: 只要先完成彼此依赖的工作，独立任务可以并行。
+      - card:
+          title: 把相同规则合成一个模式
+          body: |
+            `%.o: %.c` 是 GNU Make 的模式规则，两个百分号取同一个文件名主体。`$<` 是第一个输入，`$@` 是目标。GCC 的 `-MMD -MP` 同时写出描述用户头文件依赖的 .d 文件，`-include` 读入它们，首次构建时允许它们还不存在。
+
+            ```make
+            CC = gcc
+            objects = main.o util.o
+            app: $(objects)
+            	$(CC) -o $@ $(objects)
+
+            %.o: %.c
+            	$(CC) -Wall -g -MMD -MP -c $< -o $@
+
+            -include $(objects:.o=.d)
+
+            .PHONY: clean
+            clean:
+            	$(RM) app $(objects) $(objects:.o=.d)
+            ```
+      - item:
+          id: generated-inputs
+          type: choice
+          prompt: Make 下次从 util.d 读到 util.o 也需要 util.h。之后只改 util.h，为什么能正确重建 util.o？
+          options: [{text: .d 文件把真实的头文件输入写进了依赖关系, correct: true}, {text: GCC 改了 Make 比较时间的算法, why: 仍是 Make 按声明的输入决定何时重建。}]
+          explain: 自动记录输入让你改头文件时无需同步手写整张依赖清单。
+      - card:
+          title: 从依赖顺序推到一致的产物
+          body: |
+            `make -j2` 可在两份 .o 输入齐备时并行更新它们，链接仍等两个都完成。`.PHONY: clean` 表示 clean 是动作，即使有同名文件也可执行。若要在另一台机器重建相同产物，还要固定工具版本、依赖、会影响输出的路径和时间等输入。
+      - item:
+          id: safe-parallel
+          type: choice
+          prompt: main.o 与 util.o 都需要先生成的 settings.h。并行构建时如何保证两者不会过早开始？
+          options: [{text: 给两个目标都声明 settings.h 为输入, correct: true}, {text: 只把生成头文件的规则写在文件最上面, why: 书写先后不能代替两条依赖。}]
+          explain: 每项任务要声明实际输入，构建器据此安排正确的先后次序。
+  - id: packages
+    chapter: 包管理
+    title: 给每个项目一套自己的依赖
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个程序依赖同一个工具的不同版本。能给每个项目留一份吗？
+          options: [{text: 能，给两者各安排独立的安装位置, correct: true}, {text: 全电脑永远只能装最新一版, why: 项目可以各有独立环境。}]
+          explain: 分开安装位置后，两边可以按自己的要求选择版本。
+      - card:
+          title: 一次安装可能需要好几份代码
+          body: |
+            **第三方库（third-party library）**是从项目外取得、可复用的代码。包是可安装的分发单位。项目声明自己直接用的包，包也可能需要别的包，这些叫传递依赖（transitive dependencies）。包管理器负责解析关系、下载并安装。
+      - item:
+          id: transitive
+          type: choice
+          prompt: 项目只声明 A，A 声明需要 B。为什么包管理器还会装 B？
+          options: [{text: B 是 A 正常运行所需的传递依赖, correct: true}, {text: 系统随机推荐了一个同名工具, why: 安装来自声明的依赖关系。}]
+          explain: 应用虽然只直接用 A，仍间接需要 B。
+      - card:
+          title: 把安装环境和分发产物分开
+          body: |
+            运行 Python 代码的程序叫**解释器（interpreter）**。`python -m venv .venv` 创建一个**虚拟环境（virtual environment）**，提供独立的解释器入口和包安装位置。在 Linux/macOS 可用 `.venv/bin/python -m pip install .` 安装当前项目。
+      - card:
+          title: 决定交给对方什么
+          body: |
+            Python 的 wheel 是可安装的构建产物，虚拟环境是本机安装位置。若交付整个运行环境，容器镜像可打包应用及依赖，运行时共享宿主的操作系统核心。虚拟机可以带自己的客体操作系统。
+      - item:
+          id: packaging
+          type: match
+          prompt: 把交付或隔离的需要和选项配对。
+          pairs: [[在本机分开两个 Python 项目的包, 虚拟环境], [给别人一份可以安装的 Python 包, wheel], [让一份客体操作系统自己运行, 虚拟机]]
+          explain: 选择取决于希望单独准备包、运行环境，还是整个系统。
+  - id: locks
+    chapter: 包管理
+    title: 用版本范围表达意图，用锁文件记录结果
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你和同伴都点了“安装兼容的新版本”，但相隔一周。能保证拿到同一版吗？
+          options: [{text: 保证一样，因为写了兼容, why: 兼容范围内可以发布新版本。}, {text: 要记下实际选中的版本才好复现, correct: true}]
+          explain: 范围里可以有多个版本，安装当日可用的版本也会变。
+      - card:
+          title: 读懂三个数字的承诺
+          body: |
+            语义化版本（Semantic Versioning）用“主版本.次版本.补丁版本”。稳定接口有不兼容变化时增主版本，兼容的新功能增次版本，兼容的修复增补丁。npm 的 `^1.2.3` 接受从 1.2.3 起、小于 2.0.0 的正式版本，预发布版本另有规则。
+      - item:
+          id: semver
+          type: choice
+          prompt: npm 的 ^1.2.3 允许哪一个正式版本？
+          options: [{text: 2.0.0, why: 2.0.0 是排除的上界。}, {text: 1.7.0, correct: true}, {text: 1.2.2, why: 它低于允许的起点。}]
+          explain: 1.7.0 落在范围内。^ 的规则也考虑零主版本的兼容范围。
+      - card:
+          title: 让新机器选中同一棵依赖树
+          body: |
+            `package.json` 声明版本范围。**锁文件（lockfile）** `package-lock.json` 记录实际解析的直接和传递依赖版本，以及可用的完整性信息。一起提交这两份文件。`npm ci` 要求两者一致，按锁定的树干净安装，安装时不修改锁文件。
+          reveal:
+            - title: 确定输入
+              body: '两台机器拿到同一个提交，其中范围为 `^1.2.3`，锁定到 1.2.5。工具版本、平台和影响依赖树的选项也保持一致。'
+            - title: 复用锁定结果
+              body: '运行 `npm ci` 安装已锁定的 1.2.5，即使后来发布了 1.7.0。要升级时用 `npm install` 重新解析并审查锁文件差异。'
+            - title: 检查并交付
+              body: '发布前在干净目录安装并验证包，再按名称和版本上传到包注册表（registry）。给使用者留更新说明，记录实际发布的版本和对应源码。'
+      - item:
+          id: locked
+          type: choice
+          prompt: 你的锁文件定了 1.2.5，声明仍接受它，且使用一致的环境。新的兼容版本出现后，npm ci 安装哪个？
+          options: [{text: 1.2.5, correct: true}, {text: 自动换成最新兼容版, why: 干净安装沿用锁定的解析结果。}]
+          explain: 锁文件提供安装答案，版本范围描述允许重新选择时的边界。
+  - id: shell
+    chapter: 依赖与自动化工作流
+    title: 把命令的输入和输出接好
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你想保留一份搜索结果，留到明天读。能让命令直接把它写到文件里吗？
+          options: [{text: 能，把结果送进文件, correct: true}, {text: 必须从窗口手工复制, why: Shell 可以改命令输出的去向。}]
+          explain: 程序写出的结果可以被终端显示，也可以流向文件。
+      - card:
+          title: 终端提供窗口，Shell 解释命令
+          body: |
+            终端模拟器（terminal emulator）显示文字、接收按键。Bash 是读命令的 Shell。`pwd` 看当前位置，`ls` 列文件，`cd` 改位置，`command -v git` 查会用哪个 Git。**参数（argument）**是交给命令的信息。空格分隔**命令行参数（command-line arguments）**，引号保留文件名内的空格。
+      - item:
+          id: quote
+          type: choice
+          prompt: Bash 下想让 cd 把 My Project 当成一个目录名。选哪项？
+          options: [{text: cd My Project, why: 未加引号时，两部分被拆开。}, {text: 'cd "My Project"', correct: true}]
+          explain: 双引号把这个名字保留成一个整体。
+      - card:
+          title: 把文字从一个命令交给另一个
+          body: |
+            标准输入接收文字，标准输出送出结果，标准错误传递诊断。Bash 用 `|` 把左边的标准输出接给右边的标准输入，用 `>` 写文件并覆盖旧内容，用 `>>` 追加。`2>` 则把标准错误单独写到文件。
+          reveal:
+            - title: 先只找带 ready 的行
+              body: '`grep ready tasks.txt` 从文件读行，把符合条件的行送出。'
+            - title: 交给计数工具再保存
+              body: '`grep ready tasks.txt | wc -l > count.txt` 把匹配的行送给 `wc -l` 计数，再将计数写入 count.txt。'
+      - item:
+          id: redirect
+          type: match
+          prompt: 将 Bash 的符号和用途配对。
+          pairs: [['|', 把一个命令的标准输出送到下一个命令], ['>', 把标准输出写入文件并覆盖], ['2>', 单独把诊断输出写入文件]]
+          explain: 把结果和诊断分开，后面的程序就能只读取要处理的结果。
+  - id: automation
+    chapter: 依赖与自动化工作流
+    title: 让命令接收配置并在失败处停下
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同一个程序要分别读测试数据和正式数据。每次都需要改程序吗？
+          options: [{text: 可以从外面告诉程序该读哪里, correct: true}, {text: 必须复制整份程序并改文本, why: 程序可以读取启动时的设置。}]
+          explain: 把会随环境变化的设置单独提供。
+      - card:
+          title: 把设置交给程序
+          body: |
+            **环境变量（environment variable）**是一组名字和值。`MODE=test ./app` 让这一次启动的 app 收到 MODE。Bash 的 `export MODE=test` 则让之后从此 Shell 启动的程序也收到它。把密钥由受控的环境提供，避免写入共享历史和日志。
+      - item:
+          id: one-run
+          type: choice
+          prompt: Bash 中，想只让这一次 ./app 收到 MODE=test，选哪条？
+          options: [{text: 'MODE=test ./app', correct: true}, {text: 'export MODE=test 然后一直留在此 Shell', why: 后续从同一 Shell 启动的程序也会继承它。}]
+          explain: 只为命令前缀设置 MODE，影响这个命令及继承它的程序。
+      - card:
+          title: 检查通过后才继续
+          body: |
+            **退出状态（exit status）**是命令结束报告的数字，通常 0 表示成功，非零表示失败或特殊结果。Bash 中 `npm ci && npm test` 只在前一条成功时运行后一条。可把固定步骤写入脚本，用 `bash check.sh` 运行。
+      - item:
+          id: chain
+          type: choice
+          prompt: npm ci 以非零状态结束。Bash 执行 npm ci && npm test 时会做什么？
+          options: [{text: npm test 仍照常跑, why: 右侧需要左侧成功才会启动。}, {text: 跳过 npm test 并留下失败状态, correct: true}]
+          explain: 这样能保留真正出错的那一步，后面不用旧环境继续跑。
+      - card:
+          title: 区分本地窗口和远端运行现场
+          body: |
+            Bash 可从 `~/.bashrc` 等设置文件读取个人配置，脚本应把必要条件写清。`ssh` 可登录远端。在远端用 `tmux` 能分离窗口并稍后重新接回同一会话。按 Ctrl+C 通常给前台程序发送 SIGINT 信号，请求它停下。
+      - item:
+          id: remote-shell
+          type: match
+          prompt: 将常见需要和工具配对。
+          pairs: [[登录远端机器执行命令, SSH], [断开连接后重新接回同一会话, tmux], [配置个人的 Bash 交互环境, .bashrc]]
+          explain: 登录、维持会话和个人设置分别解决不同问题。
+  - id: checks
+    chapter: 依赖与自动化工作流
+    title: 让团队重复执行同一套检查
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你的电脑能运行，同伴刚下载却启动失败。哪种检查更容易在合入前发现问题？
+          options: [{text: 只在自己当前的目录打开一次, why: 机器上旧的包和设置可能掩盖问题。}, {text: 在干净的共同环境安装后再运行检查, correct: true}]
+          explain: 新环境能暴露本机已有的文件或设置带来的差异。
+      - card:
+          title: 三种检查回答三个问题
+          body: |
+            格式化工具统一代码样式，静态检查工具（linter）从代码查可疑写法，**测试用例（test case）**用输入和预期结果检验行为。代码覆盖率衡量测试实际执行过多少代码位置。即使执行到了，仍要核对结果是否正确。
+      - item:
+          id: check-kind
+          type: match
+          prompt: 按目标选最直接的工具。
+          pairs: [[统一代码版式, 格式化], [找出声明了却没用的名字, 静态检查], [检查输入缺少末项时输出是否符合预期, 测试用例]]
+          explain: 样式、可疑写法和真实行为分别需要不同的检查。
+      - card:
+          title: 在合入前给出同一份证据
+          body: |
+            提交前钩子（pre-commit hook）在本机提交前可阻止错误。**持续集成（continuous integration）**给共享变更自动跑检查，脚本可与团队共用。本地用 `npm run check` 运行项目约定的检查命令，自动工作流也运行同一个入口。
+          reveal:
+            - title: 从本次提交开始
+              body: 服务器取本次变更，在干净环境用锁文件安装依赖。
+            - title: 先查，再准备发布产物
+              body: 执行检查和测试。失败时记录出错步骤并停下。通过后构建、保存产物和对应提交标识。
+            - title: 根据发布规则上线
+              body: 持续部署会自动把通过检查的版本推到实际环境。常驻响应请求的程序是服务，编排工具可以按依赖启动服务，并维持需要的运行份数。
+      - item:
+          id: workflow
+          type: order
+          prompt: 团队约定只给通过检查的提交生成发布包。把自动步骤排好。
+          steps: [取本次提交, 按锁文件干净安装, 运行检查和测试, 构建并保存发布包]
+          explain: 每步都为后一步准备输入。安装或测试失败时，要先处理当步的结果。
+      - item:
+          id: failing-build
+          type: choice
+          prompt: 本地原先能跑，服务器在干净安装时报告两个依赖文件不一致。优先检查哪项？
+          options: [{text: 是否改过依赖声明却没有一起提交更新后的锁文件, correct: true}, {text: 给发布步骤增加等待时间, why: 失败发生在安装，延后发布不会补齐依赖信息。}]
+          explain: 从第一个失败的步骤找输入差异。
+boss:
+  items:
+    - id: shared-bug
+      type: choice
+      prompt: 错误提交已推到共享 main，另外两人已在它后面继续工作。怎样纠正原错误并保留他们依赖的历史？
+      options: [{text: 追加 git revert 生成的反向提交, correct: true}, {text: git reset --hard 后强制推送, why: 这会让共享分支跳离原有历史。}, {text: git commit --amend 改一遍历史说明, why: 改说明无法撤销错误代码，也会改提交标识。}]
+      explain: 追加反向提交可以在大家已有的历史上继续前进。
+    - id: merge-conflict
+      type: order
+      prompt: Git 在合并时标出价目表的冲突，团队已确认应保留的价格。按顺序完成操作。
+      steps: [查看冲突标记, 写入确认的价格并去掉标记, 暂存已修复的价目表, 提交合并结果]
+      explain: 暂存的是修复后的文件，Git 才能用它完成合并。
+    - id: debugger-check
+      type: choice
+      prompt: i 从 0 开始。5 项数据只加到了下标 3，怀疑循环检查写错。怎样查第 5 项为何没被处理？
+      options: [{text: 把无条件断点放到循环后的打印行, why: 到达这里时已错过决定是否继续的现场。}, {text: 在边界检查行设 i == 4 时才停的断点, correct: true}, {text: 把断点只放在第 5 项的加法动作, why: 出错时程序可能根本走不到该动作。}]
+      explain: 最后一项的下标是 4。停在判断前，就能看到输入长度和 i，并核对比较结果。
+    - id: rebuild
+      type: choice
+      prompt: app 由 main.o 和 util.o 链接。两个 .o 原本已更新，只有 main.c 改了，公共头文件没变。Make 接下来应重建哪些？
+      options: [{text: 只重建 util.o, why: util.o 的输入没变。}, {text: 重建 main.o 和 app, correct: true}, {text: 只重建 app，仍用旧 main.o, why: 这样最终程序没有用上 main.c 的变化。}]
+      explain: 变化沿依赖从 main.c 传到 main.o，再传到 app。
+    - id: package-check
+      type: match
+      prompt: 把 npm 项目中两份文件和一个命令配给它们的职责。
+      pairs: [[package.json, 声明直接依赖允许的范围], [package-lock.json, 记录精确解析的依赖树], [npm ci, 按一致的锁文件干净安装]]
+      explain: 声明和锁定回答不同问题。干净安装可以检查提交是否带齐这两种信息。
+    - id: automation-check
+      type: order
+      prompt: 在干净的自动化环境里，只发布检查成功的提交。给步骤排序。
+      steps: [取确定的提交, 装入锁定的依赖, 运行并核对检查结果, 打包通过检查的提交]
+      explain: 检查结果对应确定的输入，后续产物也来自同一份输入。

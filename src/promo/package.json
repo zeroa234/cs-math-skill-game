@@ -1,0 +1,23 @@
+{
+  "name": "cs-math-skill-game-promo",
+  "private": true,
+  "description": "《计算机大学习！》宣传片第二版：纯音乐 PV 和广告向两部（见 docs/promo-video-v2.md）",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.533",
+    "@remotion/fonts": "4.0.533",
+    "@remotion/layout-utils": "4.0.533",
+    "@remotion/media-utils": "4.0.533",
+    "@remotion/transitions": "4.0.533",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "remotion": "4.0.533"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.12",
+    "typescript": "5.9.2"
+  }
+}

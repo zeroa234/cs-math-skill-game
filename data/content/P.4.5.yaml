@@ -1,0 +1,768 @@
+skill: P.4.5
+version: 2
+brief:
+  why: 程序能跑通一次，并不能告诉你它在边界、组件连接处和故障下会怎样。你会设计能抓住具体错误的测试，读覆盖报告，再用可用性数据评估服务。
+  outcomes:
+    - 按测试目的选择层次、输入和判定标准
+    - 写参数化和性质测试，区分覆盖率与实际检查能力
+    - 安排可控的故障实验，并计算长期可用性和停机预算
+terms:
+  - {term: 测试用例, def: 一次可复查的检查，包含输入和条件、执行动作与预期结果。}
+  - {term: 缺陷, def: 代码、配置或设计中可能导致系统出错的原因。}
+  - {term: 失效, def: 系统运行时表现偏离了应有的行为。}
+  - {term: 回归测试, def: 在修改后重跑检查，确认已有行为没有被破坏。}
+  - {term: 单元测试, def: 主要检查函数或其他小范围行为的测试。}
+  - {term: 集成测试, def: 检查多个真实或近真的部分连接后能否协作。}
+  - {term: 系统测试, def: 对组装完整的系统检查整体功能或质量要求。}
+  - {term: 验收测试, def: 根据使用者或业务方约定的标准判断系统是否可接受。}
+  - {term: 等价类, def: 根据规格划出一批应表现相似的输入，用代表值测试它们。}
+  - {term: 边界值, def: 处在输入规则刚好改变的位置，或紧邻这个位置的值。}
+  - {term: 参数化测试, def: 用同一套检查步骤运行多组分别列出的输入和预期。}
+  - {term: 测试替身, def: 在测试中临时代替真实依赖的对象或函数。}
+  - {term: 性质测试, def: 用生成的一系列输入检查一个普遍应成立的规则。}
+  - {term: 缩减, def: 发现失败后尝试找到更短或更简单而仍会失败的输入。}
+  - {term: 反例, def: 能推翻某条一般规则或使性质检查失败的具体输入。}
+  - {term: 变异体, def: 故意对程序施加小改动后得到的版本，用来检查测试是否发现这项差异。}
+  - {term: 语句覆盖率, def: 测试执行到的可执行语句占全部可执行语句的比例。}
+  - {term: 分支覆盖率, def: 测试经过的分支结果或控制流边占应检查总数的比例。}
+  - {term: 条件覆盖, def: 检查每个基本条件的真、假两种结果是否都出现。}
+  - {term: MC/DC, def: 要展示每个基本条件能够独立改变整个判定结果的覆盖准则。}
+  - {term: 插桩, def: 为程序插入记录执行情况的探针，供测试工具统计。}
+  - {term: 故障注入, def: 在可控条件下故意制造依赖或运行故障，观察系统响应。}
+  - {term: 可用性, def: 在定义的时间范围里，系统处于可提供所需服务状态的比例。}
+lessons:
+  - id: evidence
+    chapter: 单元/集成/系统测试
+    title: 从一次试运行变成可重复的检查
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 折扣刚改过。你希望下周也能快速确认旧订单的计算规则还成立，最好留下什么？
+          options: [{text: 留下典型输入和正确结果，能一键重新核对, correct: true}, {text: 只记“今天试过，没问题”, why: 同伴无法从这句话知道试了什么或怎样复查。}]
+          explain: 可重复的记录让你知道哪条行为在新版本里变了。
+      - card:
+          title: 记录应该发生什么和实际发生什么
+          body: |
+            对无折扣订单输入 20 元，规格要求返回 20 元。用输入、动作和预期组成**测试用例（test case）**。若代码把未折扣价也乘以折扣因子，这是一处**缺陷（fault）**。具体订单出现错误金额，是运行时的**失效（failure）**。
+      - item:
+          id: fault-or-failure
+          type: match
+          prompt: 把观察配到对应的概念。
+          pairs: [[代码把所有订单都按会员价格算, 缺陷], [普通顾客实际少付了钱, 失效], [记录普通顾客输入与应得价格以便重跑, 测试用例]]
+          explain: 同一缺陷可能只在部分输入下产生可观察的失效。
+      - card:
+          title: 修好之后给它留一个检查
+          body: |
+            先用同一输入复现，找出原因并修好，再留下能在旧版失败、在新版通过的检查。以后重跑称为**回归测试（regression testing）**。Google 的测试经验建议，对别人会依赖的行为也留下测试。自动化能高效复查，但仍需要评审、探索和运行监测。
+      - item:
+          id: regression
+          type: order
+          prompt: 有人报告普通顾客价格算错了。按能防止同一问题再次出现的步骤排序。
+          steps: [用记录下的订单重现错误, 写一条按规格核对金额的检查, 修正原因并确认检查通过, 把检查留给以后每次修改重跑]
+          explain: 在修复前看到失败，能确认检查确实抓住了这次问题。
+  - id: levels
+    chapter: 单元/集成/系统测试
+    title: 按要发现的问题选择测试范围
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 计算价格的代码单独算得对，下单页面仍出错。下一项检查该扩大到哪里？
+          options: [{text: 再重复同一条价格计算，直到页面也变对, why: 局部计算通过不能说明接口协作正确。}, {text: 查计算结果怎样传到下单与存储环节, correct: true}]
+          explain: 先定位怀疑的边界，再决定让哪些部分一起运行。
+      - card:
+          title: 从小函数到完整应用
+          body: |
+            **单元测试（unit test）**查一小段独立行为。**集成测试（integration test）**查多个部分如何接起来。**系统测试（system test）**查完整系统的需求。**验收测试（acceptance test）**按业务方可接受的标准作验证。
+      - item:
+          id: testing-levels
+          type: match
+          prompt: 为下单系统的检查选择最合适的范围。
+          pairs: [[核对计算函数能否处理无折扣订单, 单元测试], [核对订单服务能否用正式数据库接口存单, 集成测试], [从浏览器提交订单并看到确认结果, 系统测试], [按商家签字认可的流程核对可交付条件, 验收测试]]
+          explain: 层次描述检查覆盖的部分或使用的验收标准，回归描述重跑检查的目的。
+      - card:
+          title: 测试范围和执行成本分别考虑
+          body: |
+            范围问“覆盖多少部分”，规模问“需要多少时间、机器与外部资源”。测试金字塔把大量快速检查放在底部，用适量集成测试和较少关键端到端检查补接口风险。大量慢或偶尔失败的测试会拖慢反馈。数量随风险与成本调整。
+      - item:
+          id: cost
+          type: choice
+          prompt: 发现十个价格边界都要验证，同时要确认付款成功能显示订单。怎样分配更有针对性？
+          options: [{text: 价格边界用快速单元测试，购买主流程用少数端到端测试, correct: true}, {text: 十个边界都从浏览器完整付款，取消所有局部测试, why: 小规则可以更快、更易定位地单独查。}]
+          explain: 既保留局部精确反馈，又实际检查重要的端到端连接。
+  - id: test-classes
+    chapter: 单元/集成/系统测试
+    title: 先按规格把输入分成几类
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 检查三角形分类程序时，十组输入都是三条相等的正整数边。这样的测试漏了什么？
+          options: [{text: 十组足以保证覆盖所有分类规则, why: 多组同类输入仍可能走同一条规则。}, {text: 其他类别和非法输入都没有试到, correct: true}]
+          explain: 先看规则有哪些情况，再决定每种情况选哪些值。
+      - card:
+          title: 为每条规格选能代表它的输入
+          body: |
+            **等价类（equivalence partition）**按规格把预期相似的输入放在一起，挑代表值。只读规格和可观察结果的设计称黑盒测试。三条边都是整数时，合法三角形须各边大于零，而且最短两边之和大于最长边。
+      - item:
+          id: triangle-kind
+          type: match
+          prompt: 把三条整数边配到它们代表的合法类别。
+          pairs: [['(3, 3, 3)', 等边], ['(3, 4, 3)', 等腰], ['(3, 4, 5)', 不等边]]
+          explain: 先核对边长都为正且短边和大于最长边，再比较相等的边有几条。
+      - card:
+          title: 同一分类也要考虑输入的位置
+          body: |
+            给下面这份设计逐项写预期。三种等腰顺序用来查程序是否无意中偏爱某个位置。非法情况也有多条独立规则。
+
+            | 边长 | 预期 | 检查点 |
+            |---|---|---|
+            | 3, 3, 3 | 等边 | 三边同长 |
+            | 3, 3, 4 | 等腰 | 前两条相等 |
+            | 3, 4, 3 | 等腰 | 首尾相等 |
+            | 4, 3, 3 | 等腰 | 后两条相等 |
+            | 3, 4, 5 | 不等边 | 三边长度各异 |
+            | 0, 4, 5 | 非法 | 零边 |
+            | −1, 4, 5 | 非法 | 负边 |
+            | 1, 2, 5 | 非法 | 正数边也可能拼不起来 |
+      - item:
+          id: position
+          type: choice
+          prompt: 目前只验证了 (3, 3, 4) 是等腰，想确认程序不漏首尾相等。应补哪个用例？
+          options: [{text: '(3, 4, 3) 应得等腰', correct: true}, {text: '(5, 5, 6) 应得等腰', why: 两组都只检查前两条边相等。}]
+          explain: 调换位置应保持分类，可以抓住只比较第一、第二条边的错误。
+  - id: boundaries
+    chapter: 单元/集成/系统测试
+    title: 在两条规则交界的两侧各试一次
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两条短边长 2 和 3，最长边长 5。把它们首尾接起来，能围成有面积的三角形吗？
+          options: [{text: 能，因为两条短边加起来达到长边, why: 刚好相等时没有剩余长度拱出面积。}, {text: 不能，短边刚好排成一条直线, correct: true}]
+          explain: 相等是规则变化的临界位置，值得单独测试。
+      - card:
+          title: 让相等、刚超过和刚不到都出现
+          body: |
+            **边界值（boundary value）**位于规则刚改变或紧邻的位置。固定短边 2 和 3，最长边取 4、5、6。短边之和都是 5。最长边为 4 时合法，为 5 时退化，为 6 时拼不起来。
+      - item:
+          id: adjacent
+          type: match
+          prompt: 固定短边 2 与 3，把最长边和预期配起来。
+          pairs: [['4', 合法的不等边三角形], ['5', 非法且恰好退化], ['6', 非法且短边合计仍不够]]
+          explain: 三组输入只变最长边，正好覆盖严格大于的两侧和相等点。
+      - card:
+          title: 用只差一处的值抓住比较写反
+          body: |
+            若实现把“短边和严格大于最长边”误写成“大于等于”，远离边界的 (3, 4, 5) 仍会通过。用 (1, 2, 3) 能抓到这个错误，用 (2, 2, 3) 则确认刚满足规则的一侧仍被接受。
+      - item:
+          id: catch-boundary
+          type: choice
+          prompt: 怀疑实现接受了短边之和恰好等于最长边。选最直接的检查。
+          options: [{text: '(1, 2, 3) 应返回非法', correct: true}, {text: '(3, 4, 5) 应返回不等边', why: 这一组短边的和严格大于最长边，两种实现都会接受。}]
+          explain: 边界用例应能区分正确规则与常见的比较错误。
+  - id: unit-python
+    chapter: 单元/集成/系统测试
+    title: 用同一套检查跑多组已知结果
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你有四组不同边长，每一组都要执行同一函数再核对结果。一定要复制四遍测试吗？
+          options: [{text: 只测其中第一组就能证明其他三组, why: 分类可能在某组数据上独立出错。}, {text: 可以列出四组数据，共用检查步骤, correct: true}]
+          explain: 保留每组预期，同时复用准备、执行与核对步骤。
+      - card:
+          title: 安排、执行、核对
+          body: |
+            Arrange 准备数据，Act 执行被测行为，Assert 用**断言（assertion）**核对预期。**参数化测试（parameterized test）**把数据组单列出来，pytest 会分别执行并报告哪组失败。
+      - item:
+          id: aaa
+          type: match
+          prompt: 把一次测试的动作配给对应步骤。
+          pairs: [[列出三条边及期望分类, Arrange], [执行 classify_triangle, Act], [检查分类与期望是否一致, Assert]]
+          explain: 先从规格写下预期，再运行代码，最后比较独立得到的两个值。
+      - card:
+          title: 运行四组独立检查
+          body: |
+            把下列代码存为 test_triangle.py，安装 pytest 后运行 `python -m pytest -q test_triangle.py`。`sorted` 把三边按长度排序。先猜若把 `x + y <= z` 改成 `x + y < z`，哪组会失败，再修改运行一次。
+
+            ```python
+            import pytest
+
+            def classify_triangle(a, b, c):
+                x, y, z = sorted((a, b, c))
+                if x <= 0 or x + y <= z:
+                    return "非法"
+                if x == z:
+                    return "等边"
+                if x == y or y == z:
+                    return "等腰"
+                return "不等边"
+
+            @pytest.mark.parametrize("a,b,c,expected", [
+                (3, 3, 3, "等边"),
+                (3, 4, 3, "等腰"),
+                (3, 4, 5, "不等边"),
+                (1, 2, 3, "非法"),
+            ])
+            def test_classify(a, b, c, expected):
+                result = classify_triangle(a, b, c)
+                assert result == expected
+            ```
+      - item:
+          id: pytest-regression
+          type: choice
+          prompt: 把非法判定从 x + y <= z 改为 x + y < z。四组测试中，哪一组会暴露错误？
+          options: [{text: '(1, 2, 3) 应得非法', correct: true}, {text: '(3, 3, 3) 应得等边', why: 3 + 3 大于 3，两种判定都放行。}]
+          explain: 退化用例恰好使两边相等。改错后它会被当作合法的不等边。
+  - id: maintainable
+    chapter: 单元/集成/系统测试
+    title: 重排内部代码时，已有行为的测试还能通过
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同伴把一个函数的内部工作拆成两步，外部行为完全相同。哪个检查更适合继续沿用？
+          options: [{text: 必须断言每次都只执行原来的内部步骤, why: 内部步骤可调整，用户可见结果仍保持正确。}, {text: 通过公开入口检查结果是否仍符合规格, correct: true}]
+          explain: 核对调用者依赖的行为，测试才能支持安全重构。
+      - card:
+          title: 观察状态与结果，避免锁死实现
+          body: |
+            从公开入口操作，断言输出或完成后的状态。一个入口能有多个独立行为，可分别命名测试。内部执行顺序只有在它本身就是约定时才值得核对。把金额错与库存错分开检查，读失败消息就知道该查哪条规则。
+      - item:
+          id: behavior
+          type: choice
+          prompt: 规则只要求成功下单后能查到订单。哪个断言更能长期保留？
+          options: [{text: 通过订单查询入口查到新记录和正确金额, correct: true}, {text: 内部的某个函数必须正好执行两次, why: 这个次数未被约定，重构时可能无意让测试失败。}]
+          explain: 测试应锁定可依赖行为，同时允许内部结构演进。
+      - card:
+          title: 写出明确的输入、预期和失败原因
+          body: |
+            测试里直接给出预期，避免复制被测的公式再比较它与自己。复用繁琐的准备动作，但保留读题所需的信息。DAMP 提醒测试写清业务含义，即使少量描述重复。失败报告应能看到输入、实际与预期。
+      - item:
+          id: duplicate-bug
+          type: choice
+          prompt: 测试把实现的同一段折扣公式复制一遍作为预期。最大风险是什么？
+          options: [{text: 复制会自动增加独立证据, why: 两份结果可能来自同一个错误规则。}, {text: 两处复制同一错误时仍会比较相等, correct: true}]
+          explain: 把预期从规格或独立已知例子取得，才有比较价值。
+  - id: doubles
+    chapter: 单元/集成/系统测试
+    title: 控制外部依赖何时成功或失败
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 想检查付款超时提示，又不希望测试真的发起扣款。怎样安排付款一侧？
+          options: [{text: 传入一个能按约定返回超时的替代对象, correct: true}, {text: 只能等真的支付服务偶然超时, why: 测试应能稳定重现要检查的情况。}]
+          explain: 给依赖留替换位置，失败就可以受控重现。
+      - card:
+          title: 用不同替代方式控制测试
+          body: |
+            **测试替身（test double）**替代实际依赖。stub 给指定答复，fake 是可运行的简化实现，mock 常用于核对约定的交互。让函数接收依赖，调用者便能在同一个接入点传入真实服务或替身。
+      - item:
+          id: doubles-kind
+          type: match
+          prompt: 给三种设计配上通常的名称。
+          pairs: [[支付接口固定答复超时, stub], [用简单的字典存储模拟正式存储接口, fake], [检查扣款请求是否只发生一次, mock 交互核对]]
+          explain: 替代方式要服务于测试目的，工具的 Mock 类也可以用来提供 stub 行为。
+      - card:
+          title: 用替身查规则，用真实依赖查约定
+          body: |
+            Python 的 `unittest.mock.Mock` 可设置 `return_value`，也可用 `side_effect` 模拟异常。优先核对用户可观察的结果。若规则要求避免二次扣款，交互次数本身才是证据。替身可能与实际系统逐渐不一致，重要协作还需真实集成检查。
+      - item:
+          id: drift
+          type: choice
+          prompt: 模拟支付一直返回成功，真实服务更新了返回字段。哪项更容易发现这类不兼容？
+          options: [{text: 重跑固定返回成功的同一个替身, why: 替身没有反映真实字段的变化。}, {text: 对真实支付测试环境做接口集成检查, correct: true}]
+          explain: 替身能制造可控情况，实际接口的版本变化需要现实的测试环境。
+  - id: integration
+    chapter: 单元/集成/系统测试
+    title: 让连接处真的运行一次
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 服务和数据库各自的测试都通过，但保存订单时金额字段丢了。下一步要一起跑哪些部分？
+          options: [{text: 把订单服务和数据库接起来验证一条真实读写, correct: true}, {text: 只比较前端按钮的位置, why: 数据问题发生在实际读写协作。}]
+          explain: 接口两侧一起运行才能覆盖真实的数据传递。
+      - card:
+          title: 让环境接近所查的真实风险
+          body: |
+            集成测试可把真实服务接到一次性数据库，准备最少的数据，调用公开入口，再用读操作核对保存结果。贴近实际部署的程度叫保真度。更大的测试常增加启动、等待、故障定位和维护成本。
+      - item:
+          id: fidelity
+          type: choice
+          prompt: 怀疑正式数据库在写小数时改变了精度。哪种验证更有针对性？
+          options: [{text: 用只原样返回输入的替身来核对, why: 替身未执行真实数据库的精度规则。}, {text: 用与生产同类的数据库实际写入、读回并核对, correct: true}]
+          explain: 只在真实依赖中发生的行为，需要相应保真度。
+      - card:
+          title: 给每次运行准备自己的数据
+          body: |
+            大测试要明确被测系统、环境、测试数据、触发动作和判定。用固定的可复现数据初始化，完成后清理，避免并发测试相互覆盖。可以先在一个程序里连真实模块，再验证通过网络协作的多个程序。
+      - item:
+          id: run-isolation
+          type: order
+          prompt: 设计一条存订单再读出的集成检查。给步骤排序。
+          steps: [准备独立的测试数据库和已知商品, 从服务入口提交订单, 重新读出并按规格核对数据, 清理本次测试的数据]
+          explain: 用可复现的准备和清理隔开不同运行，结果才容易追查。
+  - id: system-test
+    chapter: 单元/集成/系统测试
+    title: 从用户入口验证完整任务
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用户必须能从手机下单。服务器接口已经通过测试，还要补什么证据？
+          options: [{text: 从手机界面实际走一遍关键购买流程, correct: true}, {text: 只确认服务器能返回正常数据, why: 这不能发现触屏、页面布局和浏览器差异。}]
+          explain: 完整系统的任务包含使用者实际经过的各层。
+      - card:
+          title: 用任务和质量目标选择验证方式
+          body: |
+            功能检查问是否做对，性能测试测响应和资源。负载测试在预期工作量下测表现，压力测试逐步推过预期能力并观察退化。用常见用户流程及其频率安排测试，并在目标浏览器、设备和实际部署配置上复查。
+      - item:
+          id: system-modes
+          type: match
+          prompt: 为目标选择一个主要的系统级检查。
+          pairs: [[确认正常高峰时下单仍足够快, 负载测试], [逐步推过额定流量并观察恢复, 压力测试], [确认真实手机上能填写和提交, 浏览器与设备测试]]
+          explain: 同一套系统可从不同质量角度验证，条件与判断标准要一并记录。
+      - card:
+          title: 用两种方法补自动化的盲区
+          body: |
+            探索测试让人带着问题自由尝试，发现未写进脚本的误操作或易用性问题。差异回归测试让旧版和新版处理同一输入，再核对差异是否符合预期。验收以约定的业务条件为准，部署检查要验证目标环境的实际设置。
+      - item:
+          id: diff-output
+          type: choice
+          prompt: 新版故意改了提示文字，旧版与新版在同一输入下显示不同。差异测试应怎样处理？
+          options: [{text: 只要两版不同就一律判为缺陷, why: 约定的行为变化也会造成差异。}, {text: 对照改动规格核实差异是否预期, correct: true}]
+          explain: 差异提示需要核对的地方，规格才决定它是不是问题。
+  - id: properties
+    chapter: 性质测试
+    title: 检查一条对多组输入都成立的规则
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 排序程序把 [2, 1, 1] 变成 [1, 2]。结果从小到大，已经正确了吗？
+          options: [{text: 还少了一个 1，应检查每个值的数量, correct: true}, {text: 只要从小到大就正确, why: 结果没有保留输入中的重复项。}]
+          explain: 排序既要改变顺序，也要保留原来有哪些值及各有几个。
+      - card:
+          title: 把每次都应该成立的行为写下来
+          body: |
+            **性质测试（property-based testing）**为多组生成的输入核对一条普遍规则。例如排序结果应从小到大，每个值出现的次数应保持不变。随机选择输入可以增加样本多样性，仍需要一条能判错的规则。
+      - item:
+          id: missing-property
+          type: choice
+          prompt: 排序检查只断言输出从小到大。某实现始终返回空列表，最有针对性的补充是什么？
+          options: [{text: 多运行几次同一条顺序检查, why: 空列表没有相邻的逆序对，重复也抓不到丢项。}, {text: 核对输出保留每个输入值及其出现次数, correct: true}]
+          explain: 改善断言所观察的行为，才能识别某类错误。
+      - card:
+          title: 先用规格定范围，再把失败留下来
+          body: |
+            输入生成要符合规格，也应有空列表、重复值等容易漏掉的情况。违反规则的具体输入是**反例（counterexample）**。发现反例后可以**缩减（shrinking）**，尝试找出更容易解释、仍会失败的输入。
+      - item:
+          id: small-counterexample
+          type: choice
+          prompt: 排序实现会删掉重复项。哪组输入更短且仍能说明问题？
+          options: [{text: '[1, 1]', correct: true}, {text: '[2, 1]', why: 没有重复值，删除重复项的错误不会显现。}]
+          explain: 保留触发问题的必要条件，就能让失败更容易理解。
+  - id: hypothesis
+    chapter: 性质测试
+    title: 让 Hypothesis 生成输入并留下反例
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 生成测试第一次找到了删重复项的错误。下次修复时，怎样保证还会查到这个情况？
+          options: [{text: 只希望下一次随机选到相同数据, why: 不同运行的探索顺序可以变化。}, {text: 保存反例并作为明确的回归输入重跑, correct: true}]
+          explain: 把随机探索发现的失败转成可稳定复查的例子。
+      - card:
+          title: 用策略描述输入的形状
+          body: |
+            Hypothesis 的 `given` 将策略生成的数据交给测试函数。`integers()` 生成整数，`lists(...)` 组合成列表。可以用大小限制或组合策略表达合法输入形状。`Counter` 按值计数。先判断下面的错误实现对 `[1, 1]` 会怎样。
+
+            ```python
+            from collections import Counter
+            from hypothesis import example, given, strategies as st
+
+            def order_values(xs):
+                return sorted(set(xs))
+
+            @given(st.lists(st.integers(), max_size=8))
+            @example([1, 1])
+            def test_preserves_counts(xs):
+                assert Counter(order_values(xs)) == Counter(xs)
+            ```
+      - item:
+          id: predicted-failure
+          type: choice
+          prompt: order_values 用 sorted(set(xs))，输入 [1, 1] 时两边计数相等吗？
+          options: [{text: 不等，输出只有一个 1, correct: true}, {text: 相等，set 会保留每次出现, why: 集合对同一个值只保留一份。}]
+          explain: 比较按值计数，能看到排序时丢失了一个重复项。
+      - card:
+          title: 让修复前失败、修复后通过
+          body: |
+            将代码存为 test_counts.py，装好 pytest 和 Hypothesis 后用 `python -m pytest -q test_counts.py` 执行。`example` 固定重跑已知反例。去掉它可观察工具找出并缩减失败的过程。然后把实现改成 `sorted(xs)`，再次运行。
+          reveal:
+            - title: 固定关键回归输入
+              body: 记录失败时给出的具体列表，能让同伴复查同一输入。Hypothesis 也可在本地数据库记住失败示例。
+            - title: 扩大仍需检查的条件
+              body: 次数保持通过后，再单独验证相邻元素从小到大或相等。为需要有关联的输入组合策略，例如用同一列表生成它的一份打乱副本。
+      - item:
+          id: preserve-and-order
+          type: choice
+          prompt: 某实现原封不动返回输入。计数性质都通过。还缺哪条能发现 [2, 1] 没有排序的检查？
+          options: [{text: 再做一次完全相同的计数比较, why: 原样返回始终保留所有计数。}, {text: 结果中每对相邻元素应从小到大或相等, correct: true}]
+          explain: 两条互补的性质分别约束结果的内容与顺序。
+  - id: property-lab
+    chapter: 性质测试
+    title: 用有意做错的程序检验性质
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一条检查在正确版本上总通过。怎样知道它真能发现你关心的错误？
+          options: [{text: 也让它面对一个带有这种错误的版本, correct: true}, {text: 只看同一正确版本连续通过多少次, why: 即使检查永远返回通过，也会得到同样结果。}]
+          explain: 正确版本应过关，有代表性的错误版本应能被识别。
+      - card:
+          title: 用短性质描述一项规则
+          body: |
+            CMU 的练习用 Wordle 和区间合并练习。Wordle 规则之一是猜中整个答案时每个位置都为绿色。合并区间时，结果覆盖的点应与输入一致。只查输出排序，可能漏掉合并时删去范围的错误。
+      - item:
+          id: interval-property
+          type: choice
+          prompt: 合并后的区间排序正确，却漏掉了原来覆盖的一段。哪条性质能发现错误？
+          options: [{text: 第一段仍排在第二段前面, why: 顺序正确并不能防止丢失原来的点。}, {text: 输入与输出所覆盖的点集合相同, correct: true}]
+          explain: 检查合并结果应保住的内容，才能发现覆盖范围缩水。
+      - card:
+          title: 从性质通过走到错误版本被发现
+          body: |
+            **变异体（mutant）**是在程序中故意引入小改动的版本。让同一性质先检查正确版，再查变异体。在 CMU 练习目录准备 Node.js 与依赖后，先运行 `npm run test:wordle` 或 `npm run test:intervals`，再运行相应的 `mutants:wordle` 或 `mutants:intervals` 脚本。
+          reveal:
+            - title: 在 JavaScript 中写出输入与判断
+              body: fast-check 的 `fc.integer()` 和 `fc.array(...)` 生成输入。`fc.property(生成方式, 判定函数)` 把两者组成性质，`fc.assert(...)` 执行并在发现问题时报告反例。
+            - title: 从存活的变异体找漏掉的行为
+              body: 如果有意让 Wordle 永远返回灰色，猜中全部位置的检查应失败。如果这个变异体仍通过，就确认性质是否真的核对了颜色与位置。
+      - item:
+          id: mutant-order
+          type: order
+          prompt: 你刚写好一条区间合并性质，按顺序完成有效性检查。
+          steps: [生成符合区间规格的输入, 确认正确实现能满足性质, 对带有已知错误的实现运行同一性质, 用仍能通过的错误找遗漏条件]
+          explain: 先排除性质冤枉正确版本，再看它能抓住哪类具体错误。
+  - id: line-coverage
+    chapter: 覆盖率
+    title: 看哪些语句跑到过，哪些还没试过
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 测试让程序每一行都运行过，但从未核对结果。能因此确认功能正确吗？
+          options: [{text: 只能确认运行过这些地方，还需对照预期, correct: true}, {text: 每一行执行过就能证明输出符合规格, why: 执行到了错误代码也会被记录。}]
+          explain: 执行记录和结果正确性提供的是两种证据。
+      - card:
+          title: 用已到达的位置除以应检查的位置
+          body: |
+            **语句覆盖率（statement coverage）**是已执行的可执行语句数除以总数。工具可能按代码所在的行或更细的执行单位统计，计数口径要先看清。注释和空行不当成可执行语句。
+          reveal:
+            - title: 明确分母
+              body: 一段示例有 5 条可执行语句，其中测试实际执行了 4 条。
+            - title: 计算并查遗漏
+              body: 4 ÷ 5 = 80%。剩下的语句需要核对可达性，再考虑添加能观察结果的用例。
+      - item:
+          id: ratio
+          type: number
+          prompt: 8 条可执行语句中已有 6 条实际执行。语句覆盖率为百分之多少？输入百分数数值。
+          answer: 75
+          explain: 6 ÷ 8 = 0.75，即 75%。
+      - card:
+          title: 把覆盖报告当成查缺口的起点
+          body: |
+            用 `coverage run --branch -m pytest -q test_triangle.py` 记录运行，再用 `coverage report -m` 看未到达的位置。看到错误处理没运行，可模拟相关输入并核对结果。不可达或故意排除的位置应说明原因。
+      - item:
+          id: what-is-proven
+          type: choice
+          prompt: 一份报告显示错误处理语句已执行。要进一步判断错误处理正确，应查看什么？
+          options: [{text: 同一语句被反复执行了多少次，次数越多必然越对, why: 次数无法说明断言覆盖了什么。}, {text: 有无检查应返回的结果以及不能发生的副作用, correct: true}]
+          explain: 覆盖率显示位置是否到达，规格和断言判断行为是否正确。
+  - id: branches
+    chapter: 覆盖率
+    title: 追踪判定结果和实际被求值的条件
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 门禁只在卡片有效且有预约时打开。一次测试成功开门，拒绝的情况也检查过了吗？
+          options: [{text: 还需让整体判定至少一次为假, correct: true}, {text: 开门一次就涵盖了拒绝时的行为, why: 成功路径不会走到拒绝的路径。}]
+          explain: 让每条可能的结果实际出现，才能观察它的后果。
+      - card:
+          title: 先看整个判定，再看里面的各个条件
+          body: |
+            **分支覆盖率（branch coverage）**衡量测试经过的判定结果或控制流边。以下把整条 if 的真、假当两个结果。**条件覆盖（condition coverage）**单独检查每个基本条件实际求值为真和为假。
+      - item:
+          id: decision-result
+          type: choice
+          prompt: 对 if (a > 0 && b > 0)，只有 (1, 1) 执行过。只按整条 if 的真、假计，哪项能补齐分支覆盖？
+          options: [{text: '再运行 (2, 2) 得到真', why: 两次结果都是真，仍没出现假。}, {text: '再运行 (-1, 1) 得到假', correct: true}]
+          explain: 一个真例和一个假例能覆盖这条 if 的两种判定结果。
+      - card:
+          title: 短路时把跳过与假分开记录
+          body: |
+            `&&` 先检查左侧。左侧为假就跳过右侧，直接判假。逻辑表可以给两个条件都写上真值，但实际执行不能把跳过当成一次求值。只给 (1, −1) 与 (−1, 1)，右侧实际只见过假。
+
+            | 输入 | 左侧 | 右侧实际求值 | 判定 |
+            |---|---|---|---|
+            | (1, 1) | 真 | 真 | 真 |
+            | (1, −1) | 真 | 假 | 假 |
+            | (−1, 1) | 假 | 跳过 | 假 |
+      - item:
+          id: skipped-operand
+          type: choice
+          prompt: 当 a = −1、b = 1 时，对 a > 0 && b > 0 记录执行。右侧会被统计为哪种结果？
+          options: [{text: 跳过，没有求值, correct: true}, {text: 真，因为 b 确实大于零, why: 逻辑上能推出真，但实际没有执行右侧。}]
+          explain: 覆盖工具只统计实际运行的证据。
+      - card:
+          title: 分别展示每个条件能够改变结论
+          body: |
+            **MC/DC（modified condition/decision coverage）**要求展示每个基本条件能独立改变判定。用 (1, 1) 对照 (−1, 1) 验证左侧影响，再用 (1, 1) 对照 (1, −1) 验证右侧影响。前一对固定 b 的输入，短路的一次仍不统计右侧求值。
+      - item:
+          id: mcdc-pair
+          type: choice
+          prompt: 对 a > 0 && b > 0，已经记录 (1, 1) 判真。哪组对照能单独展示改变 b 就能改变结论？
+          options: [{text: '(−1, −1)', why: 同时改变 a 和 b，无法归因给右侧条件。}, {text: '(1, −1)', correct: true}]
+          explain: 保持 a 为 1，左侧放行，右侧变化才是判定从真变假的原因。
+  - id: paths
+    chapter: 覆盖率
+    title: 看清报告在数行、路径，还是值的来路
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个入口能把不同的值写到同一个金额位置。只看到最终显示位置执行过，能确认两种来路都测试了吗？
+          options: [{text: 还需要分别查金额是从哪次赋值来的, correct: true}, {text: 运行过显示这一行就涵盖全部来路, why: 同一行可以读到不同来源的值。}]
+          explain: 在同一个位置看到结果，不等于走过每一种到达方式。
+      - card:
+          title: 一条边和一整条路径是不同范围
+          body: |
+            控制流描述执行可走到哪些位置。路径覆盖检查从入口到结束的执行路线，有循环时路径可很多甚至无限。数据流测试关注某次赋值产生的值是否被某处读取。两种设计都能用来补只数语句的缺口。
+      - item:
+          id: coverage-focus
+          type: match
+          prompt: 给三种统计目标选择关注点。
+          pairs: [[是否走过判定的各个去向, 分支覆盖], [是否经过指定的完整执行路线, 路径覆盖], [是否从指定赋值读到了值, 数据流测试]]
+          explain: 路线覆盖执行组合，数据流核对的是值的来源和使用。
+      - card:
+          title: 读覆盖报告前先看工具口径
+          body: |
+            **插桩（instrumentation）**把探针插入程序，记录经过的位置。JaCoCo 在 Java 的中间执行格式（bytecode）里加探针，可按底层操作、分支、代码行、方法和类报告。coverage.py 的分支报告关注代码行之间可能的去向。
+      - item:
+          id: compare-reports
+          type: choice
+          prompt: 同一项目的两种报告分别显示行覆盖和分支覆盖。能直接用百分数高低判断哪套测试更好？
+          options: [{text: 较大的百分数必然覆盖了另一份报告的所有情况, why: 两个比值测量的对象不同。}, {text: 先核对计数单位、分母和所查的行为, correct: true}]
+          explain: 指标回答的对象不同，应一起看未覆盖行为及其风险。
+  - id: mutation
+    chapter: 故障注入与质量评估
+    title: 改错一处，检查测试能否发现
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 测试覆盖到了价格公式。你把其中的减号故意改成加号，测试仍通过。说明应该调查什么？
+          options: [{text: 检查用例是否会让两种公式得到不同结果，以及是否核对了结果, correct: true}, {text: 只增加运行次数，覆盖已经到达公式就足够, why: 覆盖到同一位置仍可能看不出行为改变。}]
+          explain: 让测试面对一种已知差异，可以检查它的判断能力。
+      - card:
+          title: 用小改动衡量测试能发现哪些缺陷
+          body: |
+            变异测试先跑正确版本，再逐一改动比较条件、返回值等。某个改动使测试失败，就说该变异体被杀死。仍通过时，查输入或断言是否遗漏。行为确实等价的变异体应从可计分集合排除。
+      - item:
+          id: survive
+          type: choice
+          prompt: 三角形分类把 ≤ 改成 <，测试仍通过。优先补什么？
+          options: [{text: 只重复一个远离边界的等边输入, why: 两种比较对这个输入产生同样结果。}, {text: 让短边之和刚好等于长边并断言非法, correct: true}]
+          explain: 选能在变异前后产生不同结果的输入，才有机会抓到错误。
+      - card:
+          title: 分母只算约定可比较的变异体
+          body: |
+            变异得分用被发现的变异体数除以有效、非等价的变异体数。若生成 10 个，确认 2 个行为等价，剩下 8 个中抓到 6 个，得分是 6 ÷ 8 = 75%。得分取决于生成了哪些变异。
+      - item:
+          id: mutation-score
+          type: number
+          prompt: 在 10 个可计分变异体中，8 个使测试失败。变异得分是多少？输入百分数数值。
+          answer: 80
+          explain: 抓到 8 个，可计分总共 10 个，比例为 80%。
+  - id: fault-injection
+    chapter: 故障注入与质量评估
+    title: 主动让一项依赖失败，观察服务怎样恢复
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 当远端价格查不到时，应用应显示“暂不可用”。怎样让这条规则在测试时稳定出现？
+          options: [{text: 让受控的替身按要求超时, correct: true}, {text: 重复请求正式服务直到偶然超时, why: 这样无法控制何时失败，也会增加服务负担。}]
+          explain: 在受控条件下制造一次已知超时，就能检查应用的反应。
+      - card:
+          title: 给出一个可复查的超时场景
+          body: |
+            **故障注入（fault injection）**主动制造依赖或运行故障。下面用 Python 标准库的 Mock 模拟超时。`side_effect` 指定它被调用时抛出异常。先猜程序会显示什么，再运行。
+
+            ```python
+            from unittest.mock import Mock
+
+            def show_price(read_price):
+                try:
+                    return f"{read_price()} 元"
+                except TimeoutError:
+                    return "暂不可用"
+
+            slow_service = Mock(side_effect=TimeoutError)
+            print(show_price(slow_service))
+            ```
+      - item:
+          id: fallback
+          type: choice
+          review: false
+          prompt: read_price 抛出 TimeoutError，show_price 按约定处理。上面的代码会显示什么？
+          options: [{text: 0 元, why: 代码没有把读取失败当作价格为零。}, {text: 暂不可用, correct: true}]
+          explain: 故障由替身触发，异常处理分支返回明确的不可用提示。
+      - card:
+          title: 从局部异常扩大到有停止条件的演练
+          body: |
+            混沌工程用可测的稳态描述系统平常表现，提出在某故障下仍可接受的假设。用有代表性的延迟、断连或实例失效检验假设。先在隔离环境、小范围演练，设停止门槛和恢复步骤。
+          reveal:
+            - title: 先量稳定状态并限定范围
+              body: 记录正常用户请求的成功率，保留一组不注入的对照请求，并限定要影响的测试实例。
+            - title: 只引入约定的故障
+              body: 给实验组依赖加延迟，观察两组成功率、恢复情况和停止门槛。必要时撤销实验并复查恢复。
+            - title: 把观察结果用在后续工作
+              body: 若目标未达到，记录用户影响和原因，修复后重新运行。将稳定可控的小场景加入自动检查，运行环境的大演练另设治理。
+      - item:
+          id: experiment-order
+          type: order
+          prompt: 团队要验证一次依赖超时，且不允许实验扩散。排序实验步骤。
+          steps: [选用户侧指标并定义可接受状态, 写出假设并限制范围与停止条件, 在受控组引入故障并与对照比较, 撤销注入并验证恢复和记录改进]
+          explain: 先写判断依据和停止条件，实验才有可比较、可恢复的结果。
+  - id: quality
+    chapter: 故障注入与质量评估
+    title: 分开评价产品质量和测试的充分性
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 测试运行多次都通过，真实用户仍报告失败。优先核对什么？
+          options: [{text: 测试是否代表这类用户任务、环境与故障, correct: true}, {text: 通过次数多，用户遇到的失败可以忽略, why: 通过的只是已定义的测试场景。}]
+          explain: 需要看测试采样是否代表真实工作，以及它是否核对了关键结果。
+      - card:
+          title: 给每个量明确对象和计算口径
+          body: |
+            产品可按需求检查正确性、响应和恢复。缺陷密度是确认缺陷数除以约定规模，例如每千行代码。测试充分性可看需求和代码覆盖、变异体发现率与漏到上线的缺陷。只有计数定义、规模口径和观察条件一致时，才适合比较。
+      - item:
+          id: density
+          type: number
+          prompt: 一份 3000 行的模块已确认 6 个缺陷。按每千行计算，缺陷密度是多少？
+          answer: 2
+          explain: 3000 行等于 3 个千行单位，6 ÷ 3 = 2。
+      - card:
+          title: 把缺陷记录接到复现、修复与复查
+          body: |
+            按使用场景复现失效，定位并移除缺陷，再用回归检查验证。可靠性增长模型可根据测试和修复期间的失效记录估计趋势，依赖工作量、环境和记录规则。若只减少测试强度，少报告几次失效不能证明系统更可靠。
+      - item:
+          id: fewer-faults
+          type: choice
+          prompt: 第二轮失效记录变少，但使用的测试流量也减半。要判断系统是否更可靠，先做什么？
+          options: [{text: 只比较总数，小的一轮一定更可靠, why: 观察机会变少也会降低失效计数。}, {text: 比较相近工作量和环境下的失败情况，并核对测量规则, correct: true}]
+          explain: 按相同条件或合理的归一化口径比较，才更能解释差异。
+  - id: availability
+    chapter: 故障注入与质量评估
+    title: 由运行与修复时长估算可用性
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两套服务发生故障的频率相近，其中一套总能更快恢复。用户可正常使用的时间通常怎样变？
+          options: [{text: 恢复更快的一套通常有更多可用时间, correct: true}, {text: 只要频率接近，两套的可用时间一定相同, why: 故障持续时间也会影响不可用总量。}]
+          explain: 运行和修复分别占时间，两者都会改变可用比例。
+      - card:
+          title: 比较平均运行时间和完整周期
+          body: |
+            **可用性（availability）**关注系统能服务的时间占比。寿命或可靠性试验可记录失效前的运行时长和恢复时长。此处按原题口径，将 MTBF 取为每个周期平均无故障运行时长，MTTR 取为平均修复时长。不同资料的 MTBF 口径要先核对。
+          reveal:
+            - title: 先算一个运行加修复的周期
+              body: 平均运行 500 小时，平均修复 2 小时，合计 502 小时。
+            - title: 用能服务的时间除以总时间
+              body: 500 ÷ 502 ≈ 99.60%。这是按所给平均时间估计的长期比例。
+      - item:
+          id: ratio-availability
+          type: number
+          prompt: 平均无故障运行 198 小时，平均修复 2 小时。按运行时间除以两段时间之和，长期可用性是多少？输入百分数数值。
+          answer: 99
+          explain: 完整周期 200 小时，其中 198 小时能服务，比例为 99%。
+      - card:
+          title: 从年度目标倒推可接受的停机时长
+          body: 目标是 99.99%，统计窗口固定为 365 天。
+          reveal:
+            - title: 计算允许停机比例与窗口总长
+              body: 允许停机 100% − 99.99% = 0.01%。全年有 365 × 24 = 8760 小时。
+            - title: 得到允许停机时长并换算单位
+              body: 8760 × 0.0001 = 0.876 小时，乘 60 得 52.56 分钟，约 52.6 分钟。
+      - item:
+          id: allowed-day
+          type: number
+          prompt: 24 小时窗口的可用性目标为 99.9%，最多允许停机多少分钟？
+          answer: 1.44
+          explain: 窗口 24 × 60 = 1440 分钟，乘允许停机的 0.1%，得到 1.44 分钟。
+boss:
+  items:
+    - id: triangle
+      type: choice
+      prompt: 三角形分类的规格要求短边之和严格大于最长边。哪个用例最适合抓住实现误用了大于等于？
+      options: [{text: '(2, 3, 4) 应返回不等边', why: 5 比 4 大，正确与错误实现都会放行。}, {text: '(2, 3, 5) 应返回非法', correct: true}]
+      explain: 让两边相等，才能让严格与非严格比较得到不同结论。
+    - id: payment
+      type: match
+      prompt: 给付款系统的检查配上最直接的安排。
+      pairs: [[检查计算单笔手续费的函数, 单元测试], [确认真实测试环境的付款结果能正确存入订单, 集成测试], [模拟超时并核对明确的错误提示, 受控替身], [从浏览器走完下单和付款确认, 端到端测试]]
+      explain: 测试范围与依赖真实性要与想验证的风险相匹配。
+    - id: sorting
+      type: choice
+      prompt: 排序实现会删掉重复项，但已断言结果从小到大。补哪条性质才能发现删项？
+      options: [{text: 保持每个值出现的次数, correct: true}, {text: 再断言第一项小于等于末项, why: 删掉重复值的有序结果仍可能满足。}]
+      explain: 顺序和计数是不同的可观察规则。
+    - id: evaluated
+      type: choice
+      prompt: 对短路判定 a > 0 && b > 0，已执行 (1, −1) 和 (−1, 1)。要让右侧实际也求值为真，选哪个输入？
+      options: [{text: '(−1, 2)', why: 左侧为假，会直接跳过右侧。}, {text: '(1, 1)', correct: true}]
+      explain: 左侧先为真，右侧才有机会被求值。
+    - id: statement-rate
+      type: number
+      prompt: 一段代码有 12 条可执行语句，覆盖报告记录其中 9 条运行过。语句覆盖率是多少？输入百分数数值。
+      answer: 75
+      explain: 9 ÷ 12 = 0.75，即 75%。
+    - id: experiment
+      type: order
+      prompt: 要验证服务能否在一次依赖超时下继续响应，按合理的演练顺序排序。
+      steps: [定义用户侧稳态及可接受门槛, 限制范围并记录停止条件, 注入依赖超时并和对照组比较, 撤销注入并确认服务恢复]
+      explain: 用可比较的证据判断影响，并保持随时恢复的路径。
+    - id: availability
+      type: number
+      prompt: 每周期平均运行 99 小时、修复 1 小时。以运行时间占完整周期计算，可用性是多少？输入百分数数值。
+      answer: 99
+      explain: 99 小时除以 100 小时等于 99%。

@@ -1,0 +1,554 @@
+skill: P.4.1
+version: 2
+brief:
+  why: 把协作、交付和风险变成可复查的过程。比较生命周期和敏捷方法，练习用证据调整范围、质量和团队分工。
+  outcomes:
+    - 按风险与反馈选择生命周期及方法
+    - 用 Scrum 概念解释迭代并计算条件性预测
+    - 用分工、评审、集成与度量改进协作
+terms:
+  - term: 软件过程
+    def: 团队为产生和演化软件安排的活动及其关系。
+  - term: 过程剪裁
+    def: 按项目约束调整过程和交付证据。
+  - term: 抽象
+    def: 保留当前问题关心的性质。
+  - term: 封装
+    def: 把内部表示留在明确的外部操作后。
+  - term: 目标–问题–度量
+    def: 从目标推导检查问题，再选择度量。
+  - term: 持续集成
+    def: 频繁把小改动合入共享主干并自动验证。
+  - term: 生命周期
+    def: 软件从构想到退役的整个阶段范围。
+  - term: 迭代
+    def: 反复检查并改进已有工作的过程。
+lessons:
+  - id: lifecycle
+    chapter: 生命周期
+    title: 从需求到运行反馈追踪一项变更
+    minutes: 13
+    flow:
+      - guess:
+          id: lifecycle-guess
+          type: choice
+          prompt: 订单页上线后顾客仍不能修改收货地点。软件工作随发布结束了吗？
+          options:
+            - text: 还需观察、处理缺陷和维护
+              correct: true
+            - text: 发布完成就无需承担后续工作
+              why: 真实使用会暴露新需求和故障。
+          explain: 上线是交付的一步，后续还要运行和维护。
+      - card:
+          title: 把交付活动组织成能交接的过程
+          body: >-
+            **软件过程（software process）**约定谁执行什么活动、需要什么输入、交付什么证据。**生命周期（life
+            cycle）**涵盖从需求、设计、构建和验证到部署、运行、演化与退役，各活动可交错发生。配置、质量保证与管理为这些活动提供支持。
+      - item:
+          id: lifecycle-practice
+          type: order
+          prompt: 一次小变更从问题到反馈，按首次实施的先后排列。
+          steps:
+            - 确认问题和预期结果
+            - 设计、实现并验证变更
+            - 部署可用版本
+            - 观察实际效果并记录后续
+          explain: 反馈可以进入下一次需求与设计。
+      - card:
+          title: 阶段与产物让状态可观察
+          body: 先定交付范围和验收条件，再做设计和验证。上线后用缺陷记录、运行指标和用户反馈发现差距。退役时考虑依赖迁移、数据保留与关闭。阶段划分让风险与责任更容易检查。
+      - item:
+          id: lifecycle-apply
+          type: choice
+          prompt: 上线后发现旧版客户端还依赖要退役的接口。先做什么？
+          options:
+            - text: 立即关闭接口并等待投诉
+              why: 关掉前需要知道仍使用它的调用方。
+            - text: 核对依赖和迁移条件，再安排退役
+              correct: true
+          explain: 退役也有验收和影响检查。
+  - id: models
+    chapter: 生命周期
+    title: 比较阶段式、迭代、增量与风险驱动
+    minutes: 13
+    flow:
+      - guess:
+          id: models-guess
+          type: choice
+          prompt: 总体范围明确，要三期各上线可用模块，应该怎样安排交付？
+          options:
+            - text: 每期只做文档，最后一次交所有功能
+              why: 题设要求每期都能用。
+            - text: 按可用模块分批交付并吸收反馈
+              correct: true
+          explain: 交付节奏要匹配外部约束。
+      - card:
+          title: 阶段式强调产物，迭代与增量强调不同维度
+          body: 阶段式可在关键节点审查需求、设计和验证证据。**迭代（iteration）**反复改进同一能力；增量逐步增加可用范围，二者可以同用。风险驱动做法先解决最不确定的技术或需求，再决定下一轮。
+      - item:
+          id: models-practice
+          type: match
+          prompt: 给三种活动配最贴合的过程特点。
+          pairs:
+            - - 每轮提高已有搜索功能的准确性
+              - 迭代
+            - - 先交查询，再交编辑和批量导出
+              - 增量
+            - - 先用实验确认一种通信方案是否可行
+              - 风险驱动
+          explain: 区分改进已有能力、增加范围和优先排查风险。
+      - card:
+          title: 选择要看验证义务和反馈速度
+          body: 受外部评审且需求相对稳定的固件可采用阶段性证据与可追踪验收，仍可在阶段内试验。探索型应用通常用小增量获得反馈。跨模块分期时先把每期依赖与接口的演进安排好。
+      - item:
+          id: models-apply
+          type: choice
+          prompt: 在目标和评审要求稳定、正式发布前需交可追踪证据的练习场景，先保留什么？
+          options:
+            - text: 可追踪的需求、阶段评审和验证产物
+              correct: true
+            - text: 只保留代码提交日期，不记录验证结果
+              why: 日期不能证明各项要求经过验证。
+          explain: 按约束选择过程要提供的证据。
+  - id: tailoring
+    chapter: 生命周期
+    title: 按风险剪裁流程，再用观察结果修正
+    minutes: 13
+    flow:
+      - guess:
+          id: tailoring-guess
+          type: choice
+          prompt: 一项仅改说明文字，另一项改所有用户的登录。两项工作是否必须走同一验证范围？
+          options:
+            - text: 可共用原则，按影响范围调整验证深度
+              correct: true
+            - text: 必须完全一致，否则流程无法管理
+              why: 差异可以用明确的风险分类管理。
+          explain: 剪裁有依据，交付仍需核对必要条件。
+      - card:
+          title: 先说明谁负责、何时检查、如何批准例外
+          body: >-
+            软件生命周期管理包含计划、角色、资源、监控和改进。**过程剪裁（process
+            tailoring）**按规模、风险、法规和团队能力调整活动及证据。低风险变更可轻量处理；关键边界仍要有复查和回退方案。
+      - item:
+          id: tailoring-practice
+          type: choice
+          prompt: 项目的外部评审要求测试证据。能因团队采用迭代过程而省掉吗？
+          options:
+            - text: 可以，因为迭代只看演示
+              why: 交付方式不能自动取消评审约束。
+            - text: 要保留必要证据，可改成随迭代累积
+              correct: true
+          explain: 把外部要求并入每轮产物。
+      - card:
+          title: 对照小范围试行的效果
+          body: 改变流程前，先记录现况与要解决的问题。试行一段时间，检查交付等待、重做与故障变化。调整过程是要消除瓶颈，若指标改善伴随质量恶化，要回到目标重新看。
+      - item:
+          id: tailoring-apply
+          type: choice
+          prompt: 改成快速评审后合并更快，但线上回滚变多。哪一步合适？
+          options:
+            - text: 仅凭合并变快宣布成功
+              why: 只看速度会漏掉质量代价。
+            - text: 一起分析等待、缺陷和回滚，再调整评审规则
+              correct: true
+          explain: 用多个可观察结果核对剪裁是否达成目标。
+  - id: scrum
+    chapter: 迭代/敏捷
+    title: 用目标、检查和适应组织冲刺
+    minutes: 13
+    flow:
+      - guess:
+          id: scrum-guess
+          type: choice
+          prompt: 团队想让用户定期试用并调整需求。怎样比只开日报会更能得到有用反馈？
+          options:
+            - text: 每轮只汇报活动量，不展示可用结果
+              why: 做了多少活动无法验证产品价值。
+            - text: 每轮有可用增量，并和利益相关者检查结果
+              correct: true
+          explain: 敏捷强调实际结果与反馈。
+      - card:
+          title: 职责、工件与承诺相互配合
+          body: >-
+            Scrum 团队包括产品负责人、Scrum Master 和开发者。产品负责人对产品待办排序与价值负责；Scrum Master 帮助建立有效
+            Scrum；开发者计划并交付增量。产品待办、冲刺待办和增量分别关联产品目标、冲刺目标和完成定义。
+      - item:
+          id: scrum-practice
+          type: match
+          prompt: 给 Scrum 的三个工件配对应承诺。
+          pairs:
+            - - 产品待办列表
+              - 产品目标
+            - - 冲刺待办列表
+              - 冲刺目标
+            - - 增量
+              - 完成定义
+          explain: 工件呈现工作与结果，承诺提供检查的基准。
+      - card:
+          title: 不同事件解决不同反馈问题
+          body: 冲刺是有固定时长的容器。计划明确目标、选工作和做法；Daily Scrum 由开发者检查向冲刺目标的进展；评审与利益相关者检查产品成果和后续变化；回顾改进团队的工作方式。
+      - item:
+          id: scrum-apply
+          type: choice
+          prompt: 客户反馈导出还缺一列，团队也想改进测试环境。主要在哪两处讨论？
+          options:
+            - text: 都只放进 Daily Scrum 交给一位经理决定
+              why: 两类反馈作用和参与者不同。
+            - text: 评审讨论产品变化，回顾讨论团队工作方式
+              correct: true
+          explain: 把问题放进能检查它的事件。
+  - id: forecast
+    chapter: 迭代/敏捷
+    title: 用近期速度估范围，并把假设写清
+    minutes: 13
+    flow:
+      - guess:
+          id: forecast-guess
+          type: choice
+          prompt: 过去三轮完成工作量差异明显。只用最快一轮规划，结果可能怎样？
+          options:
+            - text: 可能高估可交付范围
+              correct: true
+            - text: 一定更准确，因为最快一轮最接近未来
+              why: 单轮可能受特殊条件影响。
+          explain: 历史用于估算，未来仍有波动。
+      - card:
+          title: 先算样本平均，再换算冲刺和周
+          body: >-
+            示例三次两周冲刺各完成 21、18、24 点，平均 21 点。尚余 130 点，130÷21 约 6.19；假定相同条件并按整轮规划，估计 7 轮即 14
+            周。故事点和速度是团队自选辅助，不能跨团队直接比较。
+          reveal:
+            - title: 把样本变为每轮估计
+              body: (21+18+24)÷3=21 点。
+            - title: 将工作量换成时间
+              body: 130÷21 向上取整为 7 轮，每轮两周。
+      - item:
+          id: forecast-practice
+          type: number
+          prompt: 两周一轮，按每轮 21 点估算，130 点按整轮规划需要几周？
+          answer: 14
+          explain: 至少估 7 轮，每轮 2 周。
+      - card:
+          title: 固定日期时，用范围和风险来谈取舍
+          body: 10 周约有 5 个两周冲刺，按 21 点约完成 105 点，与 130 点相差约 25 点。讨论优先范围或调整期限，若改变团队资源，要重看熟悉成本、协作与速度。用完成定义和可用结果评估真实进展。
+      - item:
+          id: forecast-apply
+          type: number
+          prompt: 五轮每轮估 21 点，距离 130 点约差多少点？
+          answer: 25
+          explain: 5×21=105，130−105=25。
+  - id: methods
+    chapter: 迭代/敏捷
+    title: 按想获得的证据选择开发方法
+    minutes: 13
+    flow:
+      - guess:
+          id: methods-guess
+          type: choice
+          prompt: 用户对界面流程描述含糊。先做可以点的简化界面，最直接检验什么？
+          options:
+            - text: 生产系统的峰值负载已经合格
+              why: 小界面原型并未模拟生产负载。
+            - text: 用户能否理解并完成目标流程
+              correct: true
+          explain: 每种方法提供不同证据。
+      - card:
+          title: 用经验方法和原型探索，用形式化方法核对规则
+          body: 启发式方法以经验、分解与评审辅助设计，适用于多种问题。原型用可试样本探明需求或技术；明确是否要抛弃。形式化方法用精确模型及检查或证明验证特定性质，依赖模型和假设。
+      - item:
+          id: methods-practice
+          type: match
+          prompt: 按需要的反馈选择更贴合的方法。
+          pairs:
+            - - 确认店员能否找到取消按钮
+              - 可交互原型
+            - - 检查所有模型状态都不会出现双重授权
+              - 形式化建模和检查
+            - - 用分解和同行评审理清复杂代码
+              - 启发式工程方法
+          explain: 方法应能产出当前最缺的证据。
+      - card:
+          title: 用小批次和可运行结果缩短学习时间
+          body: 敏捷方法常以小步交付、与业务合作、技术质量和适应变化为原则。XP 可用结对、先写测试和持续集成等实践。高风险组件也可在迭代中保留更严格的评审和验证。
+      - item:
+          id: methods-apply
+          type: choice
+          prompt: 迭代团队要确认一次改动是否破坏已承诺的行为。优先补哪种活动？
+          options:
+            - text: 等项目结束时才首次集成
+              why: 反馈来得越晚，越难定位差异。
+            - text: 自动回归验证并查看结果
+              correct: true
+          explain: 迭代配合快速技术反馈才能维持质量。
+  - id: principles
+    chapter: 工程原则
+    title: 把复杂问题分层，并隐藏会变化的实现
+    minutes: 13
+    flow:
+      - guess:
+          id: principles-guess
+          type: choice
+          prompt: 价格算法准备换实现。若所有界面都直接读它的内部表，改动会怎样？
+          options:
+            - text: 会牵连多个依赖内部表示的界面
+              correct: true
+            - text: 只改算法类就一定足够
+              why: 调用方直接依赖其内部结构。
+          explain: 控制边界可缩小变化范围。
+      - card:
+          title: 抽象表述共同性质，封装隐藏实现
+          body: '**抽象（abstraction）**保留当前任务需要的性质；**封装（encapsulation）**把内部状态和实现藏在明确操作后。界面只需问报价，报价模块可以自行选择规则和存储。分解把复杂问题变成有明确责任的小问题。'
+      - item:
+          id: principles-practice
+          type: choice
+          prompt: 若替换报价存储后仍保持原报价接口，哪一组代码最应该保持稳定？
+          options:
+            - text: 报价模块内部所有数据表示
+              why: 内部表示正是准备替换的部分。
+            - text: 依赖报价契约的界面调用方
+              correct: true
+          explain: 接口对外稳定，内部可以按需求演进。
+      - card:
+          title: 不同层次只讨论该层责任
+          body: 业务层表达订单规则，适配层翻译外部输入，存储层保存数据。层次也能表达系统、模块和类的细化关系。逐步求精先确定边界，再选细节。质量活动随过程做，不能只在末尾检查。
+      - item:
+          id: principles-apply
+          type: choice
+          prompt: 设计评审发现每个模块都自己实现相同库存规则。怎样减小复杂度？
+          options:
+            - text: 继续复制，让每个版本可独立变更
+              why: 同一规则分散会产生不一致。
+            - text: 在职责明确的业务边界集中规则，调用者用共同操作
+              correct: true
+          explain: 复用边界应反映共同变化的责任。
+  - id: assessment
+    chapter: 工程原则
+    title: 从改进目标推到能解释的度量
+    minutes: 13
+    flow:
+      - guess:
+          id: assessment-guess
+          type: choice
+          prompt: 团队打算用提交次数判断交付质量。这个指标能直接证明缺陷少吗？
+          options:
+            - text: 能，提交多等于质量高
+              why: 提交方式可变，质量要看实际影响。
+            - text: 不能，次数和缺陷结果之间还缺证据
+              correct: true
+          explain: 先问想改善什么，再挑量法。
+      - card:
+          title: GQM 从目标、问题到度量
+          body: '**目标–问题–度量（Goal–Question–Metric）**先定目标，再列需要回答的问题，最后选数据。想减少集成等待，可问合并请求到合入通常等多久、因何阻塞。记录耗时分布、阻塞分类和改前基线。'
+      - item:
+          id: assessment-practice
+          type: order
+          prompt: 按 GQM 设计一次减少集成等待的评估。
+          steps:
+            - 写出减少集成等待的目标
+            - 确定要回答等待有多久、为何发生
+            - 选择耗时与阻塞原因的度量
+            - 试行并和基线比较
+          explain: 先保证问题与目标相连，再收集可解释的数据。
+      - card:
+          title: 过程框架可提供检查表，改进应经验证
+          body: 可用过程能力框架检查计划、管理和质量活动是否可重复，也可在敏捷回顾中用具体问题做小试验。记录上下文、度量定义和趋势。若把指标作为个人排名，可能驱使成员优化数字而不是工作结果。
+      - item:
+          id: assessment-apply
+          type: choice
+          prompt: 合并平均更快但线上故障增加，怎样调整评估？
+          options:
+            - text: 保留等待指标，并同时看缺陷、回滚及场景变化
+              correct: true
+            - text: 把故障从统计中删除，只发布好看的速度
+              why: 隐藏代价会使决策失真。
+          explain: 度量服务于风险和改进目标。
+  - id: teams
+    chapter: 协作与方法选择
+    title: 用明确的交接减少协调负担
+    minutes: 13
+    flow:
+      - guess:
+          id: teams-guess
+          type: choice
+          prompt: 四人两两都可能直接沟通。再加入四人，可能的沟通对会只增加一倍吗？
+          options:
+            - text: 会增加超过一倍，因为每对成员都是一条潜在线路
+              correct: true
+            - text: 一定翻倍，因为人数只翻倍
+              why: 每个新人可能同时和许多人沟通。
+          explain: 先区分可能的连接数和实际沟通时间。
+      - card:
+          title: 完全互连只估可能的配对数
+          body: n 人有 n(n−1)/2 个无方向配对，除以 2 是为了不把甲乙和乙甲算两次。4 人是 6 对，8 人是 28 对。这是模型中的可能路径数，实际协调随分工、共享记录和任务依赖改变。
+      - item:
+          id: teams-practice
+          type: number
+          prompt: 八个人全部两两可能沟通，共有多少个无方向配对？
+          answer: 28
+          explain: 每人能与另外七人配对，8×7 再除以 2。
+      - card:
+          title: 用组织结构和共同记录减轻认知负担
+          body: 新人需要学习代码和领域，团队要留出配对、交接与答疑成本。模块责任、团队规范和可查的决策记录减少反复询问；跨组明确接口。晚期加入人员可能帮助独立任务，也可能增加关键路径压力。
+      - item:
+          id: teams-apply
+          type: choice
+          prompt: 工期紧张时有一批能独立验收的任务，也有大量相互依赖的核心改动。若增加成员，先如何判断？
+          options:
+            - text: 按人数翻倍直接把工期减半
+              why: 交接和任务依赖可能是瓶颈。
+            - text: 看可独立分工、培训和交接对时间的影响
+              correct: true
+          explain: 人员变化要放回项目结构评估。
+  - id: feedback
+    chapter: 协作与方法选择
+    title: 把不确定性转成可验证的反馈
+    minutes: 13
+    flow:
+      - guess:
+          id: feedback-guess
+          type: choice
+          prompt: 开发说导出完成，财务试用时说格式不合用。怎样尽早发现差距？
+          options:
+            - text: 只统计开发写了多少行代码
+              why: 代码量不说明是否满足真实使用。
+            - text: 给财务早期可运行样本并记录验收条件
+              correct: true
+          explain: 找能实际使用或受影响的人检验理解。
+      - card:
+          title: 用利益相关者和风险假设界定反馈
+          body: 利益相关者包括用户、运维、产品、受影响团队和审查方。需求模糊时写明假设并用小演示验证。复杂问题可拆成可验证的切片；生产力看有价值的成果和流动，质量看适合使用、缺陷与运行风险。
+      - item:
+          id: feedback-practice
+          type: choice
+          prompt: 怎样更早确认「导出可以对账」？
+          options:
+            - text: 请财务用一份示例实际对账，并记录通过条件
+              correct: true
+            - text: 让开发团队内部只检查按钮可以点击
+              why: 按钮响应不能证明对账成功。
+          explain: 让反馈触及真实业务任务。
+      - card:
+          title: 评审、集成和演示各防一种常见偏差
+          body: >-
+            评审帮助发现缺陷并传递设计知识。**持续集成（continuous
+            integration）**要求频繁合并小改动并自动构建与验证，减少迟到的冲突。迭代演示让使用方检查方向；它不能替代自动或人工质量验证。
+      - item:
+          id: feedback-apply
+          type: match
+          prompt: 给三项实践配最直接降低的风险。
+          pairs:
+            - - 合并前同行评审
+              - 缺陷或设计误解进入主干
+            - - 频繁合入并自动验证
+              - 集成问题晚发现
+            - - 演示可运行的增量
+              - 产品偏离使用者真实需求
+          explain: 三种反馈分别来自团队、代码集成和使用者。
+  - id: collaboration
+    chapter: 协作与方法选择
+    title: 把一次变更变成可讨论、可接手的工作
+    minutes: 13
+    flow:
+      - guess:
+          id: collaboration-guess
+          type: choice
+          prompt: 两个同事并行改订单入口。怎样减少冲突和重复做工？
+          options:
+            - text: 先共享需求和分工，保持变更小且常同步
+              correct: true
+            - text: 各自改到最后，再首次查看彼此代码
+              why: 冲突、重复和接口不一致会累积。
+          explain: 协作需要可追踪的共同状态。
+      - card:
+          title: 用任务、分支、评审组织共同变更
+          body: 先确认 issue 中的问题和范围，再在可写分支实现。没有原仓库写权限时可从 fork 开始。提交附清楚说明，发合并请求，同行评审和自动检查后修正，再按项目规则合并。保留关键决定和验收方法。
+      - item:
+          id: collaboration-practice
+          type: order
+          prompt: 给开源项目修一个已确认的问题。按常见协作顺序排列。
+          steps:
+            - 确认问题与预期结果
+            - 在分支实现并自查
+            - 发合并请求说明改动和验证
+            - 回应评审并由维护者按规则合并
+          explain: 把讨论和验证结果留在可复查的入口。
+      - card:
+          title: 把沟通方式与问题性质匹配
+          body: 难以表达的问题可同步讨论，并把结论写回任务。跨时区优先留下能独立理解的异步记录。结对帮助分享知识；评审关注证据和行为。复杂冲突可共同复现，再把责任与后续清楚写下。
+      - item:
+          id: collaboration-apply
+          type: choice
+          prompt: 评审中出现一句「实现不好」，最有帮助的跟进是什么？
+          options:
+            - text: 补出复现情境、受影响的行为和具体改法
+              correct: true
+            - text: 要求作者按个人偏好全盘重写
+              why: 没有证据的评价不利于定位和选择。
+          explain: 描述问题和可以验证的改进。
+boss:
+  items:
+    - id: plan
+      type: choice
+      prompt: 需求稳定、交付前要第三方复查。最应留下什么？
+      options:
+        - text: 每个关键阶段对应的需求与验证证据
+          correct: true
+        - text: 只保留最终版本和日期
+          why: 日期无法说明满足哪些要求。
+      explain: 根据风险保留可追踪产物。
+    - id: increment
+      type: choice
+      prompt: 每期都交一批能使用的模块，主要体现哪种交付？
+      options:
+        - text: 只有最后阶段一次性发布
+          why: 功能分批可用。
+        - text: 增量交付
+          correct: true
+      explain: 增量强调扩大可用范围。
+    - id: scrum
+      type: choice
+      prompt: 哪个 Scrum 事件主要检查团队工作方式并讨论改进？
+      options:
+        - text: 冲刺回顾
+          correct: true
+        - text: 冲刺评审
+          why: 评审检查产品成果与环境变化。
+      explain: 区分产品反馈和工作方式反馈。
+    - id: estimate
+      type: number
+      prompt: 假定两周冲刺平均完成 20 点，剩余 81 点，向上取整需要几个冲刺？
+      answer: 5
+      explain: 4 轮约 80 点，估计要 5 轮。
+    - id: gqm
+      type: choice
+      prompt: GQM 希望减少评审等待，先写清什么？
+      options:
+        - text: 改进目标及用于判断的具体问题
+          correct: true
+        - text: 先选容易取出的个人提交数量
+          why: 提交次数不能直接衡量等待。
+      explain: 目标决定哪些问题和度量相关。
+    - id: paths
+      type: number
+      prompt: 五个人每两人都可能直接联系，可能的无方向配对数是多少？
+      answer: 10
+      explain: 5×4÷2=10。
+    - id: feedback
+      type: choice
+      prompt: 想及早发现需求理解偏差，哪项更直接？
+      options:
+        - text: 给用户演示可用增量并验证验收情境
+          correct: true
+        - text: 只记录本轮提交个数
+          why: 提交数无法证明软件满足需求。
+      explain: 让受影响的人看到可用结果。
+    - id: process
+      type: choice
+      prompt: 合并前运行自动化检查，并频繁合入小改动，主要解决什么风险？
+      options:
+        - text: 所有产品需求已经自动验证
+          why: 技术检查覆盖的是定义过的行为。
+        - text: 集成失败集中在最后才发现
+          correct: true
+      explain: 及时暴露集成问题。

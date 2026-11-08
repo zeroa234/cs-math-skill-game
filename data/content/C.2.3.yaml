@@ -1,0 +1,574 @@
+skill: C.2.3
+version: 2
+brief:
+  why: 同一台机器可以运行多个互相隔开的应用。你会观察容器里的进程编号，算出 CPU 和内存限额，再决定一个带资源要求的应用应该放到哪台机器。
+  outcomes:
+    - 比较虚拟机、容器和 Linux 隔离机制
+    - 计算 CPU 配额并区分内存回收、杀进程和节流
+    - 阅读 Dockerfile 和 Kubernetes 的资源、放置与镜像设置
+terms:
+  - {term: 宿主, def: 提供实际计算资源和运行环境的一方。}
+  - {term: 客体, def: 在虚拟机内部运行并使用虚拟硬件的操作系统。}
+  - {term: 虚拟机, def: 一套由管理程序提供的虚拟硬件环境，能运行自己的客体系统。}
+  - {term: 容器, def: 在共享内核上以受限视图和资源运行的一组进程。}
+  - {term: 视图, def: 从某个位置能观察到的资源及其名字。}
+  - {term: 进程间通信, def: 不同进程交换信息的方式，例如共享一段内存或发送消息。}
+  - {term: 命名空间, def: 使一组进程看到特定系统资源视图的内核机制。}
+  - {term: 镜像, def: 用于创建容器的文件层及启动配置。}
+  - {term: 控制组, def: Linux 将进程组织成层次结构并分配与统计资源的机制。}
+  - {term: 节流, def: 配额用完时暂缓继续使用资源，等配额恢复再运行。}
+  - {term: Pod, def: Kubernetes 中共同放到一个节点运行的一组容器及其共享环境。}
+  - {term: 资源请求, def: Kubernetes 调度时用来计算一个工作负载需要占多少节点容量的量。}
+  - {term: 资源限制, def: 工作负载运行时使用资源的上限设置，执行方式因资源而异。}
+  - {term: 镜像仓库, def: 提供镜像上传和下载的服务。}
+  - {term: 摘要, def: 由内容计算出的标识，用于固定和校验某一份镜像内容。}
+  - {term: 驱逐, def: 将正在运行的 Pod 从节点上移除，使资源或维护操作得以继续。}
+lessons:
+  - id: machines
+    chapter: 虚拟机
+    title: 一台电脑怎样运行另一套操作系统
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你要在笔记本上试一套不同的操作系统，又想保留当前工作。新系统需要看到怎样的环境？
+          options: [{text: 一套它能按普通电脑方式启动的硬件环境, correct: true}, {text: 只把它的文件夹改个名字, why: 改名字无法提供它要操作的硬件接口。}]
+          explain: 可以提供虚拟硬件，让新的系统在其中正常启动。
+      - card:
+          title: 把真实机器提供成一套虚拟硬件
+          body: |
+            **宿主（host）**提供实际资源。虚拟机管理程序（hypervisor 或 VMM）提供虚拟 CPU、内存、磁盘和设备。**虚拟机（virtual machine）**里可运行一套**客体（guest）**操作系统，并从自己的启动盘启动。
+      - item:
+          id: layers
+          type: match
+          prompt: 将虚拟机的三个角色与职责配对。
+          pairs: [[宿主, 提供实际资源], [虚拟机管理程序, 提供和控制虚拟硬件], [客体, 使用虚拟硬件运行操作系统]]
+          explain: 客体看到虚拟设备，管理程序负责处理它与真实资源的关系。
+      - card:
+          title: 管理程序可以处在不同层次
+          body: |
+            Type 1 管理程序直接在硬件层控制虚拟机，Type 2 通常作为宿主系统上的程序运行。**容器（container）**让多组进程共享宿主内核，并限制它们能使用的资源。它们看到的资源和名字叫**视图（view）**。容器通常省去独立系统启动，大小和速度还取决于应用和配置。
+      - item:
+          id: guest-kernel
+          type: choice
+          prompt: 两个实验要求各自运行不同的操作系统内核。优先选哪项？
+          options: [{text: 只在同一个 Linux 内核上运行普通容器, why: 普通容器共享宿主内核。}, {text: 分别使用可启动各自客体系统的虚拟机, correct: true}]
+          explain: 每个虚拟机可有自己的客体内核，也因此通常多一层隔离与运行开销。
+  - id: traps
+    chapter: 虚拟机
+    title: 客体做敏感操作时，由谁接手
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 客体系统说要关掉自己的电脑。怎样避免它把真实宿主也关掉？
+          options: [{text: 让管理程序接住这个操作，只更新那台虚拟机, correct: true}, {text: 每个客体都可直接控制真实电源, why: 那会让一个客体影响其他工作。}]
+          explain: 给客体提供它预期看到的结果，同时保住宿主控制权。
+      - card:
+          title: 常规操作可以快，敏感操作要受控
+          body: |
+            经典虚拟机希望客体行为和独占硬件近似，宿主资源始终由管理程序控制，多数普通指令直接执行。在经典模型里，若所有敏感指令都属于在低权限下会陷入的特权指令，就可用陷入后模拟的方法实现这些要求。
+      - item:
+          id: sensitive
+          type: choice
+          prompt: 客体运行某条会改变系统资源的指令。经典模型下，若执行时可以可靠陷入，下一步由谁接手？
+          options: [{text: 由管理程序按虚拟硬件状态处理, correct: true}, {text: 让客体直接改变所有机器的共同状态, why: 宿主资源的控制权应留在管理程序。}]
+          explain: 陷入是将控制权交给更高权限的一方，再模拟客体该看到的结果。
+      - card:
+          title: 软件翻译和硬件支持各补上什么
+          body: |
+            旧 x86 中有些敏感指令在低权限下并不陷入，可动态改写相关代码，或让改过的客体主动请求管理程序。Intel VT-x 与 AMD-V 增加客体运行模式，管理程序可配置何时因敏感操作退出客体。普通工作仍能直接在硬件上跑。
+      - item:
+          id: trap-gap
+          type: choice
+          prompt: 某条敏感指令在旧硬件上不产生陷入。只靠陷入后模拟，会遇到什么问题？
+          options: [{text: 管理程序可能根本接不到这次操作, correct: true}, {text: 它会自动被管理程序记录两次, why: 缺少陷入就缺少这次接手的机会。}]
+          explain: 软件翻译、改动客体或硬件辅助可以另建可靠的接手方式。
+      - card:
+          title: 地址需要转换两次
+          body: |
+            客体先把自己的虚拟地址换成客体物理地址，宿主还需找到实际的物理地址。EPT 和 NPT 让硬件执行第二级地址转换，减少维护软件影子页表和因页表操作频繁退出客体的开销。
+      - item:
+          id: translation
+          type: order
+          prompt: 在带二级地址翻译的虚拟机中，按访问经过的顺序排列地址。
+          steps: [客体虚拟地址, 客体物理地址, 宿主物理地址]
+          explain: 第一次转换服务于客体自己的进程，第二次映射由管理程序控制。
+  - id: isolation
+    chapter: 容器隔离
+    title: 同一个内核给两组进程不同的视图
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同一台机器上有两个隔开的环境，各自的程序能看到自己是第一个进程吗？
+          options: [{text: 可以，只要它们各看各的进程编号, correct: true}, {text: 每个程序只能有一个对所有人相同的编号, why: Linux 可以给同一进程在不同视图中分配不同编号。}]
+          explain: 同一进程可以在内部和外部用不同编号观察。
+      - card:
+          title: 为要隔开的资源选命名空间
+          body: |
+            **命名空间（namespace）**控制进程看见的系统资源。PID 隔开进程编号，NET 隔开网卡与路由，MNT 隔开挂载，UTS 隔开主机名。**进程间通信（interprocess communication）**让进程交换信息，IPC 命名空间隔开其中一些资源。USER 映射用户和组编号。
+      - item:
+          id: different-views
+          type: match
+          prompt: 根据要隔开的内容选 Linux 命名空间。
+          pairs: [[容器里的主机名, UTS], [独立的网卡和路由, NET], [进程编号, PID], [某些共享通信资源, IPC], [可见的挂载点, MNT], [用户编号映射, USER]]
+          explain: 每种命名空间隔开一种视图，可以按需组合。
+      - card:
+          title: 在允许非特权用户命名空间的 Linux 中观察
+          body: |
+            用 unshare 让命令进入新环境。这里建立 USER 和 PID 命名空间，先启动一个子进程，配一份与新 PID 视图一致的 /proc。内部的 shell 看见自己编号为 1，外部仍可用宿主的编号看到它。
+
+            ```sh
+            unshare --user --map-root-user --pid --fork --mount-proc sh -c 'echo $$; ps -eo pid,comm'
+            ```
+      - item:
+          id: proc-view
+          type: choice
+          prompt: 一个新 PID 命名空间里的 shell 显示 PID 为 1。宿主看到它时也一定编号为 1 吗？
+          options: [{text: 宿主按自己的 PID 视图显示另一个编号, correct: true}, {text: 两个视图必须共用 1, why: 编号相对所在的 PID 命名空间。}]
+          explain: 两种编号是同一个运行实体在两个层次的标识。
+      - card:
+          title: 给程序限制能做的操作
+          body: |
+            Linux capabilities 可拆分高权限能力，seccomp 可限制允许发起的系统调用。容器运行时把配置落实到内核隔离机制，例如 OCI 运行时 runc。共享内核的容器边界仍依赖内核安全，高隔离需求可选虚拟机或基于轻量虚拟机的容器运行时。
+      - item:
+          id: allowed-actions
+          type: choice
+          prompt: 希望让程序无法发起一类不需要的系统调用。哪项机制最直接？
+          options: [{text: 用 seccomp 制定允许的系统调用规则, correct: true}, {text: 只修改容器的主机名, why: 主机名变化不改变程序可以请求哪些操作。}]
+          explain: 视图和可执行操作分别由不同机制管理。
+  - id: cgroup-view
+    chapter: 容器隔离
+    title: 隔开资源分组的视图，并保留外层限制
+    minutes: 11
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 容器里把自己看到的目录显示为最顶层，是否说明外面的管理规则消失了？
+          options: [{text: 它看到的起点可以变，外层规则仍生效, correct: true}, {text: 显示成最顶层就自动拥有整台机器, why: 视图名称不改变资源控制关系。}]
+          explain: 起点显示和实际资源规则是两回事。
+      - card:
+          title: 对内只显示从自己这里开始的路径
+          body: |
+            **控制组（control group，cgroup）**是 Linux 给进程分组并管理资源的机制。cgroup 命名空间可以把创建时所在的分组显示为视图根。读 `/proc/self/cgroup` 时看到的路径相对这个根，宿主看到的是自己的视图。
+      - item:
+          id: view-root
+          type: choice
+          prompt: 宿主看到进程在 /apps/demo，它自己在新 cgroup 命名空间里看到 /。外部仍能对它限制资源吗？
+          options: [{text: 能，路径显示改变不撤销原控制组的约束, correct: true}, {text: 不能，显示 / 就取消所有父级限制, why: 外层分组仍在。}]
+          explain: 命名空间隐藏外层路径，控制组的实际层次和限制仍存在。
+      - card:
+          title: 切换视图和移动进程是两件事
+          body: |
+            有权限时可用 `setns` 加入另一命名空间。加入 cgroup 命名空间只切换视图。将进程编号写入允许写入的目标 `cgroup.procs` 才能实际移动分组，仍需满足层级和权限要求。
+      - item:
+          id: migration
+          type: match
+          prompt: 配对两个管理动作。
+          pairs: [[改变看到的 cgroup 路径视图, 加入相应命名空间], [改变进程实际所属的资源组, 将进程移入目标 cgroup]]
+          explain: 显示位置和承担的资源约束可以分别管理。
+  - id: groups
+    chapter: 资源控制
+    title: 给一组进程共同分配和计算用量
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个任务都需要计算时间。希望一方空闲时另一方可利用空出的时间，该用固定上限还是竞争时的份额？
+          options: [{text: 竞争时按份额分配，空闲时让有工作的一方使用, correct: true}, {text: 无论有没有竞争都强制每方只用一半, why: 固定上限可能浪费本可用的容量。}]
+          explain: 份额主要在资源有竞争时发挥作用。
+      - card:
+          title: 把子进程放进一棵资源管理树
+          body: |
+            cgroup v2 按层次组织进程，父组约束覆盖子组。内核的资源控制器可统计和控制 CPU、内存等用量。子进程通常继承父进程的分组。容器可能有多个进程，能把它们纳入同一组一起核算。
+      - item:
+          id: group-total
+          type: choice
+          prompt: 容器中一个进程又启动两个工作进程，它们保持在同一控制组。设置的资源上限是每个进程各得一份吗？
+          options: [{text: 组内进程共同消耗这份额度, correct: true}, {text: 每启动一个进程就得到一份新的完整额度, why: 限额由控制组统一核算。}]
+          explain: 组内增长不会自动绕过整个组的约束。
+      - card:
+          title: 按资源特性选择控制方式
+          body: |
+            权重在竞争时按比例影响分配。上限限制最高使用量。保护量在回收资源时照顾已有使用，例如内存保护。分配则给任务指定可用资源集合，例如允许在哪些 CPU 上执行。不同机制可同时设置。
+      - item:
+          id: controls
+          type: match
+          prompt: 给资源需求配合适的控制方式。
+          pairs: [[CPU 忙时希望任务 A 获得更高份额, 权重], [组的资源消耗需要一个明确上界, 上限], [内存紧张时优先保护某组的部分用量, 保护量], [某组只能在指定的 CPU 集合执行, 分配]]
+          explain: 份额、上限、回收保护和资源集合约束解决不同问题。
+  - id: cpu-memory
+    chapter: 资源控制
+    title: 用完 CPU 额度和用完内存会发生什么
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 机器有多个核。容器只获准用相当于两个核的计算时间，能否由不同核在各自空闲时执行？
+          options: [{text: 可以，时间额度本身不指定固定的核, correct: true}, {text: 一定独占物理机器的前两个核, why: 指定在哪些核运行需要另外设置。}]
+          explain: 可用计算时间和能在哪个核上跑是两个约束。
+      - card:
+          title: 从配额和周期换算核当量
+          body: |
+            cgroup v2 的 `cpu.max` 可写成“配额 周期”，单位为微秒。把配额除以周期得到持续使用的核当量。配额用尽后暂缓继续运行，直到下个周期，这叫**节流（throttling）**。
+          reveal:
+            - title: 把时间分成周期
+              body: 在 8 核宿主上，200000 100000 表示每 100 毫秒的周期内，组内所有核合计可用 200 毫秒 CPU 时间。
+            - title: 算出额度，区分绑定
+              body: 200000 ÷ 100000 = 2，相当于持续使用两个核。这一组可以在不同允许的核运行，CPU 时间用超时被节流。
+      - item:
+          id: quota
+          type: number
+          prompt: cpu.max 设为 150000 100000。用配额除以周期，核当量是多少？
+          answer: 1.5
+          explain: 每 100000 微秒获得 150000 微秒的合计 CPU 时间，持续额度为 1.5 核。
+      - card:
+          title: 内存要先回收，仍不足时可能杀进程
+          body: |
+            `memory.high` 可让超过阈值的组受回收压力和节制。`memory.max` 是硬上限，内核会尝试回收；仍无法满足时可能触发该组内的内存不足处理（OOM），终止进程。`memory.min` 和 `memory.low` 提供不同程度的回收保护。
+      - item:
+          id: memory-vs-time
+          type: choice
+          prompt: 8 核、32 GiB 宿主上，某组的 CPU 配额用完，同时另一组超过 4 GiB 内存硬上限且回收失败。两者最可能怎样？
+          options: [{text: CPU 组被节流，内存组可能有进程被终止, correct: true}, {text: 两者都只等下一个 CPU 周期, why: 内存上限没有这样定期恢复的 CPU 配额。}]
+          explain: CPU 调度可延迟继续执行，内存分配则可能因无法回收而失败。
+      - card:
+          title: 在容器命令里表达同类限制
+          body: |
+            `docker run --rm --memory=512m --cpus=1 nginx` 给整个容器设置内存限制和相当于一个核的 CPU 时间。命令需要能运行 Linux 容器的 Docker 环境。设置影响上限，宿主有竞争时仍要与其他工作共享。
+      - item:
+          id: ceiling
+          type: choice
+          prompt: 容器设置了 --cpus=1，宿主也在忙。能否保证容器任何时刻都得到一整个核？
+          options: [{text: 这是上限，实际可用时间仍受调度和竞争影响, correct: true}, {text: 是，容器会取得专属物理核, why: CPU 时间上限不等于物理核保留。}]
+          explain: 上限告诉内核最多给多少，独占与保留需要另外安排。
+  - id: requests
+    chapter: 资源控制
+    title: 分开算调度申请量和运行限制
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 给一个任务分配座位时要为它留出所需的空间。任务运行后可能用更多。应该把“放得下”和“最多用多少”分开吗？
+          options: [{text: 分开写，分别用于选择位置和限制使用, correct: true}, {text: 必须永远只写同一个数, why: 安排位置和运行上限可以有不同口径。}]
+          explain: 提前计划的位置和运行时允许的用量可以分别控制。
+      - card:
+          title: 调度器按申请量安排位置
+          body: |
+            Kubernetes 用一组机器运行容器，每台叫节点。**Pod** 是共同放在一个节点的一组容器。**资源请求（resource request）**用于计算节点是否放得下。**资源限制（resource limit）**影响运行时上限，例如达到 CPU 限制时可能被节流。
+      - item:
+          id: cpu-unit
+          type: choice
+          prompt: 容器申请 500m CPU。两个这样的申请总和是多少 CPU？
+          options: [{text: 1 CPU，因为 1000m 等于 1 CPU, correct: true}, {text: 1000 CPU，因为 m 表示乘以一千, why: Kubernetes 的 CPU 单位 m 表示千分之一。}]
+          explain: 500m 等于 0.5 CPU，两份合为 1 CPU。
+      - card:
+          title: 在声明里写出请求与限制
+          body: |
+            500m CPU 是半个核当量，128Mi 是 128 MiB，Mi 与十进制 M 不同。以下声明一个容器，调度按请求，执行时内存或 CPU 上限各按其机制处理。
+
+            ```yaml
+            apiVersion: v1
+            kind: Pod
+            metadata:
+              name: demo
+            spec:
+              containers:
+                - name: web
+                  image: nginx:alpine
+                  resources:
+                    requests:
+                      cpu: 500m
+                      memory: 128Mi
+                    limits:
+                      cpu: "1"
+                      memory: 256Mi
+            ```
+          reveal:
+            - title: 汇总工作负载需要占用的容量
+              body: 常规并行容器的请求相加，还要考虑初始化阶段与运行时指定的 Pod 开销。支持 Pod 层级资源的版本也可在 Pod 层声明共享预算。
+            - title: 区分节点能否放下和运行时能用多少
+              body: 调度比较节点可分配量与已有申请总量。对示例，放置时按 500m 和 128Mi 计算，运行时 CPU 可到 1 CPU，内存受 256Mi 限制。
+      - item:
+          id: memory-fit
+          type: choice
+          prompt: 忽略初始化与 Pod 开销。有两个常规容器各申请 128Mi，节点只剩 200Mi 可分配的内存申请额度。节点能接下这个 Pod 吗？
+          options: [{text: 不能，申请合计 256Mi, correct: true}, {text: 能，因为单个 128Mi 小于 200Mi, why: 两个容器要放在同一个节点，需要合并申请。}]
+          explain: Pod 的放置不能把两个常规容器拆到两个节点分别计算。
+  - id: controllers
+    chapter: 资源控制
+    title: 用对工具限制磁盘、任务数和可用的核
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个服务持续启动新任务，很快把机器可用的任务编号用光。只限制 CPU 能直接限定任务数量吗？
+          options: [{text: 还需要针对任务数量的限制, correct: true}, {text: 设成半个核就只能启动半个任务, why: 时间额度和任务数量使用不同单位。}]
+          explain: 要根据实际耗尽的资源选限制方式。
+      - card:
+          title: 选与资源相对应的控制器
+          body: |
+            `io.max` 可对指定设备的吞吐或操作次数设限，`pids.max` 限制组内任务数量，达到上限时创建新任务会失败。`cpuset.cpus` 约束允许运行的 CPU 集合，不能用 CPU 时间配额代替。
+      - item:
+          id: controllers
+          type: match
+          prompt: 为以下目标选择 cgroup v2 控制项。
+          pairs: [[限制在指定的 CPU 集合运行, cpuset.cpus], [限制最多有多少任务, pids.max], [限制指定设备的读写速率, io.max]]
+          explain: 有些限制管数量，有些管速率或可选集合。
+      - card:
+          title: 认识 CPU 和普通内存之外的申请
+          body: |
+            Kubernetes 可为本地临时存储计入容器写层和日志，也可声明大页或 GPU 等扩展资源。大页和许多扩展资源按明确的数量分配。节点可限制每个 Pod 的 PID 用量。支持原地调整的环境下，一些 CPU 与内存配置可更新而不用重建 Pod。
+      - item:
+          id: local-space
+          type: choice
+          prompt: Pod 的日志和临时文件占满节点磁盘。优先核对什么？
+          options: [{text: 节点的本地临时存储用量与对应限制, correct: true}, {text: 只检查 Pod 的 GPU 申请, why: GPU 配额不限制文件的本地写入。}]
+          explain: 找到被耗尽的资源再设置对应的监测和限制。
+  - id: images
+    chapter: 调度和镜像运行
+    title: 从镜像启动容器，再给数据找持久的位置
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你复制一份应用安装包给两个人，各自运行后写出的记录会自动回到安装包吗？
+          options: [{text: 运行结果要写到单独的位置, correct: true}, {text: 每次运行都会覆盖原安装包, why: 启动可以从同一只读内容创建各自的写入空间。}]
+          explain: 起始内容和运行过程中产生的数据要分别处理。
+      - card:
+          title: 区分创建时的材料和运行中的实例
+          body: |
+            **镜像（image）**保存创建容器所需的文件层和启动设置。OCI 定义可交换的镜像与运行约定。containerd 等运行时管理镜像和容器，并可用 runc 设置隔离后启动。多个容器可共享只读层，各有自己的可写层。
+      - item:
+          id: two-containers
+          type: choice
+          prompt: 用同一镜像启动 A 和 B。A 只向自己的可写层添加文件，B 会自动出现该文件吗？
+          options: [{text: 不会，两者的可写层分开, correct: true}, {text: 会，因为只读层共享, why: 写入属于 A 的可写层。}]
+          explain: 共享的是创建时的基础内容，实际写入各在各的层。
+      - card:
+          title: 给持久数据和访问端口单独安排
+          body: |
+            容器删掉时，可写层也可能一并删除。要跨容器保留数据，可把数据目录挂载到数据卷。容器内监听某个端口后，可按需要把宿主端口转发过去。Compose 可将多服务、网络和数据卷写在同一份应用配置里。
+      - item:
+          id: keep-state
+          type: choice
+          prompt: 想替换容器而保留之前的上传文件，应先做什么？
+          options: [{text: 把上传目录放在可重新挂载的持久数据卷, correct: true}, {text: 只给新容器取与旧容器相同的名字, why: 名称不会迁移旧容器的可写层。}]
+          explain: 替换运行实例时仍连接同一份持久数据，才能读到旧文件。
+  - id: docker-build
+    chapter: 调度和镜像运行
+    title: 先构建变化少的部分，再复制常改的代码
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 依赖清单一周都没改，应用文件每天改很多次。每次打包都要重装依赖吗？
+          options: [{text: 若安装步骤的输入未变，可能重用之前的结果, correct: true}, {text: 只要任何文件变了就必然重装, why: 构建缓存可以复用符合条件的较早步骤。}]
+          explain: 把变化少的输入和变化多的输入分别交给构建工具。
+      - card:
+          title: 把应用的构建过程写下来
+          body: |
+            Dockerfile 指定基础镜像、工作目录、复制哪些文件、构建时运行的命令和启动方式。此例的 requirements.txt 已列出 Flask，app.py 定义了 Flask 的 app 对象。下面用开发服务作本地演示。
+
+            ```dockerfile
+            FROM python:3.12-slim
+            WORKDIR /app
+            COPY requirements.txt ./
+            RUN python -m pip install --no-cache-dir -r requirements.txt
+            COPY app.py ./
+            EXPOSE 8000
+            CMD ["python", "-m", "flask", "--app", "app", "run", "--host", "0.0.0.0", "--port", "8000"]
+            ```
+          reveal:
+            - title: 区分构建和启动
+              body: '`RUN` 在构建时安装依赖。`CMD` 说明容器默认怎么启动。EXPOSE 记录应用端口，运行时仍要显式发布宿主端口。'
+            - title: 观察哪步发生了变化
+              body: 如果基础镜像、依赖清单和构建设置保持一致，只改 app.py 时，复制代码之前的安装结果通常可以从缓存复用。改 requirements.txt 后则会重新安装。
+      - item:
+          id: why-copy-later
+          type: choice
+          prompt: Dockerfile 先复制 requirements.txt 并安装，再复制 app.py。只改 app.py 的直接好处是什么？
+          options: [{text: 安装依赖步骤的输入没变，有机会重用构建缓存, correct: true}, {text: 应用会自动得到另一份最新版依赖, why: 这里希望沿用相同的依赖安装结果。}]
+          explain: 变化较少的步骤在前，变化频繁的应用代码只使后面的缓存失效。
+      - card:
+          title: 从构建结果启动本机测试
+          body: |
+            在项目目录用 `docker build -t lesson-web .` 构建。用 `docker run --rm -p 127.0.0.1:8080:8000 lesson-web` 启动，把本机 8080 端口接到容器 8000。Buildx 也可为不同处理器平台构建镜像。
+      - item:
+          id: port
+          type: choice
+          prompt: 端口映射为 127.0.0.1:8080:8000。你在宿主浏览器应访问哪个本机端口？
+          options: [{text: '8000', why: 这是容器里监听的端口。}, {text: '8080', correct: true}]
+          explain: 浏览器在宿主侧连 8080，Docker 再将流量交给容器的 8000。
+  - id: registry
+    chapter: 调度和镜像运行
+    title: 按同一个标识取回要运行的镜像
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两台机器都写着“运行最新版”。如果一台昨天下载，一台今天下载，能保证内容相同吗？
+          options: [{text: 要用能固定内容的标识才更可靠, correct: true}, {text: 同叫最新版一定相同, why: 标签可以重新指向新内容。}]
+          explain: 先区分名字和可验证的内容标识。
+      - card:
+          title: 用仓库存取，用摘要固定内容
+          body: |
+            **镜像仓库（registry）**提供镜像上传下载。标签如 `demo:1.2` 可指向某份内容，也可能移动。**摘要（digest）**用内容计算标识，引用形如 `demo@sha256:…`。私有仓库拉取需要授权。
+      - item:
+          id: immutable-image
+          type: choice
+          prompt: 多个节点必须取得同一份镜像内容。版本标签可能被改动时，哪个标识最合适？
+          options: [{text: 已核对的镜像摘要, correct: true}, {text: 每次都取 latest, why: latest 可指向不同内容。}]
+          explain: 摘要固定要获取的内容，便于重现与回退。
+      - card:
+          title: 决定何时检查远端，何时重用本地
+          body: |
+            Kubernetes 的 `imagePullPolicy` 控制拉取。`Always` 每次启动时解析所用镜像，并能复用同一摘要的本地数据。`IfNotPresent` 在本地缺少镜像时拉取，`Never` 只用本地。私有仓库可用 `imagePullSecrets` 提供凭据，节点可清理不用的镜像释放空间。
+      - item:
+          id: offline-pull
+          type: choice
+          prompt: 已把确定镜像预装到一批离线节点，希望它们只从本机取。选哪项？
+          options: [{text: imagePullPolicy 为 Never, correct: true}, {text: imagePullPolicy 为 Always, why: 它通常会联系仓库确认镜像。}]
+          explain: Never 要求节点已有所需镜像，避免运行时向远端拉取。
+  - id: schedule
+    chapter: 调度和镜像运行
+    title: 先过滤放不下的节点，再在候选中比较
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个任务必须要有足够内存，也希望尽量靠近其他任务。怎么选机器？
+          options: [{text: 先排除无法满足必须条件的机器，再比较偏好, correct: true}, {text: 只要一台距离够近，内存不够也先放上去, why: 偏好无法补足硬条件。}]
+          explain: 必须条件先决定候选，偏好用于候选之间。
+      - card:
+          title: 过滤、打分并绑定
+          body: |
+            kube-scheduler 为未放置的 Pod 找节点。过滤检查可分配资源和硬性放置条件，打分比较可行节点，绑定记录最终选择。调度框架可在这些阶段使用插件。集群也可按 Pod 的 `schedulerName` 使用不同调度器。
+      - item:
+          id: stage-order
+          type: order
+          prompt: 给 Kubernetes 的简化节点选择流程排序。
+          steps: [找出还未绑定节点的 Pod, 过滤不符合硬条件的节点, 给可行节点打分, 记录所选节点]
+          explain: 分数用于可行节点之间，不能让被过滤的节点重新入选。
+      - card:
+          title: 先用请求量判断节点还放得下什么
+          body: |
+            一个 Pod 申请 700m CPU 和 256Mi 内存。A 节点还有 600m 和 512Mi 的可分配申请额度，B 有 1000m 和 300Mi，C 有 900m 和 200Mi。
+          reveal:
+            - title: 逐个核对两种资源
+              body: A 的 CPU 少于 700m，C 的内存少于 256Mi。只有 B 的两种申请额度都足够。
+            - title: 只比较留下的候选
+              body: 如果其他硬条件都满足，B 是此例唯一候选。若没有候选，Pod 可以保持等待，直到可用条件变化或其他机制为它腾出容量。
+      - item:
+          id: choose-node
+          type: choice
+          prompt: Pod 申请 600m CPU 和 300Mi。A 可分配 1000m 和 200Mi，B 可分配 800m 和 400Mi，C 可分配 500m 和 600Mi。只看资源，哪个可行？
+          options: [{text: A, why: A 的可分配内存低于 300Mi。}, {text: B, correct: true}, {text: C, why: C 的可分配 CPU 低于 600m。}]
+          explain: B 的 CPU 和内存同时满足要求。
+  - id: placement
+    chapter: 调度和镜像运行
+    title: 把任务放到合适的位置，并减少一起故障的风险
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 服务有多份副本，停电可能影响整个机房。所有副本都放在同一机房合适吗？
+          options: [{text: 可把副本分散到彼此独立的故障范围, correct: true}, {text: 同一机房的风险会因为副本多自动消失, why: 机房级故障能同时影响这些副本。}]
+          explain: 放置还要考虑哪些节点可能一起故障。
+      - card:
+          title: 说清必须在哪，最好在哪
+          body: |
+            `nodeSelector` 按节点标签设置必须条件，节点亲和性可表达更复杂的必须条件和偏好。拓扑分布约束可以让匹配的副本在机房或节点等范围更均匀。先区分必须满足与只影响打分的设置。
+      - item:
+          id: labels
+          type: choice
+          prompt: 任务必须只在标记为 accelerator=true 的节点执行。适合用什么？
+          options: [{text: 用 nodeSelector 等必须匹配标签的规则, correct: true}, {text: 只把 Pod 的显示名称加上 accelerator, why: 显示名称不会限制调度。}]
+          explain: 节点标签需要写进调度约束，调度器才会检查。
+      - card:
+          title: 分开允许进入、要求选中和何时就绪
+          body: |
+            污点给节点设一道门，匹配的容忍可允许 Pod 进入，但其他条件仍要检查。容忍本身也不要求调度器选该节点。调度就绪门（scheduling gate）可以让 Pod 等外部准备完成，再交给调度器。
+      - item:
+          id: mechanisms
+          type: match
+          prompt: 为三种需求选对应的 Kubernetes 机制。
+          pairs: [[允许通过节点的特定污点限制, 容忍], [把副本分开到多个区域, 拓扑分布约束], [依赖尚未准备时先不要调度, 调度就绪门]]
+          explain: 三者分别管节点准入、整体分布与进入调度的时机。
+  - id: eviction
+    chapter: 调度和镜像运行
+    title: 分清腾位置、节点自保和计划维护
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一台机器磁盘快满了，另一台即将计划维护。两次移走任务的触发原因相同吗？
+          options: [{text: 一次来自资源压力，一次来自维护安排, correct: true}, {text: 只要任务被移走，原因一定是新任务优先级更高, why: 压力和维护也可触发移除。}]
+          explain: 看清谁发起动作，才能知道该怎样恢复或预防。
+      - card:
+          title: 识别高优先级任务抢占与节点压力
+          body: |
+            **驱逐（eviction）**会把正在运行的 Pod 从节点移除。高优先级 Pod 放不下时，调度器可通过抢占让部分低优先级 Pod 离开。节点本身内存或磁盘压力过高时，kubelet 也可驱逐 Pod 保护节点。
+      - item:
+          id: reason
+          type: match
+          prompt: 为动作匹配直接原因。
+          pairs: [[尝试给放不下的高优先级 Pod 腾位置, 抢占], [节点检测到本地存储紧张并移除 Pod, 节点压力驱逐], [维护前通过指定接口请求迁移工作负载, API 驱逐]]
+          explain: 三种动作表面相似，发起者、依据和应对办法不同。
+      - card:
+          title: 计划维护时给服务留足健康副本
+          body: |
+            维护时可用 Eviction API 请求移走工作负载。PodDisruptionBudget 可限制经此接口发起的自愿中断，让服务保留所需的可用副本。节点压力驱逐属于另一种机制。移走后由控制器补起的 Pod 仍要重新通过调度。
+      - item:
+          id: managed-eviction
+          type: choice
+          prompt: 要升级节点，希望维护工具按服务仍有多少健康副本决定是否暂缓移除 Pod。应检查哪个设置？
+          options: [{text: 通过 Eviction API 执行，并核对 PodDisruptionBudget, correct: true}, {text: 把镜像拉取策略改成 Always, why: 拉取策略控制镜像获取，不决定维护时可中断多少副本。}]
+          explain: 计划维护用受控驱逐和中断预算约束可用性损失。
+boss:
+  items:
+    - id: machine
+      type: choice
+      prompt: 在同一宿主上，一组工作必须运行 Linux 内核，另一组必须运行不同的操作系统内核。选什么？
+      options: [{text: 给两组各自的客体系统和虚拟硬件, correct: true}, {text: 在同一个内核上只建两个 PID 命名空间, why: PID 视图隔离不会提供另一套内核。}]
+      explain: 虚拟机可启动不同的客体操作系统。
+    - id: nested-address
+      type: order
+      prompt: 为使用 EPT 或 NPT 的虚拟机，按转换次序排出三个地址。
+      steps: [客体虚拟地址, 客体物理地址, 宿主物理地址]
+      explain: 硬件能在客体自己的地址转换之外执行宿主侧映射。
+    - id: limits-and-view
+      type: match
+      prompt: 给 Linux 容器的隔离需求匹配机制。
+      pairs: [[每组只看自己视图里的进程编号, PID 命名空间], [限制一组进程合计可用的 CPU 时间, cgroup CPU 配额], [限制一组进程发起的系统调用种类, seccomp]]
+      explain: 这些机制分别影响所见资源、资源用量和可执行操作。
+    - id: budget
+      type: number
+      prompt: cpu.max 为 250000 100000。假设 CPU 亲和性与机器容量允许，用配额除以周期得到多少核当量？
+      answer: 2.5
+      explain: 250000 除以 100000 得 2.5。额度约束时间，具体能用哪些核由其他设置决定。
+    - id: release
+      type: choice
+      prompt: 依赖清单和基础镜像没变，只修改了程序文件。Dockerfile 应如何安排以保留依赖安装的缓存？
+      options: [{text: 先复制依赖清单并安装，再复制程序文件, correct: true}, {text: 先复制所有程序文件再安装依赖, why: 程序文件每次变化都会先改变依赖安装前的构建输入。}]
+      explain: 变化频率较低的安装步骤可以复用在多次代码更新之间。
+    - id: schedule
+      type: choice
+      prompt: 两个可用节点中，A 最受偏好但内存申请额度不足，B 的资源和硬条件均足够。调度器会把哪个留到打分？
+      options: [{text: A，偏好可以覆盖必需资源, why: 硬条件过滤先于打分。}, {text: B，A 会在过滤阶段被排除, correct: true}]
+      explain: 只有满足资源和放置要求的节点才参与后续打分。

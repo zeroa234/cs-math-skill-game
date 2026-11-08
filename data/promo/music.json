@@ -1,0 +1,105 @@
+{
+  "_doc": "配乐候选和剪辑表（scripts/promo/music.mjs 按 edits 用 ffmpeg 剪成 src/promo/public/build/music/<名>.wav，48 kHz 立体声）。许可证 2026-11-05 在每个页面上核对过，都是 CC0（不要求署名，落版仍写作者）。选曲依据：scripts/promo/music-scan.py 的响度曲线（PV 要有前奏、渐强、高潮；广告垫底要平稳轻快），听不到声音，由用户试听定。 2026-11-05 用户定：PV 用 world，广告用 vibes（看过样片“其他没问题”）。",
+  "tracks": {
+    "world": {
+      "title": "The World Is Ours",
+      "author": "Zane Little Music",
+      "license": "CC0",
+      "page": "https://opengameart.org/content/the-world-is-ours",
+      "file": "temp/promo/music-dl/the_world_is_ours.wav",
+      "for": "pv",
+      "note": "192 s，150 BPM；开头 12 秒安静，24 秒起完整，89–102 秒最响"
+    },
+    "wish": {
+      "title": "A wish to Fulfill",
+      "author": "centurionofwar",
+      "license": "CC0",
+      "page": "https://opengameart.org/content/a-wish-to-fulfill-updated",
+      "file": "temp/promo/music-dl/a_wish_to_fulfill_4panned_0.ogg",
+      "for": "pv",
+      "note": "75 s 快节奏芯片曲，作者自己用在 Steam 预告片里"
+    },
+    "vibes": {
+      "title": "Happy Vibes",
+      "author": "Ruskerdax",
+      "license": "CC0",
+      "page": "https://opengameart.org/node/160228",
+      "file": "temp/promo/music-dl/ruskerdax_-_happy_vibes.mp3",
+      "for": "ad",
+      "note": "45 s 可循环，复古合成器，轻快"
+    },
+    "happybeat": {
+      "title": "Happy Beat",
+      "author": "burabotti",
+      "license": "CC0",
+      "page": "https://opengameart.org/content/happy-beat",
+      "file": "temp/promo/music-dl/happybeat.ogg",
+      "for": "ad",
+      "note": "32 s，鼓 + 长笛"
+    },
+    "clappy": {
+      "title": "Happy Clappy Loop",
+      "author": "OwlishMedia",
+      "license": "CC0",
+      "page": "https://opengameart.org/content/happy-clappy-loop",
+      "file": "../kurumi-fx-rogue/assets/bgm/owlish_happy_clappy.ogg",
+      "for": "ad",
+      "note": "17 s 钢琴拍手循环"
+    },
+    "opinions": {
+      "title": "Opinions",
+      "author": "HoliznaCC0",
+      "license": "CC0",
+      "page": "https://opengameart.org/content/chill-beats-collection",
+      "file": "assets/music/opinions.ogg",
+      "for": "pv",
+      "note": "游戏里的 lo-fi 曲，前 12 秒安静再进鼓，起伏比别的游戏曲大，作较平静的备选"
+    }
+  },
+  "edits": {
+    "pv-a": [
+      {
+        "track": "world",
+        "from": 5.4394,
+        "to": 51.2271,
+        "_why": "开头只留 1 秒（用户 2026-11-05）：从第 4 小节前 1 秒起播，冷开场的点亮落在第 3 小节第 3 拍；第 32 小节（新乐句开头）处骤停，进结业挑战"
+      }
+    ],
+    "pv-b": [
+      {
+        "track": "world",
+        "from": 89.6166,
+        "to": 102.413,
+        "_why": "高潮乐句 89.6–102.4 s（第 56–64 小节，全曲最响的一段），在第 64 小节线上戛然而止"
+      }
+    ],
+    "ad": [
+      {
+        "track": "vibes",
+        "from": 0.46,
+        "to": 44.29,
+        "_why": "第 0 小节强拍起播到第 27 小节强拍"
+      },
+      {
+        "track": "vibes",
+        "from": 0.46,
+        "to": 34.0,
+        "_why": "跳回第 0 小节强拍接着循环（文件首尾有约 50 ms 的 mp3 静音，不能整首直接首尾相接）"
+      }
+    ],
+    "pv-sample": [
+      {
+        "track": "world",
+        "from": 0,
+        "to": 27
+      }
+    ],
+    "ad-sample": [
+      {
+        "track": "vibes",
+        "from": 0,
+        "to": 22
+      }
+    ]
+  }
+}

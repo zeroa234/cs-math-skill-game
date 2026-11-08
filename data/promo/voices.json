@@ -1,0 +1,36 @@
+{
+  "_doc": "两位导师的配音候选（Breeze TTS 2，服务由 projects/os-review-bilingual/scripts/start-breeze.sh 起）。direct = 用户喜欢的鲸鱼娘参考音 + 文字指令（官方 Voice Direction）；design = 不用参考音，只按文字描述造一个声音（官方 Voice Design，指令语言和台词一致，cfg 4）。用户试听后在 pick 里定每人用哪个。 2026-11-05 用户看过样片后定：姐姐 blue-direct，妹妹 black-design（“其他没问题”）。",
+  "url": "http://127.0.0.1:7861",
+  "cfg_scale": 4,
+  "seed": 42,
+  "reference": {
+    "audio": "../os-review-bilingual/assets/audio/reference/narrator_ref_zh.wav",
+    "text": "清晨的风掠过窗台，带来桂花香。我翻开书，阳光落在字里行间。日子很轻，心也很静，愿每一天都有小小的欢喜与温柔。"
+  },
+  "candidates": {
+    "blue-direct": {
+      "who": "blue",
+      "ref": true,
+      "instruction": "活泼、元气满满的少女，有点孩子气。语速偏快，语调起伏大，惊讶和兴奋时声音明显上扬，像动画里的元气角色在说话。"
+    },
+    "blue-design": {
+      "who": "blue",
+      "ref": false,
+      "instruction": "一位活泼元气的少女，声音明亮偏高，语速偏快，语气夸张、有感染力，有点孩子气，像动画里的元气角色。"
+    },
+    "black-direct": {
+      "who": "black",
+      "ref": true,
+      "instruction": "沉稳冷静的少女，语速偏慢，声音略低，语气平淡，带一点淡淡的吐槽感，不夸张，说话简洁干脆。"
+    },
+    "black-design": {
+      "who": "black",
+      "ref": false,
+      "instruction": "一位沉稳冷静的少女，声音偏低、清澈，语速稍慢，语气平淡干脆，带一点淡淡的吐槽感，像动画里成熟的妹妹角色。"
+    }
+  },
+  "pick": {
+    "blue": "blue-direct",
+    "black": "black-design"
+  }
+}

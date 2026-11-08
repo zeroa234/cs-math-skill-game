@@ -1,0 +1,663 @@
+skill: H.1.1
+version: 2
+brief:
+  why: 把传感器接进芯片之前，先学会用电压、电流和频率描述信号。你会算电阻网络、判断放大器的可用范围，并选出能给转换器使用的信号。
+  outcomes:
+    - 用节点和回路定律计算电压电流
+    - 计算 RC/RL 的变化速度、放大倍数和滤波效果
+    - 用量化、噪声和采样条件判断转换误差
+terms:
+  - term: 电压
+    def: 两个位置之间的电势差，单位伏特。
+  - term: 电流
+    def: 单位时间通过某处的净电荷，单位安培。
+  - term: 欧姆定律
+    def: 理想线性电阻两端的电压降等于电流乘电阻。
+  - term: 基尔霍夫电流定律
+    def: 理想节点流入电流之和等于流出电流之和。
+  - term: 基尔霍夫电压定律
+    def: 沿闭合回路计算的电压升降总和为零。
+  - term: 戴维南等效
+    def: 把线性二端网络表示成理想电压源串联电阻。
+  - term: 诺顿等效
+    def: 把线性二端网络表示成理想电流源并联电阻。
+  - term: 时间常数
+    def: 一阶响应中，旧状态与终值的差缩为原来的 e 的负一次方所用的时间。
+  - term: 电感
+    def: 以磁场储能、在有限电压下阻止电流瞬间变化的器件。
+  - term: 增益
+    def: 在规定条件下，输出信号幅度与输入幅度的比值。
+  - term: 小信号模型
+    def: 在选定静态工作点附近，用局部线性关系估计小变化。
+  - term: 运算放大器
+    def: 放大两个输入端电压差的高增益器件。
+  - term: 低通滤波器
+    def: 让低频较容易通过、让高频逐渐衰减的电路。
+  - term: 方均根
+    def: 把数值平方、求平均后再开方得到的幅度。
+  - term: 量化
+    def: 把连续范围里的输入归入有限个离散等级。
+  - term: ADC
+    def: 按时刻取样并将模拟输入转为数字码的器件。
+  - term: DAC
+    def: 把数字码转换为模拟输出的器件。
+  - term: 混叠
+    def: 高频成分采样后表现成另一个较低频率的现象。
+lessons:
+  - id: ohm
+    chapter: 电路定律
+    title: 在电源、电阻和回路中找电压与电流
+    minutes: 10
+    flow:
+      - guess:
+          id: ohm-guess
+          type: choice
+          prompt: 电池一端和电阻相连，另一端没接回去。稳态时理想电阻中有持续电流吗？
+          options:
+            - text: 没有，回路断开
+              correct: true
+            - text: 有，只要接到电池正端就一直流
+              why: 缺少返回的导通路径。
+          explain: 没有连续路径让电荷持续通过。
+      - card:
+          title: 电压要指定两个端点
+          body: >-
+            **电压（voltage）**两个位置之间的电势差，单位伏特。 **电流（current）**单位时间通过某处的净电荷，单位安培。 选地为 0 V
+            后，节点电压就指相对地的电压。理想导线可视为同一个节点。把每个器件简化为一个元件的模型假设导线传播时间在所关心的时间尺度上可忽略。
+      - item:
+          id: ohm-2
+          type: choice
+          prompt: 节点 A 对地 5 V，B 对地 2 V。A 相对 B 的电压是多少？
+          options:
+            - text: 7 V
+              why: 相对另一个节点要做减法。
+            - text: 3 V
+              correct: true
+          explain: 电压差是 5−2，不是两点电压相加。
+      - card:
+          title: 电阻两端电压决定通过的电流
+          body: '**欧姆定律（Ohm''s law）**理想线性电阻两端的电压降等于电流乘电阻。 用伏和欧姆得到安；用伏和千欧得到毫安。电流从高电位一端进入电阻。'
+      - item:
+          id: ohm-4
+          type: number
+          prompt: 一个 2 kΩ 电阻两端为 6 V。通过它的电流为多少 mA？
+          answer: 3
+          explain: 6 V÷2 kΩ=3 mA。
+  - id: nodes
+    chapter: 电路定律
+    title: 从分流点列方程
+    minutes: 10
+    flow:
+      - guess:
+          id: nodes-guess
+          type: choice
+          prompt: 3 mA 流进一个连接点，从一条支路流出 1 mA。只有另一条支路可以出去，应流出多少？
+          options:
+            - text: 4 mA
+              why: 1 mA 已从前一支路流出，应该减掉。
+            - text: 2 mA
+              correct: true
+          explain: 流进来的量由两支路共同带走。
+      - card:
+          title: 同节点各支路共享电压
+          body: >-
+            **基尔霍夫电流定律（Kirchhoff's current law, KCL）**理想节点流入电流之和等于流出电流之和。 选择一个未知节点电压
+            v，支路电流等于端点电压之差除以电阻。把每支路写出，再按流入与流出相等列方程。
+          reveal:
+            - title: 画出支路
+              body: 12 V 经 2 kΩ 到节点 v，节点再经 3 kΩ 和 6 kΩ 分别接地。
+            - title: 写出电流
+              body: 流入为 (12−v)/2 mA，流出为 v/3+v/6 mA。
+            - title: 解并验算
+              body: v=6 V；流入 3 mA，流出 2+1=3 mA。
+      - item:
+          id: nodes-2
+          type: number
+          prompt: 节点为 6 V，经过 3 kΩ 接地。这个支路流出多少 mA？
+          answer: 2
+          explain: 电阻两端差 6 V，除以 3 kΩ。
+      - card:
+          title: 串并联简化可给同样结果
+          body: 串联同电流，电阻直接相加。并联同电压，导通能力相加，即电阻倒数相加。3 kΩ 和 6 kΩ 并联等效 2 kΩ，与前面的 2 kΩ 串联，总电阻 4 kΩ。
+      - item:
+          id: nodes-4
+          type: number
+          prompt: 4 kΩ 与 12 kΩ 并联，等效多少 kΩ？
+          answer: 3
+          explain: 倒数相加为 1/4+1/12=1/3，取倒数。
+  - id: loops
+    chapter: 电路定律
+    title: 沿回路计算压升与压降
+    minutes: 10
+    flow:
+      - guess:
+          id: loops-guess
+          type: choice
+          prompt: 从一个点绕一圈回到原处。一路上电压升了 9 V、已经降了 4 V，还要降多少伏？
+          options:
+            - text: 5 V
+              correct: true
+            - text: 13 V
+              why: 要用压升减已经发生的压降。
+          explain: 走回同一个点时，所有升降合起来为零。
+      - card:
+          title: 给回路选方向并保持一致
+          body: >-
+            **基尔霍夫电压定律（Kirchhoff's voltage law, KVL）**沿闭合回路计算的电压升降总和为零。
+            沿选定方向穿过电源的负端到正端记压升。穿过顺着电流方向的电阻记压降。两个相邻网孔的共用支路电流是两个同向网孔电流之差。
+      - item:
+          id: loops-2
+          type: number
+          prompt: 单回路 12 V 电源与 2 kΩ、4 kΩ 串联。电流多少 mA？
+          answer: 2
+          explain: KVL 给出 12−(2+4)I=0，解得 2 mA。
+      - card:
+          title: 多源线性电路可拆成一次只留一个源
+          body: 叠加只对电压、电流等线性量直接成立。关闭独立理想电压源，用短接代替；关闭独立理想电流源，用断开代替。各次算完按所选方向相加。受控源保留。
+      - item:
+          id: loops-4
+          type: choice
+          prompt: 用叠加法求支路电流，单独考虑一个电流源时，另一个独立理想电压源如何处理？
+          options:
+            - text: 换成断路
+              why: 那是关闭理想电流源的做法。
+            - text: 把另一个电压源换成短接
+              correct: true
+          explain: 零伏理想电压源的端电压保持为 0。
+  - id: equivalent
+    chapter: 电路定律
+    title: 用两个参数代替一片线性电路
+    minutes: 10
+    flow:
+      - guess:
+          id: equivalent-guess
+          type: choice
+          prompt: 插上负载前测到 6 V。插上后电压变小，原来的电路可以用理想源串一个电阻来表示吗？
+          options:
+            - text: 不能，电压变化只能是电表坏了
+              why: 线性电路有输出电阻，负载会改变端电压。
+            - text: 可以，若从这两个端子看进去是线性电路
+              correct: true
+          explain: 串联电阻解释有电流后出现的压降。
+      - card:
+          title: 先取空载电压，再找输出电阻
+          body: >-
+            **戴维南等效（Thévenin equivalent）**把线性二端网络表示成理想电压源串联电阻。
+            源电压是开路电压。只有独立源和电阻时，把独立源关掉，从端口看进去求等效电阻；含受控源可加测试源求端口电压电流比。
+          reveal:
+            - title: 先断开负载
+              body: 12 V 经两只 2 kΩ 电阻分压，输出取中点。开路电压为 6 V。
+            - title: 关电源看进去
+              body: 理想电源短接后，两只 2 kΩ 都从端口接到地，并联为 1 kΩ。
+      - item:
+          id: equivalent-2
+          type: number
+          prompt: 戴维南源为 6 V、串联 1 kΩ。接入 2 kΩ 负载后，负载电压多少 V？
+          answer: 4
+          explain: 串联总电阻 3 kΩ，电流 2 mA，负载压降 4 V。
+      - card:
+          title: 并联源版本给相同的端口行为
+          body: '**诺顿等效（Norton equivalent）**把线性二端网络表示成理想电流源并联电阻。 并联电阻与戴维南值相同；电流是短路电流，即开路电压除以等效电阻。'
+      - item:
+          id: equivalent-4
+          type: number
+          prompt: 开路 6 V、等效电阻 1 kΩ，诺顿电流大小是多少 mA？
+          answer: 6
+          explain: 短路端口时戴维南串联电阻上有 6 V 压降。
+  - id: transient
+    chapter: RC/RL
+    title: 用时间常数预估电容和电感的变化
+    minutes: 10
+    flow:
+      - guess:
+          id: transient-guess
+          type: choice
+          prompt: 空电容经电阻接上电池，刚接上的一瞬间，两端电压已经达到电池值了吗？
+          options:
+            - text: 没有，电阻限制了充电电流
+              correct: true
+            - text: 已经达到，电压源一接上全电路立刻等压
+              why: 电阻上会先出现较大压降。
+          explain: 有限电流需要一段时间才能积累电荷。
+      - card:
+          title: 电容电压向终值指数靠近
+          body: >-
+            **时间常数（time constant）**一阶响应中，旧状态与终值的差缩为原来的 e 的负一次方所用的时间。 RC 的时间常数为等效电阻乘电容。零伏开始充到 V，经过 t 的电压为
+            $V(1-e^{-t/(RC)})$。
+          reveal:
+            - title: 统一单位
+              body: 10 kΩ 为 10000 Ω，10 μF 为 0.00001 F。相乘得 0.1 s。
+            - title: 求一个时间常数后的比例
+              body: $1-e^{-1}$ 约为 0.632；5 V 的终值乘上它约 3.16 V。
+            - title: 多等一会儿
+              body: 0.3 s 是三个时间常数；剩差只约 5%，电压约 4.75 V。
+      - item:
+          id: transient-2
+          type: number
+          prompt: R=2 kΩ、C=10 μF。时间常数是多少毫秒？
+          answer: 20
+          explain: 2000×0.000010=0.020 s，即 20 ms。
+      - card:
+          title: 电感保持的是电流
+          body: >-
+            **电感（inductor）**以磁场储能、在有限电压下阻止电流瞬间变化的器件。 串联 RL 接直流电压后，电流向 V/R 靠近，时间常数 L/R。电容储能 $Cv^2/2$，电感储能
+            $Li^2/2$。断开电感回路需要安排电流的去处。
+      - item:
+          id: transient-4
+          type: number
+          prompt: 串联电路 L=20 mH、R=10 Ω，时间常数是多少毫秒？
+          answer: 2
+          explain: 0.020 H÷10 Ω=0.002 s。
+  - id: gain
+    chapter: 放大器
+    title: 先量输入输出，再谈放大倍数
+    minutes: 10
+    flow:
+      - guess:
+          id: gain-guess
+          type: choice
+          prompt: 麦克风信号摆动 0.1 V，经过电路后摆动 0.5 V。摆动被放大几倍？
+          options:
+            - text: 0.4 倍
+              why: 差值不是倍数。
+            - text: 5 倍
+              correct: true
+          explain: 把相同定义的输出幅度除以输入幅度。
+      - card:
+          title: 放大器的倍数可能随频率变
+          body: >-
+            **增益（gain）**在规定条件下，输出信号幅度与输入幅度的比值。
+            用正弦波扫频，保持输入幅度、记录输出幅度和相位。信号可能含多个频率成分，放大器的带宽说明哪些成分能以规定误差通过。电压幅度比的分贝值为 $20\log_{10}|A_v|$。
+      - item:
+          id: gain-2
+          type: number
+          prompt: 输入幅度 0.2 V、输出幅度 1 V，增益幅度是多少倍？
+          answer: 5
+          explain: 输出幅度除以输入幅度，1÷0.2。
+      - card:
+          title: 把放大器端口写成可分析的模型
+          body: 输入端可看作有限的输入电阻，输出可看成受输入控制的源串输出电阻。负载太小会分走较多输出电压。输入/输出阻抗会随频率变，设计时按使用频率看。
+      - item:
+          id: gain-4
+          type: choice
+          prompt: 前级输出电阻固定，后级输入电阻下降很多。前级带负载的输出通常怎样？
+          options:
+            - text: 电压衰减会更明显
+              correct: true
+            - text: 电压一定不变
+              why: 只有零输出电阻的理想源不受这种分压影响。
+          explain: 输出电阻与后级输入构成分压。
+  - id: transistor-amp
+    chapter: 放大器
+    title: 让晶体管在工作点附近放大小变化
+    minutes: 10
+    flow:
+      - guess:
+          id: transistor-amp-guess
+          type: choice
+          prompt: 放大器把声音的波峰压平。调大输入是否能找回原来的波峰形状？
+          options:
+            - text: 不能，可能削得更厉害
+              correct: true
+            - text: 能，输入越大波峰越完整
+              why: 幅度更大更容易撞上电压边界。
+          explain: 输出已经越过能线性变化的范围。
+      - card:
+          title: 先给出直流工作点，再看小信号
+          body: >-
+            **小信号模型（small-signal model）**在选定静态工作点附近，用局部线性关系估计小变化。 MOS 共源和 BJT
+            共射可用输入变化控制输出电流，负载把电流变化变为电压变化。漏极或集电极经电阻接电源时，电流增加让输出电压下降。
+      - item:
+          id: transistor-amp-2
+          type: choice
+          prompt: 共源级的负载电阻接在电源与输出之间。晶体管电流小幅增加，输出电压怎么变？
+          options:
+            - text: 上升
+              why: 供电电压固定，应扣掉变大的压降。
+            - text: 下降
+              correct: true
+          explain: 负载电阻压降增加，输出离电源电压更远。
+      - card:
+          title: 用一对器件读取两端之差
+          body: >-
+            MOS/BJT
+            差分对以共用偏置电流把两个输入的差转成支路电流差。镜像有源负载可转成单端并提高增益。多级的小信号增益按实际带载逐级相乘；器件电容和级间负载限制高频响应，反相级的跨端电容会经米勒效应放大输入负担。
+      - item:
+          id: transistor-amp-4
+          type: number
+          prompt: 已经计入各级负载。第一级电压增益 −4，第二级增益 −3，总增益是多少？
+          answer: 12
+          explain: 两级变化按顺序乘 −4 和 −3，两次反相得到正值。
+  - id: feedback
+    chapter: 运放
+    title: 用负反馈设定运放的增益
+    minutes: 10
+    flow:
+      - guess:
+          id: feedback-guess
+          type: choice
+          prompt: 一个放大器把输出的一部分送回，让它抵消误差。误差增大时反馈应该减小还是继续放大误差？
+          options:
+            - text: 应继续放大误差
+              why: 会把系统推向饱和或另一种工作状态。
+            - text: 应抵消误差
+              correct: true
+          explain: 输出变化向减小两输入之差的方向作用。
+      - card:
+          title: 只有在线性负反馈下才近似等压
+          body: >-
+            **运算放大器（operational amplifier, op amp）**放大两个输入端电压差的高增益器件。
+            线性负反馈下，理想模型两输入近似同电位（虚短），输入近似不取电流（虚断）。电流经过反馈网络，没有从两输入间流过。
+          reveal:
+            - title: 把同相端接地
+              body: 反相端在线性负反馈下也近似 0 V。
+            - title: 用节点电流定律
+              body: 输入经 Rin 流进的电流等于经 Rf 流向输出的电流。
+            - title: 移项求输出
+              body: 得 $V_o=-V_i R_f/R_{in}$。同相接法则由输出分压得到 $1+R_f/R_g$。
+      - item:
+          id: feedback-2
+          type: number
+          prompt: 理想反相放大器 Rin=10 kΩ，Rf=100 kΩ。电压增益为多少？
+          answer: -10
+          explain: 反相增益为 −Rf/Rin。
+      - card:
+          title: 差分电路需要电阻比例匹配
+          body: 两个输入分别接进正负两侧，比例合适时输出放大两个输入的电压差。两端一起升高的成分叫共模信号；电阻比失配时一部分共模量会出现在输出。
+      - item:
+          id: feedback-4
+          type: number
+          prompt: 理想同相放大器，反馈电阻 100 kΩ、从反相端到地 10 kΩ。电压增益为多少？
+          answer: 11
+          explain: 同相增益 1+100/10=11。
+  - id: real-op-amp
+    chapter: 运放
+    title: 识别运放什么时候离开理想条件
+    minutes: 10
+    flow:
+      - guess:
+          id: real-op-amp-guess
+          type: choice
+          prompt: 由 ±5 V 供电的常见运放，线性公式算出需要输出 8 V。能照公式得到 8 V 吗？
+          options:
+            - text: 不能，输出受供电和摆幅限制
+              correct: true
+            - text: 能，负反馈保证所有输入都线性
+              why: 负反馈无法突破输出摆幅。
+          explain: 电路会进入饱和附近。
+      - card:
+          title: 先看幅度和速度是否可实现
+          body: 有限的开环增益使虚短只有近似。闭环放大越多，可用带宽通常越窄。输出接近电源时会削顶，输出变得过快还会碰到压摆率上限。失调电压和输入偏置电流会给直流结果添误差。
+      - item:
+          id: real-op-amp-2
+          type: choice
+          prompt: 提高正弦频率后输出变得像三角形，所需斜率已超过规格。哪个约束最直接？
+          options:
+            - text: 只要增大电源电压就一定修好
+              why: 可用幅度增加不一定提高最大变化率。
+            - text: 压摆率
+              correct: true
+          explain: 输出变化的最大斜率限制了波形。
+      - card:
+          title: 反馈网络也能累积或强调变化
+          body: 反相反馈换电容可让输出与输入的时间积分成比例；把电容放到输入侧可求变化率，但会放大高频噪声，实际用有限频带。芯片内部可用差分输入加第二增益级，或用折叠共源共栅获得不同的速度、摆幅折衷。
+      - item:
+          id: real-op-amp-4
+          type: choice
+          prompt: 理想反相积分器输入正的恒定小电压，且输出尚未饱和。输出怎样变化？
+          options:
+            - text: 立刻固定在一个新值
+              why: 反馈电容的电压随时间改变。
+            - text: 以恒定斜率下降
+              correct: true
+          explain: 恒定输入经电阻给反馈电容持续充电，反相配置令输出下降。
+  - id: lowpass
+    chapter: 滤波
+    title: 从 RC 分压求截止频率
+    minutes: 10
+    flow:
+      - guess:
+          id: lowpass-guess
+          type: choice
+          prompt: 一个滤波电路保留缓慢变化，削弱快速变化。温度慢慢变、同时叠上快速毛刺时，希望毛刺怎样？
+          options:
+            - text: 被保留得比温度更多
+              why: 这与所选低通目的相反。
+            - text: 被衰减
+              correct: true
+          explain: 快速变化占高频成分。
+      - card:
+          title: 取电容端输出就能削弱高频
+          body: >-
+            **低通滤波器（low-pass filter）**让低频较容易通过、让高频逐渐衰减的电路。 串电阻、对地电容，取电容两端。空载传递函数 $H(s)=1/(1+sRC)$；直流增益为
+            1。一阶截止点的幅度是低频幅度的 $1/\sqrt{2}$。
+          reveal:
+            - title: 先求 RC
+              body: 10 kΩ × 10 μF = 0.1 s。
+            - title: 转为 Hz
+              body: $f_c=1/(2\pi RC)$，约 1.59 Hz。
+      - item:
+          id: lowpass-2
+          type: number
+          prompt: RC=0.1 s 的一阶低通，截止频率约多少 Hz？保留两位小数。
+          answer: 1.59
+          explain: 1 除以 2π×0.1，约 1.59 Hz。
+          tolerance: 0.01
+      - card:
+          title: 取不同的输出或组合不同级
+          body: 同一串联 RC 取电阻端可做高通；高通和低通可组成带通以保留中间一段。带阻反过来抑制一段。截止是约定的衰减位置，超过它不等于信号归零。
+      - item:
+          id: lowpass-4
+          type: choice
+          prompt: 信号远高于一阶低通的截止点。输出会在截止处突然变成零吗？
+          options:
+            - text: 不会，越往高频越衰减
+              correct: true
+            - text: 会，截止像一道完全关闭的开关
+              why: 那是理想砖墙模型，不是 RC。
+          explain: 一阶幅频曲线是渐变的。
+  - id: filter-design
+    chapter: 滤波
+    title: 用阶数和允许纹波选择滤波方案
+    minutes: 10
+    flow:
+      - guess:
+          id: filter-design-guess
+          type: choice
+          prompt: 要保留声音频带同时更快压低带外噪声。多加一个储能环节有没有可能帮忙？
+          options:
+            - text: 有可能，更高阶可以带来更陡的带外下降
+              correct: true
+            - text: 没有，阶数只决定电路耗电
+              why: 阶数也改变幅频响应。
+          explain: 要同时检查通带幅度和稳定性。
+      - card:
+          title: 先定通带和阻带，再选响应形状
+          body: 巴特沃斯的通带幅度平坦；I 型切比雪夫允许指定通带纹波换更窄的过渡带。二阶低通远离截止点后约每十倍频程衰减 40 dB，一阶约 20 dB。RLC 谐振附近的峰与阻尼有关，调得太尖会放大一段频率。
+      - item:
+          id: filter-design-2
+          type: choice
+          prompt: 规格允许少量通带幅度纹波，且同阶下要更快滚降。先考虑哪一种？
+          options:
+            - text: 只看低频放大倍数，响应形状无关
+              why: 响应形状决定过渡带。
+            - text: I 型切比雪夫
+              correct: true
+          explain: 它用允许的通带纹波换更陡过渡。
+      - card:
+          title: 二阶可用有源电路实现
+          body: 运放可在合适电路里模拟电感，或用两个积分环节和反馈合成二阶响应；开关电容用时钟切换转移电荷，可用时钟调节有效电阻。用器件容差扰动仿真，看看截止和峰值有多敏感。
+      - item:
+          id: filter-design-4
+          type: choice
+          prompt: 电容标称值符合规格，但每件可偏离一点。怎样查滤波器是否仍符合要求？
+          options:
+            - text: 只用标称值画一条曲线
+              why: 它看不出量产偏差。
+            - text: 以允许的元件偏差重算并测边界
+              correct: true
+          explain: 规格需要覆盖最坏的实际器件组合。
+  - id: noise
+    chapter: 噪声与ADC/DAC接口
+    title: 把看得见的偏移与随机变化分开
+    minutes: 10
+    flow:
+      - guess:
+          id: noise-guess
+          type: choice
+          prompt: 让输入保持不动，多次读数仍轻微上下波动。把一个固定值从每次读数都减掉，波动会消失吗？
+          options:
+            - text: 会，任何误差都能减常数消去
+              why: 只有固定偏差适合这种校正。
+            - text: 不会，只改变平均位置
+              correct: true
+          explain: 随机变化仍随时间存在。
+      - card:
+          title: 用方均根表达随机波动的大小
+          body: >-
+            **方均根（root mean square, RMS）**把数值平方、求平均后再开方得到的幅度。 两个互不相关的零均值噪声源相加，应先加方差再开方。白噪声电压密度近似平坦，单位
+            V/√Hz；理想矩形带宽内，总噪声等于密度乘带宽的平方根。
+      - item:
+          id: noise-2
+          type: number
+          prompt: 两个独立噪声源的输出分别为 3、4 μV RMS。合起来多少 μV RMS？
+          answer: 5
+          explain: 先加平方 9+16，再开根。
+      - card:
+          title: 把噪声源放进仿真和测量的同一带宽
+          body: 低频还可能有随频率降低而增大的 1/f 噪声；电阻有热噪声。SPICE 可按模型运行直流、暂态和小信号频域分析。实测要明确带宽、接地和仪器自身噪声，再与相同条件的仿真比较。
+      - item:
+          id: noise-4
+          type: choice
+          prompt: 主要噪声在高频，而有用信号只在低频。哪项直接降低被测到的高频噪声？
+          options:
+            - text: 在保住有用带宽的前提下限制高频通过
+              correct: true
+            - text: 固定减去 1 mV
+              why: 减去常量不改变随机波动。
+          explain: 缩小白噪声通过的带宽可降低方差。
+  - id: quantize
+    chapter: 噪声与ADC/DAC接口
+    title: 把输入电压变成有限个数字码
+    minutes: 10
+    flow:
+      - guess:
+          id: quantize-guess
+          type: choice
+          prompt: 只有 8 个输出编号，两个非常接近的电压可能落到同一编号吗？
+          options:
+            - text: 可能，连续的电压范围被分成有限段
+              correct: true
+            - text: 不可能，每个实数电压都有不同编号
+              why: 有限编码不能区分无限多的输入。
+          explain: 同一段里的输入共享编号。
+      - card:
+          title: 先确定码宽和舍入模型
+          body: >-
+            **量化（quantization）**把连续范围里的输入归入有限个离散等级。 **ADC（analog-to-digital converter）**按时刻取样并将模拟输入转为数字码的器件。
+            题中 N 位、单极性参考 Vref、步长 Vref/2^N，理想码为输入除以步长向下取整，再限制到 0 至最大码。
+          reveal:
+            - title: 求分辨率
+              body: 10 位有 1024 码，3.3 V 除 1024，约 3.22 mV。
+            - title: 求输入落入的码格
+              body: 1.2 V 除精确步长得到约 372.36，向下取整为 372。
+      - item:
+          id: quantize-2
+          type: number
+          prompt: 理想 10 位 ADC，Vref 3.3 V，输入 1.2 V，用未四舍五入的步长向下取整。数字码是多少？
+          answer: 372
+          explain: 1.2×1024/3.3 约 372.36，取整 372。
+      - card:
+          title: 换一个方向可由代码设输出
+          body: >-
+            **DAC（digital-to-analog converter）**把数字码转换为模拟输出的器件。 电阻阶梯按位加权。逐次逼近型 ADC 则用内部 DAC
+            和比较器从高位到低位试码；并行型可同时比较多个门槛，通常需要更多比较器。输出接口还须考虑建立时间和负载。
+      - item:
+          id: quantize-4
+          type: number
+          prompt: 某理想 8 位 DAC 采用输出码×Vref/256；Vref=2.56 V，码 64。输出多少 V？
+          answer: 0.64
+          explain: 码宽 0.01 V，乘 64。
+  - id: alias
+    chapter: 噪声与ADC/DAC接口
+    title: 在采样之前清除会折回的高频
+    minutes: 10
+    flow:
+      - guess:
+          id: alias-guess
+          type: choice
+          prompt: 每秒整点看一次转盘。如果它恰好每秒一圈，看起来可能一直停在同一角度吗？
+          options:
+            - text: 不可能，转动一定能从每次观察看出来
+              why: 观察频率与转动周期可能刚好重合。
+            - text: 可能，每次正好回到同一位置
+              correct: true
+          explain: 离散的观察看不到两次之间的一整圈。
+      - card:
+          title: 两个不同频率可能生成相同的采样序列
+          body: >-
+            **混叠（aliasing）**高频成分采样后表现成另一个较低频率的现象。
+            对基带信号，需要采样频率高于保留的最高频率两倍。实际模拟低通有过渡带，要在采样前留足衰减高频的余地。采完后，同序列已无法区分来源。
+      - item:
+          id: alias-2
+          type: choice
+          prompt: 高频干扰已混叠进有用带宽。下次如何预防？
+          options:
+            - text: 在 ADC 之前加模拟抗混叠滤波
+              correct: true
+            - text: 只在采样后过滤同一有用频率
+              why: 此时干扰与有用成分处在同一频带。
+          explain: 先削弱会折回的高频，再采样。
+      - card:
+          title: 区分理想量化误差和真实接口噪声
+          body: 满幅正弦、理想量化并近似均匀误差时，量化信噪比约 $6.02N+1.76$ dB。真实前端还要留输入摆幅余量，确认参考源、驱动阻抗和采样建立时间，并估算噪声。
+      - item:
+          id: alias-4
+          type: number
+          prompt: 理想满幅正弦条件下，10 位 ADC 的量化信噪比按 6.02N+1.76 约是多少 dB？保留一位小数。
+          answer: 62
+          explain: 6.02×10+1.76=61.96 dB，舍入到 62.0 dB。
+          tolerance: 0.05
+boss:
+  items:
+    - id: challenge-1
+      type: number
+      prompt: 12 V 先经 2 kΩ，再经 3 kΩ 与 6 kΩ 的并联回地。电源总电流多少 mA？
+      answer: 3
+      explain: 并联等效 2 kΩ，总电阻 4 kΩ，电流 3 mA。
+    - id: challenge-2
+      type: number
+      prompt: R=10 kΩ、C=10 μF 串联，电容由 0 V 接到 5 V。0.3 s 时电容约多少 V？两位小数。
+      answer: 4.75
+      explain: 三个时间常数时为 5×(1−exp(−3))。
+      tolerance: 0.01
+    - id: challenge-3
+      type: number
+      prompt: 两级放大电路的实际带载增益分别为 −2、−5。总电压增益是多少？
+      answer: 10
+      explain: 两级相乘，两次反相回到同相。
+    - id: challenge-4
+      type: number
+      prompt: 理想同相运放，反馈电阻 20 kΩ、接地电阻 5 kΩ。闭环增益是多少？
+      answer: 5
+      explain: 由负反馈分压得 1+20/5。
+    - id: challenge-5
+      type: number
+      prompt: 一阶 RC 低通，RC=0.1 s。截止频率多少 Hz？两位小数。
+      answer: 1.59
+      explain: 1/(2π×0.1) 约为 1.59 Hz。
+      tolerance: 0.01
+    - id: challenge-6
+      type: number
+      prompt: 10 位理想 ADC 参考 3.3 V、输入 1.2 V，用 1024 级向下取整。输出码？
+      answer: 372
+      explain: 1.2×1024/3.3 约 372.36，取整为 372。
+    - id: challenge-7
+      type: choice
+      prompt: 高频干扰会落进采样后的目标频带，最合适的前端措施是什么？
+      options:
+        - text: ADC 前加合适的模拟低通
+          correct: true
+        - text: 量化后提高显示位数
+          why: 显示位数无法恢复已混叠的原频率。
+      explain: 先衰减干扰，避免它变成不可分辨的带内成分。

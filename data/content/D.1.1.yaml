@@ -1,0 +1,832 @@
+skill: D.1.1
+version: 2
+brief:
+  why: 你要做一个选课系统。先说明谁能选哪门课，再把规则变成表和约束，用 SQL 查出结果，最后把会反复改错的重复事实拆开。
+  outcomes:
+    - 从业务规则画出实体关系并设计主键和外键
+    - 写能运行的连接、分组和子查询，处理重复与缺失值
+    - 根据函数依赖求候选键，并判断分解是否无损和保持依赖
+terms:
+  - {term: 实体, def: 业务中需要单独辨认和记录的事物。}
+  - {term: 属性, def: 对实体或联系记录的一项特征。}
+  - {term: 基数, def: 在实体关系中说明一端最多能关联另一端多少实例。}
+  - {term: 主键, def: 从可唯一辨认行的最小列组合中选定的一组列。}
+  - {term: 外键, def: 引用另一处唯一标识的一列或多列。}
+  - {term: 关系, def: 在关系模型中，按固定属性结构组织的一组互异元组。}
+  - {term: 元组, def: 在关系模型中，依各属性保存的一行值。}
+  - {term: 域, def: 属性允许取值的集合。}
+  - {term: 选择, def: 关系代数中保留满足条件的元组。}
+  - {term: 投影, def: 关系代数中保留指定属性并形成去重后的结果。}
+  - {term: 连接, def: 将两个关系按约定条件把匹配的元组合起来。}
+  - {term: 'NULL', def: SQL 中表示缺失或未知的标记。}
+  - {term: 参照完整性, def: 外键所指定的引用必须指向合法记录，允许空引用时按规则处理。}
+  - {term: 视图, def: 由保存的查询定义提供给使用者的逻辑表。}
+  - {term: 子查询, def: 出现在另一个 SQL 语句内部的查询。}
+  - {term: 聚合, def: 把多行的值用计数、平均值等规则合成结果。}
+  - {term: 函数依赖, def: 任意两行只要在左侧属性上相同，就必须在右侧属性上相同。}
+  - {term: 闭包, def: 在给定函数依赖下，由一组属性能推出的全部属性。}
+  - {term: 超键, def: 能决定关系中全部属性的一组属性。}
+  - {term: 候选键, def: 删除其中任一属性后都无法唯一识别一行的超键。}
+  - {term: 范式, def: 为减少不合理依赖和更新问题而规定的一组关系结构条件。}
+  - {term: 无损连接, def: 分解后的关系连接时，能还原原有记录且不产生多余记录。}
+  - {term: 依赖保持, def: 仅检查分解后各表内的依赖，就足以推出原来的约束。}
+lessons:
+  - id: design
+    chapter: 实体关系
+    title: 先问选课系统需要记住哪些事实
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 学校要知道“谁选了哪门课”。只保留一列学生姓名和一列任意填写的备注，容易查出一名学生的选课吗？
+          options: [{text: 先规定要记的对象、相互关系和识别方式会更清楚, correct: true}, {text: 备注文字里能写什么都行，电脑会自动理解规则, why: 自由文字没有可靠的结构和统一标识。}]
+          explain: 先把问题描述清楚，再选数据的组织方式。
+      - card:
+          title: 从任务提取事实和规则
+          body: |
+            问清要回答的问题、谁能写入、哪些情况必须拒绝。比如学生可先注册但还未选课，课程可先发布，成绩属于某次选课。数据建模把这些共同约定变成可讨论的结构。
+      - item:
+          id: rule-first
+          type: choice
+          prompt: 学校可能允许同一名学生下学期重修同一门课。设计前优先确认什么？
+          options: [{text: 先决定课程名称显示什么颜色, why: 外观不会回答该怎样区分两次选课。}, {text: 每学期的选课是否算不同记录，以及要保留哪些历史, correct: true}]
+          explain: 数据结构需要表达业务能发生的事。重修规则会改变选课的标识。
+      - card:
+          title: 从概念走到逻辑和物理
+          body: |
+            需求分析确定事实和限制。概念设计描述对象及联系，逻辑设计决定用哪些表和列，物理设计考虑索引、存储和部署。实现后用真实任务验证，数据规则变动时继续维护。
+      - item:
+          id: design-order
+          type: order
+          prompt: 给设计选课数据的工作排序。
+          steps: [核对使用任务与业务规则, 描述对象及联系, 选择表和列表示, 安排实际存储并验证]
+          explain: 每层都解决不同问题，先弄清要表达什么再决定怎样存。
+  - id: entities
+    chapter: 实体关系
+    title: 学生和课程各自存在，选课将它们连起来
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个叫 Mei 的学生都选了数据库。可以仅凭名字判断是谁选的吗？
+          options: [{text: 需要给每人独立的标识, correct: true}, {text: 名字一样就代表同一个人, why: 名字可能重复，不能承担唯一标识。}]
+          explain: 数据应能区分现实中不同的学生。
+      - card:
+          title: 区分对象种类、实例和特征
+          body: |
+            要辨认的事物是**实体（entity）**，如学生。某位学生是一个实例。**属性（attribute）**是记录的特征，如姓名。选课把一个学生实例和一个课程实例连起来，成绩属于这项联系。弱实体依赖其所属对象来识别，如订单内的第几行。
+      - item:
+          id: which-attribute
+          type: match
+          prompt: 为三种选课数据确定归属。
+          pairs: [[学生姓名, 学生属性], [课程学分, 课程属性], [某个学生在某门课的成绩, 选课联系的属性]]
+          explain: 同一人可在不同课得不同分，同一课也能给不同人不同分。
+      - card:
+          title: 读出最多几项和至少几项
+          body: |
+            **基数（cardinality）**描述最多能关联一项还是多项。参与还可有最小值 0 或 1，表示可选或必需。学生和课程可各关联多项选课，一条选课必须有且只有一名学生和一门课程。Chen 图常用菱形表示联系，Crow’s Foot 用线端表示数量。
+      - item:
+          id: optional
+          type: choice
+          prompt: 课程可以先发布、暂时无人选；一条选课必须属于一门课程。两条规则怎样对应？
+          options: [{text: 课程至少要有一条选课，选课可以没有课程, why: 它把两端的最小数量颠倒了。}, {text: 课程可关联零至多条选课，每条选课必须对应一门课程, correct: true}]
+          explain: 两端要分别读。主对象允许暂时没有联系，联系记录仍需指向主对象。
+  - id: mapping
+    chapter: 实体关系
+    title: 把多对多的选课关系放到单独的表
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一名学生能选多门课。一门课也有很多学生。把所有课程编号塞到学生的一格里，会发生什么？
+          options: [{text: 查询和检查每一门是否有效都会变难, correct: true}, {text: 只要用逗号分开，数据库就会按独立记录维护, why: 一段文本仍是单个字段。}]
+          explain: 每次选课都可以有自己的记录。
+      - card:
+          title: 为一行选一个稳定的标识
+          body: |
+            **主键（primary key）**是从能唯一识别一行的最小列组合中选定的标识。Student 用 sid，Course 用 cid。**外键（foreign key）**记录对其他行标识的引用。一对多的联系通常把外键放在多的一侧。
+      - item:
+          id: one-to-many
+          type: choice
+          prompt: 一个院系可以开多门课程，每门课程只有一个所属院系。把院系编号的外键放在哪里？
+          options: [{text: 在院系里只留一个课程编号, why: 一个字段不能表示院系下的所有课程。}, {text: 放到课程行，表示这门课属于哪个院系, correct: true}]
+          explain: 多的一侧各行都能记录对一的一侧的引用。
+      - card:
+          title: 为多对多联系建立两端引用
+          body: 假定同一学生对同一课程最多有一条选课，且课程号能区分开课实例。
+          reveal:
+            - title: 先建立可独立存在的对象
+              body: Student(sid, name, major) 用 sid 作主键，Course(cid, title, credits) 用 cid 作主键。
+            - title: 为每个组合保留一行
+              body: Enroll(sid, cid, grade) 以 (sid, cid) 作组合主键。两个编号分别引用 Student 和 Course，成绩随选课保存。
+            - title: 核对重新识别与其他关系类型
+              body: 若规则允许同一组合多次选，需纳入开课期次或选课编号。一对一可在合适一侧放带唯一约束的外键，弱实体可把所属对象编号和自身局部编号一起作主键。IDEF1X 还能标识键是否包含父对象编号。
+      - item:
+          id: enroll-key
+          type: choice
+          prompt: 一名学生能选多门课，一门课也有多个学生，每个学生课程组合最多一条。Enroll 的主键应是什么？
+          options: [{text: 学号和课程编号组合, correct: true}, {text: 只有学号, why: 同一学生的多门课会有相同学号。}, {text: 只有课程编号, why: 同一门课的多名学生会有相同课程号。}]
+          explain: 必须同时知道学生和课程，才能唯一辨认一条选课。
+  - id: relations
+    chapter: 关系代数
+    title: 用固定的列来组织一组行
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把学生列表在屏幕上倒过来显示，学生有哪些、分别属于哪个专业会改变吗？
+          options: [{text: 排序只改变显示顺序，学生事实不变, correct: true}, {text: 第一行被换掉就表示换了学生身份, why: 学生应由标识辨认。}]
+          explain: 数据事实和显示次序可以分开管理。
+      - card:
+          title: 列的规则固定，行的次序无关
+          body: |
+            **关系（relation）**由一组互异的**元组（tuple）**组成。每个属性有名字和取值**域（domain）**。一列对应一个属性，一行是一个元组，列数叫度。关系的行没有固有次序。SQL 用表表达类似结构，但查询结果可保留重复行。
+      - item:
+          id: count-columns
+          type: choice
+          prompt: Student(sid, name, major) 当前有 4 行。关系的度是多少？
+          options: [{text: 4，因为有四名学生, why: 度数属性列，不数记录。}, {text: 3，分别是 sid、name、major, correct: true}]
+          explain: 增删学生会改变行数，表结构仍有三列。
+      - card:
+          title: 用取值规则表达字段含义
+          body: |
+            类型给值规定一种表示方式，域还可给出更窄的业务范围。比如学分是正整数。**NULL** 是 SQL 中表示未知或缺失的标记，如成绩还没录入。纯关系代数常直接用已知值的集合推导，再单独说明 SQL 的 NULL 和重复。
+      - item:
+          id: no-score
+          type: choice
+          prompt: 尚未录入成绩的学生，成绩列允许 NULL。能把这条记录当作考了 0 分吗？
+          options: [{text: NULL 表示没有已知分数，0 是一项已知分数, correct: true}, {text: 两者相同，都应当按零分计算, why: 这样会改变平均分和缺失记录的语义。}]
+          explain: 用缺失标记保留“还不知道”的信息。
+  - id: algebra
+    chapter: 关系代数
+    title: 筛行、合表，再留下需要的列
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 想知道哪些人选了名为 Databases 的课。选课表只有学号和课号，还要从哪里补信息？
+          options: [{text: 直接把选课表的学号显示成姓名, why: 标识只用于找到另一张表中的对应记录。}, {text: 从课程表取课名，从学生表取姓名, correct: true}]
+          explain: 找到相同标识，就能把分开保存的事实合起来。
+      - card:
+          title: 三种操作分别改变什么
+          body: |
+            **选择（selection，σ）**按条件筛行。**连接（join，⋈）**按匹配条件组合行。**投影（projection，π）**只保留指定的属性，结果按集合规则去重。笛卡尔积会给所有行配对，再筛匹配条件可表达条件连接。
+      - item:
+          id: match-operator
+          type: match
+          prompt: 为任务匹配关系代数操作。
+          pairs: [[只保留课程名为 Databases 的记录, 选择], [按课号将课程信息与选课记录合在一起, 连接], [只留下姓名列并去掉重复结果, 投影]]
+          explain: 选择处理行的条件，投影处理列，连接处理表与表的配对。
+      - card:
+          title: 用三步表达原综合查询
+          body: 查选了 Databases 的学生姓名集合。表只有下列共名列可作为自然连接的对应键。
+          reveal:
+            - title: 找出目标课程
+              body: 用 `σ_{title='Databases'}(Course)` 保留目标行。
+            - title: 依课号和学号寻找选课人
+              body: 把目标课程与 Enroll 按 cid 连接，再与 Student 按 sid 连接。若还有同名但不同义的列，改用显式条件或先重命名。
+            - title: 返回姓名集合或保留学生身份
+              body: |
+                `π_name(Student ⋈ Enroll ⋈ σ_{title='Databases'}(Course))` 返回不同姓名。若两个人同名，需同时投影 sid 和 name，才能保留两个人。
+      - item:
+          id: same-name
+          type: choice
+          prompt: 两名不同学号的学生都叫 Mei，都符合查询。关系代数只投影 name 后有几行？
+          options: [{text: '1，两个同名结果合成一个值', correct: true}, {text: '2，投影总是保留原来的行数', why: 关系代数的结果是集合，投影后重复元组合并。}]
+          explain: 投影删掉了身份列，两行结果在留下的属性上完全相同。
+  - id: sets
+    chapter: 关系代数
+    title: 找出至少一次和每次都符合的人
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 学校想找“选了全部必修课的人”。只发现某人选过其中一门，能确认他符合吗？
+          options: [{text: 只要存在一门匹配就算全部选完, why: 有一门不代表覆盖整个清单。}, {text: 还要逐门核对是否缺任何一门, correct: true}]
+          explain: “至少一项”和“没有缺项”是不同的查询条件。
+      - card:
+          title: 用集合操作描述保留哪些记录
+          body: |
+            两个属性结构可对齐的关系可做并、交、差。并是至少一边出现，交是两边都出现，差保留左边有而右边没有的行。重命名可给属性换一个名称，避免配对时含义混淆。
+      - item:
+          id: set-operations
+          type: match
+          prompt: A 是已注册学生集合，B 是有选课记录的学生集合。匹配需要的操作。
+          pairs: [[已注册且已选课, 交], [已注册但无选课, A 与 B 的差], [出现在任一名单, 并]]
+          explain: 两份名单要先投影到可比较的同一组属性。
+      - card:
+          title: 关系除法和演算的条件视角
+          body: |
+            用选课编号组合 (sid, cid) 对必修课集合做关系除法，可找出选了集合里每门课的学生。关系代数写组合操作。关系演算描述结果应满足的条件，例如存在一条选课，或对每门必修课都存在对应选课。
+      - item:
+          id: all-required
+          type: choice
+          prompt: 必修清单是 C1、C2。S1 有 C1 和 C2，S2 只有 C1。谁满足“每门必修课都有记录”？
+          options: [{text: 只有 S1, correct: true}, {text: S1 和 S2 都符合, why: S2 还缺 C2 的记录。}]
+          explain: 每门必修课都需要证据，任一缺项都让条件失败。
+  - id: constraints
+    chapter: 约束
+    title: 让数据库拒绝规则不允许的记录
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 网页限制成绩填 0 到 100，后台导入仍出现了 120。还应把规则放在哪里？
+          options: [{text: 只把网页提示写得更显眼, why: 导入程序可能绕过网页。}, {text: 将所有入口都要遵守的规则也放进数据库, correct: true}]
+          explain: 持久保存前统一核对，才能约束不同入口。
+      - card:
+          title: 取值范围和身份都有约束
+          body: |
+            域完整性检查值是否合规则，例如成绩在 0 到 100。实体完整性要求主键唯一且不为 NULL。SQL 可用 `NOT NULL` 要求必填，`UNIQUE` 约束重复，`CHECK` 检查条件。空值与唯一约束的细节由产品决定。
+      - item:
+          id: constraint-kind
+          type: match
+          prompt: 为三种需要选择最直接的约束。
+          pairs: [[学号唯一且每行都有学号, 主键], [姓名必填, NOT NULL], [已录成绩必须在 0 到 100, CHECK]]
+          explain: 识别身份、要求字段存在和约束取值各有用途。
+      - card:
+          title: 用业务意义决定还要约束什么
+          body: |
+            业务规则可能跨行，例如课程已满时不再增加有效选课。行级 CHECK 适合检查当前行。跨行规则需要能处理同时写入的数据库机制或事务。SQL 的 CHECK 遇到未知通常不会拒绝，因此必填仍应明确写 NOT NULL。
+      - item:
+          id: nullable-check
+          type: choice
+          prompt: 想让每个已发布课程都有正学分。除了 CHECK (credits > 0)，还要用什么拦住缺失值？
+          options: [{text: NOT NULL, correct: true}, {text: 只把比较改成 credits >= 1, why: NULL 比较仍不会得出真或假中的已知结果。}]
+          explain: 范围约束与必填约束回答不同问题。
+  - id: references
+    chapter: 约束
+    title: 引用要有去处，删除要有明确后果
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 导入了一条选课记录，学号在学生表里找不到。直接保存会让以后发生什么？
+          options: [{text: 只要课程存在，学号不存在也不影响规则, why: 选课必须同时指向两端的有效记录。}, {text: 系统将无法找到这条选课所属的学生, correct: true}]
+          explain: 对应的学生和课程都要有合法去处。
+      - card:
+          title: 让有效引用指向已存在的记录
+          body: |
+            **参照完整性（referential integrity）**要求指定的外键引用有效。选课的 sid 和 cid 都应必填，并分别指向学生与课程。若学生导师可以待定，允许导师外键为 NULL 就代表暂未建立引用。
+      - item:
+          id: allowed-missing
+          type: choice
+          prompt: 学生的导师可以晚些再分配。导师外键允许 NULL。这意味着什么？
+          options: [{text: NULL 表示暂未建立引用，填了编号时仍应指向有效导师, correct: true}, {text: 填任意不存在的编号也可以，因为关系可选, why: 可选指允许没有引用，有编号仍须合法。}]
+          explain: 未建立关系和写入悬空引用是两种情况。
+      - card:
+          title: 删除时选保留、级联或解除关联
+          body: |
+            `ON DELETE CASCADE` 会连同引用行一起删。`RESTRICT` 阻止还有引用的删除。`SET NULL` 清空允许为空的引用。选课可按学校保留成绩的规则处理，订单和财务记录通常需要保留历史，可限制删除或把用户标记为停用。
+      - item:
+          id: keep-history
+          type: choice
+          prompt: 关闭客户账户时必须保留全部订单。外键怎么设置更符合需求？
+          options: [{text: 总是级联删除客户的所有订单, why: 这会同时删掉要求保留的历史。}, {text: 禁止删除仍有订单的客户，或用停用状态保留记录, correct: true}]
+          explain: 删除策略要服从业务的保存规则。
+  - id: dialects
+    chapter: 约束
+    title: 同一条关系规则在不同工具里怎样声明
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同伴用图形界面建立订单到客户的关系，你用 SQL 写约束。能表达同一个要求吗？
+          options: [{text: 都可要求订单引用真实的客户, correct: true}, {text: 只有用文本写 SQL 才能约束数据, why: 数据库界面也可生成实际执行的约束。}]
+          explain: 看实际启用的规则，不只看输入方式。
+      - card:
+          title: 用关系窗口或外键声明启用检查
+          body: |
+            Access 可在关系窗口连主表与从表字段，启用参照完整性。SQL Server 的 T-SQL 可在建表时写 `FOREIGN KEY (sid) REFERENCES Student(sid)`。SQLite 的练习连接要先执行 `PRAGMA foreign_keys = ON`。字段类型和启用方式随产品而异。
+      - item:
+          id: same-rule
+          type: choice
+          prompt: 从 SQL Server 迁到 Access 后，你想验证订单外键实际生效。先检查什么？
+          options: [{text: 只看两端字段恰好同名, why: 字段同名不会自动建立参照完整性。}, {text: 确认已启用关系约束，并试一笔引用不存在客户的订单, correct: true}]
+          explain: 确认设置，再用能区分是否执行约束的输入检查。
+      - card:
+          title: 对跨行约束先查产品支持
+          body: |
+            SQL 标准有声明全库约束的断言，许多常用产品没有实现。触发器（trigger）在写入等事件发生时执行规则。用它检查跨行要求时还要考虑同时写入。可直接用主键、外键或 CHECK 表达的规则优先写成对应声明。
+      - item:
+          id: declarative
+          type: choice
+          prompt: 每行的折扣必须非负，规则只需读这一行。最直接的声明是什么？
+          options: [{text: 用行级 CHECK 约束折扣范围, correct: true}, {text: 每次关店后手动扫一遍所有记录, why: 这样只会事后发现，而写入时未受保护。}]
+          explain: 能用局部声明检查的业务规则，写入时就可以验证。
+  - id: schema
+    chapter: 查询与数据建模
+    title: 把选课结构写成可运行的 SQL
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 导入选课之前，应先准备学生、课程还是先准备选课？
+          options: [{text: 先放选课，引用缺失不会影响任何规则, why: 外键生效时引用的对象必须先存在。}, {text: 先有学生和课程，选课才能引用它们, correct: true}]
+          explain: 看清谁依赖谁，再安排建表和写入顺序。
+      - card:
+          title: 把三张表的键和范围一起声明
+          body: |
+            SQL 的 DDL 定义结构，例如 `CREATE TABLE` 和 `ALTER TABLE`。以下在 SQLite 执行，`STRICT` 要求按声明类型存值。学生与课程先建，选课再引用它们。例子用删除限制保留选课历史。
+
+            ```sql
+            PRAGMA foreign_keys = ON;
+
+            CREATE TABLE Student (
+                sid TEXT PRIMARY KEY NOT NULL,
+                name TEXT NOT NULL,
+                major TEXT NOT NULL
+            ) STRICT;
+
+            CREATE TABLE Course (
+                cid TEXT PRIMARY KEY NOT NULL,
+                title TEXT NOT NULL,
+                credits INTEGER NOT NULL CHECK (credits > 0)
+            ) STRICT;
+
+            CREATE TABLE Enroll (
+                sid TEXT NOT NULL REFERENCES Student(sid) ON DELETE RESTRICT,
+                cid TEXT NOT NULL REFERENCES Course(cid) ON DELETE RESTRICT,
+                grade REAL CHECK (grade BETWEEN 0 AND 100),
+                PRIMARY KEY (sid, cid)
+            ) STRICT;
+            ```
+      - item:
+          id: primary-columns
+          type: choice
+          prompt: Enroll 声明 PRIMARY KEY (sid, cid)。已有 (S1, C1) 时，插入 (S1, C2) 会因主键重复而被拒绝吗？
+          options: [{text: 不会，两列合起来的组合不同, correct: true}, {text: 会，只要学号出现过就重复, why: 主键比较的是整组列。}]
+          explain: 学生可选多门课，只禁止同一个学生和课号组合重复。
+      - card:
+          title: 让表结构符合之前讨论的规则
+          body: |
+            `grade` 可为 NULL，表示成绩尚未录入。有成绩时要在范围内。`credits` 同时受必填和正值限制。`STRICT` 和 `PRAGMA` 属于 SQLite，本例后续的基本查询可用于许多其他 SQL 系统。
+      - item:
+          id: grade-check
+          type: match
+          prompt: 为尝试保存的成绩配结果。假设学生课程引用都有效且组合尚未存在。
+          pairs: [['96', 保存一个已知成绩], ['NULL', 保存但标记为未录分], ['120', 拒绝越过上限的值]]
+          explain: 成绩缺失与超出允许范围是不同情况。
+  - id: rows
+    chapter: 查询与数据建模
+    title: 写入一套能验证查询的数据
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你只想更新某人某门课的成绩。只按学号筛选，够精确吗？
+          options: [{text: 学号已经定位了学生，其他课程不可能被更新, why: 选课表里同一学号可以对应多行。}, {text: 应同时限制学号和课号, correct: true}]
+          explain: 用被更新对象的完整标识限定范围。
+      - card:
+          title: 用明确的列名写入样例数据
+          body: |
+            DML 操作记录，`INSERT` 写入，`UPDATE` 修改，`DELETE` 删除。先执行前面的建表代码，再插入下面的数据。姓名和课名可以重复，编号各有独立含义。
+
+            ```sql
+            INSERT INTO Student (sid, name, major) VALUES
+                ('S1', 'Mei', 'CS'),
+                ('S2', 'Lin', 'CS'),
+                ('S3', 'Jia', 'Math'),
+                ('S4', 'Mei', 'Math');
+            INSERT INTO Course (cid, title, credits) VALUES
+                ('C1', 'Databases', 3),
+                ('C2', 'Systems', 4),
+                ('C3', 'Databases', 3);
+            INSERT INTO Enroll (sid, cid, grade) VALUES
+                ('S1', 'C1', 96),
+                ('S1', 'C2', 84),
+                ('S1', 'C3', NULL),
+                ('S2', 'C1', 80),
+                ('S4', 'C3', NULL);
+            ```
+      - item:
+          id: select-filter
+          type: choice
+          prompt: 只查 S1 在 C2 的成绩。WHERE 应怎么写？
+          options: [{text: "WHERE sid = 'S1' AND cid = 'C2'", correct: true}, {text: "WHERE sid = 'S1' OR cid = 'C2'", why: OR 会接受任一条件成立的行。}]
+          explain: AND 要两项都匹配，能精确指向这次选课。
+      - card:
+          title: 写操作前用同样条件预览范围
+          body: |
+            `SELECT grade FROM Enroll WHERE sid = 'S1' AND cid = 'C2'` 得 84。`ORDER BY` 显式安排顺序。先在练习副本用相同 WHERE 确认范围，再试 `UPDATE Enroll SET grade = 82 WHERE sid = 'S1' AND cid = 'C2'` 或 `DELETE FROM Enroll WHERE sid = 'S1' AND cid = 'C2'`。漏掉 WHERE 可修改整表。
+      - item:
+          id: grade-value
+          type: number
+          prompt: 样例里 S1 在 C1、C2、C3 的成绩依次为 96、84、NULL。只查 S1 与 C2 的交集，得到几分？
+          answer: 84
+          explain: 学号与课号必须同时符合，唯一匹配 C2 这条记录。
+  - id: joins
+    chapter: 查询与数据建模
+    title: 按标识连接，决定是否保留未匹配的行
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 学生姓名可能重复。把学生和选课配起来，最稳的字段是哪一个？
+          options: [{text: 用学生姓名去配，名字看起来相同就行, why: 同名不能保证是同一名学生。}, {text: 两张表里的学号, correct: true}]
+          explain: 用选课表保存的引用对应到学生标识。
+      - card:
+          title: 通过两处外键找出选课学生
+          body: |
+            `JOIN ... ON ...` 指定两表的匹配条件，`s`、`e`、`c` 是短名字。这个查询返回不同的学生身份。若只取 `DISTINCT s.name`，同名学生会合并成一个姓名。
+
+            ```sql
+            SELECT DISTINCT s.sid, s.name
+            FROM Student AS s
+            JOIN Enroll AS e ON e.sid = s.sid
+            JOIN Course AS c ON c.cid = e.cid
+            WHERE c.title = 'Databases'
+            ORDER BY s.sid;
+            ```
+          reveal:
+            - title: 先按课号匹配目标课程
+              body: Databases 对应 C1 与 C3。选课记录有 S1→C1、S1→C3、S2→C1 和 S4→C3。
+            - title: 再按身份去掉重复
+              body: S1 的身份只保留一次。结果是 S1 Mei、S2 Lin、S4 Mei。两名 Mei 保留各自学号。
+      - item:
+          id: distinct-identity
+          type: choice
+          prompt: 查询应列出每名选中学生一次，并保留同名的不同人。SELECT DISTINCT 后应保留哪些字段？
+          options: [{text: 学号和姓名, correct: true}, {text: 只有姓名, why: 同名的不同人会合为一个结果。}]
+          explain: 学号区分身份，姓名供显示。去重比较投影结果中的全部字段。
+      - card:
+          title: 保留没有选课的学生
+          body: |
+            普通内连接只保留匹配。`Student AS s LEFT JOIN Enroll AS e ON e.sid = s.sid` 也保留左边未匹配的行，右边字段填 NULL。若把针对右表的匹配条件移到 WHERE，可能把这些补出的行过滤掉。
+      - item:
+          id: left-missing
+          type: choice
+          prompt: 学生 S3 没有选课。以 Student 为左表做左连接，尚未加 WHERE 筛选。S3 是否出现？
+          options: [{text: 消失，因为必须先有对应选课, why: 这是内连接的行为。}, {text: 出现，右表的字段是 NULL, correct: true}]
+          explain: 左连接保留左表无匹配的记录。
+  - id: groups
+    chapter: 查询与数据建模
+    title: 先分组，再计数或算平均
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一门课有一个成绩还没录。求已知成绩的平均值时，应该把那项当零分吗？
+          options: [{text: 只用已知分数计算, correct: true}, {text: 应把未知一律补零, why: 零分本身也是一个会拉低平均的真实分数。}]
+          explain: 先明确在统计哪些记录，再选择函数。
+      - card:
+          title: GROUP BY 把行分成多组
+          body: |
+            **聚合（aggregation）**把同组多行合成一个统计。`COUNT(*)` 计算行数，`COUNT(grade)` 只数非 NULL 值，`AVG(grade)` 忽略 NULL；全组都没有已知值时平均为 NULL。
+
+            ```sql
+            SELECT major, COUNT(*) AS students
+            FROM Student
+            GROUP BY major
+            ORDER BY major;
+            ```
+      - item:
+          id: count-major
+          type: number
+          prompt: 学生表中 S1、S2 属于 CS，S3、S4 属于 Math。按专业分组，Math 的 COUNT(*) 是多少？
+          answer: 2
+          explain: Math 组有 S3 和 S4 两条学生记录。
+      - card:
+          title: 用 HAVING 筛选分组后的结果
+          body: |
+            `WHERE` 在分组前筛行，`HAVING` 在分组后筛组。下面找平均已知成绩高于 85 的学号。S1 的 96 和 84 平均是 90，NULL 不参与。S2 是 80，S4 无已知分数，S3 无选课行，所以只返回 S1。
+
+            ```sql
+            SELECT sid, AVG(grade) AS avg_grade
+            FROM Enroll
+            GROUP BY sid
+            HAVING AVG(grade) > 85
+            ORDER BY sid;
+            ```
+      - item:
+          id: mean
+          type: number
+          prompt: 学生 S1 的成绩为 96、84、NULL。SQL 的 AVG(grade) 返回多少？
+          answer: 90
+          explain: 两项已知分数相加再除以 2，得到 90。
+      - item:
+          id: having
+          type: choice
+          prompt: 需要排除平均分不高于 85 的学生，但每个学生的低分也要参与平均。应把条件放在哪里？
+          options: [{text: WHERE grade > 85, why: 这样会先丢掉低分，计算另一种平均。}, {text: HAVING AVG(grade) > 85, correct: true}]
+          explain: 先汇总整组，再按该组的结果筛选。
+  - id: subqueries
+    chapter: 查询与数据建模
+    title: 用是否存在记录来查漏项
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 想找“一门课都没选”的学生，需要核对成绩是否空，还是选课记录是否存在？
+          options: [{text: 核对有没有任何选课记录, correct: true}, {text: 成绩为 NULL 就等于没选课, why: 已选的课程也可以尚未录成绩。}]
+          explain: 先检查关系是否存在，再单独判断关系里的属性。
+      - card:
+          title: 外层选一个人，内层查他的记录
+          body: |
+            **子查询（subquery）**是另一条语句内部的查询。`EXISTS` 检查至少一行是否匹配，`NOT EXISTS` 查无匹配。这里内层使用外层的学号，称为关联子查询。
+
+            ```sql
+            SELECT s.sid, s.name
+            FROM Student AS s
+            WHERE NOT EXISTS (
+                SELECT 1 FROM Enroll AS e WHERE e.sid = s.sid
+            )
+            ORDER BY s.sid;
+            ```
+      - item:
+          id: no-course
+          type: choice
+          prompt: S3 没有选课，S4 选了课但成绩为 NULL。“找无选课记录”的 NOT EXISTS 返回谁？
+          options: [{text: 返回 S3 和 S4, why: S4 仍有一行匹配的选课记录。}, {text: 只返回 S3, correct: true}]
+          explain: EXISTS 看是否有行，行内成绩是否缺失不影响存在性。
+      - card:
+          title: 区分成员、缺失与全称条件
+          body: |
+            `IN` 查值是否属于一组，`IS NULL` 检查缺失。普通比较遇 NULL 可得到未知，WHERE 只保留真的行。`NOT IN` 若候选里含 NULL，可能排掉本想保留的行。要表达“每门都选”，可用双层 NOT EXISTS 查没有任何缺课。
+          reveal:
+            - title: 区分任意一项和所有项
+              body: 在支持 ANY 或 SOME 的 SQL 产品里，比较 ANY 表示至少一项比较为真，比较 ALL 要求所有项都为真。比较含 NULL 时仍要处理未知。SQLite 可用 EXISTS 表达是否存在满足条件的行。
+      - item:
+          id: unknown-test
+          type: choice
+          prompt: 只想取未录成绩的选课记录，SQLite 的 WHERE 要怎样写？
+          options: [{text: WHERE grade IS NULL, correct: true}, {text: WHERE grade = NULL, why: 普通等号遇到 NULL 不能得出真的相等比较。}]
+          explain: 用专门的 NULL 判断才能找出缺失值。
+  - id: views
+    chapter: 查询与数据建模
+    title: 把常用查询保存成可复用的入口
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 多个报表都要学生的已录平均分。怎样让它们使用同一条计算规则？
+          options: [{text: 把一份手工算出的旧平均分永久复制到每个报表, why: 成绩修改后各报表可能留着旧值。}, {text: 保存一份共同查询定义，让各处复用, correct: true}]
+          explain: 将计算定义共享，报表就能按同一口径读取。
+      - card:
+          title: 给查询起一个可引用的名字
+          body: |
+            **视图（view）**用已保存的查询提供逻辑表。读取普通视图时按定义查询基础数据。它适合复用连接、列筛选或统计。物化视图另有存储和刷新机制，支持细节看具体产品。
+
+            ```sql
+            CREATE VIEW StudentAverage AS
+            SELECT sid, AVG(grade) AS average_grade
+            FROM Enroll
+            GROUP BY sid;
+            ```
+      - item:
+          id: view-use
+          type: choice
+          prompt: StudentAverage 是普通视图。修改 Enroll 的一条成绩后再查询视图，按什么计算？
+          options: [{text: 按查询定义读取当前可见的基础数据, correct: true}, {text: 永远返回创建视图当日的数值, why: 普通视图保存的是查询定义。}]
+          explain: 视图提供可复用的访问方式，数值仍由基础数据决定。
+      - card:
+          title: 明确视图的列和使用约定
+          body: |
+            应用可用 `SELECT sid, average_grade FROM StudentAverage` 读取。若报表依赖这些列，修改视图前检查现有调用。给同伴说明平均值忽略未录成绩、无选课学生不会出现在这个定义里。
+      - item:
+          id: average-view
+          type: choice
+          prompt: StudentAverage 从 Enroll 按 sid 分组，未与 Student 连接。没选任何课的 S3 是否在结果里？
+          options: [{text: 一定在，所有学生自动从别的表补进来, why: 视图只读取声明的表与行。}, {text: 不在，因为没有选课行可分组, correct: true}]
+          explain: 视图的结果由保存的查询定义决定。
+  - id: dependencies
+    chapter: 规范化
+    title: 找出哪些值能决定其他值
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同一学号在许多选课行出现。每行都写着学生姓名。如果同一个学号对应两个姓名，会违背哪条约定？
+          options: [{text: 同一个学号应对应同一位学生及其姓名, correct: true}, {text: 只要行里有课号，同一学号可随意指不同学生, why: 课程变化不能改变学号所指的学生。}]
+          explain: 从业务规则找哪些字段已经足以确定其他字段。
+      - card:
+          title: 对比同样左边的任意两行
+          body: |
+            **函数依赖（functional dependency）** `X → Y` 表示任意两行在 X 上相同就必须在 Y 上相同。按规则有 `sid → name`，反向未必成立。依赖来自所有合法数据都要满足的约定。一次样本碰巧没重名无法证明反向依赖。
+      - item:
+          id: distinguish-data
+          type: choice
+          prompt: 校规允许重名。一份当前样本里所有姓名碰巧不同。能把 name → sid 当作关系的设计规则吗？
+          options: [{text: 能，一份样本中没有冲突就代表规则成立, why: 设计规则必须覆盖所有允许的记录。}, {text: 不能，后续合法数据可能有同名的不同学号, correct: true}]
+          explain: 样本能显示违反，不能替代业务约定。
+      - card:
+          title: 从已有依赖推出新依赖
+          body: |
+            Armstrong 公理给出三种基本推理。自反性是集合决定它的子集；增广性是在左右同加一组属性；传递性是从 X→Y 与 Y→Z 推出 X→Z。它们可以继续推出合并与分解右侧。
+          reveal:
+            - title: 沿两条边推出第三条
+              body: 学号决定专业编号，专业编号决定专业名，所以学号决定专业名。
+            - title: 合并或拆开右侧
+              body: 学号决定姓名，也决定专业编号，因此学号可同时决定两项。反过来，决定两项就能分别决定其中每项。
+      - item:
+          id: inference
+          type: match
+          prompt: 给三种推导配 Armstrong 公理。
+          pairs: [[学号与课号组成的组合决定学号, 自反性], [A 决定 B 时，A 与 C 的组合决定 B 与 C 的组合, 增广性], [学号决定专业编号且专业编号决定专业名，所以学号决定专业名, 传递性]]
+          explain: 用子集、同加条件或依次追踪，能从少量依赖推得更多结果。
+  - id: closure
+    chapter: 规范化
+    title: 算出一组属性能推出什么，找出最小标识
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 学号和课号合起来能找出这一行的全部字段。怎样判断两者是否都必需？
+          options: [{text: 试着各去掉一个，看还能否决定整行, correct: true}, {text: 只要组合能找到整行，就自动证明每项都不能去掉, why: 组合里可能含有多余字段。}]
+          explain: 能推出整行和是否最小，需要分别检查。
+      - card:
+          title: 顺着依赖不断加入可推出的属性
+          body: |
+            **闭包（attribute closure）**从起始属性出发，反复把已满足左侧的依赖右侧加入，直到不再增加。覆盖整行是**超键（superkey）**。若再去掉任一属性便无法覆盖整行，它就是**候选键（candidate key）**。
+          reveal:
+            - title: 把依赖画成箭头
+              body: R 有 sid、name、cid、title、grade。箭头是 sid→name，cid→title，(sid,cid)→grade。
+            - title: 从组合出发
+              body: sid 和 cid 在起点，三条箭头都可用，得到姓名、课程名、成绩。闭包是全部五项。
+            - title: 检查最小与唯一候选
+              body: 只从 sid 出发可加 name，只从 cid 出发可加 title。没有依赖能推出 sid 或 cid，所以每个键都必须包含两者。组合就是唯一候选键。
+      - item:
+          id: key-closure
+          type: choice
+          prompt: R(sid,name,cid,title,grade) 仅知 sid→name、cid→title、(sid,cid)→grade。只从 cid 出发的闭包是什么？
+          options: [{text: cid、title 和 grade, why: 成绩依赖还需要 sid。}, {text: cid 和 title, correct: true}]
+          explain: 依赖左边要全部拥有，才能推出右边。
+      - card:
+          title: 把表达同一规则的依赖写得更精简
+          body: |
+            求最小覆盖时，先拆成每条依赖只有一个右侧属性，再查左侧是否含多余属性，最后删去可由其他规则推出的依赖。每一步用闭包核对前后可推出的规则仍相同。比如已有 A→B 和 B→C，另列的 A→C 可以删去。
+      - item:
+          id: redundant
+          type: choice
+          prompt: 依赖集合中有 A→B、B→C、A→C。删哪条后，仍可用剩余规则推出原来三条？
+          options: [{text: A→C，能由传递性推出, correct: true}, {text: B→C，有 A→C 就能从 B 找 C, why: 从 B 出发无法先得到 A。}]
+          explain: 检查冗余时，必须从被删依赖原来的左侧出发。
+  - id: normal-forms
+    chapter: 规范化
+    title: 让学生姓名和课程标题各存到该去的表
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同一门课的标题出现在每条选课里。课程改名时，漏改一行会怎样？
+          options: [{text: 旧标题会从别的行自动得到修正, why: 重复保存的每一处都可能被独立修改。}, {text: 同一课号会出现不一致的标题, correct: true}]
+          explain: 把不同事实拆到各自的位置，更新才能集中。
+      - card:
+          title: 查哪些事实重复或无法单独保存
+          body: |
+            **范式（normal form）**用关系结构和依赖条件减少重复及更新异常。若课程标题只能放在选课行里，没选课就难登记课程，删掉最后一条选课也可能丢标题。第一范式要求属性按其域存单个值，没有重复组。
+      - item:
+          id: single-value
+          type: choice
+          prompt: 课程编号本应是单个值。某字段存了“C1,C2”表示两次选课。优先怎样整理？
+          options: [{text: 拆成两条选课记录，每行一门课, correct: true}, {text: 加长文本字段，让它能装更多编号, why: 更长的文本仍把多项业务事实混在一格。}]
+          explain: 每次选课独立保存，才方便逐条检查、引用和查询。
+      - card:
+          title: 区分对键的一部分依赖和经其他属性的依赖
+          body: |
+            第二范式要求每个不属于任何候选键的属性完全依赖各候选键。若姓名只靠组合键的一部分 sid 就能确定，就是部分依赖。检查第三范式时先把右侧拆成单属性。每条非平凡依赖要么由超键决定，要么右侧属性属于某个候选键。
+          reveal:
+            - title: 检查选课大表
+              body: (sid,cid) 是候选键，name 只由 sid 决定、title 只由 cid 决定。假定每项是单值，大表满足第一范式，却因部分依赖未达到第二范式。
+            - title: 在单列键下查传递依赖
+              body: 假定学生表以 sid 为唯一候选键，sid→major_id，major_id→major_name。专业编号能推出专业名，但它不是超键，专业名也不属于候选键，所以这条依赖违反第三范式。
+      - item:
+          id: partial
+          type: choice
+          prompt: R(sid, cid, title) 的唯一候选键是 (sid,cid)，且 cid→title。所有属性是单值。它最高达到哪一级？
+          options: [{text: 第二范式，因为组合键仍能确定 title, why: 第二范式还要求非键属性对候选键完全依赖。}, {text: 第一范式，title 只依赖候选键的一部分, correct: true}]
+          explain: 组合键能确定整行只是起点，还要检查非键属性是否依赖了过多的键字段。
+  - id: bcnf
+    chapter: 规范化
+    title: 沿违规依赖拆表，再连接回原记录
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你把课程资料从选课表移出。保留哪个字段才知道一条选课对应哪门课程？
+          options: [{text: 两边仍需保留用于匹配的课号, correct: true}, {text: 拆表后可以删掉所有共同字段, why: 没有明确配对信息，连接可能组合出不存在的行。}]
+          explain: 分开保存事实时，也要保留能准确找回对应事实的键。
+      - card:
+          title: 检查每条真正新增信息的依赖
+          body: |
+            BCNF 要求每条非平凡函数依赖的左侧都是超键。非平凡指右侧至少有属性不在左侧里。遇到不满足的 X→Y，可拆成含 X 与 Y 的表，以及从原表去掉 Y 中不属于 X 的属性后得到的表。两表公共的 X 决定其中一表。
+      - item:
+          id: bcnf-violation
+          type: choice
+          prompt: 选课大表的候选键为 (sid,cid)。sid→name 为什么违反 BCNF？
+          options: [{text: 只要依赖能在数据中观察到，就必然符合 BCNF, why: BCNF 要求每条非平凡依赖的决定方足够强。}, {text: sid 无法决定所有字段，所以不是超键, correct: true}]
+          explain: 学号能决定姓名，却不能决定课程编号和每门课的成绩。
+      - card:
+          title: 按两条违规依赖拆开，再检查两项性质
+          body: |
+            **无损连接（lossless join）**要求拆后的表连接能还原原行且不生出假行。**依赖保持（dependency preservation）**要求只检查分表里的依赖就能推出原规则。这两项需要分别核对。
+          reveal:
+            - title: 移出学生姓名
+              body: 把 sid 与 name 放入 Student，余表仍保留 sid。公共 sid 决定 Student 的全部属性，按它连接不会混出另一人的姓名。
+            - title: 移出课程标题
+              body: 把 cid 与 title 放入 Course，余下 Enroll(sid,cid,grade)。公共 cid 决定 Course 的全部属性。
+            - title: 确认规则仍有归属
+              body: 三个决定方分别为 sid、cid、(sid,cid)，各在自己的表里是键。原有三条依赖各有一张表负责检查，两次拆分也都可无损还原。
+      - item:
+          id: preserved
+          type: match
+          prompt: 给拆分后的三条规则找能直接检查的表。
+          pairs: [[sid 决定 name, Student], [cid 决定 title, Course], [sid 和 cid 一起决定 grade, Enroll]]
+          explain: 每条规则的左右属性都留在某张表中，这个例子保持了依赖。
+  - id: decomposition-tradeoff
+    chapter: 规范化
+    title: 在无损与就地检查规则之间作取舍
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 拆开的表能重新拼回原记录。能否由此断定所有原规则都能在单张新表里检查？
+          options: [{text: 还需另查原规则的属性有没有被拆到不同表, correct: true}, {text: 能拼回就自动能在任意单表上检查全部旧规则, why: 拼回与就地验证是不同目标。}]
+          explain: 可恢复原记录，与验证新写入是否符合规则，要分开判断。
+      - card:
+          title: 观察一个达到 3NF 却未达到 BCNF 的表
+          body: |
+            例子有学生 S、课程 C、教师 T。一名教师只教一门课，给出 T→C。每名学生在同一门课只有一名教师，给出 SC→T。候选键是 SC 与 ST。C 属于候选键，T→C 满足 3NF 的右侧条件，但 T 不能决定 S，违反 BCNF。
+      - item:
+          id: not-superkey
+          type: choice
+          prompt: 只有 T→C 与 SC→T。为什么 T 单独无法作超键？
+          options: [{text: 它能决定一门课程，所以会自动决定该课程的所有学生, why: 课程或教师不唯一决定学生。}, {text: 它能得到 C，但无法推出学生 S, correct: true}]
+          explain: 从教师出发只有教师和课程两项，缺学生。
+      - card:
+          title: 连接仍无损，原规则可能跨两张表
+          body: |
+            按 T→C 拆为 TC 与 ST。公共 T 决定 TC，所以无损。可是 TC 可以有两名教师都教同一门课，ST 也可允许同一学生关联两名教师，连接后会违反 SC→T。3NF 的依赖保持分解可另选；常用做法是按最小覆盖建表，必要时补含候选键的表。
+          reveal:
+            - title: 检查分表各自能看到什么
+              body: TC 能看教师与课程，ST 能看学生与教师。两张表都无法单独检查一个学生在同一门课是否出现了两名教师。
+            - title: 认识更高范式解决的另一类重复
+              body: 独立的多值事实会生成不必要组合，例如一个人有多个电话且会多门语言。第四范式处理这类多值依赖，第五范式继续考虑由多个投影连接构成的约束。
+      - item:
+          id: tradeoff
+          type: choice
+          prompt: 按 T→C 拆出 TC、ST 后，如果必须在局部约束中保证 SC→T，应怎么做？
+          options: [{text: 重新选择保持依赖的设计，或安排能跨表验证的明确机制, correct: true}, {text: 只给 TC 与 ST 分别设置主键就一定能推出 SC→T, why: 这两张表各自缺少一项必要属性。}]
+          explain: 明确哪个目标必须满足，再选择分解和约束手段。
+boss:
+  items:
+    - id: mapping
+      type: choice
+      prompt: 每名学生可选多门课，每门课可有多名学生，每个学号课号组合最多一条。如何记录成绩？
+      options: [{text: 在 Student 里只放一个成绩字段, why: 同一学生可以有多门课的不同成绩。}, {text: 建 Enroll 表，以学号和课号组合作键，成绩存在其中, correct: true}]
+      explain: 成绩属于某个学生与某门课的联系。
+    - id: algebra
+      type: match
+      prompt: 给关系代数操作配主要结果。
+      pairs: [[按条件保留行, 选择], [保留指定列并去重, 投影], [按标识把匹配行配起来, 连接]]
+      explain: 这三种操作可组合成一次跨表查询。
+    - id: preserve-orders
+      type: choice
+      prompt: 账户可停用，但必须保留账户曾下的所有订单。采用哪种删除规则？
+      options: [{text: 有订单时禁止删除账户，或标记停用, correct: true}, {text: 总是级联删掉全部订单, why: 这会丢失业务必须保留的历史。}]
+      explain: 外键动作应和数据保留要求一致。
+    - id: no-rows
+      type: choice
+      prompt: S3 从未选课，S4 有选课行但成绩是 NULL。按是否存在选课行来查未选课学生，谁满足？
+      options: [{text: S3 和 S4 都满足, why: S4 的成绩缺失，但选课行存在。}, {text: 只 S3, correct: true}]
+      explain: 检查关系存在性时，行内某项属性是否缺失不影响行是否存在。
+    - id: distinct
+      type: choice
+      prompt: SQL 查询得到三行 (S1, Mei)、(S1, Mei)、(S4, Mei)。如果需要保留每个学生身份一次，如何去重？
+      options: [{text: 对学号和姓名一起用 DISTINCT，留下两个学号, correct: true}, {text: 仅保留 DISTINCT 姓名，得到一行就等于一个学生, why: 同名的两名学生会被合并。}]
+      explain: 身份去重保留键，姓名集合查询才仅保留姓名。
+    - id: average
+      type: number
+      prompt: 一名学生的三条成绩记录是 96、84、NULL。SQLite 中 AVG(grade) 得多少？
+      answer: 90
+      explain: AVG 忽略 NULL，计算两项已知成绩的平均。
+    - id: candidate-key
+      type: choice
+      prompt: R(sid,name,cid,title,grade) 只给 sid→name、cid→title 和 (sid,cid)→grade。最小能决定整行的是哪组？
+      options: [{text: 学号与课号, correct: true}, {text: 只有学号, why: 无法确定课号、课程名和本课成绩。}, {text: 姓名与课程名, why: 题目未给从名称推出编号的依赖。}]
+      explain: 两个编号都无法由其他字段推出，拿到两者后可推出剩余三项。
+    - id: bcnf
+      type: choice
+      prompt: 选课大表的键是 (sid,cid)，姓名由 sid 决定。哪种拆法让这条规则在一张小表上以键来执行？
+      options: [{text: 把 name 当作所有选课行的唯一键, why: 姓名可能重复，也无法表示一人选多课。}, {text: '拆出 Student(sid,name)，选课表仍保留 sid 供连接', correct: true}]
+      explain: 学号在学生表内是键，并能连接回选课行。

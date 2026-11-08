@@ -1,0 +1,1213 @@
+skill: P.1.4
+version: 2
+brief:
+  why: 大型程序要同时管理资源、并发顺序和可维护边界。用真实运行与测量核对抽象是否兑现契约。
+  outcomes:
+    - 管理资源、所有权和借用
+    - 用类型与规格限制非法状态，验证异步和共享访问
+    - 通过复现、回归与剖析定位实际成本
+terms:
+  - term: 上下文管理器
+    def: 规定进入和离开一段操作时如何取得与释放资源。
+  - term: 所有权
+    def: 明确由哪个值负责资源的使用与释放。
+  - term: 借用
+    def: 在不转移所有权时暂时通过引用访问值。
+  - term: 内存
+    def: 供程序保存和读取运行数据的空间。
+  - term: 编译
+    def: 将代码转换为目标执行环境可处理的表示。
+  - term: 编译器
+    def: 执行转换并可检查语言规则的工具。
+  - term: 字节
+    def: 由 8 位组成的数据单位。
+  - term: 数组
+    def: 按位置组织的数据序列。
+  - term: 泛型
+    def: 借类型参数复用同一规则。
+  - term: 抽象数据类型
+    def: 由可见操作和行为约定定义的类型。
+  - term: 递归
+    def: 用更小的同类数据表达和求解问题。
+  - term: 反射
+    def: 在运行时观察对象或程序的结构。
+  - term: 元编程
+    def: 检查或生成程序结构的编程方式。
+  - term: 进程
+    def: 正在执行并拥有资源的程序实例。
+  - term: 线程
+    def: 在进程内部执行工作的一条路线。
+  - term: 竞态条件
+    def: 结果取决于工作先后并可能违反约定。
+  - term: 异步等待
+    def: 等待期间让出执行机会，再在结果可用时继续。
+  - term: 互斥锁
+    def: 让同一保护范围一次只由一个持有者进入。
+  - term: 死锁
+    def: 参与者彼此等待而无法继续。
+  - term: 规格
+    def: 描述调用条件、结果及可观察影响。
+  - term: 表示不变量
+    def: 内部表示必须保持的合法条件。
+  - term: 抽象函数
+    def: 把合法内部值解释为对外抽象值的映射。
+  - term: 性能剖析
+    def: 测量程序运行中的时间或调用等数据。
+lessons:
+  - id: cleanup
+    chapter: 资源管理
+    title: 把文件和锁的释放跟作用范围绑定
+    minutes: 13
+    flow:
+      - guess:
+          id: cleanup-guess
+          type: choice
+          prompt: 写文件时发生错误，若手动关闭写在下一行会怎样？
+          options:
+            - text: 关闭那一行可能被跳过
+              correct: true
+            - text: 不论控制怎样离开，后面每行都会执行
+              why: 错误会改变执行路径。
+          explain: 让释放资源成为离开作用范围的规则。
+      - card:
+          title: with 进入取得资源，离开时清理
+          body: >
+            Python 的**上下文管理器（context manager）**约定进入和退出操作。成功进入后，即使代码抛出错误而退出，`with`
+            也会调用退出操作。多个资源按进入的反序退出。下例在测试工作目录创建文件并强制出错。
+
+
+            ```python
+
+            from threading import Lock
+
+            lock = Lock()
+
+            try:
+                with open("lesson.log", "w") as file, lock:
+                    file.write("entry\n")
+                    raise ValueError("demo")
+            except ValueError:
+                pass
+            print(file.closed, lock.locked())
+
+            # expect: True False
+
+            ```
+      - item:
+          id: cleanup-practice
+          type: choice
+          prompt: 写文件报错并退出 `with open(...) as f, lock:`，两个资源都已成功进入。退出顺序是？
+          options:
+            - text: 先关闭文件，锁保持占用
+              why: 后进入的资源先退出。
+            - text: 先释放锁，再关闭文件
+              correct: true
+          explain: 成对管理获取与释放。
+      - card:
+          title: RAII 把资源管理交给对象
+          body: 在 C++ 中可用文件对象、锁守卫或拥有资源的对象管理资源，正常离开作用范围或异常展开时销毁已构造对象。Rust 也可用拥有资源的值及其 Drop 规则。程序被强制终止等情况仍需单独处理持久数据。
+      - item:
+          id: cleanup-apply
+          type: choice
+          prompt: 给一段代码取得文件和锁，要求早返回也清理。怎样实现？
+          options:
+            - text: 只在最后一行手动释放两者
+              why: 提前返回会绕过最后一行。
+            - text: 用作用范围管理两项资源
+              correct: true
+          explain: 对所有正常离开和异常路径设计清理。
+  - id: ownership
+    chapter: 资源管理
+    title: 追踪值的所有者何时转移
+    minutes: 13
+    flow:
+      - guess:
+          id: ownership-guess
+          type: choice
+          prompt: 一份文件句柄交给负责关闭的人后，原来持有的人还能按原权限再次关闭吗？
+          options:
+            - text: 可以让两人都任意关闭
+              why: 重复释放会破坏资源约定。
+            - text: 应明确所有者已转移，防止两边都关闭
+              correct: true
+          explain: 用所有权说明谁负责清理。
+      - card:
+          title: Rust 按所有权规则释放资源
+          body: >
+            **所有权（ownership）**决定哪个值负责释放资源。Rust 的 String 持有**内存（memory）**里的字符串数据。`let b = a` 转移这种值的所有权，a
+            不能继续使用。**编译（compile）**把程序转换为可执行形式；**编译器（compiler）**在运行前检查这些规则。
+
+
+            ```rust
+
+            fn main() {
+                let a = String::from("ready");
+                let b = a;
+                println!("{}", b);
+            }
+
+            // expect: ready
+
+            ```
+      - item:
+          id: ownership-practice
+          type: choice
+          prompt: 示例移动 String 后再写 `println!("{}", a)`，会怎样？
+          options:
+            - text: 在运行前被拒绝，因为 a 的所有权已移出
+              correct: true
+            - text: 总能打印 ready，因为赋值必然复制字符串内容
+              why: String 的普通赋值移动所有权。
+          explain: 检查值当前由谁拥有。
+      - card:
+          title: 区分移动、显式复制和 Copy
+          body: 固定大小的整数等实现了 Copy 的类型可按值复制。要让两个 String 都拥有独立内容，可显式 `clone()`，需要分配和复制。资源通常随拥有它的值离开作用范围被释放。
+      - item:
+          id: ownership-apply
+          type: choice
+          prompt: 要让原 String 与新 String 都能独立使用和修改，可用什么？
+          options:
+            - text: 显式 clone 内容
+              correct: true
+            - text: 移动后继续使用原名字
+              why: 移动没有保留两个所有者。
+          explain: 复制与移动有不同代价。
+  - id: borrowing
+    chapter: 资源管理
+    title: 临时借用，按范围限制读取与修改
+    minutes: 13
+    flow:
+      - guess:
+          id: borrowing-guess
+          type: choice
+          prompt: 函数只需要看字符串长度。调用后还要用原字符串，怎样交给函数？
+          options:
+            - text: 借用，只传可读引用
+              correct: true
+            - text: 移走所有权且不归还
+              why: 只读操作不必夺走原值。
+          explain: 让参数的访问范围匹配行为。
+      - card:
+          title: 引用借用值，使用时间受约束
+          body: >-
+            **借用（borrowing）**暂时通过引用使用已有值。`&value` 可共享读取；在同一对象上活跃的 `&mut value`
+            要保持独占。借用不能比被借值存在更久。一个借用结束后，才可开始与它冲突的借用。
+      - item:
+          id: borrowing-practice
+          type: match
+          prompt: 将需求配给合适的 Rust 操作。
+          pairs:
+            - - 函数只读，调用方继续持有
+              - 共享借用
+            - - 函数临时独占修改
+              - 可变借用
+            - - 把清理责任交给另一个值
+              - 移动所有权
+          explain: 区分使用能力、时间和清理责任。
+      - card:
+          title: 字符串切片借用一段有效 UTF-8 范围
+          body: |
+            **字节（byte）**是 8 位数据。`&s[..2]` 借用从开头到第 2 个字节之前的内容，示例用 ASCII 字母。字符串下标是字节偏移，必须落在字符边界上，不能把任意字符数直接当字节数。
+
+            ```rust
+            fn main() {
+                let text = String::from("note");
+                let head = &text[..2];
+                println!("{}:{}", head, text);
+            }
+            // expect: no:note
+            ```
+      - item:
+          id: borrowing-apply
+          type: choice
+          prompt: 对 ASCII 的 `note` 取 `&text[..2]` 后，原 text 是否被移走？
+          options:
+            - text: text 被移动给切片
+              why: 切片引用原内容，没有取得所有权。
+            - text: 仍由 text 拥有，切片只是借用
+              correct: true
+          explain: 借用不改变资源的归属。
+  - id: typing
+    chapter: 泛型元编程
+    title: 区分运行前检查、运行时检查和可变状态
+    minutes: 13
+    flow:
+      - guess:
+          id: typing-guess
+          type: choice
+          prompt: 一项计算要求整数输入，错把文本传进去。若工具能在运行前发现错误，能避免什么？
+          options:
+            - text: 从此所有业务逻辑都正确
+              why: 类型正确也可能计算出错误值。
+            - text: 避免带着这一类错误开始运行
+              correct: true
+          explain: 静态和运行时检查各守一层。
+      - card:
+          title: 静态检查约束程序，运行时检查外部数据
+          body: >-
+            TypeScript 静态分析代码类型，JavaScript 在运行时处理实际值。未检查的边界仍可能让错误进入。用 `unknown` 接收外部值，再按 `typeof`
+            等条件收窄；业务条件仍要显式验证。
+      - item:
+          id: typing-practice
+          type: choice
+          prompt: 外部返回的 JSON 自称是数字。可靠处理是什么？
+          options:
+            - text: 解析后检查真实类型与业务范围
+              correct: true
+            - text: 仅写类型断言就假定外部数据符合要求
+              why: 类型断言不会检查收到的数据。
+          explain: 运行时边界要验证真实值。
+      - card:
+          title: 重新绑定与修改对象有不同影响
+          body: >-
+            **数组（array）**用位置组织一组值。将可重绑名字指向新值，不会修改旧对象。经共享引用更新旧对象时，其他持有者也能看见。TypeScript 的 const
+            限制重新绑定，不能自动禁止对象内部修改。工程做法先说明契约，再用检查防止偏差。
+      - item:
+          id: typing-apply
+          type: choice
+          prompt: '`const items = []` 禁止把 items 改指别处。是否也自动禁止向数组追加？'
+          options:
+            - text: 能，const 使内部数组不可变
+              why: 常量绑定不等于对象不可变。
+            - text: 不能，仅限制名字重新绑定
+              correct: true
+          explain: 需要独立控制内部可变性。
+  - id: generics
+    chapter: 泛型元编程
+    title: 让容器按类型参数保留调用者的信息
+    minutes: 13
+    flow:
+      - guess:
+          id: generics-guess
+          type: choice
+          prompt: 列表可能存整数也可能存文字。取第一项时，能否让返回类型跟随输入？
+          options:
+            - text: 可用泛型类型参数保留输入类型
+              correct: true
+            - text: 只能统一返回无法判断的值
+              why: 泛型能表达输入和结果的类型关系。
+          explain: 规则可复用，类型信息可保留。
+      - card:
+          title: 类型参数统一说明输入和结果
+          body: |
+            **泛型（generic）**用类型参数表示复用规则。`T` 既出现在输入元素类型，也出现在返回类型。接口声明调用方可使用的形状，满足同一要求的子类型可以替换。空容器要有明确分支。
+
+            ```typescript
+            function first<T>(items: readonly T[]): T | undefined {
+                return items[0];
+            }
+            console.log(first(["book", "pen"]));
+            console.log(first<number>([]));
+            // expect: book|undefined
+            ```
+      - item:
+          id: generics-practice
+          type: choice
+          prompt: '`first([3, 4])` 的静态结果为什么还可能是 undefined？'
+          options:
+            - text: 整数列表一定保证永远不会为空
+              why: 泛型参数只表达元素类型。
+            - text: 函数契约允许空输入，返回类型包含缺失
+              correct: true
+          explain: 区分元素类型与容器是否含元素。
+      - card:
+          title: 枚举与可辨别分支明确有限状态
+          body: 枚举或带标记的联合能描述少数状态。泛型例如 `Result<T>` 可把成功携带的 T 与失败原因区分。先检查标记，再使用这一分支承诺的字段。子类型关系看可用行为与类型约定。
+      - item:
+          id: generics-apply
+          type: choice
+          prompt: 有成功和失败两种结果。什么时候可安全读取只在成功分支存在的 data？
+          options:
+            - text: 先检查状态标记确认成功
+              correct: true
+            - text: 未检查就强行读取
+              why: 失败时可能没有这个字段。
+          explain: 让分支条件把实际类型缩到合适范围。
+  - id: recursive
+    chapter: 泛型元编程
+    title: 用带标记的类型处理递归数据
+    minutes: 13
+    flow:
+      - guess:
+          id: recursive-guess
+          type: choice
+          prompt: 一个任务可以是单项，也可以是一组任务的组合。求工作量要先识别什么？
+          options:
+            - text: 假定每个任务都只有一个数值字段
+              why: 组合由若干子项组成。
+            - text: 识别单项或组合，再选择计算规则
+              correct: true
+          explain: 数据形状决定算法如何继续。
+      - card:
+          title: ADT 可用公开操作和多种数据构造实现
+          body: >
+            **抽象数据类型（ADT）**由调用者可见的操作和行为定义。在非面向对象语言中也可用函数和结构封装。TypeScript
+            例子用带标记的联合来表示**递归（recursion）**形状，即数据可以包含同类的较小子项，先看 `kind`，再访问该分支的字段。
+
+
+            ```typescript
+
+            type Task =
+                | { kind: "one"; minutes: number }
+                | { kind: "group"; tasks: readonly Task[] };
+
+            function minutes(task: Task): number {
+                if (task.kind === "one") return task.minutes;
+                return task.tasks.reduce((sum, item) => sum + minutes(item), 0);
+            }
+
+            console.log(minutes({ kind: "group", tasks: [
+                { kind: "one", minutes: 2 }, { kind: "one", minutes: 5 }
+            ]}));
+
+            // expect: 7
+
+            ```
+      - item:
+          id: recursive-practice
+          type: number
+          prompt: 两个单项任务分别为 2 和 5 分钟，按组合合计规则，总数是多少？
+          answer: 7
+          explain: 按组递归求各子项结果，再相加。
+      - card:
+          title: 不可变更新可只重建变化路径
+          body: 树形数据可保留未改的子树，只为变化路径创建新节点。共享可降低复制，但大量更新仍有分配和遍历成本。动态检查要看可靠的标记或平台支持的真实类型；TypeScript 的类型别名通常运行时不存在。
+      - item:
+          id: recursive-apply
+          type: choice
+          prompt: 只修改树的一片叶子，希望旧树还能使用，怎样减少复制？
+          options:
+            - text: 就地改旧叶子，因为复制总是浪费
+              why: 就地改会改变旧树观察到的结果。
+            - text: 重建受影响路径，安全共享其余不可变子树
+              correct: true
+          explain: 共享前确认数据不会被修改。
+  - id: meta
+    chapter: 泛型元编程
+    title: 区分运行时反射和编译期宏
+    minutes: 13
+    flow:
+      - guess:
+          id: meta-guess
+          type: choice
+          prompt: 想给多种业务函数统一加日志，能否不逐个改它们的计算体？
+          options:
+            - text: 可在外层包装函数，再转发调用
+              correct: true
+            - text: 只能把同样日志复制进每个计算体
+              why: 包装可复用共同的前后行为。
+          explain: 把业务逻辑与横切动作分开。
+      - card:
+          title: 反射查看运行中的对象，包装器改变调用方式
+          body: >
+            **反射（reflection）**在运行时检查类型、成员或注解；例如 Java 可检查 Class，Python 可用
+            `getattr`。只允许受控成员名，避免从外部输入任意选择操作。装饰器可替换函数入口并保留原计算。
+
+
+            ```python
+
+            from functools import wraps
+
+            def traced(fn):
+                @wraps(fn)
+                def wrapper(value):
+                    print("call")
+                    return fn(value)
+                return wrapper
+
+            @traced
+
+            def double(value):
+                return value * 2
+
+            print(double(4))
+
+            # expect: call|8
+
+            ```
+      - item:
+          id: meta-practice
+          type: choice
+          prompt: 装饰后的 double(4) 先发生什么？
+          options:
+            - text: 原函数被删掉，永远不再调用
+              why: 包装器保留并转发给原函数。
+            - text: 包装器打印 call，再调用原函数
+              correct: true
+          explain: 分清包装入口和被调用的行为。
+      - card:
+          title: 宏在构建时按规则展开代码
+          body: >-
+            **元编程（metaprogramming）**让程序检查或生成程序结构。Rust 的 `macro_rules!`
+            按匹配规则在运行前展开，过程宏可变换输入记号。泛型提供类型复用；反射和宏发生阶段不同，需明确可调试性与生成范围。
+      - item:
+          id: meta-apply
+          type: choice
+          prompt: 运行时按安全允许表查看一个对象有没有某个公开操作，属于哪种机制？
+          options:
+            - text: 在编译前运行的语法宏展开
+              why: 宏展开处理代码记号，不查看这个已运行的实例。
+            - text: 反射式检查
+              correct: true
+          explain: 从使用阶段区分能力。
+  - id: shared
+    chapter: 异步/并发
+    title: 安排一次交错，亲眼看到丢失更新
+    minutes: 13
+    flow:
+      - guess:
+          id: shared-guess
+          type: choice
+          prompt: 两位工作人员都看见计数 0，再分别把 1 写回。两次动作后计数是多少？
+          options:
+            - text: 2，因为写过两次
+              why: 两次写入都依据同一个旧值。
+            - text: '1'
+              correct: true
+          explain: 追踪每一步读到的状态。
+      - card:
+          title: 进程与线程可用共享状态或消息协作
+          body: >
+            **进程（process）**是运行的程序实例；**线程（thread）**是在其中执行工作的一条路线。线程可在时间上交错，进程可经消息传递协作。**竞态条件（race
+            condition）**表示结果依赖先后并可能违反要求。
+
+
+            ```python
+
+            from threading import Barrier, Thread
+
+            counter = 0
+
+            both_read = Barrier(2)
+
+            def add():
+                global counter
+                old = counter
+                both_read.wait()
+                counter = old + 1
+            workers = [Thread(target=add) for _ in range(2)]
+
+            for worker in workers:
+                worker.start()
+            for worker in workers:
+                worker.join()
+            print(counter)
+
+            # expect: 1
+
+            ```
+      - item:
+          id: shared-practice
+          type: number
+          prompt: 两个任务都先读到计数 0，随后各写回「旧值加 1」。最后的值是多少？
+          answer: 1
+          explain: 两个写回值都是 1，覆盖无法累积。
+      - card:
+          title: 不要把特定运行结果当作语言保证
+          body: 示例用同步点让两次读取都先完成。`counter += 1` 的行为受实现与执行安排影响，Python 的 GIL 不能作为跨实现的复合操作保证，某些构建也可无 GIL。保护规则要显式约定。
+      - item:
+          id: shared-apply
+          type: choice
+          prompt: 没加锁的测试跑一遍刚好得到正确计数，能证明所有交错都正确吗？
+          options:
+            - text: 不能，可能这次没遇到导致失败的顺序
+              correct: true
+            - text: 能，一次通过证明所有线程顺序都正确
+              why: 实际运行只经历一部分交错。
+          explain: 用可重现的执行安排和同步规则验证。
+  - id: await
+    chapter: 异步/并发
+    title: 等待外部工作时，把执行机会交给别的任务
+    minutes: 13
+    flow:
+      - guess:
+          id: await-guess
+          type: choice
+          prompt: 三个任务各等一秒响应，等待期间没有计算依赖。可以怎样缩短理想完成时间？
+          options:
+            - text: 先并发安排三项，再一起等待
+              correct: true
+            - text: 逐项等完才启动下一项
+              why: 顺序等待会把三次等待相加。
+          explain: 重叠等待与加速计算是不同问题。
+      - card:
+          title: 异步函数可以挂起等待，再从原处继续
+          body: >
+            **异步等待（async await）**让协作任务在等待可等待对象时让出执行机会。调用 Python 异步函数先产生协程对象，需要安排为任务或等待它。`gather` 可让三项 I/O
+            等待重叠。
+
+
+            ```python
+
+            import asyncio
+
+
+            async def one(label):
+                await asyncio.sleep(0.03)
+                return label
+
+            async def main():
+                results = await asyncio.gather(one("a"), one("b"), one("c"))
+                print("".join(results))
+
+            asyncio.run(main())
+
+            # expect: abc
+
+            ```
+      - item:
+          id: await-practice
+          type: choice
+          prompt: 三个互不依赖的请求各等待约一秒，且同时启动。忽略额外开销，总等待接近什么？
+          options:
+            - text: 恰好三秒
+              why: 等待段可互相重叠。
+            - text: 约一秒
+              correct: true
+          explain: 真实时间还受网络、限制和任务开销影响。
+      - card:
+          title: 忙等和长计算会占住事件循环
+          body: 忙等反复检查条件会占用执行机会。改用可等待的完成信号、事件或合适的任务工具。CPU 密集工作通常需移出单个事件循环；是否用线程或进程要看运行时、数据传递与成本。
+      - item:
+          id: await-apply
+          type: choice
+          prompt: 一个 async 函数做长时间纯计算，中间从不等待，其他任务可能怎样？
+          options:
+            - text: 自动并行到所有可用核心
+              why: 异步声明不会自动创建计算执行单元。
+            - text: 在同一事件循环里可能被拖延
+              correct: true
+          explain: 区分 I/O 等待与 CPU 工作。
+  - id: promises
+    chapter: 异步/并发
+    title: 组合多个异步结果，明确失败去向
+    minutes: 13
+    flow:
+      - guess:
+          id: promises-guess
+          type: choice
+          prompt: 两个相互独立的请求都必须成功。怎样把它们的结果聚在一个约定里？
+          options:
+            - text: 只检查第一个请求是否成功
+              why: 第二个请求仍是完成条件。
+            - text: 并发启动后组合等待，并处理任何失败
+              correct: true
+          explain: 让组合结果表达实际依赖。
+      - card:
+          title: Promise 表示未来完成或拒绝的结果
+          body: >
+            TypeScript 的 `async` 函数返回 Promise。`await` 得到完成值，拒绝会进入错误路径。`Promise.all`
+            的结果按输入顺序返回；任一拒绝使组合失败，其余已开始的工作不会因此自动取消。
+
+
+            ```typescript
+
+            async function read(name: string): Promise<string> {
+                return name.toUpperCase();
+            }
+
+            Promise.all([read("x"), read("y")]).then(values => {
+                console.log(values.join(","));
+            });
+
+            // expect: X,Y
+
+            ```
+      - item:
+          id: promises-practice
+          type: choice
+          prompt: 两项 Promise 已启动，其中一项失败。`Promise.all` 能保证自动取消另一项吗？
+          options:
+            - text: 不能，取消要由底层和调用方另行支持
+              correct: true
+            - text: 能，组合失败后其他所有工作自动中止
+              why: Promise 聚合只决定聚合结果。
+          explain: 区分失败传播与任务取消。
+      - card:
+          title: 需要部分结果时明确采用不同组合
+          body: 若允许每项有独立结果，可收集成功与失败并按业务处理。设置超时、清理与重试规则，避免被拒绝的任务没人观察。界面回调应更新状态而不是阻塞等待。
+      - item:
+          id: promises-apply
+          type: choice
+          prompt: 页面需要显示两个读取结果各自成功或失败。哪种结果模型更合适？
+          options:
+            - text: 只报告第一个错误并丢掉其他结果
+              why: 题设需要两项各自的结果。
+            - text: 为每项保留独立结果与失败
+              correct: true
+          explain: 按业务的容错语义选择组合。
+  - id: locks
+    chapter: 异步/并发
+    title: 把整段共享更新放在同一个保护区
+    minutes: 13
+    flow:
+      - guess:
+          id: locks-guess
+          type: choice
+          prompt: 若两个任务都需要读余额、检查、再扣减，只把最后写入包进锁够吗？
+          options:
+            - text: 不够，读和检查也必须在同一个保护范围内
+              correct: true
+            - text: 足够，最后写入不重叠就不会用旧状态
+              why: 两次检查仍可能使用相同旧余额。
+          explain: 保护业务约束覆盖的整段操作。
+      - card:
+          title: 互斥保护一段操作，而不只是一个语句
+          body: |
+            **互斥锁（mutex）**让共享状态的保护区同一时刻只允许一个持有者。共享状态的所有相关读写遵循同一约定。下例用同一把锁保护两线程的每次更新。
+
+            ```python
+            from threading import Lock, Thread
+            lock = Lock()
+            counter = 0
+
+            def add():
+                global counter
+                for _ in range(1000):
+                    with lock:
+                        counter += 1
+
+            workers = [Thread(target=add) for _ in range(2)]
+            for w in workers:
+                w.start()
+            for w in workers:
+                w.join()
+            print(counter)
+            # expect: 2000
+            ```
+      - item:
+          id: locks-practice
+          type: number
+          prompt: 两个线程各在同一把锁保护下递增 1000 次，初值 0，结束后计数是多少？
+          answer: 2000
+          explain: 所有更新都保留，1000+1000=2000。
+      - card:
+          title: 一致的取锁顺序可避免一种等待环
+          body: >-
+            **死锁（deadlock）**会让多个参与者互等。甲持 A 等 B、乙持 B 等 A
+            是典型环。约定同一顺序，缩短持锁时间。异步操作要用适合的锁，避免持有同步锁时挂起；也可改为单一所有者和消息队列。
+      - item:
+          id: locks-apply
+          type: choice
+          prompt: 所有任务都必须同时拿 A 和 B。统一先 A 后 B，能避免哪类问题？
+          options:
+            - text: 两任务按相反顺序持有一把并互等
+              correct: true
+            - text: 任何业务逻辑错误都被消除
+              why: 锁次序只处理特定等待风险。
+          explain: 把互斥范围与锁次序写进设计。
+  - id: messages
+    chapter: 异步/并发
+    title: 让工作单元发送数据，让拥有者更新状态
+    minutes: 13
+    flow:
+      - guess:
+          id: messages-guess
+          type: choice
+          prompt: 两个工作单元频繁争抢同一记录。若改成由一方拥有它，另一方怎样请求修改？
+          options:
+            - text: 任意直接改另一个工作单元的私有状态
+              why: 这会重新引入共享访问。
+            - text: 发送明确的操作消息并等待结果
+              correct: true
+          explain: 分清数据拥有者与请求方。
+      - card:
+          title: 消息明确格式、目的地和处理约定
+          body: |
+            工作线程或不同进程可用队列发送消息；客户端和服务端经通信协议交换请求和响应。发送前定格式、请求编号和失败。下面用队列说明发送的值如何被接收，未访问外部服务。
+
+            ```python
+            from queue import Queue
+            requests = Queue()
+            requests.put(("add", 7))
+            operation, value = requests.get()
+            print(operation, value)
+            # expect: add 7
+            ```
+      - item:
+          id: messages-practice
+          type: choice
+          prompt: 客户端发同一请求两次，怎样让接收方发现这是重试？
+          options:
+            - text: 携带相同的请求编号
+              correct: true
+            - text: 每次都换编号并丢掉上一条记录
+              why: 更换编号会使两次看起来是不同请求。
+          explain: 为跨边界的失败恢复保存身份。
+      - card:
+          title: Web API 约定方法、数据与错误
+          body: 客户端按 HTTP 方法、路径和内容格式构造请求，服务端检查数据和权限，再用状态码与响应体报告结果。网络超时可能没有收到回应，也可能服务端已处理。按契约决定查询、重试或失败。
+      - item:
+          id: messages-apply
+          type: choice
+          prompt: 接口超时但可能已写入。下一步优先依赖什么？
+          options:
+            - text: 重复发送一批没有标识的写入
+              why: 可能产生重复效果。
+            - text: 按同一操作编号查询或用明确防重规则重试
+              correct: true
+          explain: 网络失败的可观察结果和业务执行结果要分别处理。
+  - id: specs
+    chapter: 性能剖析与工程化抽象
+    title: 写下调用者有权依赖的行为
+    minutes: 13
+    flow:
+      - guess:
+          id: specs-guess
+          type: choice
+          prompt: 两个函数内部用不同算法，同一类合法输入结果及可见影响相同。能否在该契约下互换？
+          options:
+            - text: 可以，调用者看到的行为相同
+              correct: true
+            - text: 不能，任何实现差异都不能替换
+              why: 替换依据是约定的可观察行为。
+          explain: 区分实现过程和外部保证。
+      - card:
+          title: 规格写调用前条件、结果与影响
+          body: >-
+            **规格（specification）**说明允许的输入、保证的结果、错误及副作用。输入有效时调用者依赖结果；非法输入应按约定处理。TypeScript
+            类型签名可表达一部分，取值范围和跨字段约束通常还需说明及检查。
+      - item:
+          id: specs-practice
+          type: match
+          prompt: 把函数约定配给组成部分。
+          pairs:
+            - - 输入列表必须按升序排列
+              - 前置条件
+            - - 有效输入时返回首次出现位置
+              - 后置条件
+            - - 函数允许重排传入列表
+              - 可见副作用
+          explain: 规格需要说明调用者能依赖什么。
+      - card:
+          title: 可变操作要写清哪些对象会改变
+          body: 排序函数可以返回新列表，也可修改原列表；结果相同但观察者可能看到不同状态。写明别名影响、是否改变元素和异常后的状态。等价性只在相同契约与观察范围内判断。
+      - item:
+          id: specs-apply
+          type: choice
+          prompt: 原规格保证输入列表不变，新实现返回相同结果却修改输入。是否等价？
+          options:
+            - text: 等价，只看返回值
+              why: 调用者可能仍在读取输入列表。
+            - text: 不等价，违反原副作用约定
+              correct: true
+          explain: 比较行为时包括可观察的状态变化。
+  - id: testing
+    chapter: 性能剖析与工程化抽象
+    title: 用输入分区、边界和回归验证规格
+    minutes: 13
+    flow:
+      - guess:
+          id: testing-guess
+          type: choice
+          prompt: 折扣从 500 分开始。测试只选 200 和 900，最容易漏掉哪里？
+          options:
+            - text: 不存在测试盲区，两端成功就够
+              why: 临界条件可被写成错误的不等号。
+            - text: 临界值以及刚低于临界值的输入
+              correct: true
+          explain: 从输入类别和边界推测试。
+      - card:
+          title: 先写预期，再挑分区的代表
+          body: 测试先行从规则得到预期。把输入分成负值、低于门槛、刚好门槛、超过门槛等类别，并加边界值。黑盒从规格选输入，白盒再核对分支。自动单元检查适合反复运行已定义用例。
+      - item:
+          id: testing-practice
+          type: choice
+          prompt: 规则为金额至少 500 分减 50。哪组更容易发现 `>` 写错？
+          options:
+            - text: 499、500、501
+              correct: true
+            - text: 100、200、300
+              why: 后一组都落在同一侧。
+          explain: 把含等号的边界放进测试。
+      - card:
+          title: 发现缺陷后保留最小回归用例
+          body: 让用例直接调用业务入口，比较输出与副作用。复现缺陷后先建立会失败的检查，再改代码并跑全部相关用例。自动化减少重复工作，仍需持续审查用例是否覆盖真正的风险。
+      - item:
+          id: testing-apply
+          type: choice
+          prompt: 一个修复只在手动试过一次。怎样让同类错误以后再出现时被发现？
+          options:
+            - text: 将最小失败情境加入自动回归
+              correct: true
+            - text: 只保留修复日期
+              why: 日期不能检测行为。
+          explain: 把发现转化为持续验证。
+  - id: abstraction
+    chapter: 性能剖析与工程化抽象
+    title: 让数据类型由使用者可见的操作定义
+    minutes: 13
+    flow:
+      - guess:
+          id: abstraction-guess
+          type: choice
+          prompt: 一个栈可用数组或其他结构实现。使用方该依赖哪一项？
+          options:
+            - text: 压入、弹出和空栈处理的行为
+              correct: true
+            - text: 数据保存在第几个内部位置
+              why: 内部表示以后可能替换。
+          explain: 把使用约定与实现分开。
+      - card:
+          title: 先列构造、查询、派生和修改操作
+          body: ADT 对外由操作定义。创建器产生值；查询读取信息；派生操作从值生成新值；修改操作改变现有对象。设计时要列错误情形和缺失值。内部用什么数据表示可按实际需求更换。
+      - item:
+          id: abstraction-practice
+          type: match
+          prompt: 将一个书单的三项操作配给类别。
+          pairs:
+            - - 返回书单中书的数量
+              - 查询
+            - - 返回附加一本书的新书单
+              - 派生
+            - - 把一本书加入当前书单
+              - 修改
+          explain: 区分读取、产生新值和更改原对象。
+      - card:
+          title: 表示独立性依赖真正隐藏内部状态
+          body: 只要公开行为保持，使用方不该依赖内部列表、编码或存储格式。若直接把可变容器返回，外部可绕开接口改变内容，替换实现也会伤到依赖。可按需要复制、返回只读表示或提供受控操作。
+      - item:
+          id: abstraction-apply
+          type: choice
+          prompt: 需要提供书单给显示方，又不能让它绕过规则改内部状态。如何设计？
+          options:
+            - text: 直接返回当前可变内部容器
+              why: 调用者可在外部随意改变内部状态。
+            - text: 提供查询或受控的独立数据副本
+              correct: true
+          explain: 保持表示和公共契约分离。
+  - id: representation
+    chapter: 性能剖析与工程化抽象
+    title: 为内部值写不变量，并说明它代表什么
+    minutes: 13
+    flow:
+      - guess:
+          id: representation-guess
+          type: choice
+          prompt: 集合以列表保存，外部约定没有重复项。内部应先保证什么？
+          options:
+            - text: 列表必须从某个网页来源读取
+              why: 来源与集合的不重复约定无关。
+            - text: 每个内部值最多出现一次
+              correct: true
+          explain: 写出哪些内部状态是合法的。
+      - card:
+          title: 区分表示不变量与抽象函数
+          body: '**表示不变量（RI）**约束哪些内部值合法，例如列表元素互异。**抽象函数（AF）**解释合法内部值代表哪一个外部对象，例如把列表解释为同成员的集合。构造时建立 RI，修改后维持它。'
+      - item:
+          id: representation-practice
+          type: choice
+          prompt: 同一个抽象集合能由 `[a,b]` 和 `[b,a]` 表示吗？
+          options:
+            - text: 可以，若公开契约不保证次序，二者有同样成员
+              correct: true
+            - text: 不可以，因为内部字节必须完全相同
+              why: 抽象函数可能把多个表示解释成同一个值。
+          explain: 表示与抽象值不必一一对应。
+      - card:
+          title: 记录防止表示泄露的理由
+          body: 在类型旁记录 RI、AF，以及外部如何被限制访问可变内部数据。实现可缓存查询结果等内部优化，前提是保持约定行为和一致性。若保存了外部可变对象，应复制或明确所有权。
+      - item:
+          id: representation-apply
+          type: choice
+          prompt: 传入的列表被直接保存，调用者之后插入重复值。怎样保护集合的 RI？
+          options:
+            - text: 仅在文档写希望调用者别修改
+              why: 外部仍可绕开集合操作。
+            - text: 构造时复制并校验，避免外部再改内部引用
+              correct: true
+          explain: 保护不变量需要实际的边界。
+  - id: debugging
+    chapter: 性能剖析与工程化抽象
+    title: 复现、缩小、验证假设，再保留回归
+    minutes: 13
+    flow:
+      - guess:
+          id: debugging-guess
+          type: choice
+          prompt: 只在特定输入下失败。先在多个地方同时改代码好，还是先留下可重现输入？
+          options:
+            - text: 先留下可重现输入
+              correct: true
+            - text: 先同时改五处，再看是否消失
+              why: 同时变更多处使原因难定位。
+          explain: 把故障变成可检验问题。
+      - card:
+          title: 让不合法状态更难出现，让失败更接近原因
+          body: 用类型和封装减少不合法组合，提前校验外部输入，内部用断言检查程序假设。记录最小输入、运行环境和首次偏离位置。常见错误来自边界、共享修改、错误假设和未处理失败。
+      - item:
+          id: debugging-practice
+          type: order
+          prompt: 给一次可重现故障排调试步骤。
+          steps:
+            - 保存失败情境和环境
+            - 缩小输入并确定第一处偏离
+            - 提出假设并做一次有区分力的实验
+            - 修复后重跑原情境并加入回归
+          explain: 以证据逐步缩小原因。
+      - card:
+          title: 用实验区分候选原因
+          body: 例如怀疑订单排序与共享修改有关，可固定输入，只让一个观察者运行再比对。实验应能排除至少一种解释。成功后写出触发机制，避免只记录症状。
+      - item:
+          id: debugging-apply
+          type: choice
+          prompt: 临时加日志后问题消失，能认定已修复吗？
+          options:
+            - text: 不能，日志可能改变执行时机，需要独立实验
+              correct: true
+            - text: 能，日志一加结果就对
+              why: 时间相关错误可能暂时避开。
+          explain: 让结果能在原条件下复现和验证。
+  - id: profile
+    chapter: 性能剖析与工程化抽象
+    title: 编译并运行剖析版本，测真实工作量
+    minutes: 13
+    flow:
+      - guess:
+          id: profile-guess
+          type: choice
+          prompt: 程序很慢，先改最复杂的函数还是先测调用和时间？
+          options:
+            - text: 先重写代码最长的函数
+              why: 长度不等于运行时间。
+            - text: 先测代表性输入，找到实际花费
+              correct: true
+          explain: 剖析用数据定位成本。
+      - card:
+          title: gprof 结合采样和插桩生成数据
+          body: >
+            **性能剖析（profiling）**观察运行时间和调用。支持的 GCC/gprof 环境可用 `-pg` 构建可执行程序，运行代表性工作后生成 gmon.out，再用 gprof
+            对照同一可执行程序。构建方式会影响观测，记录输入与工具。
+
+
+            ```text
+
+            gcc -O0 -g -pg -no-pie example.c -o example
+
+            ./example
+
+            gprof ./example gmon.out
+
+            ```
+      - item:
+          id: profile-practice
+          type: choice
+          prompt: 改过程序并重新编译后，能用旧 gmon.out 直接解释新版本吗？
+          options:
+            - text: 应重新运行新版本并生成对应数据
+              correct: true
+            - text: 可以，名字相同就会自动对齐
+              why: 布局、函数和调用可能已变化。
+          explain: 数据要对应同一构建和工作量。
+      - card:
+          title: 用明确函数和输入读结果，不硬记耗时
+          body: |
+            下例调用两次 work。测试核对函数调用与输出，耗时由环境、优化和采样决定。程序正常结束后再读剖析文件。
+
+            ```c
+            #include <stdio.h>
+
+            static unsigned work(unsigned n) {
+                unsigned sum = 0;
+                for (unsigned i = 1; i <= n; ++i) {
+                    sum += i;
+                }
+                return sum;
+            }
+
+            int main(void) {
+                printf("%u\n", work(1000) + work(1000));
+                return 0;
+            }
+            /* expect: 1001000 */
+            ```
+      - item:
+          id: profile-apply
+          type: choice
+          prompt: 用同样大小的输入对比优化前后，应同时记录什么？
+          options:
+            - text: 只记录一行最快耗时
+              why: 不同条件或错误结果会让比较失真。
+            - text: 构建选项、测量条件、输出正确性和时间
+              correct: true
+          explain: 让剖析结果可以复现。
+  - id: profile-reading
+    chapter: 性能剖析与工程化抽象
+    title: 读自身时间、调用关系与采样误差
+    minutes: 13
+    flow:
+      - guess:
+          id: profile-reading-guess
+          type: choice
+          prompt: 总耗时多的入口把工作都交给子函数。只优化入口里几行代码一定有效吗？
+          options:
+            - text: 先看自身耗时与子调用占用
+              correct: true
+            - text: 入口总耗时最大就证明其自身最慢
+              why: 总耗时可包含后续子调用。
+          explain: 区分时间花在哪里与谁发起工作。
+      - card:
+          title: 平面表和调用图回答不同问题
+          body: 平面表可看函数自身样本时间与调用次数。调用图展示调用方、被调用方和归因时间。调用计数来自插桩，时间常来自采样，子调用归因有估计假设；递归环要按工具说明解释。
+      - item:
+          id: profile-reading-practice
+          type: match
+          prompt: 按要解决的问题选择查看方式。
+          pairs:
+            - - 哪个函数自身占用较多样本
+              - 平面表
+            - - 某函数主要被哪些入口调用
+              - 调用图
+            - - 哪个源码位置集中出现成本
+              - 带源码定位的剖析
+          explain: 不同报告解释不同级别的成本。
+      - card:
+          title: 短运行可能没有足够样本
+          body: 少量采样会让时间估计偏差大，尤其短函数。可重复代表性工作或使用适合的工具。逐行定位需要符号、调试信息与工具支持，优化和内联会改变对应关系。
+      - item:
+          id: profile-reading-apply
+          type: choice
+          prompt: 一个函数调用多次却显示 0.00 秒，应怎样解释？
+          options:
+            - text: 证明它完全没有成本
+              why: 采样可能没捕获短时工作。
+            - text: 可能短于采样分辨率，需结合工作量和更多样本
+              correct: true
+          explain: 不要把显示精度误作真实精度。
+  - id: complexity
+    chapter: 性能剖析与工程化抽象
+    title: 比较相同输入的查找，再用缓存消除重复计算
+    minutes: 13
+    flow:
+      - guess:
+          id: complexity-guess
+          type: choice
+          prompt: 在一大批项目中反复按值检查存在性。若不关心顺序，应比较哪些代价？
+          options:
+            - text: 只看类型名字哪个更短
+              why: 选型还取决于查询次数和使用约束。
+            - text: 查询、建立结构和占用大小
+              correct: true
+          explain: 性能取舍要有同一工作负载。
+      - card:
+          title: list 通常逐项检查，set 平均可更快查找
+          body: 对同一个已存在或缺失键，用 timeit 多次测，分开建结构和查询。列表查找最坏扫过 n 项；set 平均查找为常数级，但冲突等条件可变差，且建表和存储也有成本。数值随输入和运行环境变化。
+      - item:
+          id: complexity-practice
+          type: choice
+          prompt: 每次查询都先把巨大的 list 转成 set，测量只算查询会漏掉什么？
+          options:
+            - text: 漏掉构造 set 的成本
+              correct: true
+            - text: 完全没有差别，构造 set 永远零开销
+              why: 建表需要处理输入和额外空间。
+          explain: 把准备工作与查询分别测量。
+      - card:
+          title: 缓存让相同子问题只算一次
+          body: |
+            `lru_cache` 按参数保存结果。以下递归 Fibonacci 每个非负 n 的子问题只需计算一次，时间与状态数线性相关，空间和递归深度仍会增长。输入要可作为缓存键，且结果应适合复用。
+
+            ```python
+            from functools import lru_cache
+
+            @lru_cache(maxsize=None)
+            def fib(n):
+                return n if n < 2 else fib(n - 1) + fib(n - 2)
+
+            print(fib(10), fib.cache_info().misses)
+            # expect: 55 11
+            ```
+      - item:
+          id: complexity-apply
+          type: number
+          prompt: 从空缓存开始用递归计算 fib(10)，会首次计算参数 0 到 10。不同参数共有几个？
+          answer: 11
+          explain: 包含起点 0 和终点 10，一共有 11 项。
+boss:
+  items:
+    - id: cleanup
+      type: choice
+      prompt: 文件与锁已进入 with 范围，中间抛出错误。资源怎样处理？
+      options:
+        - text: 依退出约定释放已进入的资源
+          correct: true
+        - text: 跳过全部退出操作
+          why: 上下文管理器会处理离开路径。
+      explain: 把获取和清理配对。
+    - id: move
+      type: choice
+      prompt: Rust String 被移动到 b 后，a 可继续作为所有者使用吗？
+      options:
+        - text: 可以，两个名字默认分别拥有独立副本
+          why: 普通移动没有复制数据。
+        - text: 不能，需借用或显式复制才能保留相应能力
+          correct: true
+      explain: 追踪所有者。
+    - id: generic
+      type: choice
+      prompt: 类型参数 T 同时在列表元素与返回值中出现，表达什么？
+      options:
+        - text: 返回的有效值类型跟随输入元素类型
+          correct: true
+        - text: 函数只接受整数列表
+          why: T 由具体调用确定。
+      explain: 用泛型保留类型关系。
+    - id: meta
+      type: choice
+      prompt: 运行时查看对象有哪些成员属于什么？
+      options:
+        - text: 编译期宏展开
+          why: 编译期并没有正在运行的实例。
+        - text: 反射
+          correct: true
+      explain: 按程序阶段区分。
+    - id: race
+      type: number
+      prompt: 两任务都读到初值 0，再分别写入各自旧值加 1。最后是多少？
+      answer: 1
+      explain: 两次写回的内容都是 1。
+    - id: await
+      type: choice
+      prompt: 一个事件循环中的任务长时间纯计算且从不挂起，其他任务可能怎样？
+      options:
+        - text: 自动并行运行并保持延迟不变
+          why: 声明 async 不会自动让出执行机会。
+        - text: 被延迟
+          correct: true
+      explain: 分别分析计算和等待。
+    - id: rep
+      type: choice
+      prompt: 集合返回可修改的内部列表，调用者能插入重复值。破坏了什么？
+      options:
+        - text: 表示不变量的保护
+          correct: true
+        - text: 只影响字段的拼写
+          why: 外部可绕过集合约定。
+      explain: 保持内部表示的访问边界。
+    - id: testing
+      type: choice
+      prompt: 折扣达到 500 就生效，哪组三个输入更能查到边界错？
+      options:
+        - text: 100、200、300
+          why: 后一组没有跨门槛。
+        - text: 499、500、501
+          correct: true
+      explain: 测试规则两侧与临界值。
+    - id: profile
+      type: choice
+      prompt: 要找谁调用了热点函数，应优先看什么？
+      options:
+        - text: 调用图
+          correct: true
+        - text: 只看源码文件名列表
+          why: 文件名无法表达调用关系。
+      explain: 按问题挑剖析报告。
+    - id: cost
+      type: choice
+      prompt: 加缓存后相同参数不再重复计算，长输入仍有什么成本？
+      options:
+        - text: 空间必然固定，栈再也不会增长
+          why: 首次计算仍需保留调用和缓存。
+        - text: 缓存空间和递归深度仍可随输入增长
+          correct: true
+      explain: 时间收益与空间成本同时看。

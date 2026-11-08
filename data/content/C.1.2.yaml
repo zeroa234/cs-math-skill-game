@@ -1,0 +1,730 @@
+skill: C.1.2
+version: 2
+brief:
+  why: 同一段程序换一颗芯片就可能跑得更快。用指令轨迹和时序表找出时间花在哪里，再比较几种加速办法。
+  outcomes:
+    - 读懂寄存器和主存之间的指令
+    - 画出五级处理路径并处理数据与控制冒险
+    - 计算缓存、预测和多核对性能的影响
+terms:
+  - term: 缺页
+    def: 访问因映射缺失或保护而需要操作系统处理的异常。
+  - term: TLB
+    def: 保留最近用过的翻译和权限。
+  - term: 汇编
+    def: 用助记符表示机器操作。
+  - term: 指令集
+    def: 规定机器指令、可见存储位置和执行效果的软件硬件约定。
+  - term: 微体系结构
+    def: 用实际数据通路和控制实现指令集的方式。
+  - term: 数据冒险
+    def: 指令按原定时刻执行会拿不到正确数据的冲突。
+  - term: 控制冒险
+    def: 下一条应取的指令位置还没有确定造成的冲突。
+  - term: 乱序执行
+    def: 允许就绪操作先执行并在需要时按程序顺序交付的实现。
+  - term: 缓存
+    def: 在较快存储中保留较慢层数据副本的部件。
+  - term: 平均访存时间
+    def: 一次存储请求平均占用的访问时间。
+  - term: 虚拟地址
+    def: 程序在自己映射里使用的位置。
+  - term: 物理地址
+    def: 访问实际主存时使用的位置。
+  - term: 页表
+    def: 记录虚拟页到物理页映射和权限的结构。
+  - term: 多级页表
+    def: 按地址的几段逐层定位，没用到的区域可以不分配下层表。
+  - term: 缓存一致性
+    def: 让不同核对同一位置的观察遵守一致的写入顺序。
+  - term: 内存一致性模型
+    def: 规定多核读写组合可以被观察成哪些结果。
+  - term: 分支预测
+    def: 在条件结果出来前猜下一条取指位置的办法。
+  - term: CPI
+    def: 每条指令平均占用的时钟周期数。
+  - term: 阿姆达尔定律
+    def: 当只加速部分工作时，按新旧总时间求整体加速比的规律。
+lessons:
+  - id: isa
+    chapter: 指令集
+    title: 从汇编指令读出机器做什么
+    minutes: 10
+    flow:
+      - guess:
+          id: isa-guess
+          type: choice
+          prompt: 计算两个已经放在 CPU 内部存储位置里的数，结果必须先写回主存吗？
+          options:
+            - text: 可以先留在 CPU 里
+              correct: true
+            - text: 每次加法都必须写主存
+              why: 算术和访存是不同操作。
+          explain: 算术操作可以把结果保留给下一条指令。
+      - card:
+          title: 软件用一套约定给硬件发命令
+          body: >-
+            **指令集（instruction set architecture, ISA）**规定机器指令、可见存储位置和执行效果的软件硬件约定。 **汇编（assembly）**用助记符表示机器操作。以
+            MIPS 为例，`add $t0, $t1, $t2` 把后两处相加，写到第一处。内部怎么加由芯片决定。
+      - item:
+          id: isa-2
+          type: number
+          prompt: MIPS 执行 `add $t0, $t1, $t2`，`$t1` 为 8、`$t2` 为 5。`$t0` 得到多少？
+          answer: 13
+          explain: 取两个源值 8 和 5，相加后写目的位置。
+      - card:
+          title: 访存和跳转各有自己的操作
+          body: >-
+            MIPS 的 `lw $t0, 4($s0)` 取主存中基址加 4 的字，sw 反向写入。立即数放在操作编码里，如 addi。beq 比较两处，相等才转去目标；j 直接转去目标。MIPS
+            常规编码固定 32 位，便于按字对齐取指。
+      - item:
+          id: isa-4
+          type: match
+          prompt: 把操作和效果配对。
+          pairs:
+            - - lw
+              - 从主存读
+            - - sw
+              - 写入主存
+            - - beq
+              - 相等时跳转
+            - - addi
+              - 用指令里的常数做加法
+          explain: 先区分移动数据、计算和改变下一条指令。
+  - id: datapath
+    chapter: 指令集
+    title: 沿数据通路走完一条装入指令
+    minutes: 10
+    flow:
+      - guess:
+          id: datapath-guess
+          type: choice
+          prompt: 机器按字节编号。基址是 100，偏移是 8，应读哪里？
+          options:
+            - text: '102'
+              why: 偏移已是字节数。
+            - text: '108'
+              correct: true
+          explain: 把两者按字节相加。
+      - card:
+          title: 同一套约定可有不同的内部实现
+          body: >-
+            **微体系结构（microarchitecture）**用实际数据通路和控制实现指令集的方式。
+            寄存器传输级设计写出每个时钟间隔内数据从哪读、做什么、到哪写。控制线选来源、开关写入。单周期实现让每条指令占一拍，时钟要容得下最慢通路。
+          reveal:
+            - title: 算地址
+              body: lw 先读基址，算基址加带符号偏移。
+            - title: 取数据
+              body: 用算出的地址访问数据存储。
+            - title: 提交结果
+              body: 在周期末把读出的字写回目的寄存器。
+      - item:
+          id: datapath-2
+          type: order
+          prompt: 从基址已就绪开始，排出 lw 的动作。
+          steps:
+            - 算有效地址
+            - 读取那个位置的字
+            - 写回目的寄存器
+          explain: 只有算出位置才能取到要写回的值。
+      - card:
+          title: 时钟周期由最慢的合法路径决定
+          body: 若单周期设计的加法通路用 2 ns，装入通路用 5 ns，时钟周期至少取 5 ns。加法即使提前算完，也在同样的时钟边界提交。不同操作的开关条件不同，写存储和写寄存器不会凭指令名自动发生。
+      - item:
+          id: datapath-4
+          type: number
+          prompt: 单周期机最慢的路径为 6 ns，按最小允许周期走 3 条指令，用多少 ns？
+          answer: 18
+          explain: 每条用一个 6 ns 周期，所以总共 18 ns。
+  - id: overlap
+    chapter: 流水线
+    title: 把五段工作交错起来
+    minutes: 10
+    flow:
+      - guess:
+          id: overlap-guess
+          type: choice
+          prompt: 洗衣、烘干各占一台机器。第一筐烘干时，第二筐能先洗吗？
+          options:
+            - text: 能，两台机器可以同时工作
+              correct: true
+            - text: 不能，要等第一筐完全结束
+              why: 后一筐只需要前一筐放开洗衣机。
+          explain: 两个阶段有各自的资源。
+      - card:
+          title: 五级流水线每拍向后推进一段
+          body: IF 取指，ID 读源，EX 计算，MEM 访问数据，WB 写结果。阶段间用寄存器传递值和控制信息。空管道装入第一条指令要五拍，理想稳态每拍完成一条。
+      - item:
+          id: overlap-2
+          type: number
+          prompt: 五级流水线初始为空，无停顿地走 4 条指令。第 4 条在第几拍写回？
+          answer: 8
+          explain: 第 1 条用 5 拍，后面 3 条各晚 1 拍，合计 8 拍。
+      - card:
+          title: 先算周期数，再乘每拍的时间
+          body: 切分阶段常能缩短一拍。若最长一段 2 ns、段间存储开销 0.5 ns，周期至少 2.5 ns。只有一条时要经过五段，收益主要来自多条重叠。
+      - item:
+          id: overlap-4
+          type: number
+          prompt: 五级流水线初始为空，每拍 3 ns，无停顿完成 6 条共用多少 ns？
+          answer: 30
+          explain: 需 5+6−1=10 拍，再乘 3 ns。
+  - id: data-hazard
+    chapter: 流水线
+    title: 跟踪旁路和装入后立即使用
+    minutes: 10
+    flow:
+      - guess:
+          id: data-hazard-guess
+          type: choice
+          prompt: 两步相加时，第二步必须用第一步刚算出的结果。第一步结果还没出现，能先用旧值吗？
+          options:
+            - text: 可以，结果会在以后自动改正
+              why: 用错输入的结果不会自行修正。
+            - text: 不能，会算错
+              correct: true
+          explain: 后一步需要这次产生的新值。
+      - card:
+          title: 区分结果产生和写回的时刻
+          body: >-
+            **数据冒险（data hazard）**指令按原定时刻执行会拿不到正确数据的冲突。 ALU 结果在 EX 末产生，可走转发线给下一条指令的 EX。装入的结果等到 MEM 末才产生，紧随其后的
+            EX 要多等一拍。
+          reveal:
+            - title: 找读取点
+              body: lw x1,0(x2) 后跟 add x3,x1,x4。add 在 EX 开始时需要 x1。
+            - title: 比较产生点
+              body: 不插空拍时，add 的 EX 与 lw 的 MEM 同拍，读到的值来不及给 EX。
+            - title: 插入一拍并转发
+              body: 冻结前段一拍、让后段继续；下一拍从装入结果转发给 add。
+      - item:
+          id: data-hazard-2
+          type: number
+          prompt: 同样五级流水线且有转发。lw x1,0(x2) 后立即接 add x6,x1,x7。需要额外等几拍？
+          answer: 1
+          explain: 数据要等到 lw 的 MEM 末，后一条 EX 往后推一拍。
+      - card:
+          title: 资源冲突也会插空拍
+          body: 如果取指与数据读写共用一个只有单端口的存储，同拍只能做一项，这叫结构冒险。独立的取指和数据端口可避免这个冲突；带停顿的实现还要保证后段控制不会重复写入。
+      - item:
+          id: data-hazard-4
+          type: choice
+          prompt: 两个阶段必须在同一拍访问同一个单端口存储，哪种办法能解决？
+          options:
+            - text: 给其中一个阶段插一拍等待
+              correct: true
+            - text: 把 ALU 结果转发给自己
+              why: 转发解决的是缺数据，存储端口仍然冲突。
+          explain: 错开使用时间可以避免争同一个端口。
+  - id: control
+    chapter: 流水线
+    title: 分岔路口如何继续取指
+    minutes: 10
+    flow:
+      - guess:
+          id: control-guess
+          type: choice
+          prompt: 下一步要看一个尚未算出的判断。先按一条路走，如果猜错了怎么办？
+          options:
+            - text: 取消猜错方向上尚未生效的工作
+              correct: true
+            - text: 把两条路的结果都永久保留
+              why: 程序只规定一条正确路径。
+          explain: 保留已确认的结果，从正确的地点重新开始。
+      - card:
+          title: 条件决定从哪里继续取指
+          body: '**控制冒险（control hazard）**下一条应取的指令位置还没有确定造成的冲突。 等判断最简单，但空拍多。也可以先按顺序取；若最终发现要跳，丢掉走错的阶段内容，按目标重新取。'
+      - item:
+          id: control-2
+          type: choice
+          prompt: 错误路径上有一个还未写入的 sw，发现猜错时应该怎样做？
+          options:
+            - text: 让它写完再改下一条地址
+              why: 一旦错误写入，就污染了正确路径看到的值。
+            - text: 取消它的写入
+              correct: true
+          explain: 错误路径的操作不能影响程序可见状态。
+      - card:
+          title: 恢复时间由何时知道正确方向决定
+          body: 若在 EX 末才知道结果，常已有两条年轻指令在 IF 和 ID。它们会被清掉。把判断提前能少清几段，但可能延长那一段的时钟周期。
+      - item:
+          id: control-4
+          type: number
+          prompt: 每次预测失败额外占 2 拍。一次执行共猜错 4 次，额外多少拍？
+          answer: 8
+          explain: 每次 2 拍，4 次相加得到 8 拍。
+  - id: out-of-order
+    chapter: 流水线
+    title: 先做就绪的工作，按顺序交结果
+    minutes: 10
+    flow:
+      - guess:
+          id: out-of-order-guess
+          type: choice
+          prompt: 排在前面的装入还在等待，后面独立的加法能先算吗？
+          options:
+            - text: 必须连结果都不能先算
+              why: 可以把试算与可见提交分开。
+            - text: 可以先算，提交仍守程序规则
+              correct: true
+          explain: 没有数据依赖时可以提前准备结果。
+      - card:
+          title: 就绪顺序与交付顺序可以不同
+          body: >-
+            **乱序执行（out-of-order execution）**允许就绪操作先执行并在需要时按程序顺序交付的实现。
+            重命名把同名的不同次写入分配到不同物理位置，消除仅因名字相同的冲突；真正等输入的操作继续等。
+      - item:
+          id: out-of-order-2
+          type: choice
+          prompt: 甲把 x1 写为 A，乙要读这个 A。只换一个存储名字能让乙在 A 出现前拿到它吗？
+          options:
+            - text: 不能，乙真的需要 A
+              correct: true
+            - text: 能，任何依赖都能靠改名去掉
+              why: 甲到乙传值的关系仍在。
+          explain: 改名字可去掉假依赖，无法提前产生数据。
+      - card:
+          title: 先到的故障先报告
+          body: 重排序缓冲区让已做完的年轻操作等待。若最老故障到队首，保留之前的提交，撤销它及之后的推测，得到精确异常。读写地址还未知时，装入要等较老的写，或预测不冲突并能在误判时重做。执行宽度和队列大小都有上限。
+      - item:
+          id: out-of-order-4
+          type: order
+          prompt: 一条装入等数据，后面的独立加法先做完。若装入正常结束，排出交付过程。
+          steps:
+            - 加法计算完并等待
+            - 装入提交
+            - 加法提交
+          explain: 先算完的加法在重排序缓冲区等，交付仍按程序顺序。
+  - id: cache
+    chapter: 缓存
+    title: 从地址找块、组和标签
+    minutes: 10
+    flow:
+      - guess:
+          id: cache-guess
+          type: choice
+          prompt: 刚读了一串连续数据中的一个位置，下一次读相邻位置。要让这次更快，能提前带回邻居吗？
+          options:
+            - text: 可以，把一段相邻数据一起带回
+              correct: true
+            - text: 只能保存刚读的那个字节
+              why: 硬件可以一次搬一块。
+          explain: 重复使用附近数据是常见模式。
+      - card:
+          title: 把常用的一小部分留在快存储
+          body: '**缓存（cache）**在较快存储中保留较慢层数据副本的部件。 同一地址短时间又读叫时间局部性，访问相邻地址叫空间局部性。字节地址拆成块内偏移、组号、标签；找到组后只比较组内有效标签。'
+          reveal:
+            - title: 定位块
+              body: 每块 16 字节，地址 52 属于块 3，偏移 4。
+            - title: 定位组和标签
+              body: 4 组时组号是 3 除以 4 的余数 3，标签是商 0。
+      - item:
+          id: cache-2
+          type: number
+          prompt: 每块 16 字节、4 组，字节地址 84 对应哪一组？用 0 开始编号。
+          answer: 1
+          explain: 84 除以 16 取整得块号 5；5 除以 4 的余数是 1。
+      - card:
+          title: 组内可以有多个位置
+          body: 直接映射每组一个位置；二路组相联每组两个，两个标签都要比。容量固定时加相联度会减少组数；全相联只有一组。写直达立即向下一层写，写回则标脏、逐出时再写。
+      - item:
+          id: cache-4
+          type: number
+          prompt: 一层有 4 组、每组 2 路，每块 16 字节。不计标签容量有多少字节？
+          answer: 128
+          explain: 4×2 个块，每块 16 字节。
+  - id: miss
+    chapter: 缓存
+    title: 辨认三类未命中和预取的代价
+    minutes: 10
+    flow:
+      - guess:
+          id: miss-guess
+          type: choice
+          prompt: 刚开机、快存储为空时，第一次读到某块会直接从里面读出来吗？
+          options:
+            - text: 会，只要容量够
+              why: 容量大也不会让首次读的数据自己出现。
+            - text: 不会，需要从更慢的一层取
+              correct: true
+          explain: 副本还没建立。
+      - card:
+          title: 用反事实找未命中的原因
+          body: 第一次摸到的块没在场是强制未命中。若同容量全相联仍放不下是容量未命中；全相联能留住而固定组挤掉了它，是冲突未命中。比较时要固定块大小，并用相同的替换基准。
+      - item:
+          id: miss-2
+          type: choice
+          prompt: 两块轮流读，直接映射都挤在一组。总容量至少两块且全相联能都留住。首次访问以后的失败是哪类？
+          options:
+            - text: 冲突未命中
+              correct: true
+            - text: 容量未命中
+              why: 同容量的全相联可以保留这两块。
+          explain: 挤在同一组，其他组空着也帮不上。
+      - card:
+          title: 提前取要有正确的时机
+          body: 预取猜后面要读什么，在程序请求前取入。顺序扫描时常有用；猜错会占带宽，还会挤走真正要用的数据。比较命中率时也要同时量带宽和延迟。
+      - item:
+          id: miss-4
+          type: choice
+          prompt: 预取了大批从未被程序访问的块，什么损失最直接？
+          options:
+            - text: 耗掉带宽，也可能逐出有用块
+              correct: true
+            - text: 所有需求访问都会命中
+              why: 预取猜错就覆盖不到需要的块。
+          explain: 传输和占位在真正使用前已经发生。
+  - id: amat
+    chapter: 缓存
+    title: 逐层算平均访存时间
+    minutes: 10
+    flow:
+      - guess:
+          id: amat-guess
+          type: choice
+          prompt: 大部分读取只等一拍，少量需要多等。能只报一拍来代表平均值吗？
+          options:
+            - text: 不能，要把慢的那部分按比例加进来
+              correct: true
+            - text: 可以，只要命中超过一半
+              why: 过半只说明中位数可能快。
+          explain: 平均值包含所有请求。
+      - card:
+          title: 每一次都先付第一层的时间
+          body: >-
+            **平均访存时间（average memory access time, AMAT）**一次存储请求平均占用的访问时间。
+            用命中时间加未命中率乘额外代价。加下一层时，用下一层的局部未命中率，也就是只在到达下一层的请求里计比例。
+          reveal:
+            - title: 先看第二层
+              body: L2 查 8 拍，四分之一再等主存 80 拍，故平均 8+20=28 拍。
+            - title: 带回第一层
+              body: L1 查 1 拍，十分之一需要第二层，整体平均 1+0.1×28=3.8 拍。
+      - item:
+          id: amat-2
+          type: number
+          prompt: L1 每次查 1 拍，未命中率 5%；每次未命中额外 100 拍。平均多少拍？
+          answer: 6
+          explain: 1+0.05×100=6。
+      - card:
+          title: 多核可共享容量也会互相挤
+          body: 私有缓存减少抢端口，但各核冷热数据不能自由借容量。共享缓存可让忙核用更多空间，也可能被别的核挤掉。按路给任务分区可以隔离容量，交换条件是空闲容量也可能暂时借不到。
+      - item:
+          id: amat-4
+          type: number
+          prompt: L1 查 1 拍，5% 到 L2；L2 查 10 拍，局部未命中率 20%，失败再等主存 100 拍。平均多少拍？
+          answer: 2.5
+          explain: L1 的额外代价是 10+0.2×100=30 拍；总计 1+0.05×30。
+  - id: virtual-memory
+    chapter: 缓存
+    title: 用页把程序的位置翻译为实际位置
+    minutes: 10
+    flow:
+      - guess:
+          id: virtual-memory-guess
+          type: choice
+          prompt: 两个程序都说自己读位置 0x1000。它们一定读到同一份数据吗？
+          options:
+            - text: 一定，数字地址相等就够了
+              why: 还要看这是谁的映射。
+            - text: 不一定，系统可以给它们各自做映射
+              correct: true
+          explain: 名字相同不表示指向同一实际位置。
+      - card:
+          title: 先翻译，再检查访问权限
+          body: >-
+            **虚拟地址（virtual address）**程序在自己映射里使用的位置。 **物理地址（physical address）**访问实际主存时使用的位置。 **页表（page
+            table）**记录虚拟页到物理页映射和权限的结构。 页内偏移原样保留。
+      - item:
+          id: virtual-memory-2
+          type: number
+          prompt: 页大小 256 字节；某虚拟页映射到从 1024 开始的物理页。若页内偏移 12，实际地址是多少？
+          answer: 1036
+          explain: 只换页起点，保留偏移，1024+12。
+      - card:
+          title: 没找到翻译和没找到页面要分开
+          body: >-
+            **TLB（translation lookaside buffer）**保留最近用过的翻译和权限。没命中可走页表；访问无法直接翻译时会通知系统处理，这叫**缺页（page
+            fault）**。系统可调入缺失的页，也可拒绝非法访问。**多级页表（multilevel page table）**按地址的几段逐层定位，没用到的区域可以不分配下层表。
+      - item:
+          id: virtual-memory-4
+          type: choice
+          prompt: TLB 没命中，页表仍有合法且在场的条目。下一步是什么？
+          options:
+            - text: 按页表完成翻译
+              correct: true
+            - text: 必定从磁盘读页面
+              why: 只有相应页面不在场且可调入时才需要。
+          explain: 翻译快存储没有副本，不代表数据页不存在。
+  - id: coherence
+    chapter: 多核一致性
+    title: 沿 MSI 状态跟踪一次写入
+    minutes: 10
+    flow:
+      - guess:
+          id: coherence-guess
+          type: choice
+          prompt: 两人各拿一份同一表格，甲把数字改了。乙继续用旧副本会出什么问题？
+          options:
+            - text: 看到已经失效的旧值
+              correct: true
+            - text: 没有问题，副本永远彼此无关
+              why: 两份副本都在表示同一处数据。
+          explain: 需要让副本遵守共同的更新规则。
+      - card:
+          title: 同一块的副本必须遵守写入顺序
+          body: >-
+            **缓存一致性（cache coherence）**让不同核对同一位置的观察遵守一致的写入顺序。 MSI 给每块标 M 已修改且独占、S 可共享、I
+            无效。写前先取得独占。总线监听能向各核发送同一请求；目录则记录持有者，向相关核发请求。也有推送新值的更新协议。
+          reveal:
+            - title: 确认初态
+              body: 核 0 和核 1 都有干净的同一块，状态 S/S。
+            - title: 请求写权限
+              body: 核 0 发升级请求，核 1 使副本失效。
+            - title: 写入
+              body: 核 0 标 M 并可写；核 1 下次访问须重新取。
+      - item:
+          id: coherence-2
+          type: match
+          prompt: 把 MSI 状态配到含义。
+          pairs:
+            - - M
+              - 独占且已修改
+            - - S
+              - 可共享且有效
+            - - I
+              - 副本无效
+          explain: M 有唯一的脏副本，S 是干净共享，I 不能用。
+      - card:
+          title: 伪共享发生在同一块的不同数据
+          body: 协议的粒度是整块。核 0 只写块中的计数 a、核 1 只写 b，仍会互相夺写权限。这是伪共享。对齐和填充可让两个热写数据落到不同的块。
+      - item:
+          id: coherence-4
+          type: choice
+          prompt: 两个核写不同字段却交替使同一块失效。要先尝试什么？
+          options:
+            - text: 换变量名
+              why: 物理布局不变，仍在同一块。
+            - text: 把两个热写字段分到不同块
+              correct: true
+          explain: 消除它们在一致性协议里的共同单位。
+  - id: ordering
+    chapter: 多核一致性
+    title: 区分单一位置一致与跨位置顺序
+    minutes: 10
+    flow:
+      - guess:
+          id: ordering-guess
+          type: choice
+          prompt: 看到门口显示“完成”，就一定能看到另一处新写的货号吗？
+          options:
+            - text: 一定，每处各自正确就能推出先后
+              why: 每处的写顺序无法单独说明跨位置顺序。
+            - text: 取决于两次写入的发布规则
+              correct: true
+          explain: 两个不同位置之间也需要顺序约定。
+      - card:
+          title: 存储模型规定跨位置的可见顺序
+          body: >-
+            **内存一致性模型（memory consistency model）**规定多核读写组合可以被观察成哪些结果。
+            顺序一致性要求看起来像各核按自身程序次序混成一个总顺序。弱一些的模型允许部分重排。缓存一致性只处理同一位置。
+      - item:
+          id: ordering-2
+          type: choice
+          prompt: 仅知道每个位置上的写入顺序对各核一致，能推出两个不同位置的观察顺序吗？
+          options:
+            - text: 不能
+              correct: true
+            - text: 能，一致性协议已给所有地址排全序
+              why: 协议没有因此提供跨位置总序。
+          explain: 需要再看存储模型和同步规则。
+      - card:
+          title: 发布数据时配对同步
+          body: 生产者先写数据，再用 release 写就绪标志；消费者用 acquire 读到这次发布后，才读数据。应用层用语言原子接口或互斥机制表达顺序，硬件屏障由实现按模型使用。
+      - item:
+          id: ordering-4
+          type: order
+          prompt: 按消息传递的依赖排出动作。
+          steps:
+            - 生产者写数据
+            - 生产者发布就绪标志
+            - 消费者确认观察到该发布
+            - 消费者读数据
+          explain: 读取方观察到发布，才能安全消费已发布的数据。
+  - id: predict
+    chapter: 分支预测和性能模型
+    title: 用一位和两位预测器跟踪循环
+    minutes: 10
+    flow:
+      - guess:
+          id: predict-guess
+          type: choice
+          prompt: 某判断连续很多次走同一边，偶尔反过来一次。是否应立刻把长期猜测全部翻转？
+          options:
+            - text: 可以等更多证据
+              correct: true
+            - text: 总应立刻翻转
+              why: 这样下一次恢复规律时也可能错。
+          explain: 一次例外不一定代表规律改了。
+      - card:
+          title: 两位计数器给常见方向一点惯性
+          body: >-
+            **分支预测（branch prediction）**在条件结果出来前猜下一条取指位置的办法。 一位记上次结果；两位计数器在 0 到 3 饱和，0、1 猜不跳，2、3
+            猜跳。真实跳就加一，不跳就减一；先预测，再更新。
+          reveal:
+            - title: 初始是 3
+              body: 结果跳时猜对，状态还是 3。
+            - title: 看到一次不跳
+              body: 原状态 3 猜跳，猜错；更新成 2。
+            - title: 下一次恢复跳
+              body: 状态 2 仍猜跳，猜对后回到 3。
+      - item:
+          id: predict-2
+          type: number
+          prompt: 结果循环为跳、跳、跳、不跳；两位饱和计数器从 3 开始。连续 8 次猜错多少次？
+          answer: 2
+          explain: 每组只有不跳的一次错，两组共错两次。
+      - card:
+          title: 方向和目标是不同的信息
+          body: 目标缓冲表记最近从哪里跳到哪里；方向预测器决定是否跳。局部历史记录单条分支模式，全局历史利用多条分支的关系。不同指令共用表项会互相污染。错猜后须撤掉未提交的结果。
+      - item:
+          id: predict-4
+          type: choice
+          prompt: 方向已经猜为跳，目标却还未知。什么结构可以提前提供它？
+          options:
+            - text: 两位方向计数器
+              why: 计数只说明更常跳还是更常不跳。
+            - text: 分支目标缓冲表
+              correct: true
+          explain: 它按取指位置查先前保存的目标。
+  - id: cpu-time
+    chapter: 分支预测和性能模型
+    title: 用指令数、CPI 和频率比较时间
+    minutes: 10
+    flow:
+      - guess:
+          id: cpu-time-guess
+          type: choice
+          prompt: 机器频率更高，但完成同一份工作需要更多拍。一定更快吗？
+          options:
+            - text: 一定，只需比频率
+              why: 每秒拍数高，不能抵消任意多的额外拍数。
+            - text: 不一定，要算完整的用时
+              correct: true
+          explain: 每拍的时长与总拍数都影响时间。
+      - card:
+          title: 先求总拍数，再换算秒数
+          body: >-
+            **CPI（cycles per instruction）**每条指令平均占用的时钟周期数。 执行秒数等于指令数乘 CPI，再除以每秒的拍数。CPI 是整段执行的平均，包含停顿。GHz
+            对应每秒十亿拍。
+          reveal:
+            - title: 先算拍数
+              body: 两亿条指令 × CPI 1.5 得三亿拍。
+            - title: 把拍数换成秒
+              body: 每秒二十亿拍，时间是 0.15 秒。
+      - item:
+          id: cpu-time-2
+          type: number
+          prompt: 十亿条指令，CPI 为 1.5，频率 2 GHz。用多少秒？
+          answer: 0.75
+          explain: 十五亿拍除以每秒二十亿拍。
+      - card:
+          title: 加速比用原用时除以新用时
+          body: >-
+            对照同一个输入和工作量。一个改动降低 CPI 但也可能降低时钟频率；测量时要区分 CPU 时间与包含等待、输入输出在内的耗时。若每条分支错猜成本为 5 拍，每 100 条共错 4 次，CPI 增
+            0.20。
+      - item:
+          id: cpu-time-4
+          type: number
+          prompt: 同样十亿条指令，旧版 CPI 1.5、2 GHz；新版 CPI 1.2、1.8 GHz。加速比是多少？
+          answer: 1.125
+          explain: 旧用时 0.75 秒，新用时为 2/3 秒，旧除以新。
+  - id: amdahl
+    chapter: 分支预测和性能模型
+    title: 算出只能加速一部分时的上限
+    minutes: 10
+    flow:
+      - guess:
+          id: amdahl-guess
+          type: choice
+          prompt: 准备工作固定要 2 分钟。后面的活无论快多少，整个过程可能少于 2 分钟吗？
+          options:
+            - text: 不可能，固定部分仍要完成
+              correct: true
+            - text: 可以，只要后半段足够快
+              why: 固定准备时间不会随这项改动变短。
+          explain: 加快后半段不能缩掉前半段。
+      - card:
+          title: 把旧时间归一为 1
+          body: >-
+            **阿姆达尔定律（Amdahl's law）**当只加速部分工作时，按新旧总时间求整体加速比的规律。 比例 p 加快 s 倍后只占旧时间的 p/s，其他仍占 1−p。整体加速比等于 1
+            除以这两项的和。理想并行还未计通信和协调。
+          reveal:
+            - title: 留下不可加速部分
+              body: 能并行的比例为 0.6，留下 0.4。
+            - title: 缩短可并行部分
+              body: 3 核理想分担，0.6/3=0.2；新时间是旧时间的 0.6。
+            - title: 用旧时间除新时间
+              body: 加速比为 1/0.6，约 1.67。
+      - item:
+          id: amdahl-2
+          type: number
+          prompt: 80% 的原用时可理想并行，16 核且无开销。整体加速多少倍？
+          answer: 4
+          explain: 新时间比例 0.2+0.8/16=0.25。
+      - card:
+          title: 核数无限时只剩串行部分
+          body: 在理想式中，可并行部分趋近于零；如果串行比例为 20%，整体最多接近 5 倍。真实机器还会遇到带宽和同步成本。
+      - item:
+          id: amdahl-4
+          type: number
+          prompt: 原用时中有 25% 必须串行。理想情况下核数无限时最多接近几倍？
+          answer: 4
+          explain: 上限由固定的四分之一决定，1/0.25=4。
+boss:
+  items:
+    - id: challenge-1
+      type: choice
+      prompt: 在 MIPS 的 `lw $t0, 12($s0)` 中，`$s0` 为 100。有效地址和访问方向是什么？
+      options:
+        - text: 读地址 112
+          correct: true
+        - text: 写地址 112
+          why: 写入主存的是 sw。
+        - text: 读地址 100
+          why: 偏移 12 必须加上。
+      explain: 基址与字节偏移相加，lw 从主存取。
+    - id: challenge-2
+      type: number
+      prompt: 五级流水线支持转发，装入在 MEM 末给值。lw x1,0(x2)；add x3,x1,x4；sub x5,x3,x6 共插多少拍？
+      answer: 1
+      explain: lw 到 add 要等一拍；add 到 sub 能从 EX 结果直接转发。
+    - id: challenge-3
+      type: number
+      prompt: L1 查 1 拍，缺失率 5%；L2 查 10 拍，局部缺失率 20%；主存额外 100 拍。AMAT 多少拍？
+      answer: 2.5
+      explain: 每次 L1 未命中平均再付 10+20=30 拍；1+0.05×30。
+    - id: challenge-4
+      type: choice
+      prompt: MSI 中两个核都持有同一块且均为 S。核 0 写完后分别是什么状态？
+      options:
+        - text: 核 0 为 M，核 1 为 I
+          correct: true
+        - text: 核 0 为 M，核 1 保持 S
+          why: 核 1 的旧副本必须失效。
+        - text: 两个都为 M
+          why: 同块不会同时有两个独占的脏副本。
+      explain: 核 0 必须取得独占写权限。
+    - id: challenge-5
+      type: number
+      prompt: 可理想并行的时间占 80%。16 核时加速比上限是几？
+      answer: 4
+      explain: 0.2+0.8/16=0.25，原时除以新时得 4。
+    - id: challenge-6
+      type: number
+      prompt: 跳、跳、跳、不跳反复出现。两位预测器从强跳开始，12 次中的预测正确率是多少百分比？填 0 到 100 的数字。
+      answer: 75
+      explain: 每四次有三次正确，三组共 9/12。
+    - id: challenge-7
+      type: number
+      prompt: 十亿条指令，CPI 1.2、频率 1.8 GHz；旧机器同样指令数、CPI 1.5、2 GHz。新版相对旧版加速多少倍？
+      answer: 1.125
+      explain: 旧 0.75 秒，新 2/3 秒；0.75÷(2/3)。

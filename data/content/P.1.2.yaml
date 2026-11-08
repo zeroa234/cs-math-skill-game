@@ -1,0 +1,2096 @@
+skill: P.1.2
+version: 2
+brief:
+  why: 让不同对象各管一份状态并按约定合作。用 Java 的账户、借书台和后台任务，把类型、对象和构建连成一条线。
+  outcomes:
+    - 用类、封装与组合实现可检查的业务规则
+    - 借接口、继承和泛型安排不同对象之间的协作
+    - 选择集合和 I/O API，运行简单并发任务并用 Maven 构建
+terms:
+  - term: 编译
+    def: 把程序转换为可由另一执行环境处理的形式。
+  - term: 编译器
+    def: 执行转换并检查程序语言规则的工具。
+  - term: 类
+    def: 定义一类对象的状态和可用行为。
+  - term: 对象
+    def: 类的具体实例，可有各自的状态。
+  - term: 引用
+    def: 能找到某个对象的值。
+  - term: 方法重载
+    def: 同名方法通过不同的参数列表区分。
+  - term: 封装
+    def: 用受控制的操作管理对象内部状态。
+  - term: 不变量
+    def: 对象应始终维持的条件。
+  - term: 继承
+    def: 由子类扩展父类定义。
+  - term: 重写
+    def: 子类给继承的实例方法提供自己的实现。
+  - term: 抽象类
+    def: 不能直接创建实例、可留有抽象方法的类。
+  - term: 动态分派
+    def: 在运行时按对象选择实例方法实现。
+  - term: 多态
+    def: 通过共用类型或操作与多种具体对象协作。
+  - term: 数组
+    def: 固定长度、可按下标访问的一组元素。
+  - term: 接口
+    def: 类型对协作者承诺的一组操作。
+  - term: 子类型
+    def: 能在父类型位置使用的类型。
+  - term: 组合
+    def: 由一个对象持有其他协作对象。
+  - term: 委托
+    def: 让被持有的协作者完成一项工作。
+  - term: 泛型
+    def: 把类型作为声明可复用的参数。
+  - term: 袋
+    def: 记录每个值出现次数的集合模型。
+  - term: 类型擦除
+    def: 将泛型声明翻译为运行时表示的机制。
+  - term: 越界
+    def: 访问超出有效位置的下标。
+  - term: 迭代器
+    def: 逐个读取容器元素的访问对象。
+  - term: 受检异常
+    def: Java 要求在调用方捕获或声明的异常。
+  - term: 字节
+    def: 由 8 个二进制位组成的数据单位。
+  - term: 序列化
+    def: 将数据转成可存储或发送的表示。
+  - term: 进程
+    def: 正在执行并拥有资源的程序实例。
+  - term: 线程
+    def: 进程内部的一条执行路线。
+  - term: 中断
+    def: Java 中用于请求线程停止等待或安全结束的协作机制。
+  - term: 竞态条件
+    def: 结果随执行先后而变并可能违反规则的情况。
+  - term: 临界区
+    def: 需要协调访问共享状态的代码段。
+  - term: 互斥锁
+    def: 一次只允许一个持有者进入保护区的机制。
+  - term: 死锁
+    def: 参与者彼此等待，谁都无法继续。
+  - term: 线程池
+    def: 可重复领取任务的一组工作线程。
+  - term: 生命周期
+    def: 构建工具按顺序经过的一组阶段。
+  - term: 迭代
+    def: 按容器提供的顺序逐个访问元素。
+  - term: 正则表达式
+    def: 按文字规则描述一组可能字符串的模式。
+lessons:
+  - id: java-start
+    chapter: 对象
+    title: 先让 Java 读入一个数并显示两倍
+    minutes: 13
+    flow:
+      - guess:
+          id: java-start-guess
+          type: choice
+          prompt: 输入 7。若程序先读取整数，再把它乘 2，预计显示什么？
+          options:
+            - text: '14'
+              correct: true
+            - text: '77'
+              why: 读取的是整数，乘法会计算数值。
+          explain: 运行前先把输入和要执行的运算写清楚。
+      - card:
+          title: 源码经过编译，再由运行环境执行
+          body: >
+            Java 开发工具包（JDK）提供 javac、java 和 jshell。**编译（compile）**把源文件转换为 Java
+            虚拟机（JVM）能执行的形式，**编译器（compiler）**也会检查静态类型。把示例存为 Main.java，运行 `javac Main.java`，再运行 `java Main`，输入 7
+            后回车。`main` 是程序入口。
+
+
+            ```java
+
+            import java.util.Scanner;
+
+
+            class Main {
+                public static void main(String[] args) {
+                    Scanner input = new Scanner(System.in);
+                    int count = input.nextInt();
+                    System.out.println(count * 2);
+                }
+            }
+
+            // input: 7
+
+            // expect: 14
+
+            ```
+      - item:
+          id: java-start-practice
+          type: number
+          prompt: 一个 Java 程序读取整数后打印这个数的两倍。输入 9，输出多少？
+          answer: 18
+          explain: 把读入的 9 乘 2，得到 18。
+      - card:
+          title: 声明类型后，赋值须符合类型
+          body: >-
+            `int` 存整数，`double` 存小数，`boolean` 存真假，`String` 存文字。`String` 是引用类型。`Scanner.nextInt()`
+            读取整数，`nextLine()` 读取一整行文字。之后标为代码片段的示例可逐行粘贴到 `jshell`。 `String[]` 表示字符串**数组（array）**，是一组按位置存放的同类型值。
+      - item:
+          id: java-start-apply
+          type: choice
+          prompt: 执行 `int boxes = 3; int books = boxes * 4;` 后，books 是多少？
+          options:
+            - text: '34'
+              why: 两个值是整数，`*` 做乘法。
+            - text: '12'
+              correct: true
+          explain: 声明变量的类型后，计算结果按对应类型保存。
+  - id: java-flow
+    chapter: 对象
+    title: 用方法、分支与循环拆出清楚的步骤
+    minutes: 13
+    flow:
+      - guess:
+          id: java-flow-guess
+          type: choice
+          prompt: 依次加上 1、2、3，初值为零。最后总和是多少？
+          options:
+            - text: '3'
+              why: 总和每轮都保留，最后一轮再加 3。
+            - text: '6'
+              correct: true
+          explain: 先追踪每轮如何改变同一个值。
+      - card:
+          title: 把反复调用的规则写成一个方法
+          body: |
+            片段在 JShell 中定义一个方法并立即调用它。`int` 写在方法名前表示返回整数。Java 用花括号围住语句组，`if` 条件要放在圆括号里。下面给满足最低数量的订单返还两件。
+
+            ```java
+            int bonus(int order) {
+                if (order >= 5) {
+                    return 2;
+                }
+                return 0;
+            }
+            System.out.println(bonus(5));
+            // expect: 2
+            ```
+      - item:
+          id: java-flow-practice
+          type: choice
+          prompt: 调用 `bonus(4)` 会返回什么？
+          options:
+            - text: '2'
+              why: 4 未达到最低数量。
+            - text: '0'
+              correct: true
+          explain: 使用条件时先检查等号所在的边界。
+      - card:
+          title: 更新条件相关的值，循环才会结束
+          body: |
+            `for` 的三部分是初始值、继续条件和每轮更新。也可用 `while` 在每轮开始前检查条件，由循环体更新计数。两种写法都能表达累加。计数器从 1 开始，先比较再执行。
+
+            ```java
+            int total = 0;
+            for (int i = 1; i <= 3; i++) {
+                total += i;
+            }
+            System.out.println(total);
+            // expect: 6
+            ```
+      - item:
+          id: java-flow-apply
+          type: choice
+          prompt: 把 `i <= 3` 改成 `i < 3`，最后打印什么？
+          options:
+            - text: '3'
+              correct: true
+            - text: '6'
+              why: '`i` 等于 3 时条件为假。'
+          explain: 这次只有 1 和 2 进入总和。
+  - id: objects
+    chapter: 对象
+    title: 用同一个类创建两份互不干扰的对象
+    minutes: 13
+    flow:
+      - guess:
+          id: objects-guess
+          type: choice
+          prompt: 登记两本书时给一本改名，另一册的名称也应跟着变吗？
+          options:
+            - text: 只要都叫书，名称就必然一起变化
+              why: 两册是不同的个体，能各自保存数据。
+            - text: 各自登记时，另一本仍保留自己的名称
+              correct: true
+          explain: 区分描述一种事物的规则与一个具体实例。
+      - card:
+          title: 类定义字段和行为，构造方法设置初值
+          body: >
+            **类（class）**描述一类值能保存哪些数据、可以做什么。**对象（object）**是由类建立的具体实例。`Book` 的 `title` 是字段，`Book(String title)`
+            是构造方法，`this.title` 明确指当前对象的字段。
+
+
+            ```java
+
+            class Book {
+                String title;
+                Book(String title) { this.title = title; }
+                String describe() { return this.title; }
+            }
+
+            Book a = new Book("Red");
+
+            Book b = new Book("Blue");
+
+            System.out.println(a.describe() + "/" + b.describe());
+
+            // expect: Red/Blue
+
+            ```
+      - item:
+          id: objects-practice
+          type: choice
+          prompt: 依次执行 `new Book("Red")` 和 `new Book("Blue")`，会创建几份 Book？
+          options:
+            - text: 2 份
+              correct: true
+            - text: 1 份
+              why: 每次 `new Book(...)` 创建一个新对象。
+          explain: 同一个类可以描述多个实例。
+      - card:
+          title: 跟着调用找正在提供行为的对象
+          body: '`a.describe()` 把 a 所指的书交给 `describe`；方法里的 `this` 就是那本书。其他对象也可以经由它允许公开的方法读取书名。类定义的方法可以共享，实例字段各自保存。'
+      - item:
+          id: objects-apply
+          type: choice
+          prompt: 把 a 的标题改成 Green，再调用 `b.describe()`，返回什么？
+          options:
+            - text: Green
+              why: b 仍指第二次 new 创建的书。
+            - text: Blue
+              correct: true
+          explain: 操作 a 的字段时没有改变 b 对应的实例。
+  - id: references
+    chapter: 对象
+    title: 画出变量箭头，理解改对象和改变量
+    minutes: 13
+    flow:
+      - guess:
+          id: references-guess
+          type: choice
+          prompt: 甲乙各拿一张写着同一书架编号的纸。甲按编号换了架上的标签，乙按自己的纸去看，会看到新标签吗？
+          options:
+            - text: 会，两人找到的是同一书架
+              correct: true
+            - text: 不会，两张纸表示两份独立书架
+              why: 纸是位置线索，复制它没有复制书架。
+          explain: 变量可以共同指向一个值。
+      - card:
+          title: 复制基本类型的值，或复制引用的箭头
+          body: |
+            `int` 是基本类型，赋值复制数值。对象变量保存**引用（reference）**，赋值复制指向。画对象图时，每个变量画一个标记，每次 `new` 画一个对象框，同一对象可有多条箭头。
+
+            ```java
+            class Box {
+                int count = 2;
+            }
+            Box a = new Box();
+            Box b = a;
+            b.count = 5;
+            System.out.println(a.count);
+            // expect: 5
+            ```
+      - item:
+          id: references-practice
+          type: choice
+          prompt: 执行 `int a = 2; int b = a; b = 5;` 后 a 是多少？
+          options:
+            - text: '5'
+              why: 基本类型变量各自保存数值。
+            - text: '2'
+              correct: true
+          explain: 对象箭头与基本类型值要分开追踪。
+      - card:
+          title: 改箭头可以保留对象，字符串拼接产生新值
+          body: >
+            `b = new Box()` 只改 b 的箭头。Java `String` 是不可变对象，拼接后的赋值改的是变量的箭头。作为对比，可变的 Box
+            能在原对象上改字段；所有指向它的变量都能看到改动。
+
+
+            ```java
+
+            String a = "red";
+
+            String b = a;
+
+            b = b + "!";
+
+            System.out.println(a + "/" + b);
+
+            // expect: red/red!
+
+            ```
+      - item:
+          id: references-apply
+          type: choice
+          prompt: a 和 b 原先指同一个 Box，随后 b 指向新建的 Box。再改 b 的 count，a 看到什么？
+          options:
+            - text: b 新 Box 的字段值
+              why: 改字段只发生在 b 现在指的那个对象。
+            - text: 原 Box 的字段值
+              correct: true
+          explain: 重新画 b 的箭头，再判断改动位置。
+  - id: overload
+    chapter: 对象
+    title: 给一种操作提供多套参数
+    minutes: 13
+    flow:
+      - guess:
+          id: overload-guess
+          type: choice
+          prompt: 创建票据时可输入完整的名称和数量，也可只输入名称。两条入口如何避免重复设初值？
+          options:
+            - text: 每个入口复制全部初始化
+              why: 重复时以后修改规则容易漏一处。
+            - text: 省略数量的入口转交给完整入口
+              correct: true
+          explain: 让所有入口共用一套初始化。
+      - card:
+          title: 参数列表区分同名方法和构造方法
+          body: |
+            **方法重载（overload）**允许同名方法用不同的参数数量或类型。调用在编译时根据参数匹配；只改返回类型不能构成重载。构造方法也能重载，`this(...)` 转给同类的另一个构造方法。
+
+            ```java
+            class Ticket {
+                final String title;
+                final int copies;
+                Ticket(String title, int copies) {
+                    this.title = title;
+                    this.copies = copies;
+                }
+                Ticket(String title) { this(title, 1); }
+            }
+            System.out.println(new Ticket("A").copies);
+            // expect: 1
+            ```
+      - item:
+          id: overload-practice
+          type: choice
+          prompt: 调用 `new Ticket("A", 4)` 时，copies 是多少？
+          options:
+            - text: '1'
+              why: 这次直接匹配有两个参数的构造方法。
+            - text: '4'
+              correct: true
+          explain: 只有少参数入口才补默认值。
+      - card:
+          title: 把适合调用者的参数组合各给一个入口
+          body: >-
+            也可用 `print(int)` 和 `print(String)` 处理不同类型。传给 `print(4)` 时选前者，`print("4")`
+            选后者。把共享工作交给一个内部方法，便于让行为保持一致。
+      - item:
+          id: overload-apply
+          type: choice
+          prompt: 已经有 `int size(String name)`。再写 `long size(String name)` 可以仅凭返回类型共存吗？
+          options:
+            - text: 不可以，参数列表相同
+              correct: true
+            - text: 可以，返回值类型足以区分
+              why: 一次调用可能根本没有使用返回值。
+          explain: 重载签名要有不同的参数列表。
+  - id: account
+    chapter: 封装
+    title: 封住余额，让每条写入路径检查规则
+    minutes: 13
+    flow:
+      - guess:
+          id: account-guess
+          type: choice
+          prompt: 取款额如果允许写成 -3，再从余额扣除这个数，余额会怎样？
+          options:
+            - text: 减少 3
+              why: 减负数等同于加正数。
+            - text: 反而增加 3
+              correct: true
+          explain: 规则必须同时约束输入和修改后的状态。
+      - card:
+          title: 把余额设为私有，检查初值和每次改动
+          body: >
+            **封装（encapsulation）**把状态和允许的操作集中在类里。**不变量（invariant）**是对象每次正常完成操作后都应满足的条件。此处余额始终非负，金额用整数分。`private`
+            限制外部直接访问，`Math.addExact` 在加款超过 long 上限时抛异常并保留原值。
+
+
+            ```java
+
+            class BankAccount {
+                private long balance;
+                BankAccount(long opening) {
+                    if (opening < 0) throw new IllegalArgumentException();
+                    balance = opening;
+                }
+                long balance() { return balance; }
+                void deposit(long amount) {
+                    if (amount <= 0) throw new IllegalArgumentException();
+                    balance = Math.addExact(balance, amount);
+                }
+                void withdraw(long amount) {
+                    if (amount <= 0) throw new IllegalArgumentException();
+                    if (amount > balance) throw new IllegalStateException();
+                    balance -= amount;
+                }
+            }
+
+            BankAccount account = new BankAccount(10);
+
+            account.withdraw(3);
+
+            System.out.println(account.balance());
+
+            // expect: 7
+
+            ```
+      - item:
+          id: account-practice
+          type: choice
+          prompt: 余额是 7 时取款 8。按上面规则，余额变成多少？
+          options:
+            - text: 仍为 7，操作抛异常
+              correct: true
+            - text: 变成 -1，再抛异常
+              why: 检查在减法之前执行。
+          explain: 失败路径也要保护原来的有效状态。
+      - card:
+          title: 通过行为公开规则，按边界做验证
+          body: 让读取方法返回数值即可。若字段是可变对象，直接返回内部引用可能让外部绕过规则。检查账户可分别试负初值、零金额、负金额、余额刚好相等和余额不足；每个失败场景都复查余额。
+      - item:
+          id: account-apply
+          type: choice
+          prompt: 若把 `balance` 改成公有字段，会出现哪条绕过路径？
+          options:
+            - text: 外部赋值会自动调用 withdraw 检查
+              why: 字段赋值和方法调用是不同操作。
+            - text: 外部可给余额直接赋负值
+              correct: true
+          explain: 把变化入口限制为检查过的方法。
+  - id: access
+    chapter: 封装
+    title: 用包和访问范围组织协作的类
+    minutes: 13
+    flow:
+      - guess:
+          id: access-guess
+          type: choice
+          prompt: 一个类里的辅助方法只供类内部使用。公开它后，其他程序可能开始依赖它吗？
+          options:
+            - text: 可能，公开成员能成为别人依赖的入口
+              correct: true
+            - text: 不会，方法名中有 helper 就不能被外部用
+              why: 命名习惯不会限制谁能调用。
+          explain: 先确定别人应该依赖哪一小部分行为。
+      - card:
+          title: 包分组，访问控制规定能在哪里用
+          body: >-
+            `package` 放在源文件开头，给类划定命名空间。`import` 可用简名引用别包的类。`public` 供外部使用，`private`
+            留在所在顶层类及它的嵌套类内；成员不写修饰符时只向同包开放。`protected` 还提供受规则约束的子类访问。
+      - item:
+          id: access-practice
+          type: choice
+          prompt: 仓库中的同包辅助类应能调用 `recount`，外包调用方无需看见。用哪种成员访问级别？
+          options:
+            - text: 写 public，让所有类都能调用
+              why: 公开范围超过题设要求。
+            - text: 不写访问修饰符，允许同包访问
+              correct: true
+          explain: 给协作者足够权限，同时缩小公开约定。
+      - card:
+          title: 区分名字能写在哪里和数据属于谁
+          body: 局部变量只在声明所处范围内可见。实例字段每个对象一份，`static` 字段属于类。类里还可声明嵌套类；非静态的内部类实例和外层实例关联。内部实现类常保持私有。
+      - item:
+          id: access-apply
+          type: choice
+          prompt: 每本书都有自己的标题，借书台想统计整个类创建了几本。分别选哪种字段？
+          options:
+            - text: 标题为 static 字段，统计为每本书的实例字段
+              why: 共享标题会让不同实例互相覆盖。
+            - text: 标题为实例字段，统计为 static 字段
+              correct: true
+          explain: 决定一份数据是属于每个实例还是整个类。
+  - id: design-tests
+    chapter: 封装
+    title: 把输入显示和业务规则拆开测试
+    minutes: 13
+    flow:
+      - guess:
+          id: design-tests-guess
+          type: choice
+          prompt: 界面换成网页，借书上限还是三本。规则写在哪里能让命令行和网页共用？
+          options:
+            - text: 分别写在每种界面的按钮或输入处理里
+              why: 复制规则后两边更新容易走散。
+            - text: 放在独立的借书业务方法里
+              correct: true
+          explain: 让用户界面转换输入并显示业务结果。
+      - card:
+          title: 先按责任画类图，再列测试用例
+          body: 类图用方框表示类，列出字段、方法和类之间的关系；对象图画某时刻的实例。借书台依赖 Book 资料，界面调用 Desk 的规则；输入输出留在界面。给 Desk 单独用满额、未满、非法输入等场景检查。
+      - item:
+          id: design-tests-practice
+          type: choice
+          prompt: 下列哪条用例最直接检查上限的边界？
+          options:
+            - text: 只看界面背景颜色是否变化
+              why: 背景不能说明业务方法是否执行正确。
+            - text: 已有 3 本时再借 1 本，应拒绝
+              correct: true
+          explain: 测试调用规则并比较预期结果。
+      - card:
+          title: 把失败变成可重现的最小输入
+          body: 先把错误场景缩成小用例。实际值不符合预期时检查第一处偏差，可打印中间值或让调试器暂停。Java `assert` 默认关闭，可用 `java -ea` 启用；业务输入校验应由始终运行的代码完成。
+      - item:
+          id: design-tests-apply
+          type: choice
+          prompt: 若用户传来非法的负借书数量，能只用 Java `assert` 负责拒绝吗？
+          options:
+            - text: 不能，用常规条件检查并拒绝
+              correct: true
+            - text: 能，Java 默认一直运行所有 assert
+              why: Java 默认关闭断言，检查可能被跳过。
+          explain: 断言适合开发期检查内部假设，业务边界始终要校验。
+  - id: inheritance
+    chapter: 继承
+    title: 继承共同约定，先检查能否替代
+    minutes: 13
+    flow:
+      - guess:
+          id: inheritance-guess
+          type: choice
+          prompt: 一个存款账户可随时取款。某种账户必须等到期才可取款。直接让后者继承前者，会不会影响调用者？
+          options:
+            - text: 不会，只要类名都有账户即可
+              why: 类名相近不保证行为相同。
+            - text: 可能，调用者依赖随时取款的约定
+              correct: true
+          explain: 先问使用父类型的代码能期待什么。
+      - card:
+          title: extends 建立父类与子类的关系
+          body: >-
+            **继承（inheritance）**让子类扩展一个父类。父类构造方法可由子类用 `super(...)`
+            调用。实例方法可由子类重写。私有字段仍受原访问规则控制，子类应经由父类公开或受保护的行为。
+      - item:
+          id: inheritance-practice
+          type: choice
+          prompt: 父类把余额设为 private。子类应该怎样读取余额？
+          options:
+            - text: 通过父类提供的可访问方法
+              correct: true
+            - text: 直接用 `super.balance` 绕过 private
+              why: '`super` 不会解除访问限制。'
+          explain: 继承行为时仍需尊重类的封装边界。
+      - card:
+          title: 重写使用同一个调用约定
+          body: |
+            **重写（override）**提供可替代的实例方法实现。`@Override` 帮编译器检查你确实重写了方法。子类不能把原来公开的方法改成更窄的访问范围；重写后仍应履行父类型的约定。
+
+            ```java
+            class Notice {
+                String text() { return "base"; }
+            }
+            class Mail extends Notice {
+                @Override String text() { return "mail"; }
+            }
+            System.out.println(new Mail().text());
+            // expect: mail
+            ```
+      - item:
+          id: inheritance-apply
+          type: choice
+          prompt: 若子类写 `text(int times)`，且父类只有 `text()`，这是不是重写？
+          options:
+            - text: 是，名字一样就属于重写
+              why: 重写必须对应父类已有的方法签名。
+            - text: 不是，参数列表不同，属于重载
+              correct: true
+          explain: 在实现上加 `@Override` 能及时发现签名错误。
+  - id: dispatch
+    chapter: 继承
+    title: 同一求面积调用，由实际图形决定怎么算
+    minutes: 13
+    flow:
+      - guess:
+          id: dispatch-guess
+          type: choice
+          prompt: 圆和矩形都能回答自己的面积。加一种三角形后，已有的求和过程还要知道它的具体公式吗？
+          options:
+            - text: 可以让三角形自己实现求面积，求和照常调用
+              correct: true
+            - text: 每个求和调用者必须复制三角形公式
+              why: 把公式放在图形本身更便于复用。
+          explain: 把共同要求和不同实现分开。
+      - card:
+          title: 抽象类给共同要求，具体类实现方法
+          body: >
+            **抽象类（abstract class）**可以声明无方法体的抽象方法，也可提供共用代码。不能直接创建抽象类的实例。具体子类实现 `area()` 后，可以用共同的 `Shape`
+            类型引用它们。片段使用固定正数尺寸演示。
+
+
+            ```java
+
+            abstract class Shape {
+                abstract double area();
+            }
+
+            class Circle extends Shape {
+                double area() { return Math.PI; }
+            }
+
+            class Rectangle extends Shape {
+                double area() { return 2 * 3; }
+            }
+
+            Shape figure = new Rectangle();
+
+            System.out.println(figure.area());
+
+            // expect: 6.0
+
+            ```
+      - item:
+          id: dispatch-practice
+          type: choice
+          prompt: 把 figure 初始化改为 `new Circle()`，area 会按哪个图形实现计算？
+          options:
+            - text: Shape
+              why: Shape 只声明了方法，没有提供这个方法体。
+            - text: Circle
+              correct: true
+          explain: 先看变量允许调用的成员，再看实际对象如何实现。
+      - card:
+          title: 遍历一组 Shape 时，同样的调用可产生不同结果
+          body: >
+            **动态分派（dynamic dispatch）**按运行时对象选择重写的实例方法，这是**多态（polymorphism）**的一种表现。把两种图形放进 `Shape[]`，用 `for
+            (Shape f : figures)` 依次把各项交给 f，逐个求面积并相加，增加图形时无需修改求和规则。
+
+
+            ```java
+
+            abstract class Shape {
+                abstract double area();
+            }
+
+            class Circle extends Shape {
+                double area() { return Math.PI; }
+            }
+
+            class Rectangle extends Shape {
+                double area() { return 6; }
+            }
+
+            Shape[] figures = {new Circle(), new Rectangle()};
+
+            double total = 0;
+
+            for (Shape f : figures) total += f.area();
+
+            System.out.printf(java.util.Locale.ROOT, "%.2f%n", total);
+
+            // expect: 9.14
+
+            ```
+      - item:
+          id: dispatch-apply
+          type: choice
+          prompt: Shape[] figures 原来放了圆和矩形，循环会把所有面积相加。已知每份 Rectangle 面积为 6。把数组改为两份 Rectangle，总面积是多少？
+          options:
+            - text: '6'
+              why: 循环对两个元素各调用一次面积方法。
+            - text: '12'
+              correct: true
+          explain: 每个对象提供自己的面积，求和只负责累计。
+  - id: interfaces
+    chapter: 接口
+    title: 让调用者只依赖能完成的行为
+    minutes: 13
+    flow:
+      - guess:
+          id: interfaces-guess
+          type: choice
+          prompt: 柜台既能发邮件，也能打印小票。如果柜台只要发出通知，是否必须知道是哪种实现？
+          options:
+            - text: 柜台必须知道所有实现的内部字段
+              why: 共同操作可以把具体实现隔开。
+            - text: 只要能按共同约定发通知即可
+              correct: true
+          explain: 先说合作需要什么能力。
+      - card:
+          title: 接口提供方法约定，多个类可分别实现
+          body: >
+            **接口（interface）**描述实现者应提供的操作。`implements` 声明类实现接口。能赋给父类型变量的类型叫**子类型（subtype）**，例如 Mail 可以赋给
+            Notifier。抽象接口方法由实现类以 `public` 提供。
+
+
+            ```java
+
+            interface Notifier {
+                String send(String text);
+            }
+
+            class Mail implements Notifier {
+                public String send(String text) { return "mail:" + text; }
+            }
+
+            Notifier target = new Mail();
+
+            System.out.println(target.send("ready"));
+
+            // expect: mail:ready
+
+            ```
+      - item:
+          id: interfaces-practice
+          type: choice
+          prompt: 变量 `target` 声明为 Notifier。能直接调用 Mail 独有且接口未声明的 `saveDraft()` 吗？
+          options:
+            - text: 能，实际对象的所有方法都会出现在接口里
+              why: 实际对象类型和变量的静态类型提供不同信息。
+            - text: 不能，静态类型的接口没提供该方法
+              correct: true
+          explain: 调用点先检查声明类型允许的操作。
+      - card:
+          title: 默认方法能补共同行为，调用方仍依赖接口
+          body: 接口可用 `default` 给方法一个默认实现，实现类可重写。接口也适合用在业务方法的参数上，让测试传入一个记录消息的实现，正式运行换成邮件实现。调用方应依赖接口承诺的行为。
+      - item:
+          id: interfaces-apply
+          type: choice
+          prompt: 已有 Notifier 接口和依赖它的柜台。加短信时应首先怎么做？
+          options:
+            - text: 新建实现 Notifier 的短信类
+              correct: true
+            - text: 让柜台把所有调用都改成邮件类
+              why: 邮件具体类无法代表新的短信实现。
+          explain: 接口保持稳定时，可以把改变集中在实现。
+  - id: composition
+    chapter: 组合
+    title: 让对象持有协作者，并把具体工作交出去
+    minutes: 13
+    flow:
+      - guess:
+          id: composition-guess
+          type: choice
+          prompt: 汽车需要启动引擎。汽车应当是引擎的一种，还是持有一台引擎并请求它启动？
+          options:
+            - text: 继承引擎，让汽车成为引擎的子类型
+              why: 汽车的使用约定与引擎不同。
+            - text: 持有引擎并请求它启动
+              correct: true
+          explain: 先判断两个概念是协作，还是可替代。
+      - card:
+          title: 组合保存一个对象，委托调用它的方法
+          body: >
+            **组合（composition）**让对象持有协作者；**委托（delegation）**把一项工作交给协作者。一个借书台可以保存多本 Book
+            的列表，用它管理藏书。`ArrayList<Book>` 表示只装 Book 的列表。对象负责何时调用，协作者负责如何做。
+
+
+            ```java
+
+            import java.util.ArrayList;
+
+            class Book {
+                final String title;
+                Book(String title) { this.title = title; }
+            }
+
+            class Shelf {
+                private final ArrayList<Book> books = new ArrayList<>();
+                void add(Book book) { books.add(book); }
+                int count() { return books.size(); }
+            }
+
+            Shelf shelf = new Shelf();
+
+            shelf.add(new Book("Orbit"));
+
+            System.out.println(shelf.count());
+
+            // expect: 1
+
+            ```
+      - item:
+          id: composition-practice
+          type: choice
+          prompt: Shelf 的计数方法向内部 books 询问大小。它用了哪种关系？
+          options:
+            - text: 持有列表并委托计数
+              correct: true
+            - text: Shelf 继承 ArrayList 并承诺全部列表操作
+              why: Shelf 的定义只把列表作为内部字段。
+          explain: 外部只看到书架允许的操作。
+      - card:
+          title: 把看似同类的对象放进同一个调用场景
+          body: >-
+            假设 Rectangle 的 `setWidth` 和 `setHeight` 承诺可独立设置。客户端依次设宽 2 和高 5，预期面积 10；若 Square 必须同时改两边，就会得到
+            25。若只共享求面积，可为两者定义共同接口。电动车能否继承汽车，也要核对父类行为。
+          reveal:
+            - title: 按父类型约定推结果
+              body: 设宽 2 再设高 5，宽仍为 2，面积为 10。
+            - title: 按等边约束推子类结果
+              body: Square 设高 5 时也把宽改成 5，面积为 25。
+      - item:
+          id: composition-apply
+          type: choice
+          prompt: 某个客户端只要求图形能提供面积，且不会修改尺寸。让矩形和正方形共享什么更直接？
+          options:
+            - text: 要求正方形兑现宽高可独立修改的承诺
+              why: 独立修改会与正方形要求冲突。
+            - text: 共享只约定面积的类型
+              correct: true
+          explain: 共同类型可以只承诺双方都能实现的行为。
+  - id: generic-stack
+    chapter: 泛型与对象协作
+    title: 给栈指定元素类型，拿出来仍有原类型
+    minutes: 13
+    flow:
+      - guess:
+          id: generic-stack-guess
+          type: choice
+          prompt: 一个托盘只能把最上面放进去的东西先拿出来。先放 A 再放 B，先拿到哪个？
+          options:
+            - text: B
+              correct: true
+            - text: A
+              why: A 在 B 下面。
+          explain: 这种取出次序叫后进先出。
+      - card:
+          title: 类型参数代表调用方要选的元素类型
+          body: >
+            **泛型（generic type）**让类在声明时保留一个类型位置。`Stack<T>` 用 T 描述压入与弹出的元素。用 `Stack<String>`
+            时，编译器检查只能压入允许的字符串引用，弹出结果也是 String。空栈的 pop 应有明确规则。
+
+
+            ```java
+
+            import java.util.ArrayList;
+
+            class Stack<T> {
+                private final ArrayList<T> items = new ArrayList<>();
+                void push(T item) { items.add(item); }
+                boolean isEmpty() { return items.isEmpty(); }
+                T pop() { return items.remove(items.size() - 1); }
+            }
+
+            Stack<String> stack = new Stack<>();
+
+            stack.push("A");
+
+            stack.push("B");
+
+            System.out.println(stack.pop());
+
+            // expect: B
+
+            ```
+      - item:
+          id: generic-stack-practice
+          type: choice
+          prompt: 在 `Stack<String>` 上执行 `stack.push(3)`，会在哪一步被拒绝？
+          options:
+            - text: 一定能编译，只在输出时才报错
+              why: 参数类型是在编译时检查的。
+            - text: 编译时，整数参数不符合 String
+              correct: true
+          explain: 使用具体类型参数，可更早发现混装。
+      - card:
+          title: 最后一个下标由当前大小决定
+          body: >-
+            示例用列表保存底部到顶部的顺序。`size() - 1` 是当前栈顶下标；空列表没有有效下标，此时 `pop` 会抛出 `IndexOutOfBoundsException`。可先调用
+            `isEmpty`，或按项目要求给空栈约定自己的异常。
+      - item:
+          id: generic-stack-apply
+          type: choice
+          prompt: 某栈按后进先出取值，已有 A、B，已经执行一次 pop 取出 B。再执行一次 pop，之后还剩几个元素？
+          options:
+            - text: '1'
+              why: 第二次取出 A，原先两个已全部取出。
+            - text: '0'
+              correct: true
+          explain: 每次 pop 同时读取并移除栈顶。
+  - id: generic-bag
+    chapter: 泛型与对象协作
+    title: 袋子保留重复次数，用数组存已用位置
+    minutes: 13
+    flow:
+      - guess:
+          id: generic-bag-guess
+          type: choice
+          prompt: 午餐袋里有两只苹果和一个梨。如果数据结构只保留每种一件，还能知道苹果有几只吗？
+          options:
+            - text: 能，只要有苹果就表示有两只
+              why: 元素存在与出现几次是两件事。
+            - text: 不能，第二只苹果的信息没保留
+              correct: true
+          explain: 袋子模型关心各值出现次数。
+      - card:
+          title: 袋子支持重复，不承诺访问顺序
+          body: >-
+            **袋（bag）**可保留同一值的多次出现。可定义 `add`、`count`、`size` 等操作。定长数组实现另外保存已用个数，添加时先查容量，再写到第一个空位。Java 不能直接写 `new
+            T[]`，可以把 `Object[]` 隐藏在实现内部。
+      - item:
+          id: generic-bag-practice
+          type: choice
+          prompt: 数组容量 4，已用位置 0、1、2。成功添加前应写哪个位置？
+          options:
+            - text: '4'
+              why: 0 到 3 才是这份数组的有效位置。
+            - text: '3'
+              correct: true
+          explain: 用已用数定位第一个空位置。
+      - card:
+          title: 逐项比较已用元素可得到出现次数
+          body: |
+            用 `Objects.equals` 处理普通值和 null；只遍历 `[0, size)`，避免把未用位置的空值当成已装入元素。以下是袋子内部查次数的片段。
+
+            ```java
+            import java.util.Objects;
+            Object[] entries = {"pear", "apple", "apple", null};
+            int size = 3;
+            int found = 0;
+            for (int i = 0; i < size; i++) {
+                if (Objects.equals(entries[i], "apple")) found++;
+            }
+            System.out.println(found);
+            // expect: 2
+            ```
+      - item:
+          id: generic-bag-apply
+          type: choice
+          prompt: 袋允许重复，已经有 apple、apple、pear，再加一只 pear。两个值现在各有几只？
+          options:
+            - text: apple 2 只，pear 2 只
+              correct: true
+            - text: apple 1 只，pear 1 只
+              why: 袋子不把重复项合并成一个。
+          explain: 按每次添加更新相应值的出现次数。
+  - id: wildcards
+    chapter: 泛型与对象协作
+    title: 限制泛型容器的读取与写入方向
+    minutes: 13
+    flow:
+      - guess:
+          id: wildcards-guess
+          type: choice
+          prompt: 只借来一份号码清单，知道每项是某种数字，但不知道具体是哪种。能擅自往里面放小数吗？
+          options:
+            - text: 能，整数和小数都统称数字
+              why: 接受何种数字取决于原清单的具体规则。
+            - text: 不能，它可能专门存整数
+              correct: true
+          explain: 读出的一般类型与允许写入的类型不同。
+      - card:
+          title: extends 给读取结果一个上界
+          body: >
+            `List<Integer>` 不能直接当作 `List<Number>`，否则后者允许加入 Double。`List<? extends Number>` 表示某个未知的 Number
+            子类型列表。可把取出的值当 Number 使用；无法安全加入一个具体的非空 Number。
+
+
+            ```java
+
+            import java.util.List;
+
+            List<? extends Number> values = List.of(4, 9);
+
+            Number first = values.get(0);
+
+            System.out.println(first.intValue());
+
+            // expect: 4
+
+            ```
+      - item:
+          id: wildcards-practice
+          type: choice
+          prompt: 能给静态类型 `List<? extends Number>` 的变量调用 `add(2.5)` 吗？
+          options:
+            - text: 不能，具体元素类型可能是 Integer
+              correct: true
+            - text: 能，问号代表可以加入任意类型
+              why: extends 只说明允许读出的类型上界。
+          explain: 写入必须对未知的具体类型也安全。
+      - card:
+          title: super 接收子类型值，擦除解释运行时边界
+          body: >-
+            `List<? super Integer>` 可接收 Integer，读取时一般只能保证 Object。**类型擦除（type
+            erasure）**是编译器翻译泛型实现的机制，类型参数通常不会变成独立的运行时类。因此不能写 `new T()` 或用 `instanceof List<String>` 检查元素类型。
+      - item:
+          id: wildcards-apply
+          type: choice
+          prompt: 用 `List<? super Integer>` 传来容器，哪项是安全的？
+          options:
+            - text: 把每个读出的值直接视为 Integer
+              why: 原容器也可能是 List<Number>，其中可有 Double。
+            - text: 加入一个 Integer，再把读出的值当 Object
+              correct: true
+          explain: 根据上界和下界判断操作。
+  - id: value-types
+    chapter: 以 Java 等语言实践类型
+    title: 用类型区分编号、状态和数据记录
+    minutes: 13
+    flow:
+      - guess:
+          id: value-types-guess
+          type: choice
+          prompt: 订单状态只有新建、已付、取消。允许任意字符串会发生什么？
+          options:
+            - text: 拼错的状态也可能通过类型检查
+              correct: true
+            - text: 编译器会自动知道合法的三个词
+              why: String 类型本身没有这个业务约定。
+          explain: 能把合法值直接写进类型，便于调用方使用。
+      - card:
+          title: 枚举限定选项，记录类表达一组数据
+          body: |
+            `enum` 声明有限的命名值。`record` 声明一组组件，自动得到访问方法、按组件比较的 `equals` 等成员。组件引用不能重新赋值，但若组件指向可变对象，对象仍可能变化。
+
+            ```java
+            enum State { NEW, PAID, CANCELLED }
+            record Order(int id, State state) {}
+            Order order = new Order(8, State.PAID);
+            System.out.println(order.id() + "/" + order.state());
+            // expect: 8/PAID
+            ```
+      - item:
+          id: value-types-practice
+          type: choice
+          prompt: '`new Order(8, "PAID")` 能通过编译吗？'
+          options:
+            - text: 能，文本恰好等于枚举名
+              why: Java 不会把任意字符串自动变成枚举成员。
+            - text: 不能，第二个参数要求 State
+              correct: true
+          explain: 需要传 State.PAID 或显式解析再验证。
+      - card:
+          title: 包装类型把基本值放入需要对象的位置
+          body: >-
+            集合的类型参数需用引用类型，例如 `List<Integer>` 对应基本类型 `int`，自动装箱和拆箱会转换。Integer 为 null 时拆箱会抛
+            `NullPointerException`。JavaBean 常用 `getX` 和 `setX` 命名，记录类的访问方法直接叫组件名。
+      - item:
+          id: value-types-apply
+          type: choice
+          prompt: 声明可变的 `List<Integer>` 后，执行 `add(3)` 有什么转换？
+          options:
+            - text: Integer 转成字符串再加入
+              why: 集合参数指定的是 Integer。
+            - text: int 的 3 装箱为 Integer
+              correct: true
+          explain: 对象容器和基本类型之间由装箱桥接。
+  - id: arrays
+    chapter: 以 Java 等语言实践类型
+    title: 用下标处理行列，并读清区间边界
+    minutes: 13
+    flow:
+      - guess:
+          id: arrays-guess
+          type: choice
+          prompt: 有三格编号从 0 开始。最后一格编号是多少？
+          options:
+            - text: '3'
+              why: 编号是 0、1、2。
+            - text: '2'
+              correct: true
+          explain: 长度是格数，最后位置比长度少一。
+      - card:
+          title: 数组长度固定，数组的每一行还可以是数组
+          body: >
+            `int[]` 是整数数组，`int[][]` 是元素仍为数组的数组。访问 `grid[row][col]` 要先选行再选列；不同行可有不同长度。下标超出当前长度会**越界（out of
+            bounds）**，Java 会拒绝这次访问。
+
+
+            ```java
+
+            int[][] grid = {{2, 4}, {6}};
+
+            System.out.println(grid[0][1] + grid[1][0]);
+
+            // expect: 10
+
+            ```
+      - item:
+          id: arrays-practice
+          type: choice
+          prompt: 已知 `int[][] grid = {{2, 4}, {6}};`。执行 `grid[1][1]` 会怎样？
+          options:
+            - text: 读到 4，第一行有第二列
+              why: 下标的有效范围看当前行。
+            - text: 越界，第二行只有位置 0
+              correct: true
+          explain: 处理不等长的行应逐行看 length。
+      - card:
+          title: 字符串和随机抽取都要检查下标范围
+          body: >
+            `String.substring(from, to)` 包含起点，排除终点；`equals` 比较字符串内容。`Random.nextInt(n)` 产生从 0 到 n-1
+            的数，适合抽取非空数组中的一个位置。写测试可为 Random 指定固定种子以复现。
+
+
+            ```java
+
+            String code = "ABCD";
+
+            System.out.println(code.substring(1, 3));
+
+            // expect: BC
+
+            ```
+      - item:
+          id: arrays-apply
+          type: number
+          prompt: 长度为 5 的数组，用 Java Random.nextInt(5) 生成随机下标。能得到的最大值是多少？
+          answer: 4
+          explain: nextInt(5) 产生从 0 到 4 的整数，上界 5 不包括在内。
+  - id: text-tools
+    chapter: 以 Java 等语言实践类型
+    title: 多次拼接用构建器，规则校验用模式
+    minutes: 13
+    flow:
+      - guess:
+          id: text-tools-guess
+          type: choice
+          prompt: 要连续拼出很多段标题。字符串本身不能原地追加，有什么做法能减少每步都重新拼整个前缀？
+          options:
+            - text: 用可变的构建器逐段追加
+              correct: true
+            - text: 反复把所有已完成的标题再拼一遍
+              why: 每次产生新字符串会重复处理已有内容。
+          explain: 先区分不断积累的内容和最终字符串。
+      - card:
+          title: 先 append，再把内容变成字符串
+          body: >
+            `StringBuilder` 是可变的字符容器，可用 `append` 一次追加一段。完成后用 `toString()` 得到独立的字符串。以下片段输出
+            A-17，后续追加不会改变已得到的字符串。
+
+
+            ```java
+
+            StringBuilder label = new StringBuilder("A");
+
+            label.append("-").append(17);
+
+            String first = label.toString();
+
+            label.append("-old");
+
+            System.out.println(first);
+
+            // expect: A-17
+
+            ```
+      - item:
+          id: text-tools-practice
+          type: choice
+          prompt: 先对 `new StringBuilder("M")` 调用 `append("2")`，再调用 `toString()`，得到什么？
+          options:
+            - text: 2M
+              why: append 追加到当前内容的尾部。
+            - text: M2
+              correct: true
+          explain: 调用顺序决定片段在成品中的排列。
+      - card:
+          title: 按整串匹配编号格式
+          body: >
+            **正则表达式（regular expression）**描述一组允许的字符串。`[0-9]` 表示一位数字，`{2}` 表示恰好出现两次，`String.matches`
+            用模式检查整串。以下代码允许一个大写 A 加两位数字。
+
+
+            ```java
+
+            System.out.println("A17".matches("A[0-9]{2}"));
+
+            System.out.println("A170".matches("A[0-9]{2}"));
+
+            // expect: true|false
+
+            ```
+      - item:
+          id: text-tools-apply
+          type: choice
+          prompt: 按 `A[0-9]{2}` 检查整串，下面哪项通过？
+          options:
+            - text: XA02
+              why: 模式未允许 A 前面有 X。
+            - text: A02
+              correct: true
+          explain: 整串匹配要求每一个字符都有对应规则。
+  - id: collections
+    chapter: 集合
+    title: 按访问方式选列表、集合、映射或队列
+    minutes: 13
+    flow:
+      - guess:
+          id: collections-guess
+          type: choice
+          prompt: 图书编号要能按录入次序显示，也允许同一本书登记两次。应保留顺序和重复，还是只保留不同编号？
+          options:
+            - text: 只保留不同编号，选 Set
+              why: 会丢掉重复的登记。
+            - text: 保留顺序和重复，选列表
+              correct: true
+          explain: 数据容器要满足读写约定。
+      - card:
+          title: List 保留位置，Set 关注唯一性，Map 按键查值
+          body: |
+            Java 的 List 允许按下标访问；ArrayList 在内部使用可增长的数组。Set 按集合规则去重；Map 把唯一键映射到值，同键再次 put 会更新值。遍历接口给出容器支持的访问方式。
+
+            ```java
+            import java.util.ArrayList;
+            import java.util.List;
+            List<String> names = new ArrayList<>(List.of("A", "B"));
+            names.add("A");
+            System.out.println(names.size());
+            // expect: 3
+            ```
+      - item:
+          id: collections-practice
+          type: match
+          prompt: 把需要的数据操作配给 Java 容器。
+          pairs:
+            - - 按录入顺序保存重复的书名
+              - List
+            - - 按学号查唯一学生姓名
+              - Map
+            - - 保留各不相同的图书类别
+              - Set
+          explain: 分别看位置、键查值和去重这三个约定。
+      - card:
+          title: 队列与双端队列说明从哪端取，迭代器逐项访问
+          body: >-
+            Queue 常用来先进先出，优先队列是不同顺序。Deque 可从两端操作，ArrayDeque
+            可实现先进先出队列或后进先出的栈。**迭代（iteration）**指依次访问元素。**迭代器（iterator）**用 `hasNext()` 和 `next()` 逐个读取；增强 `for`
+            可让可迭代容器自动推进迭代器。`Collections` 提供排序等工具。
+      - item:
+          id: collections-apply
+          type: choice
+          prompt: 只用 `addLast` 加入 A、B，再用 `removeFirst` 取一次，取出哪个？
+          options:
+            - text: B
+              why: 取队头，A 比 B 更早加入。
+            - text: A
+              correct: true
+          explain: 使用哪一端决定出队次序。
+  - id: hashing
+    chapter: 集合
+    title: 让内容相等的键能查到同一项
+    minutes: 13
+    flow:
+      - guess:
+          id: hashing-guess
+          type: choice
+          prompt: 重新打印一张相同学号的卡片。查数据库时希望它指向同一学生。两张实体卡必须是同一张纸吗？
+          options:
+            - text: 不必，约定相同学号代表同一键
+              correct: true
+            - text: 必须使用当初的同一张纸
+              why: 业务身份可以由内容定义。
+          explain: 相等规则由类型提供。
+      - card:
+          title: 对象的引用相同和逻辑相等分别判断
+          body: |
+            对基本类型，`==` 比较值；对对象引用，`==` 问是否指向同一个对象。`Object.equals` 的默认行为也比同一性，类可重写为内容相等。String 已按字符内容实现相等。
+
+            ```java
+            String a = new String("CS");
+            String b = new String("CS");
+            System.out.println((a == b) + "/" + a.equals(b));
+            // expect: false/true
+            ```
+      - item:
+          id: hashing-practice
+          type: choice
+          prompt: 执行 `int a = 4; int b = 4;` 再比较 `a == b` 得到什么？
+          options:
+            - text: false，变量名不同
+              why: 整数比较与变量名无关。
+            - text: true，两个基本数值相同
+              correct: true
+          explain: 先看 `==` 两侧是基本值还是引用。
+      - card:
+          title: 散列先找候选位置，再用相等规则检查
+          body: >
+            HashMap 和 HashSet 用 `hashCode()` 缩小候选，再按 `equals`
+            匹配。若两个对象相等，它们的散列码必须相同；不同对象允许同码。重写相等规则时一起实现散列规则，放进映射后保持参与比较的字段稳定。record 可自动生成两者。
+
+
+            ```java
+
+            import java.util.HashMap;
+
+            record StudentId(String value) {}
+
+            HashMap<StudentId, String> names = new HashMap<>();
+
+            names.put(new StudentId("A12"), "Mei");
+
+            System.out.println(names.get(new StudentId("A12")));
+
+            // expect: Mei
+
+            ```
+      - item:
+          id: hashing-apply
+          type: choice
+          prompt: 两个 StudentId 的 `hashCode()` 相同，能直接断定 `equals` 为真吗？
+          options:
+            - text: 能，散列码相同就表示内容一致
+              why: 不同值也可能计算出同一个散列码。
+            - text: 不能，还要按相等规则比较
+              correct: true
+          explain: 散列筛选候选，比较决定相等。
+  - id: container-storage
+    chapter: 集合
+    title: 容量满了搬到更大的数组，散列冲突查同桶
+    minutes: 13
+    flow:
+      - guess:
+          id: container-storage-guess
+          type: choice
+          prompt: 列表容量已经占满，但仍要保留旧数据并接纳新数据。因为数组长度固定，可以怎么做？
+          options:
+            - text: 覆盖最后一项，把长度改大
+              why: 直接覆盖会丢失已有记录。
+            - text: 换更大的数组，复制已用项，再追加
+              correct: true
+          explain: 区分容器的实际项数与内部可用空间。
+      - card:
+          title: 扩容要复制已用项，索引规则保持不变
+          body: |
+            动态数组记录已用个数和容量。满了就申请更大的数组，复制内容并更新引用，再把新值写到原已用数的位置。按比例增长可避免每加一项就复制。增长比例由实现决定，下面只演示从 2 扩到 4。
+
+            ```java
+            import java.util.Arrays;
+            String[] storage = {"A", "B"};
+            int size = 2;
+            storage = Arrays.copyOf(storage, 4);
+            storage[size++] = "C";
+            System.out.println(size + "/" + storage.length + "/" + storage[1]);
+            // expect: 3/4/B
+            ```
+      - item:
+          id: container-storage-practice
+          type: choice
+          prompt: 长度为 4 的内部数组已有 3 项。还可追加一项而不换数组吗？
+          options:
+            - text: 可以，位置 3 还空着
+              correct: true
+            - text: 不能，大小 3 表示所有位置都已用满
+              why: 下标从 0 开始，容量 4 包含位置 3。
+          explain: 追加前比较当前大小和容量。
+      - card:
+          title: 相同候选位置可以保存多个不同的键
+          body: >-
+            简化的散列表可把散列码转换为桶号，每个桶存一组候选。查找在指定桶用 `equals` 比较，遇到不同键继续查。扩容后桶号可能变化，需要按新规则重新分布。这是模型示例，实际 Java HashMap
+            的桶规则由实现决定。
+      - item:
+          id: container-storage-apply
+          type: choice
+          prompt: 简化模型用 `Math.floorMod(hash, 4)` 取桶号。散列码 1 和 5 的两个不同键，会怎样存放？
+          options:
+            - text: 进入两个不同桶，因为散列码不同
+              why: 1 除以 4 和 5 除以 4 的余数都是 1。
+            - text: 进入同一个桶，但仍保留两个键
+              correct: true
+          explain: 定位到桶之后，还要区分具体键。
+  - id: grouping
+    chapter: 集合
+    title: 先把同类数据归组，再按键直接取出
+    minutes: 13
+    flow:
+      - guess:
+          id: grouping-guess
+          type: choice
+          prompt: 借书台经常按用户查看借书记录。每次扫全站，还是先按用户归组再查该用户？
+          options:
+            - text: 每次只按书名排序再扫全站
+              why: 按书名排列不能直接定位某用户。
+            - text: 按用户归组，查时直接定位那组
+              correct: true
+          explain: 先识别反复使用的查询键。
+      - card:
+          title: 用键找组，缺少组时才新建列表
+          body: >
+            `Map<K,List<V>>` 表示每个键对应一个值列表。`computeIfAbsent` 只在该键没有非空值时计算新的列表，然后可以追加。若只需计数，可用 `merge` 让首次写入
+            1，之后累加。
+
+
+            ```java
+
+            import java.util.ArrayList;
+
+            import java.util.HashMap;
+
+            import java.util.List;
+
+            import java.util.Map;
+
+            Map<String, List<String>> groups = new HashMap<>();
+
+            groups.computeIfAbsent("Mei", key -> new ArrayList<>()).add("A");
+
+            groups.computeIfAbsent("Mei", key -> new ArrayList<>()).add("B");
+
+            System.out.println(groups.get("Mei"));
+
+            // expect: [A, B]
+
+            ```
+      - item:
+          id: grouping-practice
+          type: choice
+          prompt: 若对 Mei 追加 C，原来的列表会怎样？
+          options:
+            - text: 只剩 C，因为每次 computeIfAbsent 都重建
+              why: 这个键已经有非空值，不需要创建新列表。
+            - text: 成为 A、B、C，沿用现有列表
+              correct: true
+          explain: 区分新增组和给已有组添加记录。
+      - card:
+          title: 索引适合反复取组，更新要维护同一事实
+          body: HashMap 通常能按键快速取值，具体成本随散列分布和实现变化。如果记录可删除或换用户，归组也要同步更新。若只查询一次，遍历一遍可能更简单。
+      - item:
+          id: grouping-apply
+          type: choice
+          prompt: 若一条记录从 Mei 转给 Bo，如何维护分组？
+          options:
+            - text: 从 Mei 移除这条，再加入 Bo 组
+              correct: true
+            - text: 只加入 Bo，Mei 组永远不改
+              why: 旧组还会显示已转走的记录。
+          explain: 归组应随源数据的变化一起维护。
+  - id: stream-sort
+    chapter: 集合
+    title: 筛选、转换、排序，再收集结果
+    minutes: 13
+    flow:
+      - guess:
+          id: stream-sort-guess
+          type: choice
+          prompt: 想保留及格分，再转成带分数前缀的文字。若先转成文字再用数字比较会有什么麻烦？
+          options:
+            - text: 字符串会自动按其中数字比较
+              why: 字符串和整数有不同的比较规则。
+            - text: 还得从文字还原数值，先按数值筛选更直接
+              correct: true
+          explain: 把每一步的输入类型和输出类型写清楚。
+      - card:
+          title: 流逐步变换，用终止操作取结果
+          body: >
+            Stream 可从集合读数据。`filter` 保留满足条件的项，`map` 转换每项；二者先描述要做什么，直到 `toList()` 等终止操作才开始取结果。`n -> n >= 60`
+            把一个输入映射为一个判断。
+
+
+            ```java
+
+            import java.util.List;
+
+            List<Integer> passed = List.of(52, 71, 65).stream()
+                .filter(n -> n >= 60)
+                .sorted()
+                .toList();
+            System.out.println(passed);
+
+            // expect: [65, 71]
+
+            ```
+      - item:
+          id: stream-sort-practice
+          type: choice
+          prompt: 把条件改为 `n >= 70`，结果是什么？
+          options:
+            - text: '[71]'
+              correct: true
+            - text: '[65, 71]'
+              why: 65 未达到新条件。
+          explain: 先筛选，再排序剩余值。
+      - card:
+          title: Comparable 给类型默认顺序，Comparator 可换规则
+          body: >-
+            若一类值有通用顺序，可实现 `Comparable` 的 `compareTo`，按负数、零、正数表明前、同序、后。若要让调用方选按名称或分数排序，可传 `Comparator`。用
+            `Integer.compare` 比较整数，可避开直接相减的溢出。
+      - item:
+          id: stream-sort-apply
+          type: choice
+          prompt: 列表为 52、71、65，先用 Stream 筛选分数再排序。要让同一种学生对象有按姓名和按成绩两种可选顺序，用哪个办法？
+          options:
+            - text: 同时声明两份完全同签名的 compareTo
+              why: 相同签名无法定义两份方法。
+            - text: 给两种排序各传合适的 Comparator
+              correct: true
+          explain: 把可变的排序规则交给调用方。
+  - id: exceptions
+    chapter: 异常
+    title: 声明需要处理的失败并保护原状态
+    minutes: 13
+    flow:
+      - guess:
+          id: exceptions-guess
+          type: choice
+          prompt: 账户余额不足时，应先扣成负数再通知调用者，还是先拒绝并报告失败？
+          options:
+            - text: 先拒绝并报告失败，余额保持原值
+              correct: true
+            - text: 先扣款再扔掉报错，余额由用户修
+              why: 先修改会破坏余额的约定。
+          explain: 把可预见的失败路径放在更改状态之前。
+      - card:
+          title: throw 抛出异常，throws 声明可能传给调用者
+          body: >
+            **受检异常（checked exception）**要求调用者捕获或继续声明。自定义异常若继承 `Exception` 且不属于 `RuntimeException`
+            分支，可以成为受检异常。`RuntimeException` 与 `Error` 分支属于非受检，不受这一编译规则约束。
+
+
+            ```java
+
+            class InsufficientFundsException extends Exception {}
+
+            class Wallet {
+                private int balance = 5;
+                void withdraw(int amount) throws InsufficientFundsException {
+                    if (amount <= 0) throw new IllegalArgumentException();
+                    if (amount > balance) throw new InsufficientFundsException();
+                    balance -= amount;
+                }
+                int balance() { return balance; }
+            }
+
+            Wallet wallet = new Wallet();
+
+            try {
+                wallet.withdraw(7);
+            } catch (InsufficientFundsException e) {
+                System.out.println("rejected:" + wallet.balance());
+            }
+
+            // expect: rejected:5
+
+            ```
+      - item:
+          id: exceptions-practice
+          type: choice
+          prompt: 若把这次 `withdraw(7)` 放到未声明 throws 的方法中，并移除 try/catch，会怎样？
+          options:
+            - text: 编译一定成功，只有调用后才可能知道
+              why: 编译器可从方法声明识别受检异常。
+            - text: 编译失败，调用方没有处理或声明受检异常
+              correct: true
+          explain: 用合适的 catch 处理，或在当前方法声明继续传播。
+      - card:
+          title: 具体捕获失败，保留可诊断的信息
+          body: >-
+            可用 `catch` 处理预期的错误，按异常类型区分原因。`finally` 常用于离开时清理。可用 Java
+            日志库记录失败位置和原因，帮助重现；对外返回合适的错误信息。断言可检查开发期假设，用户输入仍要正常校验。
+      - item:
+          id: exceptions-apply
+          type: choice
+          prompt: 文件打不开，程序捕获异常后应当如何继续？
+          options:
+            - text: 空 catch 丢掉异常，然后报告成功
+              why: 调用者会拿到与真实结果不符的报告。
+            - text: 按业务处理失败，并保留足够信息供诊断
+              correct: true
+          explain: 让失败可见，决定是恢复还是继续向上传递。
+  - id: text-io
+    chapter: I/O
+    title: 把文件的文字按明确编码读写
+    minutes: 13
+    flow:
+      - guess:
+          id: text-io-guess
+          type: choice
+          prompt: 文件中一行一个图书标题。读入后想分别处理每本书，应该先确定什么？
+          options:
+            - text: 只确认扩展名，就一定能正确读取所有文字
+              why: 扩展名不保证实际编码。
+            - text: 文字编码和逐行读取方式
+              correct: true
+          explain: 读文字需要约定如何把文件内容解释成字符。
+      - card:
+          title: Path 指定位置，Files 负责常见文本操作
+          body: >
+            `Path` 表示路径，`Files` 提供文件 API。`readAllLines` 适合小文件，得到各行字符串；大文件可用 `newBufferedReader`
+            逐行处理。示例创建临时文件，用 UTF-8 写入并读回，最后清理。
+
+
+            ```java
+
+            import java.nio.charset.StandardCharsets;
+
+            import java.nio.file.Files;
+
+            import java.nio.file.Path;
+
+            Path file = Files.createTempFile("books", ".txt");
+
+            try {
+                Files.writeString(file, "书一\n书二\n", StandardCharsets.UTF_8);
+                System.out.println(Files.readAllLines(file, StandardCharsets.UTF_8).size());
+            } finally {
+                Files.deleteIfExists(file);
+            }
+
+            // expect: 2
+
+            ```
+      - item:
+          id: text-io-practice
+          type: choice
+          prompt: 若文件内容为 A、B、C 三行，每行一个字符，`readAllLines` 列表有几项？
+          options:
+            - text: '1'
+              why: 按行拆分，每行成为一项。
+            - text: '3'
+              correct: true
+          explain: 该方法适合能装进可用资源的小文件。
+      - card:
+          title: 读取器用完后自动关闭
+          body: >-
+            用 `try (var reader = Files.newBufferedReader(path, UTF_8))` 声明资源。离开这段 try 时 Java 会调用它的
+            close，包括读取出错的情况。`readLine()` 返回 null 表示读到结尾，返回空字符串表示读到一条空行。写文本可用 Writer 系列。
+      - item:
+          id: text-io-apply
+          type: choice
+          prompt: 循环调用 `readLine()` 时遇到空字符串，能直接认定文件已经读完吗？
+          options:
+            - text: 不能，空字符串可以是一行空行
+              correct: true
+            - text: 能，空字符串和 null 都表示结束
+              why: API 用 null 表示读到末尾。
+          explain: 区分空内容和没有下一行。
+  - id: byte-io
+    chapter: I/O
+    title: 二进制用字节处理，文本另外解释编码
+    minutes: 13
+    flow:
+      - guess:
+          id: byte-io-guess
+          type: choice
+          prompt: 要复制一张图片文件，是否应先用文本读取器把内容当字符？
+          options:
+            - text: 应先把每个数据单位都当成一个文本字符
+              why: 图片内容没有按文本编码组织。
+            - text: 应按原始数据读写，保留文件内容
+              correct: true
+          explain: 不同 API 处理的数据单位不同。
+      - card:
+          title: 输入输出流处理字节，Reader 和 Writer 处理字符
+          body: >
+            **字节（byte）**是 8 位数据。`InputStream`、`OutputStream` 用来处理字节数据；`Reader`、`Writer` 面向字符。Java `File`
+            是较早的路径和文件操作接口，和 `Path` 可相互转换。示例直接核对输入流读到了什么。
+
+
+            ```java
+
+            import java.io.ByteArrayInputStream;
+
+            try (var stream = new ByteArrayInputStream(new byte[]{10, 20})) {
+                System.out.println(stream.read() + "/" + stream.read() + "/" + stream.read());
+            }
+
+            // expect: 10/20/-1
+
+            ```
+      - item:
+          id: byte-io-practice
+          type: choice
+          prompt: 输入流返回 `-1` 表示什么？
+          options:
+            - text: 已经没有更多字节
+              correct: true
+            - text: 读到了值为 255 的字节
+              why: 单字节 read 返回 0 到 255，-1 留给文件末尾。
+          explain: 判断结尾后再处理取得的数据。
+      - card:
+          title: 保存对象时定义可重读的数据格式
+          body: >-
+            **序列化（serialization）**把数据变成可存储或发送的表示，例如把图书字段写成 JSON。Java 对象流可处理实现 Serializable
+            的对象，但类变更会影响兼容性，从不受信任数据反序列化还有风险。交换数据可选明确格式并验证字段。
+      - item:
+          id: byte-io-apply
+          type: choice
+          prompt: 要跨版本交换书单数据，哪项最能让读取方理解旧记录？
+          options:
+            - text: 只把运行时对象引用写到文件
+              why: 引用只在当前运行环境中有意义。
+            - text: 明确格式与字段版本，并验证输入
+              correct: true
+          explain: 定义能保存并重读的数据内容。
+  - id: threads
+    chapter: 并发基础与构建工具
+    title: 启动一项并行任务，并明确何时等待
+    minutes: 13
+    flow:
+      - guess:
+          id: threads-guess
+          type: choice
+          prompt: 一个窗口要保持响应，同时在后台读文件。把工作交给独立的执行路线后，谁需要等后台结束？
+          options:
+            - text: 只有依赖读完结果的步骤需要等待
+              correct: true
+            - text: 所有操作都应在后台开始前永久停止
+              why: 无关操作可以继续处理。
+          explain: 先区分哪些步骤有先后依赖。
+      - card:
+          title: 同一进程的线程可以共享对象
+          body: >
+            **进程（process）**是正在运行、拥有自身资源的程序实例。**线程（thread）**是进程中的执行路线，同一进程内的线程可共享对象。`Thread.start()`
+            安排新线程运行任务，直接 `run()` 则在当前线程执行。`join()` 等指定线程结束。
+
+
+            ```java
+
+            Thread work = new Thread(() -> System.out.println("loaded"));
+
+            work.start();
+
+            work.join();
+
+            System.out.println("ready");
+
+            // expect: loaded|ready
+
+            ```
+      - item:
+          id: threads-practice
+          type: order
+          prompt: 主线程要先启动后台线程打印 loaded，再由主线程打印 ready。排列主线程三步。
+          steps:
+            - 调用工作线程的 start()
+            - 对工作线程调用 join()
+            - 打印 ready
+          explain: join 在工作线程结束后返回，后面的打印就能保证顺序。
+      - card:
+          title: 中断是协作请求，任务应选择如何响应
+          body: >-
+            Java 的**中断（interrupt）**通常向线程请求取消或改变工作。等待、睡眠等操作可抛
+            InterruptedException。处理时可结束任务或把中断状态恢复后交给上层判断。做计算的循环可检查 `isInterrupted()` 并安全退出。
+      - item:
+          id: threads-apply
+          type: choice
+          prompt: 两个线程分别打印 loaded 和 ready。任务在循环中一直不查中断状态，也不调用会响应中断的操作。另一个线程调用 interrupt 后会怎样？
+          options:
+            - text: 任务被强制立刻停止在原处
+              why: interrupt 通常需要任务主动配合。
+            - text: 发出请求，但任务仍可能继续
+              correct: true
+          explain: 设计后台任务时明确取消检查点。
+  - id: synchronization
+    chapter: 并发基础与构建工具
+    title: 让共享状态的读取与修改完整执行
+    minutes: 13
+    flow:
+      - guess:
+          id: synchronization-guess
+          type: choice
+          prompt: 两个售票窗口都看见余票 1，随后都卖出一张。出现问题的前提是什么？
+          options:
+            - text: 两个窗口一定依次完成整个售票操作
+              why: 若完整地依次办理，第二个窗口会看到余票为零。
+            - text: 检查和扣减之间可穿插，两个窗口都用了旧值
+              correct: true
+          explain: 先分清共享的是什么、哪几步需要连在一起。
+      - card:
+          title: 两个线程的读改写可能互相覆盖
+          body: >-
+            **竞态条件（race condition）**表示结果取决于执行先后。`count++` 要读、算、写。若两线程都先读 0，再各写 1，结果就少计一次。**临界区（critical
+            section）**是需要协调访问共享状态的一段操作。
+          reveal:
+            - title: 安排两个读取
+              body: 甲、乙都先读到 0。
+            - title: 各自加 1 再写回
+              body: 甲写 1 后乙仍按自己的旧值写 1，最终结果为 1。
+      - item:
+          id: synchronization-practice
+          type: choice
+          prompt: 初值 0，若甲完整加 1 后乙才开始读，最终得到多少？
+          options:
+            - text: '1'
+              why: 乙读到的是甲写入的 1。
+            - text: '2'
+              correct: true
+          explain: 要保证正确结果，应保护整段读改写。
+      - card:
+          title: 同一把锁保护同一份共享状态
+          body: >
+            `synchronized` 实例方法会锁定当前对象，可作**互斥锁（mutex）**使用。对同一个对象，一次只有一个线程执行受同一把锁保护的区段。若甲持锁 A 等 B、乙持锁 B 等
+            A，会**死锁（deadlock）**。可统一获取多把锁的次序来避免这类环。
+
+
+            ```java
+
+            class Counter {
+                private int value;
+                synchronized void add() { value++; }
+                synchronized int get() { return value; }
+            }
+
+            Counter count = new Counter();
+
+            Thread a = new Thread(count::add);
+
+            Thread b = new Thread(count::add);
+
+            a.start();
+
+            b.start();
+
+            a.join();
+
+            b.join();
+
+            System.out.println(count.get());
+
+            // expect: 2
+
+            ```
+      - item:
+          id: synchronization-apply
+          type: choice
+          prompt: 两个工作都用同一个 Counter，`add` 改成同步方法后，为什么能避免例子中的少计？
+          options:
+            - text: 同一个对象上的两次加一不会在读改写中间交错
+              correct: true
+            - text: 同步方法让两个线程拥有各自的计数对象
+              why: 两个线程仍共享 count。
+          explain: 关键是大家对同一共享状态用同一把锁。
+  - id: executors
+    chapter: 并发基础与构建工具
+    title: 用线程池处理多项任务，给等待设边界
+    minutes: 13
+    flow:
+      - guess:
+          id: executors-guess
+          type: choice
+          prompt: 要处理一百个短工作。每次都创建新线程，还是可以让几个已有线程反复领取工作？
+          options:
+            - text: 每个任务必须有一个专属的新线程
+              why: 执行任务的线程可以完成一项后再接下一项。
+            - text: 可以重复使用一组工作线程
+              correct: true
+          explain: 把提交任务和管理工作线程分开。
+      - card:
+          title: 执行器管理工作线程和提交的任务
+          body: >
+            **线程池（thread pool）**重用有限的工作线程。`ExecutorService.submit` 提交工作并返回 `Future`，可以稍后用 `get`
+            等结果。退出时要关闭池。多线程共享结果可选 `ConcurrentHashMap` 等工具，并用 `compute` 或 `merge` 表达单键更新。
+
+
+            ```java
+
+            import java.util.concurrent.Executors;
+
+            try (var pool = Executors.newFixedThreadPool(2)) {
+                var result = pool.submit(() -> 6 * 7);
+                System.out.println(result.get());
+            }
+
+            // expect: 42
+
+            ```
+      - item:
+          id: executors-practice
+          type: choice
+          prompt: 用固定 2 个线程的池提交了 5 项彼此独立的工作。需要同一时刻开 5 个工作线程吗？
+          options:
+            - text: 不需要，未拿到线程的任务可以等待
+              correct: true
+            - text: 需要，submit 总会立即启动专用新线程
+              why: 固定线程池会安排工作给已有线程。
+          explain: 提交的任务数可大于同时执行的任务数。
+      - card:
+          title: 池满了仍需要让工作能向前走
+          body: 活跃性讨论工作能不能继续。若池只有一个线程，正在运行的任务提交第二项后在同一池内等它，第二项无空闲线程可运行。持续抢不到资源也是一种活跃性问题。可避免在同池任务里同步等待子任务，为等待设超时并限制待处理量。
+      - item:
+          id: executors-apply
+          type: choice
+          prompt: 单线程池中任务甲提交乙后立刻调用 `乙.get()`，乙只能由同一个池执行。乙能开始吗？
+          options:
+            - text: 能，get 会自动为乙扩张固定线程池
+              why: Future 的等待不会自动增加池容量。
+            - text: 无法开始，唯一线程正等它完成
+              correct: true
+          explain: 排查哪个任务占着资源、又在等什么。
+  - id: maven
+    chapter: 并发基础与构建工具
+    title: 用 Maven 按同一套规则编译、测试、打包
+    minutes: 13
+    flow:
+      - guess:
+          id: maven-guess
+          type: choice
+          prompt: 同事拿到项目只想跑测试。项目要用什么把源码目录、依赖版本和构建做法传给他？
+          options:
+            - text: 把配置放进可随项目保存的 pom.xml
+              correct: true
+            - text: 只把打包结果发给他，测试步骤靠猜
+              why: 已有的制品不能告诉他如何重现构建。
+          explain: 可以把每次构建要遵循的配置跟源码一起共享。
+      - card:
+          title: POM 描述项目，构建阶段按顺序经过
+          body: >
+            Maven 读取 `pom.xml`。`groupId`、`artifactId` 和 `version`
+            标识制品；依赖指定所需库，插件执行构建工作。**生命周期（lifecycle）**是一串有顺序的阶段。`mvn test` 会先经过编译阶段，`mvn package` 再向后走到打包。
+
+
+            ```xml
+
+            <?xml version="1.0" encoding="UTF-8"?>
+
+            <project xmlns="http://maven.apache.org/POM/4.0.0">
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>learn</groupId>
+              <artifactId>desk</artifactId>
+              <version>1.0</version>
+              <properties>
+                <maven.compiler.release>21</maven.compiler.release>
+              </properties>
+            </project>
+
+            ```
+      - item:
+          id: maven-practice
+          type: choice
+          prompt: Java 21 项目的目录里有源码和测试，想先编译再执行测试但不打包，选择哪个阶段？
+          options:
+            - text: mvn compile
+              why: compile 只走到主源码编译，未到测试阶段。
+            - text: mvn test
+              correct: true
+          explain: 调用后面的阶段会依次走过前置阶段。
+      - card:
+          title: 阶段调用多个插件目标，绑定由打包类型等决定
+          body: >
+            `jar` 打包类型默认把编译、测试、打包阶段绑定到相应插件目标。`compiler:compile` 是指定插件目标，`compile` 是生命周期阶段。`install`
+            把制品装入本地仓库供其他项目引用；`clean` 属于独立的生命周期。默认主源码在 `src/main/java`，测试在 `src/test/java`。
+
+
+            ```text
+
+            $ mvn test
+
+            $ mvn package
+
+            $ mvn clean
+
+            ```
+      - item:
+          id: maven-apply
+          type: order
+          prompt: 对默认 JAR 项目运行 mvn package，主源码编译、单元测试和生成制品的先后顺序是什么？
+          steps:
+            - 编译主源码
+            - 运行单元测试
+            - 生成 JAR 制品
+          explain: 后面的 package 会经过先前的 compile 和 test 阶段。
+boss:
+  items:
+    - id: class-state
+      type: choice
+      prompt: 两个独立 Book 都有标题字段。把它改成 static，给第二本标题赋值时第一本读到什么？
+      options:
+        - text: 保持独立值，因为每个实例总有自己的一份
+          why: static 字段属于类，多个实例共享。
+        - text: 也读到新的共享值
+          correct: true
+      explain: 看字段属于类还是实例。
+    - id: balance
+      type: choice
+      prompt: 余额 12，取款 -4。正常的 BankAccount 应怎么处理？
+      options:
+        - text: 拒绝并保留余额 12
+          correct: true
+        - text: 将余额加到 16，视为成功取款
+          why: 负金额不是合法的取款输入。
+      explain: 用同一个不变量检查正常路径和错误路径。
+    - id: dispatch
+      type: choice
+      prompt: Shape 变量实际指向 Circle。它调用 `area()` 时，哪个实现运行？
+      options:
+        - text: Shape 的抽象声明会直接返回零
+          why: 抽象声明没有方法体。
+        - text: Circle 重写的实现
+          correct: true
+      explain: 运行时对象决定重写方法的实现。
+    - id: subtype
+      type: choice
+      prompt: 两个类都实现 Notifier。柜台怎样在两者间切换？
+      options:
+        - text: 让柜台直接读取每种实现的内部字段
+          why: 读取具体字段破坏了对共同接口的依赖。
+        - text: 给柜台传入相应实现，调用接口的方法
+          correct: true
+      explain: 调用方需要的是通知行为。
+    - id: composition
+      type: choice
+      prompt: 在借书台里增加一项功能，用已经提供的费用计算对象算金额。关系怎样表示？
+      options:
+        - text: 借书台持有计算对象并调用它
+          correct: true
+        - text: 借书台继承费用计算对象，因为它会用这项功能
+          why: 使用某项能力只表明对象之间要协作。
+      explain: 对外约定不同的对象可通过组合和委托协作。
+    - id: generic
+      type: choice
+      prompt: '`Stack<String>` 能通过 `push(4)` 吗？'
+      options:
+        - text: 能，泛型栈默认接受任意类型
+          why: 具体类型实参给调用点提供了限制。
+        - text: 不能通过编译，方法要求 String
+          correct: true
+      explain: 使用明确的参数类型能在运行前发现问题。
+    - id: types
+      type: choice
+      prompt: 订单 record 的 `state` 组件声明为枚举 State。传字符串 PAID 会发生什么？
+      options:
+        - text: 编译器自动用文字寻找同名枚举值
+          why: 构造方法要求的是枚举类型。
+        - text: 需要显式转换为 State，字符串参数直接传会编译失败
+          correct: true
+      explain: 类型把业务数据的允许形式写进约定。
+    - id: hash
+      type: choice
+      prompt: HashMap 中的新键与旧键 `equals` 为真。新键要能按规则定位同一项，还必须满足什么？
+      options:
+        - text: 两者 hashCode 相同
+          correct: true
+        - text: 两者用 == 比较也必须为真
+          why: 不同对象可以按业务含义相等。
+      explain: 让相等的对象进入同一组候选。
+    - id: checked
+      type: choice
+      prompt: 调用的方法声明一个自定义受检异常。当前方法决定交给上一层处理。应该怎样写？
+      options:
+        - text: 省略声明也不捕获
+          why: 受检异常需捕获或声明。
+        - text: 在当前方法的 throws 中声明它
+          correct: true
+      explain: 方法声明让下一层调用者看到要处理的失败。
+    - id: io
+      type: choice
+      prompt: 要逐行读取 UTF-8 的文本，并确保异常时文件也能关闭。选哪个做法？
+      options:
+        - text: 用输入流直接把每个字节解释成完整字符
+          why: UTF-8 字符可能由多个字节组成。
+        - text: 用 Reader 并在 try-with-resources 中声明
+          correct: true
+      explain: 选择正确数据单位，并明确资源关闭方式。
+    - id: threads
+      type: choice
+      prompt: 主线程要在后台线程打印 loaded 之后再打印 ready。在哪里调用 join？
+      options:
+        - text: 后台线程 start 后，主线程打印 ready 前
+          correct: true
+        - text: 主线程打印 ready 后再 join
+          why: 后置等待无法约束已打印的 ready。
+      explain: 在依赖结果之前等待。
+    - id: build
+      type: choice
+      prompt: 同事运行默认 JAR 项目的 `mvn package`。主源码编译、测试、打包的顺序是什么？
+      options:
+        - text: 先打包，再编译和测试
+          why: 调用 package 会先经过前面的生命周期阶段。
+        - text: 先编译，再测试，再打包
+          correct: true
+      explain: 按阶段顺序能解释失败时构建停在哪里。

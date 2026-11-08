@@ -1,0 +1,779 @@
+skill: D.1.2
+version: 2
+brief:
+  why: 同一条 SQL 可以有不同的运行路线。你会先看同时写入和断电时数据库怎样保住数据，再用页数估算索引、连接和查询计划的代价。
+  outcomes:
+    - 判断一组并发读写能否等价为串行执行，并解释锁和版本的作用
+    - 说明日志何时必须持久化，以及恢复为何重做和撤销
+    - 手算索引高度与连接页数，并用实际查询计划检验预期
+terms:
+  - {term: 事务, def: 数据库将一组操作作为整体处理的工作单位。}
+  - {term: 提交, def: 结束并接受这次事务的结果，使其符合数据库声明的持久性保证。}
+  - {term: 调度, def: 在保持各事务内部次序的前提下，各事务操作交错执行的顺序。}
+  - {term: 冲突可串行化, def: 可以通过交换不冲突的操作，变成一个等价的串行顺序。}
+  - {term: 两阶段锁, def: 事务先逐步取得锁，开始释放后便不再取得新锁。}
+  - {term: 死锁, def: 多个事务互相等待对方持有的资源，形成无法自行推进的环。}
+  - {term: 幻读, def: 同一范围条件再次查询时，符合条件的记录集合因其他事务而变化。}
+  - {term: MVCC, def: 多版本并发控制，用版本和可见性规则决定每次读取看到的数据。}
+  - {term: 缓冲池, def: 数据库在内存中暂存和复用存储页的区域。}
+  - {term: 脏页, def: 在缓冲池中已被修改、尚未写回数据文件的页。}
+  - {term: WAL, def: 日志要先于所描述的修改页持久化的预写日志原则。}
+  - {term: 检查点, def: 保存恢复所需进度或状态的一类记录，使重启能缩小日志处理范围。}
+  - {term: 索引, def: 通过记录键值的组织方式帮助定位数据的附加结构。}
+  - {term: B+ 树, def: 平衡的多路查找结构，数据条目在叶层，内部节点引导查找。}
+  - {term: 扇出, def: 一页内部节点能指向多少个子页。}
+  - {term: 布隆过滤器, def: 用位和多个散列位置判断某键肯定不在集合中或可能在集合中。}
+  - {term: 向量, def: 这里指按顺序排列、用来表示一个对象特征的一组数值。}
+  - {term: 闩锁, def: 数据库短时间保护内存里的索引页等内部结构的同步机制。}
+  - {term: 执行计划, def: 数据库选择哪些物理操作以及如何把它们连起来的一棵操作树。}
+  - {term: 算子, def: 查询计划里执行扫描、过滤、连接等某一项工作的操作单元。}
+  - {term: 进程, def: 正在运行的程序及其资源的一份实例。}
+  - {term: 线程, def: 一个进程内可独立调度、与其他线程共享进程资源的执行路线。}
+  - {term: 选择率, def: 满足给定筛选条件的记录占输入记录的比例。}
+lessons:
+  - id: acid
+    chapter: 并发控制
+    title: 让一次转账作为整体完成
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 转账扣了甲的钱，还没给乙加上，服务就断电。怎样的结果才符合这次任务？
+          options: [{text: 两个改动一起生效，或两者都不留下, correct: true}, {text: 保留已经扣钱的部分就算成功, why: 转账要求两个账户的改动一起成立。}]
+          explain: 把两步当作一件事，数据库才能给出有意义的结果。
+      - card:
+          title: 划定开始、结束和失败的边界
+          body: |
+            **事务（transaction）**把一组读写作为整体处理。SQL 可用 `BEGIN` 开始，`COMMIT` **提交（commit）**，`ROLLBACK` 放弃本次修改。转账里扣款和入账属于同一个事务。
+      - item:
+          id: task-boundary
+          type: order
+          prompt: 一次转账检查通过，要让扣款和入账一起生效。给四个操作排序。
+          steps: [开始事务, 扣除付款方余额, 增加收款方余额, 提交事务]
+          explain: 两次改动放在同一工作单位里，发生错误时可整体撤回。
+      - card:
+          title: 为事务分开核对四类保证
+          body: |
+            ACID 中，原子性保证整体成败；一致性要求正确事务把满足规则的数据带到仍满足规则的状态；隔离性限制并发相互影响；持久性要求在承诺的故障范围内，已确认的提交能够恢复。业务逻辑和约束一起维护数据规则。
+      - item:
+          id: acid
+          type: match
+          prompt: 给四种需求匹配 ACID 保证。
+          pairs: [[扣款和入账一起成败, 原子性], [正确执行后仍满足余额规则, 一致性], [并发操作不能看到不允许的中间状态, 隔离性], [已经确认提交的结果可在崩溃后恢复, 持久性]]
+          explain: 四项分别约束事务的成败、结果规则、交错可见性与恢复。
+  - id: conflicts
+    chapter: 并发控制
+    title: 画出谁必须排在谁前面
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两人同时编辑同一项库存，一人先写另一人后读。交换这两个动作，后读的人可能得到不同结果吗？
+          options: [{text: 一定相同，因为写和读是不同动作, why: 同一项数据的写入会影响随后读取。}, {text: 可能，读到的是写前或写后的值, correct: true}]
+          explain: 找出不能随意交换的动作，才能分析交错是否等价。
+      - card:
+          title: 只给确实冲突的动作加先后关系
+          body: |
+            **调度（schedule）**是事务操作交错的顺序。不同事务访问同一项且至少有一写，构成冲突。把先执行的一方指向后执行的一方。若图没有环，可按边排出等价串行顺序，称为**冲突可串行化（conflict serializability）**。
+      - item:
+          id: read-write-edge
+          type: choice
+          prompt: T1 先写 A，T2 后读 A。冲突边指向哪里？
+          options: [{text: T1 → T2, correct: true}, {text: T2 → T1, why: 边按原调度里发生的先后方向画。}]
+          explain: 要保留这次写在读之前，所以 T1 必须排在 T2 前。
+      - card:
+          title: 检查两项数据给的先后要求能否同时成立
+          body: '用 R 表示读，W 表示写。调度依次是 R1(A)、W1(A)、R2(A)、W2(A)、R2(B)、W2(B)、R1(B)、W1(B)。'
+          reveal:
+            - title: 从 A 得出一条边
+              body: W1(A) 早于 R2(A)，所以必须有 T1→T2。
+            - title: 从 B 得出反向边
+              body: W2(B) 早于 R1(B)，所以必须有 T2→T1。
+            - title: 检查是否还有可行串行顺序
+              body: 两条边形成环，不能同时把两人排在对方前面。这组调度不是冲突可串行化。
+      - item:
+          id: graph-cycle
+          type: choice
+          prompt: 一项数据给出 T1→T2，另一项给出 T2→T1。能找到满足冲突先后的串行顺序吗？
+          options: [{text: 能，只要任选一个事务放前面, why: 任一选择都会违背另一条冲突边。}, {text: 不能，两条边互相要求先执行, correct: true}]
+          explain: 环就是互相矛盾的先后要求。
+  - id: two-phase
+    chapter: 并发控制
+    title: 用锁保护访问，遇到等待环就解除它
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 甲要改库存，乙也要改同一条库存。能否让其中一人先取得修改权？
+          options: [{text: 可以，另一人等到修改权释放, correct: true}, {text: 两人可同时拿到同一条记录的独占修改权, why: 独占权不能同时给两个冲突的写入者。}]
+          explain: 限制相互冲突的访问，才能控制执行顺序。
+      - card:
+          title: 用共享读锁和独占写锁表达访问权限
+          body: |
+            共享锁 S 可与其他共享锁共存，独占锁 X 与其他事务的 S 或 X 冲突。**两阶段锁（two-phase locking）**先取得锁，一旦开始释放就不再取得新锁。严格两阶段锁还要求写锁保留到提交或回滚。
+      - item:
+          id: strict-block
+          type: choice
+          prompt: 严格两阶段锁下，T1 已写 A 且未结束。T2 要读 A，是否能直接执行？
+          options: [{text: 能，读操作一定无需等待写入, why: 在题设锁协议里，读需取得相容的锁。}, {text: 不能，T1 持有的 X 锁与 T2 需要的 S 锁冲突, correct: true}]
+          explain: 原题中这次等待会挡住 T2 随后对 B 的访问，给出的环状顺序无法按原样执行。
+      - card:
+          title: 用等待关系查死锁，用粒度权衡代价
+          body: |
+            **死锁（deadlock）**是互相等待形成环。数据库可以检测环并回滚一方，也可用超时等策略。行锁并发性较好但数量多，表锁管理成本低但挡住更多访问，多粒度锁用意向锁帮助协调。
+      - item:
+          id: break-deadlock
+          type: choice
+          prompt: T1 等 T2 放 B，T2 等 T1 放 A。检测到环后怎样使一方继续？
+          options: [{text: 回滚一个事务释放资源，再按策略重试, correct: true}, {text: 两边继续等待，环会自行改变方向, why: 两边都无法到达释放条件。}]
+          explain: 移除环上的一方，才能解除相互等待。
+  - id: timestamps
+    chapter: 并发控制
+    title: 先定顺序，或先试运行再核对
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 多数任务互不干扰。能否让它们先准备结果，最后检查是否真的冲突？
+          options: [{text: 所有数据库都必须预先用同一把锁挡住全部任务, why: 可用不同并发控制协议保证顺序。}, {text: 可以，把对冲突的验证放在提交前, correct: true}]
+          explain: 何时确定冲突，以及冲突后如何重试，是协议的选择。
+      - card:
+          title: 用时间戳建立必须遵守的顺序
+          body: |
+            基本时间戳排序给每个事务一个顺序标识，并记录数据项最近的读写时间戳。若一次访问会违反预定顺序，可中止并重试。例如旧事务尝试读一个已被较新事务覆盖的值，单版本方案会拒绝这次读。
+      - item:
+          id: older-read
+          type: choice
+          prompt: 单版本时间戳排序中，旧事务要读一项已被比自己新的事务写过的记录。直接返回新值会怎样？
+          options: [{text: 可能违反规定的先旧后新顺序, correct: true}, {text: 一定满足顺序，因为新值更及时, why: 及时和符合串行顺序是两件事。}]
+          explain: 已定的时间顺序要求旧事务不能从未来的写取值。
+      - card:
+          title: 乐观控制在写入结果前验证
+          body: |
+            乐观并发控制（OCC）通常分读取与暂存、验证、正式写入三段。验证读写集合是否允许这次提交。冲突少时能减少等待，冲突多时可能因多次重试浪费工作。
+      - item:
+          id: validation-order
+          type: order
+          prompt: 按一个简化的 OCC 流程排序。
+          steps: [读取所需数据并暂存修改, 验证是否与并发访问冲突, 通过后写入修改并提交]
+          explain: 把验证安排在正式公布修改前，冲突时可以丢弃暂存结果。
+  - id: isolation
+    chapter: 并发控制
+    title: 同一个条件重复执行，为什么会看到新行
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 第一次查询“所有已退款订单”只有一行。别人新退款一笔后再查，结果是否一定和第一次相同？
+          options: [{text: 查询文字相同，结果一定永远相同, why: 数据和读取的时点可能已经变化。}, {text: 取决于这次事务的隔离级别与实现, correct: true}]
+          explain: 查询条件与它能看见的数据范围需要分别确定。
+      - card:
+          title: 分清行值变化和条件结果集合变化
+          body: |
+            脏读读到他人未提交的值。不可重复读是同一行前后看到不同的已提交值。**幻读（phantom read）**是重复读一个条件时，符合条件的记录集合因并发而变。范围锁或其他可串行化机制可处理只锁现有行挡不住的插入。
+      - item:
+          id: phantom
+          type: choice
+          prompt: 在同一事务里两次读取所有已退款订单，另一事务在中间新增并提交了一条匹配记录。第二次多了一行属于什么？
+          options: [{text: 幻读, correct: true}, {text: 脏读，因为多出来的一定未提交, why: 题设新增记录已经提交。}]
+          explain: 变化发生在按条件选出的集合中。
+      - card:
+          title: 按产品文档理解隔离级别
+          body: |
+            标准区分读未提交、读已提交、可重复读和可串行化。读已提交挡脏读，标准的可重复读还挡同一行的不可重复读；产品可能提供更强保证。可串行化要求结果与某种串行执行一致，实现可能拒绝冲突事务并要求重试。
+      - item:
+          id: read-committed
+          type: choice
+          prompt: 想确保不会读到其他事务还没提交的修改。只按 SQL 标准保证，至少需要哪个级别？
+          options: [{text: 读未提交, why: 该级别允许脏读。}, {text: 读已提交, correct: true}]
+          explain: 读已提交的最低保证是隔离其他事务未提交的修改。
+  - id: mvcc
+    chapter: 并发控制
+    title: 让不同读者看见各自有效的版本
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 报表正在读取一批订单，写入者同时改了一条。怎样让报表有机会继续读一致的旧数据？
+          options: [{text: 在读者仍需要时保留旧版本, correct: true}, {text: 立即永久覆盖旧内容，再让报表猜原值, why: 没有旧版本就无法按原来的时点读取。}]
+          explain: 保留版本并制定可见性规则，可以让读写更少互相挡住。
+      - card:
+          title: 用读取时点判断哪个版本可见
+          body: |
+            **MVCC（multi-version concurrency control）**保留数据的多个版本。读取规则可结合快照和提交状态，挑可见的版本。旧读者可能仍见订单金额 10，新读者看见已提交的 12。写入者之间的冲突仍需协调。
+      - item:
+          id: snapshot-read
+          type: choice
+          prompt: 读者的快照早于一笔已提交更新。题设旧值为 10、新值为 12，旧快照应读到什么？
+          options: [{text: 12，所有快照会立即切到最新版本, why: 读取快照的目的是维持自己的可见范围。}, {text: 10，旧版本仍对这个读取可见, correct: true}]
+          explain: 可见性按读取边界判断，而不只按当前最新写入。
+      - card:
+          title: 版本要能查找，也要在安全时回收
+          body: |
+            版本可存在同一页、串成版本链，或由撤销记录还原。索引找到键后还要检查版本可见性。删除可先留下删除标记，等活动读者不再需要旧版本再清理。长时间读取可能延迟旧数据回收。
+      - item:
+          id: old-reader
+          type: choice
+          prompt: 一位旧读者还可能看到将要回收的记录。立即清理会有什么问题？
+          options: [{text: 读者可能丢失自己应看到的版本, correct: true}, {text: 没有影响，因为被删除的数据对过去的读取也总不可见, why: 旧快照的可见性由旧边界决定。}]
+          explain: 先证明不会再有合法读取需要旧版本，才适合回收。
+  - id: buffers
+    chapter: 日志与恢复
+    title: 崩溃前，哪些改动已经离开内存
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 修改发生后立刻断电。怎样判断一项修改是否已经在数据文件里？
+          options: [{text: 只要在程序里改过，就一定已经保存, why: 运行中的改动可能只在易失内存里。}, {text: 查修改所在的页是否已经写回持久存储, correct: true}]
+          explain: 先区分内存暂存和实际写回，再安排恢复。
+      - card:
+          title: 数据库按页搬运与暂存数据
+          body: |
+            页是存储与读写的一块数据。**缓冲池（buffer pool）**把常用页留在内存。更新后尚未写回的页叫**脏页（dirty page）**。是否允许未提交的改动写回称 STEAL 策略，提交是否强制写回全部相关页称 FORCE 策略。
+      - item:
+          id: redo-or-undo
+          type: match
+          prompt: 为两种缓冲策略配上它带来的恢复需求。
+          pairs: [[STEAL 允许未提交修改所在页先写回, 恢复时可能要撤销未提交修改], [NO-FORCE 允许提交后还有数据页没写回, 恢复时可能要重做提交修改]]
+          explain: 先写回和晚写回分别让恢复面对多写进去或还没写进去的内容。
+      - card:
+          title: 看三种避免丢数据的安排
+          body: |
+            简化的 NO-STEAL 加 FORCE 限制未提交写回，提交时又要写齐。影子分页把新内容写到另外的页，再原子切换入口。回滚日志先保留旧页内容，SQLite 的回滚日志模式可借此撤销未完成写入。
+      - item:
+          id: shadow-pages
+          type: choice
+          prompt: 影子分页在提交前先写了新页，还未切换入口就崩溃。恢复时旧入口仍指向什么？
+          options: [{text: 原有页，所以可沿旧入口找到旧状态, correct: true}, {text: 未发布的新页一定已替换全部旧页, why: 题设入口还没有切换。}]
+          explain: 将准备新数据和公布入口分开，能保留恢复所需的旧状态。
+  - id: wal
+    chapter: 日志与恢复
+    title: 让日志先于数据页到达持久存储
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 写回数据页前，你想先留下一份能说明本次修改的记录。为什么要先写这份记录？
+          options: [{text: 只为了让查询结果按日志行排序, why: 写日志顺序服务于故障恢复。}, {text: 即使写页途中崩溃，也有恢复的依据, correct: true}]
+          explain: 恢复需要知道哪些变更发生过及其所属事务。
+      - card:
+          title: 先保住日志，再允许相关页写回
+          body: |
+            **WAL（write-ahead logging）**要求写回某个脏页前，描述其中修改的日志已经持久化。内存页可先改。常见持久提交策略还要求在答复提交成功前，提交记录及之前需要的日志已经持久化。
+      - item:
+          id: ordering
+          type: choice
+          prompt: 某条更新的日志还在内存中。数据库可以先把含这次更新的脏页写到数据文件吗？
+          options: [{text: 应先让相关日志持久化, correct: true}, {text: 可以，先写数据页就不需要任何恢复信息, why: 未提交数据可能落盘，故障后仍要辨认及恢复。}]
+          explain: 写前日志的顺序约束发生在数据页写回前。
+      - card:
+          title: 给日志编号并记录恢复进度
+          body: |
+            日志可记录页的前后值，也可在特定协议记录重做所需的操作。LSN 给日志记录编号。**检查点（checkpoint）**保存足以帮助恢复的进度或状态，使重启不用从最早日志重扫；其做法取决于恢复协议。
+      - item:
+          id: recoverable-ack
+          type: choice
+          prompt: 服务承诺崩溃后已确认的事务仍可恢复。若数据页暂未写回，确认前至少要确保什么？
+          options: [{text: 只需发出成功回复，日志下次再写, why: 崩溃可能同时丢掉内存修改与日志。}, {text: 提交记录和恢复所需的先前日志已经持久化, correct: true}]
+          explain: 提交确认需要可恢复证据。
+  - id: aries
+    chapter: 日志与恢复
+    title: 先重现崩溃前发生的事，再撤销未提交事务
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 断电时，一项已提交的改动还没写回，另一项未提交的改动可能已经写回。恢复要分别做什么？
+          options: [{text: 让已提交的改动得到保留，未提交的改动被撤销, correct: true}, {text: 只用崩溃时文件的内容，无需区分两类事务, why: 文件状态可能同时少了提交、多了未提交修改。}]
+          explain: 恢复应按事务是否已完成来重建最终状态。
+      - card:
+          title: ARIES 恢复先分析，再重做和撤销
+          body: |
+            ARIES 的分析阶段重建活动事务和脏页信息。重做阶段重复历史，需要时重放包括未提交事务在内的记录；用页上的 LSN 跳过已经体现的修改。撤销阶段回退未完成事务，并记录补偿动作，便于再次崩溃后继续恢复。
+      - item:
+          id: recovery-order
+          type: order
+          prompt: 给 ARIES 恢复阶段排序。
+          steps: [分析日志确定事务及脏页状态, 重做需要重放的历史修改, 撤销未完成事务]
+          explain: 重做得到可继续恢复的历史状态，随后再去掉未完成事务的效果。
+      - card:
+          title: 手算两次更新的恢复结果
+          body: 设 A 初值 10，B 初值 20。T1 写 A 为 12 并已提交，T2 写 B 为 25 但未提交。日志已持久化，数据文件尚未更新。
+          reveal:
+            - title: 重做缺少的历史修改
+              body: 恢复重放 A 变为 12、B 变为 25，恢复到日志记下的状态。
+            - title: 撤销没有完成的 T2
+              body: 把 B 还原到 20，保留 T1 的 A = 12。
+      - item:
+          id: final-b
+          type: number
+          prompt: B 原为 20，未提交的 T2 将它写成 25。按 ARIES 完成恢复后，B 是多少？
+          answer: 20
+          explain: 重做即使重现了 25，随后的撤销也会去掉未提交修改。
+  - id: hash-index
+    chapter: 索引
+    title: 用散列把等值查找缩小到一组位置
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 查订单号等于 A51 和查订单号在 A51 到 A99 之间，需要同样的查找方式吗？
+          options: [{text: 任意把编号打散后仍能按编号顺序连续查找, why: 散列位置通常不保留键顺序。}, {text: 等值可按键定位，范围还需要有序关系, correct: true}]
+          explain: 选哪种结构，要看查询要求相等、排序还是范围。
+      - card:
+          title: 从键计算桶，再核对真正的键
+          body: |
+            **索引（index）**用附加结构帮助定位数据。散列索引把键交给散列函数，映射到桶。键相等应映射到同一处，不同键也可能撞到一起，取回候选后还需比键。
+      - item:
+          id: collision
+          type: choice
+          prompt: 查询键和另一个键算出了相同的桶号。能直接返回另一个键的数据吗？
+          options: [{text: 不能，需要核对键是否相等, correct: true}, {text: 能，桶号相同就说明键一定相同, why: 多个不同键可能映射到同一个桶。}]
+          explain: 桶号缩小查找范围，实际键决定是否命中。
+      - card:
+          title: 桶变满后选择怎么扩容
+          body: |
+            固定大小的散列表可用探测或溢出位置处理冲突，变满时效率下降。可扩展散列用目录按散列值的一部分找到桶，满桶时分裂并按需要扩目录。线性散列则逐步分裂桶，不要求一次搬完全部内容。
+      - item:
+          id: range-index
+          type: choice
+          prompt: 查询要求读出连续的订单日期范围并按日期顺序返回。相比普通散列索引，优先考虑什么？
+          options: [{text: 只按散列桶号从小到大读取, why: 桶号顺序与日期顺序没有对应保证。}, {text: 能保持日期键顺序的索引, correct: true}]
+          explain: 有序结构可定位范围起点，再顺序读相邻键。
+  - id: bplus
+    chapter: 索引
+    title: 沿 B+ 树找一个键，再沿叶页扫一段范围
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 电话簿按姓氏排序。查一段相邻姓氏时，找到第一个位置后还要从目录重新找下一条吗？
+          options: [{text: 可以从起点继续向后扫描, correct: true}, {text: 每条都必须从头重新定位, why: 相邻条目可以顺序访问。}]
+          explain: 有序叶层同时支持点查和范围扫描。
+      - card:
+          title: 内部页导航，叶页存键条目
+          body: |
+            **B+ 树（B+ tree）**的内部页按分隔键指向子页，叶页按键保存数据或数据位置，通常串连以便扫范围。每个内部页可指向的子页数叫**扇出（fanout）**。插入塞满一页时可分裂，删除后的处理依实现可重分配或合并。
+      - item:
+          id: leaf-chain
+          type: choice
+          prompt: 已找到查询日期区间的第一条记录。B+ 树叶页彼此相连时，怎样继续？
+          options: [{text: 每读一条都回根页重新搜索, why: 叶页已有连续的键顺序。}, {text: 从当前条目沿有序叶页向后，直到超出区间, correct: true}]
+          explain: 根到叶用于定位起点，范围内相邻条目可直接沿叶层查。
+      - card:
+          title: 按题设的容量从叶层向上数
+          body: 表有 1000 万行，假定每个叶页有 200 个条目，内部扇出为 200，所有页按此容量估算。
+          reveal:
+            - title: 算出叶页数
+              body: 1000 万除以 200 得 50 000 页。
+            - title: 逐层向上取整
+              body: 50 000 页需要 250 个父页，再需要 2 个父页，最后有 1 个根页，一共 4 层。
+            - title: 解释实际读取与缓存
+              body: 相关页均不在内存时称冷缓存，从根到叶需 4 次索引页读取。非覆盖索引还可能读数据页，上层已缓存则可少读。若数据页每页 100 行，全表扫描需 100 000 个数据页。
+      - item:
+          id: levels
+          type: number
+          prompt: B+ 树有 400 个叶页，每个内部页能指向 20 个子页。按满容量估算，从根到叶共几层？
+          answer: 3
+          explain: 400 个叶页需要 20 个父页，一个根即可覆盖这 20 个父页。
+      - card:
+          title: 键宽度与填充程度会改变估算
+          body: |
+            更窄的分隔键能提高扇出，前缀压缩可减少重复内容。批量构建可先排序再铺叶页。实际填充率、键宽、是否聚簇和数据位置会改变高度及访问成本。
+      - item:
+          id: cold-lookup
+          type: choice
+          prompt: 树有 4 层，缓存为空。叶条目只存数据位置，数据页也要单独读一次。一次命中大约读几页？
+          options: [{text: '5，四个索引页和一个数据页', correct: true}, {text: '4，四层自动包含数据页', why: 题中叶页只存位置，仍需访问实际数据页。}]
+          explain: 索引导航与取实际数据是两项访问。
+  - id: filters
+    chapter: 索引
+    title: 先排除不可能的键，再选择适合的查找结构
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 有些磁盘文件几乎肯定不含订单。若能在读文件前排除它们，查询会省什么？
+          options: [{text: 只要过滤器说可能存在，就能直接返回订单内容, why: 过滤器不能提供真实记录。}, {text: 省去读取肯定不匹配的文件, correct: true}]
+          explain: 过滤先减少查找对象，定位和读数据仍有自己的工作。
+      - card:
+          title: 布隆过滤器只给两种答案
+          body: |
+            **布隆过滤器（Bloom filter）**为插入的键把多个散列位置设为 1。查询若遇到任一 0，可判这个键没插过。都为 1 只说明可能存在，多个键可能共同点亮这些位置。这里假定正常插入且没有直接清位删除。
+      - item:
+          id: false-positive
+          type: choice
+          prompt: 一次查询对应的位置全为 1。接下来要怎样确认有这条记录？
+          options: [{text: 继续查实际索引或数据, correct: true}, {text: 直接当成已查到实际记录, why: 多个别的键可能也让这些位置全为 1。}]
+          explain: “可能存在”无法确认键或给出记录位置。
+      - card:
+          title: 按问题选合适的附加结构
+          body: |
+            跳表通过多层有序通路定位。Trie 沿字符前缀走。倒排索引用词项找文档。图片等对象可用一组有顺序的数表示特征，叫**向量（vector）**。向量索引找相似表示，近似方案在速度、内存和漏掉近邻之间取舍。过滤器可与索引一起用。
+      - item:
+          id: index-types
+          type: match
+          prompt: 为三种查询选常见结构。
+          pairs: [[按姓名前缀找匹配, Trie], [按关键词找包含它的文档, 倒排索引], [按表示向量找相似图片, 向量索引]]
+          explain: 前缀、文档关键词和距离邻居需要不同的查找规则。
+  - id: latches
+    chapter: 索引
+    title: 保护正在改动的索引页
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个操作正在把满页拆成两页，另一个同时沿原路径读。要避免读到结构只改了一半，先保护什么？
+          options: [{text: 只在查询结束后比较用户权限, why: 权限检查不阻止页的指向关系更新到一半时被读取。}, {text: 短时间保护涉及的索引内部结构, correct: true}]
+          explain: 页的内容与页之间的指向关系都需要短时保护。
+      - card:
+          title: 内存结构保护和业务隔离各管一层
+          body: |
+            **闩锁（latch）**短时间保护索引页等内部结构。事务锁保护数据访问规则，寿命可到事务结束。闩锁可用底层同步机制实现，有的允许多个读者同时进入，但写者需要独占。
+      - item:
+          id: latch-vs-lock
+          type: match
+          prompt: 给两项工作选用相应保护。
+          pairs: [[一次内部页分裂中保持页的指向一致, 闩锁], [让事务间的数据读取符合隔离规则, 事务锁]]
+          explain: 内部结构短时安全与用户事务的长期语义不同。
+      - card:
+          title: 局部持有保护，安全后尽早释放
+          body: |
+            散列表可在桶级保护读写，扩目录时保护共享入口。B+ 树向下访问时可先拿子页保护，再在子页对本次操作安全时释放父页保护。需要分裂或合并的情况可能要保留父页或采用特定并发协议。
+      - item:
+          id: release-parent
+          type: choice
+          prompt: 访问 B+ 树时已安全取得子页，确认本次操作不需要更改父页。缩短等待的办法是什么？
+          options: [{text: 按协议释放不再需要的父页闩锁, correct: true}, {text: 父页保护一定要留到所有用户事务提交, why: 这里保护的是短时的结构访问。}]
+          explain: 及早释放不需要的结构保护可让其他访问继续。
+  - id: operators
+    chapter: 执行计划
+    title: 看数据库实际怎样执行这条查询
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同样的“查一张订单”，数据库可查目录或逐行找。SQL 必须由你写死选哪种吗？
+          options: [{text: SQL 只可能翻译成一种固定扫描, why: 一种查询语义可以有多种执行方式。}, {text: 数据库可在符合查询含义的做法中选择, correct: true}]
+          explain: SQL 描述所要结果，执行系统再安排实际步骤。
+      - card:
+          title: 让结果从底层操作流向上层
+          body: |
+            **执行计划（execution plan）**用操作树说明怎样执行。**算子（operator）**做扫描、过滤、连接或排序等工作。叶端可全表扫或按索引查，向上的算子从输入行计算表达式或输出列。修改语句也要先找到目标行，再执行写入及相关维护。
+      - item:
+          id: plan-order
+          type: order
+          prompt: 一个计划从订单表读取记录、筛已退款，再只输出编号。给数据的流向排序。
+          steps: [用扫描算子取订单, 用过滤算子保留已退款行, 用投影输出编号]
+          explain: 下层给上层提供数据，先找到输入行再得到最终输出。
+      - card:
+          title: 一次交一行、一批或完整中间结果
+          body: |
+            逐行请求模型由上层向下层要下一行。批处理一次交一批行，有利于复用已读的数据。物化先保存一个中间结果，方便复用，也要付存放成本。排序通常需先取得足够输入，普通过滤可边读边给结果。
+      - item:
+          id: stream
+          type: choice
+          prompt: 只需判断每一行的状态是否是 refunded。算子在读到第一条符合的行时，通常能先交给上层吗？
+          options: [{text: 可以，过滤可逐行判断并输出, correct: true}, {text: 必须等整表排序后才能判断当前行, why: 当前行的状态不依赖其他行的顺序。}]
+          explain: 能流水处理的操作不必先保存全部中间结果。
+  - id: sort-group
+    chapter: 执行计划
+    title: 数据装不下时，分批排序再归并
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 要排序一堆文件，工作桌一次只能放一小部分。你能先整理出几摞各自有序的文件吗？
+          options: [{text: 一定要等有能放下全部文件的大桌才能开始, why: 可以先生成有序段，再逐趟归并。}, {text: 可以，再同时比较每摞顶端并归并, correct: true}]
+          explain: 分块排序把需要同时处理的数据限制在容量内。
+      - card:
+          title: 外部排序先生成有序段
+          body: |
+            输入装不进缓冲池时，每次读能放下的一块，内部排好再写成有序段。归并可给每个输入段一页缓冲，再留一页输出。若有 6 页缓冲，一轮最多归并 5 个段。
+          reveal:
+            - title: 先数首轮生成的段
+              body: 20 页输入每次处理 6 页，向上取整得到 4 个段。
+            - title: 检查一轮能否合并
+              body: 4 个段不超过 5 个输入缓冲位，下一轮能合成一段。
+      - item:
+          id: initial-runs
+          type: number
+          prompt: 25 页输入，每次读入 6 页排序后写出一段。首轮生成几段？
+          answer: 5
+          explain: 先得到 4 个满段，剩 1 页再形成一段。
+      - card:
+          title: 分组可以利用排序，也可用散列
+          body: |
+            排序分组让相同键相邻，顺序更新计数或总和。散列分组以组键找状态，未必要求输出排序。组太多装不下时，两类方式都可能将中间数据放到外部存储。
+      - item:
+          id: grouped-order
+          type: choice
+          prompt: 数据已按专业排好，要计算每个专业人数。可以怎样扫描？
+          options: [{text: 连续统计同一专业，专业改变时结束上一组, correct: true}, {text: 必须先把已排好的一组记录随机打散, why: 相同键相邻已经方便了分组。}]
+          explain: 已有顺序让分组可以沿着记录一次推进。
+  - id: joins
+    chapter: 执行计划
+    title: 用一整块外表页减少内表重复扫描
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 手头有两个名单要按编号配对。如果每次只记住一个人，就得翻很多遍另一本。能怎样少翻几遍？
+          options: [{text: 每次只记一个人才能保证配对正确, why: 一批内可以分别核对每个键。}, {text: 一次记住一批外侧数据，再查另一边, correct: true}]
+          explain: 多用一点缓冲可以减少反复读取另一张表。
+      - card:
+          title: 嵌套循环反复查内表
+          body: |
+            内连接输出满足条件的行对。嵌套循环为外表记录寻找内表匹配，可逐行或按页块处理。若内表有合适索引，也可用外表键逐次查索引。页块方案为外表保留 B−2 页，另留一页内表输入和一页输出。
+      - item:
+          id: block-capacity
+          type: number
+          prompt: 页块嵌套循环有 12 页缓冲，按题设留 2 页给内表输入与结果。外表每批能放几页？
+          answer: 10
+          explain: 12 减去两页工作空间得到 10。
+      - card:
+          title: 先数外表块，再数读内表次数
+          body: 原题 R 有 1000 页，S 有 500 页，B = 102。S 作外表，忽略输出写入，按模型无额外缓存复用。
+          reveal:
+            - title: 先把外表分块
+              body: 每块 102 − 2 = 100 页，500 页分 5 块。
+            - title: 每块扫一次内表
+              body: 外表读 500 页，5 次各扫内表 1000 页，合计 500 + 5 × 1000 = 5500 次页 I/O。
+      - item:
+          id: block-cost
+          type: number
+          prompt: 外表 40 页，内表 60 页，缓冲 12 页，其中 2 页给输入输出。忽略输出写入。页块嵌套循环的读取总页数是多少？
+          answer: 280
+          explain: 外表每块 10 页，共 4 块。读外表 40 页，内表读 4 次各 60 页，合计 280。
+  - id: join-costs
+    chapter: 执行计划
+    title: 比较排序归并与分区散列需要搬几遍页
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两张名单都已按编号排好。配对时能否像归并一样各维护一个当前位置？
+          options: [{text: 可以沿顺序推进，并为同键的多行配对, correct: true}, {text: 已有顺序也必须反复从头扫其中一边, why: 有序输入能帮助跳过再也不会匹配的较小键。}]
+          explain: 排序归并借已有顺序减少重复访问。
+      - card:
+          title: 先排序，再按相同键归并
+          body: |
+            排序归并连接先保证两边按连接键有序，再推进相对较小的一边；键相等时组合相同键的记录。原题 R 有 1000 页、S 有 500 页，缓冲 102 页，两边分别排序并写回，再读它们做连接。
+          reveal:
+            - title: 分别算排序读写
+              body: 两边首轮生成的段均可再一轮归并。每轮各读写一遍，两轮共 4 × (1000 + 500) = 6000 次页 I/O。
+            - title: 加上读取已排序输入
+              body: 归并连接再读 1500 页，合计 7500。若最后一轮归并直接给连接，且缓冲够用，可省最终写回及再次读入的 3000 次，得到 4500。
+      - item:
+          id: external-sort
+          type: number
+          prompt: 两表共 1500 页，各做两轮完整读写排序，排序结果写回后另读一遍来连接。忽略输出写入。合计多少次页 I/O？
+          answer: 7500
+          explain: 两轮各读写共四遍，再读一遍，共 5 × 1500。
+      - card:
+          title: 散列连接先分区，再按区构建和探测
+          body: |
+            Grace 散列连接用同一规则分区两边，使匹配键进入同一对分区。每对分区把小侧做成散列表，再读大侧探测。分区各读写一遍，随后各读一遍。若每个小侧分区都装得下且不再分区，原题合计 3 × 1500 = 4500 次。
+      - item:
+          id: skew
+          type: choice
+          prompt: 很多行具有同一个连接键，导致一对分区的小侧仍超出内存。能直接沿用两趟散列连接的代价吗？
+          options: [{text: 可以，分区后每份一定平均, why: 同键记录必须进入同一分区，可能高度集中。}, {text: 不能保证，需要额外处理过大分区或换方案, correct: true}]
+          explain: 两趟估算依赖每个小侧分区都能装入缓冲。
+  - id: parallel
+    chapter: 执行计划
+    title: 把可独立完成的查询工作同时做
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一张表分成几块，可以先分别数每块的行，再汇总吗？
+          options: [{text: 可以，各块独立计数再相加, correct: true}, {text: 只有从第一行按原顺序数到最后才会正确, why: 计数结果可由互不重叠的块汇合。}]
+          explain: 能拆分并正确合并的工作，适合并行。
+      - card:
+          title: 既能同时跑多条查询，也能拆一条查询
+          body: |
+            查询间并行同时处理不同任务。查询内并行可按页范围分工，或让多个阶段流水工作。**进程（process）**是运行中的程序实例及其资源。**线程（thread）**在进程内独立调度，同进程线程可共享内存。系统可用不同进程或线程组织执行者。
+      - item:
+          id: parallel-kind
+          type: match
+          prompt: 为三种安排配名称。
+          pairs: [[分别处理两名用户的查询, 查询间并行], [多名执行者扫描同一查询的不同范围, 查询内并行], [多个设备同时读取不同输入, I/O 并行]]
+          explain: 并行可以发生在任务、查询步骤与存储读取等不同层次。
+      - card:
+          title: 同时执行和分布在多机是两项特点
+          body: |
+            单机多核也能并行。分布式系统把数据或计算放在不同机器，需考虑网络、各节点故障与协调。两者可以同时存在。并行任务太细、分配不均或共享存储已饱和时，增加执行者未必更快。
+      - item:
+          id: skew-workers
+          type: choice
+          prompt: 多个执行者一起查表，其中一个承担绝大部分记录，其他人很快结束。最直接的改进方向是什么？
+          options: [{text: 只继续增加空闲执行者，保持同一分配, why: 最忙的一块仍决定整体完成时间。}, {text: 调整工作划分，让各执行者负载更均衡, correct: true}]
+          explain: 并行速度受最慢任务和交换成本约束。
+  - id: rewrite
+    chapter: 代价模型
+    title: 在保持查询含义的前提下减少中间结果
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 要把两张大表按订单号配对，但只关心左表已退款订单。怎样可能少处理很多行？
+          options: [{text: 如果连接规则允许，先筛左表再配对, correct: true}, {text: 总是先制造所有配对，再读取左表状态, why: 可先排除无用行时，后续工作会变少。}]
+          explain: 在不改变结果的前提下提前去掉无用输入。
+      - card:
+          title: 先判断能否改写，再比较如何运行
+          body: |
+            逻辑优化用等价规则改写运算，物理优化比较扫描、连接算法和次序。内连接前可提前筛只依赖一侧的条件，或丢掉之后用不着的列。投影仍需保留连接键等必要属性，并保持原有的重复与缺失处理。
+      - item:
+          id: keep-key
+          type: choice
+          prompt: 已退款订单要按订单号和明细连接，最终只显示明细名称。连接前能从订单流删掉订单号吗？
+          options: [{text: 可以，因为最终显示不需要它, why: 中间操作仍依赖该属性。}, {text: 要先保留订单号供匹配，连接后才可舍弃, correct: true}]
+          explain: 下推投影要保留上层算子还会使用的列。
+      - card:
+          title: 先核对 NULL、重复与子查询语义
+          body: |
+            左连接的右表条件放在 ON 还是 WHERE 可能改变结果，不能盲目移动。等价改写还可简化表达式，或把某些关联 EXISTS 改写成只检查是否有匹配的半连接。每条改写都应保留结果的重复和缺失语义。
+      - item:
+          id: left-join-rewrite
+          type: choice
+          prompt: 左连接应保留没有匹配的订单。把“右表状态必须等于已发货”从匹配条件移到 WHERE，会有何风险？
+          options: [{text: 原先补出的右表 NULL 行可能被过滤掉, correct: true}, {text: 结果一定完全相同，因为状态条件文字没变, why: 在不同阶段应用条件会改变无匹配行是否保留。}]
+          explain: 改写必须检查整条操作的语义，不能只比较条件文字。
+  - id: selectivity
+    chapter: 代价模型
+    title: 估计有多少行命中，再比较索引与扫描
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一种查找要访问整表，另一种可以先从目录找位置再逐条取数据。什么时候目录更有机会省工作？
+          options: [{text: 只要有目录，就总比顺序扫更快, why: 大量分散的匹配可能产生更多读页。}, {text: 匹配很少且定位成本低时, correct: true}]
+          explain: 索引的存在只说明可用，还要比较实际要做的工作。
+      - card:
+          title: 把条件估计转换成输出行数
+          body: |
+            **选择率（selectivity）**是满足条件的行占比。若 10 000 条订单约有 100 条退款，选择率为 1%。优化器可用直方图、常见值与不同值个数估计；若假定均匀却遇到偏斜，或忽略多个条件的相关性，估计可能偏离实际。
+      - item:
+          id: selectivity-rate
+          type: number
+          prompt: 一张表有 2000 条记录，其中 100 条符合条件。选择率为百分之多少？输入百分数数值。
+          answer: 5
+          explain: 100 除以 2000 等于 0.05，即 5%。
+      - card:
+          title: 行数只是估价的输入
+          body: |
+            少量命中时，索引可避开整表访问。若匹配分散在大量数据页，逐项随机访问可能比顺序扫描贵。能直接从覆盖索引返回所需字段时可少取数据页。聚簇、缓存、存储和表规模也会改变选择。
+      - item:
+          id: common-value
+          type: choice
+          prompt: 退款条件匹配很多记录，且这些记录分散在不同数据页，索引也没有查询需要的其他字段。优化器为什么可能选全表扫描？
+          options: [{text: 按索引逐条取数据的读页代价可能超过顺序扫描, correct: true}, {text: 只要索引存在，优化器就不能再扫表, why: 两种存取路径通常都可比较。}]
+          explain: 需要取多少页、以什么顺序取，比是否有索引更能解释此选择。
+  - id: plans
+    chapter: 代价模型
+    title: 让估计选择方案，再读一次真实计划
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 有多张表要连接。先连接哪两张表，可能影响查询产生的临时数据量吗？
+          options: [{text: 最终结果相同就意味着所有中间结果也同样大, why: 不同次序可以先扩张或先筛去许多记录。}, {text: 会，先连接的结果会成为后续输入, correct: true}]
+          explain: 计划比较既关心最终结果，也关心走到结果前的工作量。
+      - card:
+          title: 从可能的路径和连接次序中搜索
+          body: |
+            单表可比较扫描与索引。多表要比较连接次序、算子和已有排序等属性。System R 式方法从小表组向上扩展，保留有用的候选；Volcano 式方法从目标向下探索等价表达与实现。可用代价上界或时间预算结束搜索。
+      - item:
+          id: smaller-first
+          type: choice
+          prompt: 两个语义相同的计划使用同样的最终连接。一个已知先生成很大的中间表，另一个能先过滤大部分无用行。哪项值得优先估价？
+          options: [{text: 先过滤的方案，因为可能降低后续输入规模, correct: true}, {text: 只比较两种查询的字符长度, why: 文本长度无法说明临时数据大小。}]
+          explain: 中间结果规模会影响后续页访问、内存和连接工作。
+      - card:
+          title: 在 SQLite 对照有无索引
+          body: |
+            下列是 SQLite 的小型例子。用 `EXPLAIN QUERY PLAN` 查看运行路线说明。没有合适索引时预期出现 SCAN，添加索引后可看到使用索引的 SEARCH。不同数据、统计与版本可能给出别的计划。
+
+            ```sql
+            CREATE TABLE orders (
+                id INTEGER PRIMARY KEY,
+                status TEXT NOT NULL,
+                total INTEGER NOT NULL
+            );
+            INSERT INTO orders VALUES
+                (1, 'paid', 20), (2, 'refunded', 30), (3, 'paid', 40);
+            EXPLAIN QUERY PLAN SELECT * FROM orders WHERE status = 'refunded';
+            CREATE INDEX orders_status ON orders(status);
+            EXPLAIN QUERY PLAN SELECT * FROM orders WHERE status = 'refunded';
+            ```
+      - item:
+          id: read-plan
+          type: choice
+          prompt: SQLite 的计划显示 SEARCH orders USING INDEX orders_status。最直接能得出的结论是什么？
+          options: [{text: 所有数据规模下，这个索引的实际耗时都必然最低, why: 一份计划说明只描述当前选择。}, {text: 此次计划会使用这个索引定位候选行, correct: true}]
+          explain: 计划是理解实际做法的证据，性能仍应结合数据和测量。
+boss:
+  items:
+    - id: conflict
+      type: choice
+      prompt: 冲突先后图中同时有 T1→T2 和 T2→T1。该调度是否冲突可串行化？
+      options: [{text: 否，两条边形成环, correct: true}, {text: 是，任选一个事务放在前面, why: 任一串行次序都会违反一条边。}]
+      explain: 冲突可串行化需要能按冲突边排出串行顺序。
+    - id: strict
+      type: choice
+      prompt: 严格两阶段锁下 T1 写完 A，尚未提交，T2 想读 A。如何处理？
+      options: [{text: T2 直接读这次未提交的修改, why: 读锁与 T1 仍持有的独占写锁冲突。}, {text: T2 等待写锁释放, correct: true}]
+      explain: 严格协议要求写锁持有到事务结束。
+    - id: wal
+      type: choice
+      prompt: 缓冲中的数据页包含一次更新，相关日志尚未持久化。WAL 允许先写回数据页吗？
+      options: [{text: 先持久化相关日志，才能写回这页, correct: true}, {text: 可以先写页，因为日志只用于查历史, why: 页若先落盘，崩溃后可能缺少恢复依据。}]
+      explain: 先持久化日志是写回时的顺序约束。
+    - id: aries
+      type: order
+      prompt: ARIES 恢复的正确阶段顺序是什么？
+      steps: [分析事务和页状态, 重做必要的历史修改, 撤销未完成事务]
+      explain: 先确定恢复范围，再复现历史并去掉未完成的修改。
+    - id: bplus
+      type: number
+      prompt: B+ 树有 100 个叶页，内部页最多指向 10 个子页。按满容量估算，根到叶有几层？
+      answer: 3
+      explain: 叶页上方需要 10 个父页，再加 1 个根页。
+    - id: nested
+      type: number
+      prompt: 页块嵌套循环用 12 页缓冲，留 2 页作输入输出。外表 25 页、内表 40 页，忽略输出写入。总共读多少页？
+      answer: 145
+      explain: 外表按 10 页一块共 3 块。外表读 25 页，内表读 3 × 40 页，合计 145。
+    - id: stats
+      type: choice
+      prompt: 统计显示筛选条件命中大量记录，且每次走非覆盖索引都要跳到分散的数据页。为什么可能采用顺序扫表？
+      options: [{text: 只要创建了索引就一定按索引读, why: 优化器可以比较不同路径。}, {text: 逐项取页的成本可能超过顺序读取全表, correct: true}]
+      explain: 计划代价要看命中规模和访问形态。
+    - id: rewrite
+      type: choice
+      prompt: 在内连接前提前筛选只依赖左表的条件，目标是保留同样结果。主要可能减少什么？
+      options: [{text: 进入连接算子的无用左表行, correct: true}, {text: 可以不再保留连接所需的键, why: 后续仍要用键匹配两边。}]
+      explain: 先过滤能减小输入，但后续操作需要的字段仍要保留。

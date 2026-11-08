@@ -61,7 +61,7 @@ for (let i = 0; i < 12 && !(await p.$(".page.pick")); i++) {
   if (last) await last.click(); else await p.click(".dialog");
 }
 
-for (const h of ["#/pick", "#/", "#/route/goal:C.2.1", "#/route/web", "#/route/ai", "#/map", "#/review", "#/me", "#/lab"]) { await go(h); await fit(h); }
+for (const h of ["#/pick", "#/", "#/route/goal:C.2.1", "#/route/web", "#/route/embedded", "#/route/ai", "#/map", "#/review", "#/me", "#/lab"]) { await go(h); await fit(h); }
 for (const id of [...Object.keys(packs), "M.1.1", "C.3.5", "F.1.2"]) { await go(`#/skill/${id}`); await fit(`#/skill/${id}`); }
 
 // Every lesson, every step, and its celebration.

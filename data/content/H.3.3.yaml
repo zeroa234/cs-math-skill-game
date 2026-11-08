@@ -1,0 +1,648 @@
+skill: H.3.3
+version: 2
+brief:
+  why: 让设备既能相信测到的数，也能安全地对外界作出动作。从温度标定和信号调理走到串行总线、定时采集和电机控制。
+  outcomes:
+    - 区分准确度和精密度，用参考量校准测量值
+    - 比较 UART、I²C 和 SPI 并诊断连接问题
+    - 按信号带宽选采样率，计算 PWM 和传感器接口误差
+terms:
+  - term: 传感器
+    def: 把所关注的物理量变成可以读取的信号的器件。
+  - term: 惠斯通电桥
+    def: 比较两个分压中点来测量电阻变化的电路。
+  - term: 校准
+    def: 在指定条件下用已知参考量建立设备读数和参考值之间的关系。
+  - term: 精密度
+    def: 描述重复读数的一致程度。
+  - term: 准确度
+    def: 关注结果与参考或真值的接近程度。
+  - term: I²C
+    def: 用 SDA 数据线和 SCL 时钟线连接多个设备的同步总线。
+  - term: SPI
+    def: 用时钟、片选和数据线连接控制器及外设的同步接口。
+lessons:
+  - id: measurement
+    chapter: 测量
+    title: 把物理量、转换方式和单位对应起来
+    minutes: 10
+    flow:
+      - guess:
+          id: measurement-guess
+          type: choice
+          prompt: 同一温度下，两块传感器显示的电压不同。只看电压能直接比较它们显示的温度吗？
+          options:
+            - text: 要知道各自的电压到温度的关系
+              correct: true
+            - text: 可以，电压数字大就一定更热
+              why: 输出单位和测量对象单位不同。
+          explain: 不同器件的比例和零点可能不同。
+      - card:
+          title: 从被测物理量开始画信号链
+          body: '**传感器（sensor）**把所关注的物理量变成可以读取的信号的器件。 热敏电阻把温度变化变成电阻变化，光敏器件可把光强变成电流。转换后还需确定单位、量程、灵敏度和供电条件。'
+      - item:
+          id: measurement-2
+          type: match
+          prompt: 把信号链各位置配对。
+          pairs:
+            - - 温度
+              - 需要知道的物理量
+            - - 热敏电阻的阻值
+              - 转换后的电信号
+            - - 按标定关系算出的摄氏度
+              - 可报告的读数
+          explain: 物理量、器件输出与最终读数是三层。
+      - card:
+          title: 测量方式会限制能看见什么
+          body: 先选量程和转换速度。超过量程可能饱和，变化太快也会被器件自身响应抹平。量程内输出单位除以输入单位可描述灵敏度，例如每升高 1 °C，输出增加 10 mV。
+      - item:
+          id: measurement-4
+          type: number
+          prompt: 线性区内灵敏度为 10 mV/°C。温度升高 4 °C，电压增加多少 mV？
+          answer: 40
+          explain: 每度 10 mV，乘 4。
+  - id: signal-chain
+    chapter: 测量
+    title: 把很小的电阻变化变成可读的电压
+    minutes: 10
+    flow:
+      - guess:
+          id: signal-chain-guess
+          type: choice
+          prompt: 电阻值随应变只改变一点点。用两个接近的电压做差，能让你集中观察这点变化吗？
+          options:
+            - text: 不能，电阻变化只能直接用电压表量
+              why: 可以先把电阻变化转为差分电压。
+            - text: 能，平衡时差值很小，变化会让它离开平衡
+              correct: true
+          explain: 可以去掉大的固定背景。
+      - card:
+          title: 用两个分压支路搭成桥
+          body: >-
+            **惠斯通电桥（Wheatstone bridge）**比较两个分压中点来测量电阻变化的电路。
+            两边分压比例相同则差为零。一臂受力改变电阻，差分输出离零。仪表放大器提高微小差值；在范围内共同升降的电压可被抑制。
+      - item:
+          id: signal-chain-2
+          type: choice
+          prompt: 四个臂本来匹配，受力只使一个臂变化。输出一般怎样？
+          options:
+            - text: 桥失衡，中点之间出现差分电压
+              correct: true
+            - text: 两个中点永远完全等压
+              why: 等压条件依赖两个分压比例相等。
+          explain: 只变一个比例会使两个中点电压不再相等。
+      - card:
+          title: 调理让信号适合转换器
+          body: 先缓冲避免把传感器拖得变值，再按需要放大、移电平、限制高频，并考虑隔离和保护。设计中检查放大器输入输出能否覆盖全部量程、ADC 采样时能否及时建立。
+      - item:
+          id: signal-chain-4
+          type: choice
+          prompt: 传感器输出非常弱，接低输入阻抗的测量电路后读数明显下降。应先解决什么？
+          options:
+            - text: 用高输入阻抗缓冲，减小负载影响
+              correct: true
+            - text: 把 ADC 显示从两位小数改成三位
+              why: 显示位数不会纠正前端的负载衰减。
+          explain: 尽量避免测量电路本身改变被测电压。
+  - id: calibration
+    chapter: 校准
+    title: 用两个参考点消除零点和比例偏差
+    minutes: 10
+    flow:
+      - guess:
+          id: calibration-guess
+          type: choice
+          prompt: 温度计在冰水中总是多报 2 °C。重复十次都很一致，它一定准确吗？
+          options:
+            - text: 不一定，可以稳定地偏高
+              correct: true
+            - text: 一定，显示结果一致就叫准确
+              why: 重复一致仍可能有固定偏差。
+          explain: 重复性和贴近参考值是不同性质。
+      - card:
+          title: 用参考量对照读数
+          body: '**校准（calibration）**在指定条件下用已知参考量建立设备读数和参考值之间的关系。 两点线性模型可以求截距和斜率。用独立的第三点核对残余误差，记录参考条件、日期与有效范围。'
+          reveal:
+            - title: 确定零点
+              body: 0 °C 时为 0.52 V。
+            - title: 确定斜率
+              body: 100 °C 时为 1.52 V，差 1.00 V 除 100 °C，得 0.01 V/°C。
+            - title: 将电压换回温度
+              body: 0.97 V 减 0.52 V，再除 0.01 V/°C，得到 45 °C。
+      - item:
+          id: calibration-2
+          type: number
+          prompt: 线性温度传感器在 0 °C 输出 0.52 V、在 100 °C 输出 1.52 V。测得 1.02 V，温度多少 °C？
+          answer: 50
+          explain: 去掉偏移 0.52 V，得到 0.50 V；除 0.01 V/°C。
+      - card:
+          title: 用参考温度也能标定电阻变化
+          body: 取参考温度下的阻值 R0，另一温度与它相差 ΔT 时测到 R1。小范围内温度系数近似为 (R1−R0)/(R0×ΔT)。只在这段近似线性的范围内使用，并检查传感器自热。
+      - item:
+          id: calibration-4
+          type: number
+          prompt: 初始阻值 100 Ω，升温 20 °C 后为 108 Ω。近似温度系数用 %/°C 表示是多少？
+          answer: 0.4
+          explain: 相对增量 8%，平均每度 8/20=0.4%。
+  - id: uncertainty
+    chapter: 误差
+    title: 区分稳定偏差、随机噪声和元件容差
+    minutes: 10
+    flow:
+      - guess:
+          id: uncertainty-guess
+          type: choice
+          prompt: 三次读数很接近，但都比参考值高。多测并平均就一定变准确吗？
+          options:
+            - text: 一定，测得越多就越接近参考值
+              why: 稳定的偏移会在每次重复出现。
+            - text: 固定偏差平均后仍会保留
+              correct: true
+          explain: 平均主要减小不相关随机波动。
+      - card:
+          title: 一组读数可以很集中却偏离参考
+          body: '**精密度（precision）**描述重复读数的一致程度。**准确度（accuracy）**关注结果与参考或真值的接近程度。零点偏差、比例偏差、非线性和温漂都会让准确度下降。器件容差是制造允许的范围。'
+      - item:
+          id: uncertainty-2
+          type: number
+          prompt: 参考为 20 °C，设备连续读 22、22、22 °C。平均读数减参考值是多少 °C？
+          answer: 2
+          explain: 三次平均 22 °C，仍比参考值高 2 °C。
+      - card:
+          title: 分开记录误差来源和验证条件
+          body: 随机变化报告重复测量的散布；固定或随温度变化的偏差用参考量核对。对容差给边界，独立随机噪声可按方差相加。连续平均不能消除固定偏差或强相关干扰。
+      - item:
+          id: uncertainty-4
+          type: choice
+          prompt: 每次测量都多出同一个电压偏移。哪项最直接？
+          options:
+            - text: 在已知参考条件下估计并补偿偏移
+              correct: true
+            - text: 把同一偏移重复平均
+              why: 得到的平均仍带这个偏移。
+          explain: 先测出稳定误差，再做校正。
+  - id: uart-frame
+    chapter: 总线
+    title: 用起止位和就绪事件接收串行数据
+    minutes: 10
+    flow:
+      - guess:
+          id: uart-frame-guess
+          type: choice
+          prompt: 两块板有 TX 和 RX，但一块接 TX 对 TX。收不到数据，先看什么？
+          options:
+            - text: 让一端发送接另一端接收，并确认共同参考地
+              correct: true
+            - text: 继续把两端输出接在一起
+              why: 两端都驱动时可能发生冲突。
+          explain: 发送端要把信号送进对方的输入。
+      - card:
+          title: UART 用帧把字节排成时间序列
+          body: 双方先约定位速率和帧格式。8N1 有一个起始位、八个数据位和一个停止位。独立 TX/RX 可同时收发。电平式 UART 和 RS-232 的电气标准不同，需要匹配的收发器，不能直接对接。
+      - item:
+          id: uart-frame-2
+          type: number
+          prompt: UART 9600 波特、8N1，每位一个符号、无额外空闲。连续发送每秒最多多少数据字节？
+          answer: 960
+          explain: 一帧十位，其中只有八位属于数据。
+      - card:
+          title: 先让硬件接字节，再交给处理任务
+          body: 收到数据时外设可触发中断，处理程序尽快取出并放进缓冲队列，再通知主程序解码。必须考虑接收区溢出。开始排查时先确认接线、电平和两端帧配置。
+      - item:
+          id: uart-frame-4
+          type: choice
+          prompt: 接线正常但两端位速率不同，最可能看到什么？
+          options:
+            - text: 硬件一定会自动重新协商
+              why: 基本 UART 帧没有这一保证。
+            - text: 收到错误字节或帧错误
+              correct: true
+          explain: 接收方采样时刻偏离发送方位宽。
+  - id: i2c
+    chapter: 总线
+    title: 沿 I²C 的地址、应答和数据走一遍
+    minutes: 10
+    flow:
+      - guess:
+          id: i2c-guess
+          type: choice
+          prompt: 两件外设接在同一对共享线上。发送方怎样让指定的一件应答？
+          options:
+            - text: 所有器件必须一起回应每次请求
+              why: 多个器件同时当目标会造成冲突。
+            - text: 先送地址，再传数据
+              correct: true
+          explain: 只有匹配地址的设备应答。
+      - card:
+          title: 用上拉共享数据与时钟线
+          body: >-
+            **I²C（inter-integrated circuit）**用 SDA 数据线和 SCL 时钟线连接多个设备的同步总线。
+            开漏输出能拉低，释放后靠上拉回高。常见事务用七位地址加方向位，也有十位寻址。每组八位之后由接收方在第九个时钟给应答。
+      - item:
+          id: i2c-2
+          type: order
+          prompt: 控制器发送一帧简单的 I²C 写事务。按顺序排列。
+          steps:
+            - 发起始条件
+            - 发设备地址及写方向并读应答
+            - 发数据并读应答
+            - 发停止条件
+          explain: 起始建立事务，地址匹配并应答后传数据，结束时释放总线。
+      - card:
+          title: 地址冲突要在物理或配置上隔开
+          body: 两件同地址器件都可能应答，软件仅重复使用同一地址无法区分。若器件有地址脚就更改接法；否则可分到不同总线或用多路复用器按支路选通。核对电压和上拉，长线的电容会让上升变慢。
+      - item:
+          id: i2c-4
+          type: choice
+          prompt: 两枚固定同地址的器件要分别读。哪项可行？
+          options:
+            - text: 用 I²C 多路复用器分别启用两个支路
+              correct: true
+            - text: 对同一地址依次发两次相同读操作
+              why: 在同一共享支路上，两者仍会同时响应。
+          explain: 每次只让其中一个器件出现在事务通路上。
+  - id: spi
+    chapter: 总线
+    title: 用片选和时钟读出同步设备
+    minutes: 10
+    flow:
+      - guess:
+          id: spi-guess
+          type: choice
+          prompt: 三件器件共享时钟和数据。每件单独接一根选择线时，可以让其中一件参与传输吗？
+          options:
+            - text: 可以，激活对应的选择线
+              correct: true
+            - text: 不行，所有器件都必须同时输出
+              why: 未选设备应按规范释放共享输出。
+          explain: 选择线决定本次与谁交互。
+      - card:
+          title: 同步串行每一拍都可交换一位
+          body: >-
+            **SPI（serial peripheral interface）**用时钟、片选和数据线连接控制器及外设的同步接口。
+            常见四线形式有时钟、控制器发送、外设发送和片选。双方可全双工；读寄存器时发送占位字节可继续产生接收所需的时钟。
+      - item:
+          id: spi-2
+          type: choice
+          prompt: SPI 控制器要从设备再读 8 位，当前没有时钟脉冲。外设会自己把八位都送完吗？
+          options:
+            - text: 会，SPI 和异步串口完全相同
+              why: 常见 SPI 设备依赖控制器提供时钟。
+            - text: 要由控制器继续产生时钟
+              correct: true
+          explain: 同步接收依赖约定的时钟边沿。
+      - card:
+          title: 读写时对齐位序、边沿和片选
+          body: 控制器和设备必须同意时钟空闲极性、采样边沿以及先送哪一位。确认器件是否要求片选保持到整条命令结束。多设备共享返回线时，要确保仅让选中的设备在返回线上输出。
+      - item:
+          id: spi-4
+          type: choice
+          prompt: SPI 波形有时钟也有数据，但每位都在错误边沿被采样。优先核对哪项？
+          options:
+            - text: I²C 七位地址
+              why: SPI 通常用片选，没有这一地址阶段。
+            - text: 时钟模式与器件要求
+              correct: true
+          explain: 采样边沿是时钟模式的一部分。
+  - id: physical-links
+    chapter: 总线
+    title: 按距离和电平选择串行连接
+    minutes: 10
+    flow:
+      - guess:
+          id: physical-links-guess
+          type: choice
+          prompt: 同一条逻辑消息在板内和长电缆上都要传。换了长电缆，原来那种引脚电平一定还适用吗？
+          options:
+            - text: 一定适用，协议名字一样即可
+              why: 逻辑格式和物理层电气规则是两回事。
+            - text: 要重新检查电气接口、布线和抗扰能力
+              correct: true
+          explain: 距离和环境会改变信号质量。
+      - card:
+          title: 差分线传的是两线之差
+          body: RS-422/485 常用平衡差分传输，接收端看两线电压差，可抑制一部分同加在两线上的干扰。RS-485 常用于多点，仍要按拓扑、线缆和终端匹配。RS-423 是非平衡接口。
+      - item:
+          id: physical-links-2
+          type: choice
+          prompt: 两根差分线一起被干扰抬高相同电压，理想接收端读出的差值如何？
+          options:
+            - text: 保持不变
+              correct: true
+            - text: 增加两倍干扰电压
+              why: 同加同减不会改变差值。
+          explain: 从两线电压相减时，相同的变化抵消。
+      - card:
+          title: 先配电压，再配协议
+          body: 两块板的逻辑阈值、供电和可承受电压要匹配，必要时用电平转换器。USB 除了差分物理连接，还规定主机、设备、枚举与传输类型；不能把 USB 数据线直接当 UART。
+      - item:
+          id: physical-links-4
+          type: match
+          prompt: 把需求配给接口。
+          pairs:
+            - - 板内同步外设逐个片选
+              - SPI
+            - - 长线差分多点电气传输
+              - RS-485
+            - - 主机枚举外设
+              - USB
+          explain: 板内选择和长线的电气实现、USB 枚举各有独立规则。
+  - id: choose-bus
+    chapter: 总线
+    title: 按数据量和设备数量选总线
+    minutes: 10
+    flow:
+      - guess:
+          id: choose-bus-guess
+          type: choice
+          prompt: 温度读数很少，但设备有好几个。选最快的接口一定最省线吗？
+          options:
+            - text: 不一定，先看共享与选择方式
+              correct: true
+            - text: 一定，最快的总线天然线最少
+              why: 各总线在速率、线数和连接方式上分别折衷。
+          explain: 多个慢设备可共享两根信号线，速度要够用。
+      - card:
+          title: 先估有效数据率，再对照具体器件
+          body: >-
+            常见 I²C 标准、快速和快速增强模式是 100 kHz、400 kHz、1 MHz；要加地址与应答开销，数据方向按事务改变。SPI 常更快，实际极限由器件和板线规定，每件通常占一根片选。UART
+            典型为点对点，速率和格式要预先约定。
+      - item:
+          id: choose-bus-2
+          type: match
+          prompt: 把设备场景配给一个合理的接口。
+          pairs:
+            - - 多个低速传感器共享时钟和数据线
+              - I²C
+            - - 高吞吐板内设备有独立片选
+              - SPI
+            - - 只需异步输出调试日志
+              - UART
+          explain: 看共享数量、时钟要求和两端已有的接口。
+      - card:
+          title: 长线多节点有专门的接口
+          body: CAN 节点通过标识符参与仲裁，可在共享总线上让高优先级帧先发送。OneWire 用单根信号线配合参考地和指定时序，适合少量低速测量。看器件是否支持、可用线长与错误处理，再选接口。
+      - item:
+          id: choose-bus-4
+          type: choice
+          prompt: 板上两枚慢传感器有不同的 I²C 地址，只有两根信号线可用。优先试哪种接法？
+          options:
+            - text: 每枚使用四线 SPI 且独占所有线路
+              why: 会超过可用信号线。
+            - text: 两枚共享 SDA 和 SCL
+              correct: true
+          explain: 各自用地址识别，可以共享两根信号线。
+  - id: acquisition
+    chapter: 采集
+    title: 按带宽设置采样节拍
+    minutes: 10
+    flow:
+      - guess:
+          id: acquisition-guess
+          type: choice
+          prompt: 拍摄转轮时图像看起来向后转。把视频放大，能找回原来的转动方向吗？
+          options:
+            - text: 可以，空间放大能恢复两帧间发生的事
+              why: 原来的采样序列并未保留这些信息。
+            - text: 不能，采样时已经丢了区分信息
+              correct: true
+          explain: 应增加拍摄速度或先限制输入变化。
+      - card:
+          title: 先设带宽，再定每秒采多少次
+          body: >-
+            对基带信号，采样率要高于需要保留的最高频率两倍，并给模拟滤波器留过渡带。可由计时硬件触发 ADC，用 DMA
+            把转换结果搬入数据区，再按采样间隔为各样本标记时刻。离散变化率可用相邻样本差除以采样间隔。
+      - item:
+          id: acquisition-2
+          type: number
+          prompt: 采样率为每秒 2000 次，时间间隔多少毫秒？
+          answer: 0.5
+          explain: 1/2000 秒乘 1000 为 0.5 ms。
+      - card:
+          title: 把数据量和延迟一起算
+          body: 统一 ADC 编码、单位和每点的存储格式。无论有效位宽是否用满，按实际打包的字节数算吞吐。分批处理可降低中断频率，但满批等待会增加处理延迟。
+      - item:
+          id: acquisition-4
+          type: number
+          prompt: 以 2000 样本/秒采一通道，每样本存 2 字节，无额外字段。每秒产生多少字节？
+          answer: 4000
+          explain: 2000×2=4000 字节/秒。
+  - id: oversample
+    chapter: 采集
+    title: 过采样平均什么时候能多分出一位
+    minutes: 10
+    flow:
+      - guess:
+          id: oversample-guess
+          type: choice
+          prompt: 反复读一只理想转换器，每次都返回完全相同的码。平均 16 次能告诉你它在码格内的位置吗？
+          options:
+            - text: 不能，相同码没有携带额外的幅度信息
+              correct: true
+            - text: 一定能，平均次数本身就增加硬件位宽
+              why: 结果的数值格式不能代替新的测量信息。
+          explain: 需要有能跨码格的合适扰动。
+      - card:
+          title: 独立噪声平均后按平方根降低
+          body: 对近似独立零均值噪声，平均 N 次后的标准差约为原来的 $1/\sqrt{N}$。若量化误差可看作足够随机且覆盖相邻码格，每 4 倍过采样并正确低通平均，理想噪声分辨率可多约 1 位。
+      - item:
+          id: oversample-2
+          type: number
+          prompt: 满足独立噪声和信号带宽条件，过采样 16 倍并取平均，理想可多约几位？
+          answer: 2
+          explain: 16=4×4，四倍对应约一位。
+      - card:
+          title: 用真实波形核对假设
+          body: 把参考电压送进 ADC，分别记录平均前后的散布与偏差。样本间强相关、周期干扰、削顶和固定偏差不能用该理想比例推算。平均还会降低可跟踪的变化速度。
+      - item:
+          id: oversample-4
+          type: choice
+          prompt: 读数每次相同，没有可用随机扰动。四次平均能否凭空多一位有效分辨率？
+          options:
+            - text: 能，四次平均在任何条件下都有效
+              why: 四倍规则要求噪声和采样条件成立。
+            - text: 不能
+              correct: true
+          explain: 量化器每次交付同一份信息。
+  - id: capture-edge
+    chapter: 执行器和软硬件接口
+    title: 用计数和同步规则接住外部事件
+    minutes: 10
+    flow:
+      - guess:
+          id: capture-edge-guess
+          type: choice
+          prompt: 软件读传感器时可能被别的工作耽搁。若硬件在信号到来时自己记下时间，能减少这项误差吗？
+          options:
+            - text: 不能，所有时刻都只能由业务代码读取时决定
+              why: 计数器的输入捕获可以锁住到达时刻。
+            - text: 能，时间由硬件在边沿附近记录
+              correct: true
+          explain: 处理稍晚也能读到已保存的时刻。
+      - card:
+          title: 按接口是否有就绪信号选择同步方式
+          body: >-
+            固定等待只适用于有可靠最坏延迟的器件；有状态位时可轮询，边沿重要时可用中断或输入捕获。矩阵键盘逐行输出并读列，按需消抖。Cortex-M 用 NVIC 配置通知优先级，SysTick
+            可提供定期扫描。
+      - item:
+          id: capture-edge-2
+          type: choice
+          prompt: 器件给出清楚的就绪状态，但完成时间波动。要避免没完成就读，又不想用固定超长等待，怎么做？
+          options:
+            - text: 等就绪状态或订阅通知
+              correct: true
+            - text: 固定等待一个任意很短的时间
+              why: 有些操作可能尚未完成。
+          explain: 按器件实际完成时刻同步。
+      - card:
+          title: 从两个捕获位置求周期
+          body: 同向边沿间的计数差除计数频率就是周期，再取倒数得频率。输出比较可以让硬件在目标时刻触发；采集回调只保存事件或传队列。共享数据应明确谁在什么时候读写，并保护必要的不可分割访问。
+      - item:
+          id: capture-edge-4
+          type: number
+          prompt: 计时频率 1 MHz，两次同向边沿相差 2000 个计数。信号频率多少 Hz？
+          answer: 500
+          explain: 周期为 2000/1000000 秒，即 0.002 s，倒数为 500 Hz。
+  - id: motor
+    chapter: 执行器和软硬件接口
+    title: 用 PWM 和驱动器安全控制电机
+    minutes: 10
+    flow:
+      - guess:
+          id: motor-guess
+          type: choice
+          prompt: 电机停转时突然切断线圈电源。电流能马上无声无息变成零吗？
+          options:
+            - text: 电感会尝试维持原来方向的电流
+              correct: true
+            - text: 能，断开时电感不再有任何能量
+              why: 线圈的磁场中先前储存了能量。
+          explain: 没有释放通路时可能产生很高的瞬态电压。
+      - card:
+          title: 让驱动器承担电流和方向变化
+          body: GPIO 只发控制信号。H 桥通过选择对角开关给电机两种电流方向，也可按驱动器规则制动。换向留死区，避免同一桥臂上下同时导通；续流二极管或主动续流给感性电流安全路径。
+      - item:
+          id: motor-2
+          type: choice
+          prompt: 切断电机电流时，续流路径主要保护什么？
+          options:
+            - text: 把电机永远锁死在一个方向
+              why: 方向由驱动拓扑控制。
+            - text: 限制高瞬态电压，保护开关器件
+              correct: true
+          explain: 电流有去处，节点不需要抬到很高电压寻找通路。
+      - card:
+          title: 区分平均电压和真实转速
+          body: >-
+            对 0 V 与 12 V 的理想切换，占空比 25% 的平均电压为 3 V。真实转速还取决于负载和反电动势。PWM 控制平均作用，DAC
+            给模拟目标量；闭环可用测得转速与目标之差累积修正，注意输出饱和。
+      - item:
+          id: motor-4
+          type: number
+          prompt: 理想输出在 0 V 和 12 V 间切换，高电平占 25%。平均电压多少 V？
+          answer: 3
+          explain: 12×0.25+0×0.75。
+  - id: system-check
+    chapter: 执行器和软硬件接口
+    title: 验收从板上信号到控制结果的整条链
+    minutes: 10
+    flow:
+      - guess:
+          id: system-check-guess
+          type: choice
+          prompt: 读数偶尔偏离，但只看最终数字找不到原因。怎样拆分检查？
+          options:
+            - text: 只多显示几位小数
+              why: 显示格式不能定位哪个环节出错。
+            - text: 逐级用已知输入检查电气输出、数字码和换算
+              correct: true
+          explain: 找到第一个与预期不同的环节。
+      - card:
+          title: 留出可以单独观测的测试点
+          body: 测试点和已知参考输入让你分别查供电、前端、转换和换算。再在边界温度、电源变化和最长线条件下验证。滤波用扫频或已知干扰核对；低功耗设计也要算传感器唤醒稳定时间。
+      - item:
+          id: system-check-2
+          type: order
+          prompt: 排出定位采集偏差的检查顺序。
+          steps:
+            - 接入已知参考输入
+            - 在前端确认模拟电压
+            - 核对转换码及软件换算
+          explain: 从已知物理输入开始，逐级找变化发生处。
+      - card:
+          title: 连续运行要定义失败时的安全输出
+          body: 若传感器掉线或报超量程，给控制任务一个明确的失效状态。记录故障，按设备目标降级或停机。验收同时量时限、误差、能耗和恢复行为。
+      - item:
+          id: system-check-4
+          type: choice
+          prompt: 采样断线时读数无效，且电机继续加速会危险。程序应做什么？
+          options:
+            - text: 识别失效并切换到预先定义的安全输出
+              correct: true
+            - text: 一直把最后一次读数当成有效数据
+              why: 故障后旧值可能已无法代表当前设备。
+          explain: 控制器需要有明确的异常输入策略。
+boss:
+  items:
+    - id: challenge-1
+      type: choice
+      prompt: 热敏电阻随温度改变阻值，报告的是摄氏度。软件需要哪一步？
+      options:
+        - text: 用经过标定的关系从阻值换算温度
+          correct: true
+        - text: 直接将阻值当成摄氏度
+          why: 这会混淆转换前后的量。
+      explain: 电信号和所报告物理量使用不同单位。
+    - id: challenge-2
+      type: number
+      prompt: 0 °C 时 0.52 V、100 °C 时 1.52 V，线性。输出 0.97 V 对应多少 °C？
+      answer: 45
+      explain: 斜率为 0.01 V/°C，先减去 0.52 V 的零点，再除斜率。
+    - id: challenge-3
+      type: choice
+      prompt: 传感器每次读到 22 °C，参考为 20 °C。应怎样描述？
+      options:
+        - text: 重复性很好，但有稳定偏差
+          correct: true
+        - text: 读数相同就保证准确
+          why: 准确度还要求比较参考。
+      explain: 集中程度高，不代表接近参考值。
+    - id: challenge-4
+      type: match
+      prompt: 配对总线与典型选择方式。
+      pairs:
+        - - I²C
+          - 共享线先发送地址
+        - - SPI
+          - 时钟同步并用片选
+        - - UART
+          - 约定位速率后用起止位
+      explain: I²C 用地址，SPI 用片选，常见 UART 连接直接点对点。
+    - id: challenge-5
+      type: number
+      prompt: 独立噪声足够且信号保持在目标带宽，四倍过采样并取平均，理想约多几位有效分辨率？
+      answer: 1
+      explain: 噪声幅度减半，理想相当于多约一位。
+    - id: challenge-6
+      type: number
+      prompt: 12 V 理想 PWM，高电平 25%、低电平 0 V，平均多少伏？
+      answer: 3
+      explain: 两段按时间占比加权。
+    - id: challenge-7
+      type: choice
+      prompt: 想测应变片微小的电阻变化，同时避免前端被强烈加载。先考虑哪条信号链？
+      options:
+        - text: 平衡电桥加高输入阻抗的差分放大
+          correct: true
+        - text: 把传感器直接接电机驱动输出
+          why: 会改变读数，还可能损坏器件。
+      explain: 先把阻值变化变成小差压，再在合适共模范围放大。
+    - id: challenge-8
+      type: choice
+      prompt: 两枚 I²C 外设的地址完全相同而且不可改，控制器有两条独立总线。怎样区分它们？
+      options:
+        - text: 在一条总线上向同一地址发两次命令
+          why: 两次都会看到相同地址的两个器件。
+        - text: 分别接到不同的总线
+          correct: true
+      explain: 同一次访问只会看到其中一枚。

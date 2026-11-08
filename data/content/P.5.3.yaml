@@ -1,0 +1,673 @@
+skill: P.5.3
+version: 2
+brief:
+  why: 一次小改动从提交走到上线，途中要过哪些检查，出错又能怎样恢复？你会为问好服务安排交付流程，按使用者实际遇到的故障决定何时暂停发布，再核对上线文件的来路。
+  outcomes:
+    - 设计从提交、测试到制品构建的自动流程
+    - 用服务指标、错误预算与发布对照组判断用户影响
+    - 区分依赖锁定、可复现构建、溯源和软件物料清单
+terms:
+  - {term: 持续集成, def: 频繁合入小批变更，并对每次变更自动运行共同检查。}
+  - {term: 持续交付, def: 保持通过检查的版本随时可发布，实际发布可由人决定。}
+  - {term: 持续部署, def: 通过全部发布条件的变更自动进入生产环境。}
+  - {term: SRE, def: 用软件工程方法运维服务，并以用户体验的目标衡量可靠性。}
+  - {term: 制品, def: 由构建产生并可交付的文件或镜像。}
+  - {term: 环境变量, def: 运行环境按名字提供给程序的值。}
+  - {term: 基础设施即代码, def: 用可审查、可版本管理的声明管理服务器、网络等设施。}
+  - {term: 可观测性, def: 根据服务对外提供的信号，调查内部行为和故障原因的能力。}
+  - {term: 指标, def: 随时间记录的数量，例如每分钟请求数。}
+  - {term: 日志, def: 一条带时间和上下文的事件记录。}
+  - {term: 链路追踪, def: 将一次请求在多个组件上的执行片段关联起来。}
+  - {term: SLI, def: 对服务体验做出的明确测量，例如成功请求所占比例。}
+  - {term: SLO, def: 给 SLI 约定在一个时间窗口内要达到的目标。}
+  - {term: 错误预算, def: 在一个时间窗口内仍能达成 SLO 所允许的坏事件总量。}
+  - {term: 燃烧速率, def: 当前观测到的坏事件比例与 SLO 允许坏事件比例之比。}
+  - {term: 蓝绿部署, def: 同时准备新旧两套环境，通过切换流量控制哪套对外服务。}
+  - {term: 金丝雀发布, def: 先让一小部分真实工作量使用新版，观察后再决定扩展或撤回。}
+  - {term: 锁文件, def: 记录已经选定的精确依赖版本及可用的内容校验信息。}
+  - {term: 摘要, def: 由文件内容计算的固定长度标识，用于核对是否仍为同一内容。}
+  - {term: 可复现构建, def: 在约定的源码、指令和环境下，独立重建得到逐字节相同的制品。}
+  - {term: 字节, def: 这里用来逐个比较两个文件内容的存储单位。}
+  - {term: 构建溯源, def: 记录一个制品由哪个构建平台、何种过程和输入生成。}
+  - {term: SBOM, def: 软件物料清单，机器可读地列出所含组件、版本及相关关系。}
+lessons:
+  - id: integrate
+    chapter: CI/CD
+    title: 把风险小的改动频繁合进去
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 三个人各改了一周才第一次合在一起，系统坏了。哪种安排更容易找出是哪次变化引入的？
+          options: [{text: 每次只合一小批，并在合入时运行共同检查, correct: true}, {text: 每个月合一次，集中看看结果, why: 一次混入更多变化，会更难定位故障来源。}]
+          explain: 改动和检查结果越早对应起来，越容易判断哪里坏了。
+      - card:
+          title: 让每次小合并都提供证据
+          body: |
+            **持续集成（continuous integration）**把小批改动频繁并入共享代码，自动运行构建和测试。先用快的小测试查规则，再用接近生产的环境检查组合行为。团队看到结果，遇到失败优先修复。
+      - item:
+          id: early-feedback
+          type: choice
+          prompt: 一条价格计算规则改了，想最快发现它算错。先安排哪项？
+          options: [{text: 直接上线后等客户反馈, why: 把可在本地发现的问题留给了真实用户。}, {text: 在合入前运行小范围的价格计算测试, correct: true}]
+          explain: 可重现的局部问题先用快测试查，环境差异再用后续检查查。
+      - card:
+          title: 分清随时能发布与自动发布
+          body: |
+            **持续交付（continuous delivery）**让团队可随时发布一个验证过的版本。若所有门槛通过后自动上线，则是**持续部署（continuous deployment）**。DevOps 强调开发和运维对服务共同负责。**SRE（site reliability engineering）**用软件工程处理可靠性，并用可测的目标决定何时控制变更风险。
+      - item:
+          id: flow-names
+          type: match
+          prompt: 配对三种安排各自提供的能力。
+          pairs: [[每批改动合入时自动构建和测试, 持续集成], [始终有经过检查的可上线版本且需要人确认发布, 持续交付], [全部条件通过后自动上线, 持续部署]]
+          explain: 三者处理的边界是合入、可发布和实际进入生产环境。
+  - id: workflow
+    chapter: CI/CD
+    title: 测试通过后才构建这次提交的镜像
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 每次有人推送改动，你想自动生成可交付镜像。如果测试发现错误，还要继续打包吗？
+          options: [{text: 应在失败处停住并保存可调查的结果, correct: true}, {text: 打包和通过测试无关，照常当作已验证版本, why: 继续会让未经检查的结果进入交付环节。}]
+          explain: 交付环节要能看到上一步有没有完成约定的检查。
+      - card:
+          title: 给执行者写清触发条件和步骤
+          body: |
+            在 GitHub Actions 中，工作流用 YAML 描述何时触发、在哪台机器执行哪些作业。每个作业可按顺序运行多个步骤。**制品（artifact）**是构建出的可交付物，例如包含应用及运行依赖的镜像。
+      - item:
+          id: trigger
+          type: choice
+          prompt: 希望工作流只在推送到 main 时启动。应改哪项？
+          options: [{text: 工作流的触发条件及分支过滤, correct: true}, {text: 测试命令里的输出颜色, why: 输出设置只在任务开始之后生效。}]
+          explain: 先由事件和分支过滤决定是否创建一次运行。
+      - card:
+          title: 在干净环境里复验当前提交
+          body: |
+            把示例保存为项目的 `.github/workflows/ci.yml`。这个 Python 项目已提供 requirements.txt、pytest 测试和 Dockerfile。取出当前代码后选好 Python 版本、安装依赖并测试，通过才构建镜像。下面只在执行机上构建。
+
+            ```yaml
+            name: Check and build
+            on:
+              push:
+                branches: [main]
+            permissions:
+              contents: read
+            jobs:
+              test-and-build:
+                runs-on: ubuntu-latest
+                steps:
+                  - uses: actions/checkout@v7
+                  - uses: actions/setup-python@v7
+                    with:
+                      python-version: "3.12"
+                  - run: python -m pip install -r requirements.txt
+                  - run: python -m pytest -q
+                  - run: docker build -t demo:${{ github.sha }} .
+            ```
+          reveal:
+            - title: 找到同一次输入
+              body: 以提交标识标记镜像，便于追查这次构建。若要把镜像交给其他作业或机器，还要上传到受控的制品存储或注册表。
+            - title: 检查失败时停止后续步骤
+              body: 默认依次执行，并以此前步骤成功为条件。查看第一条失败步骤的日志，改正后在对应提交重新运行。
+      - item:
+          id: sequence
+          type: order
+          prompt: 为刚推到 main 的 Python 改动设置验证工作流。把步骤排成只有测试通过才构建镜像的顺序。
+          steps: [检出本次提交, 准备 Python 并安装项目依赖, 执行测试, 构建镜像并用提交标识标记]
+          explain: 测试需要依赖，镜像构建以测试成功为条件，标识把镜像和源码联系起来。
+  - id: config
+    chapter: 配置
+    title: 同一份应用用不同的外部配置
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 验证环境读测试资料，正式环境读实际资料。怎样减少上线时改代码造成的新差异？
+          options: [{text: 两个环境用同一应用，由外部提供各自的连接设置, correct: true}, {text: 上线时手工把代码里的连接改掉, why: 改完代码后上线的是另一个未经同样检查的版本。}]
+          explain: 可以验证同一份应用，让各环境只提供必须不同的值。
+      - card:
+          title: 把随部署而变的设置放在运行时
+          body: |
+            **环境变量（environment variable）**是运行环境按名字提供的值，例如 `APP_MODE=test`。同一个制品可接受不同的服务端点和密钥。密钥由受控的系统提供，读取权限按任务限制，避免进入版本历史和日志。
+      - item:
+          id: same-artifact
+          type: choice
+          prompt: 测试和生产使用不同服务端点。团队希望上线前后用同一制品，应怎么配置？
+          options: [{text: 将两个端点都硬写进代码，并上线前另编一次, why: 重做制品引入新的差异。}, {text: 由各部署环境传入自己的端点, correct: true}]
+          explain: 制品相同，外部配置决定每个环境连接到哪里。
+      - card:
+          title: 发布前验证设置，出问题时找回上一份
+          body: |
+            给设置规定合法值和默认值，启动时检查必填项。用版本记录非秘密设置，先在小范围验证更新，保留能恢复的旧设置。优先提供描述用途的选项，避免让每个团队都手工拼复杂组合。
+      - item:
+          id: rejected-setting
+          type: choice
+          prompt: 配置应只接受 test 和 prod，有人传入 prodd。什么时候提示最容易定位？
+          options: [{text: 在启动前或刚启动时明确拒绝非法值, correct: true}, {text: 先按某个未说明的模式运行，等使用者发现, why: 静默替换会掩盖配置错误。}]
+          explain: 早点确认配置边界，可以在接收真实请求前修复。
+  - id: iac
+    chapter: 配置
+    title: 让设施变更也经过版本管理和检查
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你要在另一处搭出同样的测试环境。怎样让同伴知道上次究竟创建了哪些机器？
+          options: [{text: 记成可以审查和执行的声明, correct: true}, {text: 只凭操作人的记忆重新点一遍, why: 容易漏步骤，也难比较这次和上次的差异。}]
+          explain: 把期望的设施写下来，团队可以比较和重用。
+      - card:
+          title: 先声明想要的设施，再查看实际差异
+          body: |
+            **基础设施即代码（infrastructure as code）**把所需的服务器、网络或权限规则写成可版本管理的配置。Terraform 等工具可比较现状与目标并生成变更计划。Azure 也可用 Bicep 写资源声明。
+      - item:
+          id: plan
+          type: choice
+          prompt: 设施计划显示准备删除仍在使用的数据存储。下一步适合做什么？
+          options: [{text: 先停止应用计划，核对目标环境和变更原因, correct: true}, {text: 声明已经进 Git，直接应用一定安全, why: Git 记录了修改，计划仍可能包含错误操作。}]
+          explain: 查看差异的意义是把意外变更挡在真正执行之前。
+      - card:
+          title: 把检查和执行权限分开
+          body: |
+            工作流可先检查声明并产出计划，经过确认后用权限受限的身份执行。例如用 GitHub Actions 为 Azure 跑检查和部署，正式环境单独设置发布条件。定期比较真实设施与声明，查找绕过流程的手动改动。
+      - item:
+          id: apply-order
+          type: order
+          prompt: 团队要通过工作流更新生产网络规则，且规定人工复查才可执行。怎么排？
+          steps: [提交声明的变化, 生成并查看目标环境的计划, 由负责者复查并批准, 用受限身份应用并核对结果]
+          explain: 计划先给证据，执行和核对随后发生。
+  - id: signals
+    chapter: 可观测性
+    title: 从慢请求找到卡在哪个环节
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你只知道问好服务变慢了。想知道一个具体请求是在服务还是存储处等待，应该收集什么？
+          options: [{text: 一次访问中每段工作所用的时间, correct: true}, {text: 只看服务器每天是否开机, why: 开机信息无法区分一次访问里哪里等得久。}]
+          explain: 先定位影响，再找同一次请求经过了哪些环节。
+      - card:
+          title: 三种信号回答不同问题
+          body: |
+            **可观测性（observability）**让你用服务提供的信号调查内部行为。**指标（metric）**随时间记录数量。**日志（log）**记录带上下文的事件。**链路追踪（distributed tracing）**把同一次请求经过的各段关联起来。
+      - item:
+          id: which-signal
+          type: match
+          prompt: 为调查问题选择优先看的一种信号。
+          pairs: [[过去一小时的失败比例何时开始上升, 指标], [某次发布命令失败时打印了什么, 日志], [一次请求经过哪几个服务且在哪段最慢, 链路追踪]]
+          explain: 时间趋势、单次事件细节和跨组件的请求路径各有合适的数据来源。
+      - card:
+          title: 用同一请求编号把证据接上
+          body: |
+            浏览器请求经过入口、应用和存储。链路中的执行片段叫 span。OpenTelemetry 提供采集和传播这些信息的方式。可以先从指标发现异常时段，找慢请求的链路，再用关联编号定位相关日志。
+      - item:
+          id: join-evidence
+          type: order
+          prompt: 服务的慢请求比例突然上升。团队已经保存指标、链路和带请求编号的日志。如何缩小范围？
+          steps: [用指标圈出异常时段, 打开该时段的慢请求链路, 找到耗时异常的片段, 用请求编号读对应日志]
+          explain: 汇总告诉你什么时候有问题，链路和日志告诉你当时发生了什么。
+  - id: monitor
+    chapter: 可观测性
+    title: 让每项监控都有一个要回答的问题
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 服务器很忙，但用户都能很快得到结果。仅凭“很忙”就该叫醒值班的人吗？
+          options: [{text: 先看真实的服务影响和需要立即处理的风险, correct: true}, {text: 机器一忙就视为用户已失败, why: 高使用量也可能是正常的工作。}]
+          explain: 监控要解释用户体验和服务的实际约束。
+      - card:
+          title: 同时看用户感受和潜在原因
+          body: |
+            从用户侧测请求成功比例、延迟和流量，从内部看资源是否接近容量上限、下游依赖是否变慢。把上线时间和版本标在图上。可用模拟访问验证外部能否使用，以及服务自身记录调查原因。
+      - item:
+          id: observation
+          type: choice
+          prompt: 响应变慢正好发生在发布之后。哪份信息有助于比较是否只影响新版？
+          options: [{text: 按实际服务版本拆分请求延迟与失败比例, correct: true}, {text: 只记录整月启动了多少台机器, why: 这个汇总丢掉了版本和时间的关系。}]
+          explain: 按版本比较相近时段的体验，能减少把整体波动错认成版本问题。
+      - card:
+          title: 验证监控自己没有失效
+          body: |
+            定期检查数据采集是否缺失。告警规则要用已知健康、已知异常和无数据的输入测试，确认通知到负责处理的人。避免用每个用户编号给时间序列分类，防止分类组合多到系统处理不了。
+      - item:
+          id: absent-data
+          type: choice
+          prompt: 看板不再收到监控数据。能将“无数据”直接当作服务恢复吗？
+          options: [{text: 应先查采集和监控是否可用, correct: true}, {text: 无记录就等于失败数为零, why: 无数据也可能是监控本身故障。}]
+          explain: 把采集缺失和真实健康分开，才知道需要调查哪一层。
+  - id: indicator
+    chapter: SLO
+    title: 把“用户能用”写成可测量的目标
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 服务器有响应，但用户的订单打不开。什么结果更能代表用户体验？
+          options: [{text: 按使用者能不能打开订单来测, correct: true}, {text: 只记录服务器还开着, why: 开机无法证明用户能完成任务。}]
+          explain: 先定义用户真正需要成功的动作，再决定如何测量。
+      - card:
+          title: 选好哪些事件计入分母
+          body: |
+            **SLI（service level indicator）**是明确的服务体验测量，例如有效请求里成功请求的比例。规定测量点、哪些请求算有效、哪些算成功。成功也可要求在指定时间内完成。观测位置越接近用户，越容易看到入口到服务的整体影响。
+      - item:
+          id: valid-events
+          type: choice
+          prompt: 团队约定成功指标只计算实际用户的有效下单请求。哪些记录应进入分母？
+          options: [{text: 这些请求里的成功与失败都计入, correct: true}, {text: 只计成功下单的请求, why: 失败若被排除，比例无法衡量体验。}]
+          explain: 先选有效事件，分子只取其中的好事件。
+      - card:
+          title: 在一个统计窗口内要求达到的比例
+          body: |
+            **SLO（service level objective）**规定指标在某个窗口内要达到的目标。先测现状并找出用户在意的水平，再选能解释和维护的目标。下面用“过去 30 天至少 99.9% 的有效请求成功”作为团队示例。
+          reveal:
+            - title: 数出好事件
+              body: 在这段时间里收到 1000 次有效请求，失败 2 次。好事件为 1000 − 2 = 998 次。
+            - title: 转成比例并和目标比较
+              body: 998 ÷ 1000 = 99.8%，低于 99.9%，因此这个窗口没有达到目标。
+      - item:
+          id: fraction-good
+          type: number
+          prompt: 有效请求 2000 次，失败 4 次。成功率是多少？以百分数数值作答，例如 99.5% 填 99.5。
+          answer: 99.8
+          explain: 好事件 1996 次，除以 2000 得 0.998，写成百分数是 99.8。
+  - id: budget
+    chapter: SLO
+    title: 用错误预算决定还承受得起多少故障
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 团队约定服务大多数时间可用，又允许少量短暂故障。怎样把这点容忍度写清楚？
+          options: [{text: 规定目标和统计窗口，再算允许的坏事件, correct: true}, {text: 只数发布了多少次, why: 发布次数不等于用户遇到的失败。}]
+          explain: 同一个可用性目标需要明确窗口和坏事件口径。
+      - card:
+          title: 目标的剩余部分允许发生坏事件
+          body: |
+            **错误预算（error budget）**是达成 SLO 时容许的坏事件量。按请求计，就把允许失败比例乘以有效请求总数。按可用时间计，就乘以窗口的总时长。窗口可固定为自然月，也可随每天滑动，要提前约定。
+      - item:
+          id: same-unit
+          type: choice
+          prompt: 团队按失败请求数算预算，发现某次故障持续 5 分钟。能直接从预算减去 5 吗？
+          options: [{text: 先数这段故障内实际的失败请求数, correct: true}, {text: 可以，5 分钟固定等于 5 个坏请求, why: 各分钟的请求量与成功情况可能不同。}]
+          explain: 预算和已用量要用同一种单位。
+      - card:
+          title: 计算按时间统计的 30 天预算
+          body: 约定 30 天的服务可用性为 99.9%，当前不可用累计 30 分钟。计算还能用多少预算。
+          reveal:
+            - title: 把窗口换算成分钟
+              body: 30 × 24 × 60 = 43 200 分钟。
+            - title: 求允许不可用的时间
+              body: 允许的比例为 100% − 99.9% = 0.1%。43 200 × 0.001 = 43.2 分钟。
+            - title: 从允许量中扣除已用量
+              body: 43.2 − 30 = 13.2 分钟。看板可并排显示指标、目标、已用和剩余预算，并注明计算窗口和数据来源。
+      - item:
+          id: remaining
+          type: number
+          prompt: 以 30 天为窗口，时间可用性目标是 99.9%。已不可用 35 分钟，还剩多少分钟预算？
+          answer: 8.2
+          explain: 30 天总共 43 200 分钟，乘 0.1% 得 43.2，再减 35 得 8.2。
+      - card:
+          title: 预先约定超预算后的动作
+          body: |
+            团队可在预算耗尽时暂停高风险的常规发布，优先做可靠性修复，并约定紧急修复的例外、负责人和恢复门槛。策略写清楚后再按看板判断，避免故障现场争论何时停。
+      - item:
+          id: pause-risk
+          type: choice
+          prompt: 团队的书面策略要求预算用完时暂停常规功能发布。今天已用完，该怎么安排？
+          options: [{text: 先按策略控制发布风险，优先做恢复和可靠性工作, correct: true}, {text: 继续上线所有功能，因为单次发布很短, why: 发布时长不能抵消已发生的用户影响。}]
+          explain: 预先约定的策略把风险控制和恢复门槛接到可测证据上。
+  - id: burn
+    chapter: SLO
+    title: 在预算用光前发出能行动的告警
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一种问题偶尔失败一次，另一种问题让大量用户连续失败。哪种更需要快速叫醒值班？
+          options: [{text: 先处理正在持续大量消耗容忍额度的故障, correct: true}, {text: 两种一定发一样急的告警, why: 需要的处理时间取决于用户影响和持续程度。}]
+          explain: 告警需要捕捉影响规模和速度。
+      - card:
+          title: 用允许的坏事件比例当作速度基准
+          body: |
+            **燃烧速率（burn rate）**等于当前失败比例除以 SLO 允许的失败比例。目标 99.9% 时容许 0.1%。观测到 1% 失败，速率是 1% ÷ 0.1% = 10 倍。若同一失败水平一直持续且流量均匀，预算会以基准的十倍速度花掉。
+      - item:
+          id: burn-rate
+          type: number
+          prompt: 目标成功率为 99.9%，最近观察到 0.5% 失败。燃烧速率是几倍？
+          answer: 5
+          explain: 允许失败率是 0.1%，0.5% ÷ 0.1% = 5。
+      - card:
+          title: 同时检查持续时间和最近状态
+          body: |
+            单个短窗口容易因瞬时波动报警，单个长窗口检测和恢复都可能慢。可组合高、低不同速率，分别找急剧故障和缓慢消耗；同一档同时检查长短两个窗口，让长窗看到总影响、短窗确认问题还在。
+          reveal:
+            - title: 测能否捕捉应处理的事
+              body: 误报少代表告警精确度高，严重故障漏报少代表召回率高。用持续大故障、缓慢消耗和短暂尖峰试验，观察多久发出告警，恢复后多久解除。
+            - title: 处理低流量与多个服务
+              body: 请求少时一两次失败就能抬高比例，可看总事件量、选择合适窗口或加模拟访问。多个服务的告警按负责方路由、聚合与去重，并附调查和处置入口。
+      - item:
+          id: fast-and-still
+          type: choice
+          prompt: 一条规则要求长窗和短窗都超过高燃烧速率门槛。长窗仍超线，短窗已正常。它现在会报警吗？
+          options: [{text: 不会触发这条规则，短窗条件已不成立, correct: true}, {text: 会，只要长窗还有旧错误就必然报警, why: 题中要求两个条件同时成立。}]
+          explain: 短窗帮助在问题缓解后尽快停止这类急告警。
+  - id: rollouts
+    chapter: 发布策略
+    title: 给变更留出可以退回的路径
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 新版刚接流量就出问题。团队能否在修好代码前先恢复服务？
+          options: [{text: 可以预先保留健康的旧版和切回办法, correct: true}, {text: 必须等写完新修复才可能恢复, why: 若旧版和兼容数据仍可用，可先恢复旧版。}]
+          explain: 发布前就安排恢复动作，可缩短用户受影响的时间。
+      - card:
+          title: 选择切环境还是逐批替换
+          body: |
+            **蓝绿部署（blue-green deployment）**准备新旧两套环境，验证新版后切换流量，异常时可切回。也称红黑部署的一些方案采用同样思路。滚动发布逐批替换服务实例，降低同时更新的风险，需要新旧版本在一段时间内都能工作。
+      - item:
+          id: switch-back
+          type: choice
+          prompt: 蓝绿环境中，新版刚上线，旧版仍健康且数据兼容。快速止损应怎么做？
+          options: [{text: 把流量切回旧环境，再调查新版, correct: true}, {text: 先彻底删除旧环境，避免两套并存, why: 删除会拿掉已准备的恢复路径。}]
+          explain: 两套可用环境的价值在于可以快速切换。
+      - card:
+          title: 让功能启用和程序换版分开
+          body: |
+            功能标志（feature flag）可以控制某个新行为是否启用，先给小范围用户开启。应用、数据结构和配置可以分次演进。改变数据结构时先保留新旧都能读写的过渡形式，回退窗口结束后再清理旧格式。
+      - item:
+          id: separate
+          type: match
+          prompt: 给三种发布需求配方法。
+          pairs: [[整套健康环境之间可快速切换, 蓝绿部署], [每次只替换一部分实例, 滚动发布], [先部署代码但只给测试用户开启行为, 功能标志]]
+          explain: 这些做法分别控制流量去向、替换的机器和新行为可见范围。
+  - id: canary
+    chapter: 发布策略
+    title: 让小批真实使用先检验新版
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你担心新版只在真实流量下出错。怎样验证又限制受影响的范围？
+          options: [{text: 先让少量代表性的访问用新版并观察, correct: true}, {text: 立刻把所有访问都切到新版, why: 会让尚未验证的问题同时影响所有访问。}]
+          explain: 让少量真实工作先检验，同时保留健康旧版供对比。
+      - card:
+          title: 让新版和同时运行的旧版作对照
+          body: |
+            **金丝雀发布（canary release）**先让小份流量或任务用新版，对照组继续用旧版。按版本分别看成功率和延迟，约好停止、扩展和撤回条件。尽量匹配用户类型和工作量，给观测足够时间。
+      - item:
+          id: right-comparison
+          type: choice
+          prompt: 新版只接夜间低负载。应拿什么和它比较，才更能判断是否是版本差异？
+          options: [{text: 同时段接相似请求的旧版对照组, correct: true}, {text: 昨天中午最忙时的全站平均, why: 负载与时段变化会混入版本比较。}]
+          explain: 同时段和相似负载让两组结果更有可比性。
+      - card:
+          title: 预先设好暴露范围和退出办法
+          body: |
+            先确认分组数据能区分新旧版本。观察量太少时，拉长时间或选更有代表性的分组。共享下游故障也会影响对照组，隔离危险副作用。对批处理可挑一小批作业，对影子流量或合成流量要防止重复写入正式数据。
+          reveal:
+            - title: 给出可执行的停止规则
+              body: 假设约好新版失败率超过 2% 就暂停。旧版同一时段为 0.5%，新版 200 次里失败 6 次，即 3%。
+            - title: 按证据控制范围
+              body: 新版超过停止门槛，先撤回新版流量，再查失败在哪一段。一次对照结果能支持暂停，原因仍要用日志和链路确认。
+      - item:
+          id: canary-threshold
+          type: choice
+          prompt: 停止线为失败率超过 2%。新版接到 100 次，有 3 次失败。现在应怎样？
+          options: [{text: 暂停扩大并按预案撤回新版流量, correct: true}, {text: 继续全量，因为 3 次看起来不多, why: 3 次占 3%，已经超过规则。}]
+          explain: 按事先约定的门槛决策，避免在结果出来后改标准。
+  - id: incident
+    chapter: 故障恢复与容量
+    title: 先减轻用户影响，再找出长期改法
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 新版导致用户无法下单。旧版仍可用且能安全切回。先切回还是先完整解释所有原因？
+          options: [{text: 先按预案切回并确认用户能下单, correct: true}, {text: 先等全部原因都解释清楚, why: 可安全恢复时，延迟会继续增加用户损失。}]
+          explain: 恢复关键任务和调查根因可以有不同的时序。
+      - card:
+          title: 把故障现场的责任分清楚
+          body: |
+            值班（on-call）要有清晰的交接、可操作的告警和升级入口。事故发生时指定协调者、执行者和信息联系人。先确认范围和严重程度，限制影响并记录动作，持续向相关人员同步状态。
+      - item:
+          id: roles
+          type: match
+          prompt: 将事故现场的三项工作配给各自职责。
+          pairs: [[持续决定优先级和分派任务, 协调], [执行已选定的止损措施, 操作], [整理进展并通知受影响者和团队, 沟通]]
+          explain: 职责明确可以避免多人同时做冲突的修改，也减少信息遗漏。
+      - card:
+          title: 验证恢复并改进下一次响应
+          body: |
+            用用户侧指标确认恢复，再记录时间线、影响和促成条件。复盘关心流程与系统改进，跟进项要有负责人。平均恢复时间（MTTR）可用约定的起止时间计算，平均故障前时间（MTTF）描述在相同定义下走到故障通常要多久。
+      - item:
+          id: recovery-order
+          type: order
+          prompt: 新版导致大量失败，有已演练的安全回退。按顺序安排故障处置。
+          steps: [确认影响并明确现场职责, 回退以控制影响, 观察用户指标确认恢复, 复盘并安排改进]
+          explain: 用恢复证据确认止损有效，随后把调查结论变成可跟进的改进。
+  - id: capacity
+    chapter: 故障恢复与容量
+    title: 从高峰需求算要准备多少服务实例
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一家店每分钟能处理的订单有限。日均订单少，但中午常排长队。规划人手应看什么？
+          options: [{text: 看高峰需求和能维持正常体验的处理能力, correct: true}, {text: 只看全天平均，每个时段都按平均配, why: 平均值会掩盖短时高峰。}]
+          explain: 容量规划要覆盖高峰，并留有出故障时的空间。
+      - card:
+          title: 用真实工作量找出可持续吞吐
+          body: |
+            用类似高峰的请求做负载测试。记录延迟、失败和资源余量，找出仍能达标的单实例吞吐。容量计划还要考虑故障、扩容需要的时间与共享依赖上限。上线前演练故障与恢复。
+          reveal:
+            - title: 先覆盖高峰
+              body: 高峰每秒 250 次，每实例最多每秒 100 次仍达标。250 ÷ 100 = 2.5，向上取整需要 3 台健康实例。
+            - title: 再留一个故障名额
+              body: 题设要求掉一台仍能达标，共准备 4 台。若所有实例共用有上限的存储，还需单独检查存储负载。
+      - item:
+          id: capacity-with-spare
+          type: number
+          prompt: 峰值 380 次每秒，每台健康实例能持续处理 120 次每秒。任何一台失效后仍需覆盖峰值，至少准备多少台？
+          answer: 5
+          explain: 四台健康实例能处理 480 次每秒，三台只有 360。留一台故障余量共需五台。
+      - card:
+          title: 过载时先保住关键工作
+          body: |
+            限制同时进入的工作，或让低优先级请求稍后再试。重试加退避和随机间隔，避免把故障放大。若下游共享资源已满，单纯再加应用实例可能加剧拥堵。逐步恢复流量并观察用户体验。
+      - item:
+          id: overload
+          type: choice
+          prompt: 多个应用实例共用的存储已满载，超时后客户端立刻反复重试。先选什么措施？
+          options: [{text: 减少非关键流量并限制重试，检查下游容量, correct: true}, {text: 让每次失败同时触发更多重试, why: 新请求会加重同一个瓶颈。}]
+          explain: 过载时控制进入瓶颈的工作量，才能留出恢复空间。
+  - id: locks
+    chapter: 制品与依赖锁定
+    title: 固定要上线的内容和参与构建的依赖
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两次上线都写着 latest。怎样知道两次拿到的文件内容到底一样不一样？
+          options: [{text: 记录并比较由内容算出的标识, correct: true}, {text: 名字相同就证明内容相同, why: 可变名称能指向不同文件。}]
+          explain: 应把显示用的名称与核对内容用的标识分开。
+      - card:
+          title: 标签方便查找，摘要核对内容
+          body: |
+            **摘要（digest）**由制品内容算出。部署可记录镜像摘要，防止可变标签悄悄换内容。发布系统也可把已经正式发出的版本设为不可变。锁定自动工作流依赖时，可以用核对过的完整提交标识固定引用。
+      - item:
+          id: stable-id
+          type: choice
+          prompt: 同名镜像标签允许被更新。要可靠地重新部署上周那一份，优先保存什么？
+          options: [{text: 旧镜像的完整摘要和可取回的位置, correct: true}, {text: 当时也叫 latest, why: 标签可能已移到其他内容。}]
+          explain: 可取回的位置解决获取，摘要解决内容核对。
+      - card:
+          title: 确认直接和间接的依赖
+          body: |
+            **锁文件（lockfile）**记录解析出的精确依赖。`npm ci` 使用一致的 `package-lock.json` 干净安装。`pip install --require-hashes -r requirements.txt` 要求锁定版本并为每个安装项提供核对用的哈希，间接依赖也需列全。
+      - item:
+          id: fixed-dep
+          type: choice
+          prompt: Python 项目直接依赖 A，A 又需要 B。已启用 pip 的哈希校验模式，文件只锁了 A。还要做什么？
+          options: [{text: 把 B 也锁定并提供允许下载的哈希, correct: true}, {text: 让 B 安装时自由找最新版即可, why: 完整的安装集合都要能校验。}]
+          explain: 间接依赖同样能改变应用行为和制品内容。
+  - id: repro
+    chapter: 制品与依赖锁定
+    title: 让另一台机器重建出同一份文件
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同一份文档压成两个包，其中一个把打包时刻写进包里。比较包文件时能认为内容相同吗？
+          options: [{text: 打包时刻变化就可能让两个包的内容不同, correct: true}, {text: 只要原文相同，包内其他信息也会自动相同, why: 打包工具可能把额外信息写进制品。}]
+          explain: 构建输出还会受工具、输入和环境影响。
+      - card:
+          title: 明确重建者需要什么输入
+          body: |
+            文件可逐个**字节（byte）**比较。**可复现构建（reproducible build）**要求在给定的源码、环境和构建命令下，独立重建得到逐字节相同的制品。记录依赖、工具和系统镜像版本，处理临时路径、区域设置、时区与随机性。
+      - item:
+          id: same-source
+          type: choice
+          prompt: 源码相同，两次构建分别使用了不同版本的工具。输出摘要不同，能直接判断制品已被篡改吗？
+          options: [{text: 先核对构建环境和实际输入, correct: true}, {text: 摘要不同就一定是恶意修改, why: 环境与工具的差异也可能改变输出。}]
+          explain: 摘要告诉你内容是否相同，定位原因还需要更多构建证据。
+      - card:
+          title: 让归档条目及元数据也稳定
+          body: |
+            输入和输出按确定顺序处理，移除无关临时文件和构建路径。若工具支持 `SOURCE_DATE_EPOCH`，可用共同输入推得的时刻代替当前时钟。归档还要控制条目时间、归属等元数据，固定应显示的版本号。
+          reveal:
+            - title: 从能说明差异的例子开始
+              body: 甲和乙用相同资料打包。甲按文件名排序并统一条目时间，乙用了扫描顺序并写入当前时间。先让双方用同一顺序和同一时间来源。
+            - title: 独立重建并核对
+              body: 双方使用约定的系统镜像或已记录的运行环境重建，再比较摘要。专有平台也要记录镜像、工具版本和必要的访问方式，才能复验。
+      - item:
+          id: fixed-inputs
+          type: match
+          prompt: 将无关的变化和能消除它的做法配对。
+          pairs: [[扫描文件的次序每次不同, 给归档条目明确排序], [包内写入打包当天的时刻, 使用约定的构建时间输入], [生成结果里写入个人目录位置, 去掉或映射临时路径]]
+          explain: 逐个找出会写进产物的环境差异，明确控制这些输入。
+  - id: provenance
+    chapter: 构建溯源与软件物料清单
+    title: 核对某个制品究竟从哪里来
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 有人给你一个与官方名字一样的发布包。你还需要什么才能核对它来自项目规定的构建？
+          options: [{text: 把实际文件与可信的构建记录核对, correct: true}, {text: 只比较两个文件的名称, why: 文件名不说明由谁从什么输入构建。}]
+          explain: 要把可信构建过程与实际要安装的文件连起来。
+      - card:
+          title: 让证据绑定实际制品
+          body: |
+            **构建溯源（build provenance）**记录制品摘要、源码或其他输入、构建方式与构建者。构建平台可以签发证明。安装前按策略验证签发者、项目、构建方式和制品摘要，并核对发布记录的预期版本。
+      - item:
+          id: matching-proof
+          type: choice
+          prompt: 证明来自允许的构建者，但其中记录的摘要与下载包不一致。可以批准部署吗？
+          options: [{text: 暂停，因为这份证明对应另一份内容, correct: true}, {text: 可以，签发者可信就自动覆盖所有同名文件, why: 证明必须与实际制品匹配。}]
+          explain: 证明有自己的范围，内容绑定让它无法套用到另一份包。
+      - card:
+          title: 把源码和构建两个阶段分开验证
+          body: |
+            SLSA 提供软件供应链保护框架。源码证据可说明版本和源码平台的控制，构建证据说明如何从输入生成制品。构建等级逐步从有溯源，到可信托管平台签发，再到更强的构建隔离。由平台生成和分发证明可减少构建任务自行改证据的机会。
+          reveal:
+            - title: 生产者给出可验证的发布记录
+              body: 选合适的平台和一致的构建流程，让平台为制品生成证明，并把证明与制品一同提供给使用方。例子可使用 GitHub Actions 的制品证明。
+            - title: 使用者按预期策略核验
+              body: 核验者需要可信根和策略，条件齐备时也能离线验证。证明来路之后仍需单独检查源码安全和依赖漏洞。
+      - item:
+          id: producer-or-consumer
+          type: match
+          prompt: 将三方与主要责任配对。
+          pairs: [[软件生产者, 选用合适平台并公布制品和证明], [构建平台, 隔离任务并出具可验证的构建记录], [制品使用方, 核对实际文件和预先约定的来源]]
+          explain: 构建方给证据，接收方按自己的信任条件验证。
+  - id: sbom
+    chapter: 构建溯源与软件物料清单
+    title: 找出哪些发布包带了有漏洞的组件
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 常用组件今天曝出漏洞。你的产品有多个在用版本，先找哪份记录能缩小检查范围？
+          options: [{text: 各发布版本中实际使用的组件清单, correct: true}, {text: 只看项目名称，名字不同就没用这个组件, why: 它可能被间接依赖带入。}]
+          explain: 要知道哪些制品包含受影响的组件及版本。
+      - card:
+          title: 给每份发布记录其中包含的组件
+          body: |
+            **SBOM（software bill of materials）**是软件物料清单。记录清单身份、生成时间、组件名称、版本、供应者和依赖关系等，适当包含组件标识。CycloneDX 和 SPDX 都是可交换格式，工具可输出 JSON 等表示。
+      - item:
+          id: inventory
+          type: choice
+          prompt: 只有组件 X 的旧版受影响。你先怎样用 SBOM 找出需要调查的制品？
+          options: [{text: 按组件标识和受影响版本匹配各发布包, correct: true}, {text: 只看每个清单有几行, why: 行数无法判断具体组件和版本。}]
+          explain: 名称、版本和组件标识决定命中范围，依赖关系还能解释它如何进入应用。
+      - card:
+          title: 检查清单的范围和完整性
+          body: |
+            约定清单覆盖的制品范围，尽量收齐间接依赖，说明未知项并随构建更新。可先做到机器可读，再改进覆盖率和校验。构建溯源回答“怎样生成”，清单回答“包含哪些组件”，二者都要关联到实际发布。
+      - item:
+          id: compare-evidence
+          type: match
+          prompt: 给调查问题选择第一份要读的记录。
+          pairs: [[这份制品用了哪个工作流和输入, 构建溯源], [这个版本是否包含特定依赖, SBOM], [这次安装会选哪些精确版本, 锁文件]]
+          explain: 三种记录分别看生产过程、交付内容和依赖选择。
+boss:
+  items:
+    - id: ci
+      type: order
+      prompt: 每次推送 main 都需跑检查，只有测试成功才可构建制品。给步骤排序。
+      steps: [取本次推送的代码, 准备工具并安装依赖, 运行测试, 构建并标记制品]
+      explain: 测试依赖安装结果，制品构建必须遵守前置检查结果。
+    - id: cfg
+      type: choice
+      prompt: 测试和生产要使用同一份应用制品，但连接不同服务。采用什么做法？
+      options: [{text: 由各部署环境提供连接配置，密钥用受控方式提供, correct: true}, {text: 把生产连接和密钥写进代码再生成一份应用, why: 会改变制品，也让密钥进入共享材料。}]
+      explain: 把部署特有值与可交付应用分开，能使用同一制品。
+    - id: telemetry
+      type: match
+      prompt: 为三个故障调查任务匹配最直接的信号。
+      pairs: [[比较过去一小时失败比例的走势, 指标], [查看某个组件的具体错误事件, 日志], [找出一个请求在哪个服务停留最久, 链路追踪]]
+      explain: 趋势、事件细节和请求路径相互补充。
+    - id: slo
+      type: number
+      prompt: 时间可用性目标 99.9%，统计 30 天。已不可用 40 分钟，还剩多少分钟错误预算？
+      answer: 3.2
+      explain: 窗口 43 200 分钟，允许 0.1% 即 43.2 分钟，减 40 得 3.2。
+    - id: rollout
+      type: choice
+      prompt: 希望先用少量真实流量比较新旧版本，同时控制新版的影响范围。优先选什么？
+      options: [{text: 全部流量立刻切给新版, why: 所有用户都会接触尚未验证的变化。}, {text: 按预先约定的分组与停止条件做金丝雀发布, correct: true}]
+      explain: 保持并行对照和可撤回的小份暴露，才能看效果并限制影响。
+    - id: capacity
+      type: number
+      prompt: 高峰 300 次每秒，每个健康实例能处理 80 次每秒。一台失效后仍要覆盖高峰，至少准备几台？
+      answer: 5
+      explain: 四台健康实例处理 320 次每秒，三台只有 240。留一台故障余量共五台。
+    - id: reproducible
+      type: choice
+      prompt: 两份包来自同一提交，归档中的创建时间不同。想实现可复现构建，优先改哪项？
+      options: [{text: 固定归档条目时间等影响输出的输入，再独立重建并比较摘要, correct: true}, {text: 给两个包改成相同名称就够, why: 包内容仍含不同的时间。}]
+      explain: 影响文件内容的构建输入需要受控，摘要用于核对重建结果。
+    - id: supply-chain
+      type: match
+      prompt: 为要核对的问题选对应信息。
+      pairs: [[安装要用哪些精确依赖, 锁文件], [这份制品由谁用什么输入生成, 构建溯源], [哪些发布包含受影响组件, SBOM]]
+      explain: 依赖选择、构建来路和交付内容各有一类证据。

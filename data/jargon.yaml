@@ -323,6 +323,51 @@ terms:
   - 开运算
   - 虚拟环境
   - 锁文件
+  # Version control and build tools (P.2.4)
+  - 变基
+  - 构建规则
+  - 基准测试
+  # Web development (P.5.1)
+  - CORS
+  - JWT
+  # Reliability and software supply chains (P.5.3)
+  - SLI
+  - 燃烧速率
+  - 构建溯源
+  - SBOM
+  # Container isolation and images (C.2.3)
+  - 控制组
+  - 镜像仓库
+  # Testing and coverage (P.4.5)
+  - 参数化测试
+  - 变异体
+  - 条件覆盖
+  # Relational modeling and dependencies (D.1.1)
+  - 参照完整性
+  - 函数依赖
+  - 无损连接
+  - 依赖保持
+  # Database execution and concurrency (D.1.2)
+  - 冲突可串行化
+  - 两阶段锁
+  - 缓冲池
+  - 闩锁
+  # Web application and API security (S.3.1)
+  - 会话固定
+  - 参数污染
+  - 批量赋值
+  # Object-oriented Java (P.1.2)
+  - 方法重载
+  - 动态分派
+  - 类型擦除
+  - 受检异常
+  # Software design and OOA/D (P.4.3)
+  - 信息专家
+  - 变化预防
+  - 限界上下文
+  - 依赖倒置
+  - 里氏替换
+  - 代码坏味
 
 # term: keywords whose use in a shown program means the program uses that term (whole words, after
 # string literals and comments are removed). Only keywords that mean the same idea in every language

@@ -1,0 +1,660 @@
+skill: H.3.2
+version: 2
+brief:
+  why: 要让设备准时响应，启动、驱动和任务交接都要有清楚的边界。沿着从复位到应用的路径，给采样、通信和故障恢复安排资源。
+  outcomes:
+    - 比较 Cortex-M 裸机启动与嵌入式 Linux 启动链
+    - 说明设备如何匹配驱动、怎样分拆中断工作
+    - 分析任务时限、队列积压、优先级反转和故障恢复
+terms:
+  - term: 引导加载程序
+    def: 准备运行环境并载入下一阶段程序的代码。
+  - term: 设备树
+    def: 按节点和属性描述硬件及连接关系的数据。
+  - term: 内核
+    def: 管理硬件资源与程序执行的系统核心。
+  - term: 设备驱动
+    def: 把通用系统操作翻译成特定硬件动作的内核组件。
+  - term: 实时操作系统
+    def: 提供可控时间行为与任务管理的操作系统。
+  - term: 调度
+    def: 决定就绪工作何时得到 CPU。
+  - term: 互斥锁
+    def: 同一时刻只允许一位持有者进入受保护区域的锁。
+  - term: 优先级反转
+    def: 高优先级任务被低优先级持有的资源间接拖延。
+  - term: 优先级继承
+    def: 持锁任务临时提升到等待者的优先级以尽快释放资源。
+  - term: 信号量
+    def: 用计数表示资源或事件。
+  - term: 自旋锁
+    def: ，忙等直到锁可用；简单不可分割更新用原子操作。
+  - term: 最坏执行时间
+    def: 在约定硬件和输入条件下用于分析的运行时间上界。
+  - term: 抢占
+    def: 是让更急的工作打断当前任务并接管 CPU。
+  - term: 时间片
+    def: 是允许一个任务连续占用 CPU 的时间额度。
+  - term: 线程
+    def: 是可由系统单独安排执行的活动。
+  - term: 看门狗
+    def: 规定时间内未收到有效存活确认就采取复位等动作的部件。
+lessons:
+  - id: boot-mcu
+    chapter: 启动链
+    title: 把 Flash 里的固件准备成可运行的 C 程序
+    minutes: 10
+    flow:
+      - guess:
+          id: boot-mcu-guess
+          type: choice
+          prompt: 芯片重启后，上一轮在 RAM 里改过的全局计数可以当作本轮的初始值吗？
+          options:
+            - text: 应按本轮启动规则初始化
+              correct: true
+            - text: 可以，所有 RAM 总会保留旧数据
+              why: 复位和供电状态无法保证这一点。
+          explain: RAM 可能不保留，C 环境也要求按定义初始化。
+      - card:
+          title: 复位入口比 main 更早执行
+          body: 在典型 Cortex-M 上，硬件从复位入口表取得初始栈指针和复位入口。复位处理代码按板子要求准备必要时钟和存储，再完成 C 环境初始化。对同一芯片，映射地址还可能由启动模式决定。
+      - item:
+          id: boot-mcu-2
+          type: choice
+          prompt: Cortex-M 复位后先进入哪里？
+          options:
+            - text: 普通应用的任意第一行
+              why: 硬件按固定的表项取入口。
+            - text: 复位入口指定的处理代码
+              correct: true
+          explain: 启动代码准备妥当后才调用 main。
+      - card:
+          title: 启动时搬运有初值的数据并清空零初值区
+          body: 链接时已给出段的范围。运行在 RAM 的 .data 初值从 Flash 拷贝，.bss 清零；使用 C++ 时还要执行相应全局构造。完成这些，再进入应用。
+          reveal:
+            - title: 给 .data 找源和目的
+              body: Flash 是初始字节的存放处，RAM 是应用后续可写的位置。
+            - title: 给 .bss 写零
+              body: 只需要记录范围，不必在 Flash 保存一长串零。
+            - title: 交给应用
+              body: 此时 C 代码才能依赖初值。
+      - item:
+          id: boot-mcu-4
+          type: order
+          prompt: 排出典型 Cortex-M 裸机启动的顺序。
+          steps:
+            - 复位处理代码取得控制权
+            - 复制 .data 并清零 .bss
+            - 进入 main
+          explain: 硬件取得入口，软件准备段，最后进入应用。
+  - id: boot-linux
+    chapter: 启动链
+    title: 跟踪从芯片固化程序到第一个用户程序
+    minutes: 10
+    flow:
+      - guess:
+          id: boot-linux-guess
+          type: choice
+          prompt: 刚上电还不能用板载大内存时，可以先把完整系统装到那里再初始化内存吗？
+          options:
+            - text: 可以，程序会自动让未初始化的内存工作
+              why: 内存接口必须先满足读写条件。
+            - text: 要先完成内存控制器准备
+              correct: true
+          explain: 需要有可靠的读写位置才能装入大程序。
+      - card:
+          title: 复杂板子用几级启动交接
+          body: >-
+            **引导加载程序（bootloader）**准备运行环境并载入下一阶段程序的代码。 典型 ARM 板从片内 ROM 开始，小加载级（如 SPL）准备 DRAM，随后 U-Boot
+            装载系统和硬件描述。部分平台还有可信固件。x86 则常由 BIOS 或 UEFI 固件交给相应加载器。
+      - item:
+          id: boot-linux-2
+          type: order
+          prompt: 典型 ARM Linux 板按这些阶段启动。排序。
+          steps:
+            - 片内 ROM 选择启动介质
+            - SPL 准备 DRAM
+            - U-Boot 装入 Linux 和硬件描述
+            - Linux 挂载根文件系统并启动 init
+          explain: 小阶段先解决可运行和存储问题，再进入完整系统。
+      - card:
+          title: 启动配置决定从哪里找什么
+          body: U-Boot 的环境可以保存地址和启动参数，命令或脚本选择装载目标，通用发行版启动机制尝试标准目录或描述。调错时按串口输出找最后成功的阶段，区分加载失败和系统已起来却找不到根文件系统。
+      - item:
+          id: boot-linux-4
+          type: choice
+          prompt: 串口日志已显示 Linux 开始运行，随后报找不到根文件系统。优先检查哪里？
+          options:
+            - text: 根设备参数、存储驱动和文件系统
+              correct: true
+            - text: 先怀疑片内 ROM 完全没有执行
+              why: 日志已证明后续多个阶段走通。
+          explain: 引导程序已经成功把控制权交给 Linux。
+  - id: device-tree
+    chapter: 驱动
+    title: 让驱动找到它对应的设备和引脚
+    minutes: 10
+    flow:
+      - guess:
+          id: device-tree-guess
+          type: choice
+          prompt: 同款控制程序用在两块板上，传感器接在不同位置。可以把接法作为独立描述吗？
+          options:
+            - text: 可以，让系统根据描述找到实际设备
+              correct: true
+            - text: 只能把所有引脚编号写死在驱动里
+              why: 板级信息可以单独提供。
+          explain: 驱动逻辑可复用，接法随板变化。
+      - card:
+          title: 有些总线能枚举，有些设备要板级描述
+          body: >-
+            **设备树（device tree）**按节点和属性描述硬件及连接关系的数据。 USB、PCI 常能枚举；板载 I²C 或 SPI 设备常由描述提供地址和连接。compatible
+            帮助匹配驱动，reg 描述总线地址或资源范围，具体解释由父总线规定。
+      - item:
+          id: device-tree-2
+          type: choice
+          prompt: 两块板使用同款 I²C 传感器，地址不同。哪一项通常随板更新？
+          options:
+            - text: 芯片类型必须改名
+              why: 设备型号没有因此改变。
+            - text: 节点的总线地址
+              correct: true
+          explain: 驱动匹配类型可相同，硬件连接参数可不同。
+      - card:
+          title: 引脚功能和驱动绑定是两步
+          body: 一脚可复用为 GPIO 或某个总线信号。Linux pinctrl 依据配置切换功能及电气状态。驱动匹配后，probe 申请寄存器、时钟、中断等资源；申请失败要让系统知道并回收已取得的资源。
+      - item:
+          id: device-tree-4
+          type: order
+          prompt: 设备树中已声明一个板载外设。排出正常绑定过程。
+          steps:
+            - 系统创建设备对象
+            - 按 compatible 匹配驱动
+            - probe 申请并配置资源
+          explain: 先知道设备存在并找到驱动，才能完成资源初始化。
+  - id: linux-driver
+    chapter: 驱动
+    title: 从用户 read 请求走到设备驱动
+    minutes: 10
+    flow:
+      - guess:
+          id: linux-driver-guess
+          type: choice
+          prompt: 用户程序只知道从一个设备文件读数据。能让系统负责把读取转发给正确硬件吗？
+          options:
+            - text: 每个应用都必须直接写芯片地址
+              why: 系统可管理设备资源并统一提供接口。
+            - text: 可以，系统把操作交给注册的驱动
+              correct: true
+          explain: 应用可以通过约定的接口发请求。
+      - card:
+          title: 设备有内核实现和用户接口
+          body: >-
+            **内核（kernel）**管理硬件资源与程序执行的系统核心。 **设备驱动（device driver）**把通用系统操作翻译成特定硬件动作的内核组件。 字符设备用设备号和 cdev
+            注册，file_operations 关联 open、read、write、poll 等回调；传数据要使用内核提供的用户空间复制接口。
+      - item:
+          id: linux-driver-2
+          type: match
+          prompt: 把 Linux 里三个入口和用途配对。
+          pairs:
+            - - /dev 的设备文件
+              - 提供打开与读写入口
+            - - /sys 的设备属性
+              - 呈现设备及驱动模型的信息
+            - - 可加载内核模块
+              - 允许运行时加载支持代码
+          explain: 数据入口、结构化属性与驱动生命周期是不同接口。
+      - card:
+          title: 复用现有子系统，谨慎处理生命周期
+          body: >-
+            存储、网络、GPIO、音视频一般有各自的内核子系统，优先走标准接口。模块可带依赖，通常交给 modprobe
+            处理；并入内核树需接入构建配置。卸载要先撤销用户入口并结束挂起工作，释放资源后不能再被访问。
+      - item:
+          id: linux-driver-4
+          type: choice
+          prompt: 驱动已经卸载，原先排队的工作还能访问之前分配的资源吗？
+          options:
+            - text: 应在释放前同步停掉这些工作
+              correct: true
+            - text: 能，回调会自动发现新地址
+              why: 必须按生命周期明确取消或等待。
+          explain: 否则回调可能碰到已释放的资源。
+  - id: periodic-tasks
+    chapter: 实时调度
+    title: 把周期要求与 CPU 用时分别记账
+    minutes: 10
+    flow:
+      - guess:
+          id: periodic-tasks-guess
+          type: choice
+          prompt: 每 10 ms 要采样一次，每次只用很短时间。两次采样之间，采样工作应该一直占着 CPU 等吗？
+          options:
+            - text: 可以暂时睡眠，留出 CPU 给其他工作
+              correct: true
+            - text: 必须一直在 CPU 上运行才算准时
+              why: 准备下一次工作与一直运行不同。
+          explain: 只要到下个释放时刻能重新就绪。
+      - card:
+          title: 实时指按要求在截止前交付
+          body: >-
+            **实时操作系统（real-time operating system, RTOS）**提供可控时间行为与任务管理的操作系统。
+            一个任务可以就绪、运行或阻塞。**调度（scheduling）**决定就绪工作何时得到 CPU。 硬实时超期视为系统失败，软实时超期通常降低服务质量。FreeRTOS、Zephyr
+            是常见小型实时系统；Linux 也有 POSIX 实时接口。
+      - item:
+          id: periodic-tasks-2
+          type: choice
+          prompt: 采样任务还在等下个时刻，通信任务已就绪。在单核上应让谁先占用当前空闲时间？
+          options:
+            - text: 让采样任务一直忙等
+              why: 无用等待会浪费可给其他任务的时间。
+            - text: 让就绪的通信任务运行
+              correct: true
+          explain: 阻塞任务暂时不参与竞争。
+      - card:
+          title: 周期锚在一串计划时刻
+          body: >-
+            从上次计划释放点加固定周期，避免每次工作完才加相对等待导致漂移。FreeRTOS 用 xTaskGetTickCount 取得起点，以 pdMS_TO_TICKS
+            换单位，xTaskDelayUntil 更新计划点。实际唤醒仍受 tick 粒度和更高优先级工作影响。
+      - item:
+          id: periodic-tasks-4
+          type: number
+          prompt: 计划采样从 0 ms 开始，每 10 ms 一次，未超期。第 4 次的计划释放时刻是多少 ms？
+          answer: 30
+          explain: 第 1 次在 0，另外三次各间隔 10 ms。
+  - id: queue-tasks
+    chapter: 实时调度
+    title: 把采样和发送拆成两个任务
+    minutes: 10
+    flow:
+      - guess:
+          id: queue-tasks-guess
+          type: choice
+          prompt: 通信偶尔慢一点，会让下一次采样也卡住吗？
+          options:
+            - text: 只能让采样直接等发送完
+              why: 这会把链路延迟传到采样。
+            - text: 把两项工作分开并用有限队列传值可缓解
+              correct: true
+          explain: 允许短期排队，同时要指定满了怎么办。
+      - card:
+          title: 采样只做有时限的工作
+          body: >-
+            先用 xQueueCreate 按元素大小建队列，检查是否成功，再建两个任务。采样任务读传感器，以 xQueueSend(q, &v, 0)
+            尝试把读数复制进队列，满了立即记录丢样；再用周期等待。通信任务用 xQueueReceive 阻塞等数据，拿到后发送。
+      - item:
+          id: queue-tasks-2
+          type: order
+          prompt: 按系统启动到第一次通信的依赖排序。
+          steps:
+            - 创建队列并检查结果
+            - 采样任务把读数放进队列
+            - 通信任务取出读数再发
+          explain: 先分配并检查队列，然后生产者和消费者才能传值。
+      - card:
+          title: 为较严格的时限设置优先级
+          body: 让短采样任务优先于可等待的通信任务，并量采样最坏耗时。队列能平滑短时突发，长期发送慢于采样仍会满。简单通知可用信号或任务通知；多条数值要有存放位置。
+      - item:
+          id: queue-tasks-4
+          type: number
+          prompt: 容量 4 条，初始空。通信暂时无法取出，采样任务放入 6 条且满时立即丢新数据。丢几条？
+          answer: 2
+          explain: 前四条填满，后两条触发满队列处理。
+  - id: priority-inheritance
+    chapter: 实时调度
+    title: 让拿着锁的低优先级任务尽快释放
+    minutes: 10
+    flow:
+      - guess:
+          id: priority-inheritance-guess
+          type: choice
+          prompt: 高优先级工作必须等一把锁。锁在低优先级任务手里，中优先级任务又一直在跑。高优先级工作还会被拖住吗？
+          options:
+            - text: 会，低优先级任务没机会释放锁
+              correct: true
+            - text: 不会，高优先级永远立刻运行
+              why: 它还在等待必须的资源。
+          explain: 中优先级间接延长了高优先级的等待。
+      - card:
+          title: 把等待锁和抢不到 CPU 分开
+          body: >-
+            **互斥锁（mutex）**同一时刻只允许一位持有者进入受保护区域的锁。 **优先级反转（priority inversion）**高优先级任务被低优先级持有的资源间接拖延。
+            **优先级继承（priority inheritance）**持锁任务临时提升到等待者的优先级以尽快释放资源。
+      - item:
+          id: priority-inheritance-2
+          type: order
+          prompt: L 持锁，H 等锁，M 就绪。启用优先级继承后，排出能解除等待的过程。
+          steps:
+            - H 等 L 持有的锁
+            - L 暂时继承 H 的优先级并运行
+            - L 释放锁后 H 取得锁
+          explain: 提升持有者可避免 M 继续压住它。
+      - card:
+          title: 不同同步部件有不同约束
+          body: >-
+            互斥锁有所有者；**信号量（semaphore）**用计数表示资源或事件。短暂不可睡眠的共享访问可用**自旋锁（spinlock）**，忙等直到锁可用；简单不可分割更新用原子操作。统一加锁顺序避免循环等待，Linux
+            的 lockdep 能检查已走路径的锁依赖。
+      - item:
+          id: priority-inheritance-4
+          type: choice
+          prompt: 两个任务常需要先后拿 A、B 两把锁。如何降低互相等到永远的风险？
+          options:
+            - text: 两者都按和对方相反的顺序拿
+              why: 相反顺序恰好可能形成循环等待。
+            - text: 约定两者都先拿 A 再拿 B
+              correct: true
+          explain: 统一顺序避免拿着一把互等另一把。
+  - id: deadline
+    chapter: 实时调度
+    title: 用最坏时间看能不能赶上截止
+    minutes: 10
+    flow:
+      - guess:
+          id: deadline-guess
+          type: choice
+          prompt: 任务通常 2 ms 就完成，但有一次要 11 ms。每次须在 10 ms 内完成，只看平均值够吗？
+          options:
+            - text: 够，只要平均低于 10 ms
+              why: 平均值会遮掉少量超期。
+            - text: 不够，最坏一次已经超出要求
+              correct: true
+          explain: 硬时限看每次都满足。
+      - card:
+          title: 先明确每个释放和截止点
+          body: >-
+            **最坏执行时间（worst-case execution time, WCET）**在约定硬件和输入条件下用于分析的运行时间上界。
+            **抢占（preemption）**是让更急的工作打断当前任务并接管 CPU。响应还包含抢占、等待锁和中断。在单核简化题里，把最坏执行、可能的抢占和阻塞时间都算入预算。
+          reveal:
+            - title: 算能占用多少
+              body: 本任务用 3 ms，最坏等锁 1 ms，且只会被一次 2 ms 工作抢占。
+            - title: 对照截止
+              body: 响应上界 3+1+2=6 ms；截止 8 ms，剩 2 ms 余量。
+      - item:
+          id: deadline-2
+          type: number
+          prompt: 一项工作需 4 ms，最多阻塞 1 ms，并最多被一次 3 ms 工作抢占。响应上界多少 ms？
+          answer: 8
+          explain: 题设三项相加得 8 ms。
+      - card:
+          title: Linux 策略改变谁可以抢占谁
+          body: >-
+            **时间片（time slice）**是允许一个任务连续占用 CPU 的时间额度。SCHED_FIFO 优先级相同时没有时间片轮转，SCHED_RR
+            对同优先级增加时间片，SCHED_DEADLINE 按运行预算和截止等参数管理。CPU 和 IRQ 亲和性、核隔离可减少干扰，仍要测最坏延迟和共享资源。
+      - item:
+          id: deadline-4
+          type: choice
+          prompt: 两个同优先级任务都就绪且不主动让出。在 Linux 哪个实时策略提供同优先级时间片轮转？
+          options:
+            - text: SCHED_RR
+              correct: true
+            - text: SCHED_FIFO
+              why: 同优先级 FIFO 不按时间片轮转。
+          explain: 轮到时间片末可切换给同级就绪任务。
+  - id: interrupt-context
+    chapter: 中断
+    title: 先应答硬件，再把慢工作交出去
+    minutes: 10
+    flow:
+      - guess:
+          id: interrupt-context-guess
+          type: choice
+          prompt: 硬件一到数据就提醒 CPU。读完状态后还有大量处理，适合一直留在最紧急的处理位置吗？
+          options:
+            - text: 先记录必要内容，再推迟慢处理
+              correct: true
+            - text: 适合，只有在这时才能用 CPU
+              why: 慢工作可在之后的上下文执行。
+          explain: 把敏感路径保持简短，让其他事件也能响应。
+      - card:
+          title: Linux 驱动可把处理分成两段
+          body: >-
+            先注册与设备对应的处理入口。在硬中断上半部识别事件，按器件规则确认并保存必要信息，避免睡眠。**线程（thread）**是可由系统单独安排执行的活动。工作队列或线程化处理可承接耗时工作；软中断并不因此可以睡眠。PREEMPT_RT
+            上多种锁语义不同，底层仍有 raw_spinlock。
+      - item:
+          id: interrupt-context-2
+          type: choice
+          prompt: 一段工作需要等可能睡眠的操作。以下位置哪项合适？
+          options:
+            - text: 硬中断上半部
+              why: 这个环境不允许睡眠。
+            - text: 允许睡眠的工作队列回调
+              correct: true
+          explain: 必须选可阻塞的执行环境。
+      - card:
+          title: 小型实时系统也有专用交接接口
+          body: FreeRTOS 中断里使用允许从 ISR 调用的接口，如 xQueueSendFromISR。调用前确认中断优先级符合端口限制；若唤醒更高优先级任务，按端口约定请求退出时切换。队列满同样要处理。
+      - item:
+          id: interrupt-context-4
+          type: order
+          prompt: 排出收到数据中断到业务处理的顺序。
+          steps:
+            - 确认来源并按要求应答
+            - 保存必要数据并通知任务
+            - 任务执行慢处理
+          explain: 硬件路径先结束必要工作，耗时逻辑交给任务。
+  - id: latency-sources
+    chapter: 中断
+    title: 追踪延迟来自固件、调频还是传输
+    minutes: 10
+    flow:
+      - guess:
+          id: latency-sources-guess
+          type: choice
+          prompt: 软件没有改，但休眠后第一次动作总比平时晚。应该只分析任务优先级吗？
+          options:
+            - text: 应该，硬件状态不会影响延迟
+              why: 唤醒、频率和总线资源都可能变。
+            - text: 还要检查时钟恢复和唤醒路径
+              correct: true
+          explain: 设备先恢复可用状态，软件任务才有机会运行。
+      - card:
+          title: 实时 Linux 尽量缩短不可抢占区
+          body: PREEMPT_RT 从补丁逐步集成到主线，通过让更多路径能抢占、将多数中断处理放入线程等办法减少抖动。平台固件处理、不可抢占的硬件路径、睡眠退出和频率切换仍可能增加延迟。
+      - item:
+          id: latency-sources-2
+          type: choice
+          prompt: 调整优先级仍看见每次从深睡醒来的固定额外延迟。首先量什么？
+          options:
+            - text: 唤醒到 CPU 和设备可执行的时间
+              correct: true
+            - text: 只量任务运行后的平均耗时
+              why: 会遗漏唤醒等待。
+          explain: 这部分发生在任务有机会运行之前或设备恢复过程中。
+      - card:
+          title: DMA 让 CPU 少搬，但总线和缓冲仍要协调
+          body: 控制器搬运期间也要占用总线。驱动用平台 DMA API 处理可见性和同步，等完成后再把数据交给 CPU；双缓冲可让一半写入、一半处理，前提是处理跟得上。
+      - item:
+          id: latency-sources-4
+          type: choice
+          prompt: DMA 还在向一个数据区写入。CPU 什么时候可以把它当作一份完整样本？
+          options:
+            - text: 等传输完成并完成所需同步后
+              correct: true
+            - text: 一发起传输就立即读
+              why: 发起和完成是两个不同事件。
+          explain: 传输中读可能得到混杂的新旧数据。
+  - id: resource-bounds
+    chapter: 资源
+    title: 把堆、栈和 DMA 的需求分开
+    minutes: 10
+    flow:
+      - guess:
+          id: resource-bounds-guess
+          type: choice
+          prompt: 任务运行时临时找一块大空间。剩余空间总量足够，每次都能立刻找到合用的一整块吗？
+          options:
+            - text: 不一定，空闲空间可能分散
+              correct: true
+            - text: 一定，空闲字节数已足够
+              why: 有时还要求布局连续和分配及时。
+          explain: 分成许多小段时找不到足够大的连续块。
+      - card:
+          title: 小设备优先把时限路径的空间定下来
+          body: 为各任务预留栈与消息缓冲，固定大小内存池用预分配块限制时间和碎片。系统运行的关键路径尽量避免不可预测分配。用水位估算并保留最坏路径余量。
+      - item:
+          id: resource-bounds-2
+          type: number
+          prompt: 4 个任务每个预留 512 字节栈，另有 1024 字节队列区。忽略元数据共多少字节？
+          answer: 3072
+          explain: 4×512+1024。
+      - card:
+          title: Linux 中连续的含义要说清
+          body: >-
+            用户空间和内核空间各有映射；页是管理单位。kmalloc 提供物理连续的分配，vmalloc 可用分散物理页组成虚拟连续区；整页还可按阶分配。DMA 应用配套
+            API。用户实时任务可预触页、锁定所需内存，减少运行时等待页面可用。
+      - item:
+          id: resource-bounds-4
+          type: choice
+          prompt: Linux 内核只需要较大的虚拟连续区域，物理页可分散。哪项符合描述？
+          options:
+            - text: 把所有虚拟连续区域都直接用作 DMA
+              why: 设备看到的地址和一致性须按 DMA 接口处理。
+            - text: vmalloc
+              correct: true
+          explain: 其映射可拼合不连续的物理页。
+  - id: power-debug
+    chapter: 资源
+    title: 在功耗约束下量出可解释的延迟
+    minutes: 10
+    flow:
+      - guess:
+          id: power-debug-guess
+          type: choice
+          prompt: 设备降低空闲功耗之后偶尔漏事件。哪种证据最能找出漏在哪里？
+          options:
+            - text: 只看程序最终是否重启
+              why: 只能看到部分后果。
+            - text: 记录唤醒与事件处理的时间线
+              correct: true
+          explain: 比较事件到达、时钟恢复、处理入口和结果时刻。
+      - card:
+          title: 按需要控制设备的电源状态
+          body: 系统休眠/恢复管理整机，运行时电源管理按设备使用情况启停。时钟门控减少空闲功耗，调频权衡速度和能耗，稳压器为器件提供供电轨。先验证所需唤醒路径仍活跃。
+      - item:
+          id: power-debug-2
+          type: choice
+          prompt: 设备空闲时断掉了负责定期唤醒的那路时钟，唤醒不起作用。应先怎样调整？
+          options:
+            - text: 保留唤醒源所依赖的时钟或选择支持它的状态
+              correct: true
+            - text: 只给处理任务加优先级
+              why: 硬件没有触发时，任务并不会因此被唤醒。
+          explain: 功耗方案必须满足唤醒条件。
+      - card:
+          title: 工具本身也会改变时序
+          body: >-
+            Linux 可从日志和 oops 里的调用轨迹入手，debugfs 提供诊断信息，kgdb 可暂停并检查状态，Magic SysRq
+            提供管理员诊断入口。跟踪高频路径优先用低开销方法，避免每次同步打印。
+      - item:
+          id: power-debug-4
+          type: choice
+          prompt: 加大量日志以后实时故障消失了。怎样取得更接近原行为的证据？
+          options:
+            - text: 减少记录开销并用时间戳或硬件测量复查
+              correct: true
+            - text: 认定故障已经修复
+              why: 只有日志变化，原因仍可能存在。
+          explain: 诊断方式会改变等待和执行节奏。
+  - id: recovery
+    chapter: 可靠性与硬件软件协同
+    title: 让故障可检测、可复位、可回滚
+    minutes: 10
+    flow:
+      - guess:
+          id: recovery-guess
+          type: choice
+          prompt: 设备无响应时由硬件自动重启。重启后是否还需要知道上一次为什么挂了？
+          options:
+            - text: 需要，才能区分临时故障与每次重启都会复发的问题
+              correct: true
+            - text: 不需要，只要重启就永远不会再挂
+              why: 根因可能仍在。
+          explain: 恢复服务与定位故障都重要。
+      - card:
+          title: 只在关键工作健康时确认存活
+          body: >-
+            **看门狗（watchdog）**规定时间内未收到有效存活确认就采取复位等动作的部件。
+            让真正的关键任务提供健康证据，再确认存活；单用固定中断无条件确认，可能遮住主应用卡死。保留复位原因和最近故障标记。
+      - item:
+          id: recovery-2
+          type: choice
+          prompt: 采样已经卡死，但固定硬件节拍还在。只在每个节拍确认存活会怎样？
+          options:
+            - text: 一定立即复位
+              why: 看门狗持续收到确认，可能不会超时。
+            - text: 可能一直无法检测采样卡死
+              correct: true
+          explain: 确认不依赖要保护的工作状态。
+      - card:
+          title: 把失败留在可恢复范围
+          body: 可用栈保护或水位检查、固定内存池、关键数据校验和冗余。固件 A/B 更新先写非活动区，验证新镜像并试启动，确认健康后切换；失败回旧镜像。板级验证可注入断电或队列满，记录安全输出和恢复时间。
+      - item:
+          id: recovery-4
+          type: order
+          prompt: 排出带回滚的正常 A/B 更新流程。
+          steps:
+            - 写入非活动槽
+            - 验证并试启动新镜像
+            - 确认健康后提交新版本
+          explain: 先写新槽并验证；试运行成功才标记新版本。
+boss:
+  items:
+    - id: challenge-1
+      type: order
+      prompt: 典型 ARM 板从复位进入 Linux 用户程序，排出顺序。
+      steps:
+        - 片内 ROM 装载早期启动代码
+        - 早期阶段准备 DRAM
+        - U-Boot 装载内核及设备树
+        - 内核挂载根文件系统并启动 init
+      explain: 按能运行的环境逐级交接。
+    - id: challenge-2
+      type: choice
+      prompt: Linux 驱动已注册字符设备。用户 read 怎样到达特定驱动？
+      options:
+        - text: 用户直接读写板上设备位置
+          why: 用户程序通过内核提供的设备接口。
+        - text: 内核按设备关联调用该驱动的 read 回调
+          correct: true
+      explain: 设备文件和驱动操作表把请求连接起来。
+    - id: challenge-3
+      type: number
+      prompt: 采样计划从 0 ms 开始，每 10 ms 释放一次。第 6 次计划时间是多少 ms？
+      answer: 50
+      explain: 序号从 1 算，因此是 5 个周期。
+    - id: challenge-4
+      type: choice
+      prompt: 低优先级 L 持锁，高优先级 H 等该锁。中优先级 M 可抢占 L。启用继承时谁临时提到 H 的优先级？
+      options:
+        - text: M
+          why: M 与资源无关，提升它会延长等待。
+        - text: L
+          correct: true
+      explain: 持有者尽快释放后，H 才能继续。
+    - id: challenge-5
+      type: choice
+      prompt: 在 Linux 驱动里，收到中断后哪部分负责可睡眠的较慢工作？
+      options:
+        - text: 允许睡眠的工作队列或线程化处理
+          correct: true
+        - text: 硬中断上半部本身
+          why: 其中不能睡眠。
+      explain: 硬中断先确认事件并安排交接。
+    - id: challenge-6
+      type: number
+      prompt: 6 个任务，每个栈 512 字节，另需 2048 字节静态队列。共多少字节？
+      answer: 5120
+      explain: 6×512+2048。
+    - id: challenge-7
+      type: choice
+      prompt: 新固件试启动后没有报告健康。A/B 更新机制应怎么做？
+      options:
+        - text: 回到原来可启动的镜像
+          correct: true
+        - text: 删除旧镜像以节省空间
+          why: 这样失去了验证失败时的退路。
+      explain: 旧镜像一直保留，等待新镜像通过健康确认才切换。
+    - id: challenge-8
+      type: number
+      prompt: 最坏执行 2 ms、阻塞 1 ms、会受一次 3 ms 抢占；截止 10 ms。按该简化模型还余多少 ms？
+      answer: 4
+      explain: 响应上界 6 ms，离截止还有 4 ms。

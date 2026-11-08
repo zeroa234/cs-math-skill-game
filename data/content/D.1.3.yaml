@@ -1,0 +1,574 @@
+skill: D.1.3
+version: 2
+brief:
+  why: 当数据和访问量超过单机，你要决定每条记录放在哪、复制几份，以及机器失联时怎么处理读写。最后为会话、目录、时序和关系查询挑合适的数据模型。
+  outcomes:
+    - 区分分片、复制与并行查询，并计算扩容迁移量
+    - 分析读写集合、网络分区和跨节点事务失败时的结果
+    - 为业务访问路径选择键值、文档、宽列或图存储
+terms:
+  - {term: 分片, def: 按某个规则将不同的数据划给不同节点或分区。}
+  - {term: 一致性哈希, def: 将键和存储节点映射到环，按相邻位置分配并减少成员变化时迁移的规则。}
+  - {term: 复制, def: 在多个节点维护同一数据的副本。}
+  - {term: 读己之写, def: 用户后续读取能看见自己的成功写入，或看见其后的更新。}
+  - {term: 法定集合, def: 协议要求一次读、写或决定需要取得响应的副本集合。}
+  - {term: 网络分区, def: 节点分成无法可靠互通的几组，组内仍可能继续运行。}
+  - {term: 线性一致性, def: 单对象操作看起来在请求与响应之间某个时刻按同一顺序生效，并尊重真实先后。}
+  - {term: 最终一致性, def: 停止新更新且传播与修复继续后，各副本最终会就数据达成相同状态。}
+  - {term: 共识, def: 多个节点在规定的故障条件下对同一个值或日志位置作出一致决定。}
+  - {term: 两阶段提交, def: 先让参与者准备并投票，再统一给出提交或中止决定的协议。}
+  - {term: TTL, def: 一项数据从设置开始最多可保留的时长。}
+lessons:
+  - id: workloads
+    chapter: 分片
+    title: 先看每次读写多少，再决定怎样扩展
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同一个系统既保存一笔新订单，也每晚汇总全年订单。两种任务的访问方式一样吗？
+          options: [{text: 不一样，一笔写入通常小，年度汇总会读大量记录, correct: true}, {text: 只要数据来自同一张表，访问方式就完全相同, why: 两项任务的读取范围和时间要求不同。}]
+          explain: 先弄清数据怎么被用，再安排存储与扩展。
+      - card:
+          title: 把短操作和大范围分析分开看
+          body: |
+            OLTP 指在线事务处理，常见是大量小而快的读写，例如下单。OLAP 指在线分析处理，常见是扫描、分组与汇总大量数据。互联网服务规模增长推动多机数据库与 NoSQL，一些系统为特定访问路径采用不同数据模型。
+      - item:
+          id: work-types
+          type: match
+          prompt: 将任务与典型工作量配对。
+          pairs: [[保存当前用户的一笔订单, OLTP], [计算一年内每月销售额, OLAP]]
+          explain: 一个偏向频繁的短事务，另一个偏向大量读取后分析。
+      - card:
+          title: 单机加资源与增加节点是不同选择
+          body: |
+            增强一台机器称纵向扩展。增加机器称横向扩展，可以分担数据，也可保存多份。数据拆分解决容量与部分访问负载，多份数据有助于容错和读负载。跨机器需要处理网络、协调和失败。
+      - item:
+          id: scale-out
+          type: choice
+          prompt: 单机已经无法存下全部记录。若同一记录只放一处，怎样把容量分摊给多台机器？
+          options: [{text: 让每台都存一份完全相同的全部记录, why: 每台仍要存全量，单机容量瓶颈仍在。}, {text: 把不同记录按规则分到不同机器, correct: true}]
+          explain: 把记录分开才会减少每台机器需要保存的独立数据量。
+  - id: shards
+    chapter: 分片
+    title: 按时间区间还是按散列分数据
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 要经常查连续几天的事件。把相邻日期放在一起会有什么好处？
+          options: [{text: 可能只去相关的少数分区读取, correct: true}, {text: 需要把相邻日期打散才方便只查一处, why: 打散后相邻日期可能在许多不同位置。}]
+          explain: 数据放置应考虑最常用的筛选和排序方式。
+      - card:
+          title: 分片决定哪些记录归同一处
+          body: |
+            **分片（sharding）**把不同数据分到不同节点。范围分片按有序键区间划分，便于查区间，但递增写入可能集中到末尾分区。TiKV 和 HBase 的 Region 都对应有序键的范围，并可按系统规则分裂或迁移。
+      - item:
+          id: range-hotspot
+          type: choice
+          prompt: 数据按时间范围分片，写入时间总是递增。最可能出现什么负载问题？
+          options: [{text: 新写入必然自动平均到所有旧分片, why: 根据范围只会路由到包含该时间的分片。}, {text: 最新时间所在分片承受大多数新写入, correct: true}]
+          explain: 范围访问容易，顺序写入的负载却可能集中。
+      - card:
+          title: 散列打散键，范围条件可能查更多分片
+          body: |
+            散列分片按键的散列值路由，等值查询可直接定位。均匀散列通常有助分散不同键，同一个热门键仍可能形成热点。按键的连续范围读取时，相关键可能散布到多个分片。
+      - item:
+          id: choose-shard
+          type: match
+          prompt: 为两种访问倾向配常用分片方式。
+          pairs: [[常按连续日期范围读取并希望跳过无关区间, 范围分片], [按离散用户号点查，希望尽量分散不同用户, 散列分片]]
+          explain: 先看路由能否直接排除不需要的分片，再评估热点与迁移。
+  - id: ring
+    chapter: 分片
+    title: 在散列环上加入机器，只改它接走的一段
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 有许多文件按机器总数取余分配。增加一台机器后，原来的余数分配会保持吗？
+          options: [{text: 很多键的余数会变，需要重新分配, correct: true}, {text: 只要原来机器还在，每个键的余数就不变, why: 取余的除数已经变化。}]
+          explain: 扩容时如何计算位置，会影响必须迁移的数据量。
+      - card:
+          title: 沿环按一个固定方向找负责者
+          body: |
+            **一致性哈希（consistent hashing）**将键和节点放到环上。按约定顺时针找到的第一个节点负责该键。加入节点只会接走从前驱顺时针到新节点的那段键。这些键原归后继节点。多个虚拟位置可缓解环上区间大小不均。
+      - item:
+          id: new-interval
+          type: choice
+          prompt: 顺时针 A、B 两节点之间加入 X。原归 B 且位置在 A 和 X 之间的键，加入后归谁？
+          options: [{text: A，因为 A 排在键的前面, why: 题设按顺时针从键向前找第一个节点。}, {text: X，因为它现在先被遇到, correct: true}]
+          explain: 只有新节点接手的那段改变归属。
+      - card:
+          title: 在均匀模型下估计迁移量
+          body: |
+            假定键与节点位置均匀，增加到 N+1 个节点后，新节点期望拿到 K/(N+1) 个键。取余法从 N 改为 N+1，在均匀整数散列且节点编号固定的模型下，约 N/(N+1) 的键会改位置。
+          reveal:
+            - title: 算出新节点的期望份额
+              body: 1200 个键、3 个旧节点，加入后有 4 个。环上的迁移期望约为 1200 ÷ 4 = 300 个键。
+            - title: 比较直接改除数
+              body: 同模型中取余法约迁移 1200 × 3/4 = 900 个键。真实环上键分布与节点位置不一定均匀，迁移量也会变化。
+      - item:
+          id: expected-move
+          type: number
+          prompt: 均匀一致性哈希模型中有 1500 个键、4 个旧节点。增加一个节点后，期望约迁移多少个键？
+          answer: 300
+          explain: 新节点平均占 5 个节点中的一份，1500 ÷ 5 = 300。
+  - id: parallel-shards
+    chapter: 分片
+    title: 先在分片本地做能做的事，再交换数据
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 各分片要统计本地订单数，最后只要全站总数。应先把每条订单都搬到一台机器吗？
+          options: [{text: 可先本地计数，再汇总各分片数字, correct: true}, {text: 只有汇集所有完整订单才能计算行数, why: 互不重叠的分片计数可相加。}]
+          explain: 先做可分解工作能减少通过网络发送的数据。
+      - card:
+          title: 先判断可路由和可局部聚合的部分
+          body: |
+            按分片键的条件可能只需读一处分片。跨分片查询可先本地过滤、投影与聚合，再汇总。均值通常应发送各分片总和和计数，再用总和除以总计数。
+      - item:
+          id: mean-pieces
+          type: choice
+          prompt: 两个分片的记录数不同。要得到所有记录的均值，应各发回什么？
+          options: [{text: 只发局部均值并直接等权平均, why: 大分片和小分片对总均值的权重不同。}, {text: 各自的总和与计数, correct: true}]
+          explain: 总和与计数可分别相加，保留每条记录应有的权重。
+      - card:
+          title: 跨节点连接要让能匹配的键见面
+          body: |
+            两边已按相同连接键分布时可做本地连接。否则可按连接键重新分发记录，或把确实很小的一侧发给多台机器。计划要比较网络搬运量、每台负载和热点，而非只算单机算子。
+      - item:
+          id: colocated
+          type: choice
+          prompt: 两表都用相同规则按用户号分片，要按用户号连接。优先试什么？
+          options: [{text: 让每个分片本地连接属于自己的记录, correct: true}, {text: 总是先把两表全部搬到每台机器, why: 匹配键已经在同一处，不必再把完整数据发给每台。}]
+          explain: 利用已有分布可减少查询过程的网络交换。
+  - id: replicas
+    chapter: 复制
+    title: 把同一份数据放多处，明确何时回答成功
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 已发出保存操作，另一台机器还没收到。现在立即回答成功会有什么取舍？
+          options: [{text: 回复快意味着所有机器同时已有新值, why: 写入还需要传播到其他机器。}, {text: 回复更快，但故障或从另一台读取时可能看不到这次保存, correct: true}]
+          explain: 写入何时确认，决定了故障时保留数据和读到新数据的条件。
+      - card:
+          title: 同步等待副本，异步晚些补齐
+          body: |
+            **复制（replication）**在多个节点保存同一数据。同步复制等待规定副本确认，确认是否持久还看配置。异步复制先答复再传播，可降低等待，但切换到未追上的副本时可能丢失已确认的新写入。
+      - item:
+          id: async-failover
+          type: choice
+          prompt: 写入由主节点确认，尚未发给任何副本就失去主节点。异步切换到旧副本后会怎样？
+          options: [{text: 新主可能缺少这次写入, correct: true}, {text: 确认动作自动把数据复制给所有节点, why: 题设还没传播，其他节点没有新记录。}]
+          explain: 持久性保证取决于确认前数据已经到哪些地方。
+      - card:
+          title: 让后续读至少看到自己的写入
+          body: |
+            **读己之写（read-your-writes）**保证用户后续能看到自己的成功写入或更新的值。可把该会话的读送到已确认相关版本的副本，或带版本标识等待副本追上。其他会话是否马上看到，是不同保证。
+      - item:
+          id: session-consistency
+          type: choice
+          prompt: 用户刚改昵称，立刻读到旧值。已知读取去了尚未追上的副本。要满足读己之写，应怎么路由？
+          options: [{text: 无条件选择任意副本，复制最终会追上, why: 用户此次读仍可能先看到旧值。}, {text: 等待该副本达到相关版本，或转向已具备该版本的副本, correct: true}]
+          explain: 为这次读取核对写入的可见性，而不是只依赖以后会同步。
+  - id: quorum
+    chapter: 复制
+    title: 让读写至少碰到一个相同的副本
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 三张纸中，第一人任取两张签字，第二人任取两张检查。检查者可能完全避开签过的纸吗？
+          options: [{text: 不可能，两组选出的纸至少重合一张, correct: true}, {text: 可以，两人各选自己的两张且没有重复, why: 四个不同位置装不进三张纸。}]
+          explain: 选择的总数大于可用范围，就一定相交。
+      - card:
+          title: 明确 N、W 和 R 的成员与含义
+          body: |
+            **法定集合（quorum）**是协议要求收到响应的副本集合。固定 N 个副本，写等 W 个，读等 R 个。N=3、W=2、R=2 时任两组必相交，若任一副本不可用而其他两份可达，数量仍够。
+      - item:
+          id: read-overlap
+          type: choice
+          prompt: 固定 A、B、C 三个副本，写已获 A、B 确认，读获得 B、C。哪个副本使读写集合相交？
+          options: [{text: C, why: C 没有在这次写确认集合。}, {text: B, correct: true}]
+          explain: B 同时属于写确认和读取返回集合。
+      - card:
+          title: 相交是证据的一部分，仍要处理版本
+          body: |
+            `R + W > N` 保证固定成员集合的读写相交，`2W > N` 保证两个写集合相交。要判断读到什么，还需核对版本、已提交状态和并发冲突。Dynamo 式临时代替副本的宽松集合未必有同样相交保证。
+      - item:
+          id: quorum-guarantee
+          type: choice
+          prompt: 一套系统只给出 R + W > N。能因此直接断定写完后的读总能看到最新值吗？
+          options: [{text: 只能直接推出固定集合相交，还要看读写协议与版本规则, correct: true}, {text: 只要相交，版本与提交状态都不用检查, why: 并发、冲突及未完成写入仍需要协议处理。}]
+          explain: 集合关系给出接触点，协议才规定如何用它得到正确结果。
+  - id: cap
+    chapter: 复制
+    title: 断网时和网络正常时分别要权衡什么
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个机房彼此失联。一边刚改了值，另一边还想继续回答。另一边能总是立即返回最新值吗？
+          options: [{text: 只要各自都有副本，就能同时知道对方的新写入, why: 副本需要通信才能接收另一侧的新变化。}, {text: 没有通信时无法保证知道另一边的最新写入, correct: true}]
+          explain: 断网使一个节点无法确认另一边是否发生了新操作。
+      - card:
+          title: 在分区时明确拒绝还是允许较弱结果
+          body: |
+            **网络分区（network partition）**把节点隔成无法可靠互通的几组。CAP 的**线性一致性（linearizability）**要求操作像在一次真实先后的顺序中生效。分区发生时，要保证它，某些仍运行节点可能必须拒绝或等待请求，无法同时给所有这类请求正常响应。
+      - item:
+          id: partition-choice
+          type: choice
+          prompt: 分区后少数一侧无法与另一侧协调。系统选择拒绝该侧写入以保持单一最新顺序。这里优先保什么？
+          options: [{text: 一致性，并接受部分请求不能正常完成, correct: true}, {text: 两边各自的全部写入都立即可用, why: 题设明确拒绝了少数侧写入。}]
+          explain: 在通信受阻时，不确认无法协调的写入能保住所选的一致性要求。
+      - card:
+          title: 没有分区时也有等待成本
+          body: |
+            PACELC 把选择分成两种情况。分区时权衡可用性与一致性，正常时权衡延迟与一致性。**最终一致性（eventual consistency）**要求停止新更新且传播与修复继续后，各副本最终达到相同状态。产品可能按表、请求与配置提供不同选择。
+      - item:
+          id: pacelc
+          type: match
+          prompt: 给 PACELC 两种情境配相应取舍。
+          pairs: [[网络分区期间, 可用性与一致性], [网络正常期间, 延迟与一致性]]
+          explain: 即使网络通畅，等远端确认也会增加等待。
+  - id: consensus
+    chapter: 复制
+    title: 让副本组对同一日志位置有一个决定
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 三台副本里，一台旧负责人暂时失联。怎样避免它回来后和新负责人同时给同一位置决定不同内容？
+          options: [{text: 两边自行写，号码相同就自然代表同一内容, why: 同一位置可能被写成不同值。}, {text: 用任期、选举和多数派规则约束谁能推进日志, correct: true}]
+          explain: 协议要限定能够安全作出决定的条件。
+      - card:
+          title: 在故障条件下作出相同决定
+          body: |
+            **共识（consensus）**让多个节点对值或日志条目达成一致。Paxos 和 Raft 属于这一类。Raft 通过任期选主和多数派复制约束提交，恢复的旧主必须服从更新的任期。少数派无法单独作出新提交。
+      - item:
+          id: minority
+          type: choice
+          prompt: 三个 Raft 成员中，一个节点与其余两个隔离。单独这一侧能凭自己的日志确认一条新提交吗？
+          options: [{text: 不能，缺少多数派, correct: true}, {text: 能，旧负责人任期内永远可独自提交, why: 确认需要协议规定的多数派。}]
+          explain: 多数派规则使互相隔开的两侧不能各自得到多数。
+      - card:
+          title: 分开复制一个分片与提交多个分片
+          body: |
+            一组副本可以就一个分片的日志达成一致。若事务跨多个分片，还需让不同参与者共同作出提交或中止决定。TiKV 用 Region 的副本组复制日志，TiDB 的跨区事务还需要事务提交协议。
+      - item:
+          id: two-boundaries
+          type: choice
+          prompt: 某分片的三份副本已经对本地日志达成共识。另一分片还未准备好，同一跨分片事务能否就此认定全部提交？
+          options: [{text: 一个分片复制成功自动代表所有参与者都准备好, why: 副本组决定的范围只覆盖其本地日志。}, {text: 仍要等跨分片协议的共同决定, correct: true}]
+          explain: 本地复制一致性和跨分片原子提交是两层问题。
+  - id: distributed-locks
+    chapter: 分布式事务
+    title: 在两台机器的等待关系里找环
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: A 机只看到甲在等乙，B 机只看到乙在等甲。单看任何一台都只有一条等待。两人能一直互等吗？
+          options: [{text: 能，两条等待合起来形成环, correct: true}, {text: 不能，因为每台机器上都没有环, why: 一个等待环可以跨越多台机器。}]
+          explain: 只看本地，可能看不见另一半依赖。
+      - card:
+          title: 每个资源的锁由明确的位置管理
+          body: |
+            分布式事务会在不同节点读写。每个节点可以给自己负责的数据上锁，事务要等各处的冲突锁释放。严格两阶段锁会把写锁留到事务结束，所以一个跨机器的事务可能在多处持锁并等待。
+      - item:
+          id: lock-owner
+          type: choice
+          prompt: 订单分片给甲事务授予了订单写锁。甲接着想改库存，但库存记录已被乙锁住。甲应等待哪个锁？
+          options: [{text: 自己已在订单分片持有的锁, why: 题设中冲突发生在库存记录。}, {text: 库存分片上乙持有的锁, correct: true}]
+          explain: 先找到冲突资源和持有者，再画出甲等乙。
+      - card:
+          title: 合并等待边，检测到环再解除
+          body: |
+            在等待图里，甲等乙就画甲→乙。系统可收集多处的等待边检测环，也可沿等待关系逐站追踪。确认环后，中止一个事务并释放它的锁，其余事务才有机会继续。超时也能结束等待，但单凭超时无法证明存在环。
+      - item:
+          id: global-waits
+          type: choice
+          prompt: 一处有甲→乙，另一处有乙→丙、丙→甲，三条边确实同时存在。哪个动作能打破这个等待环？
+          options: [{text: 中止乙并释放它持有的锁, correct: true}, {text: 只重复发送甲的原请求, why: 三条等待关系仍然存在。}]
+          explain: 甲不再等乙，环上的一条边消失。
+  - id: commit
+    chapter: 分布式事务
+    title: 两处改动需要同一个提交决定
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 账户 A 扣款后，账户 B 增款失败。若要求转账要么全部完成、要么全部取消，能先确认 A 的扣款吗？
+          options: [{text: 可以确认扣款并忽略另一处的失败, why: 这会留下只扣未加的结果。}, {text: 不能独立确认，需要两处遵循同一个最终决定, correct: true}]
+          explain: 事务的原子性要求这一组操作共同完成或取消。
+      - card:
+          title: 第一阶段先问参与者能否提交
+          body: |
+            **两阶段提交（two-phase commit，2PC）**由协调者管理投票和决定。第一阶段发送准备请求。能提交的参与者把足以恢复准备状态的信息写入持久日志，答 YES 并留住必要的锁。答 YES 后，它准备遵守协调者的最终决定。
+      - item:
+          id: meaning-yes
+          type: choice
+          prompt: 库存分片已持久保存准备记录并回答 YES，仍未收到最终决定。它处于什么状态？
+          options: [{text: 已准备，等待提交或中止决定, correct: true}, {text: 已对整笔事务作出提交决定, why: YES 只表示本参与者准备好。}]
+          explain: 准备完成仍有两种最终结果。
+      - card:
+          title: 第二阶段记录决定后统一通知
+          body: |
+            收齐 YES 后，协调者可以先持久记录 COMMIT，再通知参与者。任何 NO 都使协调者选择 ABORT。参与者按决定完成本地提交或撤销，记录结果并释放资源。先记决定再发消息，使协调者恢复后能重发同一结果。
+      - item:
+          id: protocol-order
+          type: order
+          prompt: 假定所有参与者都投 YES。将这四件事按发生先后排列。
+          steps: [协调者发送准备请求, 参与者持久记录准备并回复 YES, 协调者持久记录 COMMIT 并发送决定, 参与者按决定完成本地提交]
+          explain: 投票阶段确认各方可提交，决定阶段让各方遵守同一结果。
+  - id: recovery
+    chapter: 分布式事务
+    title: 协调者掉线后从持久决定恢复
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个参与者都投了 YES，协调者忽然失联。你只看到自己没有收到决定，能直接按失败撤销吗？
+          options: [{text: 能，没收到就足以证明没有决定, why: 消息丢失与没有决定在本地看起来相同。}, {text: 不能，另一参与者可能已收到提交决定, correct: true}]
+          explain: 恢复时要找到能证明同一结果的记录。
+      - card:
+          title: 准备状态下可能一直等
+          body: |
+            基本 2PC 中，已准备的参与者若无法查到可靠决定，就等待协调者恢复或从协议允许的来源查询。等待会延长持锁时间。协调者恢复后，有持久 COMMIT 就重发 COMMIT；若协议保证发出提交前必已记日志，且确无提交记录，可以按协议决定中止。
+      - item:
+          id: recover-commit
+          type: choice
+          prompt: 协调者的持久日志中已有 COMMIT，但库存分片仍在准备状态。协调者恢复后，应给库存分片发什么？
+          options: [{text: 重发 COMMIT，按原决定完成, correct: true}, {text: 改发 ABORT，因为上一次通知超时, why: 持久提交决定必须保留，其他参与者可能已执行。}]
+          explain: 用同一事务编号重发，参与者能识别并安全处理重复通知。
+      - card:
+          title: 缺记录能否判中止取决于协议
+          body: |
+            采用默认中止（presumed abort）的变体时，协调者查询不到事务可按约定答 ABORT。它必须按协议留存提交证据，直到参与者均已确认；之后已完成者有本地结果。已准备者仍不能凭自己的超时判中止。复制协调日志可提高可用性，仍取决于副本是否可达。
+      - item:
+          id: recovery-evidence
+          type: match
+          prompt: 在基本 2PC 的恢复场景中，将可获得的证据配到参与者可做的事。
+          pairs: [[确认收到这笔事务的持久提交决定, 执行本地提交], [只知道自己已准备且没有收到回复, 保持准备并查找决定]]
+          explain: 有确切决定才能结束准备状态，等待时间不提供这个证据。
+  - id: key-value
+    chapter: 键值/文档/列族/图数据模型
+    title: 已经知道唯一键时怎样找会话
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 浏览器每次都带来一个独立会话编号。服务只要取这个编号对应的数据。直接按编号查和逐条扫描，哪种访问更贴合任务？
+          options: [{text: 先扫描所有会话，再找这一个, why: 题目已提供可直接使用的唯一键。}, {text: 直接按已知编号查, correct: true}]
+          explain: 常见的访问路径决定哪类数据模型用起来最自然。
+      - card:
+          title: 用唯一键直接定位值
+          body: |
+            **键值存储（key-value store）**通过键读写与删除值。键可以是 `session:demo`，值可是一串字节或由系统支持的结构。`session:` 前缀让应用区分不同用途。若常按值里的城市筛选所有会话，要另设计索引、维护映射或选有相应查询能力的方案。
+      - item:
+          id: access-key
+          type: choice
+          prompt: 给定会话编号 abc，应用用前缀 session 加冒号存会话。读取它应使用哪个键？
+          options: [{text: 'session:abc', correct: true}, {text: 'city:abc', why: city 前缀不属于题设的会话键空间。}]
+          explain: 写入方和读取方必须使用同一套键规则。
+      - card:
+          title: 给短期值设定过期时间
+          body: |
+            **TTL（time to live）**规定数据在一段时间后过期。下列 Redis 命令存入 60 秒有效的示例会话。随后立即读会得到 JSON 字符串。TTL 会返回剩余秒数；键已过期时，GET 返回空结果。
+
+            ```text
+            SET session:demo '{"user":"Mei"}' EX 60
+            GET session:demo
+            TTL session:demo
+            ```
+      - item:
+          id: ttl-expiry
+          type: choice
+          prompt: 会话键用 Redis 的 EX 60 写入，此后无人续期或重写。过了 61 秒再用 GET 查它，应看到什么？
+          options: [{text: 仍返回原会话，因为 TTL 只是一条备注, why: 到期的键不再对读取可见。}, {text: 键不存在，GET 返回空结果, correct: true}]
+          explain: 应用要准备处理过期后的缺失结果。
+  - id: cache
+    chapter: 键值/文档/列族/图数据模型
+    title: 网站补充练习 · 缓存未命中时回哪里
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 商品价格在数据库中有正式记录，缓存里没有这件商品。网页若还想显示价格，下一步要查哪里？
+          options: [{text: 查数据库中的正式记录, correct: true}, {text: 把没有缓存理解成商品不存在, why: 缓存可能过期或被移除，数据库仍有记录。}]
+          explain: 缓存用于减少重复读取，缺失时仍可回源。
+      - card:
+          title: 先查缓存，缺失时回源并填充
+          body: |
+            这种由应用按需填缓存的做法称为 cache-aside。应用先查缓存，未命中就查数据库，把取得的结果和 TTL 一起放入缓存，再返回。缓存可因到期或容量限制被清掉，数据库继续保存正式记录。
+      - item:
+          id: cache-read
+          type: order
+          prompt: 第一次访问商品页，缓存中没有该商品，数据库中有。按 cache-aside 排列步骤。
+          steps: [查缓存并发现未命中, 读取数据库中的商品, 写入带 TTL 的缓存, 返回商品]
+          explain: 此后命中时可用缓存减少回源。
+      - card:
+          title: 数据库提交后还要处理旧缓存
+          body: |
+            改价时先提交数据库，再删除或更新相应缓存。删除失败要重试；并发读取仍可能把旧值写回，可用版本检查或短 TTL 缩短影响。若许多键一起过期，可把到期时间稍微错开，或让同一键的一批请求共用一次回源。
+      - item:
+          id: price-invalidation
+          type: choice
+          prompt: 数据库已把商品 42 改价并提交，Redis 的 product:42 仍有旧价格。用删除旧缓存的方案，此时先做什么？
+          options: [{text: 延长旧缓存的 TTL, why: 延长会使旧价格可能更久被读到。}, {text: 执行 DEL product:42, correct: true}]
+          explain: 成功删除后，下一次未命中的读取可从数据库加载新价格。
+  - id: wide-column
+    chapter: 键值/文档/列族/图数据模型
+    title: 把一台设备一天的读数放在一起
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 常按设备查询某一天内的一段读数。让同一设备当天的读数在同一处并按时间排好，有什么好处？
+          options: [{text: 可先定位一天，再读需要的连续时段, correct: true}, {text: 必须读取每台设备的全部日期, why: 设备和日期已经缩小了数据范围。}]
+          explain: 数据布局可以为常用范围查询提前安排好。
+      - card:
+          title: 一个键确定分区，另一个键确定分区内顺序
+          body: |
+            宽列存储（wide-column store）适合围绕既定访问路径设计。Cassandra 可以用（设备、日期）为分区键，用时间为聚簇列，让同一分区内的行按时间排序。HBase 用有序行键定位范围，并把相关列归入列族，行可有不同的列限定符。
+      - item:
+          id: telemetry-shape
+          type: match
+          prompt: 用 Cassandra 为设备一天内的一段时间查询设计主键。按作用配对。
+          pairs: [[设备编号和日期, 定位分区], [读数时间, 分区内排序并筛选区间]]
+          explain: 先找到设备当天的数据，再按时间缩小读取范围。
+      - card:
+          title: 时间窗口要与写入量和查询范围匹配
+          body: |
+            日期只是一个选择。若一台设备一天的数据过多，可改成更小时间窗口，代价是跨窗口查询会访问更多分区。宽列数据模型和按列组织数据以加速大量汇总的分析存储解决的问题不同。
+      - item:
+          id: telemetry-bucket
+          type: choice
+          prompt: 一台设备每天的数据太大，典型查询只读五分钟。把分区窗口从一天缩到一小时，哪项后果合理？
+          options: [{text: 所有查询都将固定只访问一个分区, why: 时间区间可跨过小时边界。}, {text: 单个分区可变小，跨小时查询可能访问更多分区, correct: true}]
+          explain: 更小窗口给每个分区减负，也增加了长区间的分区数。
+  - id: documents
+    chapter: 键值/文档/列族/图数据模型
+    title: 商品详情适合一起读，库存可能单独改
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 商品页通常一起读取名称、规格与图片，衣服和手机的规格字段还不同。哪种放法能让这些字段跟商品一起被读出？
+          options: [{text: 把相关字段放入一份商品文档, correct: true}, {text: 每个字段都分成独立记录并全库扫描, why: 全库扫描没有利用商品编号，也增加读取工作。}]
+          explain: 经常一起用、一起改的数据，适合考虑一起存。
+      - card:
+          title: 用嵌套对象表达每种商品的规格
+          body: |
+            文档存储可用一份嵌套数据表示商品，字段可因类型而异。以 MongoDB 为例，可给常查字段建索引，也可用验证规则要求编号和名称等字段存在。
+
+            ```json
+            {"sku":"C1","name":"短袖","spec":{"size":"M","color":"蓝"}}
+            ```
+      - item:
+          id: document-shape
+          type: choice
+          prompt: 商品文档允许手机有电池容量、衣服有尺码，但编号和名称必须存在。怎样表达这个要求？
+          options: [{text: 采用文档后任何字段都不能验证, why: 文档数据库可提供数据验证。}, {text: 用验证规则要求共同字段，让不同类型保留各自规格, correct: true}]
+          explain: 字段可以灵活，应用依赖的共同结构仍能明确检查。
+      - card:
+          title: 共同读取适合嵌入，独立维护适合引用
+          body: |
+            规格随商品一起读且规模有限，可嵌入文档。若多个商品共享一份经常独立修改的供应商资料，可单独存放并按编号引用，避免多处副本不同步。关系模型也能表示这些关系，常用主外键与连接组合数据。
+      - item:
+          id: reference-or-embed
+          type: choice
+          prompt: 200 件商品共享一个供应商，供应商电话经常改，要求只在一个地方维护。怎么存更直接？
+          options: [{text: 单独保存供应商资料，商品保留供应商编号, correct: true}, {text: 在 200 份商品文档内各放一份电话, why: 改电话就得同步多份副本。}]
+          explain: 数据的修改方式和读取方式都应进入模型选择。
+  - id: graph
+    chapter: 键值/文档/列族/图数据模型
+    title: 从关注关系一步步查到两跳邻居
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 阿梅关注阿柏，阿柏关注阿琪。要找阿梅沿关注走两步能到的人，第一步应到谁？
+          options: [{text: 阿琪, why: 阿琪要从阿柏沿下一条关注关系才会到达。}, {text: 阿柏, correct: true}]
+          explain: 每走一步都要沿着一条方向符合要求的关系。
+      - card:
+          title: 给实体和关系分别建模
+          body: |
+            属性图把人表示为节点，可用 Person 标签分类。阿梅到阿柏的一次关注是有方向的关系，FOLLOW 是关系类型。节点可有姓名属性，关系可有关注时间属性。一条路径记录依次经过的节点和关系。
+      - item:
+          id: graph-parts
+          type: match
+          prompt: 给人物关注图中的四个概念找实例。
+          pairs: [[节点标签, Person], [关系类型, FOLLOW], [节点属性, 姓名], [关系属性, 关注时间]]
+          explain: 标签与类型帮助筛选，属性保存具体的数据。
+      - card:
+          title: 逐跳访问时指定方向、类型和步数
+          body: |
+            图遍历从起始节点沿符合条件的关系前进。沿 FOLLOW 出边查两跳时，每条边都必须是该类型且方向朝外。两跳结果可能与直接关注重合；如果要找纯粹的新推荐，还要排除自己和已经直接关注的人。
+      - item:
+          id: two-hops
+          type: choice
+          prompt: 图中只有梅→柏、柏→琪、岚→柏三条 FOLLOW 边。从梅沿 FOLLOW 出边恰走两步，会到谁？
+          options: [{text: 琪, correct: true}, {text: 岚, why: 岚到柏的边方向朝向柏，从柏不能沿出边走到岚。}]
+          explain: 符合方向的两段路径是梅→柏→琪。
+boss:
+  items:
+    - id: sharding
+      type: choice
+      prompt: 历史订单经常按连续日期查，写入高峰却让最新日期分片太忙。范围分片的收益和代价是什么？
+      options: [{text: 区间读一定扫全部分片，写入必然均匀, why: 同一范围可定位相关分片，最新键仍可能集中。}, {text: 区间读取方便，递增写入可能集中, correct: true}]
+      explain: 路由规则同时影响扫描范围和写入分布。
+    - id: redistribution
+      type: number
+      prompt: 旧环上 4 台机器，加入第 5 台。假设各机器位置与 2500 个等权键的散列位置独立均匀，每台一个节点。预计移动多少键？
+      answer: 500
+      explain: 新节点的期望份额为 1 / 5，2500 / 5 等于 500。
+    - id: replication
+      type: choice
+      prompt: 主节点刚确认写入便宕机，确认时无需等待任何副本。落后的副本被选为新主。哪种后果可能发生？
+      options: [{text: 已确认写入在新主缺失, correct: true}, {text: 旧主的确认保证所有副本已持久保存, why: 题设中的确认不等待其他副本。}]
+      explain: 是否保留已确认写入要核对确认和故障转移规则。
+    - id: quorum
+      type: choice
+      prompt: 固定五个副本，读等两个，写等三个。仅由数量判断，每次读写集合一定相交吗？
+      options: [{text: 一定，因为两者相加没有小于五, why: 两组可以刚好把五个副本分成互不重叠的两部分。}, {text: 不一定，两个集合的数量之和刚好等于五, correct: true}]
+      explain: 固定集合需要 R + W 严格大于 N。
+    - id: cap
+      type: choice
+      prompt: 网络正常，团队为读取更一致的数据决定多等远端确认。PACELC 用哪对概念描述这次选择？
+      options: [{text: 延迟与一致性, correct: true}, {text: 分区期间的可用性与一致性, why: 题设的节点仍正常互通。}]
+      explain: 正常时的等待与分区时的拒绝是两种取舍。
+    - id: atomicity
+      type: choice
+      prompt: 两个分片都已准备。其中一组用 Raft 确认了本地准备日志，仍不知道跨分片的最终决定。该组现在能宣布事务提交吗？
+      options: [{text: 能，复制准备日志已经替另一分片决定了提交, why: 本地日志共识未覆盖其他事务参与者。}, {text: 不能，需要跨分片事务的共同决定, correct: true}]
+      explain: 准备成功与最终提交之间仍有决定阶段。
+    - id: recovery
+      type: choice
+      prompt: 协调者已持久记录 COMMIT，给甲发送后掉线，乙仍准备。协调者恢复时该如何收尾？
+      options: [{text: 维持原决定并向仍需通知的参与者重发 COMMIT, correct: true}, {text: 只让尚未收到消息的乙自行中止, why: 甲可能已提交，乙中止会破坏原子性。}]
+      explain: 重复发送同一个决定能让未完成的一侧接上进度。
+    - id: model-choice
+      type: match
+      prompt: 将业务的主访问路径配到最贴合的示例模型。
+      pairs: [[按唯一编号读短期会话, 键值], [一起读有不同规格的商品详情, 文档], [按设备和日期定位并查时间段, 宽列], [沿有向关注关系查多跳, 图]]
+      explain: 匹配的是题设的典型访问路径，真实选择还需考虑约束和运行条件。

@@ -1,0 +1,743 @@
+skill: P.4.4
+version: 2
+brief:
+  why: 把大型软件的组成、质量和变更决定放在同一张图上。比较部署风格，练习从性能目标、失败行为和团队能力推导设计。
+  outcomes:
+    - 画边界和不同粒度的架构视图
+    - 为质量场景选择架构风格与验证方法
+    - 记录重要决定并设计可恢复的部署与演进
+terms:
+  - term: 软件架构
+    def: 系统的重要组成、连接及影响全局的设计决定。
+  - term: 模块化单体
+    def: 在一个发布单元内保留明确模块边界的软件。
+  - term: 微内核风格
+    def: 用稳定宿主与可替换插件组织应用能力。
+  - term: 事件
+    def: 已经发生且可作为消息发布的事实。
+  - term: 无服务器
+    def: 由平台管理执行环境和容量的运行方式。
+  - term: 架构决策记录
+    def: 描述重要设计决定的背景、选择、状态和后果。
+  - term: 内核
+    def: 操作系统中负责管理核心资源的部分。
+lessons:
+  - id: system-boundaries
+    chapter: 组件与边界
+    title: 从系统目标找到重要边界
+    minutes: 13
+    flow:
+      - guess:
+          id: system-boundaries-guess
+          type: choice
+          prompt: 订单和库存经常一起变更，但退款由另一团队审核。划分时首先看什么？
+          options:
+            - text: 职责、依赖、数据与变更约束
+              correct: true
+            - text: 每个数据库表单独变成一个服务
+              why: 表数量不足以决定交付和协作边界。
+          explain: 看哪些决定影响整个系统及其演进。
+      - card:
+          title: 架构关注会影响系统结构和质量的决定
+          body: >-
+            **软件架构（software
+            architecture）**描述重要组成、相互连接与设计决定。组件承接明确责任，连接说明调用或消息，边界表明由谁拥有与修改。它既指系统实际结构，也可指记录与推理这种结构的描述。
+      - item:
+          id: system-boundaries-practice
+          type: match
+          prompt: 为订单系统的三条信息分类。
+          pairs:
+            - - 允许顾客取消待付款订单
+              - 功能要求
+            - - 所有数据必须在指定运行环境保存
+              - 约束
+            - - 订单确认完成后的响应时限
+              - 质量要求
+          explain: 明确希望做什么、必须遵守什么、做得多好。
+      - card:
+          title: 按相关方的关注点划定边界
+          body: 用户关心响应，运营关心恢复，开发关心变更成本，审查方关心授权与留痕。把原则转成约束，例如订单写入只经过订单接口，报表通过只读入口。共享依赖和更换代价高的选择需要记录。
+      - item:
+          id: system-boundaries-apply
+          type: choice
+          prompt: 报表需要订单数据，但不能直接修改订单表。怎样明确组件边界？
+          options:
+            - text: 允许报表随意更新订单表，靠事后约定协调
+              why: 直接写会绕过订单侧规则。
+            - text: 公开只读查询契约，由订单侧拥有写入规则
+              correct: true
+          explain: 边界说明允许怎样合作和谁维护数据。
+  - id: views
+    chapter: 组件与边界
+    title: 同一系统用不同缩放与视点表达
+    minutes: 13
+    flow:
+      - guess:
+          id: views-guess
+          type: choice
+          prompt: 给业务同事介绍系统和外部支付方的关系，需要先画每个类吗？
+          options:
+            - text: 先画全部内部方法，再标参与人
+              why: 内部方法会掩盖读者关心的关系。
+            - text: 用系统上下文图说明人、系统和外部依赖
+              correct: true
+          explain: 先从目标读者的问题选图。
+      - card:
+          title: C4 分上下文、容器、组件和代码
+          body: C4 上下文图看用户和外部系统；容器图看系统内部独立运行的应用与数据存储；组件图在一个容器内细化；代码图深入实现。C4 的容器是架构术语，可包括应用与数据库，和容器运行时的打包单位分开。
+      - item:
+          id: views-practice
+          type: match
+          prompt: 将描述配给合适的 C4 层次。
+          pairs:
+            - - 外部支付方与订单系统的关系
+              - 系统上下文
+            - - 订单 API、后台工作进程与数据库
+              - 容器
+            - - 订单 API 内部的校验与用例协调
+              - 组件
+          explain: 从整体参与者逐步缩到内部实现。
+      - card:
+          title: 视点说明关注什么，视图给出一个系统的答案
+          body: 可用 4+1 的逻辑、进程、开发、物理四视图，再用场景串联。部署关注运行位置，进程关注运行行为。以课程的 Sahara 示例为参照，先看边界、标角色，再缩放。图应标范围、接口与关系方向。
+      - item:
+          id: views-apply
+          type: choice
+          prompt: 运营想核对 API 跑在哪些节点，以及故障时谁接手。应先看什么？
+          options:
+            - text: 部署视图，并用故障场景说明变化
+              correct: true
+            - text: 只看模块目录树
+              why: 源码组织不能说明运行位置和切换行为。
+          explain: 为特定关注点选视图。
+  - id: monolith
+    chapter: 架构风格
+    title: 在一次部署内先把模块边界做好
+    minutes: 13
+    flow:
+      - guess:
+          id: monolith-guess
+          type: choice
+          prompt: 团队很小，订单、库存经常一起交付。怎样先减少部署和运维负担？
+          options:
+            - text: 用边界明确的模块化单体统一发布
+              correct: true
+            - text: 为每个函数建独立部署和网络调用
+              why: 极细拆分会增加协调与故障面。
+          explain: 部署选择应匹配变化与团队能力。
+      - card:
+          title: 单体描述部署，分层描述责任
+          body: >-
+            **模块化单体（modular
+            monolith）**可在同一发布单元内划清业务模块。分层把显示、业务、存储等责任组织起来，上层按设计方向使用下层契约。封闭层限制跨层访问，必要的旁路应说明代价并受约束。
+      - item:
+          id: monolith-practice
+          type: choice
+          prompt: 单体里可以有订单和库存两个模块并各自维护接口吗？
+          options:
+            - text: 不行，只要一起发布就不能有任何内部边界
+              why: 同一部署可包含多个明确模块。
+            - text: 可以，内部模块边界与部署数量是两件事
+              correct: true
+          explain: 用代码依赖和数据所有权保持边界。
+      - card:
+          title: 选择模块划分轴，再观察独立扩展证据
+          body: 技术分区按界面、业务、数据等分；领域分区按订单、库存、报表等能力分。可在领域模块内分层。单体便于同步发布和局部事务；部署频率、负载和团队所有权明显分离后，再评估提取服务。
+      - item:
+          id: monolith-apply
+          type: choice
+          prompt: 只有报表负载很重，其他功能还经常一起变化。先做什么？
+          options:
+            - text: 立刻把所有模块等量拆分
+              why: 压力集中在报表，整体拆分会引入无关成本。
+            - text: 测量报表影响，评估是否单独扩展这一边界
+              correct: true
+          explain: 沿真实变化点行动。
+  - id: pipeline
+    chapter: 架构风格
+    title: 用清楚的中间表示串起处理步骤
+    minutes: 13
+    flow:
+      - guess:
+          id: pipeline-guess
+          type: choice
+          prompt: 上传记录要解析、清洗、汇总。怎样让更换清洗规则不重写读写？
+          options:
+            - text: 把读写和规则都塞进同一个不可拆操作
+              why: 读写和业务规则会一起变动。
+            - text: 让每步经明确的输入输出契约相接
+              correct: true
+          explain: 辨认能独立处理的步骤。
+      - card:
+          title: 管道连接过滤步骤
+          body: 管道风格让每个阶段接收输入、输出结果。解析产生结构化记录，清洗产生合格记录，汇总消费这些记录。要规定格式、错误处理和慢步骤积压时的流量控制。能逐条流动时，可少保留中间数据。
+      - item:
+          id: pipeline-practice
+          type: order
+          prompt: 导入订单数据，按数据依赖排列步骤。
+          steps:
+            - 解析文件为订单记录
+            - 验证并标记无效记录
+            - 汇总有效记录
+            - 输出汇总结果
+          explain: 每一步依赖前一阶段产物。
+      - card:
+          title: 检查全局操作和重复处理
+          body: 若要全量排序或按全体计算，需要缓存、分块合并或其他方案。阶段可独立测试，但端到端还要验证边界格式、重试和失败。若写入阶段可重试，应识别相同记录以避免重复副作用。
+      - item:
+          id: pipeline-apply
+          type: choice
+          prompt: 某批记录已写成功，但确认丢失导致重试。哪项契约最有用？
+          options:
+            - text: 每次重试都生成不同键并当成新写入
+              why: 会让同一数据进入多次。
+            - text: 带可识别的记录键，重试时能核对既有写入
+              correct: true
+          explain: 中间消息要携带恢复所需的身份信息。
+  - id: microkernel
+    chapter: 架构风格
+    title: 把稳定宿主和可扩展插件分开
+    minutes: 13
+    flow:
+      - guess:
+          id: microkernel-guess
+          type: choice
+          prompt: 媒体工具要不断增加文件格式，但播放与界面流程变化少。哪里适合扩展？
+          options:
+            - text: 通过宿主的扩展契约加入格式插件
+              correct: true
+            - text: 每新增格式都复制完整媒体工具
+              why: 稳定流程可复用，格式才是变化点。
+          explain: 把扩展放在可清楚说明的边界。
+      - card:
+          title: 微内核风格由宿主与插件组成
+          body: >-
+            在操作系统里，**内核（kernel）**管理核心资源。应用的**微内核风格（microkernel
+            style）**将稳定核心与可插拔功能分开。媒体服务器可让核心管播放与注册，插件提供解析和解码。C4 组件图可在同一宿主运行单元内展示扩展接口及插件。
+      - item:
+          id: microkernel-practice
+          type: choice
+          prompt: 新增一种媒体格式，宿主接口未变。优先在哪里实现？
+          options:
+            - text: 改每个已有解码器内部的播放逻辑
+              why: 新增格式只需要处理该格式。
+            - text: 在符合格式扩展契约的插件里
+              correct: true
+          explain: 沿扩展接口避免把改动传给所有旧功能。
+      - card:
+          title: 插件边界也需要版本、权限与故障约定
+          body: 宿主应明确插件如何发现、加载、校验兼容与报告失败。若外部插件不可信，可用隔离进程或权限限制，并考虑新增的运行开销。技术分区按解析或解码职责，领域分区可按媒体业务能力组织。
+      - item:
+          id: microkernel-apply
+          type: choice
+          prompt: 新增插件版本要求宿主提供不存在的接口。可靠做法是什么？
+          options:
+            - text: 加载前验证兼容性并给出明确错误
+              correct: true
+            - text: 直接加载并让用户遇到任意崩溃
+              why: 失败会更难诊断并影响宿主。
+          explain: 把插件升级约束写进扩展契约。
+  - id: services
+    chapter: 架构风格
+    title: 决定服务粒度和数据所有权
+    minutes: 13
+    flow:
+      - guess:
+          id: services-guess
+          type: choice
+          prompt: 订单、库存和报表需要不同团队发布。拆成服务前应先核对什么？
+          options:
+            - text: 只看源文件行数，再平均拆开
+              why: 平均行数无法解释事务与调用责任。
+            - text: 业务边界、数据所有权与跨服务失败
+              correct: true
+          explain: 拆分影响运行和团队协作。
+      - card:
+          title: 较粗服务与细粒度微服务各有代价
+          body: 服务式架构常由少数业务服务组成，可选择共享基础设施。微服务强调较独立的部署、所有权和按能力扩展。跨进程调用可能失败或超时，增加观测、兼容和数据协调成本。风格之间也可混用。
+      - item:
+          id: services-practice
+          type: choice
+          prompt: 要求订单与库存每次在同一操作内成功或失败，团队尚未具备跨服务协调能力。首先评估什么？
+          options:
+            - text: 在同一事务边界内实现该不变量是否合适
+              correct: true
+            - text: 先强制两边各用独立库，默认跨库会一起成功
+              why: 两个独立库不能自动提供共同事务。
+          explain: 先明确不变量，再选服务边界。
+      - card:
+          title: 比较改动和故障能否局部化
+          body: 独立部署要有兼容的 API、监控、回退和负责人。共享数据库表虽方便，可能让多个发布绑在一起。对小团队，模块化单体可先验证真实边界；有明确独立扩展或发布需求时再评估服务。
+      - item:
+          id: services-apply
+          type: choice
+          prompt: 为使报表能独立发布，哪项要求比「单独启动进程」更关键？
+          options:
+            - text: 和订单服务共享所有私有表结构
+              why: 私有表示变化会使两个发布仍绑在一起。
+            - text: 定义稳定数据接口和它自己的发布与恢复责任
+              correct: true
+          explain: 部署隔离还需契约和数据边界。
+  - id: events
+    chapter: 架构风格
+    title: 用消息解耦时间，同时处理重复与失败
+    minutes: 13
+    flow:
+      - guess:
+          id: events-guess
+          type: choice
+          prompt: 下单成功后要寄邮件。邮件慢时，用户一定要等待邮件发送完成吗？
+          options:
+            - text: 若业务允许，可记录订单后异步发送
+              correct: true
+            - text: 订单成功必须等所有后台工作结束
+              why: 通知可能是可延迟的独立责任。
+          explain: 区分当前承诺的结果和后续工作。
+      - card:
+          title: 事件是已发生的事实，队列传递待处理工作
+          body: >-
+            **事件（event）**描述已发生的事，如
+            OrderPlaced。消息队列把生产与消费时间分开，消费者可独立扩展。队列常可能重送；消息需要事件编号，处理方可记录已处理编号。失败、顺序和积压需要可观察。
+      - item:
+          id: events-practice
+          type: choice
+          prompt: 同一 OrderPlaced 消息交付两次，发送邮件应怎样处理？
+          options:
+            - text: 每次收到都发，因为队列承诺全局只交付一次
+              why: 许多配置下可重复投递，接收确认也可能丢失。
+            - text: 按稳定事件编号判重，并核对发件方支持的防重边界
+              correct: true
+          explain: 把重复投递纳入设计和测试。
+      - card:
+          title: 选同步或异步前，先写对用户的承诺
+          body: 如果接口只承诺接收，可返回处理中并提供查询；若承诺返回已完成订单号，单纯把核心工作移出请求不能满足同一约定。事件驱动并不自动决定所有数据的一致性；要明确每个读写边界。
+      - item:
+          id: events-apply
+          type: choice
+          prompt: 用户页面承诺已完成下单。如果返回处理中，应该怎样评价？
+          options:
+            - text: 契约没变，因为两种都很快返回
+              why: 用户看到的业务完成状态不同。
+            - text: 改变了响应契约，需要重新确认质量场景
+              correct: true
+          explain: 性能优化要保留需要的结果语义。
+  - id: serverless
+    chapter: 架构风格
+    title: 把运行管理交给平台，仍要管理系统行为
+    minutes: 13
+    flow:
+      - guess:
+          id: serverless-guess
+          type: choice
+          prompt: 每天只有短时触发的图片处理任务。平台按请求启动执行有什么潜在收益？
+          options:
+            - text: 从此不必考虑失败和耗时
+              why: 函数仍可能失败、超时或被重复触发。
+            - text: 可减少长期开启空闲工作进程的管理
+              correct: true
+          explain: 区分运行平台负责的事与应用责任。
+      - card:
+          title: 无服务器让平台管理运行容量
+          body: '**无服务器（serverless）**常以托管函数或服务按事件运行。团队负责代码、配置、数据与权限，平台管理运行主机和扩展。适合有明确触发且可分段的任务。运行限制、启动延迟、供应商依赖和计费仍需评估。'
+      - item:
+          id: serverless-practice
+          type: choice
+          prompt: 一个任务偶尔超过平台允许的执行时间。更合理的改法是什么？
+          options:
+            - text: 拆成可续跑的步骤或选择合适运行环境
+              correct: true
+            - text: 忽略执行限制，假设平台会等到完成
+              why: 达到限制后任务可能被中止。
+          explain: 把运行约束放进任务分解和恢复设计。
+      - card:
+          title: 避免依赖一次运行环境里的临时状态
+          body: 平台可能重用或替换运行实例。关键进度要保存到可恢复的位置，重复事件按契约防重。观测要关联触发、重试、处理结果和权限错误。峰值与冷启动数据要在实际配置下测量。
+      - item:
+          id: serverless-apply
+          type: choice
+          prompt: 函数处理后只把完成状态留在当前进程，下一次由不同实例执行。会有什么风险？
+          options:
+            - text: 新实例看不到先前的状态，可能重复处理
+              correct: true
+            - text: 所有实例必然共享同一个可变对象
+              why: 不同实例可有独立运行状态。
+          explain: 需要跨实例的事实应保存到共享的可恢复位置。
+  - id: quality-scenario
+    chapter: 质量属性
+    title: 把「接口要快」写成可以测的场景
+    minutes: 13
+    flow:
+      - guess:
+          id: quality-scenario-guess
+          type: choice
+          prompt: 下单要快这句话，能直接让两个人测出同一个结论吗？
+          options:
+            - text: 需写明负载、响应含义和达标阈值
+              correct: true
+            - text: 可以，快慢只需开发者主观判断
+              why: 判断会随环境和用户期望改变。
+          explain: 让质量要求能在明确条件下验证。
+      - card:
+          title: 把来源、刺激、环境、制品、响应和度量写齐
+          body: >-
+            促销时客户端以每秒 1000 次的目标负载请求下单，制品为订单接口及其数据服务。成功响应是已完成下单并返回订单号，目标 p99 不超过 300 ms。p99 是按约定算法取第 99
+            百分位，另记错误和超时，避免用快速失败填好看数据。
+      - item:
+          id: quality-scenario-practice
+          type: number
+          prompt: 用最近秩定义 p99。把 1000 个成功响应延迟从小到大排序，p99 是第几个值？从 1 开始编号。
+          answer: 990
+          explain: 取 0.99×1000 向上取整，得到第 990 个。
+      - card:
+          title: 先测瓶颈，再选择战术
+          body: 可用连接池、减少读路径重复工作、复制无状态实例等方式验证瓶颈。写入完成语义保持不变；缓存和异步仅在场景允许时使用。用代表性流量复测延迟、吞吐、错误与资源，不能凭采用某个组件直接宣布达标。
+      - item:
+          id: quality-scenario-apply
+          type: choice
+          prompt: 若在峰值测试中只给出平均延迟，就能证明 p99 满足目标吗？
+          options:
+            - text: 能，平均低就保证所有后段请求也低
+              why: 少数很慢的请求可被均值掩盖。
+            - text: 不能，还要按约定取尾部百分位并记录错误
+              correct: true
+          explain: 用对应场景的指标作验收。
+  - id: cart-partition
+    chapter: 质量属性
+    title: 区分断网时的一致性与响应承诺
+    minutes: 13
+    flow:
+      - guess:
+          id: cart-partition-guess
+          type: choice
+          prompt: 两个机房彼此收不到消息，一个刚删除商品，另一个还能保证立即知道吗？
+          options:
+            - text: 可以，只要两个机房使用同一种数据库
+              why: 软件选型不能在分区时传递不可达的信息。
+            - text: 无法保证，删除消息可能尚未送达
+              correct: true
+          explain: 先说明断网期间可以观察到什么。
+      - card:
+          title: 分区时明确接受请求还是维持单一实时顺序
+          body: 分区发生时，若要求所有读写像在一个真实先后顺序中生效，部分请求可能必须拒绝或等待。若两侧都继续接受本地购物车更改，用户可能暂时看到不同内容，恢复后按冲突规则合并。支付、扣减等约束需另定。
+      - item:
+          id: cart-partition-practice
+          type: choice
+          prompt: 断网时只允许能与多数方协调的一侧修改。另一侧用户可能看到什么？
+          options:
+            - text: 暂不可写入，或被引导到能协调的一侧
+              correct: true
+            - text: 两侧都能写并立即读到对方所有改动
+              why: 失联侧无法参加协调。
+          explain: 可见行为要体现选择的保证。
+      - card:
+          title: 合并时保留删除意图，规定并发语义
+          body: 只取当前购物车并集会让已删除的商品复现。可保留删除标记并指向删除时已见的添加版本，防止旧副本复活它；若同时发生未见的新添加，需明确保留或移除的策略。数量变化也需单独约定。
+      - item:
+          id: cart-partition-apply
+          type: choice
+          prompt: 旧副本还显示书，新副本已记录删除该次添加。若题设规定删除标记覆盖已见添加，合并该旧状态后书应怎样？
+          options:
+            - text: 必然复现，因为并集只需一边有书
+              why: 合并需要应用删除标记。
+            - text: 保持移除，旧版本不能让它复现
+              correct: true
+          explain: 恢复后处理具体操作，不只合并可见内容。
+  - id: review
+    chapter: 质量属性
+    title: 用场景审查好坏，把风格与参考方案分开
+    minutes: 13
+    flow:
+      - guess:
+          id: review-guess
+          type: choice
+          prompt: 审查员说架构用的是流行风格。能因此得知故障恢复满足需求吗？
+          options:
+            - text: 要走查恢复场景和证据
+              correct: true
+            - text: 能，流行的风格保证质量好
+              why: 每种风格都受实施和场景影响。
+          explain: 评审应围绕具体质量目标。
+      - card:
+          title: 风格组织系统，模式解常见问题，参考架构给领域起点
+          body: 风格给出组成与交互的组织约束；架构模式为一类反复出现的设计问题提供可复用做法；参考架构提供一类系统常见的角色和关系。可选择、组合与裁剪，并记录实际约束。
+      - item:
+          id: review-practice
+          type: choice
+          prompt: 在参考电商结构图上增加订单、库存、付款模块后，还要先验证什么？
+          options:
+            - text: 每个参考组件名称是否与原图一字不差
+              why: 实际条件决定哪些部分适用。
+            - text: 本项目的交易、负载、恢复和维护场景
+              correct: true
+          explain: 参考结构用来起步，质量要靠证据。
+      - card:
+          title: 评审找风险、敏感点和权衡
+          body: 让相关方带场景过一遍调用、状态、失败和恢复。标出对多个质量要求有影响的决定，记录待验证风险。例如提高缓存时长可减负，却可能让结果更陈旧。用测量、原型和故障演练验证关键假设。
+      - item:
+          id: review-apply
+          type: choice
+          prompt: 延长价格缓存后读取变快但用户可能看到旧价。评审应怎样记录？
+          options:
+            - text: 记录延迟与时效的权衡，以及验证与失效规则
+              correct: true
+            - text: 只写读取更快，其余细节不影响架构
+              why: 旧价影响用户和业务约定。
+          explain: 指出改善哪一项，同时说明付出什么。
+  - id: adr
+    chapter: 架构决策和系统演化
+    title: 记录决定背后的情境和后果
+    minutes: 13
+    flow:
+      - guess:
+          id: adr-guess
+          type: choice
+          prompt: 数月后换人维护订单。只看到使用 PostgreSQL，团队还缺什么？
+          options:
+            - text: 只缺数据库产品的拼写
+              why: 名字不能说明为何适合这个场景。
+            - text: 当初的约束、取舍、后果和何时重审
+              correct: true
+          explain: 让下一位维护者能检验决定。
+      - card:
+          title: ADR 把上下文、决定和影响放在一起
+          body: >-
+            **架构决策记录（ADR）**记录重要决定的状态、背景、备选、选择和后果。订单与库存若在同一事务数据库内，可同成同败。订单行、关联查询和团队 SQL 能力支持 PostgreSQL；MongoDB
+            也支持事务，应比较访问模型和运营约束。
+      - item:
+          id: adr-practice
+          type: choice
+          prompt: 两套服务各使用独立库，能仅凭 ADR 写「同一事务」就做到共同提交吗？
+          options:
+            - text: 不能，要定义实际协调协议或重新划定事务边界
+              correct: true
+            - text: 能，两个系统都有事务就会共同提交
+              why: 各库的本地事务互不决定对方。
+          explain: 记录必须对应能够实施的机制。
+      - card:
+          title: 跟踪决定的状态和演进
+          body: 在记录中写出表结构迁移、约束检查、运维能力等后果。旧决定被替换时，可新建记录并标旧记录已被替代，保留当时理由。若瓶颈、法规或团队能力改变，再评估备选。
+      - item:
+          id: adr-apply
+          type: match
+          prompt: 把订单存储记录里的内容配到相应字段。
+          pairs:
+            - - 需要关联订单头与明细，团队熟悉 SQL
+              - 背景
+            - - 订单核心数据使用 PostgreSQL
+              - 决定
+            - - 结构演进需维护迁移脚本与校验
+              - 后果
+          explain: 未来要知道在什么条件下为何选，以及接下来承担什么。
+  - id: rollout
+    chapter: 架构决策和系统演化
+    title: 按停机和回退约束选择部署方式
+    minutes: 13
+    flow:
+      - guess:
+          id: rollout-guess
+          type: choice
+          prompt: 新版本可能出错，希望先让少量真实请求体验并观察。哪种策略最贴合？
+          options:
+            - text: 金丝雀发布，逐渐扩大流量
+              correct: true
+            - text: 直接停旧版并把全部流量交给新版
+              why: 全量切换会扩大首轮影响。
+          explain: 选择能控制暴露范围的发布方式。
+      - card:
+          title: 区分分支、重建、滚动和蓝绿
+          body: 发布分支管理待发布代码；重建先停旧再起新，可能停机；滚动分批替换实例，混合期间要兼容；蓝绿保留两套环境，通过切换流量发布。即便可切回程序，数据迁移和协议也要提前设计兼容。
+      - item:
+          id: rollout-practice
+          type: match
+          prompt: 按主要特征给部署方式配对。
+          pairs:
+            - - 停止旧实例后再启新版
+              - 重建
+            - - 分批替换，期间旧新并存
+              - 滚动
+            - - 运行两套环境并切换入口流量
+              - 蓝绿
+          explain: 比较旧新共存、停机窗口与回退方式。
+      - card:
+          title: 金丝雀先比较小份流量，再扩大或回退
+          body: 示例先给新版 1000 请求，出现 20 错误，错误率为 2%。若规则要求不高于 1%，本轮停止扩大并处理。与旧版同期负载比较，检查样本和错误分类。回退步骤要包括数据与依赖，避免只换程序。
+      - item:
+          id: rollout-apply
+          type: number
+          prompt: 金丝雀收到 1000 个请求，其中 20 个错误。错误率是多少百分比？输入百分数数值。
+          answer: 2
+          explain: 20÷1000=0.02，也就是 2%。
+  - id: experiments
+    chapter: 架构决策和系统演化
+    title: 用 A/B 对比效果，用影子流量检查候选行为
+    minutes: 13
+    flow:
+      - guess:
+          id: experiments-guess
+          type: choice
+          prompt: 团队想比较两种结账界面对完成订单比例的影响。应该让每组看到哪个版本？
+          options:
+            - text: 每刷新一次都随机切版本并不记组别
+              why: 无法可靠归属体验和结果。
+            - text: 给符合条件的用户稳定分组，分别展示对应版本
+              correct: true
+          explain: 根据实验问题保留组别与指标。
+      - card:
+          title: A/B 以明确指标比较版本
+          body: A/B 测试分组比较用户行为或业务结果。先定指标、分组单位和停止条件，注意干扰与样本不足。金丝雀主要降低发布风险，常关心错误和延迟；两者可共用流量控制但目标不同。
+      - item:
+          id: experiments-practice
+          type: choice
+          prompt: 比较新按钮是否提高结账完成率，要额外记录什么？
+          options:
+            - text: 用户所属实验组与完成事件
+              correct: true
+            - text: 只记录版本部署成功的时间
+              why: 部署成功不代表用户行为变化。
+          explain: 让行为与分组结果可核对。
+      - card:
+          title: 影子部署复制请求但由旧版对外回应
+          body: 将请求复制给候选版本，可比较性能和输出而不改变用户响应。影子侧要隔离写入、扣款、发件等效果，或用合成测试数据。注意敏感字段、流量放大和对共享依赖的影响。
+      - item:
+          id: experiments-apply
+          type: choice
+          prompt: 候选支付服务收到一份真实请求副本，怎样避免双重扣款？
+          options:
+            - text: 在影子侧禁用真实扣款或使用隔离的替代环境
+              correct: true
+            - text: 让旧服务和候选服务都执行真实扣款
+              why: 复制请求不是复制同一份付款承诺。
+          explain: 影子实验必须控制外部影响。
+  - id: evolution
+    chapter: 架构决策和系统演化
+    title: 沿可替换的边界改造旧系统
+    minutes: 13
+    flow:
+      - guess:
+          id: evolution-guess
+          type: choice
+          prompt: 报表成为瓶颈，旧系统仍在营业。第一步更适合做什么？
+          options:
+            - text: 划清报表接口与数据来源，先迁一条可对比的路径
+              correct: true
+            - text: 整套重写后一次切换全部流量
+              why: 切换面大，难定位差异与回退。
+          explain: 用可测可退的小范围改变。
+      - card:
+          title: 维护有多种动机，先分析影响
+          body: 修缺陷是纠正性维护；适应外部环境是适应性维护；增强性能或能力属完善性；降低未来风险可做预防性维护。变更前追踪调用方、数据、权限、部署与测试。必要时重工程整理旧结构与文档。
+      - item:
+          id: evolution-practice
+          type: match
+          prompt: 将维护行动配给主要动机。
+          pairs:
+            - - 修复导致重复付款的缺陷
+              - 纠正性
+            - - 支持新版外部接口的协议变化
+              - 适应性
+            - - 提前去掉即将不可维护的脆弱依赖
+              - 预防性
+          explain: 识别改变原因，再评估影响与验证重点。
+      - card:
+          title: 逐步替换时准备并行对照、切换与退路
+          body: 通过旧接口的转接点引入新报表服务，先对照只读结果，分批切流量；变更数据时明确双写或迁移的校验、唯一写入方和回退边界。每步验证后才移除旧路径。随运行结果更新架构图与 ADR。
+      - item:
+          id: evolution-apply
+          type: choice
+          prompt: 切到新报表前，发现新旧对同一订单的统计不同。应先怎么做？
+          options:
+            - text: 先删旧服务让差异无法对照
+              why: 缺少对照会提高定位和回退成本。
+            - text: 在可控样本重现并修正差异，保留旧路直到验收
+              correct: true
+          explain: 保留可比较证据，验证后扩大。
+boss:
+  items:
+    - id: boundary
+      type: choice
+      prompt: 报表只能读取订单信息，怎样落实边界？
+      options:
+        - text: 提供只读契约，把订单写入留在订单侧
+          correct: true
+        - text: 让报表直接改订单表然后记录日志
+          why: 日志无法阻止绕过业务规则。
+      explain: 数据所有权需要可执行约定。
+    - id: views
+      type: match
+      prompt: 为三项问题选 C4 视图。
+      pairs:
+        - - 顾客与支付方如何参与
+          - 系统上下文图
+        - - API、数据库和后台任务如何划分
+          - 容器图
+        - - 订单 API 内部由谁校验和协调
+          - 组件图
+      explain: 根据关注范围选择放大层次。
+    - id: style
+      type: choice
+      prompt: 小团队的模块要一起发布，还想保留内部规则边界，哪种方案合适？
+      options:
+        - text: 模块化单体
+          correct: true
+        - text: 每个类独立部署
+          why: 独立部署会显著增加协作与运行复杂度。
+      explain: 内部模块无需等同独立部署。
+    - id: quality
+      type: number
+      prompt: 用最近秩定义 p99，共 100 个按延迟升序的测量值，p99 取第几个？从 1 开始。
+      answer: 99
+      explain: 0.99×100=99。
+    - id: event
+      type: choice
+      prompt: 邮件消息可被重送。怎样避免同一订单确认重复发送？
+      options:
+        - text: 按事件编号记录处理结果并让发件动作可防重
+          correct: true
+        - text: 每次收到都发出邮件
+          why: 重复投递会产生多封邮件。
+      explain: 处理副作用需显式定义去重边界。
+    - id: partition
+      type: choice
+      prompt: 购物车删除标记覆盖已见的添加版本。断网后收到该旧添加，应该如何处理？
+      options:
+        - text: 取两侧商品并集，让旧添加重新出现
+          why: 并集没有保存删除意图。
+        - text: 保留删除结果
+          correct: true
+      explain: 合并时处理版本和冲突约定。
+    - id: adr
+      type: choice
+      prompt: 订单和库存位于各自独立数据库，哪项 ADR 约定合理？
+      options:
+        - text: 记录事务边界和跨库失败协调方式
+          correct: true
+        - text: 假定两个本地事务会自动一起提交
+          why: 两个事务的提交决定相互独立。
+      explain: 实现机制要支持文档承诺。
+    - id: canary
+      type: choice
+      prompt: 新版只接少量请求并监控错误，超阈值时停止扩大。这属于什么？
+      options:
+        - text: 全量重建后再观察
+          why: 题设明确限制暴露范围。
+        - text: 金丝雀发布
+          correct: true
+      explain: 用发布指标决定下一步。
+    - id: shadow
+      type: choice
+      prompt: 影子部署收到带扣款的请求。需要怎么做？
+      options:
+        - text: 候选侧禁止真实副作用或改用隔离替代环境
+          correct: true
+        - text: 两边都执行同一次真实扣款
+          why: 会造成重复影响。
+      explain: 影子流量不应影响用户结果。
+    - id: evolution
+      type: order
+      prompt: 逐步拆出只读报表能力，按合理的安全顺序排列。
+      steps:
+        - 明确旧接口、数据依赖和验收规则
+        - 建立可对照的新路径
+        - 对照通过后分批切换
+        - 确认回退条件后清理旧路径
+      explain: 以可验证的小步降低切换风险。

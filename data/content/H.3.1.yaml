@@ -1,0 +1,606 @@
+skill: H.3.1
+version: 2
+brief:
+  why: 从按键到 LED，从采样到电机。你将写出一块小芯片自己启动、定时工作、处理外界变化的程序。
+  outcomes:
+    - 用寄存器设置引脚方向并保留无关位
+    - 算定时和串口开销，选择合适的外设
+    - 分开中断和主程序，验证资源和功耗预算
+terms:
+  - term: 原子操作
+    def: 让更新不可分割地生效，或短暂屏蔽相关中断。
+  - term: 微控制器
+    def: 把 CPU、存储和外设集成在一颗芯片上的控制器。
+  - term: 裸机
+    def: 程序直接在硬件上运行，由自己组织工作。
+  - term: 内存映射 I/O
+    def: 将外设控制位置映射到 CPU 可用普通读写指令访问的地址。
+  - term: 二进制
+    def: 使用 0 和 1 两种符号表示数；每一位可以表示一个方向、开关或状态。
+  - term: GPIO
+    def: 可以配置为数字输入或输出的通用引脚。
+  - term: 上拉电阻
+    def: 在没有主动驱动时把引脚拉向高电平的电阻。
+  - term: 消抖
+    def: 把机械触点抖动的一连串变化合并成一次稳定事件。
+  - term: UART
+    def: 用约定的位速率和起止位交换串行数据的外设。
+  - term: ADC
+    def: 把输入电压按参考范围采样并量化成数字码的外设。
+  - term: DAC
+    def: 把数字码转为模拟量的器件。
+  - term: DMA
+    def: 用专门的硬件在外设与存储之间搬运数据。
+  - term: 有限状态机
+    def: 按当前状态和输入决定下一个状态及输出的模型。
+  - term: 预分频
+    def: 用整数倍率把输入时钟减慢后送给计数器的设置。
+  - term: 输出比较
+    def: 计数值与设定值匹配时触发输出事件的功能。
+  - term: 脉宽调制
+    def: 周期性开关信号，靠改变高电平所占时间控制平均作用。
+  - term: 输入捕获
+    def: 外部信号的指定边沿到来时把当前计数存下来的功能。
+  - term: 中断
+    def: 由硬件或系统事件触发、暂时改变 CPU 执行路径的机制。
+  - term: 中断服务程序
+    def: 为指定中断处理事件的短程序。
+lessons:
+  - id: bare-metal
+    chapter: 裸机程序
+    title: 复位之后谁来执行你的代码
+    minutes: 10
+    flow:
+      - guess:
+          id: bare-metal-guess
+          type: choice
+          prompt: 一块板子没有操作系统。上电之后，芯片能自己跑你存进去的程序吗？
+          options:
+            - text: 能，由芯片规定的复位入口启动
+              correct: true
+            - text: 不能，任何程序都要由操作系统启动
+              why: 芯片有硬件定义的复位行为。
+          explain: 只要启动位置和固件布置符合芯片约定。
+      - card:
+          title: 一颗芯片集成计算、存储和接口
+          body: >-
+            **微控制器（microcontroller, MCU）**把 CPU、存储和外设集成在一颗芯片上的控制器。 **裸机（bare metal）**程序直接在硬件上运行，由自己组织工作。
+            复位代码按芯片规则进入，准备运行 C 所需的数据和栈，再进 main。固件通常在断电不丢失的 Flash，运行数据多在 RAM。
+      - item:
+          id: bare-metal-2
+          type: order
+          prompt: 按这块 Cortex-M 板的裸机启动顺序排序。
+          steps:
+            - 芯片复位并进入复位处理代码
+            - 初始化运行数据
+            - 进入 main 运行应用
+          explain: 芯片从复位入口取得控制权，准备好 C 运行环境才能执行 main。
+      - card:
+          title: 用地址选外设，用位表达状态
+          body: >-
+            **内存映射 I/O（memory-mapped I/O）**将外设控制位置映射到 CPU 可用普通读写指令访问的地址。 外设位置由芯片手册决定。地址选中位置。**二进制（binary）**使用
+            0 和 1 两种符号表示数；每一位可以表示一个方向、开关或状态。C 可以先执行初始化，再用循环反复读输入和更新输出。
+      - item:
+          id: bare-metal-4
+          type: choice
+          prompt: 一个地址被芯片映射到串口发送位置。写入它可能产生什么效果？
+          options:
+            - text: 只会改变普通 RAM
+              why: 地址属于外设区域。
+            - text: 让串口开始送出数据
+              correct: true
+          explain: 这个位置连接的是外设，写入有硬件定义的效果。
+  - id: gpio
+    chapter: GPIO
+    title: 只改 LED 那一位
+    minutes: 10
+    flow:
+      - guess:
+          id: gpio-guess
+          type: choice
+          prompt: 灯接到第 5 脚，只想让这一脚输出。能把一整组引脚的方向全清成 0 再配置它吗？
+          options:
+            - text: 应该，每组只能有一脚工作
+              why: 一组引脚可同时服务多个电路。
+            - text: 应保留其他脚原有的设置
+              correct: true
+          explain: 同一组里可能还有别的器件。
+      - card:
+          title: 选好方向再驱动引脚
+          body: >-
+            **GPIO（general-purpose input/output）**可以配置为数字输入或输出的通用引脚。 输入用来读外界电平，输出用来驱动外部电路。接 LED
+            需串限流电阻并遵守引脚额定电流；面包板连接时先确认地线和内部连通排。
+      - item:
+          id: gpio-2
+          type: choice
+          prompt: 一枚外部开关负责提供电平，让板子读取。这一脚设成什么？
+          options:
+            - text: 输入
+              correct: true
+            - text: 强推高电平的输出
+              why: 会干扰输入读数，还可能形成过流。
+          explain: 需要读外部信号，避免输出与开关连接冲突。
+      - card:
+          title: 用掩码保留其他位
+          body: 用一个只有第 5 位为 1 的数选择该位。例中 DIR 和 OUT 是假想的可读写位置，初值 DIR=2、OUT=4，LED 高电平亮。真实地址、引脚功能和写入规则查芯片手册。
+          reveal:
+            - title: 构造选择位
+              body: 最低位编号 0；1u 左移 5 位得到 32。
+            - title: 设置方向
+              body: DIR |= 1u << 5。按位或只把被选位设成 1，DIR 变为 34。
+            - title: 置输出
+              body: OUT |= 1u << 5；OUT 变成 36，原来的其他位还在。
+      - item:
+          id: gpio-4
+          type: number
+          prompt: OUT 原值 8，执行 OUT |= 1u << 5 后值为多少（十进制）？
+          answer: 40
+          explain: 32 与 8 不同位，按位或得到 40。
+  - id: buttons
+    chapter: GPIO
+    title: 给松开的按键一个确定的读数
+    minutes: 10
+    flow:
+      - guess:
+          id: buttons-guess
+          type: choice
+          prompt: 开关松开后，输入脚悬空。能依赖它稳定读到低电平吗？
+          options:
+            - text: 不能，悬空时读数可能变化
+              correct: true
+            - text: 能，所有没接线的脚都是低
+              why: 实际电压受泄漏与干扰影响。
+          explain: 输入需要被拉到确定电平。
+      - card:
+          title: 按下为低、松开为高也很常见
+          body: >-
+            **上拉电阻（pull-up resistor）**在没有主动驱动时把引脚拉向高电平的电阻。 一端接电源，按键闭合把另一端拉到地。读到 0 表示按下；松开时上拉保持
+            1。用接地电位为参考，确认板子的有效电压范围。
+      - item:
+          id: buttons-2
+          type: choice
+          prompt: 开关接地，输入脚由电阻上拉。松开通常读什么？
+          options:
+            - text: '0'
+              why: 松开时接地路径断开。
+            - text: '1'
+              correct: true
+          explain: 闭合时才把输入拉到地。
+      - card:
+          title: 要求新的值持续出现
+          body: >-
+            **消抖（debouncing）**把机械触点抖动的一连串变化合并成一次稳定事件。 每 1 ms
+            读一次；不同于当前稳定值就把计数加一，相同就清零。连续达到门槛才改稳定值。确认时间取决于采样相位和门槛。
+          reveal:
+            - title: 从稳定高开始
+              body: 需要连续三次低。读到低、低、高，计数先到 2 又归零。
+            - title: 等待真正闭合
+              body: 后来连续低、低、低，才报告一次按下。
+      - item:
+          id: buttons-4
+          type: number
+          prompt: 稳定值为 1，要连续 3 次读到 0 才确认。依次读 0、0、1、0、0、0，第几次读数确认按下？
+          answer: 6
+          explain: 第 3 次清计数，新一轮直到第 6 次凑满 3 次。
+  - id: observe
+    chapter: 调试与资源限制
+    title: 先记录现象，再缩小故障范围
+    minutes: 10
+    flow:
+      - guess:
+          id: observe-guess
+          type: choice
+          prompt: 灯不亮，是程序没运行，还是灯没接好？只看灯能分出来吗？
+          options:
+            - text: 能，灯不亮就一定是程序坏了
+              why: 供电和接线也会造成相同现象。
+            - text: 不能，需要另一个可独立观察的现象
+              correct: true
+          explain: 不同原因可能有同样表象。
+      - card:
+          title: 先验证最短的一条链路
+          body: 先确认供电、地和烧录结果。让程序启动时翻转测试脚，示波器或逻辑分析仪可以观察动作；加断点和读寄存器可定位状态。断点会停止 CPU，实时故障可能随之消失或改变。
+      - item:
+          id: observe-2
+          type: order
+          prompt: 按逐步细化的顺序安排板上调试。
+          steps:
+            - 检查供电和复位
+            - 用小程序验证引脚
+            - 接入完整应用重现并测量故障
+          explain: 先独立确认基础条件，再缩到具体功能。
+      - card:
+          title: 给每一类空间留单独的账本
+          body: Flash 放代码和初始数据；RAM 放运行数据和栈。链接后的映射表能看各段占用；栈水位可估计已跑路径用过的空间，边界还要覆盖嵌套调用和硬件事件处理。按最坏情况留余量。
+      - item:
+          id: observe-4
+          type: number
+          prompt: RAM 共 8 KiB，静态数据占 3 KiB，为栈留 2 KiB，其他区域未分配。还余多少 KiB？
+          answer: 3
+          explain: 8−3−2=3 KiB；Flash 空间不能拿来替代 RAM。
+  - id: serial
+    chapter: 外设
+    title: 串口怎样把一个字节送出去
+    minutes: 10
+    flow:
+      - guess:
+          id: serial-guess
+          type: choice
+          prompt: 发送端比接收端快很多，持续往小暂存区塞数据。会一直正常吗？
+          options:
+            - text: 不会，暂存区迟早会满
+              correct: true
+            - text: 会，只要启动时暂存区是空的
+              why: 空位只能吸收有限的突发。
+          explain: 长时间看输入多于输出，积压会增加。
+      - card:
+          title: 没有共享时钟也能约定采样节奏
+          body: >-
+            **UART（universal asynchronous receiver/transmitter）**用约定的位速率和起止位交换串行数据的外设。
+            空闲为高，起始位提示接收方开始计时。双方预先约定速率和帧格式。8N1 每字节含 1 起始、8 数据、1 停止位。
+      - item:
+          id: serial-2
+          type: number
+          prompt: UART 配置 115200 波特、8N1，每位一个符号，帧紧接帧。每秒最多发多少数据字节？
+          answer: 11520
+          explain: 每字节传 10 位，115200÷10=11520。
+      - card:
+          title: 不同外设选择不同的同步方式
+          body: 显示屏也可走同步串口 SPI，由发送方提供时钟，再用片选指定哪块器件听。多设备共享两根线时常用 I²C，以地址选设备。程序可轮询就绪状态，也可让外设通知 CPU。
+      - item:
+          id: serial-4
+          type: choice
+          prompt: 同步屏幕的数据由一根额外的时钟线指示何时读取。哪种方式符合描述？
+          options:
+            - text: 8N1 UART
+              why: UART 按双方约定的位速率计时，没有独立时钟线。
+            - text: SPI
+              correct: true
+          explain: 共享时钟让接收端知道逐位采样的时刻。
+  - id: converters
+    chapter: 外设
+    title: 从电压到数字，再从数字回到电压
+    minutes: 10
+    flow:
+      - guess:
+          id: converters-guess
+          type: choice
+          prompt: 光敏器件输出电压可平滑变化，小芯片能把它直接当作唯一的开关位吗？
+          options:
+            - text: 可以，一个高低位能保留所有亮度
+              why: 一个位最多两种取值。
+            - text: 要保留亮度程度，需把电压分级读出
+              correct: true
+          explain: 单个高低位只能区分两个状态。
+      - card:
+          title: 按参考范围给读数编号
+          body: >-
+            **ADC（analog-to-digital converter）**把输入电压按参考范围采样并量化成数字码的外设。 题中采用码宽 Vref/2^N 的理想模型。TM4C123
+            一类芯片可由定时器等触发序列，转换后软件读结果；实际码与引脚范围看手册。
+          reveal:
+            - title: 定码宽
+              body: 理想 8 位、Vref=2.56 V，256 级，每级 0.01 V。
+            - title: 求编号
+              body: 0.91 V 进入第 91 级，端点饱和到可用码范围。
+      - item:
+          id: converters-2
+          type: number
+          prompt: 用 8 位 ADC，参考 2.56 V，理想向下取整且未饱和。输入 1.28 V，输出码是多少？
+          answer: 128
+          explain: 每级 0.01 V，1.28/0.01=128。
+      - card:
+          title: 发送大量结果时让专用硬件搬数据
+          body: >-
+            **DAC（digital-to-analog converter）**把数字码转为模拟量的器件。 可用电阻网络或专用器件输出阶梯电压。**DMA（direct memory
+            access）**用专门的硬件在外设与存储之间搬运数据。 它能降低 CPU 每笔搬运的开销，仍须管好缓冲区何时归谁用。
+      - item:
+          id: converters-4
+          type: choice
+          prompt: 固定节奏采样，CPU 只想处理已经装满的一整批。可以让哪个部件把每个结果搬进 RAM？
+          options:
+            - text: DMA
+              correct: true
+            - text: DAC
+              why: 它负责数模转换，不能负责搬运。
+          explain: 先配置搬运与完成通知，再由 CPU 处理满批。
+  - id: state-machine
+    chapter: 外设
+    title: 按表驱动步进电机的动作
+    minutes: 10
+    flow:
+      - guess:
+          id: state-machine-guess
+          type: choice
+          prompt: 电机要反复走一组固定的接线图样。每拍只记现在用哪一项，能找出下一项吗？
+          options:
+            - text: 可以，按顺序循环查表
+              correct: true
+            - text: 不能，要存下所有过去的动作
+              why: 固定循环只依赖当前项。
+          explain: 把当前项存下来就能推进。
+      - card:
+          title: 把控制规则和电气驱动分开
+          body: '**有限状态机（finite-state machine）**按当前状态和输入决定下一个状态及输出的模型。 用表存每个状态的输出和下一项。电机线圈要由能承担电流的驱动器供电，MCU 只给控制信号。'
+      - item:
+          id: state-machine-2
+          type: choice
+          prompt: 四步模式 A、B、C、D 反复播放。当前为 D、方向为正，下一步是什么？
+          options:
+            - text: C
+              why: C 对应倒序行进的一步。
+            - text: A
+              correct: true
+          explain: 走到末项后回到表头。
+      - card:
+          title: 固定间隔更新输出
+          body: 可以由定时事件推进，每次只送一个表项，然后回到其他工作。步间隔过短时，转子可能跟不上。控制代码要能把停止指令转成安全的输出。
+      - item:
+          id: state-machine-4
+          type: choice
+          prompt: 电机跟不上过快的步进命令。先改变什么最直接？
+          options:
+            - text: 增加表项的字节宽度
+              why: 字节宽度不会增加机械反应速度。
+            - text: 延长步与步之间的间隔
+              correct: true
+          explain: 给机械部分更多时间跟上。
+  - id: timer
+    chapter: 定时器
+    title: 从计数频率推到比较值
+    minutes: 10
+    flow:
+      - guess:
+          id: timer-guess
+          type: choice
+          prompt: 一只计数器从 0 数到 3，两端都计在内。走过几个计数位置？
+          options:
+            - text: '3'
+              why: 还包括初始位置 0。
+            - text: '4'
+              correct: true
+          explain: 顺次是 0、1、2、3。
+      - card:
+          title: 先把时钟除慢，再计算每次要数多久
+          body: '**预分频（prescaler）**用整数倍率把输入时钟减慢后送给计数器的设置。 若周期从 0 数到比较值并重新开始，N 个计数对应比较值 N−1。寄存器字段实际怎样编码要查芯片说明。'
+          reveal:
+            - title: 求计数速度
+              body: 16 MHz 除以 64 得 250 kHz。
+            - title: 求计数次数
+              body: 1 ms 要经过 250 个计数。
+            - title: 确定上界
+              body: 从 0 数起，所以最后一个数是 249。
+      - item:
+          id: timer-2
+          type: number
+          prompt: 定时器输入 8 MHz，预分频 8，向上计数 0 到比较值后重装。500 μs 周期应设比较值多少？
+          answer: 499
+          explain: 频率为 1 MHz，500 μs 需要 500 次计数，比较值减一。
+      - card:
+          title: 等待固定时刻和占着 CPU 等是两回事
+          body: Cortex-M 的 SysTick 可按装入值周期倒数。若用轮询读计数器，可以检查差值而非猜循环耗时；由硬件定期发通知则可让 CPU 在两次事件间做别的工作或睡眠。
+      - item:
+          id: timer-4
+          type: number
+          prompt: 计数频率 250 kHz，计 250 个计数。间隔多少毫秒？
+          answer: 1
+          explain: 250 除以每秒 250000 次，得到 0.001 s。
+  - id: pwm-capture
+    chapter: 定时器
+    title: 用同一类计数器做输出和测量
+    minutes: 10
+    flow:
+      - guess:
+          id: pwm-capture-guess
+          type: choice
+          prompt: 每 10 格时间有 3 格让灯亮，其余熄灭。亮着的时间占多少百分比？
+          options:
+            - text: 30%
+              correct: true
+            - text: 70%
+              why: 这是熄灭的时间比例。
+          explain: 3 除以 10 再换成百分数。
+      - card:
+          title: 到特定计数值自动换输出
+          body: >-
+            **输出比较（output compare）**计数值与设定值匹配时触发输出事件的功能。 **脉宽调制（pulse width modulation,
+            PWM）**周期性开关信号，靠改变高电平所占时间控制平均作用。 高电平时间除以周期叫占空比。
+      - item:
+          id: pwm-capture-2
+          type: number
+          prompt: 一个周期 100 个计数，高电平恰好 25 个计数。占空比是多少百分比？
+          answer: 25
+          explain: 25/100 转为百分数。
+      - card:
+          title: 外部变化也可以让硬件记时刻
+          body: '**输入捕获（input capture）**外部信号的指定边沿到来时把当前计数存下来的功能。 两个相同方向的边沿相减可得周期；跨回卷时按计数模数计算。先确认两次边沿间至多经过一个计数范围。'
+      - item:
+          id: pwm-capture-4
+          type: number
+          prompt: 计数器模数 256，每个计数 1 μs。两次上升沿捕获得 250、14，间隔小于 256 μs。间隔多少 μs？
+          answer: 20
+          explain: 先到回卷还需 6 个计数，回卷后再过 14 个，合计 20。
+  - id: interrupts
+    chapter: 中断
+    title: 接到通知时先保住事件
+    minutes: 10
+    flow:
+      - guess:
+          id: interrupts-guess
+          type: choice
+          prompt: 主程序正忙，外面只发一个短脉冲。一直等主程序空闲再读引脚会有什么风险？
+          options:
+            - text: 必然看到所有短脉冲
+              why: 读引脚只观察当时的电平。
+            - text: 可能错过已结束的脉冲
+              correct: true
+          explain: 轮询间隔长于脉冲时，两次读取都可能没看见。
+      - card:
+          title: 由事件改变 CPU 的执行路径
+          body: >-
+            **中断（interrupt）**由硬件或系统事件触发、暂时改变 CPU 执行路径的机制。 **中断服务程序（interrupt service routine,
+            ISR）**为指定中断处理事件的短程序。 Cortex-M 的 NVIC 管理使能、挂起和优先级，中断入口表把编号映射到入口。外部事件可设置为上升或下降沿触发。
+      - item:
+          id: interrupts-2
+          type: match
+          prompt: 把处理动作配给相应位置。
+          pairs:
+            - - 入口表
+              - 找到对应入口
+            - - NVIC
+              - 管理使能和优先级
+            - - ISR
+              - 按手册应答并记录事件
+          explain: 入口表给出处理位置，控制器处理优先级，处理程序接触实际外设。
+      - card:
+          title: 处理程序越短，其他事件越少等待
+          body: 先按外设手册确认和清除事件，保存必要信息，把慢工作交给主程序。优先级更高的通知可能打断当前处理；不用等待一个只有被自己打断的主程序才能完成的操作。
+      - item:
+          id: interrupts-4
+          type: choice
+          prompt: 检测到按键边沿，屏幕刷新耗时很久。ISR 应怎样做？
+          options:
+            - text: 确认事件并记录，刷新交给主程序
+              correct: true
+            - text: 在 ISR 里做完整刷新再退出
+              why: 长期占用处理会延迟别的事件。
+          explain: 让其他事件也能及时获得处理。
+  - id: shared
+    chapter: 中断
+    title: 共享状态要有交接规则
+    minutes: 10
+    flow:
+      - guess:
+          id: shared-guess
+          type: choice
+          prompt: 主程序读一个计数、加一、再写回，中间能被另一个更新者打断。两次加一一定都保留吗？
+          options:
+            - text: 不一定，后写者可能盖掉另一次更新
+              correct: true
+            - text: 一定，两处都写了加一
+              why: 各自算出的新值可能相同。
+          explain: 读到的旧值可能已经过时。
+      - card:
+          title: 访问设备和防止并发覆盖是两件事
+          body: >-
+            在 C 中用 volatile 修饰内存映射位置，使编译器按语义保留这些可观察访问。它无法把读取、计算、写回合成一个不可分割的动作。共享计数要用芯片支持的**原子操作（atomic
+            operation）**让更新不可分割地生效，或短暂屏蔽相关中断。
+          reveal:
+            - title: 主程序先读
+              body: 共享值为 0，主程序准备加一。
+            - title: 被打断
+              body: ISR 也读到 0，写 1。
+            - title: 返回后写回
+              body: 主程序写 1，两次请求只留下一个增量。
+      - item:
+          id: shared-2
+          type: number
+          prompt: 共享值最初为 5。主程序读取 5 后被 ISR 打断；ISR 将值加一。主程序恢复后把之前读到的 5 加一写回。最后是多少？
+          answer: 6
+          explain: 两次都从 5 算出 6，覆盖掉一个增量。
+      - card:
+          title: 交接要选对粒度
+          body: 只需记是否发生过，常用一个待处理标志；每次都要记时，需要计数或队列。多字节共享数据在窄总线上可能读到一半被改写。单核可保存原中断使能状态、短时屏蔽相关中断、读写后恢复。
+      - item:
+          id: shared-4
+          type: choice
+          prompt: 需要逐个保存每次到达的按键事件，单个真假标志有什么不足？
+          options:
+            - text: 真假标志会自动累积次数
+              why: 它无法表达多个未处理事件。
+            - text: 两次事件可合并成同一个真值
+              correct: true
+          explain: 应选有界队列或计数，并处理满了的情况。
+  - id: sleep
+    chapter: 调试与资源限制
+    title: 在空闲时间真正让硬件休息
+    minutes: 10
+    flow:
+      - guess:
+          id: sleep-guess
+          type: choice
+          prompt: 每秒只测一次温度，其余时候一直检查是否到点。可以怎样省能量？
+          options:
+            - text: 把所有外设都开着等待
+              why: 开启无关外设也会有开销。
+            - text: 让硬件计时，等事件唤醒 CPU
+              correct: true
+          explain: CPU 无需在空闲时不停执行读取。
+      - card:
+          title: 低功耗从工作时间和每种状态一起算
+          body: 选择能满足唤醒时间的睡眠状态，保留需要的时钟和唤醒源，关闭不用的外设时钟。较深的睡眠可能停用一些时钟或存储，得逐项查手册。短而固定的等待、无需省电时，轮询也可能最简单。
+      - item:
+          id: sleep-2
+          type: choice
+          prompt: 若外部按钮要负责唤醒，进入睡眠前先确认什么？
+          options:
+            - text: 该睡眠状态仍支持所用引脚唤醒
+              correct: true
+            - text: 所有时钟一律关闭
+              why: 有些状态需要保留用于唤醒的硬件。
+          explain: 否则即使按钮有变化，CPU 也接不到唤醒。
+      - card:
+          title: 平均电流按时间加权
+          body: 若每周期 10% 时间用 11 mA、90% 用 1 mA，平均电流为 0.1×11+0.9×1=2 mA。真实设备还应计唤醒和关断过渡。
+      - item:
+          id: sleep-4
+          type: number
+          prompt: 一秒内有 20% 时间用 9 mA，其余用 1 mA。忽略过渡，平均电流多少 mA？
+          answer: 2.6
+          explain: 0.2×9+0.8×1=2.6 mA。
+boss:
+  items:
+    - id: challenge-1
+      type: order
+      prompt: 板子复位后进入裸机应用，排出操作。
+      steps:
+        - 处理复位
+        - 初始化 C 运行环境
+        - 运行 main
+      explain: C 的启动环境要在应用执行前准备好。
+    - id: challenge-2
+      type: number
+      prompt: 方向寄存器初值为 2，执行 DIR |= 1u << 5 后是多少？
+      answer: 34
+      explain: 选中的第 5 位值为 32，原来的第 1 位仍为 2。
+    - id: challenge-3
+      type: choice
+      prompt: 按下会丢事件，但打断点时现象改变。要无停顿地观察外部脉冲宽度，用什么？
+      options:
+        - text: 示波器或逻辑分析仪
+          correct: true
+        - text: 让 CPU 在断点长时间停住
+          why: 暂停会改变事件之间的时间关系。
+      explain: 可以在程序运行时观察引脚。
+    - id: challenge-4
+      type: number
+      prompt: UART 115200 波特、8N1，一位对应一个符号。帧无间隔时每秒最多发多少数据字节？
+      answer: 11520
+      explain: 每字节需十位，115200/10。
+    - id: challenge-5
+      type: number
+      prompt: 16 MHz 经 64 分频，从 0 到比较值循环。每 1 ms 一次，比较值是多少？
+      answer: 249
+      explain: 每毫秒 250 次计数，从 0 数到 249。
+    - id: challenge-6
+      type: choice
+      prompt: ISR 与主程序会对共享计数做读取后加一再写回。怎样防止丢更新？
+      options:
+        - text: 只把计数声明为 volatile
+          why: 可观察访问仍是分开的动作，可能被交错。
+        - text: 使用该平台支持的原子操作或短时屏蔽相关中断
+          correct: true
+      explain: 保护整个复合动作。
+    - id: challenge-7
+      type: number
+      prompt: 采样连续三次同样的新值才改变。原值为 1，序列为 0、1、0、0、0，第几次确认新值？
+      answer: 5
+      explain: 第 2 次清除计数，从第 3 次起连续三次。
+    - id: challenge-8
+      type: choice
+      prompt: 休眠后要能按时醒来采集。哪项合理？
+      options:
+        - text: 禁用全部唤醒源
+          why: 系统到时也无法醒来。
+        - text: 保留支持唤醒的计时硬件，关闭无关时钟
+          correct: true
+      explain: 保留必要服务并减少空闲消耗。

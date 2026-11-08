@@ -1,0 +1,114 @@
+{
+  "_doc": "广告向的台词（草稿 v1，2026-11-05）。who：blue = 鲸鱼姐姐（活泼），black = 鲸鱼妹妹（沉稳），both = 两人一起（各合成一条再叠）。sample: true 的是样片要用的几句。每句对得上游戏的依据写在 docs/promo-video-v2.md 的“广告向”一节。 mark：屏幕大字里换颜色强调的词。 batch：Breeze 整批合成时同一批的句子会互相影响（同样的种子、换了同批的句子，出来的声音就不一样），所以按 batch 分组合成；样片那 4 句是单独一批，用户试听认可过，别并进别的批。",
+  "lines": [
+    {
+      "id": "a01",
+      "who": "blue",
+      "text": "这些……全都要学？",
+      "sample": true,
+      "mark": "全都",
+      "batch": "sample"
+    },
+    {
+      "id": "a02",
+      "who": "black",
+      "text": "一口气当然学不完。",
+      "sample": true,
+      "mark": "一口气",
+      "batch": "sample"
+    },
+    {
+      "id": "a03",
+      "who": "black",
+      "text": "一天一小课，几分钟就够。",
+      "sample": true,
+      "mark": "一天一小课",
+      "batch": "sample"
+    },
+    {
+      "id": "a04",
+      "who": "blue",
+      "text": "几分钟？那我也行！",
+      "sample": true,
+      "mark": "几分钟",
+      "batch": "sample"
+    },
+    {
+      "id": "a05",
+      "who": "blue",
+      "text": "先猜一个……啊，错了。",
+      "mark": "错了",
+      "batch": "main"
+    },
+    {
+      "id": "a06",
+      "who": "black",
+      "text": "猜错不扣分，讲解会告诉你错在哪。",
+      "mark": "不扣分",
+      "batch": "main"
+    },
+    {
+      "id": "a07",
+      "who": "blue",
+      "text": "明天我还来！",
+      "mark": "明天",
+      "batch": "main"
+    },
+    {
+      "id": "a08",
+      "who": "black",
+      "text": "整个专业要学什么、先学什么，都画在这棵技能树上。",
+      "mark": "技能树",
+      "batch": "main"
+    },
+    {
+      "id": "a09",
+      "who": "blue",
+      "text": "每一章还写了，去哪本书接着学。",
+      "mark": "去哪本书",
+      "batch": "main"
+    },
+    {
+      "id": "a10",
+      "who": "blue",
+      "text": "两个线程各加一……怎么还是一？",
+      "mark": "还是一",
+      "batch": "main"
+    },
+    {
+      "id": "a11",
+      "who": "black",
+      "text": "顺序排错了，就会这样。这叫竞态。",
+      "mark": "竞态",
+      "batch": "main"
+    },
+    {
+      "id": "a12",
+      "who": "black",
+      "text": "最后考过结业挑战，这颗星才算点亮。",
+      "mark": "点亮",
+      "batch": "a12"
+    },
+    {
+      "id": "a13",
+      "who": "both",
+      "text": "计算机大学习！",
+      "mark": "计算机大学习",
+      "batch": "main"
+    },
+    {
+      "id": "a14",
+      "who": "black",
+      "text": "免费，不商用，源码公开。下载看简介。",
+      "mark": "免费",
+      "batch": "main"
+    },
+    {
+      "id": "a15",
+      "who": "blue",
+      "text": "今天的大学习，打卡了吗？",
+      "mark": "打卡",
+      "batch": "main"
+    }
+  ]
+}

@@ -1,0 +1,1793 @@
+skill: P.4.3
+version: 2
+brief:
+  why: 把一个需求变成可验证、能修改的软件设计。从下单与报表出发，练习给对象分职责、画协作和故障路径，再选择模式或小步重构。
+  outcomes:
+    - 按业务规则和变化方向分配对象职责
+    - 选择 UML 视图并写明接口的成功、失败与重试约定
+    - 区分常见模式，在保留外部行为的前提下重构
+terms:
+  - term: 信息专家
+    def: 优先把职责交给掌握必要信息的对象。
+  - term: 创建者
+    def: 选择拥有初值或紧密管理新对象的一方承担创建。
+  - term: 控制器
+    def: 接收系统操作并组织业务协作的对象。
+  - term: 内聚
+    def: 一个单元的职责彼此相关的程度。
+  - term: 耦合
+    def: 一个单元依赖其他单元及其变化的程度。
+  - term: 间接性
+    def: 经由中间对象隔离两个部分的直接依赖。
+  - term: 变化预防
+    def: 为易变的一侧建立较稳定的契约。
+  - term: 纯虚构
+    def: 引入没有对应业务实体、但能承接清晰职责的设计对象。
+  - term: 实体
+    def: 靠身份辨认、可随时间改变状态的业务对象。
+  - term: 值对象
+    def: 以属性值而非独立身份辨认的对象。
+  - term: 限界上下文
+    def: 同一套业务语言与模型适用的边界。
+  - term: 聚合
+    def: 一组由根对象控制、共同维护规则的对象。
+  - term: UML
+    def: 统一建模语言，用约定图形表达模型。
+  - term: 契约
+    def: 接口对调用条件、可观察结果和失败方式的约定。
+  - term: 依赖倒置
+    def: 让规则与实现细节通过抽象建立依赖方向。
+  - term: 依赖注入
+    def: 由对象外部提供其需要的协作者。
+  - term: 里氏替换
+    def: 替换后的实现仍兑现父类型的可观察约定。
+  - term: 工厂方法
+    def: 通用流程调用可由子类提供的对象创建方法。
+  - term: 抽象工厂
+    def: 用同一工厂接口创建一族匹配的产品。
+  - term: 建造者
+    def: 逐步配置对象并统一构建结果的模式。
+  - term: 原型
+    def: 以现成对象为模板复制出新对象的模式。
+  - term: 单例
+    def: 在特定范围内约束实例数并提供访问入口的模式。
+  - term: 适配器
+    def: 把已有对象转换为客户需要的接口。
+  - term: 外观
+    def: 为一组子系统提供较简单的统一入口。
+  - term: 代理
+    def: 用同一接口控制对实际对象的访问。
+  - term: 桥接
+    def: 让抽象与它的实现分别扩展的结构。
+  - term: 装饰器
+    def: 包裹相同接口以附加可组合行为。
+  - term: 组合模式
+    def: 让树形结构中的单件和容器通过共同接口协作。
+  - term: 享元
+    def: 共享重复的内部状态，保留对象各自的外部状态。
+  - term: 策略
+    def: 用共同接口切换不同做法。
+  - term: 模板方法
+    def: 父类定义过程骨架，由子类实现部分步骤。
+  - term: 观察者
+    def: 向已注册的对象发布主体变化。
+  - term: 命令
+    def: 把一次操作及其必要输入封装成对象。
+  - term: 责任链
+    def: 请求依次经过候选处理器，各处理器决定是否接手或继续。
+  - term: 迭代器
+    def: 保存访问位置并依次给出元素。
+  - term: 访问者
+    def: 让一组稳定的元素类型通过接收访问者获得新操作。
+  - term: 状态模式
+    def: 由当前状态对象承担依赖状态的行为。
+  - term: 备忘录
+    def: 由对象保存和恢复内部状态的快照。
+  - term: 中介者
+    def: 集中管理一组对象间的协作。
+  - term: 代码坏味
+    def: 提示可能需要进一步检查的维护线索。
+  - term: 重构
+    def: 调整内部结构并保留可观察行为。
+  - term: 设计思维
+    def: 从使用情境理解问题，用候选方案与反馈迭代。
+  - term: 视图
+    def: 为回答某类设计问题而选取的模型表示。
+lessons:
+  - id: context
+    chapter: 职责分配
+    title: 从用户要完成的事推到设计边界
+    minutes: 13
+    flow:
+      - guess:
+          id: context-guess
+          type: choice
+          prompt: 店员说缺货订单不能扣款。讨论方案时，哪件事应先写清？
+          options:
+            - text: 缺货时系统应怎样回应，以及用户会看到什么
+              correct: true
+            - text: 先挑一个数据库，再让流程适应它
+              why: 先选存储还不能回答缺货应产生的结果。
+          explain: 用一个能观察到的场景检验对需求的理解。
+      - card:
+          title: 从场景出发，画出候选方案再验证
+          body: '**设计思维（design thinking）**从使用者和问题出发，提出候选方案，再用反馈修正。可以用纸面订单流做原型，让店员走一遍缺货和支付失败。团队技能、已有系统、合规和交付期限都是上下文。'
+      - item:
+          id: context-practice
+          type: choice
+          prompt: 同一订单也可能遇到支付网关迟迟不回复。用什么先验证客服和用户能否理解处理方式？
+          options:
+            - text: 只测成功下单，推定超时体验一样
+              why: 用户需要知道是否要重试或等待确认。
+            - text: 写出超时情境，试演用户看到的状态与后续查询
+              correct: true
+          explain: 把未确定的体验放进早期设计反馈。
+      - card:
+          title: 概要设计先定分块，详细设计再定协作细节
+          body: 概要设计划出订单、库存、支付等组件，说明它们互相提供哪些服务。详细设计再决定每个组件中的类、调用顺序、数据和错误处理。可维护性、延迟、故障恢复等要求也要在设计阶段有对应的验证办法。
+      - item:
+          id: context-apply
+          type: choice
+          prompt: 团队正在决定库存服务公开哪些操作，还未选库存记录的内部字段。这属于哪类工作？
+          options:
+            - text: 详细设计，已经定好库存类的字段与实现
+              why: 题设说内部细节还未确定。
+            - text: 概要设计，先定组件边界和交互
+              correct: true
+          explain: 先定组件之间要承诺什么，随后细化内部实现。
+  - id: ownership
+    chapter: 职责分配
+    title: 谁握有计算所需的信息，谁负责规则
+    minutes: 13
+    flow:
+      - guess:
+          id: ownership-guess
+          type: choice
+          prompt: 订单行已经持有单价和件数。谁最适合算这一行的小计？
+          options:
+            - text: 支付客户端去读取所有订单行的字段
+              why: 支付客户端需要付款金额，小计规则属于订单侧。
+            - text: 订单行自己
+              correct: true
+          explain: 先找已经知道必要信息的对象。
+      - card:
+          title: 把规则交给信息专家，把创建交给合适的拥有者
+          body: >
+            GRASP 是一组职责分配原则。**信息专家（Information
+            Expert）**指拥有必要信息的对象，例如订单行计算小计、订单汇总各行。**创建者（Creator）**常是包含、记录、紧密使用新对象或已掌握初值的一方，例如订单根据商品、数量创建订单行。
+
+
+            ```java
+
+            record OrderLine(int unitCents, int quantity) {
+                int subtotal() {
+                    return Math.multiplyExact(unitCents, quantity);
+                }
+            }
+
+            OrderLine line = new OrderLine(300, 3);
+
+            System.out.println(line.subtotal());
+
+            // expect: 900
+
+            ```
+      - item:
+          id: ownership-practice
+          type: choice
+          prompt: 订单已经持有全部订单行。谁汇总行小计更符合信息专家原则？
+          options:
+            - text: 订单
+              correct: true
+            - text: 每一行都去找其他行来计算订单总额
+              why: 单行只知道自己的信息，订单已经掌握集合。
+          explain: 把行规则和汇总规则分在各自拥有数据的对象。
+      - card:
+          title: 控制器接收系统事件，业务对象维护规则
+          body: '**控制器（Controller）**接收系统级操作并协调业务对象，可代表一个用例。**内聚（cohesion）**看一个单元的责任有多相关；**耦合（coupling）**看它对其他单元知道多少、变动会牵连多少。控制器如果自己算价格、改库存、发账单，通常该下放职责。'
+      - item:
+          id: ownership-apply
+          type: choice
+          prompt: 订单入口目前解析请求、计算折扣并读库存表。哪项调整最贴合 GRASP？
+          options:
+            - text: 入口处理请求并委托下单服务，价格和库存规则由对应对象负责
+              correct: true
+            - text: 把折扣复制进每个入口以减少调用
+              why: 复制规则会让接口改动与业务改动继续混在一起。
+          explain: 分出协调和规则，保持职责集中与依赖明确。
+  - id: grasp
+    chapter: 职责分配
+    title: 用稳定边界接住会变的合作方
+    minutes: 13
+    flow:
+      - guess:
+          id: grasp-guess
+          type: choice
+          prompt: 合作方每季度调整支付字段。怎样让订单规则免于理解每一版字段？
+          options:
+            - text: 在订单与支付方之间放稳定的支付契约和转换对象
+              correct: true
+            - text: 让订单规则直接读每家支付的字段
+              why: 支付方变动就会扩散进订单规则。
+          explain: 先明确变化集中在哪里。
+      - card:
+          title: 用间接对象保护变化，用多态处理变体
+          body: >-
+            GRASP 的**间接性（Indirection）**通过中间对象降低直接依赖。**变化预防（Protected
+            Variations）**在变化点周围建立稳定契约。多态（Polymorphism）把不同实现交给各变体，例如钱包与银行卡都兑现同一个支付操作。
+      - item:
+          id: grasp-practice
+          type: match
+          prompt: 把设计动作配给它最直接体现的职责原则。
+          pairs:
+            - - 用统一契约隔离支付厂商字段变化
+              - 变化预防
+            - - 新增中间对象翻译订单与外部支付的表示
+              - 间接性
+            - - 钱包与银行卡各实现共同的支付操作
+              - 多态
+          explain: 同一个设计可同时体现多个原则，这里分别看契约、转接位置与行为选择。
+      - card:
+          title: 业务概念与实现辅助类各有位置
+          body: >-
+            订单、商品是应用类；支付适配和数据库读取通常属于解决方案类。GRASP 的**纯虚构（Pure
+            Fabrication）**给没有对应业务实体的辅助对象分配职责，例如设一个报表读取对象，避免订单理解查询语句。辅助对象也要有清楚边界。
+      - item:
+          id: grasp-apply
+          type: choice
+          prompt: 商品对象里塞入创建文件、序列化和上传的代码。哪项安排更能保持商品职责聚焦？
+          options:
+            - text: 把商品类改名为 ProductHelper 并保留原样
+              why: 换名字不会分离互不相关的职责。
+            - text: 把文件输出与上传移到职责明确的辅助对象
+              correct: true
+          explain: 用辅助类承接实现工作，保留商品上的业务规则。
+  - id: domain
+    chapter: 职责分配
+    title: 先用业务词建模，再划词义的边界
+    minutes: 13
+    flow:
+      - guess:
+          id: domain-guess
+          type: choice
+          prompt: 销售说订单已完成，仓库说同一订单仍待发货。两个说法是否一定矛盾？
+          options:
+            - text: 同一个词在全公司必须用同一个状态
+              why: 支付完成和出库完成是不同流程的结果。
+            - text: 要先核对两个团队的「完成」分别指什么
+              correct: true
+          explain: 先把词放回负责这项业务的场景。
+      - card:
+          title: 先找实体和值，再记录本地语言
+          body: >-
+            领域驱动设计（DDD）让设计围绕业务规则和团队共同使用的语言。**实体（entity）**靠身份跨时间辨认，例如同一订单改了收货地点仍是它；**值对象（value
+            object）**靠值辨认，例如金额和币种组合。先用业务词画关系，再决定技术类。
+      - item:
+          id: domain-practice
+          type: choice
+          prompt: 两笔不同订单恰好都应付 300 分，币种也相同。身份和值应怎样比较？
+          options:
+            - text: 订单按各自身份区分，金额可按值相等
+              correct: true
+            - text: 订单都相同，因为金额相等
+              why: 金额相同不能合并订单编号和生命周期。
+          explain: 实体身份与值对象的相等规则服务于不同需求。
+      - card:
+          title: 限界上下文定义词义，聚合明确维护规则的边界
+          body: >-
+            **限界上下文（bounded
+            context）**规定一套模型在哪个范围内有效，可由明确消息对接其他上下文。**聚合（aggregate）**把需一起维护业务规则的一组对象放在边界内，从聚合根执行修改。例如外部通过订单修改行项。
+      - item:
+          id: domain-apply
+          type: choice
+          prompt: 仓储把「已完成」解释为出库，收款把它解释为扣款确认。怎样跨边界传结果更清楚？
+          options:
+            - text: 跨团队复用一个含义随场景变化的 completed 字段
+              why: 接收方无法从字段判断发生了哪件事。
+            - text: 发出明确命名的支付已确认、订单已出库事件
+              correct: true
+          explain: 消息要表达具体事实，接收方按自己的业务规则解释。
+  - id: design-loop
+    chapter: 职责分配
+    title: 从候选类走到能逐步验证的设计
+    minutes: 13
+    flow:
+      - guess:
+          id: design-loop-guess
+          type: choice
+          prompt: 需求写「系统把商品交给客户」。应把句中每个名词都变成类吗？
+          options:
+            - text: 先当作候选，检查是否需要独立身份、规则或协作
+              correct: true
+            - text: 必须为每个名词创建类并逐一保存
+              why: 有些名词只是属性、角色或技术环境。
+          explain: 让设计对象有清楚的职责和存在理由。
+      - card:
+          title: 从用例找候选类，再走一遍对象协作
+          body: 先确定用户目标、约束和失败路径，再列候选对象、职责和协作者。通过时序走查核对每条消息的接收者是否有必要信息。调整类后用小实现和测试验证，最后补齐接口、状态与失败处理。模型会随证据更新。
+          reveal:
+            - title: 写业务情境
+              body: 库存不足时拒绝下单，支付不应被调用。
+            - title: 试分职责
+              body: 下单入口转交服务；库存判断是否可预留，服务据结果决定下一步。
+            - title: 做可复查的检查
+              body: 替换支付实现并记录调用次数。试走缺货路径，预期零次。
+      - item:
+          id: design-loop-practice
+          type: order
+          prompt: 给一个新用例设计可验证的实现，按合理的初次工作顺序排列。
+          steps:
+            - 明确目标和关键失败情境
+            - 列候选对象并分配职责
+            - 走查消息与状态变化
+            - 实现小切片并用测试校对设计
+          explain: 新证据可能让团队回到前面的步骤修改候选与职责。
+      - card:
+          title: 文档深度按影响和沟通需求决定
+          body: 轻量设计把设计、编码和验证交织起来，图与约定随迭代更新。偏重型流程会在编码前详细规定模型和接口，适用于协调成本高、难回退或有审计约束的场合。无论采用哪种深度，都要据实现和验证结果更新设计记录。
+      - item:
+          id: design-loop-apply
+          type: choice
+          prompt: 库存要切换为多个团队共用的系统，失败会影响收款。哪些信息更值得提前记录？
+          options:
+            - text: 接口状态、失败与恢复约定，以及选择它们的理由
+              correct: true
+            - text: 只记录项目名称，其余留给每个团队猜
+              why: 跨团队时错误语义不明确会放大返工。
+          explain: 设计记录应覆盖影响最大的约定。
+  - id: classes
+    chapter: UML
+    title: 用类图标关系，用对象图核对一个时刻
+    minutes: 13
+    flow:
+      - guess:
+          id: classes-guess
+          type: choice
+          prompt: 想检查这张订单是不是刚好含两行。要看所有订单的建模规则，还是画这张订单当下的实例？
+          options:
+            - text: 只用类名列表就能数出实际两行
+              why: 类名描述类型，不列出某次运行的实例。
+            - text: 画这张订单和两行的对象图
+              correct: true
+          explain: 结构规则和某一时刻的实际状态各有对应的图。
+      - card:
+          title: 类框写状态和操作，线端写多重性
+          body: >
+            **UML（Unified Modeling Language）**是一套描述模型的记法。**视图（design
+            view）**是为回答一个问题而挑出的模型表示。类图方框常分为名称、属性、操作。关联连接有关系的类；端点的多重性说另一端的一个实例能关联这里几个实例。图中的实心菱形位于组合的整体端。
+
+
+            ```text
+
+            Order  1 ◆──────── 1..*  OrderLine
+
+
+            Order: orderId, total()
+
+            OrderLine: quantity, subtotal()
+
+            ```
+      - item:
+          id: classes-practice
+          type: choice
+          prompt: 已知类图写成 Customer 1 —— 0..* Order。对某个 Customer，允许有几份 Order？
+          options:
+            - text: 零份或多份
+              correct: true
+            - text: 必须正好一份
+              why: Customer 端的 1 约束每份 Order 对应的客户数。
+          explain: 从已知实例读向另一端的数字。
+      - card:
+          title: 区分长期关系、临时使用和类型关系
+          body: >-
+            实线空心三角指向父类，是泛化；虚线空心三角指向接口，是实现；普通依赖常画成指向被使用者的虚线箭头。组合描述强拥有，组成部分同时至多有一个组合整体。对象图可写
+            `o7:Order`，连接当时存在的具体对象。
+      - item:
+          id: classes-apply
+          type: match
+          prompt: 把关系配给最直接的 UML 记法。
+          pairs:
+            - - 实现支付接口
+              - 虚线空心三角指向接口
+            - - 会员继承客户基类
+              - 实线空心三角指向父类
+            - - 订单强拥有订单行
+              - 实心菱形放在订单一端
+          explain: 先确定语义，再挑线型和箭头。
+  - id: sequence
+    chapter: UML
+    title: 从预留到扣款，把失败分支画出来
+    minutes: 13
+    flow:
+      - guess:
+          id: sequence-guess
+          type: choice
+          prompt: 库存明确不足时，支付系统应不应该收到扣款请求？
+          options:
+            - text: 不应，先停止在预留失败分支
+              correct: true
+            - text: 应先扣款，再由库存判断
+              why: 订单未获得库存，提前扣款会产生额外退款工作。
+          explain: 先按业务顺序确认每一步的前置条件。
+      - card:
+          title: 用生命线和消息表示时间先后
+          body: |
+            时序图的参与者各有一条从上向下的生命线。消息箭头从发送方指向接收方；可画虚线回复。`alt` 表示按条件选择的多个分支。下面用文字版时序记录成功和明确拒绝。
+
+            ```text
+            OrderController -> OrderService : placeOrder(cart)
+            OrderService -> Inventory : reserve(items)
+            alt [预留成功]
+              OrderService -> Payment : charge(amount, orderKey)
+              alt [扣款成功]
+                OrderService -> Inventory : confirm(reservation)
+                OrderService --> OrderController : orderId（确认成功后）
+              else [明确拒绝]
+                OrderService -> Inventory : release(reservation)
+                OrderService --> OrderController : paymentRejected
+            else [缺货]
+              OrderService --> OrderController : outOfStock
+            ```
+      - item:
+          id: sequence-practice
+          type: order
+          prompt: 已确认下单走成功分支，按依赖顺序排列从服务开始的操作。
+          steps:
+            - 预留库存
+            - 支付扣款成功
+            - 确认预留
+            - 向入口返回订单号
+          explain: 库存先给预留，支付通过后才确认，完成后才返回成功。
+      - card:
+          title: 处理确认失败与支付结果未知
+          body: 扣款成功但库存确认失败，需记录处理中并重试确认或触发退款补偿；只有预留仍可释放时才释放。支付超时可能已扣款，应凭业务编号查询结果，再决定重试或补偿。重复请求使用同一编号，需要支付方也兑现防重约定。
+      - item:
+          id: sequence-apply
+          type: choice
+          prompt: 扣款请求超时，支付系统可能已执行。此时哪条消息更合适？
+          options:
+            - text: 换新编号再次扣款，因为超时就是失败
+              why: 换编号可能把一次付款变成两次独立扣款。
+            - text: 带相同业务编号查状态，并按确认结果决定后续操作
+              correct: true
+          explain: 区分未知结果和明确失败，并让重试有可追踪的编号。
+  - id: activities
+    chapter: UML
+    title: 用例讲谁要什么，活动图讲工作怎么走
+    minutes: 13
+    flow:
+      - guess:
+          id: activities-guess
+          type: choice
+          prompt: 想让运营确认顾客可以查订单、店员可以取消订单。最适合先用什么表达？
+          options:
+            - text: 详细时序图，先规定每次方法调用
+              why: 目前先确认用户和目标，方法消息属于下一层。
+            - text: 用例图，突出参与者与系统目标
+              correct: true
+          explain: 选择能回答当前问题的最小视图。
+      - card:
+          title: 用例表达系统边界与参与者
+          body: 用例是参与者与系统交互来达成的目标。用例图画出系统边界、外部参与者和目标用例，例如顾客连接「查询订单」。参与者也可以是外部系统。具体输入、主流程和替代流程可写在用例说明中。
+      - item:
+          id: activities-practice
+          type: choice
+          prompt: 外部支付服务和订单系统一起完成付款。支付服务在订单系统的用例图中可以是什么？
+          options:
+            - text: 位于系统边界之外的参与者
+              correct: true
+            - text: 必须画成订单系统内部类
+              why: 用例图先分交互角色和系统边界。
+          explain: 外部参与者可以是软件系统。
+      - card:
+          title: 活动图画控制流，用条件分支和并行分叉
+          body: 活动图展示动作和控制流，例如检查库存后按有货、缺货进入不同支路。判定边可标条件；并行分叉可以同时启动多项工作，汇合处等待应当结束的并行路径。泳道可标动作责任方。
+      - item:
+          id: activities-apply
+          type: match
+          prompt: 把想回答的问题配给最合适的视图。
+          pairs:
+            - - 顾客和店员各能完成什么目标
+              - 用例图
+            - - 通过库存检查后哪些工作可同时开始
+              - 活动图
+            - - 库存服务在第几步收到哪条请求
+              - 时序图
+          explain: 三种图分别突出目标、工作流与消息。
+  - id: states
+    chapter: UML
+    title: 列事件和条件，守住订单的合法状态
+    minutes: 13
+    flow:
+      - guess:
+          id: states-guess
+          type: choice
+          prompt: 订单已经取消，延迟送到的支付成功消息又来了一次。只看消息名称可以把订单改成已支付吗？
+          options:
+            - text: 要看当前状态以及对此事件允许的转移
+              correct: true
+            - text: 任意状态收到成功事件都要改成已支付
+              why: 取消状态可能只接受核对与补偿流程。
+          explain: 先核对状态允许什么事件。
+      - card:
+          title: 状态图关注一个对象的状态如何变化
+          body: |
+            状态机图写当前状态、触发事件、可选条件和动作。可把边记成 `事件 [条件] / 动作`。例如待付款收到有效确认后记录交易号并进入已付款；取消后的确认应走单独的异常处理路径。
+
+            ```text
+            待付款 -- 支付确认 [交易号匹配] / 保存交易号 --> 已付款
+            待付款 -- 取消 [尚未扣款] / 释放预留 --> 已取消
+            已取消 -- 迟到支付确认 / 发起核对 --> 已取消
+            ```
+      - item:
+          id: states-practice
+          type: choice
+          prompt: 在示例中，处于待付款但确认的交易号不匹配。是否执行保存交易号的动作？
+          options:
+            - text: 执行，因为事件名称匹配就够
+              why: 边还要求交易号匹配。
+            - text: 不执行这条转移，先按异常路径处理
+              correct: true
+          explain: 条件是能否沿这条边走的判据。
+      - card:
+          title: 拿事件序列验证状态与重复请求
+          body: 先用成功、取消、迟到、重复消息等顺序走一遍。已付款收到同一支付确认，可在不再次扣款的前提下返回既有结果。活动图重整体步骤，状态机图重单一对象在不同状态如何响应事件。
+      - item:
+          id: states-apply
+          type: choice
+          prompt: 同一个支付确认重送给已付款订单。按已有付款记录返回成功还能避免什么？
+          options:
+            - text: 避免保存最初的付款状态
+              why: 需要保留原状态才能判断重复。
+            - text: 避免再次产生这笔确认关联的业务动作
+              correct: true
+          explain: 重复处理应保留第一次的结果和必要证据。
+  - id: views
+    chapter: UML
+    title: 为结构、行为和部署挑不同的图
+    minutes: 13
+    flow:
+      - guess:
+          id: views-guess
+          type: choice
+          prompt: 新人问订单服务和数据库分别运行在哪台机器或节点。最直接看哪种图？
+          options:
+            - text: 类图
+              why: 类图的类与关系不表示运行节点。
+            - text: 部署图
+              correct: true
+          explain: 先明确是问代码结构、运行交互还是基础设施。
+      - card:
+          title: 结构与行为分开画，模型按目的选
+          body: 结构视图包含类、对象、包、组件或部署。行为视图包含用例、活动、状态机和交互图。时序图突出时间；同属交互图的通信图可在对象连接旁标消息编号，突出谁和谁交互。
+      - item:
+          id: views-practice
+          type: match
+          prompt: 把问题配给最贴合的结构视图。
+          pairs:
+            - - 哪些源码包允许依赖另一个包
+              - 包图
+            - - 订单模块依赖哪个提供库存接口的模块
+              - 组件图
+            - - 订单服务制品部署在哪个运行节点
+              - 部署图
+          explain: 包是组织方式，组件提供或需要接口，部署记录运行位置。
+      - card:
+          title: 模型可用于推演，需与接口和实现同步
+          body: 基于模型的设计用可检查的表示记录构造和行为，并据它评审或生成部分实现与测试。也可把图当交流草图。关键接口或失败边改变时同步更新相关视图。只给读者画解决当前问题所需的细节。
+      - item:
+          id: views-apply
+          type: choice
+          prompt: 评审要核对扣款之后库存确认失败的消息走向。更合适的视图是哪张？
+          options:
+            - text: 只标机器名的部署图
+              why: 运行位置不能解释消息顺序与分支。
+            - text: 带失败分支的时序图
+              correct: true
+          explain: 按沟通的问题选视图，而后核对实现。
+  - id: contract
+    chapter: 接口
+    title: 把输入、结果和失败写成调用方能依赖的约定
+    minutes: 13
+    flow:
+      - guess:
+          id: contract-guess
+          type: choice
+          prompt: 库存查询回了 0。调用方能区分没有库存与库存服务失败吗？
+          options:
+            - text: 如果约定用 0 同时表示两件事，就无法区分
+              correct: true
+            - text: 只要类型是整数就能分清失败和缺货
+              why: 两种情况返回同一个整数，调用方看不到区别。
+          explain: 好接口要把影响业务决策的结果分别表达。
+      - card:
+          title: 用业务词写条件、结果与效果
+          body: >-
+            **契约（contract）**说明调用前需满足的条件、返回后保证的结果，以及可见副作用和失败。`reserve` 可要求正整数件数，成功给预留编号；缺货明确返回
+            OutOfStock；通信失败单独报告。输入单位、空值、错误含义和重试都应明确。
+      - item:
+          id: contract-practice
+          type: choice
+          prompt: 调用方在缺货时要告知顾客，超时时要继续核对。库存接口该怎样表达？
+          options:
+            - text: 让两种情况都返回空值
+              why: 调用方需要采取不同的下一步，空值不提供这条信息。
+            - text: 让 OutOfStock 与结果未知有不同的可判别结果
+              correct: true
+          explain: 让类型和文档支持调用方的业务分支。
+      - card:
+          title: 兼容性也包括原有行为和失败方式
+          body: 方法签名相同，若原来缺货无副作用，现在会创建预留后才报告缺货，也改变了契约。新字段可有兼容默认值；改变单位或错误语义时应提供新版本或迁移计划。对同一业务键的重试要明确是否重复产生作用。
+      - item:
+          id: contract-apply
+          type: match
+          prompt: 给库存 API 的契约信息配上类型。
+          pairs:
+            - - 传入的预留数量须为正整数
+              - 调用前条件
+            - - 成功时返回可确认的预留编号
+              - 成功保证
+            - - 结果未知时可以按业务键查询
+              - 失败与恢复约定
+          explain: 写出可验证的约定，调用方才知道何时信任结果。
+  - id: injection
+    chapter: 接口
+    title: 把数据来源和格式化器从构造方法传进去
+    minutes: 13
+    flow:
+      - guess:
+          id: injection-guess
+          type: choice
+          prompt: 只想测销售额计算。每次测试都先连真实数据库，有没有更直接的方法？
+          options:
+            - text: 复制一份报表计算代码放进测试
+              why: 复制的计算不能证明原业务对象正确。
+            - text: 注入提供固定记录的实现，隔开数据库故障
+              correct: true
+          explain: 让测试运行同一份业务逻辑，替换它的合作对象。
+      - card:
+          title: 依赖倒置安排方向，注入安排组装
+          body: >
+            **依赖倒置（Dependency Inversion）**让高层规则和实现细节依赖面向规则的抽象。**依赖注入（dependency injection）**把协作者从外部传入。此处
+            ReportGenerator 使用读取和格式契约，组装处可传数据库读取器或测试用的固定记录，无需框架。
+
+
+            ```java
+
+            import java.util.List;
+
+            interface SalesRepository {
+                List<Integer> amountsInCents();
+            }
+
+            interface Formatter {
+                String format(long cents);
+            }
+
+            class ReportGenerator {
+                private final SalesRepository repo;
+                private final Formatter formatter;
+
+                ReportGenerator(SalesRepository repo, Formatter formatter) {
+                    this.repo = repo;
+                    this.formatter = formatter;
+                }
+                String generate() {
+                    long cents = repo.amountsInCents().stream().mapToLong(Integer::longValue).sum();
+                    return formatter.format(cents);
+                }
+            }
+
+            SalesRepository fake = () -> List.of(3, 4);
+
+            ReportGenerator report = new ReportGenerator(fake, cents -> "total," + cents);
+
+            System.out.println(report.generate());
+
+            // expect: total,7
+
+            ```
+      - item:
+          id: injection-practice
+          type: number
+          prompt: 销售记录为 3 分和 4 分，报表把两条记录相加。报表传给格式化器的整数分数值是多少？
+          answer: 7
+          explain: 使用实际业务方法累计，替代实现只替代数据来源。
+      - card:
+          title: 替换实现要保持同一约定
+          body: 假实现可用小型固定记录模拟契约，让测试精确控制空记录、正常记录或读取失败。数据库实现仍需集成测试核对查询、资源关闭和错误映射。构造方法收齐必需的对象后，可避免运行到一半才发现缺依赖。
+      - item:
+          id: injection-apply
+          type: choice
+          prompt: 若使用固定记录的报表测试成功，它直接验证了什么？
+          options:
+            - text: 生产数据库驱动、查询和权限都一定正常
+              why: 替代实现没有访问生产数据库。
+            - text: 给定记录经过真实报表逻辑得到预期输出
+              correct: true
+          explain: 把业务验证和实际存储集成验证分别安排。
+  - id: solid
+    chapter: 设计原则
+    title: 把变化原因拆开，让新格式从外部接入
+    minutes: 13
+    flow:
+      - guess:
+          id: solid-guess
+          type: choice
+          prompt: 原报表类既连库、又算销售额、还区分 HTML 和 CSV。只加格式时，为什么会碰到业务代码？
+          options:
+            - text: 格式选择和总额计算都在一个类的实现里
+              correct: true
+            - text: 因为 Java 要求所有类都只能输出一种格式
+              why: 语言没有这种规则，问题出在职责与变化绑在一起。
+          explain: 先按变化原因拆分职责。
+      - card:
+          title: 分清单一职责、开闭和接口隔离
+          body: >-
+            SOLID 的 SRP 按变化责任组织代码，避免报表同时服务存储、计算和展示的变化。OCP 为已知变化点保留扩展路径，例如新格式实现 Formatter。ISP
+            让调用方只依赖需要的操作，例如只读报表不必依赖修改销售记录的接口。
+      - item:
+          id: solid-practice
+          type: match
+          prompt: 给三项报表改动配上最直接的原则。
+          pairs:
+            - - 分开负责数据读取、求和与展示的变更
+              - 单一职责 SRP
+            - - 新增格式实现即可组装进原报表
+              - 开闭 OCP
+            - - 把仅需读取的调用方接到较小接口
+              - 接口隔离 ISP
+          explain: 分别从变化原因、扩展路径、调用方需求看分割位置。
+      - card:
+          title: 只在已有变化证据的地方加扩展点
+          body: 对已经有 HTML 和 CSV 的报表，格式接口能把变化集中。若价格规则只有一个，暂时留在清楚的方法里，等出现可辨认的变体再拆。依赖倒置帮助隔离外部细节；替换实现时仍须遵守接口约定。
+      - item:
+          id: solid-apply
+          type: choice
+          prompt: 小店现在只保存一种简单价格。哪种方案更贴合当前信息？
+          options:
+            - text: 先给每条可能的折扣都加插件注册和独立服务
+              why: 额外结构引入维护成本，当前还没有这些变化。
+            - text: 把规则放在清楚的方法中，并为真实出现的变体保留改动空间
+              correct: true
+          explain: 把抽象成本与已见或可验证的变化需求一起比较。
+  - id: substitution
+    chapter: 设计原则
+    title: 用调用方的预期检验能不能替换
+    minutes: 13
+    flow:
+      - guess:
+          id: substitution-guess
+          type: choice
+          prompt: 原接口允许预留任意正件数。新实现无文档地拒绝所有低于 5 件的请求，能直接替换吗？
+          options:
+            - text: 可以，只要方法名和参数类型相同
+              why: 签名一致无法保证行为一致。
+            - text: 不能，旧调用方的有效输入会被新实现拒绝
+              correct: true
+          explain: 用现有调用方的有效请求测试新实现。
+      - card:
+          title: 子类型应保留调用方依赖的行为
+          body: >-
+            **里氏替换（Liskov
+            Substitution）**要求使用父类型的客户端能以子类型替换并保持约定。子类型不能额外收紧调用条件或减弱结果保证。例如已承诺成功产生有效预留，就不能悄悄返回空编号。还应保留相关不变量与可观察副作用。
+      - item:
+          id: substitution-practice
+          type: choice
+          prompt: 正式实现成功必返回预留编号，测试替身却在成功时返回 null。哪项检查能发现不一致？
+          options:
+            - text: 把同一组契约测试跑在两个实现上
+              correct: true
+            - text: 只检查类名是否包含 Reserve
+              why: 类名不能检查返回值与行为。
+          explain: 验证替代实现与调用方共同依赖的契约。
+      - card:
+          title: 组合可在承诺不同的时候共享实现
+          body: 若矩形承诺宽高可独立更新，正方形保持等边时就无法兑现相同规则。可让二者共同实现只含面积的接口，把变更操作留给各自类型。继承与组合的取舍取决于行为约定、协作和变化方向。
+      - item:
+          id: substitution-apply
+          type: choice
+          prompt: 两个存储实现都承诺保存成功后可用同一键读取。新实现遇到常规有效写入时直接忽略并返回成功，这违反什么？
+          options:
+            - text: 它减弱了成功后的保证
+              correct: true
+            - text: 它加强了成功保证，因为没有保存就更快
+              why: 速度不能代替原契约要求的可读性。
+          explain: 验证成功结果背后必须成立的事实。
+  - id: decisions
+    chapter: 设计原则
+    title: 把设计取舍写成可以复查的决定
+    minutes: 13
+    flow:
+      - guess:
+          id: decisions-guess
+          type: choice
+          prompt: 团队纠结同步查库存和异步接单。只有「异步更高级」这句话，能选出方案吗？
+          options:
+            - text: 先比较确认延迟、结果时效和失败恢复的要求
+              correct: true
+            - text: 能，复杂程度越高越满足需求
+              why: 复杂度不能代表用户可接受的等待与恢复结果。
+          explain: 把偏好换成可观察的约束。
+      - card:
+          title: 用约束衡量方案，区分风格与局部模式
+          body: 并发、持久化、错误处理、安全、互操作和性能都可能影响设计。分层、事件驱动等风格约束系统部件如何组织；策略、适配等模式处理较局部的重复问题。先划分问题，再选足以验证的方案。
+      - item:
+          id: decisions-practice
+          type: choice
+          prompt: 小店必须即时告诉顾客库存能否预留，但通知邮件允许晚发。先把哪件事移到后台更符合要求？
+          options:
+            - text: 库存预留结果
+              why: 订单确认依赖是否能预留。
+            - text: 发送通知邮件
+              correct: true
+          explain: 延迟要求不同的工作可以选择不同协作方式。
+      - card:
+          title: 保留问题、选择、理由和回看条件
+          body: 设计理由说明哪些约束导致当前选择。架构决策记录（ADR）可写上下文、备选、选择、后果和重审条件。例：先同步预留以获得即时结果，允许慢请求失败后查单，峰值超过预算时再评估拆分。用试验或运行数据校准。
+      - item:
+          id: decisions-apply
+          type: order
+          prompt: 要决定库存协作方式并让同事能复查，排列一次合理的决策过程。
+          steps:
+            - 写明需要即时确认和延迟预算
+            - 比较同步预留与异步接单
+            - 选定方案并记录后果
+            - 按实际延迟和失败率复查
+          explain: 记录把选择和已知约束连起来，之后可据新证据调整。
+  - id: factories
+    chapter: 模式与重构
+    title: 选择一种产品，还是配齐一组相关产品
+    minutes: 13
+    flow:
+      - guess:
+          id: factories-guess
+          type: choice
+          prompt: 创建物流标签时，运送流程相同，各承运商的标签对象不同。怎样保留相同流程？
+          options:
+            - text: 让运送流程复制成每家承运商一整套
+              why: 重复整套流程会让共同规则难以同步更新。
+            - text: 让通用流程调用由不同实现提供的标签创建操作
+              correct: true
+          explain: 先拆出变化的创建步骤。
+      - card:
+          title: 工厂方法让创建步骤由具体创建者实现
+          body: >
+            **工厂方法（Factory
+            Method）**是在通用流程里调用可被子类实现或重写的创建方法。其余步骤依赖产品的公共接口。一个按字符串分派构造方法的静态函数是实用的简单工厂，但没有这个子类扩展点。
+
+
+            ```java
+
+            interface Label {
+                String text();
+            }
+
+            abstract class Shipment {
+                abstract Label createLabel();
+                String prepare() { return "pack:" + createLabel().text(); }
+            }
+
+            class LockerShipment extends Shipment {
+                Label createLabel() { return () -> "locker"; }
+            }
+
+            System.out.println(new LockerShipment().prepare());
+
+            // expect: pack:locker
+
+            ```
+      - item:
+          id: factories-practice
+          type: choice
+          prompt: 新增送货上门方式，标签接口保持相同。通用 prepare 不变时该在哪里接入新的创建？
+          options:
+            - text: 在新 Shipment 子类实现 createLabel
+              correct: true
+            - text: 在每个调用 prepare 的位置重新实现包装步骤
+              why: 包装步骤已经复用，创建变体应集中在创建方法。
+          explain: 由新创建者交付符合 Label 契约的产品。
+      - card:
+          title: 抽象工厂一次提供同一族的创建入口
+          body: >-
+            **抽象工厂（Abstract Factory）**为一族相关产品提供创建接口，例如 LockerKit
+            同时提供柜机标签和柜机取件通知。客户选用一个工厂就能取得匹配产品。增加一族可新增工厂，若扩充每族必须支持的产品种类，则要变更工厂契约。
+      - item:
+          id: factories-apply
+          type: choice
+          prompt: 每套主题都要创建相互匹配的按钮和菜单，用户选一次主题即可。哪个做法更贴合？
+          options:
+            - text: 每次构造按钮和菜单都独立随机选主题
+              why: 两个产品可能配成不兼容的样式。
+            - text: 每套主题实现能分别创建按钮、菜单的抽象工厂
+              correct: true
+          explain: 工厂接口表达一起变化的一族产品。
+  - id: construction
+    chapter: 模式与重构
+    title: 区分分步建造、复制样本和共享实例
+    minutes: 13
+    flow:
+      - guess:
+          id: construction-guess
+          type: choice
+          prompt: 报表的标题、明细和页脚都可选。若构造方法要求填一长串参数，可以怎样更清楚地组装？
+          options:
+            - text: 给每个可选步骤命名，组装后统一检查
+              correct: true
+            - text: 先传很多 null，再靠位置判断含义
+              why: 位置参数难辨认，调用者容易漏掉有效组合的条件。
+          explain: 让创建过程说明正在设置什么。
+      - card:
+          title: 建造者收集步骤，原型从已有配置复制
+          body: >-
+            **建造者（Builder）**把复杂对象分步构造，最终 `build()`
+            检查约束并交付成品。**原型（Prototype）**由已有对象复制出新对象，可沿用模板配置。若两个实例需要独立修改内部列表，复制时应处理可变内容，避免只复制引用。
+      - item:
+          id: construction-practice
+          type: choice
+          prompt: 复制模板后，修改新报表的页列表也改变了旧模板。最可能漏了什么？
+          options:
+            - text: 为每一页创建全局单例
+              why: 单例会共享实例，不能隔离两份列表的修改。
+            - text: 为新对象独立复制可变列表
+              correct: true
+          explain: 决定哪些值可共享、哪些可变对象必须分开。
+      - card:
+          title: 单例的范围和共享代价要写清
+          body: >-
+            **单例（Singleton）**约束一个范围内的实例数并提供入口。Java enum
+            可在同一个类加载器范围内实现一个实例。若把可变订单状态放进全局入口，会让并行用例互相影响；可以由组装代码管理实例生命周期并用注入共享服务。
+      - item:
+          id: construction-apply
+          type: match
+          prompt: 给创建请求配上贴合的模式。
+          pairs:
+            - - 有一组可选步骤，完成时统一检查
+              - 建造者
+            - - 从现成模板复制并单独调整一份新配置
+              - 原型
+            - - 在限定范围内只允许一个实例并提供访问
+              - 单例
+          explain: 建造者关注过程，原型关注复制来源，单例关注实例数和访问。
+  - id: adapter-facade-proxy
+    chapter: 模式与重构
+    title: 按变化目标选适配器、外观或代理
+    minutes: 13
+    flow:
+      - guess:
+          id: adapter-facade-proxy-guess
+          type: choice
+          prompt: 订单只认识 `pay`，第三方网关只提供 `debit`。网关代码改不了，该在哪里改调用形式？
+          options:
+            - text: 让订单侧的所有调用点自己拼第三方请求
+              why: 每个调用点都会知道供应方格式。
+            - text: 加一个实现 pay 并转成 debit 的对象
+              correct: true
+          explain: 把接口翻译集中在一个边界。
+      - card:
+          title: 适配器翻译调用，外观减少子系统细节
+          body: |
+            **适配器（Adapter）**把已有对象接到客户期望的契约，转换操作名、参数或结果。**外观（Facade）**给多个子系统操作一个方便入口，例如结账入口封装库存与支付的协作。其他需要更细控制的调用方仍可经合适的接口访问子系统。
+
+            ```java
+            interface Payment {
+                String pay(int cents);
+            }
+            class LegacyGateway {
+                String debit(int amountInCents) { return "charged:" + amountInCents; }
+            }
+            class GatewayAdapter implements Payment {
+                private final LegacyGateway gateway = new LegacyGateway();
+                public String pay(int cents) { return gateway.debit(cents); }
+            }
+            Payment payment = new GatewayAdapter();
+            System.out.println(payment.pay(500));
+            // expect: charged:500
+            ```
+      - item:
+          id: adapter-facade-proxy-practice
+          type: choice
+          prompt: 希望调用者用 `checkout()` 完成多个内部子系统步骤，主要想隐藏协作复杂度。更贴合哪种模式？
+          options:
+            - text: 外观
+              correct: true
+            - text: 适配器
+              why: 题设没有要求翻译既有对象与期望接口。
+          explain: 意图决定名称，即使实现都使用委托。
+      - card:
+          title: 代理保持接口，控制访问真正对象
+          body: '**代理（Proxy）**与实际对象提供同一访问契约，在转交时控制权限、远程访问或延迟加载。适配器解决接口不匹配，代理保留接口以控制访问，外观为一组操作提供更简单的入口。'
+      - item:
+          id: adapter-facade-proxy-apply
+          type: match
+          prompt: 按主要目的给三个边界对象配模式。
+          pairs:
+            - - 把第三方 debit 接到客户所需的 pay
+              - 适配器
+            - - 给库存、支付等多个子系统提供结账入口
+              - 外观
+            - - 保留查询接口并在转交前鉴权
+              - 代理
+          explain: 三者的协作都可用转发，差别在接口及目的。
+  - id: bridge-decorator
+    chapter: 模式与重构
+    title: 分开两条变化轴，或为单个对象叠加行为
+    minutes: 13
+    flow:
+      - guess:
+          id: bridge-decorator-guess
+          type: choice
+          prompt: 报表有摘要与明细，渲染器有网页与纯文本。每加一种渲染方式就给所有报表各写一个子类，有更省重复的结构吗？
+          options:
+            - text: 让报表持有独立渲染器，两类变化各自扩展
+              correct: true
+            - text: 把所有渲染细节复制给每个报表子类
+              why: 报表和渲染的组合数会继续增加。
+          explain: 先识别真正独立的变化轴。
+      - card:
+          title: 桥接把抽象与实现各自放进一个变化方向
+          body: '**桥接（Bridge）**让抽象一侧持有实现接口，使两侧各自演进。摘要和明细是报表抽象，网页与纯文本是渲染实现。它面向设计中的两条变化方向；适配器常用来接上已经存在且接口不匹配的对象。'
+      - item:
+          id: bridge-decorator-practice
+          type: choice
+          prompt: 只新加一种 JSON 渲染，使用桥接后通常需要新增什么？
+          options:
+            - text: 为摘要和明细各写一套 JSON 报表子类
+              why: 两个报表共享同一渲染接口。
+            - text: 一个渲染器实现，让现有报表可持有它
+              correct: true
+          explain: 把扩展限制在真正变化的那一侧。
+      - card:
+          title: 装饰器保留接口，用多层包裹增加行为
+          body: |
+            **装饰器（Decorator）**包裹同一接口的对象，转交前后可追加行为。可将压缩和记录分别包在输出器外侧。包裹顺序会改变效果，接口约定仍应成立。
+
+            ```java
+            interface Writer {
+                String write(String value);
+            }
+            class TaggedWriter implements Writer {
+                private final Writer inner;
+                TaggedWriter(Writer inner) { this.inner = inner; }
+                public String write(String value) { return "[" + inner.write(value) + "]"; }
+            }
+            Writer base = value -> value;
+            System.out.println(new TaggedWriter(new TaggedWriter(base)).write("report"));
+            // expect: [[report]]
+            ```
+      - item:
+          id: bridge-decorator-apply
+          type: choice
+          prompt: 要给某一个输出器临时加上两层可组合包装，仍让调用方使用原输出接口。最贴合哪种模式？
+          options:
+            - text: 桥接
+              why: 需求是叠加行为，未提出两条独立变化轴。
+            - text: 装饰器
+              correct: true
+          explain: 观察是做多维独立扩展，还是给单个对象加责任。
+  - id: composite-flyweight
+    chapter: 模式与重构
+    title: 用树统一单件和组合，让相同数据共享
+    minutes: 13
+    flow:
+      - guess:
+          id: composite-flyweight-guess
+          type: choice
+          prompt: 购物包中既有单件商品也有子组合。若结账只问每项总价，能用同一操作吗？
+          options:
+            - text: 不可以，组合一定要让客户知道所有子项类型
+              why: 组合可以在内部逐层向子项取价。
+            - text: 可以，让单件与组合都实现报价操作
+              correct: true
+          explain: 用共同操作隐藏树形结构的细节。
+      - card:
+          title: 组合模式让叶子和容器兑现同一接口
+          body: |
+            **组合模式（Composite）**把对象组织成树。叶子给出自身结果，容器用相同接口向子节点取结果并汇总。客户端可同样对待单件或组合。示例只给共同的 `price()`，添加子项留在容器。
+
+            ```java
+            import java.util.List;
+            interface Product {
+                int price();
+            }
+            record Item(int price) implements Product {}
+            record Bundle(List<Product> children) implements Product {
+                public int price() { return children.stream().mapToInt(Product::price).sum(); }
+            }
+            Product basket = new Bundle(List.of(new Item(200),
+                new Bundle(List.of(new Item(300), new Item(400)))));
+            System.out.println(basket.price());
+            // expect: 900
+            ```
+      - item:
+          id: composite-flyweight-practice
+          type: number
+          prompt: 树形购物包由一件 200 分商品和一个子包组成。子包内是 300 分、400 分商品。组合总价是多少分？
+          answer: 900
+          explain: 子包先合计 700 分，外层加上 200 分得到 900 分。
+      - card:
+          title: 享元共享重复的稳定数据，把个体状态留在外部
+          body: '**享元（Flyweight）**在很多对象共用同一份稳定信息时减少占用。例如地图标记共享一种不可变图标样式，坐标仍各自保存。共享前先测量重复量与占用，避免把可变的个体状态误写进共享对象。'
+      - item:
+          id: composite-flyweight-apply
+          type: choice
+          prompt: 每个地图标记的坐标不同，同种标记的颜色图形相同。适合共享哪部分？
+          options:
+            - text: 不可变的图标样式
+              correct: true
+            - text: 每个标记的坐标
+              why: 共享坐标会丢掉各标记所在位置。
+          explain: 享元只共享与个体无关且可安全复用的部分。
+  - id: strategy-template
+    chapter: 模式与重构
+    title: 替换整段做法，或保留固定流程只换其中一步
+    minutes: 13
+    flow:
+      - guess:
+          id: strategy-template-guess
+          type: choice
+          prompt: 报表总额已经算好。新增一种输出方式时，哪里应决定 HTML、CSV 或其他格式？
+          options:
+            - text: 由组装处选择格式对象，报表通过同一操作调用
+              correct: true
+            - text: 每新增一种格式都去修改总额计算
+              why: 总额规则与输出形式独立。
+          explain: 先圈定需要替换的行为。
+      - card:
+          title: 策略用共同接口替换一项行为
+          body: >
+            **策略（Strategy）**把一组可替换的做法封装成具有共同契约的对象。报表把总额交给 `Formatter`。新增 PDF 可在组装处选择调用 PDF 库的实现；若 PDF
+            产物是字节，接口也要明确媒体类型和字节结果，或由不同交付接口承接。示例只演示文本格式。
+
+
+            ```java
+
+            interface Formatter {
+                String format(long cents);
+            }
+
+            class Report {
+                String render(long cents, Formatter formatter) {
+                    return formatter.format(cents);
+                }
+            }
+
+            Report report = new Report();
+
+            System.out.println(report.render(7, cents -> "total," + cents));
+
+            System.out.println(report.render(7, cents -> "<h1>Total " + cents + "</h1>"));
+
+            // expect: total,7|<h1>Total 7</h1>
+
+            ```
+      - item:
+          id: strategy-template-practice
+          type: choice
+          prompt: 统计流程和格式契约都合用。新增第三种文本格式时，优先改哪一处？
+          options:
+            - text: 在总额求和内部追加格式分支
+              why: 选格式和求和是两种不同的行为。
+            - text: 增加一个 Formatter 实现，在组装或配置处选它
+              correct: true
+          explain: 报告依赖格式契约，新格式靠实现扩展。
+      - card:
+          title: 模板方法固定步骤，再让子类实现其中环节
+          body: >-
+            **模板方法（Template
+            Method）**由父类定义执行骨架，子类实现或重写指定步骤。比如统一执行读取、校验、呈现，子类只实现呈现步骤。策略靠组合选择可替换行为；模板方法靠继承固定整体顺序。
+      - item:
+          id: strategy-template-apply
+          type: match
+          prompt: 按两项需求选择更贴合的模式。
+          pairs:
+            - - 运行时更换计费对象并保持调用方不变
+              - 策略
+            - - 父类控制导入的读、验、存顺序，子类实现读取
+              - 模板方法
+          explain: 先问要替换一个完整行为，还是要保留由父类规定的流程。
+  - id: observer
+    chapter: 模式与重构
+    title: 订阅一次事件，让多个显示组件各自响应
+    minutes: 13
+    flow:
+      - guess:
+          id: observer-guess
+          type: choice
+          prompt: 价格更新要通知页面和提醒服务。Stock 需要知道这两个组件的具体类吗？
+          options:
+            - text: 必须在 Stock 中硬编码每个组件类型
+              why: 发布者可以只依赖通知契约。
+            - text: 通过共同通知接口就能分别调用它们
+              correct: true
+          explain: 让新增接收者通过注册接入。
+      - card:
+          title: 观察者接口把订阅者和发布者的实现隔开
+          body: |
+            **观察者（Observer）**让多个订阅者收到同一主体的变化。主体维护订阅集合，通过 `update` 通知。此例用同一观察者对象去重，支持取消，对相同价格不再次发通知。
+
+            ```java
+            import java.util.LinkedHashSet;
+            import java.util.List;
+            import java.util.Objects;
+            import java.util.Set;
+            interface Observer {
+                void update(int cents);
+            }
+            class Stock {
+                private int cents = 100;
+                private final Set<Observer> watchers = new LinkedHashSet<>();
+
+                void attach(Observer watcher) { watchers.add(Objects.requireNonNull(watcher)); }
+                void detach(Observer watcher) { watchers.remove(watcher); }
+
+                void setPrice(int next) {
+                    if (next == cents) return;
+                    cents = next;
+                    for (Observer watcher : List.copyOf(watchers)) {
+                        watcher.update(next);
+                    }
+                }
+            }
+            Stock stock = new Stock();
+            Observer screen = cents -> System.out.println("screen:" + cents);
+            Observer alert = cents -> System.out.println("alert:" + cents);
+            stock.attach(screen);
+            stock.attach(alert);
+            stock.attach(alert);
+            stock.setPrice(105);
+            stock.setPrice(105);
+            stock.detach(alert);
+            stock.setPrice(110);
+            // expect: screen:105|alert:105|screen:110
+            ```
+      - item:
+          id: observer-practice
+          type: number
+          prompt: 主体按观察者对象去重，同一 alert 注册两次。价格第一次变化后，同一价格又设置一次，主体只对变化发通知。alert 会收到几次通知？
+          answer: 1
+          explain: 去重后只有一项订阅，第二次设置没有改变价格。
+      - card:
+          title: 把通知的顺序和失败方式也当成契约
+          body: 示例在同一线程同步遍历订阅快照，回调增删订阅会影响下一次通知。若回调抛错，这个简单实现会中止当前遍历。正式设计需要按需求决定异常隔离、通知顺序和是否重试，并在组件销毁时取消订阅。
+      - item:
+          id: observer-apply
+          type: choice
+          prompt: 某页面销毁后仍收到股价通知。最直接要补的生命周期动作是什么？
+          options:
+            - text: 把股价锁死，禁止以后更新
+              why: 其他订阅者仍需要接收后续变化。
+            - text: 取消这页的观察者订阅
+              correct: true
+          explain: 订阅方离开时释放注册关系。
+  - id: command-chain
+    chapter: 模式与重构
+    title: 把请求保存起来，或沿处理器传下去
+    minutes: 13
+    flow:
+      - guess:
+          id: command-chain-guess
+          type: choice
+          prompt: 仓库需要把现在发起的打印任务等到空闲再执行。怎样保存请求最清楚？
+          options:
+            - text: 保存一个包含执行动作和必要参数的对象
+              correct: true
+            - text: 立即执行，再假设日后能重新得到相同的打印请求
+              why: 执行动作和执行时机应能分开，重建输入也可能丢失信息。
+          explain: 把行为和所需数据打包后可排队。
+      - card:
+          title: 命令对象让请求可排队、记录和执行
+          body: '**命令（Command）**把动作与输入保存成对象，调用方可在合适时机执行它。菜单按钮、队列或批处理可以调用同一个命令契约。若要撤销，命令或历史还需保留撤销所需状态；外部已发生的作用可能要补偿。'
+      - item:
+          id: command-chain-practice
+          type: choice
+          prompt: 要把同一次打印保留到后台执行，需要随命令至少记录什么？
+          options:
+            - text: 只记录界面按钮的颜色
+              why: 颜色不能还原打印任务。
+            - text: 执行操作和打印内容等必要输入
+              correct: true
+          explain: 命令的实例要能表达一次可执行请求。
+      - card:
+          title: 责任链将同一请求依次交给候选处理器
+          body: >
+            **责任链（Chain of
+            Responsibility）**把处理器按顺序连接，请求可由当前处理器接手或交给后续。例中前两种角色可逐步匹配，有业务定义的默认结尾。还可设计成多级处理，应写清每个处理器何时继续或终止。
+
+
+            ```java
+
+            import java.util.List;
+
+            import java.util.function.Predicate;
+
+            record Handler(String name, Predicate<Integer> accepts) {}
+
+            List<Handler> handlers = List.of(
+                new Handler("auto", cents -> cents <= 100),
+                new Handler("staff", cents -> cents <= 500));
+            int cents = 300;
+
+            String result = handlers.stream()
+                .filter(h -> h.accepts().test(cents))
+                .map(Handler::name).findFirst().orElse("supervisor");
+            System.out.println(result);
+
+            // expect: staff
+
+            ```
+      - item:
+          id: command-chain-apply
+          type: choice
+          prompt: 责任链按自动、店员、主管检查，自动拒绝当前请求。下一步是什么？
+          options:
+            - text: 让店员处理器判断，随后按约定决定是否继续
+              correct: true
+            - text: 直接认定所有处理器都拒绝
+              why: 前一个不负责不代表后续也无法处理。
+          explain: 链的顺序和结束规则定义了一次路由过程。
+  - id: iterator-visitor
+    chapter: 模式与重构
+    title: 把遍历位置和要做的工作分开
+    minutes: 13
+    flow:
+      - guess:
+          id: iterator-visitor-guess
+          type: choice
+          prompt: 统计图书柜时只想依次读到每件物品。调用者必须知道数据是数组、树还是其他结构吗？
+          options:
+            - text: 每种存储都要暴露内部结构给调用者
+              why: 遍历位置可由另一个对象负责。
+            - text: 只要迭代契约明确，就能按同样步骤取元素
+              correct: true
+          explain: 从接口分离容器组织与逐项访问。
+      - card:
+          title: 迭代器跟踪访问位置，隐藏容器表示
+          body: >
+            **迭代器（Iterator）**封装如何走到下一个元素。Java 的 `hasNext()` 和 `next()`
+            组成常见协议。不同的容器可以提供同一迭代接口；顺序、结束与迭代期间修改行为仍应由契约说明。
+
+
+            ```java
+
+            import java.util.List;
+
+            var cursor = List.of("order", "payment").iterator();
+
+            while (cursor.hasNext()) {
+                System.out.println(cursor.next());
+            }
+
+            // expect: order|payment
+
+            ```
+      - item:
+          id: iterator-visitor-practice
+          type: choice
+          prompt: 想同时在同一列表里从头做两次独立访问，位置如何保存？
+          options:
+            - text: 创建两个迭代器，各自推进
+              correct: true
+            - text: 在列表上只存一个所有调用者共用的位置
+              why: 其中一个前进会让另一轮也跳过项目。
+          explain: 访问位置属于一次具体遍历。
+      - card:
+          title: 访问者给稳定的元素类型加新操作
+          body: >-
+            **访问者（Visitor）**让不同元素的 `accept` 把自己交给访问者相应的 `visit`。例如 Book 和 Gift 各自调用
+            `visitor.visit(this)`，导出、审计各做一个访问者。元素类型稳定时易加操作；加一种元素常需更新所有访问者。
+      - item:
+          id: iterator-visitor-apply
+          type: choice
+          prompt: Book 与 Gift 两类很稳定，团队常加导出、统计等按类型不同的操作。哪项取舍正确？
+          options:
+            - text: 访问者的优势是新增元素类型永远无需修改现有访问者
+              why: 现有访问者一般还需提供针对新类型的处理。
+            - text: 访问者便于增加操作，但增加元素类型会影响访问者契约
+              correct: true
+          explain: 比较变化更常发生在操作还是元素类型。
+  - id: state-memento
+    chapter: 模式与重构
+    title: 让行为跟状态走，把可恢复状态保存起来
+    minutes: 13
+    flow:
+      - guess:
+          id: state-memento-guess
+          type: choice
+          prompt: 待付款允许取消，已发货要走退货。如果多个方法都重复按状态写分支，怎样集中状态规则？
+          options:
+            - text: 让不同状态对象分别实现允许的操作
+              correct: true
+            - text: 让每个页面复制一份状态判断
+              why: 复制会让几个地方对同一状态的理解走散。
+          explain: 把经常一起变化的状态行为集中到同一实现。
+      - card:
+          title: 状态模式把状态相关行为移入当前状态对象
+          body: '**状态模式（State）**让上下文把操作委托给当前状态对象，状态变动时更换对象。例如待付款和已发货处理取消的方式不同。策略常由调用者选择做法；状态模式通常由事件与转移规则切换状态。'
+      - item:
+          id: state-memento-practice
+          type: choice
+          prompt: 一个订单收到发货确认后，从已付款切到已发货，并因此改变取消行为。更贴合哪个模式？
+          options:
+            - text: 策略，调用者每次随意选择一套取消规则
+              why: 题设根据订单的状态转移控制行为。
+            - text: 状态模式
+              correct: true
+          explain: 看切换原因来自对象状态还是外部选择的做法。
+      - card:
+          title: 备忘录保存由对象恢复的快照
+          body: |
+            **备忘录（Memento）**让对象生成供以后恢复的状态快照，管理历史的一方不必改动其内部字段。可变列表若仅保存旧引用，继续编辑会污染快照。下面复制的是字符串列表，字符串本身可安全共享。
+
+            ```java
+            import java.util.ArrayList;
+            import java.util.List;
+            class Cart {
+                record Snapshot(List<String> entries) {}
+                private final List<String> entries = new ArrayList<>();
+                void add(String entry) { entries.add(entry); }
+                Snapshot save() { return new Snapshot(List.copyOf(entries)); }
+                void restore(Snapshot state) {
+                    entries.clear();
+                    entries.addAll(state.entries());
+                }
+                String view() { return String.join(",", entries); }
+            }
+            Cart cart = new Cart();
+            cart.add("book");
+            var snapshot = cart.save();
+            cart.add("pen");
+            cart.restore(snapshot);
+            System.out.println(cart.view());
+            // expect: book
+            ```
+      - item:
+          id: state-memento-apply
+          type: choice
+          prompt: 购物车备忘录能直接撤销已经发给支付机构的扣款吗？
+          options:
+            - text: 能，恢复本地列表会让第三方自动退款
+              why: 恢复本地快照没有发出退款请求。
+            - text: 只能恢复本地保存的状态，外部扣款需要独立处理
+              correct: true
+          explain: 区分本地历史和外部可观察的动作。
+  - id: mediator
+    chapter: 模式与重构
+    title: 让协调者集中处理对象之间的联动
+    minutes: 13
+    flow:
+      - guess:
+          id: mediator-guess
+          type: choice
+          prompt: 一个下单界面的支付栏和库存栏要随配送地点变化。如果控件两两知道对方，增加一个控件会怎样？
+          options:
+            - text: 已有控件互相认识会让新增控制自动生效
+              why: 新对象和联动规则仍要放在明确位置。
+            - text: 可能需要改多条控件间的直接依赖
+              correct: true
+          explain: 把联动的知识集中在合适的一处。
+      - card:
+          title: 中介者接收事件，再决定通知哪个同事对象
+          body: '**中介者（Mediator）**协调一组对象的相互作用。配送地点栏报告变更，结账协调者通知库存栏重新计算可发货范围，并让支付栏重新校验。各控件只报告事件和执行自己的动作。'
+      - item:
+          id: mediator-practice
+          type: choice
+          prompt: 已有配送地点、库存、支付三个控件。若新规则要求缺货时关闭付款，优先把联动写在哪里？
+          options:
+            - text: 写在这组控件的协调者，控件执行自己的动作
+              correct: true
+            - text: 把整条联动规则分别复制到每个控件
+              why: 多份规则会重复触发或逐渐不一致。
+          explain: 中介者知道谁与谁互动，成员保留局部职责。
+      - card:
+          title: 协调范围过大时，按用例拆开
+          body: 观察者适合向订阅者分发事件，中介者还决定不同成员要怎样协作。两者可同时使用。若协调者开始管理多组无关流程，按用例分拆中介者能保持职责集中。
+      - item:
+          id: mediator-apply
+          type: choice
+          prompt: 项目只要求价格更新时通知若干相互独立的显示面板。此时首先选哪个机制？
+          options:
+            - text: 观察者，简单发布变化
+              correct: true
+            - text: 为所有业务建立一个控制具体面板联动的中介者
+              why: 题设没有面板间的联动规则。
+          explain: 按实际协作强度选择结构。
+  - id: growth-smells
+    chapter: 模式与重构
+    title: 先识别长大、误用和多余，再选证据
+    minutes: 13
+    flow:
+      - guess:
+          id: growth-smells-guess
+          type: choice
+          prompt: 一个方法很长，每段都围绕同一个简单解析任务。仅凭行数就该拆成很多类吗？
+          options:
+            - text: 先找可独立命名、验证或变化的步骤
+              correct: true
+            - text: 长方法一定要拆成同样大小的类
+              why: 行数是信号，职责与变化才帮助决定拆分。
+          explain: 先定位维护困难，再选最小调整。
+      - card:
+          title: 长胖与面向对象误用反映不同问题
+          body: >-
+            **代码坏味（code
+            smell）**提示潜在维护问题，需要结合实际改动判断。膨胀类坏味如长方法、长参数和成组数据反复传递。面向对象误用如子类拒绝父类操作、相同角色却用不一致接口，或多处重复按类型分支。
+      - item:
+          id: growth-smells-practice
+          type: match
+          prompt: 把观察到的线索配给最贴合的坏味类别。
+          pairs:
+            - - 同组邮编、省、市在很多参数列表中重复
+              - 膨胀
+            - - 子类继承后只用少量功能，常规调用还会拒绝
+              - 面向对象误用
+            - - 同一规则复制多处且部分副本已废弃
+              - 多余成分
+          explain: 类别用于定位原因。下一步要确认谁依赖现有行为。
+      - card:
+          title: 多余代码可清理，先查谁还会使用
+          body: 多余成分包括重复逻辑、已确认无调用的旧代码、始终无实际工作的类或过早的一层抽象。先查用法和测试，确认配置或外部调用，再移除。保留解释业务理由的注释。
+      - item:
+          id: growth-smells-apply
+          type: choice
+          prompt: 静态搜索没找到一个命令的调用，但配置中可能按名字加载它。应该先做什么？
+          options:
+            - text: 马上删除，因为静态搜索结果为空
+              why: 动态装配可能不会出现在直接调用搜索里。
+            - text: 查配置与运行入口，验证是否仍需这条命令
+              correct: true
+          explain: 清理要有证据，尤其是配置驱动的入口。
+  - id: coupling-smells
+    chapter: 模式与重构
+    title: 沿一次改动找扩散、过度依赖和库缺口
+    minutes: 13
+    flow:
+      - guess:
+          id: coupling-smells-guess
+          type: choice
+          prompt: 一个促销规则变化，需要找五个页面各改同一判断。最值得追踪什么？
+          options:
+            - text: 先统计五个文件谁的代码最多
+              why: 文件长度不能解释为何同一次修改散开。
+            - text: 这些判断为何没有集中到规则拥有者
+              correct: true
+          explain: 观察一次真实变更会牵连哪些位置。
+      - card:
+          title: 阻碍变更的两种方向都要看
+          body: 变更阻碍类坏味包含散弹式修改（一个原因改多处）、多源变更（Divergent Change）（一个类因多种原因常改）和并行继承体系（一个子类迫使另一边同步增加）。先画改动点的依赖，再把规则或变化方向集中。
+      - item:
+          id: coupling-smells-practice
+          type: choice
+          prompt: 改一条运费规则要同步改网页、打印和客服脚本里的判断。是哪种信号？
+          options:
+            - text: 散弹式修改
+              correct: true
+            - text: 多源变更（Divergent Change），即一个类因多个原因变化
+              why: 题设是一条规则改多处，方向相反。
+          explain: 区分一个变化源扩散，还是多种变化挤在同一位置。
+      - card:
+          title: 过度依赖会让代码知道太多，第三方缺口可集中补齐
+          body: 耦合类坏味如长消息链、私密细节互相访问或总是查询另一对象的数据。目录还列出库类缺少所需操作等情况：可给第三方类型加本地包装或辅助方法，把缺口集中，而非在每个调用方复制补丁。
+      - item:
+          id: coupling-smells-apply
+          type: choice
+          prompt: 外部时间库缺少项目统一需要的显示函数，已有多个调用点重复手工格式化。更直接的处理是什么？
+          options:
+            - text: 让每个调用点继续维护自己的格式转换
+              why: 格式规范变化时仍会散到多个位置。
+            - text: 在项目内提供统一包装或格式函数，并让调用点共用
+              correct: true
+          explain: 把第三方边界的补足逻辑放到统一位置。
+  - id: local-refactor
+    chapter: 模式与重构
+    title: 小步提取规则和数据，用用例确认行为保持
+    minutes: 13
+    flow:
+      - guess:
+          id: local-refactor-guess
+          type: choice
+          prompt: 代码里有段难读的折扣判断，结果目前正确。若目标只是整理，做完应先核对什么？
+          options:
+            - text: 原来合法与失败输入的可观察结果是否一致
+              correct: true
+            - text: 顺便改折扣规则，让结果变得不同
+              why: 改变业务结果是独立的功能变更。
+          explain: 先把整理和业务规则修改分开。
+      - card:
+          title: 提取方法、组织数据，先给原行为留证据
+          body: '**重构（refactoring）**调整内部结构并保留可观察行为。可从命名一段表达式、提取方法开始，把总在一起的字段收进值对象。先记录典型输入和边界结果，每次小改后重跑检查。移动字段时保留调用方依赖的相等与默认值语义。'
+      - item:
+          id: local-refactor-practice
+          type: choice
+          prompt: 原来的金额判断在临界值时给折扣。整理后不再给折扣，该先怎么处理？
+          options:
+            - text: 只要新结构更短，就接受行为变化
+              why: 原来依赖这个边界的调用者会收到不同结果。
+            - text: 修回原边界行为，或把需求变更另行确认
+              correct: true
+          explain: 由可观察行为判断是否完成了重构。
+      - card:
+          title: 用提前返回减少嵌套，保留条件和顺序
+          body: |
+            卫语句先处理失败或边界，然后走正常分支。改写前后要核对条件顺序，特别是带调用副作用的条件。示例把优惠判断由带 else 的条件改成提前返回，随后在边界附近逐项比较。
+
+            ```java
+            class Discount {
+                static int before(int cents) {
+                    if (cents >= 500) {
+                        return cents - 50;
+                    } else {
+                        return cents;
+                    }
+                }
+                static int after(int cents) {
+                    if (cents < 500) return cents;
+                    return cents - 50;
+                }
+            }
+            for (int cents : new int[]{499, 500, 501}) {
+                System.out.println(Discount.before(cents) + "/" + Discount.after(cents));
+            }
+            // expect: 499/499|450/450|451/451
+            ```
+      - item:
+          id: local-refactor-apply
+          type: number
+          prompt: 优惠规则是金额至少 500 分时减 50 分。把嵌套条件改成提前返回且保持原行为后，500 分输入输出多少？
+          answer: 450
+          explain: 500 达到优惠边界，扣掉 50 分。
+  - id: move-refactor
+    chapter: 模式与重构
+    title: 把行为移到数据附近，再逐步迁移调用方
+    minutes: 13
+    flow:
+      - guess:
+          id: move-refactor-guess
+          type: choice
+          prompt: 收银台方法一直读取订单的所有行并计算订单总额。哪项移动更贴近信息来源？
+          options:
+            - text: 把订单字段变成公有，让更多调用方分别求和
+              why: 规则会重复，订单内部表示还会暴露。
+            - text: 把求和移到订单，让收银台调用订单总额
+              correct: true
+          explain: 把规则移近数据，同时维持外部行为。
+      - card:
+          title: 移动方法可先保留旧入口作为转发
+          body: 移动方法、移动字段或提取类时，可让旧入口先委托给新位置，迁移调用方后再清理。简化调用还包括重命名方法、引入参数对象与分开查询和修改。若调用方在仓库外，旧入口可能要先经历明确的弃用阶段。
+      - item:
+          id: move-refactor-practice
+          type: order
+          prompt: 团队要移动总额计算，当前有调用方依赖旧方法。按稳妥的小步顺序排列。
+          steps:
+            - 补齐现有行为的检查
+            - 在新位置实现并让旧入口转发
+            - 验证并迁移各调用方
+            - 确认旧入口可移除后再清理
+          explain: 转发让迁移可以分阶段完成，也让失败更容易定位。
+      - card:
+          title: 泛化调整应保护子类型和已有调用方
+          body: 若多个子类真正共享规则，可上移共同方法。只在特定子类成立的字段或操作应下移；子类只是想复用部分实现又无法履行约定时，可改为持有对象并委托。改层次后复跑公共接口与子类型的测试。
+      - item:
+          id: move-refactor-apply
+          type: choice
+          prompt: 两个子类拥有完全相同的有效校验，且父类型的所有成员都需要它。可以考虑哪个重构？
+          options:
+            - text: 上移一个只对某个子类合法的专有字段
+              why: 专有字段会让其他子类背负无效状态。
+            - text: 把共同校验上移到父类并核对契约
+              correct: true
+          explain: 先确定共有责任，再调整继承层次。
+boss:
+  items:
+    - id: expert
+      type: choice
+      prompt: 订单行有单价和数量，订单持有所有订单行。哪项职责分配最符合信息专家？
+      options:
+        - text: 行计算小计，订单汇总行结果
+          correct: true
+        - text: 让支付网关直接读取并计算所有订单行
+          why: 支付网关没有必要理解订单行的业务规则。
+      explain: 先按信息所在位置分出局部计算和整体汇总。
+    - id: model-boundary
+      type: choice
+      prompt: 收款侧把完成定义为扣款，仓储侧把完成定义为出库。两边应怎样交换状态？
+      options:
+        - text: 共用一个含义由发送者任意决定的 completed 值
+          why: 接收方必须知道是哪件事已发生。
+        - text: 发出命名明确的业务事实并在各自上下文解释
+          correct: true
+      explain: 跨模型时把共享消息的含义讲清楚。
+    - id: uml
+      type: match
+      prompt: 给三项设计评审问题配视图。
+      pairs:
+        - - 一个订单允许有多少行项目
+          - 类图
+        - - 支付超时后查单消息发给谁
+          - 时序图
+        - - 取消订单收到迟到付款事件是否可转移
+          - 状态机图
+      explain: 分别检查结构约束、消息先后和状态规则。
+    - id: unknown-payment
+      type: choice
+      prompt: 扣款请求超时，可能已扣款。现在已持有订单业务键，优先怎么做？
+      options:
+        - text: 使用新业务键立即再次扣款
+          why: 新键可能触发一笔独立扣款。
+        - text: 按原键向支付方核对结果，再按确认状态处理
+          correct: true
+      explain: 先解决结果未知，再决定是否重试或补偿。
+    - id: compensation
+      type: choice
+      prompt: 已确认扣款成功，但库存预留确认失败且无法继续。若业务决定终止订单，应怎样设计收尾？
+      options:
+        - text: 记录退款补偿状态并追踪退款结果，再按预留状态清理库存
+          correct: true
+        - text: 只返回失败，假设之前的扣款自动消失
+          why: 外部已发生的扣款需要独立的退款动作。
+      explain: 失败响应不会自动撤销外部效果。
+    - id: fake-repo
+      type: choice
+      prompt: 想验证报表统计与格式输出，数据库临时不可用。怎样使用依赖注入？
+      options:
+        - text: 把生产 SQL 和求和算法复制进一个全新的测试类
+          why: 复制的算法未执行被测报表的业务方法。
+        - text: 给同一个报表对象传返回固定记录的读取实现和选定格式
+          correct: true
+      explain: 保留待验证的逻辑，只替换协作者。
+    - id: substitution
+      type: choice
+      prompt: 库存接口接受任意正整数件数。新实现改为最少五件仍声称完全兼容。问题是什么？
+      options:
+        - text: 它收紧了已有调用的前置条件
+          correct: true
+        - text: 它只改了内部结构，所有旧调用都有效
+          why: 旧调用方传一件时原本有效，现在被拒绝。
+      explain: 比较替代前后调用方能使用的条件。
+    - id: formats
+      type: choice
+      prompt: 总额计算不变，文本格式要由运行配置选择。如何扩展第三种格式？
+      options:
+        - text: 在库存查询逻辑里增加第三种格式分支
+          why: 库存查询职责与输出格式无关。
+        - text: 新增实现格式接口的对象，组装时选择它
+          correct: true
+      explain: 利用策略扩展已知变化点。
+    - id: observers
+      type: choice
+      prompt: 页面通过观察者接收价格变化。页面销毁后应如何避免继续收到更新？
+      options:
+        - text: 让页面注销它注册的观察者对象
+          correct: true
+        - text: 让所有页面都停止接收股价
+          why: 其他仍活动的订阅者需要保留。
+      explain: 订阅管理要和订阅者生命周期配合。
+    - id: structural
+      type: match
+      prompt: 为三种结构改动配模式。
+      pairs:
+        - - 把现有扣款接口译成订单需要的付款接口
+          - 适配器
+        - - 保留输出接口并层叠附加行为
+          - 装饰器
+        - - 让单件商品和树形商品包都能报告价格
+          - 组合模式
+      explain: 看主要目标是翻译、叠加行为还是统一树节点。
+    - id: refactor
+      type: order
+      prompt: 整理旧总额方法并保留旧入口，排出合理步骤。
+      steps:
+        - 记录现有边界行为
+        - 提取计算并让旧入口转发
+        - 重跑旧行为检查
+        - 迁移并验证调用方
+      explain: 先保住证据，再小步移动并验证入口。
+    - id: behavior
+      type: choice
+      prompt: 价格计算改写前，金额达到 500 分即减 50 分。重构后 500 分输出 500。说明什么？
+      options:
+        - text: 只是方法更短，所以属于成功重构
+          why: 同一合法输入的可观察结果已经不同。
+        - text: 边界行为改变，需恢复 450 的原结果
+          correct: true
+      explain: 保留行为要核对临界值与失败场景。

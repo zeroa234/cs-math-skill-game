@@ -54,6 +54,7 @@ node scripts/windows/build-installer.mjs   # 先要 publish-github.mjs 生成了
 
 - 游戏取自 `temp/publish/repo/output/web`（`publish-github.mjs` 从 HEAD 构建的那份，和发布页的电脑版 zip 是同一批文件），放进程序的 `game/` 目录；`package.json` 的版本写进安装包和文件名。
 - 工具装在 `temp/windows-package/`（第一次运行时 `npm ci`），Electron、NSIS、7-Zip 的下载也缓存在那里，不写 C 盘。
+- 这些工具默认从 GitHub 发布页下载。2.0.0 打包时本机访问 GitHub 发布文件一直返回 504（github.com 和 API 正常），改用 npmmirror 镜像：`ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ node scripts/windows/build-installer.mjs`。electron-builder 会按内置 sha256 校验 NSIS 等工具；镜像上的 Electron 45.2.2 zip 和之前从 GitHub 下的那份 sha256 相同（a2343884…）。
 - 打完后自动检查两件事：用 electron-builder 下载的 7-Zip 和它自带的 asar 把安装包拆开，里面的游戏要和发布的逐文件相同（`scripts/windows/verify-installer.mjs`，发布脚本上传前也跑一遍）；再无界面地启动解包出的程序，用 DevTools 端口确认它显示出游戏的第一屏。
 - 桌面入口 `scripts/windows/main.cjs`：游戏文件经私有的 `skill-game://` 协议提供（安全上下文，存档和读文件跟网页版一样），`game/` 以外的路径一律拒绝；教材和课程链接用系统浏览器打开。存档在 `%APPDATA%\cs-math-skill-game`，卸载时保留。
 - 没有代码签名证书，第一次运行时 Windows SmartScreen 可能提示“未知发布者”，点“仍要运行”。程序不自动更新，新版本要重新下载安装（覆盖安装，进度保留）。

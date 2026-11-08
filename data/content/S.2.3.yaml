@@ -1,0 +1,593 @@
+skill: S.2.3
+version: 2
+brief:
+  why: 移动应用从安装包、权限和本地存储到网络都有自己的信任边界。用授权测试场景练习核对每条边界。
+  outcomes:
+    - 解释 Android 与 iOS 的隔离、签名和权限
+    - 选择设备凭据、数据保护和 TLS 设置
+    - 从资产与边界设计可复测的安全用例
+terms:
+  - term: 沙箱
+    def: 平台对应用能访问的资源施加的限制。
+  - term: 密钥证明
+    def: 证明密钥来源及平台相关属性的可验证证据。
+  - term: 调用
+    def: 请求执行某个操作。
+  - term: 调试
+    def: 查找、复现与定位程序问题。
+  - term: 函数
+    def: 可接收输入、执行操作并返回结果的一段规则。
+lessons:
+  - id: sandbox
+    chapter: 移动平台与沙箱
+    title: 看平台如何隔离应用与数据
+    minutes: 13
+    flow:
+      - guess:
+          id: sandbox-guess
+          type: choice
+          prompt: 应用 A 想直接读应用 B 的私有文件。系统首先该依据什么阻止？
+          options:
+            - text: 应用的系统身份、沙箱和访问规则
+              correct: true
+            - text: 只看文件名是不是常用名称
+              why: 文件名不能定义权限边界。
+          explain: 平台应限制每个应用默认能接触的资源。
+      - card:
+          title: Android 和 iOS 都有平台施加的隔离
+          body: >-
+            **沙箱（sandbox）**限制应用对其他应用数据及系统功能的访问。Android 一般用应用 UID、文件权限和 SELinux 策略隔离；iOS
+            用应用容器、沙箱和授权声明限制访问。网页包装、原生和跨平台应用都要核对实际暴露的入口。外部应用请求执行另一应用的操作，叫**调用（call）**。
+      - item:
+          id: sandbox-practice
+          type: match
+          prompt: 把常见机制配给主要作用。
+          pairs:
+            - - 私有目录与应用隔离
+              - 限制其他应用直接读取数据
+            - - 代码签名与安装更新校验
+              - 确认包未被改动并核对更新身份
+            - - 运行时权限提示
+              - 由系统和用户授权某项敏感能力
+          explain: 安装、访问和用户授权是不同层次。
+      - card:
+          title: 签名、审核和安装来源是不同控制
+          body: >-
+            签名用于包的完整性与更新身份校验，不能单凭签名断定应用无害。分发审核能增加检查，但依安装渠道、地区和部署方式而异。Android 有非商店安装路径，iOS
+            也有开发、组织及部分市场的其他分发方式。**调试（debugging）**指为查找程序问题进行的检查。
+      - item:
+          id: sandbox-apply
+          type: choice
+          prompt: 应用由认可渠道分发且签名有效。还应检查哪些安全边界？
+          options:
+            - text: 签名已覆盖所有运行时授权，无需再查
+              why: 签名不会验证应用的每个访问决定。
+            - text: 其权限、数据保护和对外接口行为
+              correct: true
+          explain: 多个控制共同约束不同阶段。
+  - id: ipc
+    chapter: 移动平台与沙箱
+    title: 导出组件只开放需要的操作
+    minutes: 13
+    flow:
+      - guess:
+          id: ipc-guess
+          type: choice
+          prompt: 应用把收到的文字当成本地路径，并把文件返回给调用者。为什么危险？
+          options:
+            - text: 应用可读文件就代表任何外部调用者都可读
+              why: 应用自身能力与调用者授权不同。
+            - text: 调用者可能借应用本身的文件权限取得未授权资源
+              correct: true
+          explain: 跨应用接口要重新判定谁能访问什么。
+      - card:
+          title: 对内部组件显式关闭对外入口
+          body: >
+            Android 的 Activity、Service、Receiver 和 Provider 具有不同用途。`android:exported` 明确能否被其他应用调用；内部预览组件设为
+            false。外部调用仍应按平台身份和权限处理。iOS 的 URL scheme、Universal Links、扩展和共享容器同样需要边界检查。
+
+
+            ```xml
+
+            <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+                package="com.example.mobilelesson">
+                <application android:networkSecurityConfig="@xml/network_security_config">
+                    <activity android:name=".FilePreview" android:exported="false" />
+                </application>
+            </manifest>
+
+            ```
+      - item:
+          id: ipc-practice
+          type: choice
+          prompt: 同一个预览组件只被本应用页面使用。首要配置是什么？
+          options:
+            - text: 显式设为不导出
+              correct: true
+            - text: 保持导出但不公开组件名
+              why: 名字可能被发现，隐藏不是授权。
+          explain: 没有外部需求时缩小入口。
+      - card:
+          title: 需要共享时校验调用者、动作与资源
+          body: >
+            需要对外开放时，用适合的调用者权限或签名策略，并把资源限制为已授权的短期 URI 或业务编号。校验深链、消息与 WebView
+            传入的数据；路径规范化不能替代资源授权。**函数（function）**把一组操作写成可调用的规则。下例只演示返回已授权资源。
+
+
+            ```python
+
+            allowed = {("reader", "preview", "receipt"): "receipt-preview"}
+
+            def resolve(caller, action, resource):
+                return allowed.get((caller, action, resource))
+
+            print(resolve("reader", "preview", "receipt"))
+
+            print(resolve("stranger", "preview", "receipt"))
+
+            print(resolve("reader", "preview", "../private"))
+
+            ```
+      - item:
+          id: ipc-apply
+          type: choice
+          prompt: 预览组件确实要给合作应用开放。怎样检查「借权读文件」风险？
+          options:
+            - text: 同时验证调用者、允许操作和业务资源编号
+              correct: true
+            - text: 只删掉路径里的 ../ 后直接读取
+              why: 调用者仍可能读取已知但未授权的路径。
+          explain: 以资源授权决定是否读取。
+  - id: permissions
+    chapter: 权限与设备身份
+    title: 只在需要时请求相称的权限
+    minutes: 13
+    flow:
+      - guess:
+          id: permissions-guess
+          type: choice
+          prompt: 应用只要让用户上传一张照片。怎样减少隐私暴露？
+          options:
+            - text: 使用系统照片选择器或最窄的授权范围
+              correct: true
+            - text: 一次要求整个相册和通讯录权限
+              why: 功能不依赖全部相册，更不需要通讯录。
+          explain: 让用户授权与当下任务匹配。
+      - card:
+          title: 分清声明、授予和服务端授权
+          body: Android 可在清单声明用途，敏感权限还可能需运行时授予。iOS 对相机、相册等能力有相应用途描述与运行时选择。两者的规则会随系统版本和能力而变。应用要处理拒绝、撤回和有限访问。
+      - item:
+          id: permissions-practice
+          type: choice
+          prompt: 用户拒绝相机权限，但应用仍支持手动输入。怎样响应？
+          options:
+            - text: 无限弹窗直到用户授予
+              why: 强制授权破坏用户控制。
+            - text: 保持可用的替代路径，并在用户主动使用相机时说明需求
+              correct: true
+          explain: 尊重选择并限制请求范围。
+      - card:
+          title: 平台允许访问，不等于业务账号有权限
+          body: 系统允许打开相机或收到深链，服务端仍要验证会话、租户、资源和具体动作。应用内界面隐藏只是显示控制。对于设备标识，优先使用业务所需范围内的标识，考虑重置、撤回和删除。
+      - item:
+          id: permissions-apply
+          type: choice
+          prompt: 客户端隐藏了管理员按钮，服务端是否还要检查管理接口？
+          options:
+            - text: 无需，因为普通用户看不到按钮
+              why: 客户端界面不是服务端授权边界。
+            - text: 要，服务端要独立校验账号权限
+              correct: true
+          explain: 每个敏感操作都在可信一侧校验。
+  - id: identity
+    chapter: 权限与设备身份
+    title: 区分本地解锁、账号认证与设备证明
+    minutes: 13
+    flow:
+      - guess:
+          id: identity-guess
+          type: choice
+          prompt: 指纹解锁成功。服务端能仅凭客户端的 true 就确认收款账号是谁吗？
+          options:
+            - text: 能，应用上报 true 就足够
+              why: 普通本地真假值不是服务端的可验证凭据。
+            - text: 不能，服务器要验证自己的会话或挑战响应
+              correct: true
+          explain: 不同身份控制要有对应证据。
+      - card:
+          title: 本地认证可控制密钥使用
+          body: >-
+            Android BiometricPrompt、iOS LocalAuthentication
+            可核对设备用户。敏感操作可要求用户认证后才能使用密钥，具体能力取决于平台和硬件。账号认证仍由服务端验证；更换设备、移除锁屏方式和恢复流程要有策略。
+      - item:
+          id: identity-practice
+          type: choice
+          prompt: 需要证明当前操作使用了设备上的密钥，哪项更直接？
+          options:
+            - text: 让设备用受约束的私钥对服务器的新挑战签名
+              correct: true
+            - text: 上报设备型号文字
+              why: 型号可复制，无法证明私钥持有。
+          explain: 验证挑战响应以及关联的账号与设备。
+      - card:
+          title: 证明检查来源、有效期和挑战
+          body: >-
+            **密钥证明（key
+            attestation）**可让服务端检查密钥来源及平台报告的属性。应校验签名链、随机挑战、重放与平台政策。可信执行环境或专用安全芯片支持程度不同；证明是风险信号，仍要配合权限和会话控制。
+      - item:
+          id: identity-apply
+          type: choice
+          prompt: 收到过去一次成功证明的完全相同数据。怎样避免把旧证据用于新操作？
+          options:
+            - text: 只核对设备型号与上次相同
+              why: 型号不表示新的证明。
+            - text: 要求新的不可重复挑战并验证它与本次操作绑定
+              correct: true
+          explain: 检查证据的新鲜度和用途。
+  - id: storage
+    chapter: 应用数据与通信保护
+    title: 先减少落盘数据，再检查备份与日志
+    minutes: 13
+    flow:
+      - guess:
+          id: storage-guess
+          type: choice
+          prompt: 登录令牌写进了日志。即使应用私有目录有隔离，哪个问题仍存在？
+          options:
+            - text: 日志可能被诊断、崩溃上报或有权限的工具读取
+              correct: true
+            - text: 私有目录自动确保令牌永远不能外泄
+              why: 日志有独立的采集和流转路径。
+          explain: 沿数据从写入到备份与上传检查。
+      - card:
+          title: 按敏感度选择存储与可用时机
+          body: >-
+            Android 私有存储与文件级加密提供平台保护，注意设备解锁状态与备份策略。iOS 文件数据保护类别控制何时可解密，Keychain
+            适合小型秘密。密钥安全不能自动保护任意明文文件、截图、剪贴板或日志。
+      - item:
+          id: storage-practice
+          type: choice
+          prompt: 需要保存一个账号刷新令牌。哪项处理更合理？
+          options:
+            - text: 直接放到公共共享目录以便调试
+              why: 共享目录暴露给更多路径和工具。
+            - text: 最小保留，用平台秘密存储或受密钥保护的存储，并禁写日志
+              correct: true
+          explain: 按敏感度处理存储、传输和销毁。
+      - card:
+          title: 验证调试与发布产物的各条数据路径
+          body: 检查首选项、数据库、缓存、临时文件、备份、日志和复制。注销时按契约删除或失效，考虑旧数据迁移和已生成备份。应用私有目录减少跨应用访问，访问者持有合法权限时仍要考虑必要性。
+      - item:
+          id: storage-apply
+          type: choice
+          prompt: 发布版不打印令牌，但崩溃上报附上了完整请求头。下一步？
+          options:
+            - text: 在上报前按允许字段过滤，并用测试令牌检查
+              correct: true
+            - text: 只把上传目标改成 HTTPS
+              why: 加密传输不改变上报接收方能看见令牌。
+          explain: 减少敏感数据进入任何诊断渠道。
+  - id: crypto
+    chapter: 应用数据与通信保护
+    title: 用平台库保护密钥和数据完整性
+    minutes: 13
+    flow:
+      - guess:
+          id: crypto-guess
+          type: choice
+          prompt: 把所有安装共享的长期服务密钥写进安装包，混淆后能一直保持秘密吗？
+          options:
+            - text: 能，代码改名以后密钥只在开发机上
+              why: 安装包要带着程序用到的密钥。
+            - text: 不能依赖混淆，秘密可能随客户端分发被取得
+              correct: true
+          explain: 需要长期保密的服务秘密留在可信服务端。
+      - card:
+          title: 平台保护密钥，认证加密同时验证数据
+          body: >-
+            Android Keystore 可限制密钥用途和导出；iOS Keychain 可保护秘密，特定密钥可用安全硬件支持。数据加密优先用成熟平台库的认证加密，遵守随机数和每把密钥的 nonce
+            规则，失败时拒绝处理被改动的数据。
+      - item:
+          id: crypto-practice
+          type: choice
+          prompt: 同一加密方案要求每把密钥使用不重复 nonce。应该怎样实现？
+          options:
+            - text: 按库和方案规定生成、记录并测试避免重复
+              correct: true
+            - text: 在每次加密时固定为同一个值
+              why: 重复会违反方案安全假设。
+          explain: 加密输入的选择属于加密方案的一部分。
+      - card:
+          title: 把服务秘密与设备凭据分开
+          body: 服务端保存长期密钥，客户端用按账号、期限和操作受限的令牌。设备密钥需考虑生成、轮换、丢失和撤销。验证实现有受支持的算法、正确的完整性检查以及失败策略，避免自行组合密码操作。
+      - item:
+          id: crypto-apply
+          type: choice
+          prompt: 设备丢失后，什么能限制已发客户端令牌的后续使用？
+          options:
+            - text: 只把下个版本的代码里的名称改掉
+              why: 代码里的名称不会改变已发凭据的有效性。
+            - text: 服务端失效或短期有效策略，配合会话与设备处理
+              correct: true
+          explain: 凭据管理需要撤销和到期机制。
+  - id: tls
+    chapter: 应用数据与通信保护
+    title: 让发布版验证证书、主机名和连接策略
+    minutes: 13
+    flow:
+      - guess:
+          id: tls-guess
+          type: choice
+          prompt: 开发时为了连测试服务允许任意证书。这个配置若进发布版，会破坏什么？
+          options:
+            - text: 客户端验证服务器身份的能力
+              correct: true
+            - text: 只会让图片加载慢些
+              why: 攻击者可能冒充服务器。
+          explain: 加密连接也必须确认对方是谁。
+      - card:
+          title: 保留系统信任链与主机名检查
+          body: |
+            TLS 保护连接内容并认证服务端，客户端通常依平台证书链与主机名校验。Android 可用网络安全配置拒绝明文并分离调试信任。iOS 用 ATS 管理默认的安全传输策略，例外应最窄并说明必要性。
+
+            ```xml
+            <network-security-config>
+                <base-config cleartextTrafficPermitted="false" />
+            </network-security-config>
+            ```
+      - item:
+          id: tls-practice
+          type: choice
+          prompt: 客户端访问 api.example.test，收到有效但只属于其他主机的证书。应该怎样处理？
+          options:
+            - text: 接受，因为只需证书未过期
+              why: 证书还必须匹配目标主机名。
+            - text: 拒绝连接
+              correct: true
+          explain: 证书有效性和名称匹配都重要。
+      - card:
+          title: 证书固定要有轮换与恢复计划
+          body: 证书或公钥固定是额外策略，会让不在允许范围的证书被拒绝。若采用，要规划备用固定值、过期和升级，并保留其他校验。通常先把默认 TLS 验证和明文禁用测试完整。调试用的信任扩展留在调试构建。
+      - item:
+          id: tls-apply
+          type: choice
+          prompt: 生产版本只要服务器换证就完全无法更新应用配置。启用固定前应补什么？
+          options:
+            - text: 关闭证书链与名称校验来避免故障
+              why: 会失去基本的对端认证。
+            - text: 备用值、证书轮换和客户端恢复路径
+              correct: true
+          explain: 安全策略也要能可靠更新。
+  - id: privacy
+    chapter: 应用数据与通信保护
+    title: 按用途限制收集、传输和保留
+    minutes: 13
+    flow:
+      - guess:
+          id: privacy-guess
+          type: choice
+          prompt: 天气页只显示用户选的城市。需要连续收集精确位置并长期保存吗？
+          options:
+            - text: 需要，精确坐标总比城市更有价值
+              why: 不必要的精细数据会增加风险。
+            - text: 先看城市选择是否足够，只收集实现功能所需的数据
+              correct: true
+          explain: 先决定目的，再决定收集范围。
+      - card:
+          title: 检查数据流和第三方依赖
+          body: 列出数据来源、用途、接收方、保存期和用户控制。核对分析 SDK、崩溃 SDK 和网络请求，避免用稳定设备标识把不相关活动串起来。需要同意的路径应能撤回，并对保留和删除有可检查行为。
+      - item:
+          id: privacy-practice
+          type: choice
+          prompt: 一个分析库默认发送会话令牌。该先做什么？
+          options:
+            - text: 关闭这项收集或替换库，并验证网络请求已去掉令牌
+              correct: true
+            - text: 只改变界面上的隐私说明
+              why: 说明不会改变实际发送的字段。
+          explain: 将承诺和实际数据流一起验证。
+      - card:
+          title: 隐私测试检查拒绝、退出与删除后的行为
+          body: 用不同授权状态分别运行场景，观察网络、缓存和日志。避免将敏感生产数据带入测试。删除本地数据还要检查服务端、备份和第三方是否按适用的保留约定处理。
+      - item:
+          id: privacy-apply
+          type: choice
+          prompt: 用户已撤回分析同意，旧任务还在后台排队。该测哪一项？
+          options:
+            - text: 后台任务是否重新检查授权并停止相应发送
+              correct: true
+            - text: 只看设置页开关是否关闭
+              why: 显示正确不能证明任务行为正确。
+          explain: 针对真实数据流验证撤回。
+  - id: test
+    chapter: 移动应用威胁建模与测试
+    title: 从数据流画信任边界，再把风险变成用例
+    minutes: 13
+    flow:
+      - guess:
+          id: test-guess
+          type: choice
+          prompt: 团队给订单应用做安全评审。只列技术名词，能判断哪条路径最重要吗？
+          options:
+            - text: 应先标资产、数据流、入口和信任边界
+              correct: true
+            - text: 先列最复杂的工具，就能知道所有风险
+              why: 风险来自具体资产、入口与影响。
+          explain: 建模先说明谁能对什么做什么。
+      - card:
+          title: 用威胁与证据把设计连到测试
+          body: 画出界面、应用组件、外部应用、服务端和存储。按冒用、篡改、抵赖、泄露、拒绝服务和越权等类别逐条问边界会怎样失败。MASVS 给控制要求，MASTG 给验证做法，MASWE 帮描述弱点。
+      - item:
+          id: test-practice
+          type: order
+          prompt: 按合理顺序安排一次导出组件的授权验证。
+          steps:
+            - 确定资产与外部调用入口
+            - 列出调用者和可接受操作
+            - 用授权与未授权场景运行检查
+            - 记录版本、结果与复测条件
+          explain: 测试结果要能回到原控制和实际环境。
+      - card:
+          title: 静态检查与动态观察互补
+          body: >-
+            静态检查清单、权限、配置、依赖及包内容。动态测试在授权设备或测试应用上观察真实调用、文件和连接行为。Android 与 iOS
+            的证据路径不同，报告应写系统版本、构建类型、复现条件、影响和修复验证。
+      - item:
+          id: test-apply
+          type: choice
+          prompt: 静态清单显示组件公开。怎样判断是否能读取其他账号资源？
+          options:
+            - text: 只看到公开标志就断定所有文件泄露
+              why: 公开入口只是前提，资源权限还要实测。
+            - text: 在测试环境用不同调用者和资源组合验证实际授权
+              correct: true
+          explain: 把配置线索和实际风险区分开。
+  - id: build
+    chapter: 移动应用威胁建模与测试
+    title: 检查发布包实际配置，而非只看开发代码
+    minutes: 13
+    flow:
+      - guess:
+          id: build-guess
+          type: choice
+          prompt: 调试版可以使用测试 CA。怎么防止设置随发布包分发？
+          options:
+            - text: 认为发布时自然会删除所有调试选项
+              why: 构建设置可能被错误继承。
+            - text: 分离构建配置并检查最终发布包
+              correct: true
+          explain: 查打包后的有效配置。
+      - card:
+          title: 审查依赖、敏感配置和输入处理
+          body: Android 核对合并后的 Manifest、调试、备份、网络和组件设置；iOS 核对签名、授权声明、Info.plist 和调试能力。两侧都查依赖版本、崩溃日志和对外输入，避免硬编码秘密。
+      - item:
+          id: build-practice
+          type: choice
+          prompt: 源清单写不导出，但依赖可能合并新的声明。哪个证据更直接？
+          options:
+            - text: 最终构建的清单与对应场景测试
+              correct: true
+            - text: 只读应用主体的源文件
+              why: 合并结果可能含依赖带来的入口。
+          explain: 验证真正交付的内容。
+      - card:
+          title: 把重要检查纳入交付流程
+          body: 在构建时核对发布签名、允许权限、意外秘密和调试配置，再针对重要边界运行测试。原生代码还需按语言和平台检查边界访问等风险。记录版本和复现方法，方便修复后对同一制品重新验证。
+      - item:
+          id: build-apply
+          type: choice
+          prompt: 扫描看到一串像密钥的常量。应先怎样判断？
+          options:
+            - text: 所有常量一律删除或认定无害
+              why: 公开标识和长期高权限秘密的影响不同。
+            - text: 检查用途、权限范围和是否作为秘密使用，必要时轮换并移除
+              correct: true
+          explain: 用具体用途核实发现。
+  - id: resilience
+    chapter: 移动应用威胁建模与测试
+    title: 把篡改检测当成纵深防御的一层
+    minutes: 13
+    flow:
+      - guess:
+          id: resilience-guess
+          type: choice
+          prompt: 应用加入混淆后，可以把服务端授权全部搬到客户端吗？
+          options:
+            - text: 仍应由服务端执行敏感授权
+              correct: true
+            - text: 可以，混淆后没有人能分析程序
+              why: 客户端在使用者设备上，保护可提高分析成本但不能建立服务端信任。
+          explain: 区分提高成本与建立可信决定。
+      - card:
+          title: 按威胁选择混淆、完整性与环境信号
+          body: Android 与 iOS 可用混淆、完整性检查、调试或越狱风险信号。它们有误报、漏报和兼容成本。签名验证、风险判断与服务端约束各有作用。对测试样本记录版本和行为，避免把检测结果当成唯一凭证。
+      - item:
+          id: resilience-practice
+          type: choice
+          prompt: 一项环境检测误把正常设备判为高风险。更合理的策略是什么？
+          options:
+            - text: 只要一个信号触发就永久锁定所有账号
+              why: 单信号误报会阻止正常使用。
+            - text: 评估误报并按风险降级、二次验证或提供恢复途径
+              correct: true
+          explain: 结合资产风险与证据强度选择动作。
+      - card:
+          title: 在授权样本上区分静态线索和运行证据
+          body: 静态检查识别包结构、依赖和代码线索；动态观察核对行为和防护作用。可用自有调试构建或练习应用重现。对比原包与可控修改样本，记录检测能力和失败后服务器是否仍执行权限检查。
+      - item:
+          id: resilience-apply
+          type: choice
+          prompt: 完整性检测被一个实验样本绕开，后台仍拒绝越权读。这个结果说明什么？
+          options:
+            - text: 后台授权作为独立防线仍生效
+              correct: true
+            - text: 检测失败表示全部边界都已失守
+              why: 多个控制的失败范围不同。
+          explain: 分别测试客户端防护和服务端授权。
+boss:
+  items:
+    - id: signature
+      type: choice
+      prompt: 签名有效直接证明什么？
+      options:
+        - text: 包完整性及相应签名身份可被校验
+          correct: true
+        - text: 应用在运行时没有任何安全缺陷
+          why: 签名不检验业务授权。
+      explain: 签名和运行测试覆盖不同风险。
+    - id: component
+      type: choice
+      prompt: 组件无对外调用需求，最直接的入口控制是什么？
+      options:
+        - text: 保持导出并隐藏名字
+          why: 不公开名字仍可能被发现和调用。
+        - text: 显式设为不导出
+          correct: true
+      explain: 默认收紧入口。
+    - id: auth
+      type: choice
+      prompt: 本地认证返回 true，服务器是否可据此直接给敏感操作授权？
+      options:
+        - text: 要独立校验会话和可验证的操作凭据
+          correct: true
+        - text: 可以，客户端的真假值就是身份凭证
+          why: 服务器无法仅靠普通真假值验证来源。
+      explain: 让服务器执行可信检查。
+    - id: storage
+      type: choice
+      prompt: 应用把令牌写到崩溃请求头。先修复哪里？
+      options:
+        - text: 只把上传链路加密
+          why: 上报接收方仍可读取令牌。
+        - text: 上报前去掉令牌并复测
+          correct: true
+      explain: 减少敏感数据流转。
+    - id: tls
+      type: choice
+      prompt: 证书签名链有效，但证书中的名称与目标主机不符。怎么办？
+      options:
+        - text: 拒绝连接
+          correct: true
+        - text: 继续连接，因为签名链已正确
+          why: 名称检查也是服务端身份验证的一部分。
+      explain: 证书必须与访问目标相符。
+    - id: testing
+      type: match
+      prompt: 为三个移动安全线索选直接验证。
+      pairs:
+        - - 可能有意外导出的入口
+          - 检查最终清单与外部调用
+        - - 可能关闭证书校验
+          - 测试错误主机名与不受信证书
+        - - 撤回分析后可能仍上传
+          - 验证后台网络请求
+      explain: 每项测试要碰到对应的信任边界。
+    - id: resource
+      type: choice
+      prompt: 外部调用方有合法接口身份，传入未授权的资源编号，怎么办？
+      options:
+        - text: 拒绝访问该资源
+          correct: true
+        - text: 允许，因为身份检查已经通过
+          why: 身份认证不等于每个资源的授权。
+      explain: 按主体、动作和资源检查。

@@ -112,10 +112,12 @@ await session("home", DESK, async (p, shot) => {
   await p.waitForSelector(".page.pick");
   await shot("1-pick", true);
   // Completed campaigns can be chosen; unfinished recommendations and custom goals say 开发中.
-  const dev = await p.$$eval(".route-card.dev", (cs) => cs.map((c) => !!c.querySelector("button[disabled]")));
-  if (dev.length < 5 || dev.some((d) => !d)) errors.push(`[home] expected greyed-out recommended routes with disabled buttons, got ${JSON.stringify(dev)}`);
+  const recommendations = TREE.routes.filter((r) => r.kind === "recommended");
+  const dev = await p.$$eval(".routes:not(.mine) .route-card.dev", (cs) => cs.map((c) => !!c.querySelector("button[disabled]")));
+  if (dev.length !== recommendations.filter((r) => r.status === "dev").length || dev.some((d) => !d)) errors.push(`[home] expected greyed-out recommended routes with disabled buttons, got ${JSON.stringify(dev)}`);
   const openRec = await p.$$eval(".routes:not(.mine) .route-card:not(.dev)", (cs) => cs.map((c) => [c.getAttribute("aria-label"), !!c.querySelector(".btn.primary")]));
-  if (JSON.stringify(openRec) !== JSON.stringify([["人工智能：机器学习与深度学习", true], ["网络安全", true], ["算法", true]])) errors.push(`[home] expected AI, 网络安全 and 算法 with start buttons, got ${JSON.stringify(openRec)}`);
+  const expectedOpen = recommendations.filter((r) => r.status === "open").map((r) => [r.name, true]);
+  if (JSON.stringify(openRec) !== JSON.stringify(expectedOpen)) errors.push(`[home] expected open recommendations with start buttons, got ${JSON.stringify(openRec)}`);
   if ((await p.$$(".routes.mine .route-card:not(.dev) .btn.primary")).length !== 1) errors.push("[home] 我的远征 should offer exactly one start button");
   if (await p.$(".goal-list")) errors.push("[home] the goal picker is open although 自己定目标 is in development");
   await p.click(".routes.mine .route-card .btn.primary");
@@ -202,6 +204,11 @@ await session("packs", DESK, async (p, shot) => {
 
 const graph = indexTree(TREE);
 for (const [campaign, total, updated] of [
+  ["embedded", 20, ["C.1.2", "H.3.1", "H.1.1", "H.3.2", "H.3.3"]],
+  ["enterprise", 11, ["P.1.3", "P.4.1", "P.4.4"]],
+  ["mobile", 9, ["S.2.3", "P.1.4", "P.5.2"]],
+  ["web", 10, ["P.4.5", "D.1.1", "D.1.2", "S.3.1", "D.1.3"]],
+  ["devops", 12, ["P.2.4", "P.5.1", "P.5.3", "C.2.3"]],
   ["security", 9, ["C.2.2", "C.3.2", "C.4.2", "S.2.2"]],
   ["ai", 14, ["M.1.3", "M.1.4.1", "M.6.1", "M.6.2", "A.2.1", "M.6.2.2", "A.2.3", "A.4.1"]],
 ]) {
@@ -339,10 +346,11 @@ await session("phone", PHONE, async (p, shot) => {
   await p.goto(url + "#/");
   await p.waitForSelector(".page.home");
   await shot("1-home");
-  await p.goto(url + "#/route/web");
+  const devRoute = TREE.routes.find((route) => route.status === "dev")?.id || "goal:" + MATH_NO_PACK;
+  await p.goto(url + "#/route/" + devRoute);
   await p.waitForSelector(".dev-stops");
   if (await p.$(".trail")) errors.push("[phone] a route in development shows a playable trail");
-  if (await p.evaluate(() => JSON.parse(localStorage.getItem("cs-math-skill-game/progress")).settings.route === "web")) errors.push("[phone] opening a route in development made it the active route");
+  if (await p.evaluate((id) => JSON.parse(localStorage.getItem("cs-math-skill-game/progress")).settings.route === id, devRoute)) errors.push("[phone] opening a route in development made it the active route");
   await shot("2-route-dev");
   await p.goto(url + "#/skill/C.2.1");
   await shot("3-skill");

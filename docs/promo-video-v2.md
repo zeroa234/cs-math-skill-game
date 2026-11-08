@@ -1,8 +1,46 @@
-# 宣传片第二版：方案
+# 宣传片第二版
 
-状态：**方案已定，宣传片还没开工**（2026-11-05）。改名已在 1.3.1 完成，旧世界观的“星图学院”和“一路点亮”在 1.3.2 去掉（见下文“改名”）。第一版已整个删除（代码、截图、配音、成片），只在 git 历史里（提交 `a1577962`）。做完后本文件改写成“怎么重新生成”的说明。
+《计算机大学习！》有两部 1080×1920、30 fps 的竖屏宣传片。纯音乐 PV 约 69 秒，冷开场为 1 秒，用字卡串起每日小课、实验、结业挑战和技能树。广告约 66 秒，由两位鲸鱼娘导师演小剧场。两部片尾均署名导师角色设计 ZipZipPipe。
 
-要做两个版本：**纯音乐 PV** 和 **广告向**。两版内容不同，各有各的故事、镜头、顺序、字、音乐和结尾（见下文“两个版本各讲各的”）。共用的只有制作材料：同一轮游戏截图、导师精灵、游戏音效、像素界面组件、落版必须写的信息。两版都用新名字 **《计算机大学习！》**，都 ≥ 60 秒。
+- 纯音乐 PV 存在 `output/promo/pv/PV.mp4`。
+- 广告存在 `output/promo/ad/Ad.mp4`。
+
+## 重新生成成片
+
+在游戏项目目录执行。需要 Node.js、Edge、FFmpeg、FFprobe 和本地的 Breeze TTS 服务。
+
+```powershell
+npm ci
+npm ci --prefix src/promo
+npm run build
+node scripts/promo/assets.mjs
+node scripts/promo/capture.mjs
+node scripts/promo/sfx.mjs
+```
+
+按 `data/promo/music.json` 的来源和文件名，把 The World Is Ours 和 Happy Vibes 放入 `temp/promo/music-dl/`。将前者转成 44.1 kHz 立体声 WAV 后，按 `scripts/promo/beats.py` 开头的用法生成 `src/promo/public/build/beats-world.json`。用 `scripts/promo/voice.py` 开头的命令启动 Breeze TTS 服务，然后执行：
+
+```powershell
+node scripts/promo/music.mjs pv-a,pv-b,ad
+python scripts/promo/voice.py --seeds 3
+node scripts/promo/render.mjs PV output/promo/pv
+node scripts/promo/render.mjs Ad output/promo/ad
+```
+
+## 封面
+
+两部各有 9:16、3:4、4:5、1:1、4:3 和 16:9 的 PNG 封面，位于 `output/promo/covers/`。在 `src/promo` 执行以下命令重新出图，输出位于项目的 `temp/promo/stills/`。
+
+```powershell
+$coverArgs = foreach ($suffix in '', '-3x4', '-4x5', '-1x1', '-4x3', '-16x9') {
+  "AdCover$suffix"; '0'; "PVCover$suffix"; '0'
+}
+node stills.mjs @coverArgs
+```
+
+## 前期参考
+
+以下保留调研、早期分镜和制作记录。画幅、时长和镜头安排以成片为准。
 
 ## 为什么重做
 

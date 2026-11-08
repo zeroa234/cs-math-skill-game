@@ -1,0 +1,755 @@
+skill: S.3.1
+version: 2
+brief:
+  why: 一个网站要在接收输入、输出页面、验证身份和读取对象时都守住各自边界。你会用本地样例检查普通输入、跨用户访问和令牌验证，再判断接口与浏览器分别该负责什么。
+  outcomes:
+    - 识别注入和跨站攻击的入口，选择参数绑定、输出处理或请求验证
+    - 为口令、会话、OAuth 与 JWT 选择合适的核验方式
+    - 按主体、对象与操作检查权限，测试 API 和服务端外部访问
+terms:
+  - {term: SQL 注入, def: 外部输入被数据库解释为查询结构或代码，改变了原本要执行的查询。}
+  - {term: 参数绑定, def: 把查询结构与要传入的值分开交给数据库驱动。}
+  - {term: XSS, def: 跨站脚本攻击，使不可信内容在受影响页面的浏览器环境中被当成脚本执行。}
+  - {term: CSP, def: 内容安全策略，由站点告诉浏览器可以加载或执行哪些来源和形式的内容。}
+  - {term: SSRF, def: 让服务端代为访问原本不应由外部使用者控制的目标。}
+  - {term: 会话固定, def: 让受害者在登录后继续使用攻击者已经知道的会话标识。}
+  - {term: CSRF, def: 诱使已登录浏览器向目标站点发送用户未授权的操作请求。}
+  - {term: IDOR, def: 使用可控制的对象编号访问对象，而服务端漏做对应的对象权限检查。}
+  - {term: 批量赋值, def: 将请求字段批量写入内部对象，若缺少字段限制可能写入敏感属性。}
+  - {term: 参数污染, def: 重复或意外的参数结构让不同组件解释出不同值，导致规则被绕过。}
+lessons:
+  - id: sql-boundary
+    chapter: 输入输出边界
+    title: 让带引号的输入仍然只是一个值
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 商店搜索品牌 O'Reilly。用户文字里的引号应该作为品牌的一部分，还是能改变查询的结构？
+          options: [{text: 它应当留在品牌值里, correct: true}, {text: 数据库应把它当作改变查询语句的符号, why: 搜索者只提供值，查询结构由程序决定。}]
+          explain: 输入的引号本身很正常，关键是它通过哪条边界到达数据库。
+      - card:
+          title: 把数据库命令和要查的值分开
+          body: |
+            SQL 是向数据库提出查询的语言。把外部文字拼入查询结构，可能形成**SQL 注入（SQL injection）**。用**参数绑定（parameter binding）**，让查询文本的 `?` 代表一个值，由 SQLite 驱动接收实际数据。
+
+            ```python
+            def public_products(db, brand):
+                return db.execute(
+                    "SELECT name FROM Products WHERE brand = ? AND published = 1",
+                    (brand,),
+                ).fetchall()
+            ```
+      - item:
+          id: apostrophe
+          type: choice
+          prompt: 在参数绑定的搜索中输入 O'Reilly。应得到怎样的处理？
+          options: [{text: 引号必须删掉才能让搜索安全, why: 驱动按值传入，可保留合法的引号。}, {text: 整个输入作为一个品牌值参与比较, correct: true}]
+          explain: 传值方式保住了用户原有数据，也保住了查询语法边界。
+      - card:
+          title: 值可绑定，查询结构需要明确选择
+          body: |
+            查询的筛选值、更新值都应用相应驱动的绑定方式。列名、排序方向等属于查询结构，需从程序允许的固定选项映射。输入校验还能拦住无效长度或类型。数据库账户只给需要的权限，可减少其他失误带来的影响。
+      - item:
+          id: column
+          type: choice
+          prompt: 用户可选择按名称或价格排序，怎么安排 SQL 的排序列？
+          options: [{text: 把两个允许的选项映射到预先写好的列名, correct: true}, {text: 将任意用户字符串放进 ORDER BY 后面, why: 字段位置属于查询结构，不能由任意文本控制。}]
+          explain: 用固定映射限定结构，再对真正的值用参数绑定。
+  - id: sql-signals
+    chapter: 输入输出边界
+    title: 即使页面没显示数据，响应也可能泄露线索
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 页面不展示数据库的查询结果，但错误时会显示详细诊断。能因此断定输入无法泄露数据吗？
+          options: [{text: 只要正文没有表格就没有风险, why: 其他可观察差异也能泄露查询结果。}, {text: 还要检查错误、响应差异与时延是否受查询控制, correct: true}]
+          explain: 攻击者能看到的信号，不限于页面列出来的数据。
+      - card:
+          title: 追踪数据是否越过原本的范围
+          body: |
+            查询结构被改变，可能显示隐藏记录、绕过条件、读取其他表或数据库结构。UNION 类注入会尝试让额外查询的列数与类型匹配，再将结果拼入响应。即使输入先存进库，后来拼回命令仍可能造成二阶注入。
+      - item:
+          id: stored-input
+          type: choice
+          prompt: 备注第一次入库时用了参数绑定。之后批处理把读出的备注直接拼回 SQL，仍有风险吗？
+          options: [{text: 有，第二次从值进入查询结构时也必须分开传入, correct: true}, {text: 没有，存过一次就自动变成可信命令, why: 保存位置不会改变输入的可信程度。}]
+          explain: 每一次把数据交给数据库执行查询，都要守同样的边界。
+      - card:
+          title: 找出真假条件可能改变的信号
+          body: |
+            盲注可借正常与异常响应、不同报错或处理时长推断真假。某些数据库能力还可能触发站外可观测行为。对外只返回必要诊断，对内记录和监测，并限制数据库向外访问。根本处理仍是修好所有进入查询的值和结构。
+      - item:
+          id: blind-signals
+          type: match
+          prompt: 在授权的本地教学环境中，把现象配到相应的泄露渠道。
+          pairs: [[同一页面显示不同提示文字, 响应内容差异], [只有满足某条件时用时明显变长, 时间差异], [服务端触发另一个可观测渠道, 带外信号]]
+          explain: 无法直接看到结果时，仍可通过可重复差异泄露信息。
+  - id: xss-paths
+    chapter: 输入输出边界
+    title: 查外部数据在哪里变成浏览器指令
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 评论里写着类似网页标记的文字。站点希望显示原文，浏览器应该怎样处理？
+          options: [{text: 让浏览器一律把评论当作可执行页面代码, why: 评论作者便能改变其他人看到的页面行为。}, {text: 作为文字显示，而不要解释成页面元素或程序, correct: true}]
+          explain: 先分清数据从哪里来，以及进入哪个会解释它的位置。
+      - card:
+          title: 追踪输入到达解释点的路径
+          body: |
+            **XSS（cross-site scripting）**让外部内容在受影响网站的浏览器环境中执行。反射型输入从本次请求进入响应，存储型先保存、再展示给访问者。DOM 型强调浏览器脚本把外部数据送入危险的解释点。
+      - item:
+          id: xss-kinds
+          type: match
+          prompt: 按主要路径匹配典型场景。
+          pairs: [[搜索词直接进入当前返回的网页, 反射型], [保存的评论后来在其他人页面中渲染, 存储型], [浏览器脚本将网址片段作为 HTML 插入页面, DOM 型]]
+          explain: 反射与存储描述输入的传递方式，DOM 型关注浏览器端的处理点。
+      - card:
+          title: 看数据被当成文字、HTML 还是程序
+          body: |
+            `innerHTML` 会解析 HTML，`eval` 会解释 JavaScript。只显示文字时用 `textContent`。若必须显示富文本，要用适合的净化工具处理允许的元素和属性。执行在目标站点环境里的脚本可能读取可读数据或代替用户发起操作。
+      - item:
+          id: text-sink
+          type: choice
+          prompt: 将网址片段显示为普通文字。优先选哪个 DOM 属性？
+          options: [{text: textContent, correct: true}, {text: innerHTML, why: 它会把字符串解释成 HTML。}]
+          explain: 选择与预期用途相符的输出方式，减少数据被误解释的机会。
+  - id: xss-output
+    chapter: 输入输出边界
+    title: 根据输出位置选择保护方法
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一段昵称可能出现在正文、引号包住的属性或脚本里。只用一种处理方式能覆盖所有位置吗？
+          options: [{text: 删除某个固定关键词即可覆盖所有上下文, why: 不同上下文使用不同语法和边界。}, {text: 应按位置和它会被怎样解释分别处理, correct: true}]
+          explain: 安全处理必须与最终解释数据的位置相配。
+      - card:
+          title: 输出文字与构造属性使用不同规则
+          body: |
+            HTML 文本用模板自动转义或安全文本接口。属性值要在适当的引号内按属性上下文处理，网址还需核对允许协议。避免把外部数据拼进脚本；必须传递数据时用框架提供的安全序列化机制。
+      - item:
+          id: safe-output
+          type: match
+          prompt: 为三个输出目标选合适的做法。
+          pairs: [[在段落中显示原样评论, 用模板文本转义或 textContent], [为导航地址接受用户输入, 核对允许协议并安全设置属性], [让脚本获取服务器数据, 通过安全的结构化数据接口传递]]
+          explain: 按输出位置选择编码与接口，避免数据跨入不同语法。
+      - card:
+          title: 入口校验、输出保护和浏览器策略一起配合
+          body: |
+            入口校验按允许类型和格式接收输入，名单比追逐已知坏词更清楚。输出仍按上下文处理。**CSP（Content Security Policy）**可限制脚本执行来源与方式，为失误加一道浏览器防线。模板自动转义需要在合适的上下文使用。
+      - item:
+          id: csp-role
+          type: choice
+          prompt: 站点已设置 CSP，但把评论交给 innerHTML。优先怎样修评论显示？
+          options: [{text: 若只需文本，改用安全的文本输出接口，再保留 CSP, correct: true}, {text: 只检查 CSP 头存在就继续把评论当 HTML, why: 策略降低部分影响，危险解释点仍在。}]
+          explain: 先修产生问题的输出方式，再保留补充的浏览器保护。
+  - id: files-parsers
+    chapter: 输入输出边界
+    title: 文件名和模板片段都只是外部数据
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用户上传的文件名写成 report.jpg。可以只看这个名字就认定内容是合规图片吗？
+          options: [{text: 只要后缀相同，内容一定相同, why: 文件名可以任意更改。}, {text: 还应按服务器允许的类型、大小和内容验证, correct: true}]
+          explain: 上传者给出的名字、类型和内容要各自判断。
+      - card:
+          title: 用受控位置保存外部文件
+          body: |
+            路径穿越利用外部路径离开预期目录。可用服务器生成的文件标识映射到受控位置，避免接受任意本机路径。上传时限制大小、类型和实际内容，储存在不会执行的目录，读取时再检查权限。
+      - item:
+          id: store-outside-web
+          type: choice
+          prompt: 系统只接受用户头像。怎样安排保存位置更稳妥？
+          options: [{text: 用服务器生成的名字，写到不可执行的位置并限制内容, correct: true}, {text: 原样拼接客户端给的路径，直接保存到脚本目录, why: 外部路径和可执行位置会跨过应用预期的边界。}]
+          explain: 保存位置和允许处理方式应由服务端确定。
+      - card:
+          title: 不让外部数据成为解析器的程序
+          body: |
+            服务端模板注入（SSTI）发生在外部内容被解释成模板表达式时，应用应选固定模板并只传数据。XML 外部实体（XXE）风险来自解析器读取外部资源。避免不需要的 XML 功能，配置安全解析器并禁用外部实体解析。
+      - item:
+          id: parser-boundaries
+          type: match
+          prompt: 给两种输入边界配首要保护。
+          pairs: [[用用户输入填充页面模板, 固定模板并把输入作为数据传入], [解析用户提供的 XML, 用安全解析器并限制外部实体]]
+          explain: 模板解释与外部资源加载都是额外能力，要由可信配置控制。
+  - id: ssrf
+    chapter: 输入输出边界
+    title: 让服务器只访问被批准的目的地
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 网页预览服务会在服务器上读取用户提供的网址。服务器能否看到浏览器原本看不到的内部服务？
+          options: [{text: 服务器与外部用户一定看到完全相同的网络, why: 内部服务可能只对服务器所在网络开放。}, {text: 可能，因为服务器处在另一个网络位置, correct: true}]
+          explain: 关键是由谁发请求，以及请求可到达哪些位置。
+      - card:
+          title: 识别服务端请求伪造的能力差异
+          body: |
+            **SSRF（server-side request forgery）**让服务端按外部输入访问原本不该开放的目标。云实例的元数据服务有时可返回运行身份信息或临时凭据，内部管理服务也可能只对内部网络开放。优先用受控服务标识替代任意完整 URL。
+      - item:
+          id: server-fetch
+          type: choice
+          prompt: 用户只需选择三个固定数据源。哪种设计最直接缩小 SSRF 风险？
+          options: [{text: 接收数据源代号，服务器从固定映射取连接目标, correct: true}, {text: 允许任意完整 URL，只检查它以 http 开头, why: 这样仍允许指向内部地址或经跳转进入内部。}]
+          explain: 将外部可控制范围限制为实际业务所需。
+      - card:
+          title: 确认最终连接位置并限制出口
+          body: |
+            若必须接收目标，用可靠解析器限定协议、主机与端口，检查解析出的 IPv4 和 IPv6 地址。禁止环回、内部和链路本地等受限范围。连接应使用已验证的实际地址并保持原主机的 TLS 验证，防止解析后地址改变。
+          reveal:
+            - title: 一并控制重定向
+              body: 可关闭自动跳转，或对每个新目标重做完整检查，再连接已经验证的位置。
+            - title: 用隔离防住遗漏
+              body: 让预览服务走受限网络出口，隔开内部管理与元数据服务。云平台的元数据访问加固可再减少暴露范围。
+      - item:
+          id: redirect-target
+          type: choice
+          prompt: 已批准的外部 URL 返回跳转，新目标可能是内部地址。预览程序该怎么办？
+          options: [{text: 直接跟随，因为第一个 URL 已检查, why: 新目标可以在不同主机和网络位置。}, {text: 停止跳转，或重新验证下一目标并限制真实连接, correct: true}]
+          explain: 安全决定需要覆盖每一次实际连接。
+  - id: login
+    chapter: 认证会话
+    title: 登录先核验身份，同时控制反复猜测
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 有人能在很短时间内试许多组账号和口令。站点该在哪一侧限制尝试？
+          options: [{text: 由服务端核对并限制，而不是只限制网页按钮, correct: true}, {text: 把登录按钮隐藏几秒就能拦住所有尝试, why: 客户端可直接调用登录接口。}]
+          explain: 防护要作用于真正处理身份凭据的位置。
+      - card:
+          title: 身份核验和权限判断分别做
+          body: |
+            登录用凭据验证身份，授权则检查它能做什么。用 HTTPS 传递登录数据。服务端用适合口令的带盐、计算成本可调的哈希工具，如 Argon2id，保存验证材料。表单、HTTP 认证和客户端证书是不同凭据方式。
+      - item:
+          id: verify-identity
+          type: choice
+          prompt: 服务已确认请求来自 Mei。还需要哪一步才能允许删除别人的订单？
+          options: [{text: 登录成功就允许删除任何订单, why: 身份已知与操作获准是两种判断。}, {text: 另查 Mei 对这笔订单是否有删除权限, correct: true}]
+          explain: 登录建立主体身份，权限要按操作和对象另行核对。
+      - card:
+          title: 为多次失败设计服务端限制
+          body: |
+            限制按账号和其他信号结合，避免只按网络来源而轻易被分散绕过。失败提示尽量一致，监测异常尝试。简单锁死账号也可能被用来阻碍正常人登录，可用逐步延迟与恢复策略。
+      - item:
+          id: rate-limits
+          type: choice
+          prompt: 攻击者从不同网络反复猜同一账号的口令。只按单个来源限制可能漏掉什么？
+          options: [{text: 同一账号累积的异常尝试, correct: true}, {text: 账号的口令哈希会自动消失, why: 尝试次数与保存的验证材料是不同机制。}]
+          explain: 要按攻击可能切换的信号看总趋势。
+  - id: mfa
+    chapter: 认证会话
+    title: 完成全部认证步骤之后才给登录权限
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 账户要求先验口令再验一次性码。只通过第一步，能先访问账户页面吗？
+          options: [{text: 第二步只需前端显示，第一步后就可开放, why: 直接访问账户入口会绕过第二步。}, {text: 应等第二步也通过才给完整会话, correct: true}]
+          explain: 认证阶段要由服务端记住并检查。
+      - card:
+          title: 用不同类型的证据提高可信度
+          body: |
+            多因素认证结合不同类别，如记住的口令与持有的认证器。一次性码要校验有效期、尝试次数和使用状态。认证器或安全密钥与站点绑定的方案能降低部分钓鱼风险。
+      - item:
+          id: separate-factors
+          type: choice
+          prompt: 系统要求先输口令，再回答另一个记忆问题。这一定构成两种不同认证因素吗？
+          options: [{text: 两步都依赖记住的信息，仍属于同一类证据, correct: true}, {text: 只要有两个页面就一定是两种因素, why: 因素类型由证明方式决定。}]
+          explain: 真正的多因素应增加不同种类的证据。
+      - card:
+          title: 检查第二步无法被跳过或挪用
+          body: |
+            第二步必须绑定这次登录与当前账号。服务端在全部验证结束前只保留临时状态，敏感功能也要拒绝临时状态。找回和备用方式同样要防止成为跳过认证的入口。
+      - item:
+          id: bypass
+          type: choice
+          prompt: 用户口令通过后，直接访问账户设置绕开一次性码页面。应在哪里拦截？
+          options: [{text: 只在浏览器里隐藏设置入口, why: 客户端仍能直接请求服务端。}, {text: 在服务端核对完整认证状态，保护每个敏感入口, correct: true}]
+          explain: 权限授予依据服务端记录的状态，而非客户端页面顺序。
+  - id: sessions
+    chapter: 认证会话
+    title: 登录时换会话标识，退出时让旧标识失效
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一张访客票的编号可能已经被别人知道。访客登录后继续使用原编号，会有什么风险？
+          options: [{text: 知道旧编号的人可能得到已登录身份, correct: true}, {text: 登录会让旧编号的持有者自动失去它, why: 如果服务器仍接受原编号，持有者仍可重放。}]
+          explain: 登录改变权限时，应为新状态分配新凭据。
+      - card:
+          title: 把登录后的状态与访客状态分开
+          body: |
+            **会话固定（session fixation）**利用一个事先知道的标识等用户登录。认证或提权成功后重新生成标识，作废旧标识。退出时应撤销服务端会话，并让浏览器清除对应 Cookie。
+      - item:
+          id: rotate
+          type: choice
+          prompt: 登录前的 Cookie 编号曾被泄露。登录后应该怎样处理？
+          options: [{text: 继续使用原编号，只更换页面显示的用户名, why: 持有原编号的人仍可尝试取得新权限。}, {text: 更换标识并让旧标识失效, correct: true}]
+          explain: 必须切断已知标识到更高权限的关联。
+      - card:
+          title: 分别限制发送、读取和跨站附带
+          body: |
+            `Secure` 限制安全连接发送，`HttpOnly` 限制脚本读 Cookie。`SameSite=Strict` 更严格限制跨站发送；`Lax` 在部分顶层安全方法导航仍可发送。适当限制范围和寿命。脚本即使不能直接读 Cookie，也可能以当前身份发请求。
+      - item:
+          id: http-only
+          type: choice
+          prompt: 会话 Cookie 已设 HttpOnly，页面仍有可执行外部脚本的问题。这个属性能保证脚本无法代替用户操作吗？
+          options: [{text: 不能，浏览器仍可能随适用请求附带 Cookie, correct: true}, {text: 能，脚本读不到 Cookie 就不能发送带身份的请求, why: 浏览器可按规则自动附带凭据。}]
+          explain: 防止直接读取与防止浏览器代发操作需要不同保护。
+  - id: recovery
+    chapter: 认证会话
+    title: 让口令找回只能用于原账号的一次操作
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一封找回邮件被人转发。里面的入口应一直有效、反复可用吗？
+          options: [{text: 长期可重复更方便，因此更安全, why: 旧入口可能被他人获取和再次使用。}, {text: 应绑定账号、限制时长，并在使用后作废, correct: true}]
+          explain: 找回入口也是能改变账户控制权的凭据。
+      - card:
+          title: 找回链接的目标与令牌由服务端控制
+          body: |
+            用强随机令牌，绑定账号与用途，设置过期与一次性使用。链接域名取自受控配置。回复尽量一致，避免通过提示得知邮箱是否注册。对发送请求限频，避免骚扰及批量猜测。
+      - item:
+          id: enumerate
+          type: choice
+          prompt: 找回接口对不存在的邮箱显示“查无此人”，对已注册邮箱显示“已发送”。会泄露什么？
+          options: [{text: 哪些邮箱在站点有账户, correct: true}, {text: 所有账户的明文口令, why: 这里的直接差异是注册状态。}]
+          explain: 提示和响应行为也属于外部可观察的数据。
+      - card:
+          title: 使用后一起处理旧凭据和通知
+          body: |
+            验证令牌和换口令应避免并发下重复使用。找回完成后作废令牌并按策略撤销旧会话，通知账户所有者。正常改口令时可要求重新核验身份，降低仅凭已打开页面就能改密的风险。
+      - item:
+          id: reset-order
+          type: order
+          prompt: 用户点击有效找回链接并设置新口令。给服务端的处理排序。
+          steps: [核对令牌的账号与用途, 检查未过期且未使用, 更新口令并同时消耗令牌, 撤销适用旧会话并通知账号所有者]
+          explain: 验证、一次性消费和旧凭据清理共同约束找回后的状态。
+  - id: csrf
+    chapter: 认证会话
+    title: 区分浏览器带了凭据和用户真的想执行
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你已登录购物站。另一个网页诱使浏览器向购物站发出修改请求。请求带 Cookie 就证明你同意了吗？
+          options: [{text: 只要有 Cookie 就一定来自你在购物站的操作, why: 浏览器可按规则自动附带 Cookie。}, {text: 带凭据只证明浏览器拥有会话，还需要核对请求来源或操作证据, correct: true}]
+          explain: 能被浏览器自动附带的凭据，不能单独表达用户意图。
+      - card:
+          title: 给会改变状态的请求加验证
+          body: |
+            **CSRF（cross-site request forgery）**诱使浏览器用用户凭据发出不经同意的请求。状态变更用相应方法并检查不可预测、与会话关联的令牌。也可按策略校验 Origin 等来源信号，用 SameSite 补充限制。
+      - item:
+          id: unsafe-get
+          type: choice
+          prompt: 一个 GET 链接点击后会取消订单，站点用 SameSite=Lax。哪个改法更稳妥？
+          options: [{text: 取消订单改成需要令牌核验的状态变更请求, correct: true}, {text: 保留 GET，只把按钮藏在设置页, why: 顶层导航也可能触发 GET 并带凭据。}]
+          explain: 读取方法应保持只读，状态变更需要额外核验。
+      - card:
+          title: 从浏览器能否读取响应，分开看能否发送
+          body: |
+            某些跨站表单可以发送请求，即使脚本不能读取结果。检查令牌应在执行动作前完成，缺少或无效就拒绝。可在本地用同一账户测试正常令牌、缺失令牌和错误令牌三种路径。
+      - item:
+          id: token-check
+          type: match
+          prompt: 状态变更接口已确认登录，再按令牌规则处理。配对三种输入。
+          pairs: [[令牌与会话匹配且有效, 可继续检查操作权限], [请求没有令牌, 拒绝缺少验证材料], [令牌属于另一个会话, 拒绝验证不匹配]]
+          explain: 登录、令牌核验和操作权限分别判断。
+  - id: oauth
+    chapter: 认证会话
+    title: 把授权码和发起本次流程的应用绑定
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 第三方授权回来的短期码可能被别人看到。怎样让看到码的人还不能直接兑换？
+          options: [{text: 让码出现在更长的 URL 里即可, why: 长地址并不保证码不会被截获。}, {text: 兑换时还要证明拥有本次发起方保存的随机值, correct: true}]
+          explain: 把兑换绑定到真正发起本次流程的一方。
+      - card:
+          title: 挑战在发起时发出，原值在兑换时提交
+          body: |
+            授权码加 PKCE 时，应用为本次流程生成随机 verifier，保留原值。S256 对原值做 SHA-256，再用不带填充符的 base64url 编码得到 challenge。发起时发挑战，兑换短期码时交原值，由授权服务器核对。
+      - item:
+          id: pkce
+          type: order
+          prompt: 按授权码加 PKCE 的顺序排列。
+          steps: [生成随机验证值并保留原值, 发出请求时附 S256 挑战, 收到回跳授权码, 用授权码和原值兑换]
+          explain: 挑战先登记，兑换时验证应用是否持有对应原值。
+      - card:
+          title: 验证授权回跳和身份结果
+          body: |
+            使用预先登记的精确回跳地址，并按协议绑定请求与返回，核对 state、提供方和适用的 nonce。OAuth 授权用于访问许可，用户登录可用 OIDC 来核验身份。通过成熟协议库验证后，再建立自己的应用会话。
+      - item:
+          id: issuer-binding
+          type: choice
+          prompt: 应用收到了一个授权码和另一次登录请求的 state。该直接兑换并登录吗？
+          options: [{text: 应拒绝这次不匹配的返回并重新发起, correct: true}, {text: 码存在就表示属于这次登录, why: 返回参数还要与保存的本次请求核对。}]
+          explain: 回跳必须与本次授权请求关联。
+  - id: jwt
+    chapter: 认证会话
+    title: 先验证令牌，再采用其中的身份信息
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 收到一段格式正确的 JWT，里面说主体是管理员。能仅凭读懂内容就使用吗？
+          options: [{text: 只要能解码就说明签发方批准, why: 结构正确的文字也可以自行构造。}, {text: 要按可信签发方和密钥规则核验，并检查它是否给本服务且仍有效, correct: true}]
+          explain: 能读出声明与能相信声明是两个步骤。
+      - card:
+          title: 由服务端固定算法和验证条件
+          body: |
+            JWT 声明可用 base64url 表示，机密性需另行保护。避免采用令牌自行声明的任意算法，也不要混用对称密钥与公钥。下面是 PyJWT 本地示例，假定同一信任域使用专用高强度共享密钥。
+
+            ```python
+            import jwt
+
+            def verify_access_token(token, key):
+                return jwt.decode(
+                    token,
+                    key,
+                    algorithms=["HS256"],
+                    issuer="https://issuer.example",
+                    audience="orders-api",
+                    options={"require": ["exp", "nbf", "iss", "aud", "sub"]},
+                )
+            ```
+      - item:
+          id: wrong-audience
+          type: choice
+          prompt: 令牌签名有效，但受众为另一个 API。订单服务应该怎样做？
+          options: [{text: 拒绝，因为令牌不是发给当前服务的, correct: true}, {text: 接受，签名有效就等于通行全部服务, why: 受众校验限制令牌在哪个服务使用。}]
+          explain: 签发者、受众、有效期与签名各自限定信任范围。
+      - card:
+          title: 根据风险决定保管与作废方式
+          body: |
+            浏览器脚本可读的存储增加脚本漏洞下的泄露面。HttpOnly Cookie 降低直接读取风险，但需考虑 CSRF。令牌应有适当有效期，必要时安排轮换和撤销。通过验证后仍需检查实际对象与操作权限。
+      - item:
+          id: access-vs-token
+          type: choice
+          prompt: 令牌有效并标识 Mei。接口随后要返回订单，应检查什么？
+          options: [{text: 只验证签名即可返回任意订单, why: 令牌证明主体身份与部分声明，不能替代对象规则。}, {text: Mei 是否有权限读取指定订单, correct: true}]
+          explain: 认证结果是授权的输入。
+  - id: policies
+    chapter: 访问控制
+    title: 每次用主体、动作、对象和上下文决定是否允许
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个人都属于“普通顾客”。这是否代表他们可以互相查看所有订单？
+          options: [{text: 还需查订单归属以及允许的操作, correct: true}, {text: 角色相同就可以访问彼此的全部数据, why: 相同角色仍可有不同对象范围。}]
+          explain: 权限不仅看用户类型，还要看想操作哪一项数据。
+      - card:
+          title: 分开核对功能、对象和当前状态
+          body: |
+            纵向控制限制高权限功能，横向控制限制同角色用户之间的对象访问。依赖上下文的控制还看订单状态或业务阶段。基于角色的控制按岗位授权，基于属性的控制可组合归属、状态、时间等属性。
+      - item:
+          id: control-type
+          type: match
+          prompt: 配对主要要防的越权情形。
+          pairs: [[普通顾客试图使用管理员导出功能, 纵向控制], [顾客读取另一顾客的订单, 横向控制], [订单已发货后仍尝试取消, 上下文控制]]
+          explain: 功能、对象归属与业务状态可以同时限制同一次操作。
+      - card:
+          title: 默认拒绝，按真实主体检查
+          body: |
+            未明确允许时拒绝。服务端从已验证会话取得主体。请求里的角色或用户名属于外部输入。使用统一权限规则，在每个入口和每次对象操作核对；零信任思路也强调按实际请求验证并给最小权限。
+      - item:
+          id: client-role
+          type: choice
+          prompt: 请求 JSON 里写着 role 为 admin。服务端能直接用这个值授予权限吗？
+          options: [{text: 可以，字段名字叫 role 就能代表权限, why: 客户端可自行改变字段值。}, {text: 应使用服务端认可的主体与权限信息, correct: true}]
+          explain: 授权证据应来自可信身份和受控策略。
+  - id: objects
+    chapter: 访问控制
+    title: 同一个订单号，对不同用户给出不同权限结果
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 订单编号很长、不容易猜。用户从共享截图里拿到了另一个人的编号，还应该有哪一层保护？
+          options: [{text: 服务端仍需核对这名用户能否访问该订单, correct: true}, {text: 编号已足够长，可以把它当成公开读权限, why: 编号仍可能通过日志、链接或截图被发现。}]
+          explain: 难猜的标识能减少随意枚举，但每次访问仍有自己的权限规则。
+      - card:
+          title: 让查询同时检查对象和当前主体
+          body: |
+            **IDOR（insecure direct object reference）**指可控制对象标识且缺少对象权限检查。API 中常归为对象级授权失效（BOLA）。下面示例规定只能读取和取消自己的订单，主体从已验证的会话取得。
+
+            ```python
+            def read_order(db, order_id, actor_id):
+                return db.execute(
+                    "SELECT id, total FROM Orders WHERE id = ? AND user_id = ?",
+                    (order_id, actor_id),
+                ).fetchone()
+
+            def cancel_order(db, order_id, actor_id):
+                return db.execute(
+                    "UPDATE Orders SET status = 'cancelled' "
+                    "WHERE id = ? AND user_id = ? AND status = 'pending'",
+                    (order_id, actor_id),
+                ).rowcount
+            ```
+      - item:
+          id: read-owner
+          type: choice
+          prompt: 读取条件要求订单号和当前主体都匹配。订单 123 属于 Lin，当前主体是 Mei。会返回这笔订单吗？
+          options: [{text: 会，因为主体已经登录, why: 查询同时要求归属匹配。}, {text: 不会，订单号匹配但归属不匹配, correct: true}]
+          explain: 两个条件要同时成立，才能得到记录。
+      - card:
+          title: 读与改都要做双用户检查
+          body: |
+            `rowcount` 表示本次修改影响几行。用两个测试账户分别尝试自己的订单、他人的订单和错误状态。读到他人普通对象是横向越权，若进一步读到管理凭据并取得高权限，还可能升级为纵向越权。
+      - item:
+          id: write-owner
+          type: choice
+          prompt: 当前主体是 Mei，待处理订单 123 属于 Lin。按示例的更新条件，rowcount 会是什么？
+          options: [{text: '0，没有找到允许这次修改的行', correct: true}, {text: '1，只要订单存在就能改', why: 归属条件不成立，因此更新不会选中它。}]
+          explain: 把权限与更新条件放在同一条受控操作里，避免先查权限后误改另一条记录。
+  - id: workflow
+    chapter: 访问控制
+    title: 每一步都验证状态和权限
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 报销界面先显示申请，再显示审批。直接调用最后一步的地址时，服务器还能假定前一步已经完成吗？
+          options: [{text: 地址来自浏览器就说明界面步骤一定走过, why: 接口可以被单独请求。}, {text: 应核对服务端记录的当前状态和审批权限, correct: true}]
+          explain: 业务状态由可信记录确定，不能由页面跳转顺序推断。
+      - card:
+          title: 不让不同入口绕过同一检查
+          body: |
+            未公开的路径、可改的参数、平台配置缺口都可能让同一功能绕过检查。不同路径写法或方法可到达相同处理逻辑。统一规范化并在实际执行动作处核对权限。隐藏按钮和 Referer 只能当辅助信息。
+      - item:
+          id: aliases
+          type: choice
+          prompt: 正常审批 URL 被权限规则保护，但别名路径也能到达同一功能。应怎样修？
+          options: [{text: 在服务端实际处理动作时统一执行权限规则，并检查所有入口, correct: true}, {text: 只从网页移除别名链接, why: 客户端仍可直接请求别名。}]
+          explain: 防护应跟着执行的操作，而不是只跟着界面展示的某一条路径。
+      - card:
+          title: 用允许的状态变化构造测试
+          body: |
+            把“谁可以在什么状态做什么”写成明确规则。审批前检查本人角色、当前对象状态和必要步骤。测试矩阵包括不同角色、对象归属、前置步骤缺失、重复提交和不同路径形式。
+      - item:
+          id: incomplete-workflow
+          type: choice
+          prompt: 有审批权限的用户直接跳到批准未提交的申请。怎样处理？
+          options: [{text: 因为角色正确，允许跳过提交, why: 角色只是一个条件，还需满足流程状态。}, {text: 拒绝不合法的状态变化, correct: true}]
+          explain: 同一个操作也受对象状态和已完成步骤限制。
+  - id: inventory
+    chapter: 服务端/客户端与接口安全
+    title: 把文档、实际接口和允许操作对起来
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 文档只列了订单查询。旧版代码里可能还留着修改入口。只读当前文档，能确定旧入口已经关闭吗？
+          options: [{text: 还要核对实际部署的入口、方法与版本, correct: true}, {text: 文档没写就证明部署中没有, why: 文档可能落后于运行中的服务。}]
+          explain: 安全检查要覆盖实际可以访问的接口。
+      - card:
+          title: 先用授权范围内的清单整理入口
+          body: |
+            核对路由、应用调用和部署清单。OpenAPI 用机器可读的格式描述路径、方法、请求字段、正文类型和响应。把已废弃版本也列入清单，确认实际关闭或仍受同样保护。
+      - item:
+          id: inventory-fields
+          type: match
+          prompt: 为三类检查匹配清单信息。
+          pairs: [[是否还有旧版接口暴露, 部署版本与路由], [同一路径接受读取还是修改, HTTP 方法], [服务如何理解请求正文, 内容类型与结构]]
+          explain: 一个路径可对不同方法或正文形式作不同处理，要分别查。
+      - card:
+          title: 让服务端接受的行为符合公开约定
+          body: |
+            用本地测试核对同路径各方法、支持的内容类型和字段。对未知方法或格式给出适当拒绝。界面没有展示的参数也可能被服务处理，发现后要明确其用途及权限。
+      - item:
+          id: hidden-parameter
+          type: choice
+          prompt: 实际服务接受文档里没有的 debug 参数，并返回更多记录。先做哪项？
+          options: [{text: 继续隐藏在文档外即可保证安全, why: 参数仍可被调用者直接传入。}, {text: 确认是否应公开，默认关闭或加明确授权并补测试, correct: true}]
+          explain: 允许的行为与权限必须由服务端显式决定。
+  - id: api-fields
+    chapter: 服务端/客户端与接口安全
+    title: 只接收允许修改的字段，并统一参数含义
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用户能更新昵称，正文额外带了 isAdmin。若服务把正文全部复制到内部对象，会怎样？
+          options: [{text: 可能顺带写入本来不允许修改的字段, correct: true}, {text: 页面上没显示 isAdmin，服务器一定会忽略, why: 客户端可以手动构造请求。}]
+          explain: 服务要声明哪些输入能写入，而不能依靠界面只发送预期字段。
+      - card:
+          title: 按操作明确允许读写的字段
+          body: |
+            **批量赋值（mass assignment）**把输入字段批量写入对象。应使用只包含允许字段的请求结构，并对敏感字段检查权限。响应也只输出调用者所需且有权查看的字段。
+      - item:
+          id: allow-fields
+          type: choice
+          prompt: 修改个人资料接口只允许改 displayName。收到 displayName 和 isAdmin。服务端应该怎样处理？
+          options: [{text: 将整个对象直接更新，再让页面隐藏 isAdmin, why: 数据已经被改动，隐藏显示无法恢复。}, {text: 按规则拒绝多余字段或只采用被允许的字段，权限字段不写入, correct: true}]
+          explain: 对象结构与客户端可写结构要分别定义。
+      - card:
+          title: 让代理和后端使用同一套解析规则
+          body: |
+            **参数污染（parameter pollution）**可能来自重复查询键、覆盖已有字段或用意外的结构传值。中间层和应用若分别采用首值与末值，检查可能和实际使用不一致。按格式验证结构，明确拒绝含糊的单值字段，构造下游请求时用编码工具。
+      - item:
+          id: ambiguous
+          type: choice
+          prompt: 权限检查读取重复参数的第一个值，实际查询却用最后一个值。优先怎样处理？
+          options: [{text: 拒绝这个单值字段的重复输入，并让检查与执行使用同一解析结果, correct: true}, {text: 继续依靠两边各自默认，只把文档写详细, why: 两边看到不同值仍可绕过检查。}]
+          explain: 同一个安全决定和实际动作必须基于同一份数据。
+  - id: browser-boundary
+    chapter: 服务端/客户端与接口安全
+    title: 分清跨源读取权限和服务端操作权限
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 接口没给一个来源发 CORS 许可。能因此断定服务端不会收到来自外部的任何请求吗？
+          options: [{text: CORS 会拒绝任何工具或表单发出的外部请求, why: 它是浏览器跨源读取规则的一部分。}, {text: 还要区分发送、读取以及服务端授权, correct: true}]
+          explain: 浏览器的读取限制不能替代服务端检查。
+      - card:
+          title: 读清同源与预检的职责
+          body: |
+            同源按协议、主机、端口判断。浏览器通常限制脚本读取其他源。某些跨源请求需先发 OPTIONS 预检。带凭据读取时应明确允许具体来源并启用凭据，不能用通配来源。跨站与跨源的范围也可能不同。
+      - item:
+          id: credential-origin
+          type: choice
+          prompt: 接口只允许一个可信网页来源带凭据读取。响应应怎样声明？
+          options: [{text: 明确允许这个来源，并按约定允许凭据, correct: true}, {text: 将允许来源写为 *，自动信任所有网页, why: 带凭据的跨源读取要求具体许可来源。}]
+          explain: 带身份信息的跨源读取应限制给预期的页面来源。
+      - card:
+          title: 让服务端独立执行安全决定
+          body: |
+            CORS 决定浏览器能否让脚本读取跨源响应。能发送的请求仍须核对会话、CSRF 与操作权限。WebSocket 握手应检查允许的 Origin 和身份，后续消息也要独立核对权限。
+      - item:
+          id: websocket-origin
+          type: choice
+          prompt: WebSocket 接口会读取账号私有数据。除检查握手来源，还应检查什么？
+          options: [{text: 只检查客户端使用了升级请求, why: 升级通信形式不会证明账户身份或消息获准。}, {text: 当前身份和每类消息所需的操作权限, correct: true}]
+          explain: 连接建立和后续操作要分开验证。
+  - id: interfaces
+    chapter: 服务端/客户端与接口安全
+    title: 在代理、缓存和不同协议之间保住同一条边界
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 代理和后端对一段请求什么时候结束理解不同，会有什么风险？
+          options: [{text: 额外内容可能被后端误认为下一条请求, correct: true}, {text: 只会影响页面字体, why: 两端对消息边界的分歧会改变处理到的请求。}]
+          explain: 同一个消息经过多层时，各层需要对边界有一致理解。
+      - card:
+          title: 先看接口形态，再给每种操作加限制
+          body: |
+            REST 常按资源与方法组织，GraphQL 按客户端声明的字段取数据，SOAP 常用 XML 消息。GraphQL 应按对象和字段授权，并约束查询复杂度。SOAP 需安全解析 XML。HTTP/2、HTTP/3 与 HTTP/1.1 的消息表示不同，转发时仍要保证规则一致。
+      - item:
+          id: query-size
+          type: choice
+          prompt: 一个 GraphQL 请求能展开很多层关联。除了验证对象权限，还适合限制什么？
+          options: [{text: 只限制按钮颜色, why: 颜色与服务处理工作量无关。}, {text: 查询深度、复杂度或资源消耗, correct: true}]
+          explain: 允许访问的数据，也需要以可承受的方式请求。
+      - card:
+          title: 核对消息边界与缓存键
+          body: |
+            请求走私来自前后端对消息边界的解释不一致。统一解析和转发规则，拒绝含糊的请求。缓存投毒可能利用未纳入缓存键的输入改变共享响应。只共享本来可公开的响应，并核对所有会影响表示的输入。
+      - item:
+          id: cache-and-frame
+          type: match
+          prompt: 给两种边界问题选择最直接的核对。
+          pairs: [[前后端理解的请求结束位置不同, 拒绝含糊消息并统一解析], [未纳入缓存键的输入改变公共响应, 核对共享规则与缓存键]]
+          explain: 转发和复用响应各有不同的安全边界。
+  - id: api-risk
+    chapter: 服务端/客户端与接口安全
+    title: 用风险清单检查接口和依赖
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个接口权限检查很严，但一次请求允许开启大量昂贵任务。还有什么风险？
+          options: [{text: 合法身份也可能耗光资源或滥用业务流程, correct: true}, {text: 只要登录正确就不会有资源风险, why: 身份核验不能限定请求规模。}]
+          explain: 权限、资源、数据和外部依赖需要分别检查。
+      - card:
+          title: 逐层核对 OWASP 的 API 风险
+          body: |
+            先查对象级、功能级、属性级权限及认证。再看资源消耗与敏感业务流滥用，例如无限请求或批量占用名额。还要排查 SSRF、安全配置、接口版本清单和过度信任第三方 API。按实际接口设计正例与反例。
+      - item:
+          id: risks
+          type: match
+          prompt: 为三个现象匹配优先核对的风险。
+          pairs: [[只换编号就读到别人订单, 对象级授权失效], [普通人执行管理员批量操作, 功能级授权失效], [通过输入把服务器引向内部服务, SSRF]]
+          explain: 给风险分类可以选出对应测试，而不是只检查是否登录。
+      - card:
+          title: 也把第三方数据当外部输入
+          body: |
+            对外部服务返回的数据校验格式和范围，限制超时、重试与响应大小。用本地测试检查未登录、越权、超限和上游异常；同时保留经过验证的正常路径。错误信息够调查即可，内部细节留在受控日志中。
+      - item:
+          id: unsafe-consumption
+          type: choice
+          prompt: 外部接口已用 HTTPS，但返回的正文超过系统能安全处理的大小。应该怎么办？
+          options: [{text: 因为有 HTTPS 就继续无上限读取, why: 传输保护不保证正文大小和内容符合应用约定。}, {text: 按响应大小和结构限制拒绝或中止处理, correct: true}]
+          explain: 与可信域通信时，收到的数据仍需经过用途相关的校验。
+boss:
+  items:
+    - id: bind
+      type: choice
+      prompt: 用户品牌可包含单引号。安全查询怎样让合法内容仍能参与比较？
+      options: [{text: 用固定 SQL 结构，品牌作为绑定参数, correct: true}, {text: 直接拼入语句再删除若干关键词, why: 文本过滤无法完整保护语法边界，还可能改掉合法品牌。}]
+      explain: 由驱动将输入作为值交给数据库。
+    - id: xss
+      type: choice
+      prompt: 页面只想原样显示用户输入，包括尖括号。DOM 中优先用什么？
+      options: [{text: innerHTML, why: 会把文本解释为页面标记。}, {text: textContent, correct: true}]
+      explain: 用文字接口符合显示需求。
+    - id: csrf
+      type: choice
+      prompt: 浏览器已附上会话 Cookie，状态变更请求缺少系统要求的 CSRF 令牌。怎样处理？
+      options: [{text: 拒绝请求且不执行变更, correct: true}, {text: 因为已经登录，缺少令牌也允许, why: 登录不能证明这次操作是用户有意发起。}]
+      explain: 会话身份、请求核验和操作授权需要分别通过。
+    - id: session
+      type: match
+      prompt: 配对会话保护动作与主要目的。
+      pairs: [[登录时换标识并作废旧值, 防会话固定], [设置 HttpOnly, 限制脚本直接读取 Cookie], [退出时撤销服务端记录, 拒绝继续使用旧会话]]
+      explain: 不同操作分别管凭据的生成、撤销和浏览器使用规则。
+    - id: ownership
+      type: choice
+      prompt: Mei 已登录，请求读取 Lin 的订单。接口应依据什么决定是否返回？
+      options: [{text: 只看订单编号够不够长, why: 难猜的编号仍可能从其他途径泄露。}, {text: 核对当前主体对该对象及读取操作的权限, correct: true}]
+      explain: 每次访问都需要实际对象权限证据。
+    - id: oauth
+      type: order
+      prompt: 按 PKCE 的顺序排列应用侧动作。
+      steps: [生成本次随机验证值, 发起授权时附 S256 挑战, 接收并核对授权返回, 用授权码和原验证值兑换]
+      explain: 先绑定挑战，再证明持有原值。
+    - id: jwt
+      type: choice
+      prompt: 签名有效的令牌是发给别的服务的。订单 API 应怎样处理？
+      options: [{text: 拒绝，因为受众不符合, correct: true}, {text: 接受，能验签就可给任意服务使用, why: 签名与受众限定不同风险。}]
+      explain: 令牌只在核验政策允许的服务范围内使用。
+    - id: fetch
+      type: choice
+      prompt: 后端预览外部 URL 时收到跳转。怎样保住 SSRF 检查？
+      options: [{text: 首次目标安全后，一律跟随之后的跳转, why: 跳转可改变协议、主机或网络位置。}, {text: 禁止自动跳转，或重新检查并限制下一次实际连接, correct: true}]
+      explain: 每一次实际外连都要受目标约束和出口规则保护。

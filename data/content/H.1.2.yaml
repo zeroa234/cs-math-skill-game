@@ -1,0 +1,779 @@
+skill: H.1.2
+version: 2
+brief:
+  why: 从电压范围到组合门、寄存器和状态机。用真值表与时序算例把抽象逻辑变成可验证的实现。
+  outcomes:
+    - 从真值表化简布尔式并实现门级逻辑
+    - 设计加法器、寄存器及简单状态机
+    - 检查同步边界和路径延迟，区分吞吐与延迟
+terms:
+  - term: 二进制
+    def: 用 0 与 1 两种符号编码信息。
+  - term: 组合逻辑
+    def: 稳定输出仅由当前有效输入决定的逻辑。
+  - term: 电压传输特性
+    def: 输入与稳态输出电压之间的关系。
+  - term: 锁存器
+    def: 在指定使能电平期间可跟随输入的存储元件。
+  - term: 触发器
+    def: 在时钟边沿采样和保存值的元件。
+  - term: 寄存器
+    def: 可保存若干位状态的数字存储元件。
+  - term: 有限状态机
+    def: 按有限状态及输入执行转移和输出的模型。
+  - term: 亚稳态
+    def: 采样元件内部暂未达到稳定逻辑值的状态。
+  - term: 流水线
+    def: 用阶段间存储让多个输入重叠处理。
+  - term: 布尔
+    def: 表示真或假两种逻辑值。
+lessons:
+  - id: signals
+    chapter: 布尔代数
+    title: 用电压范围表示离散信息
+    minutes: 13
+    flow:
+      - guess:
+          id: signals-guess
+          type: choice
+          prompt: 同一根线上读到 0.1 V 和 0.2 V。数字系统能把它们都认作 0 吗？
+          options:
+            - text: 可以，只要都落在规定低电平范围
+              correct: true
+            - text: 不行，任何电压变化都必须产生不同数字
+              why: 数字表示可以用一个连续范围对应同一符号。
+          explain: 区分实际物理值和约定符号。
+      - card:
+          title: 编码把信息映射到有限符号
+          body: >-
+            **二进制（binary）**用 0 和 1 表示信息。两根独立的线可编码 00、01、10、11
+            四种组合。模拟信号的电压可连续变化，数字设计用有效低、高两个范围解释，不必要求绝对等于两个固定电压。
+      - item:
+          id: signals-practice
+          type: number
+          prompt: 两位二进制数共有多少种不同组合？
+          answer: 4
+          explain: 每一位有两种选择，2×2=4。
+      - card:
+          title: 组合器件在有效输入稳定后给相应结果
+          body: '**组合逻辑（combinational logic）**的稳定输出由当前输入决定。若规范未给中间电压区的逻辑解释，不能把它当有效 0 或 1。器件还规定输入变化到输出稳定的时间。'
+      - item:
+          id: signals-apply
+          type: choice
+          prompt: 一个门的输入落在未规定区域，哪项判断可靠？
+          options:
+            - text: 系统一定会把它判为 0
+              why: 未规定区不给确定数字行为。
+            - text: 仅从逻辑规范无法保证输出值
+              correct: true
+          explain: 用电气范围约束数字推理。
+  - id: vtc
+    chapter: 布尔代数
+    title: 从输入输出规范算噪声容限
+    minutes: 13
+    flow:
+      - guess:
+          id: vtc-guess
+          type: choice
+          prompt: 发送端保证低电平最多 0.4 V，接收端接受到 0.8 V。连接上多出 0.2 V 后还符合低电平吗？
+          options:
+            - text: 不符合，任何干扰都立即改变逻辑值
+              why: 仍在接收方的有效范围。
+            - text: 符合，最坏 0.6 V 仍不超过 0.8 V
+              correct: true
+          explain: 先比较两端最坏边界。
+      - card:
+          title: 电压传输特性连接输入电压与稳态输出
+          body: '**电压传输特性（VTC）**描述输入和稳态输出电压的关系。对反相器，输入够低时输出应高，输入够高时输出应低。先读输入允许范围和输出保证范围，再判断两级能否可靠相连。'
+      - item:
+          id: vtc-practice
+          type: choice
+          prompt: 接收高电平最低 2.0 V，发送高电平最低 2.4 V。高电平最多可下降多少仍在接收范围？
+          options:
+            - text: 0.4 V
+              correct: true
+            - text: 2.0 V
+              why: 允许下降量是两个边界的差。
+          explain: 比较保证值与接收门槛。
+      - card:
+          title: 噪声容限用最坏条件的余量计算
+          body: 低电平容限为 VIL(max)−VOL(max)，高电平容限为 VOH(min)−VIH(min)。余量为负时，两级不能保证兼容。VTC 中间区域反映转换，仍要考虑供电、负载和速度。
+      - item:
+          id: vtc-apply
+          type: number
+          prompt: VIL(max)=0.8 V，VOL(max)=0.4 V。低电平噪声容限是多少伏？
+          answer: 0.4
+          explain: 0.8−0.4=0.4 V。
+  - id: truth
+    chapter: 布尔代数
+    title: 从真值表写出与或式
+    minutes: 13
+    flow:
+      - guess:
+          id: truth-guess
+          type: choice
+          prompt: 两个按钮都按下才放行。输入 10 时放行吗？
+          options:
+            - text: 不放行，两个输入都为 1 才满足
+              correct: true
+            - text: 放行，只要一个为 1 就可以
+              why: 题设要求与，不是或。
+          explain: 从每行输入的要求开始。
+      - card:
+          title: 与、或、非是构造布尔规则的基本操作
+          body: '**布尔（Boolean）**值只有 0 和 1。式中 AB 表示与，A+B 表示或，¬A 表示非。真值表列所有输入组合。对输出为 1 的一行，用每位对应原值或取反写成一个最小项，再把这些项做或。'
+      - item:
+          id: truth-practice
+          type: match
+          prompt: 把三个规则配成逻辑操作。
+          pairs:
+            - - 两个输入都为真
+              - 与
+            - - 至少一个输入为真
+              - 或
+            - - 输出与单个输入相反
+              - 非
+          explain: 这些记号表示对真值的操作。
+      - card:
+          title: 从特定输入行得到可执行条件
+          body: 三输入以 A 为最高位、C 为最低位。第 5 行是 101，对应 A·¬B·C。异或在两位不同时为 1；NAND 和 NOR 分别为与、或的反相。检查等价可逐行比较。
+      - item:
+          id: truth-apply
+          type: choice
+          prompt: 第 6 行是 110。哪一项只在这一行成立？
+          options:
+            - text: ¬A·B·C
+              why: 第二项匹配 011。
+            - text: A·B·¬C
+              correct: true
+          explain: 逐位确定是否需要取反。
+  - id: kmap
+    chapter: 布尔代数
+    title: 用卡诺图合并，再用三只 NAND 搭出来
+    minutes: 13
+    flow:
+      - guess:
+          id: kmap-guess
+          type: choice
+          prompt: 若两项只有 C 与 ¬C 不同，其他条件相同，能否合并？
+          options:
+            - text: 不能，两项在任何情况下都不同
+              why: 两项合在一起覆盖 C 的两种值。
+            - text: 可以，结果不再取决于 C
+              correct: true
+          explain: 合并保留相同条件。
+      - card:
+          title: 卡诺图的相邻格只差一位
+          body: |
+            以 AB 的格雷顺序 00、01、11、10 排列列，首尾也相邻。对 Σm(1,3,5,6,7)，C=1 的四格组成 C，6 与 7 两格组成 AB。允许重叠圈选；最终 F=C+AB。
+
+            | C / AB | 00 | 01 | 11 | 10 |
+            |---|---|---|---|---|
+            | 0 | 0 | 0 | 1 | 0 |
+            | 1 | 1 | 1 | 1 | 1 |
+          reveal:
+            - title: 先取四格
+              body: 1、3、5、7 都是 C=1。
+            - title: 覆盖剩下的 6
+              body: 把 6 和已经覆盖的 7 合成 AB。
+      - item:
+          id: kmap-practice
+          type: choice
+          prompt: A=1、B=1、C=0 时 F=C+AB 的输出是？
+          options:
+            - text: 1，AB 成立
+              correct: true
+            - text: 0，C 为 0 就一定关闭
+              why: 或的另一项 AB 为 1。
+          explain: 两项满足其一即输出 1。
+      - card:
+          title: 与非门既能取反，也能组合条件
+          body: |
+            先用 NAND(A,B) 得 ¬AB，再用 NAND(C,C) 得 ¬C。末级对两个结果做 NAND，由德摩根规则得 AB+C。下列门级描述可用模拟器遍历八种输入。
+
+            ```verilog
+            module nand_form(input A, B, C, output F);
+                wire not_ab, not_c;
+                nand (not_ab, A, B);
+                nand (not_c, C, C);
+                nand (F, not_ab, not_c);
+            endmodule
+            ```
+      - item:
+          id: kmap-apply
+          type: number
+          prompt: 按「先取 ¬AB、再取 ¬C、最后取两者 NAND」的方案，共需要多少只 NAND？
+          answer: 3
+          explain: 每一步各用一只。
+  - id: mos
+    chapter: 组合/时序逻辑
+    title: 把 MOSFET 看成受电压控制的开关
+    minutes: 13
+    flow:
+      - guess:
+          id: mos-guess
+          type: choice
+          prompt: 逻辑图上把晶体管看作开关，为什么还要了解电压？
+          options:
+            - text: 开关是否导通由端点间电压和器件条件决定
+              correct: true
+            - text: 晶体管开关由机械触点按下
+              why: MOSFET 是电控器件。
+          explain: 开关模型建立在一定电气条件上。
+      - card:
+          title: 栅极通过电场影响通道
+          body: MOSFET 具有栅、源、漏和体。数字开关模型关注栅与源的相对电压能否形成通道。NMOS 常作拉低开关，PMOS 常作拉高开关。实际导通电阻与阈值会影响速度和电压。
+      - item:
+          id: mos-practice
+          type: choice
+          prompt: 要让反相器输入高时把输出接近地，应让哪侧导通？
+          options:
+            - text: 连接电源的一侧 PMOS
+              why: 接到电源会把输出拉高。
+            - text: 连接地的一侧 NMOS
+              correct: true
+          explain: 先看输出应靠近哪条供电轨。
+      - card:
+          title: CMOS 让拉高和拉低互补
+          body: 反相器用 PMOS 拉向电源、NMOS 拉向地。有效输入低时主要拉高，有效输入高时主要拉低。中间电压或转换时可能短暂同时导通；模型还需考虑输出充放电。
+      - item:
+          id: mos-apply
+          type: choice
+          prompt: 输入低且稳定时，理想 CMOS 反相器的输出应接近什么？
+          options:
+            - text: 电源高电平
+              correct: true
+            - text: 地电平
+              why: 反相器输出与输入逻辑相反。
+          explain: 看互补开关连接的方向。
+  - id: cmos
+    chapter: 组合/时序逻辑
+    title: 用串联与并联组织互补门
+    minutes: 13
+    flow:
+      - guess:
+          id: cmos-guess
+          type: choice
+          prompt: 若两个串联开关都要导通才把输出拉低，逻辑上像哪种条件？
+          options:
+            - text: 只需其中一个条件成立
+              why: 任一串联开关断开，路径就不通。
+            - text: 两个条件同时成立
+              correct: true
+          explain: 串联要求整条路径通过。
+      - card:
+          title: NAND 拉低用串联，拉高用并联
+          body: 静态 CMOS 门常有互补拉低和拉高网络。NAND 只有两输入都高时拉低，NMOS 串联；任一输入低则可拉高，PMOS 并联。NOR 相反：NMOS 并联、PMOS 串联。
+      - item:
+          id: cmos-practice
+          type: match
+          prompt: 配对 CMOS 门与 NMOS 拉低网络。
+          pairs:
+            - - NAND
+              - 串联，所有条件成立才拉低
+            - - NOR
+              - 并联，任一条件成立即拉低
+          explain: 先从输出何时为 0 反推拉低路径。
+      - card:
+          title: 复杂规则可先拆成反相门或组合网络
+          body: 与门可由 NAND 接反相器，或门可由 NOR 接反相器。选择门结构时比较可用单元、扇出负载、延迟和面积。宽扇入和多级结构可能各有成本。
+      - item:
+          id: cmos-apply
+          type: choice
+          prompt: 只有 NOR 与反相器可用，怎样实现 A 或 B？
+          options:
+            - text: 先 NOR，直接把结果当或
+              why: NOR 给或的反相。
+            - text: 先 NOR，再取反
+              correct: true
+          explain: 对输出反相可恢复所需逻辑。
+  - id: mux-rom
+    chapter: 组合/时序逻辑
+    title: 用选择线选数据，也可用 ROM 查表
+    minutes: 13
+    flow:
+      - guess:
+          id: mux-rom-guess
+          type: choice
+          prompt: 有两路候选信号，选位为 1 时取第 1 路。若第 0 路为 0、第 1 路为 1，输出什么？
+          options:
+            - text: '1'
+              correct: true
+            - text: 0，两路永远取第一路
+              why: 选择位决定哪一路被使用。
+          explain: 把选路与数据分开。
+      - card:
+          title: 多路选择器让选位决定数据来源
+          body: 二选一 MUX 可写 Y=¬S·D0+S·D1。S 为 0 时输出 D0，S 为 1 时输出 D1。可把一个逻辑输入用作选择位，把其余输入的子规则接到两端。
+      - item:
+          id: mux-rom-practice
+          type: choice
+          prompt: D0=1、D1=0、S=0 时 Y 为？
+          options:
+            - text: '0'
+              why: S=0 选择 D0。
+            - text: '1'
+              correct: true
+          explain: 先看选位，再取相应数据。
+      - card:
+          title: ROM 可存放真值表的输出列
+          body: 只读存储器的输入编号选择一行，输出该行预先存好的值。三个选位可选八行，支持多输出规则，也可记录状态机的下一状态。输入规模变大时存储量增长。
+      - item:
+          id: mux-rom-apply
+          type: number
+          prompt: 用 3 位输入直接选择 ROM 真值表中的一行。需要几行覆盖所有组合？
+          answer: 8
+          explain: 2×2×2=8。
+  - id: adder
+    chapter: 组合/时序逻辑
+    title: 全加器分别算和与进位
+    minutes: 13
+    flow:
+      - guess:
+          id: adder-guess
+          type: choice
+          prompt: A=B=1，输入进位为 0。二进制相加是 10，低位和、输出进位分别是多少？
+          options:
+            - text: 和为 1、进位为 0
+              why: 10 的最低位是 0，高位是进位。
+            - text: 和为 0、进位为 1
+              correct: true
+          explain: 把本位结果和传给下一位的值分开。
+      - card:
+          title: 异或给低位和，生成与传播决定进位
+          body: |
+            S=A⊕B⊕Cin。令 G=AB、P=A⊕B，则 Cout=G+P·Cin。若 A、B 都是 1，必生成进位；若恰有一个为 1，输入进位会被传播。
+
+            ```verilog
+            module full_adder(input A, B, Cin, output S, Cout);
+                assign S = A ^ B ^ Cin;
+                assign Cout = (A & B) | (Cin & (A ^ B));
+            endmodule
+            ```
+      - item:
+          id: adder-practice
+          type: choice
+          prompt: A=1、B=0、Cin=1 时 S 和 Cout 各是什么？
+          options:
+            - text: S=0，Cout=1
+              correct: true
+            - text: S=1，Cout=0
+              why: 三项相加的结果是 2，二进制 10。
+          explain: 用总和的低、高位检查逻辑式。
+      - card:
+          title: 行波逐级等待，超前进位展开依赖
+          body: 四位行波电路中，低位输入进位可沿四级传到 Cout。超前进位把 C2 写成 G1+P1G0+P1P0C0，用并行组合减少逐级等待；实际延迟还受扇入、连线和具体结构影响。
+      - item:
+          id: adder-apply
+          type: choice
+          prompt: 四位行波加法器的 C4 什么时候可能最晚稳定？
+          options:
+            - text: 低位进位需要经过各级传播时
+              correct: true
+            - text: 任何输入组合中都在第一级后立即得到
+              why: 某些组合要等上一位进位。
+          explain: 按依赖链分析传播延迟。
+  - id: registers
+    chapter: 组合/时序逻辑
+    title: 区分随使能变化的锁存与边沿采样
+    minutes: 13
+    flow:
+      - guess:
+          id: registers-guess
+          type: choice
+          prompt: 输入撤掉后仍要记住一位信息，电路需要什么？
+          options:
+            - text: 需要可保存内部状态
+              correct: true
+            - text: 只要当前输入同样就能知道过去所有变化
+              why: 组合逻辑没有历史状态。
+          explain: 存储让过去输入影响未来。
+      - card:
+          title: D 锁存器在使能期间透明
+          body: '**锁存器（latch）**可在使能有效时让输出跟随 D，关闭时保持之前状态。实现可用反馈维持值。两个不同的输入历史在当前 D 相同时，仍可能得到不同的已保存状态。'
+      - item:
+          id: registers-practice
+          type: choice
+          prompt: 使能为低，D 从 0 改为 1，透明高有效的 D 锁存器怎样？
+          options:
+            - text: 立即跟随到 1
+              why: 使能关闭时输出保持。
+            - text: 保持原来保存的状态
+              correct: true
+          explain: 先看透明窗口是否打开。
+      - card:
+          title: 边沿触发器在指定瞬间采样
+          body: '**触发器（flip-flop）**在指定时钟沿采样，之后输出经延迟更新。多个触发器可组成**寄存器（register）**保存多位。锁存和边沿采样需要满足各自的输入稳定要求。'
+      - item:
+          id: registers-apply
+          type: choice
+          prompt: 边沿触发器上升沿到来前 D 已稳定为 1，之后又变 0。若满足保持要求，当前采样得到什么？
+          options:
+            - text: 0，因为最后的 D 是 0
+              why: 该次采样由指定边沿附近的值决定。
+            - text: '1'
+              correct: true
+          explain: 区分采样时刻与后来输入。
+  - id: fsm
+    chapter: 状态机
+    title: 用最有用的前缀状态检测重叠序列
+    minutes: 13
+    flow:
+      - guess:
+          id: fsm-guess
+          type: choice
+          prompt: 输入是 10101，要找每次 101。第一个匹配末尾的 1 可以接着用吗？
+          options:
+            - text: 不能，必须丢弃已匹配的全部位置
+              why: 题设允许相邻匹配重叠。
+            - text: 可以，作为下一次匹配的开始
+              correct: true
+          explain: 状态要保存仍有用的信息。
+      - card:
+          title: 状态、输入和下一状态组成转移表
+          body: >
+            **有限状态机（finite-state machine）**用有限状态记住相关历史。Mealy 输出由状态与当前输入决定，Moore 输出由当前状态决定。下表 S0 尚无匹配、S1 已有
+            1、S2 已有 10，每格为下一状态/输出。
+
+
+            ```text
+
+            状态   输入0   输入1
+
+            S0     S0/0    S1/0
+
+            S1     S2/0    S1/0
+
+            S2     S0/0    S1/1
+
+            ```
+      - item:
+          id: fsm-practice
+          type: choice
+          prompt: 在 S2 读到 1，输出什么并进入哪个状态？
+          options:
+            - text: 输出 1，进入 S1
+              correct: true
+            - text: 输出 1，回到 S0
+              why: 最后的 1 仍是后一次匹配的前缀。
+          explain: 保留最长有用后缀。
+      - card:
+          title: 把图上的转移当成逐步运行规则
+          body: 先确定复位状态，再为每个状态和输入写转移与输出。输入 10101 时输出 00101，第三位和第五位报告匹配。状态只保留未来决策需要的过去。
+      - item:
+          id: fsm-apply
+          type: number
+          prompt: 复位后输入 10101，按允许重叠的 101 检测规则，共报告几次？
+          answer: 2
+          explain: 第 1–3 位和第 3–5 位各匹配一次。
+  - id: fsm-design
+    chapter: 状态机
+    title: 从控制目标选状态，再考虑能否合并
+    minutes: 13
+    flow:
+      - guess:
+          id: fsm-design-guess
+          type: choice
+          prompt: 沿墙机器人只看当前触须，没有保存是否已找到墙。相同传感器读数会不会需要不同动作？
+          options:
+            - text: 会，寻找与沿墙可能采取不同动作
+              correct: true
+            - text: 不会，控制器不能利用历史
+              why: 状态可记住目前处在何种策略阶段。
+          explain: 先找未来动作依赖哪些历史。
+      - card:
+          title: RoboAnt 用状态把传感器和动作接起来
+          body: MIT RoboAnt 用左右触须感知墙，动作包括前进与转向。未找到墙时前进；碰到墙后转向释放触须，再沿右侧跟墙。写表时以当前状态和触须为输入，产生动作及下一状态。
+      - item:
+          id: fsm-design-practice
+          type: choice
+          prompt: 机器人触须都暂时没碰到墙，为什么还要区分寻找和沿墙？
+          options:
+            - text: 相同输入强制所有状态执行相同动作
+              why: 状态保留了对未来有用的历史。
+            - text: 沿墙状态可能要处理刚越过转角，寻找状态继续寻找
+              correct: true
+          explain: 状态和当前输入共同决定动作。
+      - card:
+          title: 等价状态可合并，非法状态要有处理
+          body: 若两个状态对所有未来输入序列都给相同输出，可视为等价。实现时编码状态，用寄存器保存；组合逻辑或 ROM 产生下一状态与输出。考虑复位和未用编码的安全行为。
+      - item:
+          id: fsm-design-apply
+          type: choice
+          prompt: 两个状态目前都输出 0，但下一次输入 1 时动作不同。能合并吗？
+          options:
+            - text: 不能，存在未来输入可区分它们
+              correct: true
+            - text: 能，只比较当前输出就够
+              why: 未来动作也属于可观察行为。
+          explain: 合并前比较未来而非仅现在。
+  - id: sync
+    chapter: 时钟
+    title: 异步输入跨入时钟域要考虑亚稳态
+    minutes: 13
+    flow:
+      - guess:
+          id: sync-guess
+          type: choice
+          prompt: 外部按键变化可能正好遇到采样沿。一次采样是否总能立即得到可靠逻辑值？
+          options:
+            - text: 保证总能即时决定为 0 或 1
+              why: 输入可能未满足采样稳定窗口。
+            - text: 可能暂时不能确定，需考虑亚稳态
+              correct: true
+          explain: 跨时钟边界要用专门措施。
+      - card:
+          title: 亚稳态是电路决策暂时未定
+          body: '**亚稳态（metastability）**指采样元件内部状态暂时未到稳定逻辑电平。单比特慢变化信号可用同一目标时钟的两级同步器给它更多恢复时间，降低失败概率。它不能让风险变为零。'
+      - item:
+          id: sync-practice
+          type: choice
+          prompt: 两级同步器能完全消除所有亚稳态吗？
+          options:
+            - text: 降低传播概率，仍有残余风险
+              correct: true
+            - text: 一定完全消除
+              why: 恢复时间越长通常风险越低，但无绝对保证。
+          explain: 把同步器看成风险控制。
+      - card:
+          title: 脉冲和多位数据还需协议
+          body: 窄脉冲可能被时钟错过，可拉宽、翻转表示或握手。多位数据不能只把每位各同步一次并假定仍是同一时刻的组合，可用握手或专门跨域缓冲。按信号形状选择方案。
+      - item:
+          id: sync-apply
+          type: choice
+          prompt: 多位计数器从另一时钟域读入，怎样避免拼成不同周期的值？
+          options:
+            - text: 每位独立同步后假定同一时刻
+              why: 各位可能在不同拍被采到。
+            - text: 用能保证整组一致的传输约定
+              correct: true
+          explain: 同步单比特与传输整体数据不同。
+  - id: timing
+    chapter: 时钟
+    title: 分别核对建立、保持和时钟周期
+    minutes: 13
+    flow:
+      - guess:
+          id: timing-guess
+          type: choice
+          prompt: 数据最晚到达接收端需要 6 ns，接收端还要提前稳定 0.5 ns。无偏斜时周期至少是多少？
+          options:
+            - text: 6.5 ns
+              correct: true
+            - text: 5.5 ns
+              why: 建立窗口要加到最晚到达时间。
+          explain: 给传输和稳定留出全部时间。
+      - card:
+          title: 建立检查用最迟路径
+          body: >-
+            发射触发器时钟到输出最大 1 ns，组合路径最大 5 ns，接收建立时间 0.5 ns。简化为同沿、无偏斜无裕量时，Tmin=6.5 ns，最高约 154
+            MHz。现实还要按时钟偏斜、抖动和工作条件留裕量。
+          reveal:
+            - title: 加出最小周期
+              body: 1+5+0.5=6.5 ns。
+            - title: 周期换算频率
+              body: 1/6.5 ns≈153.85 MHz。
+      - item:
+          id: timing-practice
+          type: number
+          prompt: 最大时钟到输出 1 ns、最大组合延迟 5 ns、建立时间 0.5 ns，忽略偏斜。最小周期多少纳秒？
+          answer: 6.5
+          explain: 三段时间相加得到 6.5 ns。
+      - card:
+          title: 保持检查用最早路径
+          body: 保持时间要求采样沿后仍稳定一小段。无偏斜时比较最小时钟到输出加最短组合延迟是否至少等于保持时间。降低频率常能缓解建立问题，但同一边沿的保持问题通常需要改变最短路径或时钟关系。
+      - item:
+          id: timing-apply
+          type: choice
+          prompt: 无偏斜模型中最早数据变化早于保持窗口末尾，主要出现什么？
+          options:
+            - text: 只需增大周期就一定能解决的建立违例
+              why: 比较的是同一边沿之后的最早变化。
+            - text: 保持违例
+              correct: true
+          explain: 分别用最迟与最早路径检查。
+  - id: gate-delay
+    chapter: 时序与逻辑实现
+    title: 区分最早可能变化与最晚稳定
+    minutes: 13
+    flow:
+      - guess:
+          id: gate-delay-guess
+          type: choice
+          prompt: 输入切换后，门的输出不是立即变化。为什么还要记录两个延迟边界？
+          options:
+            - text: 一个时间必然适用于所有条件和路径
+              why: 不同条件与路径可产生不同延迟。
+            - text: 要同时知道最早可能变化和最晚必须稳定
+              correct: true
+          explain: 把器件时序写成范围。
+      - card:
+          title: 污染延迟约束最早变化，传播延迟约束最晚稳定
+          body: 输入改变后，最小污染延迟描述输出可开始受影响的时间；最大传播延迟描述新稳定结果最迟应出现的时间。负载、供电、温度和级联都会影响边界。多条逻辑路径也可能出现短暂毛刺。
+      - item:
+          id: gate-delay-practice
+          type: choice
+          prompt: 哪一个量用于建立时间检查？
+          options:
+            - text: 到接收端的最迟路径
+              correct: true
+            - text: 只看最早开始变化的时刻
+              why: 接收端需要等正确值最迟也能稳定。
+          explain: 建立检查约束最大延迟。
+      - card:
+          title: 支配输入有时可提前确定输出
+          body: 某些门满足宽容性质，例如 NOR 有一路稳定为 1 时，另一输入尚未确定也可在规定时间后保证输出 0。只有器件及条件支持时才可用这种保证，仍要按电路规范验证。
+      - item:
+          id: gate-delay-apply
+          type: choice
+          prompt: 宽容 NOR 的 A 已稳定为 1，B 仍在转换。最终可保证什么？
+          options:
+            - text: 在规定延迟后输出 0
+              correct: true
+            - text: 一定输出 1，因为 B 未稳定
+              why: A=1 已足以使或值为 1，NOR 为 0。
+          explain: 确认有一个支配输入。
+  - id: pipeline
+    chapter: 时序与逻辑实现
+    title: 通过分级增加吞吐，分开看单件延迟
+    minutes: 13
+    flow:
+      - guess:
+          id: pipeline-guess
+          type: choice
+          prompt: 两段工作各耗一拍。分级后两个输入能否在不同阶段同时工作？
+          options:
+            - text: 能，每个阶段可处理不同输入
+              correct: true
+            - text: 不能，流水线只能同时有一个输入
+              why: 阶段之间的寄存器隔离相邻工作。
+          explain: 看启动间隔和单件用时各是什么。
+      - card:
+          title: 延迟问一件多久，吞吐问多久出一件
+          body: '**流水线（pipeline）**在组合步骤间插入存储，让多个输入重叠处理。无停顿且两级各一拍，第一件两拍后完成；填满后每拍可完成一件。时钟取最慢级路径和采样开销。'
+      - item:
+          id: pipeline-practice
+          type: number
+          prompt: 两级流水线从空开始，连续每拍送入一件，且永不暂停。处理 4 件至少需要几拍？
+          answer: 5
+          explain: 第 1 件两拍完成，后 3 件每拍一件，共 5 拍。
+      - card:
+          title: 切分时让每个输入跨相同阶段
+          body: 按组合延迟划级，平衡负载。并行支路汇合时要对齐对应输入经过的拍数；也要一起传有效位和控制。增加寄存器有延迟、面积与功耗代价，需对照吞吐目标。
+      - item:
+          id: pipeline-apply
+          type: choice
+          prompt: 同一输入的两条支路分别经过一拍和两拍后汇合。先检查什么？
+          options:
+            - text: 只看两条线的信号名称是否一样
+              why: 较快支路可能已处理后一个输入。
+            - text: 两路是否在汇合处携带同一输入的数据
+              correct: true
+          explain: 让数据和控制在时间上对齐。
+  - id: self-time
+    chapter: 时序与逻辑实现
+    title: 用交错或握手改变处理节奏
+    minutes: 13
+    flow:
+      - guess:
+          id: self-time-guess
+          type: choice
+          prompt: 一个部件接收一项后要忙两拍。如果复制两份并交替送入，整体启动间隔可能怎样？
+          options:
+            - text: 仍一定只能两拍启动一项
+              why: 两份部件能轮流工作。
+            - text: 理想情况下每拍可启动一项
+              correct: true
+          explain: 复制资源可换来吞吐，单项处理时间仍受原部件限制。
+      - card:
+          title: 交错分配让独立部件轮流接任务
+          body: 两份相同部件可按轮转接收输入，前提是输入独立、输出能合并并维持需要的次序。比起切分同一个部件，交错复制资源，换来独立处理的并行能力。
+      - item:
+          id: self-time-practice
+          type: choice
+          prompt: 每份部件要两拍处理，复制两份并交替。单件仍至少几拍？
+          options:
+            - text: 两拍
+              correct: true
+            - text: 一拍，因为整体每拍可接一件
+              why: 吞吐提高没有缩短单个部件工作时间。
+          explain: 分别量吞吐和延迟。
+      - card:
+          title: 自定时控制用请求和应答协调
+          body: 典型握手由发送方保持数据并请求，接收方可用时取数据并应答，双方再复位握手。接收方忙时可延后应答。控制电路必须约束数据稳定与握手时序，不能只删掉全局时钟。
+      - item:
+          id: self-time-apply
+          type: choice
+          prompt: 接收方还未应答时，按握手约定发送方该怎样？
+          options:
+            - text: 立即覆盖为下一项数据
+              why: 接收方可能尚未取走旧数据。
+            - text: 保留这项数据与请求，等接收方应答
+              correct: true
+          explain: 握手决定何时安全替换数据。
+boss:
+  items:
+    - id: margin
+      type: number
+      prompt: 最低高输出 2.4 V，接收最低高输入 2.0 V，高电平容限多少伏？
+      answer: 0.4
+      explain: 2.4−2.0=0.4 V。
+    - id: nand
+      type: choice
+      prompt: Σm(1,3,5,6,7) 的最简与或式是哪一个？
+      options:
+        - text: ABC
+          why: C=1 的四行已可独立让输出为 1。
+        - text: C+AB
+          correct: true
+      explain: 卡诺图再用 AB 覆盖第 6 行。
+    - id: adder
+      type: choice
+      prompt: 全加器输入 A=1、B=1、Cin=1，和与进位是多少？
+      options:
+        - text: 和 1，进位 1
+          correct: true
+        - text: 和 0，进位 1
+          why: 三项之和为二进制 11。
+      explain: 低位是和，高位是进位。
+    - id: register
+      type: choice
+      prompt: D 触发器和 D 锁存器主要差在哪？
+      options:
+        - text: 两者都在任何时刻跟随 D
+          why: 触发器在指定边沿采样。
+        - text: 触发器按边沿采样，锁存器在使能有效时透明
+          correct: true
+      explain: 识别采样窗口。
+    - id: overlap
+      type: choice
+      prompt: 允许重叠检测 101 时，刚输出一次匹配后应保存什么？
+      options:
+        - text: 已匹配到一个 1
+          correct: true
+        - text: 完全无前缀
+          why: 末位 1 仍可作为开头。
+      explain: 状态要保留有用后缀。
+    - id: timing
+      type: number
+      prompt: 最大时钟到输出 2 ns、最大组合延迟 4 ns、建立时间 1 ns，无偏斜时最小周期多少纳秒？
+      answer: 7
+      explain: 2+4+1=7 ns。
+    - id: hold
+      type: choice
+      prompt: 保持检查应看哪条路径？
+      options:
+        - text: 最快可能使数据变化的路径
+          correct: true
+        - text: 只看平均延迟
+          why: 数据过早变化会破坏采样。
+      explain: 用最早路径检查保持。
+    - id: throughput
+      type: choice
+      prompt: 流水线填满后每拍一件，这主要说明什么？
+      options:
+        - text: 每件只经过一拍
+          why: 每件可能跨多级。
+        - text: 稳态吞吐率
+          correct: true
+      explain: 吞吐和单项延迟分别计算。
