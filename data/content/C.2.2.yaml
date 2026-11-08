@@ -1,0 +1,4382 @@
+skill: C.2.2
+version: 2
+authors: [main-agent]
+brief:
+  why: |
+    你写的 C 程序要读文件、开新程序、和别的程序说话、让几件事同时进行，都得请操作系统帮忙。这一关从“程序怎样跳进内核”讲起，学会用系统调用管理进程、信号和文件，用套接字和管道让程序之间通信，再学几个线程共用数据时怎样用锁、信号量、原子指令保证不出错，以及为什么一个线程写进去的值，另一个线程不一定马上看得见。主线照着《深入理解计算机系统》（CS:APP）第 8、10、11、12 章讲，原子指令照《Operating Systems: Three Easy Pieces》第 28 章。代码用 C，只假设你学过 C/C++ 和计算机组成原理这两关。
+  outcomes:
+    - 说出中断、陷阱、故障、终止的区别，说出一次系统调用怎样陷入内核、怎样报告错误
+    - 用 fork、waitpid、execve 创建和回收进程，画进程图数出输出；用信号通知进程，写出安全的信号处理程序
+    - 用 open、read、write、close、stat、readdir、dup2 操作文件，处理短计数，判断几个描述符是否共享文件位置，按场合选择 Unix I/O、标准 I/O 或 rio
+    - 用 pthread 创建和回收线程，判断哪些变量被几个线程共享，用进度图解释为什么 cnt++ 会丢更新
+    - 用信号量、互斥锁和条件变量保护临界区、写出有界缓冲区，算并行程序的加速比，说出死锁的四个条件和预防办法
+    - 用 test-and-set、compare-and-swap、LL/SC、fetch-and-add 搭出锁，用 C11 的原子操作写不加锁的计数器
+    - 解释什么是数据竞争，为什么会看到违反程序顺序的结果，说出顺序一致性和 x86 的内存模型的区别，用 acquire 和 release 传递数据
+    - 用管道、套接字在进程之间通信，写出基于进程、线程和 select 的并发服务器，说出 Eraser 和 ThreadSanitizer 怎样找出数据竞争
+terms:
+  - term: 异常控制流
+    def: 控制流不按程序本身的跳转和调用、而是为了响应系统里的事件而突然改变，比如中断、系统调用、信号
+  - term: 异常
+    def: 处理器为响应某个事件而让控制流突变：按异常号查异常表，跳到内核里的处理程序
+  - term: 异常表
+    def: 开机时内核建好的一张表，第 k 项是 k 号异常的处理程序的地址
+  - term: 进程
+    def: 一个正在执行的程序的实例，有自己的地址空间、寄存器和打开的文件
+  - term: 地址空间
+    def: 一个进程能访问的那一片内存：代码、数据、堆、共享库和栈都在里面，别的进程一般碰不到
+  - term: 时间片
+    def: 多个进程轮流用一个 CPU 核心时，一个进程一次连续运行的那一小段时间
+  - term: 用户态
+    def: CPU 的受限模式，普通程序在这里运行，不能执行特权指令，也不能访问内核的内存
+  - term: 内核态
+    def: CPU 的特权模式，内核在这里运行，可以执行任何指令、访问任何内存
+  - term: 调度
+    def: 内核决定下一个让哪个进程（或线程）在 CPU 上运行
+  - term: 上下文切换
+    def: 内核保存当前进程的上下文，恢复另一个进程的上下文，把 CPU 交给它
+  - term: 进程图
+    def: 把一个程序的每次语句执行画成点、用箭头表示先后的图，fork 处分叉；它的任何一个拓扑序都是可能的输出顺序
+  - term: 僵尸进程
+    def: 已经终止、但还没被父进程用 waitpid 回收的进程，还占着内核里的一点资源
+  - term: 信号
+    def: 内核发给进程的一条很短的消息，只含一个编号，表示发生了某一类事件，比如 SIGINT、SIGCHLD
+  - term: 信号处理程序
+    def: 用 signal 或 sigaction 装好的函数，进程收到对应的信号时，内核让它跳去运行这个函数
+  - term: 不足值
+    def: read 或 write 实际传送的字节数比要求的少，比如碰到文件末尾或网络数据还没全到；它不是错误
+  - term: 陷入
+    def: 程序执行一条特殊指令（x86-64 上是 syscall），跳进内核并切换到内核态；系统调用就靠它
+  - term: 描述符表
+    def: 每个进程一张，记着它的每个文件描述符指向打开文件表里的哪一项
+  - term: 打开文件表
+    def: 所有进程共用，每一项是一次打开：记着当前读写位置、引用计数和指向哪个 v-node
+  - term: v-node 表
+    def: 所有进程共用，记着文件本身的信息（大小、种类、权限），也就是 stat 读到的那些
+  - term: 线程
+    def: 进程里的一条执行流，有自己的栈、寄存器和程序计数器，和同一进程的其他线程共享地址空间
+  - term: 轨迹
+    def: 进度图上从左下角走到右上角的一条路线，代表几个线程指令的一种交错顺序
+  - term: 临界区
+    def: 访问共享变量、不能和别的线程访问同一变量的代码交错执行的那一段代码
+  - term: 不安全区
+    def: 进度图上两个线程同时处在各自临界区里的那些状态
+  - term: 竞态条件
+    def: 程序的结果取决于几个线程执行的先后时机，某些先后会让结果出错
+  - term: 信号量
+    def: 一个非负整数，只能用 P（为 0 就等，否则减 1）和 V（加 1 并唤醒一个等待者）两个不可分割的操作改动
+  - term: 互斥锁
+    def: 同一时刻最多被一个线程持有的锁，用来保护临界区；可以用初值为 1 的信号量实现
+  - term: 禁止区
+    def: 进度图上会让信号量小于 0 的那些状态，P 操作让轨迹走不进去
+  - term: 有界缓冲区
+    def: 只有 n 个格子的共享缓冲区，生产者往里放、消费者往外取，满了生产者等、空了消费者等
+  - term: 条件变量
+    def: pthread 的同步工具，带着一把互斥锁睡下等某个条件，别的线程改好条件后用 signal 叫醒它
+  - term: 伪共享
+    def: 几个核心写的是不同的变量，但它们落在同一个 cache 行里，这一行在核心之间来回搬，拖慢程序
+  - term: 加速比
+    def: 用 1 个核心的运行时间除以用 p 个核心的运行时间，表示快了几倍
+  - term: 线程安全
+    def: 一个函数被几个线程同时反复调用，总能给出正确的结果
+  - term: 可重入
+    def: 被几个线程调用时完全不访问共享变量，所以不需要任何同步；是线程安全的一个子集
+  - term: 死锁
+    def: 一组线程都在等一个永远不会成立的条件，比如各自拿着一把锁、等对方手里的那一把
+  - term: 原子操作
+    def: 在别的线程看来要么还没开始、要么已经完成、看不到中间状态的操作，比如 test-and-set、CAS
+  - term: 自旋锁
+    def: 拿不到时在循环里反复尝试、一直占着 CPU 空转的锁
+  - term: 数据竞争
+    def: 几个线程不加同步地访问同一个内存位置，其中至少一个是写；在 C 和 C++ 里这是未定义行为
+  - term: 抢占
+    def: 调度器借助定时器中断，在线程运行到一半时把它停下、换别的线程运行
+  - term: 共享变量
+    def: 在内存里的某一份被不止一个线程用到的变量，比如全局变量、局部静态变量，或地址被交给别的线程的局部变量
+  - term: 顺序一致性
+    def: 所有线程的内存操作好像排成一个先后顺序一条条执行，每个线程自己的操作保持程序写的先后（Lamport 1979）
+  - term: 存储缓冲
+    def: 每个核心里先暂存写操作的队列；写进去以后核心马上执行下一条指令，写过一会儿才对别的核心可见
+  - term: 内存一致性模型
+    def: 处理器（或编程语言）对“内存操作在别的线程看来可能以什么顺序发生”的规定，比如顺序一致性、x86 的 TSO
+  - term: 缓存一致性
+    def: 多核机器上保证对同一个地址的写，所有核心看到的先后都一样的机制
+  - term: 内存屏障
+    def: 一种指令，要求它前面的内存操作都对别的核心可见之后，它后面的操作才能执行，比如 x86 的 mfence
+  - term: 进程间通信
+    def: IPC：让地址空间互不相通的进程交换数据的机制，比如管道、命名管道、共享内存、消息队列和套接字
+  - term: 管道
+    def: 内核里一条单向的字节通道，一头写、一头读；pipe 返回读端 fd[0] 和写端 fd[1]
+  - term: 套接字
+    def: 对内核是一个连接的端点，对程序是一个文件描述符，读写它就是从网络收发数据
+  - term: I/O 多路复用
+    def: 用 select、poll 这类系统调用同时等待多个描述符，只去处理已经准备好的那些
+  - term: 竞态
+    def: 程序的正确性依赖于一个线程在另一个线程到达某点之前先到达另一点（CS:APP 的定义）
+lessons:
+  # ---------------------------------------------------------------- 系统调用
+  - id: exceptions
+    chapter: 系统调用
+    title: 程序怎样请内核帮忙：异常和陷阱
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你的 C 程序里有一行 `write(1, "hi\n", 3);`，运行后屏幕上出现了 hi。猜一猜：真正把这几个字送到屏幕上的是谁？
+          options:
+            - text: 操作系统的内核，它替你的程序完成
+              correct: true
+            - text: 你的程序自己，直接操作显卡
+              why: 普通程序没有权限直接碰硬件；否则任何程序都能改写别人的屏幕和磁盘
+            - text: 编译器，在编译时就把字印好了
+              why: 编译时程序还没运行，要显示什么到运行时才知道
+          explain: write 是系统调用的包装函数，真正干活的是内核。这一课看 CPU 怎样从你的程序“跳”进内核，办完事再跳回来。
+      - card:
+          title: 控制流也会突然拐弯
+          body: |
+            CPU 从开机到关机做的事就是：执行程序计数器（PC）指向的那条指令，再让 PC 指向下一条。这一串指令地址叫**控制流**。
+
+            平时控制流的拐弯来自程序自己：跳转、调用、返回。可是系统还得对和你的程序无关的事作出反应：网卡收到了数据、定时器到点了、你按了 Ctrl-C。CS:APP 把这类拐弯统称为**异常控制流（exceptional control flow，ECF）**。
+      - card:
+          title: 异常：查表，跳到处理程序
+          body: |
+            **异常（exception）**是控制流的一次突变，用来响应处理器里发生的某个事件。每类事件有一个编号，叫异常号。
+
+            开机时内核建好一张**异常表（exception table）**：第 k 项是 k 号异常的处理程序的地址。事件发生时，处理器用异常号查表，跳到那段处理程序。处理程序是内核的代码，以内核的特权运行；它做完后，要么回到原来的程序，要么结束这个程序。
+      - item:
+          id: steps
+          type: order
+          prompt: 把处理一次异常的步骤排好。
+          steps:
+            - 发生了一个事件（比如磁盘把数据读好了）
+            - 处理器用异常号在异常表里找到处理程序的地址
+            - 处理器跳去执行这段处理程序
+            - 处理程序结束，回到原来的程序，或者结束它
+          explain: 查表这一步让硬件不用知道每种事件该怎么办，只要知道“该去哪段代码”，具体怎么处理由内核决定。
+      - card:
+          title: 四类异常
+          body: |
+            | 类别 | 原因 | 处理完回到哪 |
+            |---|---|---|
+            | 中断（interrupt） | I/O 设备发来的信号：网卡收到包、定时器到点 | 下一条指令 |
+            | 陷阱（trap） | 程序有意执行的一条指令，最常见的是系统调用 | 下一条指令 |
+            | 故障（fault） | 可能修得好的错误，比如要的数据暂时不在内存条上 | 修好了就重新执行出错的那条指令，修不好就结束程序 |
+            | 终止（abort） | 修不好的硬件错误，比如内存芯片坏了 | 不返回，结束程序 |
+
+            中断是**异步**的：它和 CPU 正在执行哪条指令无关。另外三类是**同步**的：就是当前这条指令引起的。
+      - item:
+          id: classify
+          type: match
+          prompt: 把事件和它属于的那一类异常连起来。
+          pairs:
+            - [定时器每隔几毫秒发来一个信号, 中断]
+            - [程序调用 read 读一个文件, 陷阱]
+            - [程序做整数除法，除数是 0, 故障]
+            - [内存芯片出了奇偶校验错误, 终止]
+          explain: 除以零在 CS:APP 里归为故障，只是 Linux 选择不去修它，直接结束程序。下一张卡就看它。
+      - card:
+          title: 一个故障：整数除以零
+          body: |
+            ```c
+            int main(void) {
+                volatile int x = 0;
+                printf("before\n");
+                int y = 10 / x;
+                printf("after %d\n", y);
+                return 0;
+            }
+            ```
+
+            在 Linux 上运行，屏幕上是 `before`，然后 shell 报告 `Floating point exception`，`echo $?` 显示 136。
+
+            除法指令发现除数是 0，引发故障；Linux 不尝试修复，直接结束了这个程序，所以 `after` 那一行永远不会执行。`volatile` 让编译器每次真的去读 x，不把除法提前算掉。
+      - item:
+          id: div-after
+          type: choice
+          prompt: 上面这个程序为什么没有打印 `after`？
+          options:
+            - text: 除法那条指令引发了故障，内核没有修复它，直接结束了程序
+              correct: true
+            - text: 10 / 0 的结果是 0，printf 遇到 0 就不打印
+              why: 除法根本没有算出结果；出错的指令没有执行完，程序就被结束了
+            - text: 编译器发现除以零，把后面的代码删掉了
+              why: 程序编译通过并运行了，before 也打印了；是运行到除法时出的事
+            - text: 故障处理完会回到下一条指令，after 其实打印了，只是被 shell 的报错盖住了
+              why: 故障修好了才回去重新执行出错的那条指令；这里修不好，程序就结束了
+          explain: 故障和陷阱的区别在“回到哪”：陷阱回到下一条指令，故障要么重做当前这条，要么不回来。
+      - card:
+          title: 系统调用就是一次陷阱
+          body: |
+            在 x86-64 的 Linux 上，程序请内核办事这样做：
+
+            1. 把系统调用号放进寄存器 %rax；
+            2. 把参数依次放进 %rdi、%rsi、%rdx、%r10、%r8、%r9；
+            3. 执行 `syscall` 指令，**陷入**（trap）内核：跳进内核，同时切换到内核的特权；
+            4. 内核办完，把结果放在 %rax 里，回到下一条指令。
+
+            | 号 | 名字 | 号 | 名字 |
+            |---|---|---|---|
+            | 0 | read | 39 | getpid |
+            | 1 | write | 57 | fork |
+            | 2 | open | 59 | execve |
+            | 3 | close | 60 | exit |
+      - card:
+          title: 例题：不用 printf 打印一行字
+          body: |
+            C 库的 `syscall` 函数让你直接按编号发起系统调用：
+
+            ```c
+            #include <unistd.h>
+            #include <sys/syscall.h>
+            int main(void) {
+                long n = syscall(SYS_write, 1, "hello, world\n", 13);
+                return 0;
+            }
+            ```
+          reveal:
+            - title: 第 1 步：定下要哪项服务
+              body: SYS_write 就是 1，它被放进 %rax。内核看 %rax 才知道你要写，而不是读或打开文件。
+            - title: 第 2 步：放好三个参数
+              body: 文件描述符 1（标准输出）放进 %rdi，字符串的地址放进 %rsi，要写的字节数 13 放进 %rdx。“hello, world” 是 12 个字符，加上换行符一共 13 个。
+            - title: 第 3 步：陷入内核
+              body: 执行 syscall 指令。处理器切到内核的特权，内核按 %rax 找到 write 的代码，把 13 个字节交给终端。
+            - title: 第 4 步：读回结果
+              body: 内核把实际写了多少字节放进 %rax 再返回，这里是 13，于是 n 等于 13。
+      - item:
+          id: syscall-ret
+          type: number
+          prompt: 运行 `long r = syscall(SYS_write, 1, "abc\n", 4);`，标准输出就是终端，写入成功。r 等于多少？
+          answer: 4
+          explain: write 返回实际写入的字节数：a、b、c 和换行符，一共 4 个。
+      - card:
+          title: 出错时怎么告诉你
+          body: |
+            内核办事失败时，在 %rax 里放一个 −4095 到 −1 之间的负数，表示错误码的相反数。比如往一个没打开的描述符写，内核返回 −9。
+
+            C 库的包装函数（write、read、open……）不把这个负数直接给你，而是：**返回 −1，并把错误码 9 存进全局变量 `errno`**。`strerror(9)` 把它翻成一句话：`Bad file descriptor`。
+      - item:
+          id: bad-fd
+          type: choice
+          prompt: 描述符 42 没有打开。执行 `n = write(42, "x", 1);` 之后，n 和 errno 是什么？
+          options:
+            - text: n 是 −1，errno 是 9
+              correct: true
+            - text: n 是 −9，errno 不变
+              why: −9 是内核放在寄存器里的原始结果，包装函数把它换成了 −1 和 errno
+            - text: n 是 0，errno 是 9
+              why: 返回 0 表示成功写了 0 个字节，不表示出错
+            - text: 程序立刻崩溃
+              why: 系统调用出错只是返回错误码，程序照常往下跑；不检查返回值，错误就被悄悄忽略了
+          explain: 所以每次系统调用之后都要检查返回值：是 −1 就去看 errno。
+      - item:
+          id: trap-next
+          type: choice
+          prompt: 程序执行 `syscall` 指令请求 read，内核读完数据后，程序从哪里接着执行？
+          options:
+            - text: syscall 后面的下一条指令
+              correct: true
+            - text: 重新执行 syscall 这条指令
+              why: 重新执行出错的指令是故障修好后的做法；系统调用是陷阱，办完事就往下走，否则会再读一次
+            - text: 从 main 的开头重新开始
+              why: 陷阱不会让程序重来；程序的变量和执行位置都原样保留
+          explain: 陷阱是程序有意发起的，办完就回到下一条指令，像调用了一个函数一样。
+
+  - id: processes
+    chapter: 系统调用
+    title: 进程：每个程序都以为自己独占电脑
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你开了两个终端窗口，在两边各运行一次同一个程序 `./counter`。程序里有一个全局变量 count。猜一猜：这两个运行中的程序，各有一份 count 吗？
+          options:
+            - text: 各有一份，一边改了不影响另一边
+              correct: true
+            - text: 共用一份，一边改了另一边也看得到
+              why: 两次运行各管各的，各有自己的一份内存
+            - text: 第二次运行会失败，一个程序同时只能运行一份
+              why: 同一个程序可以同时运行很多份，比如同时开几个浏览器窗口
+          explain: 每次运行都是独立的一份，有自己的内存。这样一份运行中的程序叫什么、由什么组成，下面来看。
+      - card:
+          title: 进程是什么
+          body: |
+            磁盘上的程序只是一个文件。把它运行起来，就得到一个**进程（process）**：一个正在执行的程序的实例。同一个程序可以同时有好几个进程。
+
+            每个进程有自己的上下文（context）：内存里的代码和数据、栈、通用寄存器、程序计数器、环境变量，以及打开的文件描述符。
+      - card:
+          title: 进程给程序的两个错觉
+          body: |
+            1. 好像独占处理器：程序一条接一条地执行自己的指令，好像没有别人。这串只属于它的 PC 值叫逻辑控制流。
+            2. 好像独占内存：每个进程有一片私有的**地址空间（address space）**，别的进程一般不能读写其中的内容。
+
+            实际上一个 CPU 核心同一时刻只执行一个进程，很多进程轮流用它。
+      - item:
+          id: context
+          type: choice
+          prompt: 下面哪一项**不**属于一个进程的上下文？
+          options:
+            - text: 磁盘上另一个还没运行的程序文件
+              correct: true
+            - text: 程序计数器的当前值
+              why: PC 记着这个进程下一条要执行的指令，换回来时要靠它接着跑
+            - text: 它打开的文件描述符
+              why: 打开的文件是进程状态的一部分，每个进程有自己的一份描述符表
+            - text: 它的栈里的局部变量
+              why: 栈在它的地址空间里，是它的内存
+          explain: 上下文是“进程停下来以后，要接着跑必须保存的全部东西”。别的程序文件和它无关。
+      - card:
+          title: 并发：执行时间有重叠
+          body: |
+            两个逻辑控制流在时间上有重叠，就说它们**并发**（concurrent）地运行：一个开始了还没结束，另一个就开始了。
+
+            很多进程轮流用一个核心，每个跑一小段时间就换下一个，叫多任务，每一小段叫一个**时间片（time slice）**。如果两个控制流同时在不同的核心上执行，就叫**并行**（parallel）。并行是并发的一种特例。
+      - item:
+          id: concurrent-pairs
+          type: choice
+          multi: true
+          prompt: |
+            四个进程在一个核心上运行，表里是它们开始和结束的时刻（毫秒）。哪几对是并发的？
+
+            | 进程 | 开始 | 结束 |
+            |---|---|---|
+            | A | 0 | 6 |
+            | B | 2 | 4 |
+            | C | 7 | 9 |
+            | D | 8 | 12 |
+          options:
+            - text: A 和 B
+              correct: true
+            - text: C 和 D
+              correct: true
+            - text: A 和 C
+              why: A 在 6 毫秒结束，C 在 7 毫秒才开始，没有重叠
+            - text: B 和 C
+              why: B 在 4 毫秒结束，C 在 7 毫秒开始，没有重叠
+            - text: A 和 D
+              why: A 在 6 毫秒结束，D 在 8 毫秒才开始
+          explain: 只看起止时间有没有重叠。B 整个落在 A 的时间里，C 开始后 D 也开始了，这两对并发；只有一个核心，所以它们是轮流跑的，不是并行。
+      - card:
+          title: 地址空间长什么样
+          body: |
+            在 x86-64 Linux 上，每个进程的地址空间布局都一样，从低地址到高地址：
+
+            | 区域 | 放什么 |
+            |---|---|
+            | 代码和只读数据 | 程序的指令、字符串常量 |
+            | 读写数据 | 全局变量、静态变量 |
+            | 堆 | malloc 分配的内存，向高地址长 |
+            | 共享库 | printf 这些库函数的代码 |
+            | 用户栈 | 函数的栈帧，向低地址长 |
+            | 内核的代码和数据 | 用户程序看不见、碰不到 |
+
+            布局相同，内容各是各的：两个进程里同一个地址，装的是各自的数据。
+      - item:
+          id: same-address
+          type: choice
+          prompt: 两个进程都在地址 0x404040 处有一个全局变量 count，初值 0。进程 1 把它改成 5，随后进程 2 读自己的 count，读到多少？
+          options:
+            - text: '0'
+              correct: true
+            - text: '5'
+              why: 地址相同不等于同一块内存；每个进程的地址空间是私有的，0x404040 在两个进程里对应内存条上不同的位置
+            - text: 不确定，取决于谁先运行
+              why: 进程 2 读的是自己的那份，进程 1 怎么改都碰不到它
+          explain: 地址空间是私有的：同一个地址，在两个进程里指向内存条上两块不同的地方。
+      - card:
+          title: 用户态和内核态
+          body: |
+            CPU 的一个控制寄存器里有一个模式位。进程平时在**用户态（user mode）**运行：不能执行特权指令（停机、改模式位、直接做 I/O），也不能访问地址空间里内核那一块。
+
+            设置了模式位就是**内核态（kernel mode）**，可以执行任何指令、访问任何内存。从用户态进入内核态只有一条路：发生异常（中断、故障或陷阱），跳进内核的处理程序。处理程序返回时，CPU 切回用户态。
+      - card:
+          title: 在用户态执行特权指令会怎样
+          body: |
+            `hlt` 是让 CPU 停机的特权指令。在用户程序里执行它：
+
+            ```c
+            int main(void) {
+                printf("try hlt\n");
+                fflush(stdout);
+                __asm__ volatile ("hlt");
+                printf("still here\n");
+                return 0;
+            }
+            ```
+
+            输出 `try hlt` 后，shell 报告 `Segmentation fault`，`still here` 没有出现。CPU 发现用户态在执行特权指令，引发保护故障，Linux 把这个程序结束了。
+
+            内核也会把一部分信息做成文件给用户态读：`/proc/cpuinfo` 是 CPU 的型号，`/proc/<pid>/maps` 是某个进程地址空间里每一段的范围。
+      - item:
+          id: read-disk
+          type: choice
+          prompt: 一个用户程序要从磁盘读数据。它能怎么做？
+          options:
+            - text: 执行系统调用 read，陷入内核，由内核去读
+              correct: true
+            - text: 直接执行操作磁盘控制器的 I/O 指令
+              why: I/O 指令是特权指令，用户态执行会引发保护故障，程序被结束
+            - text: 先把模式位改成内核态，再自己读
+              why: 改模式位本身就是特权指令；用户态唯一进内核的路是异常
+            - text: 读 /proc 下面的文件就能直接拿到磁盘内容
+              why: /proc 里是内核愿意公开的一些状态信息，不是磁盘上的数据；读它本身也要经过 read 系统调用
+          explain: 系统调用让用户程序在内核的监督下用上硬件：想要什么交给内核，内核检查权限后代办。
+      - card:
+          title: 上下文切换：内核换一个进程来跑
+          body: |
+            内核里决定下一个让哪个进程运行的那部分代码，做的事叫**调度（scheduling）**。
+
+            选定以后，内核做一次**上下文切换（context switch）**：保存当前进程的上下文，恢复另一个进程之前保存的上下文，把控制交给它。
+
+            什么时候切换？进程发起的系统调用要等很久（比如等磁盘），内核就先换别人跑；进程调用 sleep 主动睡下；或者定时器中断到了，内核认为这个进程已经跑够了一个时间片。
+      - item:
+          id: switch-order
+          type: order
+          prompt: 进程 A 调用 read 读磁盘，读的过程中 CPU 去跑进程 B。把这件事的步骤排好。
+          steps:
+            - A 执行 read，陷入内核
+            - 内核让磁盘开始读，决定先让 B 运行
+            - 内核保存 A 的上下文，恢复 B 的上下文
+            - B 在用户态运行一段时间
+            - 磁盘读完，发来中断
+            - 内核切回 A，A 的 read 返回
+          explain: 磁盘读数据要几毫秒，CPU 在这段时间里可以执行几百万条指令；让 A 干等太浪费，所以内核先让 B 用 CPU。
+      - item:
+          id: who-switches
+          type: choice
+          prompt: 进程 B 正在用户态执行一个死循环，从不调用任何系统调用。内核还能把 CPU 换给别的进程吗？
+          options:
+            - text: 能，定时器中断会让 CPU 跳进内核，内核趁机切换
+              correct: true
+            - text: 不能，B 不进内核，内核就没有机会运行
+              why: 中断是异步的，不管 B 在执行什么，定时器一到点 CPU 就跳进内核
+            - text: 能，B 的死循环会引发故障
+              why: 死循环里的每条指令都是合法的，不会引发故障
+          explain: 这正是定时器中断的用处：保证内核每隔一小段时间都能拿回控制权，一个进程霸占不了 CPU。
+
+  - id: fork
+    chapter: 系统调用
+    title: 检查错误，用 fork 复制出一个进程
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 在终端里运行下面的程序，`B` 会显示几次？
+          code: |
+            int main(void) {
+                printf("A\n");
+                fork();
+                printf("B\n");
+                return 0;
+            }
+          lang: c
+          answer: 2
+          explain: A 显示 1 次，B 显示 2 次。fork 造出了第二个进程，它从 fork 返回的地方接着跑，所以 B 被两个进程各打印一次。
+      - card:
+          title: 每次系统调用都要检查返回值
+          body: |
+            Unix 的系统级函数出错时，通常返回 −1 并设置 errno。所以调用 fork 要这样写：
+
+            ```c
+            pid_t pid;
+            if ((pid = fork()) < 0) {
+                fprintf(stderr, "fork error: %s\n", strerror(errno));
+                exit(1);
+            }
+            ```
+
+            CS:APP 把这几行包成一个函数：首字母大写的 `Fork` 内部调用 fork，出错就打印原因并退出。代码里调用 `Fork()`，错误检查不会漏，主线也清楚。
+      - item:
+          id: strerror
+          type: choice
+          prompt: 当前目录下没有 nosuch.txt。`open("nosuch.txt", O_RDONLY)` 返回 −1 以后，`strerror(errno)` 给出的是哪一句？
+          options:
+            - text: No such file or directory
+              correct: true
+            - text: Bad file descriptor
+              why: 那是 errno 为 9（EBADF）时的说明：用了一个没打开的描述符。这里是找不到文件，errno 是 2（ENOENT）
+            - text: Success
+              why: 调用失败了，errno 被设成了表示原因的错误码
+            - text: Permission denied
+              why: 那是文件存在、但你没有权限打开时的说明（EACCES）
+          explain: open 失败把 errno 设成 2，也就是 ENOENT，strerror 把它翻成 No such file or directory。
+      - card:
+          title: 进程的编号和三种状态
+          body: |
+            每个进程有一个正整数编号，叫 PID。`getpid()` 返回自己的 PID，`getppid()` 返回创建了自己的那个进程（父进程）的 PID。
+
+            从程序员的角度，进程总处在三种状态之一：
+
+            - 运行：在 CPU 上执行，或者在等着被调度；
+            - 停止：被挂起，暂时不会被调度，直到收到让它继续的信号；
+            - 终止：永远停下了。原因有三种：收到一个默认动作是终止的信号、从 main 返回、调用 `exit(status)`。
+      - card:
+          title: fork：调用一次，返回两次
+          body: |
+            父进程调用 `fork()`，内核创建一个新的子进程。子进程几乎和父进程一样：得到父进程地址空间的一份副本（代码、数据、堆、共享库、栈），还得到父进程所有打开的文件描述符的副本，只有 PID 不同。
+
+            fork 被调用一次，却返回两次：在父进程里返回子进程的 PID，在子进程里返回 0。程序靠这个返回值区分自己是哪一个。
+      - item:
+          id: who-zero
+          type: choice
+          prompt: fork 成功以后，在哪个进程里 `fork()` 的返回值是 0？
+          options:
+            - text: 子进程
+              correct: true
+            - text: 父进程
+              why: 父进程拿到的是子进程的 PID，一个正数，这样父进程才知道刚造出来的是谁
+            - text: 两个都是 0
+              why: 如果两个都返回 0，程序就分不出自己是父还是子了
+          explain: 子进程随时能用 getppid 查到父进程是谁，所以只需要给它 0；父进程可能有很多子进程，需要知道这一个的 PID。
+      - card:
+          title: 看一个例子
+          body: |
+            ```c
+            int main(void) {
+                int x = 1;
+                pid_t pid = Fork();
+                if (pid == 0) {                 /* 子进程 */
+                    printf("child : x=%d\n", ++x);
+                    exit(0);
+                }
+                printf("parent: x=%d\n", --x);  /* 父进程 */
+                exit(0);
+            }
+            ```
+
+            一次运行的输出是 `parent: x=0` 和 `child : x=2` 两行。两个进程各有一份 x：子进程把自己那份加到 2，父进程把自己那份减到 0，谁也看不到对方的修改。两行都出现在同一个终端上，因为子进程继承了父进程的标准输出。
+      - item:
+          id: fork-order
+          type: choice
+          prompt: 一个程序 fork 之后，父进程打印一行 parent，子进程打印一行 child，双方都不调用 wait。多运行几次，两行的先后会怎样？
+          options:
+            - text: 有时 parent 在前，有时 child 在前
+              correct: true
+            - text: 一定是 parent 在前，因为父进程先存在
+              why: fork 之后两个进程都可以运行，先跑哪个由内核调度决定，程序员不能假设
+            - text: 一定是 child 在前，因为子进程的代码在前面
+              why: 代码写在前面不代表先执行；两个进程各自从 fork 返回处往下跑
+          explain: 父子进程是并发运行的，交错顺序不确定。想要固定的顺序，得用 waitpid 让父进程等子进程。
+      - item:
+          id: fork-x
+          type: choice
+          prompt: 下面的程序里，子进程和父进程各打印一次 x。两行输出分别是什么？
+          code: |
+            int main(void) {
+                int x = 1;
+                if (Fork() == 0) {
+                    x += 10;
+                    printf("child %d\n", x);
+                    exit(0);
+                }
+                x += 100;
+                printf("parent %d\n", x);
+                exit(0);
+            }
+          lang: c
+          options:
+            - text: child 打印 11，parent 打印 101
+              correct: true
+            - text: child 打印 11，parent 打印 111
+              why: 子进程改的是自己那份 x；父进程的 x 还是 1，加 100 是 101
+            - text: 先运行的打印 11 或 101，后运行的打印 111
+              why: 两份地址空间互不相通，谁先谁后都一样，各自都是从 1 开始加
+          explain: fork 复制的是那一刻的内存，此后父子各改各的。
+      - card:
+          title: 画进程图数输出
+          body: |
+            fork 一多，输出就不好数了。画一张**进程图**：每执行一条语句画一个点，箭头表示“先于”；fork 处分成两条线，每条线是一个进程。
+
+            比如 `fork(); fork(); printf("hello\n");`：第一个 fork 分成 2 条线，每条线再 fork 一次变成 4 条，每条线各打印一次，一共 4 个 hello。
+      - card:
+          title: 例题：循环里的 fork
+          body: |
+            ```c
+            int main(void) {
+                for (int i = 0; i < 3; i++)
+                    fork();
+                printf("hi\n");
+                return 0;
+            }
+            ```
+
+            hi 打印几次？
+          reveal:
+            - title: 第 1 步：数每一轮之后有几个进程
+              body: 一开始 1 个。i = 0 时每个进程都 fork 一次，变成 2 个；i = 1 时变成 4 个；i = 2 时变成 8 个。子进程也会接着跑完循环，因为它从 fork 返回的地方继续，i 的值也被复制了。
+            - title: 第 2 步：每个进程打印几次
+              body: 循环结束后，每个进程执行一次 printf。
+            - title: 第 3 步：相乘
+              body: 8 个进程各打印 1 次，一共 8 个 hi。规律是：所有进程都执行的 n 次 fork 之后有 2ⁿ 个进程。
+      - item:
+          id: graph-count
+          type: number
+          prompt: 下面的程序一共打印几个 `a`？
+          code: |
+            int main(void) {
+                if (fork() == 0) {
+                    fork();
+                    printf("a\n");
+                    exit(0);
+                }
+                printf("b\n");
+                return 0;
+            }
+          lang: c
+          answer: 2
+          hint: 第二个 fork 只有谁会执行？
+          explain: 只有子进程进入 if，它再 fork 一次，自己和孙进程各打印一个 a；父进程只打印 b。所以是 2 个 a、1 个 b。
+      - item:
+          id: graph-total
+          type: number
+          prompt: 下面的程序一共输出几行？
+          code: |
+            int main(void) {
+                fork();
+                printf("x\n");
+                fork();
+                printf("y\n");
+                return 0;
+            }
+          lang: c
+          answer: 6
+          hint: 先数 x 被几个进程打印，再数 y。
+          explain: 第一个 fork 后有 2 个进程，各打印一个 x（2 行）；第二个 fork 后有 4 个进程，各打印一个 y（4 行）。一共 6 行。
+
+  - id: wait-exec
+    chapter: 系统调用
+    title: 回收子进程，换上另一个程序
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 子进程已经调用 exit 结束了，父进程还在运行，但从来没有调用过 wait。这时用 ps 看，子进程还在吗？
+          options:
+            - text: 还在，状态一栏显示 Z
+              correct: true
+            - text: 不在了，exit 之后它就彻底消失
+              why: 内核要把子进程的退出状态留给父进程读，所以先留着一点记录
+            - text: 父进程也跟着被结束了
+              why: 子进程结束不会影响父进程；父进程照常运行
+          explain: Z 表示 zombie（僵尸）。下面看它为什么存在，以及怎样清理掉。
+      - card:
+          title: 僵尸进程和回收
+          body: |
+            进程终止后，内核不会马上把它清除，而是让它保持“已终止”的状态，等父进程来**回收**（reap）：读走它的退出状态，内核才把它彻底删掉。终止了还没被回收的进程叫**僵尸进程（zombie）**，它不再运行，却还占着内核里的一点资源。
+
+            父进程自己终止时还没回收的子进程，会交给 PID 为 1 的 init 进程，由它回收。所以像 shell、服务器这样长期运行的程序，一定要自己回收子进程，否则僵尸会越积越多。
+      - card:
+          title: waitpid：等子进程结束
+          body: |
+            ```c
+            pid_t waitpid(pid_t pid, int *statusp, int options);
+            ```
+
+            - `pid` 大于 0：等这一个子进程；`pid` 是 −1：等任意一个子进程；
+            - `options` 为 0 时，调用者睡下，直到等的子进程终止，返回它的 PID；
+            - `options` 为 WNOHANG 时，如果还没有子进程终止，立刻返回 0，不睡；
+            - 调用者根本没有子进程时，返回 −1，errno 设为 ECHILD。
+
+            `wait(&status)` 就是 `waitpid(-1, &status, 0)`。
+      - item:
+          id: wnohang
+          type: choice
+          prompt: 父进程有一个还在运行的子进程，调用 `waitpid(-1, NULL, WNOHANG)`。会怎样？
+          options:
+            - text: 立刻返回 0，父进程接着做别的事
+              correct: true
+            - text: 睡下，直到子进程结束
+              why: 那是 options 为 0 时的行为；WNOHANG 的意思就是“不要挂起”
+            - text: 返回 −1，errno 是 ECHILD
+              why: ECHILD 表示根本没有子进程；这里有一个子进程，只是还没结束
+          explain: WNOHANG 适合“顺便看一眼有没有结束的子进程，没有就算了”的场合，比如信号处理程序里。
+      - card:
+          title: 从 status 读出子进程怎么结束的
+          body: |
+            `statusp` 指向的整数里编码了子进程结束的方式，用宏来读：
+
+            | 宏 | 含义 |
+            |---|---|
+            | `WIFEXITED(status)` | 是否正常结束（调用 exit 或从 main 返回） |
+            | `WEXITSTATUS(status)` | 正常结束时的退出状态 |
+            | `WIFSIGNALED(status)` | 是否被一个信号结束 |
+            | `WTERMSIG(status)` | 是哪个信号 |
+      - card:
+          title: 例题：回收所有子进程
+          body: |
+            ```c
+            int main(void) {
+                int status;
+                pid_t pid;
+                for (int i = 0; i < 3; i++)
+                    if ((pid = Fork()) == 0)
+                        exit(100 + i);
+                while ((pid = waitpid(-1, &status, 0)) > 0)
+                    if (WIFEXITED(status))
+                        printf("child exited with status %d\n", WEXITSTATUS(status));
+                if (errno != ECHILD)
+                    unix_error("waitpid error");
+                exit(0);
+            }
+            ```
+          reveal:
+            - title: 第 1 步：造出 3 个子进程
+              body: 每个子进程一出生就 exit，退出状态分别是 100、101、102。父进程不进 if，接着循环。
+            - title: 第 2 步：一个个回收
+              body: 每次 waitpid 返回一个已经结束的子进程的 PID，打印一行。先回收哪个由内核决定，这台机器上这次打印的是 100、101、102，换一次运行顺序可能不同。
+            - title: 第 3 步：怎么知道回收完了
+              body: 第四次调用时已经没有子进程了，waitpid 返回 −1，errno 是 ECHILD，循环结束。errno 不是 ECHILD 才说明真的出了错。
+      - item:
+          id: wait-lines
+          type: number
+          prompt: 下面的程序一共打印几行？
+          code: |
+            int main(void) {
+                int status;
+                pid_t pid;
+                for (int i = 0; i < 5; i++)
+                    if ((pid = Fork()) == 0)
+                        exit(100 + i);
+                while ((pid = waitpid(-1, &status, 0)) > 0)
+                    if (WIFEXITED(status))
+                        printf("child exited with status %d\n", WEXITSTATUS(status));
+                exit(0);
+            }
+          lang: c
+          answer: 5
+          explain: 每回收一个子进程打印一行。第 6 次 waitpid 返回 −1，循环结束，不打印。
+      - item:
+          id: wait-status
+          type: number
+          prompt: 子进程执行 `exit(7)`，父进程用 `waitpid(pid, &status, 0)` 回收它。`WEXITSTATUS(status)` 等于多少？
+          answer: 7
+          explain: 正常结束时 WEXITSTATUS 取出的就是传给 exit 的值。status 本身不是 7，它还编码了“正常结束”这件事，所以要用宏读。
+      - card:
+          title: execve：在当前进程里换上新程序
+          body: |
+            ```c
+            int execve(const char *filename, const char *argv[], const char *envp[]);
+            ```
+
+            execve 把 filename 这个程序装进当前进程，替换掉原来的代码、数据和栈，从新程序的 main 开始运行。argv 是参数列表，按惯例 `argv[0]` 是程序名；envp 是环境变量列表，形如 `"HOME=/home/alice"`。两个列表都以 NULL 结尾。
+
+            fork 调用一次返回两次；execve 调用一次，成功就**从不返回**：原来的代码已经不在了。只有出错（比如找不到文件）时才返回 −1。
+      - item:
+          id: exec-pid
+          type: choice
+          prompt: 一个程序先打印自己的 PID，再 execve 运行 `/bin/sh -c 'echo $$'`（`$$` 是 shell 自己的 PID）。两次打印的 PID 是什么关系？
+          options:
+            - text: 相同
+              correct: true
+            - text: 不同，execve 创建了一个新进程
+              why: 创建新进程的是 fork；execve 只是在同一个进程里换了程序，PID 不变
+            - text: 第二次不会打印，因为 execve 成功后程序就结束了
+              why: 被换掉的是原来的程序，新装进来的 sh 照常运行，会打印它的 PID
+          explain: 在这台机器上两次都打印 807。shell 运行一条命令时先 fork 出子进程，再让子进程 execve，正是因为 execve 会把调用它的进程整个换掉。
+      - card:
+          title: 一个最小的 shell
+          body: |
+            shell 的主循环就是 fork、execve、waitpid 的组合：
+
+            ```c
+            while (1) {
+                printf("> ");
+                fgets(cmdline, MAXLINE, stdin);
+                bg = parseline(cmdline, argv);      /* 行末有 & 就是后台运行 */
+                if ((pid = Fork()) == 0) {
+                    if (execve(argv[0], argv, environ) < 0) {
+                        printf("%s: Command not found.\n", argv[0]);
+                        exit(0);
+                    }
+                }
+                if (!bg)
+                    waitpid(pid, &status, 0);       /* 前台：等它结束 */
+            }
+            ```
+
+            后台作业不等，马上显示下一个提示符。这个最小版本从不回收后台作业，它们结束后就成了僵尸。
+      - item:
+          id: shell-order
+          type: order
+          prompt: 用户在这个 shell 里输入 `/bin/ls -l`（前台运行）。把发生的事排好。
+          steps:
+            - shell 读入这一行，拆成 argv
+            - shell 调用 fork
+            - 子进程调用 execve，换成 ls 程序
+            - ls 打印目录内容后结束
+            - shell 的 waitpid 返回，显示下一个提示符
+          explain: shell 自己不能 execve，否则它就变成了 ls，ls 结束后 shell 也没了。所以总是让子进程去 execve。
+      - card:
+          title: 观察进程的工具
+          body: |
+            | 工具 | 用途 |
+            |---|---|
+            | `strace` | 打印一个程序执行的每一个系统调用和返回值 |
+            | `ps` | 列出当前的进程，包括僵尸 |
+            | `top` | 动态显示各进程用了多少 CPU 和内存 |
+            | `pmap` | 显示一个进程的地址空间分成了哪几段 |
+            | `/proc` | 内核把进程的信息做成文件，比如 `/proc/<pid>/status` |
+      - item:
+          id: tools
+          type: match
+          prompt: 把要做的事和合适的工具连起来。
+          pairs:
+            - [想知道程序卡住时停在哪个系统调用上, strace]
+            - [找出机器上有哪些僵尸进程, ps]
+            - [看哪个进程一直占着 CPU, top]
+            - [看一个进程的堆和栈各在哪段地址, pmap]
+          explain: 这些工具背后读的都是内核提供的信息，大多来自 /proc。
+
+  - id: signals
+    chapter: 系统调用
+    title: 信号：通知进程发生了什么
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 终端里正在运行 `sleep 100`，你按下 Ctrl-C，它马上结束了。猜一猜：是谁让它结束的？
+          options:
+            - text: 内核给它发了一个“中断”的通知，它的默认反应就是结束
+              correct: true
+            - text: sleep 程序自己在不停地检查键盘
+              why: sleep 一直在睡，根本没有在读键盘；是终端驱动把 Ctrl-C 变成了一个通知
+            - text: shell 把 sleep 的代码从内存里删掉了
+              why: shell 只是另一个进程，不能直接删别的进程的内存
+          explain: 这种通知叫信号。按 Ctrl-C 发出的是 SIGINT。
+      - card:
+          title: 信号是一条很短的消息
+          body: |
+            **信号（signal）**是一条很短的消息，告诉一个进程“系统里发生了某一类事件”。每类信号有一个编号，消息里只有这个编号。
+
+            | 编号 | 名字 | 默认动作 | 什么时候发生 |
+            |---|---|---|---|
+            | 2 | SIGINT | 终止 | 在终端按 Ctrl-C |
+            | 9 | SIGKILL | 终止 | 强制结束，不能被捕获或忽略 |
+            | 11 | SIGSEGV | 终止并转储内存 | 访问了不该访问的内存 |
+            | 13 | SIGPIPE | 终止 | 往没有读者的管道写 |
+            | 14 | SIGALRM | 终止 | alarm 设的定时器到点 |
+            | 15 | SIGTERM | 终止 | kill 命令默认发的信号 |
+            | 17 | SIGCHLD | 忽略 | 一个子进程停止或终止 |
+            | 20 | SIGTSTP | 停止 | 在终端按 Ctrl-Z |
+
+            编号是 x86-64 Linux 上的值。
+      - card:
+          title: 发送、接收，以及“待处理”
+          body: |
+            **发送**：内核改动目标进程上下文里的一个状态。原因有两种：内核发现了一个事件（除以零发 SIGFPE、子进程终止发 SIGCHLD），或者某个进程调用了 kill。
+
+            **接收**：目标进程被内核强迫对信号作出反应：忽略、终止，或者运行一段处理程序。
+
+            发出了但还没被接收的信号叫**待处理**（pending）。同一类型的待处理信号最多只有一个：已经有一个待处理的 SIGCHLD 时再来一个，后来的直接被丢掉。信号不排队。
+      - item:
+          id: not-queued
+          type: number
+          prompt: 进程暂时阻塞了 SIGCHLD，在这期间它的 3 个子进程先后终止。之后它解除阻塞。它会接收到几次 SIGCHLD？
+          answer: 1
+          hint: 同一类型的待处理信号能有几个？
+          explain: 第一个 SIGCHLD 变成待处理；后两个到达时已经有一个待处理的了，被丢掉。解除阻塞后只接收到 1 次。所以 SIGCHLD 只能说明“至少有一个子进程结束了”。
+      - card:
+          title: 进程组和怎样发信号
+          body: |
+            每个进程属于一个进程组。子进程默认和父进程同组；`setpgid` 可以改。shell 为每个作业（一条命令行）建一个进程组。
+
+            - 按 Ctrl-C：内核把 SIGINT 发给前台作业的整个进程组；Ctrl-Z 发 SIGTSTP；
+            - 命令 `kill -9 15213`：给 PID 15213 发 SIGKILL；写成 `kill -9 -15213` 就是发给 15213 这个进程组里的每个进程；
+            - 函数 `kill(pid, sig)`：程序里给别的进程（或自己）发信号；
+            - 函数 `alarm(secs)`：secs 秒后内核给自己发一个 SIGALRM。
+      - item:
+          id: send-match
+          type: match
+          prompt: 把操作和它发出的信号连起来。
+          pairs:
+            - [在终端按 Ctrl-C, SIGINT]
+            - [在终端按 Ctrl-Z, SIGTSTP]
+            - [运行 kill -9 1234, SIGKILL]
+            - [子进程调用 exit, SIGCHLD]
+          explain: 子进程终止时，内核自动给父进程发 SIGCHLD；它的默认动作是忽略，所以平时你感觉不到。
+      - card:
+          title: 内核什么时候让进程处理信号
+          body: |
+            内核把进程从内核态切回用户态时（比如系统调用返回、上下文切换回来），检查它有没有“待处理而且没被阻塞”的信号。有就强迫它接收一个，执行对应的动作，然后才回到程序被打断的地方。
+
+            每种信号都有默认动作，四选一：终止；终止并转储内存（core dump）；停止，直到收到 SIGCONT；忽略。
+      - card:
+          title: 用 signal 换掉默认动作
+          body: |
+            ```c
+            void sigint_handler(int sig) {
+                write(1, "caught SIGINT\n", 14);
+                _exit(0);
+            }
+            int main(void) {
+                if (signal(SIGINT, sigint_handler) == SIG_ERR)
+                    unix_error("signal error");
+                pause();          /* 睡到收到一个信号为止 */
+                return 0;
+            }
+            ```
+
+            `signal` 的第二个参数可以是 SIG_IGN（忽略）、SIG_DFL（恢复默认），或者一个函数的地址：收到信号时，内核让进程跳去运行这个**信号处理程序**，参数是信号编号。运行这个程序再按 Ctrl-C，看到的是 `caught SIGINT`，而不是程序直接被结束。
+      - item:
+          id: catch-kill
+          type: choice
+          prompt: 程序执行 `signal(SIGKILL, handler)`，想让自己不被 kill -9 结束。结果呢？
+          options:
+            - text: signal 返回 SIG_ERR，errno 是 EINVAL，SIGKILL 的动作改不了
+              correct: true
+            - text: 成功，以后 kill -9 只会运行 handler
+              why: SIGKILL 和 SIGSTOP 是系统留给管理员的最后手段，不能被捕获、忽略或阻塞
+            - text: 编译时报错
+              why: 这行代码语法没问题，是运行时 signal 拒绝了它
+          explain: 这样无论程序写成什么样，管理员总能用 kill -9 结束它。
+      - item:
+          id: exit-130
+          type: number
+          prompt: 在 bash 里，一个进程被信号结束后，`echo $?` 显示 128 加上信号编号。运行 `sleep 100` 后按 Ctrl-C，再执行 `echo $?`，显示多少？
+          answer: 130
+          hint: Ctrl-C 发的是哪个信号，编号是几？
+          explain: Ctrl-C 发 SIGINT，编号 2，128 + 2 = 130。被 kill -9 结束的进程是 128 + 9 = 137，开头那个除以零的程序被 SIGFPE（8）结束，所以是 136。
+      - item:
+          id: default-action
+          type: choice
+          prompt: 一个程序没有为 SIGCHLD 设置处理程序。它的子进程结束时，它会怎样？
+          options:
+            - text: 什么也不发生，SIGCHLD 的默认动作是忽略
+              correct: true
+            - text: 被终止，因为没有处理程序的信号都会终止进程
+              why: 每种信号的默认动作不同，SIGCHLD 的默认动作是忽略
+            - text: 子进程会自动被回收
+              why: 忽略这个信号不等于回收；子进程照样会变成僵尸，直到父进程调用 waitpid
+          explain: 想及时回收子进程，常见做法是给 SIGCHLD 装一个处理程序，在里面调用 waitpid。
+
+  - id: signal-handlers
+    chapter: 系统调用
+    title: 写对信号处理程序，以及非局部跳转
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 主程序正在执行 printf，打印到一半时来了一个信号，信号处理程序里也调用了 printf。猜一猜会怎样？
+          options:
+            - text: 可能出错：两个 printf 同时在改同一个输出缓冲区
+              correct: true
+            - text: 没问题，处理程序结束后主程序会从头重新打印
+              why: 处理程序返回后，主程序从被打断的地方接着执行，不会重来
+            - text: 没问题，信号要等 printf 打印完才会来
+              why: 信号可以在任何两条指令之间被接收，不会等一个库函数执行完
+          explain: 处理程序和主程序是并发运行的，它们共用全局数据。这一课讲怎样写出安全的处理程序。
+      - card:
+          title: 阻塞信号
+          body: |
+            **隐式阻塞**：内核在运行某类信号的处理程序时，自动阻塞同类的信号。新来的同类信号会变成待处理，但不会打断正在运行的这个处理程序。
+
+            **显式阻塞**：用 sigprocmask 改变阻塞集合：
+
+            ```c
+            sigset_t mask, prev;
+            sigemptyset(&mask);
+            sigaddset(&mask, SIGINT);
+            sigprocmask(SIG_BLOCK, &mask, &prev);   /* 阻塞 SIGINT，旧集合存进 prev */
+            /* 这里不会被 SIGINT 打断 */
+            sigprocmask(SIG_SETMASK, &prev, NULL);  /* 恢复原来的集合 */
+            ```
+      - card:
+          title: 安全的处理程序：六条规则
+          body: |
+            | 规则 | 做法 |
+            |---|---|
+            | G0 | 处理程序尽量简单，比如只设置一个全局标志就返回 |
+            | G1 | 只调用异步信号安全的函数：write、_exit、waitpid、kill、sigprocmask 等可以；printf、sprintf、malloc、exit 不行 |
+            | G2 | 进入时保存 errno，返回前恢复 |
+            | G3 | 访问和主程序共享的全局数据结构时，先阻塞所有信号 |
+            | G4 | 共享的全局变量声明为 volatile，让编译器每次真的去内存里读 |
+            | G5 | 用作标志的变量声明为 `volatile sig_atomic_t`，保证读写它不会被打断在半中间 |
+      - item:
+          id: safe-funcs
+          type: choice
+          prompt: 处理程序想在终端上打印一行字。按 G1 应该用哪一个？
+          options:
+            - text: write(1, "...", n)
+              correct: true
+            - text: printf("...")
+              why: printf 内部用一个共享的缓冲区；主程序如果正在 printf，处理程序再调用它会把缓冲区弄乱，甚至卡死
+            - text: 先 malloc 一块内存，sprintf 进去，再 write
+              why: malloc 和 sprintf 都不是异步信号安全的；主程序正在 malloc 时被打断，再 malloc 可能破坏堆
+          explain: 异步信号安全的函数要么只用局部变量（可重入），要么不会被信号打断。完整名单在 Linux 的 signal-safety(7) 手册里。
+      - item:
+          id: save-errno
+          type: choice
+          prompt: 主程序刚调用完一个失败的 open，正准备读 errno，这时来了 SIGCHLD，处理程序里调用 waitpid 时也把 errno 改了。不遵守 G2 会有什么后果？
+          options:
+            - text: 主程序读到的是处理程序留下的 errno，以为 open 失败的原因是别的
+              correct: true
+            - text: 没有影响，每个函数都有自己的 errno
+              why: errno 是全局变量，主程序和处理程序看到的是同一个
+            - text: open 会被重新执行一次
+              why: 处理程序返回后主程序从被打断的地方接着执行，不会重做 open
+          explain: 所以处理程序要先 `int olderrno = errno;`，返回前 `errno = olderrno;`。
+      - card:
+          title: 信号不排队带来的错误
+          body: |
+            一个常见的错误写法：每收到一次 SIGCHLD 回收一个子进程。
+
+            ```c
+            void handler1(int sig) {
+                int olderrno = errno;
+                waitpid(-1, NULL, 0);        /* 只回收一个 */
+                errno = olderrno;
+            }
+            ```
+
+            在这台机器上做个实验：先阻塞 SIGCHLD，造 3 个子进程，等它们都结束，再解除阻塞。结果只回收了 1 个，剩下 2 个成了僵尸。3 个 SIGCHLD 只留下了 1 个待处理。
+      - item:
+          id: fix-handler
+          type: choice
+          prompt: 怎样改 handler1，才能不管来了几个 SIGCHLD 都回收干净？
+          options:
+            - text: 把 waitpid 放进循环：`while (waitpid(-1, NULL, 0) > 0) ;`
+              correct: true
+            - text: 用一个计数器数收到了几次 SIGCHLD，回收同样多次
+              why: 信号不排队，收到的次数可能比结束的子进程少，按次数回收还是会漏
+            - text: 在 handler1 里再调用一次 signal(SIGCHLD, handler1)
+              why: 重新安装处理程序不会把丢掉的信号找回来
+          explain: 一个 SIGCHLD 只说明“至少有一个子进程结束了”。循环回收直到 waitpid 返回 −1（没有子进程了），同样的实验里 3 个全部回收。服务器里常写成 `waitpid(-1, NULL, WNOHANG) > 0`，免得还有子进程在运行时处理程序卡住。
+      - card:
+          title: 被打断的系统调用和 sigaction
+          body: |
+            read、wait、accept 这类可能要等很久的系统调用，叫慢速系统调用。等的时候来了信号，处理程序返回后，在有些系统上这个调用不会接着等，而是返回 −1，errno 设为 EINTR。
+
+            `signal` 在不同的 Unix 上行为不同。可移植的写法是用 `sigaction`，并设置 SA_RESTART 标志，让被打断的慢速系统调用自动重新开始。CS:APP 的包装函数 `Signal` 就是这样做的：只阻塞正在处理的这类信号，处理程序装上后不会被自动恢复成默认，被打断的系统调用会重启。
+      - item:
+          id: eintr
+          type: choice
+          prompt: 一个程序没有设置 SA_RESTART。它正在 read 等键盘输入时收到了一个被捕获的信号，处理程序返回后，read 返回 −1。errno 最可能是什么？
+          options:
+            - text: EINTR，被信号打断的系统调用
+              correct: true
+            - text: EBADF，描述符坏了
+              why: 描述符没有问题，是等待被信号打断了；重新调用 read 就能接着等
+            - text: ECHILD，没有子进程
+              why: ECHILD 是 waitpid 在没有子进程时给的，和 read 无关
+          explain: 不设 SA_RESTART 的程序要自己检查 EINTR 并重新调用；这是 rio 函数要处理 EINTR 的原因。
+      - card:
+          title: 先后顺序的竞争：addjob 和 deletejob
+          body: |
+            shell 每 fork 一个作业，就调用 `addjob` 把它记进作业列表；SIGCHLD 处理程序回收子进程后调用 `deletejob` 删掉它。
+
+            危险的顺序：fork 之后子进程跑得很快，execve、结束，SIGCHLD 处理程序马上 deletejob 了一个还没被加进去的作业；之后父进程才 addjob，列表里留下一个已经不存在的作业。
+
+            修法是在 fork **之前**阻塞 SIGCHLD，父进程 addjob 之后再解除阻塞；子进程继承了阻塞集合，要在 execve 之前先解除。
+      - item:
+          id: race-order
+          type: order
+          prompt: 把修好的 shell 运行一个作业的步骤排好。
+          steps:
+            - 父进程阻塞 SIGCHLD
+            - 父进程 fork
+            - 子进程解除阻塞，然后 execve
+            - 父进程 addjob
+            - 父进程解除阻塞，这时才可能收到 SIGCHLD 并 deletejob
+          explain: 阻塞保证了 deletejob 一定在 addjob 之后发生，不管子进程跑得多快。
+      - card:
+          title: 等一个信号：sigsuspend
+          body: |
+            主程序要等 SIGCHLD 处理程序把全局变量 pid 设成非零。三种写法：
+
+            - `while (!pid) ;`：空转浪费 CPU；
+            - `while (!pid) pause();`：有竞争。检查完 pid 还没调用 pause 时信号就来了，pause 会一直睡下去；
+            - `while (!pid) sigsuspend(&prev);`：sigsuspend 把阻塞集合换成 prev 并睡下，这两步是一个整体，不会被信号插进中间。
+
+            用法是先阻塞 SIGCHLD，再循环调用 sigsuspend。
+      - item:
+          id: pause-race
+          type: choice
+          prompt: '`while (!pid) pause();` 为什么可能让程序永远睡下去？'
+          options:
+            - text: 信号恰好在检查 pid 之后、调用 pause 之前到达，处理程序设好了 pid，pause 却还要等下一个信号
+              correct: true
+            - text: pause 只能被 SIGKILL 唤醒
+              why: 任何一个被捕获的信号，处理程序返回后都会让 pause 返回
+            - text: pid 没有声明成 volatile，编译器会把循环删掉
+              why: 不写 volatile 确实可能让编译器不重新读 pid（G4），但这道题的问题即使写了 volatile 也存在：它出在检查和睡下之间的空隙
+          explain: 检查和睡下是两步，中间能插进一个信号。sigsuspend 把“解除阻塞”和“睡下”合成一个不可分割的操作，空隙就没有了。
+      - card:
+          title: 非局部跳转：setjmp 和 longjmp
+          body: |
+            C 的 `setjmp(env)` 把当前的调用环境（栈指针、PC 等寄存器）存进 env，返回 0。之后任何地方调用 `longjmp(env, v)`，都会跳回那次 setjmp，让 setjmp **再返回一次**，这次的返回值是 v；v 为 0 时 setjmp 返回 1。
+
+            它的用处是从很深的函数调用里直接跳回外层，比如遇到错误时一步跳出好几层递归，不用一层层返回。信号处理程序里要用 `sigsetjmp` 和 `siglongjmp`，比如按 Ctrl-C 时让程序跳回主循环重新开始。
+
+            不能 longjmp 到一个已经返回了的函数里：它的栈帧已经不在了。
+      - card:
+          title: 例题：setjmp 返回了几次
+          body: |
+            ```c
+            jmp_buf buf;
+            void work(int n) {
+                if (n == 3) longjmp(buf, 7);
+                work(n + 1);
+            }
+            int main(void) {
+                int rc = setjmp(buf);
+                printf("setjmp returned %d\n", rc);
+                if (rc == 0) work(0);
+                if (rc == 7) { printf("back in main\n"); longjmp(buf, 0); }
+                return 0;
+            }
+            ```
+          reveal:
+            - title: 第 1 次返回：真的调用 setjmp
+              body: 打印 `setjmp returned 0`。rc 是 0，调用 work(0)，递归到 work(3)。
+            - title: 第 2 次返回：从 work(3) 跳回来
+              body: work(3) 调用 longjmp(buf, 7)，work(3)、work(2)、work(1)、work(0) 的栈帧一下子全被丢掉，回到 setjmp，它返回 7。打印 `setjmp returned 7` 和 `back in main`。
+            - title: 第 3 次返回：longjmp 的值是 0
+              body: longjmp(buf, 0) 让 setjmp 返回 1，而不是 0，免得程序以为又是第一次。打印 `setjmp returned 1`，两个 if 都不成立，程序结束。
+      - item:
+          id: setjmp-zero
+          type: number
+          prompt: 程序调用 `longjmp(env, 0)` 跳回之前的 `setjmp(env)`。这一次 setjmp 返回多少？
+          answer: 1
+          explain: 0 留给“第一次真的调用 setjmp”。longjmp 传 0 时，setjmp 改为返回 1。
+
+  - id: unix-io
+    chapter: 系统调用
+    title: 文件就是一串字节：open、read、write、close
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个文件只剩最后 30 个字节没读。程序执行 `n = read(fd, buf, 100);`，猜一猜 n 是多少？
+          options:
+            - text: '30'
+              correct: true
+            - text: '100'
+              why: 文件里只剩 30 个字节，read 不可能凭空变出另外 70 个
+            - text: −1，因为要的比剩下的多
+              why: 要得多不算错误；read 有多少给多少
+            - text: '0'
+              why: 0 表示已经到了文件末尾、一个字节也没有了；这里还有 30 个
+          explain: read 返回实际读到的字节数，可以比要求的少。这一课就讲 read、write 这些最底层的文件操作。
+      - card:
+          title: 一切都是文件
+          body: |
+            在 Linux 里，一个文件就是一串字节。磁盘上的文件、终端、网络连接，都被当成文件，用同一套系统调用操作，叫 Unix I/O。
+
+            第一步是打开：open 返回一个小的非负整数，就是文件描述符，之后读写都用这个号码。每个进程一开始就有三个打开的描述符：0 是标准输入，1 是标准输出，2 是标准错误。
+      - item:
+          id: fd-2
+          type: choice
+          prompt: 一个进程刚开始运行，还没 open 任何文件。往描述符 2 写的内容会去哪里？
+          options:
+            - text: 标准错误，平时也显示在终端上
+              correct: true
+            - text: 标准输出
+              why: 标准输出是 1；2 是标准错误，专门用来写出错信息
+            - text: 哪里也去不了，2 还没打开
+              why: 0、1、2 是进程一开始就打开好的，不用自己 open
+          explain: 把错误信息写到 2，用户把正常输出重定向到文件时，错误信息仍然显示在终端上。
+      - card:
+          title: 当前位置、读写和关闭
+          body: |
+            内核为每个打开的文件记着当前位置 k，也就是从文件开头算起的字节数。read 从 k 开始复制 n 个字节到内存，k 增加 n；write 同理；lseek 可以直接改 k。用完以后 close，内核释放打开时建立的数据结构。
+
+            文件末尾没有什么特殊字符：k 已经到了文件大小，再读就读不到东西，这叫读到了文件末尾（EOF）。
+      - card:
+          title: 文件的种类和路径
+          body: |
+            | 种类 | 内容 |
+            |---|---|
+            | 普通文件 | 任意数据。文本文件只含字符，其余叫二进制文件；内核并不区分这两种 |
+            | 目录 | 一组“名字 → 文件”的对应，至少有 `.`（自己）和 `..`（上一层） |
+            | 套接字 | 用来和另一个进程（可能在另一台电脑上）通信 |
+
+            另外还有命名管道、指向别的文件的链接，以及代表设备的文件。
+
+            目录组成一棵树，根是 `/`。每个进程有一个当前工作目录。路径以 `/` 开头是绝对路径，从根开始找；否则是相对路径，从当前工作目录开始找。
+      - item:
+          id: path
+          type: text
+          prompt: 当前工作目录是 `/home/alice/src`。相对路径 `../notes/a.txt` 对应的绝对路径是什么？
+          answers: [/home/alice/notes/a.txt]
+          hint: '`..` 先让你回到哪一层？'
+          explain: '`..` 从 /home/alice/src 回到 /home/alice，再进 notes，找到 a.txt。'
+      - card:
+          title: open：打开或新建文件
+          body: |
+            ```c
+            int open(char *filename, int flags, mode_t mode);
+            ```
+
+            flags 从三个里选一个：O_RDONLY（只读）、O_WRONLY（只写）、O_RDWR（读写），再用 `|` 加上需要的：O_CREAT（不存在就新建）、O_TRUNC（存在就清空）、O_APPEND（每次都写到末尾）。
+
+            ```c
+            fd = open("foo.txt", O_WRONLY | O_APPEND, 0);
+            ```
+
+            open 返回当前进程里**还没被占用的最小的**描述符。
+      - item:
+          id: lowest-fd
+          type: number
+          prompt: 一个进程只打开了 0、1、2。它连续 open 两个文件，得到 3 和 4；接着 close(3)，再 open 一个文件。这次得到几？
+          answer: 3
+          explain: 3 已经空出来了，它是最小的空闲描述符。shell 做重定向时就利用了这条规则。
+      - card:
+          title: 新文件的权限：mode 和 umask
+          body: |
+            每个文件有 9 个权限位：文件主人（user）、同组用户（group）、其他人（others）各有读 r、写 w、执行 x 三位。习惯写成三位八进制数，每一位是 r=4、w=2、x=1 相加，比如 6 就是 rw-。
+
+            O_CREAT 新建文件时，权限是 `mode & ~umask`：进程的 umask 里为 1 的位会被去掉。umask 常见的默认值是 022，意思是去掉同组和其他人的写权限。
+      - card:
+          title: 例题：新文件是什么权限
+          body: 'umask 是 022，执行 `open("u.txt", O_CREAT | O_WRONLY, 0666)`。新文件的权限是多少？'
+          reveal:
+            - title: 第 1 步：把 mode 拆成三位
+              body: 0666 是 rw-、rw-、rw-：主人、同组、其他人都能读写。
+            - title: 第 2 步：看 umask 要去掉什么
+              body: 022 的三位是 0、2、2：主人一位不去，同组和其他人各去掉写（2）。
+            - title: 第 3 步：每一位分别相减
+              body: 6−0=6，6−2=4，6−2=4，得到 0644，也就是 rw-r--r--。在 Linux 上实际运行，`stat` 显示的正是 644。
+      - item:
+          id: umask027
+          type: text
+          prompt: umask 是 027，用 mode 0666 新建一个文件。它的权限是多少（写三位八进制数）？
+          answers: ['640', '0640']
+          hint: 每一位分别看：去掉 0、去掉 2、去掉 7。
+          explain: 主人 6 不变；同组 6 去掉写变成 4；其他人 6 的读写都被 7 去掉，变成 0。结果 640：同组只能读，其他人什么都不能做。
+      - card:
+          title: read 和 write
+          body: |
+            ```c
+            ssize_t read(int fd, void *buf, size_t n);
+            ssize_t write(int fd, const void *buf, size_t n);
+            ```
+
+            read 最多读 n 个字节到 buf，返回实际读到的字节数；返回 0 表示 EOF；返回 −1 表示出错。write 返回实际写出的字节数。
+
+            一个一次复制一个字节的程序：
+
+            ```c
+            char c;
+            while (read(STDIN_FILENO, &c, 1) != 0)
+                write(STDOUT_FILENO, &c, 1);
+            ```
+
+            它把标准输入原样复制到标准输出，直到读到 EOF。
+      - card:
+          title: 不足值：读到的比要的少
+          body: |
+            read 和 write 传送的字节数比要求的少，叫**不足值**（short count）。它不是错误，常见的原因有三个：
+
+            1. 读的时候碰到了 EOF；
+            2. 从终端读：终端一次只交出一行；
+            3. 读写网络套接字：数据一段一段地到达，还会受内核缓冲区大小的限制。
+
+            读写磁盘文件时，除了碰到 EOF，不会出现不足值。
+      - item:
+          id: twenty
+          type: order
+          prompt: 一个 20 字节的磁盘文件，用 8 字节的缓冲区循环 `read(fd, buf, 8)` 直到返回 0。把每次的返回值按顺序排好。
+          steps:
+            - '第 1 次返回 8'
+            - '第 2 次返回 8'
+            - '第 3 次返回 4'
+            - '第 4 次返回 0'
+          explain: 前两次各读满 8 个；第三次只剩 4 个，返回 4（因为碰到了 EOF 才是不足值）；第四次位置已经在末尾，返回 0。在 Linux 上运行，结果正是 8、8、4、0。
+      - item:
+          id: thousand
+          type: number
+          prompt: 一个 1000 字节的磁盘文件，每次 `read(fd, buf, 300)`，直到 read 返回 0 为止。一共调用了几次 read？
+          answer: 5
+          hint: 别忘了最后那次返回 0 的调用。
+          explain: 300、300、300、100，再加一次返回 0 的，一共 5 次。
+      - item:
+          id: close-twice
+          type: choice
+          prompt: 程序对同一个描述符 close 了两次。第二次 close 会怎样？
+          options:
+            - text: 返回 −1，errno 是 EBADF
+              correct: true
+            - text: 返回 0，关闭已经关闭的文件什么也不做
+              why: 内核会检查描述符是否有效；第二次它已经不对应任何打开的文件了
+            - text: 程序崩溃
+              why: 出错的系统调用只是返回 −1，程序继续运行
+          explain: 更危险的是：第一次 close 之后，这个号码可能已经被新打开的文件拿走了，第二次 close 会关掉别人的文件。所以 close 之后最好别再用这个号码。
+
+  - id: rio-metadata
+    chapter: 系统调用
+    title: 读够字节，读文件信息和目录
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 另一台电脑通过网络给你发了 1000 个字节。你的程序执行 `read(sock, buf, 1000)`，返回了 512。猜一猜是怎么回事？
+          options:
+            - text: 正常现象，剩下的还在路上，再读一次就能拿到
+              correct: true
+            - text: 网络出错了，丢了 488 个字节
+              why: 出错时 read 返回 −1；返回正数说明一切正常，只是数据还没全到
+            - text: 对方只发了 512 个字节
+              why: 对方发了 1000 个；网络数据是一段一段到达的，一次 read 只拿到已经到了的那部分
+          explain: 这就是上一课说的不足值。网络程序必须反复读，直到读够为止。CS:APP 为此写了一组函数，叫 rio。
+      - card:
+          title: rio_readn：反复读，直到读够 n 个
+          body: |
+            ```c
+            ssize_t rio_readn(int fd, void *usrbuf, size_t n) {
+                size_t nleft = n;
+                ssize_t nread;
+                char *bufp = usrbuf;
+                while (nleft > 0) {
+                    if ((nread = read(fd, bufp, nleft)) < 0) {
+                        if (errno == EINTR) nread = 0;   /* 被信号打断：再读一次 */
+                        else return -1;
+                    } else if (nread == 0)
+                        break;                           /* EOF */
+                    nleft -= nread;
+                    bufp += nread;
+                }
+                return n - nleft;
+            }
+            ```
+
+            只有碰到 EOF 时才会返回比 n 少的数。`rio_writen` 同理，它从不返回不足值。
+      - item:
+          id: readn-eof
+          type: number
+          prompt: 一个文件只剩 30 个字节。调用 `rio_readn(fd, buf, 100)`，返回多少？
+          answer: 30
+          explain: 前一次 read 拿到 30 个，下一次 read 返回 0（EOF），循环 break，返回 100 − 70 = 30。碰到 EOF 是 rio_readn 唯一会返回不足值的情况。
+      - item:
+          id: readn-why
+          type: choice
+          prompt: rio_readn 里，read 返回 −1 并且 errno 是 EINTR 时，为什么把 nread 设成 0 继续循环，而不是返回 −1？
+          options:
+            - text: EINTR 只说明等待被一个信号打断了，没有真正出错，再读一次就行
+              correct: true
+            - text: EINTR 表示读到了文件末尾
+              why: 读到末尾时 read 返回 0，不是 −1
+            - text: 设成 0 能让循环立刻结束
+              why: nread 为 0 时 nleft 不变，循环会接着读；结束循环靠的是 break 或 nleft 变成 0
+          explain: 被信号打断的慢速系统调用要重新开始；rio 自己处理了这件事，用它的程序就不用操心。
+      - card:
+          title: 带缓冲的读：rio_readlineb
+          body: |
+            读一行文字，最直接的办法是一次 read 一个字节，看到换行符就停。可是每次 read 都要陷入内核，一个字节一次系统调用太慢了。
+
+            rio_readlineb 在用户空间留一个 8192 字节的缓冲区：缓冲区空了，就用一次 read 尽量把它填满；之后要的字节都从缓冲区里拿，直到又拿空。读一行时，它从缓冲区里一个个复制字节，复制到换行符为止。
+      - card:
+          title: 例题：数一数系统调用
+          body: 一个文件有 100 行，每行 39 个字符加一个换行符，一共 4000 个字节。从头读到尾，两种做法各调用几次 read？
+          reveal:
+            - title: 第 1 步：一次读一个字节
+              body: 每个字节一次 read，4000 次；最后还要一次返回 0 的 read 才知道到了末尾，一共 4001 次。
+            - title: 第 2 步：用 8192 字节的缓冲区
+              body: 第一次 read 就把 4000 个字节全读进缓冲区；之后的 100 行都从缓冲区里拿。缓冲区拿空后再 read 一次，返回 0，表示 EOF。一共 2 次。
+            - title: 第 3 步：在机器上数
+              body: 给 read 包一层计数器，在 Linux 上实际运行，结果正是 4001 次和 2 次。读到的行数两种都是 100。
+      - item:
+          id: rio-calls
+          type: number
+          prompt: 用 8192 字节缓冲区的 rio 函数，从头到尾读完一个 20000 字节的文件。一共调用几次 read？
+          answer: 4
+          hint: 每次 read 最多填满 8192 个字节；最后还有一次返回 0。
+          explain: 8192 + 8192 + 3616 = 20000，三次读完，再加一次返回 0 的，一共 4 次。
+      - card:
+          title: stat：读文件的元数据
+          body: |
+            文件的大小、种类、权限、修改时间这些“关于文件的数据”叫元数据（metadata）。
+
+            ```c
+            int stat(const char *filename, struct stat *buf);
+            int fstat(int fd, struct stat *buf);
+            ```
+
+            它们把元数据填进 struct stat：`st_size` 是字节数，`st_mode` 里编码了种类和权限位，`st_mtime` 是最后修改时间。种类用宏判断：`S_ISREG(m)` 普通文件，`S_ISDIR(m)` 目录，`S_ISSOCK(m)` 套接字。
+      - card:
+          title: 一个查看文件信息的程序
+          body: |
+            ```c
+            int main(int argc, char **argv) {
+                struct stat st;
+                char *type, *readok;
+                if (stat(argv[1], &st) < 0) { perror("stat"); return 1; }
+                if (S_ISREG(st.st_mode)) type = "regular";
+                else if (S_ISDIR(st.st_mode)) type = "directory";
+                else type = "other";
+                readok = (st.st_mode & S_IRUSR) ? "yes" : "no";
+                printf("type: %s, read: %s, size: %lld\n",
+                       type, readok, (long long) st.st_size);
+                return 0;
+            }
+            ```
+
+            对一个内容是 `foobar` 的文件运行它，输出 `type: regular, read: yes, size: 6`。`S_IRUSR` 是“文件主人可读”那一位。
+      - item:
+          id: stat-dir
+          type: choice
+          prompt: 一个程序用 stat 读文件信息：S_ISREG 为真就打印 regular，否则 S_ISDIR 为真就打印 directory，都不是就打印 other。对当前目录 `.` 运行它，打印什么？
+          options:
+            - text: directory
+              correct: true
+            - text: regular
+              why: 目录不是普通文件，S_ISREG 对它为假，S_ISDIR 为真
+            - text: other
+              why: 程序先检查了 S_ISDIR，目录会在这一步被认出来
+            - text: 什么也不显示，stat 不能用在目录上
+              why: stat 可以读任何文件的元数据，包括目录
+          explain: "在 Linux 上运行，对 `.` 显示的是 type: directory。"
+      - card:
+          title: 读目录：opendir、readdir、closedir
+          body: |
+            ```c
+            DIR *streamp = opendir("src");
+            struct dirent *dep;
+            errno = 0;
+            while ((dep = readdir(streamp)) != NULL)
+                printf("%s\n", dep->d_name);
+            if (errno != 0) unix_error("readdir error");
+            closedir(streamp);
+            ```
+
+            每次 readdir 返回下一个目录项，里面有文件名 `d_name` 和文件在文件系统里的编号 `d_ino`。读完和出错时都返回 NULL；为了区分这两种情况，循环前把 errno 清成 0，循环后看它变没变。项的先后顺序由文件系统决定，不一定按名字排。
+      - item:
+          id: dir-count
+          type: number
+          prompt: 目录 d 里只有两个文件 x.c 和 y.c。用 opendir 打开 d，循环调用 readdir 直到它返回 NULL。一共返回了几个非 NULL 的项？
+          answer: 4
+          hint: 每个目录都自带哪两项？
+          explain: 除了 x.c 和 y.c，还有 `.`（d 自己）和 `..`（d 的上一层）。在 Linux 上运行，一共 4 项，循环结束后 errno 仍是 0。
+
+  - id: sharing-redirect
+    chapter: 系统调用
+    title: 共享文件、重定向和标准 I/O
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 文件 foobar.txt 的内容是 `foobar`。程序把它 open 了两次，得到 fd1 和 fd2；先从 fd1 读 1 个字节，再从 fd2 读 1 个字节。猜一猜第二次读到哪个字符？
+          options:
+            - text: f
+              correct: true
+            - text: o
+              why: 两次 open 各有自己的读写位置；从 fd1 读不会移动 fd2 的位置
+            - text: 读不到，同一个文件不能打开两次
+              why: 一个文件可以被打开很多次，每次都得到一个新的描述符
+          explain: 读到的是 f。为什么这样，要看内核用哪几张表记录打开的文件。
+      - card:
+          title: 内核的三张表
+          body: |
+            | 表 | 谁有 | 每一项记什么 |
+            |---|---|---|
+            | **描述符表** | 每个进程一张 | 描述符号码 → 打开文件表里的哪一项 |
+            | **打开文件表** | 所有进程共用 | 当前位置、引用计数（有几个描述符指着它）、指向哪个 v-node |
+            | **v-node 表** | 所有进程共用 | 文件本身的信息：大小、种类、权限，也就是 stat 读到的那些 |
+
+            close 一个描述符，就把它指的那一项的引用计数减 1；减到 0，内核才删掉这一项。
+      - card:
+          title: 情况一：同一个文件打开两次
+          body: |
+            每次 open 都在打开文件表里新建一项，各有自己的当前位置，但它们指向同一个 v-node。
+
+            所以开头那道题：从 fd1 读，只移动 fd1 那一项的位置；fd2 的位置还在 0，读到的是 f。在 Linux 上运行，输出正是 f。
+      - item:
+          id: two-opens
+          type: choice
+          prompt: 接着开头那个程序：fd1 和 fd2 各读了 1 个字节之后，再从 fd1 读 1 个字节。这次读到什么？
+          options:
+            - text: o
+              correct: true
+            - text: f
+              why: fd1 的位置已经因为第一次读移到了 1，这次读第 2 个字符
+            - text: b
+              why: 那要求两个描述符共用一个位置，加起来读过 2 个；可它们各有各的位置
+          explain: fd1 自己的位置从 1 开始，读到 foobar 的第二个字符 o。
+      - card:
+          title: 情况二：fork 之后父子共享
+          body: |
+            fork 时，子进程得到父进程描述符表的一份副本，但打开文件表里的项**不复制**：父子的同一个描述符指向同一项，共用当前位置，引用计数加 1。
+
+            所以子进程读文件会移动父进程看到的位置。也因为这样，一个文件要父子都 close 了，内核才会真正删掉那一项。
+      - item:
+          id: fork-share
+          type: choice
+          prompt: 父进程打开 foobar.txt 得到 fd，然后 fork。子进程从 fd 读 1 个字节后退出；父进程 wait 之后，也从 fd 读 1 个字节。父进程读到什么？
+          options:
+            - text: o
+              correct: true
+            - text: f
+              why: 父子共用打开文件表里的同一项，子进程读过一个字节，位置已经是 1
+            - text: 读不到，子进程退出时把文件关了
+              why: 子进程退出只让引用计数减 1；父进程的描述符还在，那一项不会被删
+          explain: 在 Linux 上运行，父进程读到 o。共享位置是父子进程能接着彼此的进度读写同一个文件的原因。
+      - card:
+          title: dup2：重定向的原理
+          body: |
+            shell 执行 `ls > foo.txt`，ls 写到标准输出的东西就进了 foo.txt。它用的是：
+
+            ```c
+            int dup2(int oldfd, int newfd);
+            ```
+
+            dup2 把描述符表里 oldfd 那一行复制到 newfd：newfd 原来如果打开着，先把它关掉；之后两个描述符指向打开文件表的同一项。
+
+            比如先 `fd = open("foo.txt", ...)` 得到 4，再 `dup2(4, 1)`：此后往 1 写，就是往 foo.txt 写。
+      - item:
+          id: dup2-read
+          type: choice
+          prompt: foobar.txt 内容是 `foobar`。程序 open 两次得到 fd1、fd2，先从 fd2 读 1 个字节，然后 `dup2(fd2, fd1)`，再从 fd1 读 1 个字节。读到什么？
+          options:
+            - text: o
+              correct: true
+            - text: f
+              why: dup2 之后 fd1 指向 fd2 的那一项，用的是 fd2 的位置，已经是 1 了
+            - text: 出错，fd1 已经被关掉了
+              why: dup2 关掉的是 fd1 原来指的那一项，然后让 fd1 改指 fd2 的那一项，fd1 仍然可以用
+          explain: 在 Linux 上运行，读到的是 o。
+      - item:
+          id: redirect-order
+          type: order
+          prompt: shell 执行 `wc < in.txt`，让 wc 从 in.txt 读输入。把子进程里的步骤排好。
+          steps:
+            - fork 出子进程
+            - 子进程 open in.txt，得到描述符 3
+            - 子进程执行 dup2(3, 0)
+            - 子进程 close(3)
+            - 子进程 execve 运行 wc
+          explain: dup2 之后 0 和 3 指向同一项，3 已经多余，关掉它；execve 换上 wc 以后，描述符表保留，wc 从 0 读到的就是 in.txt。
+      - card:
+          title: 标准 I/O：带缓冲的库
+          body: |
+            C 标准库提供另一套函数：fopen、fclose、fread、fwrite、fgets、fputs、scanf、printf。它们操作的是流（stream），也就是指向 FILE 结构的指针；FILE 里有一个描述符和一块缓冲区。程序开始时就有三个流：stdin、stdout、stderr。
+
+            缓冲区让多次 printf 合并成一次 write，系统调用少得多。stdout 接着终端时，每遇到换行就写出去；接着文件或管道时，要等缓冲区满、调用 fflush 或程序正常退出才写。
+      - card:
+          title: 缓冲造成的意外
+          body: |
+            ```c
+            int main(void) {
+                printf("one\n");
+                write(1, "two\n", 4);
+                return 0;
+            }
+            ```
+
+            在终端里运行，先显示 one 再显示 two。改成 `./a.out > out.txt`，文件里却是 two 在前：printf 的 one 还在缓冲区里，write 直接进了文件，one 要到程序退出时才写出去。
+
+            如果把 `return 0` 换成 `_exit(0)`：_exit 直接结束进程，不清空缓冲区，重定向到文件时 one 就永远丢了。
+      - item:
+          id: buffer-order
+          type: choice
+          prompt: 上面这个程序运行 `./a.out | cat`（输出接到管道）时，显示的顺序是？
+          options:
+            - text: 先 two 后 one
+              correct: true
+            - text: 先 one 后 two
+              why: 那是接着终端时的顺序；接管道时 stdout 不按行写出，one 留在缓冲区里直到程序退出
+            - text: 只显示 two
+              why: 程序用 return 正常退出，缓冲区会被写出，one 不会丢
+          explain: 管道和文件一样，stdout 要等缓冲区满或程序退出才写。同时用 printf 和 write 往同一个地方写，先后就会乱。
+      - card:
+          title: 该用哪一套 I/O
+          body: |
+            | 场合 | 用什么 | 原因 |
+            |---|---|---|
+            | 读写磁盘文件、终端 | 标准 I/O | 能用高层函数就用高层函数 |
+            | 信号处理程序里 | Unix I/O（write） | 它是异步信号安全的，标准 I/O 不是 |
+            | 读写网络套接字 | rio | 标准 I/O 用在套接字上有限制，容易出错 |
+
+            标准 I/O 的流可以同时读和写，但规定：写之后要读，中间要先 fflush 或 fseek；读之后要写，中间要先 fseek（读到 EOF 除外）。套接字不能 lseek，这些规定就很难遵守。
+
+            另外，不要用 scanf 或 rio_readlineb 读二进制文件：它们把字节 0x0a 当成换行符，可二进制文件里的 0x0a 只是一个普通的数。
+      - item:
+          id: which-io
+          type: match
+          prompt: 把场景和该用的那一套 I/O 连起来。
+          pairs:
+            - [写一个读配置文件、打印报告的命令行工具, 标准 I/O]
+            - [在 SIGINT 处理程序里打印一句提示, Unix I/O 的 write]
+            - [Web 服务器读客户端发来的请求行, rio]
+          explain: 规则是能用高层就用高层；只有在信号处理程序（安全性）和套接字（标准 I/O 的限制）这两处退回到 Unix I/O 或 rio。
+  # ---------------------------------------------------------------- 锁
+  - id: threads
+    chapter: 锁
+    title: 线程：一个进程里的几条执行流
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个聊天服务器要同时服务 100 个用户，所有用户共用一张“谁在线”的名单。如果用 fork 给每个用户一个进程，猜一猜最麻烦的是什么？
+          options:
+            - text: 每个进程各有一份内存，名单改了要想办法通知其他 99 个进程
+              correct: true
+            - text: fork 最多只能造出 10 个进程
+              why: 一台机器可以有成千上万个进程，数量不是问题
+            - text: 进程不能读写网络
+              why: 进程可以读写套接字；麻烦在于它们之间不共享内存
+          explain: 进程的地址空间是私有的，共享数据很麻烦。下面要讲的办法，让几条执行流共用同一个地址空间。
+      - card:
+          title: 线程是什么
+          body: |
+            **线程（thread）**是运行在一个进程里的一条逻辑控制流，由内核调度。
+
+            每个线程有自己的线程上下文：线程 ID（TID）、栈、栈指针、程序计数器、通用寄存器和条件码。同一个进程里的所有线程**共享**这个进程的整个地址空间：代码、全局数据、堆、共享库，以及打开的文件。
+
+            每个进程一开始只有一个线程，叫主线程。它可以再创建对等线程，从此几条控制流并发地运行。
+      - card:
+          title: 线程和进程比
+          body: |
+            - 线程上下文比进程上下文小得多，所以线程之间的上下文切换更快；
+            - 进程之间是父子层次，线程之间没有：一个进程的线程组成一个对等的线程池，任何一个线程都可以等待另一个线程结束，或者终止它；
+            - 线程共用内存，交换数据只要读写同一个变量；这也是它的危险所在，后面几课都在讲怎样不出错。
+      - item:
+          id: own-copy
+          type: choice
+          prompt: 同一个进程里的两个线程，下面哪一样是**每个线程各有一份**的？
+          options:
+            - text: 栈和寄存器
+              correct: true
+            - text: 全局变量
+              why: 全局变量在共享的地址空间里，只有一份，两个线程读写的是同一个
+            - text: 用 malloc 分配的堆内存
+              why: 堆也是共享的；一个线程 malloc 的内存，把指针交给另一个线程，它也能读写
+            - text: 打开的文件描述符
+              why: 描述符表属于进程，所有线程共用；一个线程打开的文件，别的线程用同一个号码就能读写
+          explain: 线程只带着“自己执行到哪里”的那部分：PC、寄存器、栈。其余全是共享的。
+      - card:
+          title: 第一个线程程序
+          body: |
+            ```c
+            #include <pthread.h>
+            void *thread(void *vargp) {          /* 线程要执行的函数 */
+                printf("Hello, world!\n");
+                return NULL;
+            }
+            int main(void) {
+                pthread_t tid;
+                pthread_create(&tid, NULL, thread, NULL);
+                pthread_join(tid, NULL);
+                exit(0);
+            }
+            ```
+
+            编译要加 `-pthread`：`gcc -pthread hello.c`。线程函数的样子固定是 `void *f(void *)`：收一个通用指针当参数，返回一个通用指针。要传几个参数，就把它们放进一个结构体，传结构体的地址。
+      - card:
+          title: 创建、回收和结束
+          body: |
+            - `pthread_create(&tid, NULL, f, arg)`：创建一个线程运行 `f(arg)`，新线程的 ID 存进 tid。成功返回 0；出错时直接返回错误码，不设 errno；
+            - `pthread_self()`：返回自己的 TID；
+            - `pthread_join(tid, &ret)`：等 tid 这个线程结束，把它的返回值存进 ret。和 waitpid 不同，它只能等指定的那一个线程。
+
+            线程结束有几种方式：线程函数 return，或者调用 `pthread_exit`，结束的只是这一个线程；而任何一个线程调用 `exit`，或者主线程从 main 返回，整个进程连同所有线程都结束。
+      - item:
+          id: main-returns
+          type: choice
+          prompt: 下面的程序输出什么？
+          code: |
+            void *thread(void *vargp) {
+                sleep(1);
+                printf("Hello, world!\n");
+                return NULL;
+            }
+            int main(void) {
+                pthread_t tid;
+                pthread_create(&tid, NULL, thread, NULL);
+                printf("main done\n");
+                return 0;
+            }
+          lang: c
+          options:
+            - text: 只有 main done
+              correct: true
+            - text: 先 main done，1 秒后 Hello, world!
+              why: main 返回就结束了整个进程，对等线程还在 sleep，没机会打印
+            - text: 先 Hello, world!，再 main done
+              why: 对等线程要先睡 1 秒；主线程早就打印完并返回了
+          explain: 在 Linux 上运行，只看到 main done。主线程要等对等线程，得调用 pthread_join。
+      - item:
+          id: whole-process
+          type: choice
+          multi: true
+          prompt: 一个进程有主线程和 3 个对等线程。哪几种情况会让**所有**线程都结束？
+          options:
+            - text: 某个对等线程调用 exit(0)
+              correct: true
+            - text: 主线程从 main 返回
+              correct: true
+            - text: 某个对等线程的线程函数 return
+              why: 线程函数返回只结束这一个线程，其余线程照常运行
+            - text: 某个对等线程调用 pthread_exit
+              why: pthread_exit 只结束调用它的那个线程
+          explain: exit 结束的是进程；main 返回时 C 运行时也会调用 exit。只想结束自己，用 return 或 pthread_exit。
+      - card:
+          title: 可结合和分离
+          body: |
+            线程默认是**可结合的**（joinable）：它结束后，栈这些资源要等别的线程 pthread_join 回收了才释放，和僵尸进程一个道理。
+
+            调用 `pthread_detach(tid)` 把它变成**分离的**（detached）：它结束时系统自动回收资源，也不能再被 join。
+
+            网络服务器常常为每个连接开一个线程，没有谁需要等每个连接结束，所以线程一开始就执行 `pthread_detach(pthread_self());`。
+      - item:
+          id: detach
+          type: choice
+          prompt: 一个服务器每来一个连接就创建一个可结合的线程，却从不 pthread_join 它们。连续运行几天以后会怎样？
+          options:
+            - text: 结束了的线程的资源一直不释放，内存越用越多
+              correct: true
+            - text: 没有影响，线程结束时总会自动释放全部资源
+              why: 只有分离的线程才自动释放；可结合的线程要等 join
+            - text: 新的线程会创建失败，因为最多只能有一个没被 join 的线程
+              why: 没有这种限制；问题是资源一直累积，最终才可能因为内存不够而失败
+          explain: 要么 join 每个线程，要么把它们设成分离的。
+      - card:
+          title: 例题：给每个线程传一个编号
+          body: |
+            ```c
+            void *thread(void *vargp) {
+                long id = (long) vargp;
+                printf("thread %ld\n", id);
+                return NULL;
+            }
+            int main(void) {
+                pthread_t tid[3];
+                for (long i = 0; i < 3; i++)
+                    pthread_create(&tid[i], NULL, thread, (void *) i);
+                for (long i = 0; i < 3; i++)
+                    pthread_join(tid[i], NULL);
+                return 0;
+            }
+            ```
+          reveal:
+            - title: 第 1 步：把编号装进指针里传过去
+              body: 参数只能是一个 void 指针。long 和指针在 x86-64 上都是 8 字节，把 i 强制转换成 `void *` 传进去，线程里再转回 long。传的是 i 的值，不是 i 的地址。
+            - title: 第 2 步：每个线程拿到自己的一份
+              body: 三次 pthread_create 分别把 0、1、2 交给三个线程，线程里的 id 是局部变量，在各自的栈上。
+            - title: 第 3 步：等它们都结束
+              body: 输出三行 thread 0、thread 1、thread 2，先后由调度决定。主线程 join 完三个才 return，所以三行一定都会打印出来。
+      - item:
+          id: arg-struct
+          type: choice
+          prompt: 要给线程函数传两个整数 a 和 b，正确的做法是？
+          options:
+            - text: 定义一个含 a、b 的结构体，把结构体的地址作为参数传进去
+              correct: true
+            - text: '`pthread_create(&tid, NULL, f, a, b)`，多写一个参数'
+              why: pthread_create 的参数个数是固定的，线程函数只能收一个 void 指针
+            - text: 把 a 和 b 相加后传过去，线程里再拆开
+              why: 加起来以后就分不出原来的两个数了
+          explain: 结构体要保证线程读它的时候还有效，比如用 malloc 分配，线程用完再 free。
+
+  - id: progress-graph
+    chapter: 锁
+    title: 两个线程加同一个数：为什么会丢
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个线程各把全局变量 cnt 加 1，各加 10,000,000 次，cnt 一开始是 0。两个线程都结束后，cnt 最可能是多少？
+          options:
+            - text: 比 20,000,000 小，而且每次运行都不一样
+              correct: true
+            - text: 正好 20,000,000
+              why: 只有每次加 1 都完整地做完、不被另一个线程插进来，才会正好是这个数
+            - text: 正好 10,000,000
+              why: 也不是固定丢一半；丢多少取决于两个线程每次怎样交错，每次运行都不同
+          explain: 在这台机器上连续运行三次，分别得到 10281621、10390914、10192749。下面看加 1 这件事为什么会丢。
+      - card:
+          title: 有错的计数程序
+          body: |
+            ```c
+            volatile long cnt = 0;          /* 共享的全局变量 */
+            void *thread(void *vargp) {
+                long niters = *((long *) vargp);
+                for (long i = 0; i < niters; i++)
+                    cnt++;
+                return NULL;
+            }
+            int main(void) {
+                long niters = 10000000;
+                pthread_t tid1, tid2;
+                pthread_create(&tid1, NULL, thread, &niters);
+                pthread_create(&tid2, NULL, thread, &niters);
+                pthread_join(tid1, NULL);
+                pthread_join(tid2, NULL);
+                printf("cnt=%ld\n", cnt);
+                return 0;
+            }
+            ```
+
+            两个线程运行同一个函数，读写同一个 cnt。`volatile` 让编译器每次都去内存里读写 cnt。
+      - card:
+          title: cnt++ 其实是三条指令
+          body: |
+            用 gcc 编译成汇编，循环里的 `cnt++` 是这三条：
+
+            ```text
+            movq  cnt(%rip), %rax     # L：把 cnt 从内存装进寄存器
+            addq  $1, %rax            # U：寄存器加 1
+            movq  %rax, cnt(%rip)     # S：把寄存器存回 cnt
+            ```
+
+            CS:APP 把每轮循环分成五段：H（循环头）、L（装入）、U（更新）、S（存回）、T（循环尾）。关键在于每个线程有自己的 %rax：一个线程装入 cnt 以后、存回之前，另一个线程完全可能也装入同一个旧值。
+      - item:
+          id: which-writes
+          type: choice
+          prompt: 'cnt++ 编译成 L、U、S 三条指令。哪一条真正改变了内存里 cnt 的值？'
+          options:
+            - text: S，把寄存器存回 cnt
+              correct: true
+            - text: U，把寄存器加 1
+              why: U 只改了这个线程自己的 %rax，内存里的 cnt 还没变
+            - text: L，把 cnt 装进寄存器
+              why: L 只是读；读不会改变 cnt
+            - text: 三条一起执行，分不开
+              why: 它们是三条独立的指令，两条之间随时可能发生上下文切换
+          explain: 在 S 之前，加 1 的结果只存在这个线程的寄存器里。另一个线程这时装入 cnt，看到的还是旧值。
+      - card:
+          title: 例题：一次丢失的交错
+          body: 两个线程各执行一轮，cnt 初值 0。按下面的顺序执行，逐步看 cnt 怎么变。
+          reveal:
+            - title: 第 1 步：线程 1 先装入并加 1
+              body: H1、L1、U1：线程 1 的 %rax 从 0 变成 1，内存里的 cnt 还是 0。
+            - title: 第 2 步：线程 2 插进来装入
+              body: H2、L2：线程 2 读到的 cnt 仍然是 0，它的 %rax 是 0。
+            - title: 第 3 步：线程 1 存回
+              body: S1、T1：cnt 变成 1。
+            - title: 第 4 步：线程 2 加 1 再存回
+              body: U2、S2、T2：线程 2 的 %rax 从 0 加到 1，存回，cnt 还是 1。两次加 1，只留下一次。
+      - item:
+          id: interleave-1
+          type: number
+          prompt: cnt 初值 0，两个线程各执行一轮。顺序是 H1、L1、H2、L2、U2、S2、U1、S1、T1、T2。最后 cnt 是多少？
+          answer: 1
+          hint: 两个 L 都发生在任何一个 S 之前吗？
+          explain: L1 和 L2 都读到 0；S2 写入 1，S1 也写入 1，后写的覆盖先写的。
+      - item:
+          id: interleave-2
+          type: number
+          prompt: cnt 初值 0，两个线程各执行一轮。顺序是 H1、L1、U1、S1、H2、L2、U2、S2、T1、T2。最后 cnt 是多少？
+          answer: 2
+          explain: 线程 2 的 L2 发生在 S1 之后，读到的是 1，加 1 存回 2。只要一个线程的 L、U、S 不被另一个的 L、U、S 插进来，结果就对。
+      - item:
+          id: race-sim
+          type: sim
+          sim: threads
+          params:
+            shared: { cnt: 0 }
+            threads:
+              - { name: 线程1, locals: { rax: 0 }, steps: ["rax = cnt", "rax = rax + 1", "cnt = rax"] }
+              - { name: 线程2, locals: { rax: 0 }, steps: ["rax = cnt", "rax = rax + 1", "cnt = rax"] }
+          goal: { final: { cnt: 1 } }
+          solution: [0, 1, 0, 0, 1, 1]
+          prompt: 你来当调度器：每一步选让哪个线程执行下一条指令。让两次加 1 之后 cnt 只等于 1。
+          hint: 两个线程都要在对方存回之前装入。
+          explain: 只要两个线程都先装入同一个旧值，无论谁先存回，结果都是 1。
+      - card:
+          title: 进度图
+          body: |
+            把两个线程的执行画在一张平面图上：横轴是线程 1 执行到第几条指令，纵轴是线程 2。图上的一个点就是一个状态；执行一条指令，就向右或向上走一格。一次运行就是一条从左下角走到右上角的**轨迹**。
+
+            对共享变量 cnt 来说，L、U、S 这三条指令组成一个**临界区（critical section）**：一个线程的这三条不能和另一个线程的这三条交错。两个线程同时处在各自临界区里的那些状态，组成**不安全区**。
+      - card:
+          title: 安全的轨迹
+          body: |
+            不进入不安全区的轨迹叫安全的轨迹。CS:APP 的结论是：一条轨迹算出的 cnt 是对的，当且仅当它是安全的。
+
+            程序的结果取决于几个线程执行的先后时机、某些先后会让结果出错，这种情况叫**竞态条件（race condition）**。有错的计数程序就有竞态条件：大部分轨迹安全，偶尔一条穿过不安全区，就丢一次加 1。要修好它，得让所有轨迹都绕开不安全区。
+      - item:
+          id: safe-or-not
+          type: choice
+          prompt: 下面哪个执行顺序的轨迹是安全的？
+          options:
+            - text: L1、U1、S1、L2、U2、S2
+              correct: true
+            - text: L1、L2、U1、S1、U2、S2
+              why: L2 发生在线程 1 的临界区中间（L1 之后、S1 之前），两个线程同时在临界区里，进了不安全区
+            - text: L2、U2、L1、S2、U1、S1
+              why: L1 插在线程 2 的 U2 和 S2 之间，两个线程同时在临界区里
+          explain: 安全就是两个临界区一前一后、不重叠。第一个顺序里线程 2 等线程 1 存回以后才装入。
+
+  - id: semaphores
+    chapter: 锁
+    title: 信号量和互斥锁：让临界区一次只进一个
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 想让计数程序的结果总是对的，下面哪个思路最对路？
+          options:
+            - text: 一个线程执行 L、U、S 时，让另一个线程在临界区门口等着
+              correct: true
+            - text: 让两个线程跑得慢一点
+              why: 慢只能让出错变少，不能保证不出错；只要交错发生在临界区中间，就会丢
+            - text: 把 cnt 改成 int 类型
+              why: 类型不影响 L、U、S 是三条可以被打断的指令
+          explain: 要的是互斥：同一时刻最多一个线程在临界区里。Dijkstra 提出了一个专门做这件事的工具。
+      - card:
+          title: 信号量和 P、V 操作
+          body: |
+            **信号量（semaphore）** s 是一个非负整数的全局变量，只能用两种操作改它：
+
+            - **P(s)**：如果 s 不是 0，就把它减 1，立刻返回；如果 s 是 0，就让这个线程睡下，等到 s 变成非 0、被一个 V 唤醒，再减 1 返回；
+            - **V(s)**：把 s 加 1；如果有线程在 P 里睡着等 s，唤醒其中**恰好一个**。
+
+            P 里“检查并减 1”是一个不可分割的整体，V 里的加 1 也是。所以 s 永远不会小于 0。P 和 V 来自荷兰语的“测试”（Proberen）和“增加”（Verhogen）。
+      - card:
+          title: POSIX 的信号量函数
+          body: |
+            ```c
+            #include <semaphore.h>
+            int sem_init(sem_t *s, 0, unsigned int value);   /* 初值 value */
+            int sem_wait(sem_t *s);                          /* P(s) */
+            int sem_post(sem_t *s);                          /* V(s) */
+            ```
+
+            CS:APP 用更短的名字包了一层：`P(&s)` 调用 sem_wait，`V(&s)` 调用 sem_post，出错就报错退出。
+      - item:
+          id: sem-two
+          type: number
+          prompt: 信号量 s 的初值是 2。三个线程先后调用 P(s)，期间没有人调用 V(s)。有几个线程能从 P 返回？
+          answer: 2
+          explain: 前两个 P 把 s 从 2 减到 0；第三个发现 s 是 0，睡下，直到有人 V(s)。信号量的初值就是“同时能放进去几个”。
+      - card:
+          title: 用初值为 1 的信号量实现互斥
+          body: |
+            给每个共享变量配一个初值为 1 的信号量，进临界区前 P，出来后 V：
+
+            ```c
+            volatile long cnt = 0;
+            sem_t mutex;                    /* main 里 sem_init(&mutex, 0, 1) */
+            for (long i = 0; i < niters; i++) {
+                P(&mutex);
+                cnt++;
+                V(&mutex);
+            }
+            ```
+
+            这样用的信号量只在 0 和 1 之间变，叫**互斥锁（mutex）**：P 叫加锁，V 叫解锁。第一个线程 P 把它从 1 减到 0 进去；另一个线程再 P 就睡下，直到第一个 V。在这台机器上，修好的程序每次都打印 cnt=20000000。
+      - item:
+          id: mutex-init
+          type: choice
+          prompt: 写互斥锁时不小心把信号量的初值设成了 0。程序会怎样？
+          options:
+            - text: 第一个线程的 P 就睡下了，没有线程能进临界区，程序卡住
+              correct: true
+            - text: 和初值 1 一样，正常工作
+              why: 初值 0 表示一开始就“没有空位”，没有人 V 之前谁也进不去
+            - text: 两个线程可以同时进临界区
+              why: 那是初值为 2 的情况；初值 0 是一个都进不去
+          explain: 互斥锁的初值必须是 1：一个空位，表示锁现在没人拿着。
+      - card:
+          title: 进度图里的禁止区
+          body: |
+            加了 P、V 之后，在进度图上，所有让 s 小于 0 的状态组成一个**禁止区**：轨迹根本走不进去，因为那需要两个线程同时通过 P。
+
+            禁止区正好把不安全区包在里面。所以每一条可能的轨迹都绕开了不安全区，每一条都是安全的，cnt 总是对的。
+
+            下面两个线程都用同一把锁 m。试着让线程 2 在线程 1 拿着锁的时候执行，看看会怎样。
+          sim:
+            name: threads
+            params:
+              shared: { cnt: 0 }
+              locks: [m]
+              threads:
+                - { name: 线程1, locals: { rax: 0 }, steps: ["lock m", "rax = cnt", "rax = rax + 1", "cnt = rax", "unlock m"] }
+                - { name: 线程2, locals: { rbx: 0 }, steps: ["lock m", "rbx = cnt", "rbx = rbx + 1", "cnt = rbx", "unlock m"] }
+      - card:
+          title: 代价：慢了很多
+          body: |
+            互斥不是免费的。同样是两个线程各加 10,000,000 次，在这台机器上：
+
+            - 有错的版本大约 0.02 秒，但结果是错的；
+            - 加锁的版本大约 0.4 秒，慢了二十倍左右，但每次都对。
+
+            每次加 1 都要多做一次 P 和一次 V，两个线程还要轮流抢锁，抢不到的要睡下、再被唤醒。临界区越小、加锁越频繁，这份开销越显眼。
+      - item:
+          id: two-locks-sim
+          type: sim
+          sim: threads
+          params:
+            shared: { cnt: 0 }
+            locks: [m, n]
+            threads:
+              - { name: 线程1, locals: { rax: 0 }, steps: ["lock m", "rax = cnt", "rax = rax + 1", "cnt = rax", "unlock m"] }
+              - { name: 线程2, locals: { rbx: 0 }, steps: ["lock n", "rbx = cnt", "rbx = rbx + 1", "cnt = rbx", "unlock n"] }
+          goal: { final: { cnt: 1 } }
+          solution: [0, 1, 0, 1, 0, 0, 1, 1, 0, 1]
+          prompt: 两个线程都加了锁，可线程 1 用的是锁 m，线程 2 用的是锁 n。安排执行顺序，让两次加 1 之后 cnt 只等于 1。
+          hint: 两把不同的锁，会互相挡住吗？
+          explain: 锁 m 只挡得住也去拿 m 的线程。保护同一个共享变量的代码必须用同一把锁。
+      - card:
+          title: pthread 自带的互斥锁
+          body: |
+            实际代码里，互斥锁更常用 pthread 自己的类型：
+
+            ```c
+            pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+            pthread_mutex_lock(&m);
+            cnt++;
+            pthread_mutex_unlock(&m);
+            ```
+
+            用法和初值为 1 的信号量一样，但有一点不同：pthread 互斥锁只能由加锁的那个线程解锁，信号量的 V 谁都可以做。所以“保护临界区”用互斥锁，“一个线程通知另一个线程某件事做完了”用信号量。
+      - item:
+          id: why-slow
+          type: choice
+          prompt: 加锁版的计数程序为什么比有错的版本慢那么多？
+          options:
+            - text: 每次加 1 都多了加锁和解锁，两个线程还要轮流抢锁、睡下再被唤醒
+              correct: true
+            - text: 加锁以后 CPU 的频率会降低
+              why: 加锁不改变 CPU 频率；慢在多出来的操作和线程之间的等待
+            - text: 加锁的版本多做了一倍的加法
+              why: 两个版本做的加法一样多，都是 20,000,000 次；多出来的是同步的开销
+          explain: 所以并行程序要尽量少同步：能各算各的，就最后再汇总一次。
+
+  - id: prodcons
+    chapter: 锁
+    title: 生产者和消费者，读者和写者，条件变量
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 餐厅的出菜台只放得下 3 盘菜。厨师做好一盘就放上去，服务员看到有菜就端走。出菜台已经放满 3 盘时，厨师又做好了一盘，应该怎么办？
+          options:
+            - text: 等服务员端走一盘，空出位置再放
+              correct: true
+            - text: 叠在别的盘子上面
+              why: 位置是固定的 3 个，硬放上去就会把别的菜压坏；程序里就是覆盖了还没被取走的数据
+            - text: 直接倒掉重做
+              why: 那样做好的菜就白费了；正确的做法是等一个空位
+          explain: 这就是生产者–消费者问题：放满了生产者要等，空了消费者要等。
+      - card:
+          title: 有界缓冲区
+          body: |
+            生产者线程不断产出数据项，放进一个有 n 个格子的**有界缓冲区**（bounded buffer）；消费者线程不断取出来用。比如视频播放器：一个线程解码出一帧帧画面放进缓冲区，另一个线程按时取出来显示。
+
+            要同时保证三件事：
+
+            1. 对缓冲区的修改是互斥的；
+            2. 没有空格子时，生产者要等；
+            3. 没有数据项时，消费者要等。
+      - card:
+          title: 用三个信号量写出来
+          body: |
+            ```c
+            sem_t mutex;   /* 初值 1：保护缓冲区 */
+            sem_t slots;   /* 初值 n：空格子数 */
+            sem_t items;   /* 初值 0：数据项数 */
+
+            void sbuf_insert(sbuf_t *sp, int item) {
+                P(&sp->slots);            /* 等一个空格子 */
+                P(&sp->mutex);
+                sp->buf[(++sp->rear) % (sp->n)] = item;
+                V(&sp->mutex);
+                V(&sp->items);            /* 通知：多了一个数据项 */
+            }
+            int sbuf_remove(sbuf_t *sp) {
+                P(&sp->items);            /* 等一个数据项 */
+                P(&sp->mutex);
+                int item = sp->buf[(++sp->front) % (sp->n)];
+                V(&sp->mutex);
+                V(&sp->slots);            /* 通知：多了一个空格子 */
+                return item;
+            }
+            ```
+
+            slots 和 items 用来**计数**，mutex 用来**互斥**。
+      - item:
+          id: items-zero
+          type: choice
+          prompt: 缓冲区一开始是空的。消费者先运行，调用 sbuf_remove。它会停在哪里？
+          options:
+            - text: P(&sp->items)，因为 items 的初值是 0
+              correct: true
+            - text: P(&sp->mutex)
+              why: mutex 初值是 1，能通过；消费者在它前面那一步就停下了
+            - text: 不会停，取出一个 0 返回
+              why: 信号量正是为了防止从空缓冲区里取东西；items 为 0 时 P 会让它睡下
+          explain: 它一直睡到某个生产者插入数据、执行 V(&sp->items)。
+      - card:
+          title: 例题：一格的缓冲区
+          body: 只有 1 个格子（slots 初值 1，items 初值 0，mutex 初值 1）。两个生产者各想放一个数据项，一个消费者想取一个。看一个能走通的顺序。
+          reveal:
+            - title: 第 1 步：生产者 1 放入
+              body: P(slots) 把 slots 从 1 减到 0，加锁、放入、解锁，V(items) 把 items 加到 1。
+            - title: 第 2 步：生产者 2 被挡住
+              body: 这时生产者 2 如果执行 P(slots)，slots 是 0，它睡下。它要等的是空格子。
+            - title: 第 3 步：消费者取走
+              body: P(items) 把 items 从 1 减到 0，加锁、取出、解锁，V(slots) 把 slots 加回 1，并唤醒睡着的生产者 2。
+            - title: 第 4 步：生产者 2 放入
+              body: 它从 P(slots) 返回，放入第二个数据项。最后缓冲区里有 1 个数据项。
+      - item:
+          id: buffer-sim
+          type: sim
+          sim: threads
+          params:
+            shared: { n: 0 }
+            sems: { slots: 1, items: 0, mutex: 1 }
+            threads:
+              - { name: 生产者1, steps: ["wait slots", "wait mutex", "n = n + 1", "signal mutex", "signal items"] }
+              - { name: 生产者2, steps: ["wait slots", "wait mutex", "n = n + 1", "signal mutex", "signal items"] }
+              - { name: 消费者, steps: ["wait items", "wait mutex", "n = n - 1", "signal mutex", "signal slots"] }
+          goal: { final: { n: 1 } }
+          solution: [0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1]
+          prompt: 一格的缓冲区（slots 初值 1，items 初值 0），n 是缓冲区里的数据项数。wait 就是 P，signal 就是 V。安排顺序，让三个线程都做完。
+          hint: 生产者 2 什么时候才能通过 wait slots？
+          explain: 第二个生产者必须等消费者取走一个、signal slots 以后才能放。三个线程都做完时 n 等于 1。
+      - card:
+          title: 读者和写者
+          body: |
+            另一类问题：一份共享数据，**读者**只读，**写者**会修改。写者必须独占；读者之间可以同时读。比如订票系统里，很多人同时查余票，买票的人要独占。
+
+            第一类读者–写者问题优先照顾读者：只要没有写者正拿着数据，读者就不用等，哪怕已经有写者在排队。
+
+            ```c
+            int readcnt = 0;          /* 正在读的读者数，由 mutex 保护 */
+            sem_t mutex, w;           /* 初值都是 1 */
+            void reader(void) {
+                P(&mutex);
+                if (++readcnt == 1) P(&w);   /* 第一个读者把写者挡在外面 */
+                V(&mutex);
+                /* 读 */
+                P(&mutex);
+                if (--readcnt == 0) V(&w);   /* 最后一个读者放写者进来 */
+                V(&mutex);
+            }
+            void writer(void) { P(&w); /* 写 */ V(&w); }
+            ```
+      - item:
+          id: writer-starve
+          type: choice
+          prompt: 第一类读者–写者问题的常见写法：第一个进来的读者 P(w)，最后一个离开的读者 V(w)，写者写之前要 P(w)。如果读者一个接一个不断到来，前一个还没读完，下一个就来了，一个在等的写者会怎样？
+          options:
+            - text: 可能一直等下去：readcnt 从不降到 0，w 一直没被 V
+              correct: true
+            - text: 最多等一个读者读完就能写
+              why: 新来的读者看到 readcnt 不是 0，直接进去读，不用 P(w)，写者一直插不进去
+            - text: 写者会和读者同时进去
+              why: 写者要先通过 P(w)，第一个读者已经拿走了 w，读者在时写者进不去
+          explain: 这叫饥饿（starvation）：线程一直被别人抢先，无限期地等下去。优先照顾写者的第二类写法，代价是读者可能饥饿。
+      - card:
+          title: 条件变量：带着锁睡下
+          body: |
+            pthread 还提供**条件变量（condition variable）**，专门用来“等某个条件成立”：
+
+            - `pthread_cond_wait(&c, &m)`：调用前必须拿着锁 m。它把“释放 m”和“睡下”作为一个整体完成；被唤醒后，要先重新拿到 m 才返回；
+            - `pthread_cond_signal(&c)`：唤醒至少一个在 c 上睡着的线程；
+            - `pthread_cond_broadcast(&c)`：唤醒所有在 c 上睡着的线程。
+
+            条件本身（比如“缓冲区不满”）是你的程序用共享变量表达的，条件变量只负责睡和醒。
+      - card:
+          title: 用互斥锁和条件变量写有界队列
+          body: |
+            ```c
+            pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+            pthread_cond_t not_full = PTHREAD_COND_INITIALIZER;
+            pthread_cond_t not_empty = PTHREAD_COND_INITIALIZER;
+            int buf[N], head = 0, tail = 0, count = 0;
+
+            void put(int x) {
+                pthread_mutex_lock(&m);
+                while (count == N)
+                    pthread_cond_wait(&not_full, &m);
+                buf[tail] = x; tail = (tail + 1) % N; count++;
+                pthread_cond_signal(&not_empty);
+                pthread_mutex_unlock(&m);
+            }
+            int get(void) {
+                pthread_mutex_lock(&m);
+                while (count == 0)
+                    pthread_cond_wait(&not_empty, &m);
+                int x = buf[head]; head = (head + 1) % N; count--;
+                pthread_cond_signal(&not_full);
+                pthread_mutex_unlock(&m);
+                return x;
+            }
+            ```
+
+            在这台机器上，两个生产者各 put 10000 个数、两个消费者把它们全部 get 出来，取出的总和每次都等于放进去的总和。
+      - item:
+          id: while-not-if
+          type: choice
+          prompt: get 里为什么要写 `while (count == 0)`，而不是 `if (count == 0)`？
+          options:
+            - text: 醒来时条件不一定成立：可能是虚假唤醒，也可能在重新拿到锁之前，数据已经被别的消费者取走了
+              correct: true
+            - text: while 比 if 运行得快
+              why: 和速度无关；if 只检查一次，醒来后就不再检查，可能从空队列里取数
+            - text: pthread_cond_wait 要求放在循环里，否则编译报错
+              why: 编译器不会检查这个；写成 if 能编译，只是在并发时会出错
+          explain: POSIX 允许 pthread_cond_wait 在没人 signal 时也返回（虚假唤醒）。所以醒来以后总要重新检查条件。
+      - item:
+          id: wait-releases
+          type: choice
+          prompt: 消费者在 get 里调用 pthread_cond_wait(&not_empty, &m) 睡下了。这时生产者调用 put，能拿到锁 m 吗？
+          options:
+            - text: 能，pthread_cond_wait 在睡下的同时释放了 m
+              correct: true
+            - text: 不能，消费者睡着时还拿着 m，生产者会永远等下去
+              why: 如果真是这样，等数据的消费者会挡住送数据的生产者，程序就卡死了；所以 wait 必须释放锁
+            - text: 能，但只有消费者先被唤醒以后才行
+              why: 消费者要等生产者 put 以后 signal 才会被唤醒；生产者必须先拿到锁
+          explain: 释放锁和睡下是一个整体，中间不会漏掉别人的 signal；醒来时再重新拿锁。
+
+  - id: parallel
+    chapter: 锁
+    title: 用线程做并行计算
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 要把 0 到 n−1 的整数加起来。用 4 个线程，每加一个数都锁上同一把互斥锁、加进同一个全局变量。和只用 1 个线程比，会怎样？
+          options:
+            - text: 反而更慢
+              correct: true
+            - text: 快 4 倍
+              why: 每次加法都要抢同一把锁，4 个线程大部分时间在排队，几乎是一个接一个地加
+            - text: 一样快
+              why: 不只是没变快：抢锁、睡下、唤醒都是额外的开销，线程越多越慢
+          explain: 在这台机器上实测，2 个线程比 1 个线程慢了 3 倍左右。下面看怎样写才真正变快。
+      - card:
+          title: 并发和并行
+          body: |
+            多核机器上，几个线程可以真的同时运行在不同的核心上。并行程序就是运行在多个处理器上的并发程序。
+
+            最常见的写法是：把工作分成互不相交的几块，每个线程负责一块。求 0 到 n−1 的和，就让 t 个线程各负责连续的 n/t 个数。线程 k 负责从 k·n/t 开始的 n/t 个数。
+      - card:
+          title: 三种写法
+          body: |
+            | 写法 | 每个线程怎么加 | 最后怎么汇总 |
+            |---|---|---|
+            | 加锁版 | 每个数都加锁，加进共享的全局变量 gsum | 不用汇总 |
+            | 数组版 | 加进全局数组的 psum[k]，每次都写内存 | 主线程把 psum[0..t−1] 相加 |
+            | 局部变量版 | 加进自己的局部变量 sum，最后写一次 psum[k] | 主线程把 psum[0..t−1] 相加 |
+
+            后两种不需要锁：每个线程只写属于自己的 psum[k]，没有两个线程写同一个位置。
+      - item:
+          id: no-lock
+          type: choice
+          prompt: 数组版里，线程 0 写 psum[0]，线程 1 写 psum[1]……为什么不需要加锁？
+          options:
+            - text: 每个元素只被一个线程写，主线程等所有线程 join 以后才读
+              correct: true
+            - text: 数组的读写本来就是原子的
+              why: psum[k] += i 一样是装入、加、存回三步；不需要锁是因为没有别的线程碰同一个元素
+            - text: 全局数组不会被几个线程共享
+              why: 全局数组是共享的；只是每个线程只碰自己那一格
+          explain: 互斥要保护的是“几个线程同时访问同一个位置、其中有写”。把数据分开，就不需要锁。
+      - card:
+          title: 实测结果
+          body: |
+            在这台机器上（16 个逻辑核，gcc -O0 编译）：
+
+            - 加锁版：2 个线程比 1 个线程慢 3 倍左右，再多加线程也不会变快；
+            - 局部变量版：4 个线程比 1 个线程快 3 倍多；
+            - 数组版：4 个线程反而比 1 个线程还慢，比局部变量版慢好几倍。
+
+            数组版明明没有锁，为什么也慢？问题出在缓存上。
+      - card:
+          title: 伪共享
+          body: |
+            CPU 的 cache 以 cache 行为单位搬数据，这台机器上一行是 64 字节。psum[0] 到 psum[3] 各 8 字节，挤在同一行里。
+
+            线程 0 每写一次 psum[0]，别的核心 cache 里的这一行就失效了；线程 1 写 psum[1] 之前，得把这一行再搬过来。四个核心不停地抢同一行，虽然它们写的是不同的变量。这叫**伪共享（false sharing）**。
+
+            把每个 psum[k] 补到 64 字节，各占一行，4 个线程时就比挤在一起快了好几倍。局部变量版更好：循环里只改寄存器或栈上的 sum。
+      - item:
+          id: false-sharing
+          type: choice
+          prompt: 两个线程分别不停地写全局数组 a 的 a[0] 和 a[1]（都是 long，相邻）。它们写的是不同的元素，为什么还会互相拖慢？
+          options:
+            - text: a[0] 和 a[1] 在同一个 cache 行里，一个核心写，另一个核心的这一行就失效，要重新搬
+              correct: true
+            - text: 它们其实在写同一个元素
+              why: 写的确实是不同的元素，结果也是对的；慢在 cache 行被两个核心来回抢
+            - text: 内核会给全局数组自动加锁
+              why: 内核不会给普通变量加锁；没有锁，慢的原因在 cache
+          explain: 伪共享不影响对错，只影响速度。解决办法是让各线程写的数据落在不同的 cache 行，或者先写局部变量。
+      - card:
+          title: 加速比和效率
+          body: |
+            用 p 个核心的运行时间是 $T_p$。
+
+            - **加速比** $S_p = T_1 / T_p$：用 p 个核心快了几倍；
+            - **效率** $E_p = S_p / p$：每个核心的力气有多少用在了正事上，常写成百分数。
+
+            问题总规模不变、只增加核心，叫强扩展；每个核心分到的工作量不变、问题随核心一起变大，叫弱扩展。
+      - card:
+          title: 例题：加速比和效率
+          body: 一个程序用 1 个核心要 8.0 秒，用 4 个核心要 2.5 秒。求加速比和效率。
+          reveal:
+            - title: 第 1 步：加速比
+              body: $S_4 = T_1 / T_4 = 8.0 / 2.5 = 3.2$，快了 3.2 倍。
+            - title: 第 2 步：效率
+              body: $E_4 = S_4 / 4 = 3.2 / 4 = 0.8$，也就是 80%。
+            - title: 第 3 步：为什么到不了 100%
+              body: 创建和回收线程、汇总结果、抢 cache 行都要时间，这些开销不会因为核心多而减少。
+      - item:
+          id: speedup
+          type: number
+          prompt: 一个程序用 1 个核心要 12 秒，用 8 个核心要 2 秒。加速比是多少？
+          answer: 6
+          explain: $S_8 = 12 / 2 = 6$。
+      - item:
+          id: efficiency
+          type: number
+          prompt: 一个程序用 1 个核心要 12 秒，用 8 个核心要 2 秒。效率是百分之多少？
+          answer: 75
+          unit: '%'
+          explain: 加速比 12 / 2 = 6，效率 6 / 8 = 0.75，也就是 75%。
+      - item:
+          id: weak-strong
+          type: choice
+          prompt: 一个天气模拟程序，核心数翻倍时，研究者把模拟的地图面积也翻倍，看运行时间是否保持不变。这测的是哪一种？
+          options:
+            - text: 弱扩展
+              correct: true
+            - text: 强扩展
+              why: 强扩展是问题规模固定、只加核心，看时间缩短多少
+            - text: 加速比
+              why: 加速比固定同一个问题比较时间；这里问题随核心一起变大了
+          explain: 很多科学计算更关心弱扩展：机器大了，就算更大的问题。
+
+  - id: thread-safety
+    chapter: 锁
+    title: 线程安全和可重入
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: C 标准库的 rand() 用一个全局变量记着“上一个随机数”。两个线程同时不停地调用 rand()，猜一猜会怎样？
+          options:
+            - text: 可能出问题：两个线程同时读写那个全局变量
+              correct: true
+            - text: 没问题，标准库的函数都能随便在线程里用
+              why: 大部分标准库函数是线程安全的，但 rand 这类把状态存在全局变量里的不是
+            - text: 第二个线程调用时会报错退出
+              why: 不会报错；问题是悄悄地出错，比如两个线程拿到同一个数
+          explain: 一个函数能不能被几个线程同时调用，要看它碰不碰共享的状态。
+      - card:
+          title: 线程安全
+          body: |
+            一个函数被几个并发的线程反复调用，总能给出正确的结果，就说它是**线程安全**（thread-safe）的。线程不安全的函数分四类：
+
+            | 类 | 特征 | 例子 | 怎么改 |
+            |---|---|---|---|
+            | 1 | 不保护共享变量 | 不加锁地给全局计数器加 1 | 用 P、V 保护 |
+            | 2 | 跨多次调用保存状态 | rand：下一个数由上一次调用留下的状态算出 | 只能改写，让调用者自己传状态进来 |
+            | 3 | 返回指向静态变量的指针 | ctime：结果放在一个静态缓冲区里 | 改成调用者提供缓冲区，或者加锁并复制 |
+            | 4 | 调用了线程不安全的函数 | 函数里调用了 rand | 看它调用的是哪一类 |
+      - card:
+          title: 第 2 类：rand
+          body: |
+            C 标准给出的 rand 示例实现：
+
+            ```c
+            static unsigned int next = 1;
+            int rand(void) {
+                next = next * 1103515245 + 12345;
+                return (unsigned int) (next / 65536) % 32768;
+            }
+            void srand(unsigned int seed) { next = seed; }
+            ```
+
+            每次调用的结果取决于上一次留下的 next。单线程里，srand 设好种子，同一个种子总得到同一串数；多线程里，next 被几个线程交替改动，这一点就没有了。给 next 加锁只能防止它被改坏，每个线程拿到的数照样取决于别的线程调用了几次。
+      - item:
+          id: classify
+          type: match
+          prompt: 把函数和它属于的那一类线程不安全函数连起来。
+          pairs:
+            - [每次调用都把全局变量 total 加上参数，不加锁, 第 1 类：不保护共享变量]
+            - ['rand()：结果取决于上一次调用留下的状态', 第 2 类：跨调用保存状态]
+            - ['ctime()：返回一个指向它内部静态缓冲区的指针', 第 3 类：返回静态变量的指针]
+            - [一个打印随机数的函数，内部调用了 rand(), 第 4 类：调用了不安全的函数]
+          explain: 第 1 类加锁就能修；第 2 类必须改接口；第 3 类可以加锁并复制；第 4 类取决于被调用的函数。
+      - card:
+          title: 第 3 类的补救：加锁并复制
+          body: |
+            ctime 把结果放在一个静态缓冲区里。两个线程先后调用它，后一次会覆盖前一次的结果。不能改 ctime 本身时，可以包一层：
+
+            ```c
+            char *ctime_ts(const time_t *timep, char *privatep) {
+                char *sharedp;
+                P(&mutex);
+                sharedp = ctime(timep);
+                strcpy(privatep, sharedp);   /* 趁还拿着锁，复制到调用者自己的缓冲区 */
+                V(&mutex);
+                return privatep;
+            }
+            ```
+
+            拿着锁调用，再把结果复制到调用者提供的私有缓冲区，之后别的线程再调用 ctime 也不会影响它。
+      - item:
+          id: lock-copy
+          type: choice
+          prompt: 在 ctime_ts 里，如果先 V(&mutex) 解锁，再 strcpy，会有什么问题？
+          options:
+            - text: 解锁以后别的线程可能马上调用 ctime，覆盖静态缓冲区，复制到的就是别人的结果
+              correct: true
+            - text: 没有问题，复制只是读，不需要锁
+              why: 读的那块静态缓冲区随时可能被别的线程的 ctime 改写；读的同时有人写，就得在锁里读
+            - text: strcpy 会失败
+              why: strcpy 本身能执行；问题是复制到的内容可能已经不是这次调用的结果
+          explain: 锁要包住“调用并复制”整个过程，复制完才能放开。
+      - card:
+          title: 可重入函数
+          body: |
+            被几个线程调用时完全不访问共享变量的函数，叫**可重入**（reentrant）函数。它是线程安全函数的一个子集，而且不需要任何同步操作，效率高。
+
+            - 显式可重入：参数都按值传递，所有数据都在自己的栈上；
+            - 隐式可重入：有的参数是指针，只要调用者传进来的是各自私有的数据，它就是可重入的。
+
+            第 2 类函数要变得线程安全，唯一的办法就是改写成可重入的。比如 `rand_r(unsigned int *seedp)`：状态不再藏在函数里，由调用者通过指针传进来。
+      - item:
+          id: rand-r-shared
+          type: choice
+          prompt: 两个线程都调用 rand_r，却传进了同一个全局变量 seed 的地址。这样用是安全的吗？
+          options:
+            - text: 不安全：rand_r 只是隐式可重入，调用者传进共享的数据，它就又成了共享变量
+              correct: true
+            - text: 安全：rand_r 是可重入函数，怎么调用都安全
+              why: 隐式可重入依赖调用者传私有数据；两个线程共用一个 seed，就回到了 rand 的问题
+            - text: 安全：rand_r 内部会自动加锁
+              why: rand_r 不加锁，这正是它快的原因；安全要靠每个线程用自己的 seed
+          explain: 正确的用法是每个线程有一个自己的 seed（比如线程函数里的局部变量）。
+      - card:
+          title: 库函数里的线程不安全函数
+          body: |
+            Linux 的 C 库里，大部分函数是线程安全的，比如 malloc、free、printf、scanf。少数例外都有一个可重入的版本，名字多以 `_r` 结尾：
+
+            | 不安全 | 类 | 替代 |
+            |---|---|---|
+            | rand | 2 | rand_r |
+            | strtok | 2 | strtok_r |
+            | asctime、ctime、localtime | 3 | asctime_r、ctime_r、localtime_r |
+            | gethostbyname、gethostbyaddr | 3 | getaddrinfo、getnameinfo |
+            | inet_ntoa | 3 | inet_ntop |
+      - item:
+          id: rand-r-same
+          type: choice
+          prompt: 线程 A 和线程 B 各有自己的局部变量 seed，初值都是 1，各调用一次 `rand_r(&seed)`。两个结果是什么关系？
+          options:
+            - text: 相等
+              correct: true
+            - text: 不相等，因为两个线程是同时调用的
+              why: rand_r 只读写传进来的 seed，两个 seed 各自从 1 开始，算出的是同一个数
+            - text: 不确定，取决于谁先调用
+              why: 两个线程不共享任何状态，谁先谁后都一样
+          explain: 在这台机器上，两次都返回 476707713。可重入函数的结果只由参数决定，这正是它好测试、好推理的原因。
+
+  - id: deadlock
+    chapter: 锁
+    title: 死锁：谁也等不到
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个人吃饭，桌上只有一双筷子，被拆成了两根。每人先拿起离自己近的那一根，再去等另一根。会怎样？
+          options:
+            - text: 两人各拿一根，都等对方放下，谁也吃不成
+              correct: true
+            - text: 总有一个人能先吃
+              why: 只有一个人同时拿到两根才能吃；两人各拿一根以后，都在等对方先放下
+            - text: 两人会轮流用
+              why: 没有人会先放下手里那一根，就不会轮流
+          explain: 程序里的几个线程也会陷入这种局面。
+      - card:
+          title: 死锁
+          body: |
+            一组线程都被挡住了，每个都在等一个永远不会成立的条件，这叫**死锁（deadlock）**。
+
+            ```c
+            /* 线程 1 */                /* 线程 2 */
+            P(&s);                     P(&t);
+            P(&t);                     P(&s);
+            cnt++;                     cnt++;
+            V(&s); V(&t);              V(&s); V(&t);
+            ```
+
+            s 和 t 都是初值为 1 的互斥锁。线程 1 拿到 s、线程 2 拿到 t 之后，线程 1 等 t，线程 2 等 s，两个都永远睡着。
+      - card:
+          title: 例题：死锁在进度图上的样子
+          body: 进度图上，s 的禁止区和 t 的禁止区交叠，留出一个角落：进入这个角落的轨迹，向右走会进 t 的禁止区，向上走会进 s 的禁止区，哪儿也去不了。
+          reveal:
+            - title: 第 1 步：线程 1 执行 P(s)
+              body: s 从 1 变成 0。轨迹向右走了一格。
+            - title: 第 2 步：线程 2 执行 P(t)
+              body: t 从 1 变成 0。轨迹向上走了一格，进入那个角落。
+            - title: 第 3 步：谁也走不动
+              body: 线程 1 下一步要 P(t)，t 是 0，睡下；线程 2 下一步要 P(s)，s 是 0，睡下。没有人会再执行 V。
+            - title: 第 4 步：它不一定每次都发生
+              body: 如果线程 1 在线程 2 执行 P(t) 之前就拿到了两把锁，轨迹绕开了那个角落，程序正常结束。所以死锁可能测一千次都没事，第一千零一次才卡住。
+      - item:
+          id: deadlock-sim
+          type: sim
+          sim: threads
+          params:
+            shared: { cnt: 0 }
+            locks: [s, t]
+            threads:
+              - { name: 线程1, steps: ["lock s", "lock t", "cnt = cnt + 1", "unlock t", "unlock s"] }
+              - { name: 线程2, steps: ["lock t", "lock s", "cnt = cnt + 1", "unlock s", "unlock t"] }
+          goal: { deadlock: true }
+          solution: [0, 1]
+          prompt: 你来当调度器。安排执行顺序，让两个线程都卡住。
+          explain: 线程 1 拿 s，线程 2 拿 t，然后两个都在等对方手里的那一把。
+      - card:
+          title: 死锁的四个必要条件
+          body: |
+            死锁发生，必须四个条件同时成立：
+
+            | 条件 | 意思 |
+            |---|---|
+            | 互斥 | 资源一次只能被一个线程占用 |
+            | 占有并等待 | 线程拿着一些资源，同时等别的资源 |
+            | 不可剥夺 | 资源不能被强行夺走，只能由占有者自己释放 |
+            | 循环等待 | 线程 1 等线程 2 手里的，线程 2 等线程 3 手里的……最后一个等线程 1 手里的 |
+
+            破坏其中任何一个，死锁就不可能发生。
+      - item:
+          id: conditions
+          type: match
+          prompt: 把描述和死锁的必要条件连起来。
+          pairs:
+            - [一把锁同一时刻只能被一个线程拿着, 互斥]
+            - [线程 1 拿着 s 不放，又去等 t, 占有并等待]
+            - [线程 2 拿着的 t，别人没法强行拿走, 不可剥夺]
+            - [线程 1 等线程 2 的 t，线程 2 等线程 1 的 s, 循环等待]
+          explain: 刚才的程序四条全中，所以会死锁。
+      - card:
+          title: 两种预防办法
+          body: |
+            **规定加锁顺序**（破坏循环等待）：给所有互斥锁定一个全局顺序，每个线程都按这个顺序加锁、按相反的顺序解锁，程序就不会死锁。上面的例子里，两个线程都先 P(s) 再 P(t) 即可。
+
+            **拿不到就放手**（破坏占有并等待）：用 `pthread_mutex_trylock`，它拿不到锁时不睡，立刻返回一个非 0 的错误码。拿到第一把、第二把拿不到时，先释放第一把，过一会儿再从头试。
+
+            在这台机器上做实验：两个线程按相反顺序加锁、中间各停 0.1 秒，程序卡住，3 秒后被 timeout 结束；改成同样的顺序，或者用 trylock 拿不到就放手，程序都能正常结束。
+      - item:
+          id: fix-order
+          type: choice
+          prompt: 线程 1 按 A→B 的顺序加锁，线程 2 按 B→A 的顺序加锁。下面哪种改法能保证不死锁？
+          options:
+            - text: 让线程 2 也按 A→B 的顺序加锁
+              correct: true
+            - text: 让线程 2 先睡 1 毫秒再加锁
+              why: 只是让死锁更难碰到，不是不可能；运气不好时照样会卡住
+            - text: 把两把锁换成初值为 1 的信号量
+              why: 初值为 1 的信号量就是互斥锁，顺序问题还在
+            - text: 解锁时按 A、B 的顺序解，不按相反顺序
+              why: 解锁的顺序不影响死锁；关键是加锁的顺序要一致
+          explain: 两个线程都先拿 A 时，谁拿到 A 谁就能接着拿到 B，不会出现各拿一把互相等的局面。
+      - item:
+          id: trylock
+          type: choice
+          prompt: 线程拿着锁 B，调用 `pthread_mutex_trylock(&A)`，返回了非 0 值。按“拿不到就放手”的做法，下一步应该做什么？
+          options:
+            - text: 释放 B，过一会儿再从头试
+              correct: true
+            - text: 一直重复调用 trylock(&A)，直到成功
+              why: 手里还拿着 B 就在等 A，仍然是占有并等待，对方要是也在等 B，就成了忙着空转的死锁
+            - text: 不管 A，直接进临界区
+              why: 没拿到 A 就进临界区，A 保护的数据就失去了保护
+          explain: 放手破坏了“占有并等待”。代价是可能反复重试，所以通常还会等一个随机的时间，免得两个线程总是同时重试。
+  # ---------------------------------------------------------------- 原子操作
+  - id: test-and-set
+    chapter: 原子操作
+    title: 自旋锁靠一条原子指令：test-and-set
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 有人想不用信号量，自己用一个普通变量 flag 做锁：等到 flag 是 0，就把它设成 1 进去，出来再设回 0。4 个线程各用它保护 1,000,000 次加 1。猜一猜结果？
+          options:
+            - text: 远少于 4,000,000
+              correct: true
+            - text: 正好 4,000,000
+              why: 只有“看到 0”和“设成 1”之间不会被插进来，这把锁才管用；可它们是两条普通的指令
+            - text: 程序卡死
+              why: 不会卡死；问题是两个线程能同时进去，加 1 照样丢
+          explain: 在这台机器上运行，只得到一百多万。这把自制的锁几乎没起作用。
+      - card:
+          title: 一次失败的尝试
+          body: |
+            ```c
+            void lock(void)   { while (flag == 1) ; flag = 1; }
+            void unlock(void) { flag = 0; }
+            ```
+
+            问题出在检查和设置之间的空隙：线程 1 看到 flag 是 0，还没来得及设成 1，就被切换走了；线程 2 也看到 0，设成 1，进了临界区；线程 1 回来接着把 flag 设成 1，也进了临界区。两个线程同时在里面，互斥就失败了。
+
+            检查和设置必须成为一个不可分割的整体。软件做不到，要靠硬件提供的特殊指令。
+      - item:
+          id: gap
+          type: choice
+          prompt: 上面这把自制的锁，两个线程同时进入临界区，是因为切换发生在哪里？
+          options:
+            - text: 一个线程检查完 flag == 0、还没执行 flag = 1 的时候
+              correct: true
+            - text: 一个线程执行完 flag = 1 以后
+              why: 那时 flag 已经是 1，另一个线程检查时会看到 1，在循环里等着
+            - text: 一个线程执行 unlock 的时候
+              why: unlock 只把 flag 设回 0，让下一个线程可以进来，这是正常的
+          explain: 检查和设置之间只要能插进另一个线程，两个线程就都可能看到 0。
+      - card:
+          title: 原子操作和 test-and-set
+          body: |
+            一个操作在别的线程看来，要么还没开始，要么已经完成，看不到做了一半的样子，就叫**原子操作（atomic operation）**。
+
+            硬件提供的 test-and-set 指令，用 C 写出它的效果是：
+
+            ```c
+            int TestAndSet(int *old_ptr, int new) {
+                int old = *old_ptr;   /* 取出旧值 */
+                *old_ptr = new;       /* 存入新值 */
+                return old;           /* 返回旧值 */
+            }
+            ```
+
+            这三步由硬件**原子地**完成。在 x86 上，它就是带锁的交换指令 xchg；在 SPARC 上叫 ldstub。
+      - card:
+          title: 用它搭一把自旋锁
+          body: |
+            ```c
+            typedef struct { int flag; } lock_t;   /* 0：空闲，1：被拿着 */
+            void lock(lock_t *lock) {
+                while (TestAndSet(&lock->flag, 1) == 1)
+                    ;                              /* 空转等待 */
+            }
+            void unlock(lock_t *lock) { lock->flag = 0; }
+            ```
+
+            锁空闲时，TestAndSet 返回旧值 0，同时把 flag 设成 1：拿到锁了。锁被拿着时，它返回 1，flag 还是 1，线程留在循环里一遍遍地试。
+
+            拿不到就在循环里空转、一直占着 CPU 的锁，叫**自旋锁（spin lock）**。
+      - item:
+          id: tas-free
+          type: number
+          prompt: 锁空闲，flag 是 0。一个线程调用 `TestAndSet(&flag, 1)`，返回值是多少？
+          answer: 0
+          explain: 返回旧值 0，同时 flag 变成 1。返回 0 说明“我把锁从空闲变成了被拿着”，循环结束，拿到锁。
+      - card:
+          title: 例题：两个线程同时抢
+          body: flag 是 0，线程 1 和线程 2 几乎同时调用 lock。
+          reveal:
+            - title: 第 1 步：硬件把两次 test-and-set 排成先后
+              body: 原子指令不会重叠执行。不管两个核心多么“同时”，总有一个先完成，比如线程 1。
+            - title: 第 2 步：线程 1 拿到锁
+              body: 线程 1 的 TestAndSet 返回 0，flag 变成 1，它跳出循环，进入临界区。
+            - title: 第 3 步：线程 2 空转
+              body: 线程 2 的 TestAndSet 返回 1（flag 本来就是 1，又被设成 1），留在循环里不停地重试。
+            - title: 第 4 步：线程 1 解锁
+              body: unlock 把 flag 设回 0。线程 2 下一次 TestAndSet 返回 0，拿到锁。
+      - item:
+          id: tas-held
+          type: choice
+          prompt: 锁正被线程 1 拿着（flag 是 1）。线程 2 调用 `TestAndSet(&flag, 1)` 以后，flag 是多少，线程 2 怎么做？
+          options:
+            - text: flag 还是 1，线程 2 拿到返回值 1，继续在循环里试
+              correct: true
+            - text: flag 变成 0，线程 2 拿到锁
+              why: TestAndSet 存进去的是新值 1，不会把 flag 变成 0；只有 unlock 会
+            - text: flag 变成 2，表示有两个线程想要锁
+              why: 它只是把 1 存进去，不计数；想记录排队的人数要用别的办法
+          explain: 对一把已经被拿着的锁做 test-and-set，什么也不改变，只是确认“还被拿着”。
+      - card:
+          title: 在 C 里用：atomic_flag
+          body: |
+            C11 的 `<stdatomic.h>` 直接提供了 test-and-set：
+
+            ```c
+            atomic_flag f = ATOMIC_FLAG_INIT;
+            while (atomic_flag_test_and_set(&f))   /* 加锁 */
+                ;
+            cnt++;
+            atomic_flag_clear(&f);                 /* 解锁 */
+            ```
+
+            用 gcc 编译，atomic_flag_test_and_set 变成了一条 `xchgb` 指令。在这台机器上，4 个线程各用这把锁保护 1,000,000 次加 1，结果正好是 4,000,000。
+      - card:
+          title: 自旋锁好不好
+          body: |
+            按 OSTEP 的三个标准评价：
+
+            - **正确性**：能保证互斥，一次只让一个线程进临界区；
+            - **公平性**：不保证。竞争激烈时，一个线程可能一直抢不到，永远空转下去（饿死）；
+            - **性能**：只有一个 CPU 时很糟糕：拿着锁的线程在临界区里被切换走，其余每个线程都要空转完整整一个时间片才让出 CPU。有多个 CPU、线程数和 CPU 数差不多时，表现还不错：拿锁的线程在别的核心上很快就会解锁。
+      - item:
+          id: one-cpu
+          type: choice
+          prompt: 只有 1 个 CPU，3 个线程抢一把自旋锁。拿着锁的线程在临界区里被定时器中断换下了。接下来会怎样？
+          options:
+            - text: 另外两个线程轮到时都只是空转，各浪费一整个时间片，直到持有者再被调度、解锁
+              correct: true
+            - text: 另外两个线程会立刻睡下，不占 CPU
+              why: 自旋锁不睡，拿不到就在循环里一遍遍地试，一直占着 CPU
+            - text: 锁会被自动释放，下一个线程拿到它
+              why: 锁只能由 unlock 释放；持有者被换下时它照样拿着锁
+          explain: 单 CPU 上，空转的线程在等的那个人根本没在运行，空转纯粹是浪费。
+      - card:
+          title: 单 CPU 上还要能抢占
+          body: |
+            调度器能在一个线程运行到一半时把它停下、换别的线程运行，叫**抢占（preemption）**，靠的是定时器中断。
+
+            只有一个 CPU 时，自旋锁要求调度是可抢占的。否则空转的线程永远不让出 CPU，拿着锁的线程没机会运行，也就永远不会解锁。
+      - item:
+          id: fairness
+          type: choice
+          prompt: 为什么说简单的自旋锁“不公平”？
+          options:
+            - text: 一个线程可能每次都被别的线程抢先，一直空转下去
+              correct: true
+            - text: 它会让两个线程同时进入临界区
+              why: 那是正确性的问题；自旋锁的互斥是正确的
+            - text: 它总是让先来的线程先拿到锁
+              why: 如果真是这样它就是公平的；可 test-and-set 谁先执行谁拿到，和谁先来无关
+          explain: 正确只保证“一次一个”，公平要保证“每个等的线程最终都能拿到”。
+
+  - id: cas-llsc
+    chapter: 原子操作
+    title: 比较并交换，以及 LL/SC
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你看到账户余额是 100，打算写成 100 − 30 = 70。可就在你写之前，别人存进了 50。怎样避免把这 50 弄丢？
+          options:
+            - text: 写之前再看一眼：余额还是我看到的 100，才写 70；不是就重新算
+              correct: true
+            - text: 动作快一点，赶在别人之前写
+              why: 再快也可能被插进来；靠快只能让出错变少，不能保证不出错
+            - text: 每次都直接写，最后再核对一遍总账
+              why: 写的时候已经覆盖了别人的修改，事后核对只能发现，不能防止
+          explain: “检查还是不是原来的值，是才写”，而且检查和写要一起原子地完成。这就是比较并交换。
+      - card:
+          title: compare-and-swap
+          body: |
+            比较并交换（compare-and-swap，CAS）指令的效果：
+
+            ```c
+            int CompareAndSwap(int *ptr, int expected, int new) {
+                int original = *ptr;
+                if (original == expected)
+                    *ptr = new;
+                return original;
+            }
+            ```
+
+            如果 `*ptr` 等于 expected，就把它改成 new；不等就什么也不改。无论哪种情况，都返回 `*ptr` 原来的值。整个过程是原子的。x86 上它是 `lock cmpxchg` 指令。
+
+            用它做自旋锁，和 test-and-set 一模一样：`while (CompareAndSwap(&lock->flag, 0, 1) == 1) ;`。
+      - item:
+          id: cas-ret
+          type: number
+          prompt: x 现在是 9。执行 `CompareAndSwap(&x, 5, 7)`，返回值是多少？
+          answer: 9
+          explain: x 是 9，不等于 expected 5，所以不改；返回 x 原来的值 9。调用者看到返回值不是 5，就知道交换失败了。
+      - item:
+          id: cas-then
+          type: number
+          prompt: x 现在是 5。执行 `CompareAndSwap(&x, 5, 9)` 之后，x 等于多少？
+          answer: 9
+          explain: x 等于 expected 5，于是被改成 9，返回原来的 5。
+      - card:
+          title: 不加锁的加 1
+          body: |
+            CAS 能做的不只是锁。下面的函数把 *p 加 1，完全不用锁：
+
+            ```c
+            void add1(long *p) {
+                long old;
+                do {
+                    old = *p;                                   /* 先读 */
+                } while (CompareAndSwap(p, old, old + 1) != old); /* 没被改过才写 */
+            }
+            ```
+
+            读到 old 以后，如果别的线程抢先改了 *p，CAS 发现 *p 不再等于 old，不写，返回新值；循环重新读、重新算、再试。在这台机器上，4 个线程各调用 1,000,000 次，结果正好 4,000,000。
+      - card:
+          title: C11 里的 CAS
+          body: |
+            ```c
+            atomic_int x = 5;
+            int expected = 5;
+            bool ok = atomic_compare_exchange_strong(&x, &expected, 9);
+            ```
+
+            它返回 true 或 false 表示成没成。失败时，它还把 x 当前的值写进 expected，下一轮直接用，不必再读一次。
+
+            在这台机器上：上面这次返回 true，x 变成 9。接着把 expected 设回 5 再调用一次（想换成 7），返回 false，x 还是 9，expected 被改成了 9。
+      - item:
+          id: c11-fail
+          type: choice
+          prompt: x 是 9，expected 是 5。`atomic_compare_exchange_strong(&x, &expected, 7)` 执行以后，x 和 expected 各是多少？
+          options:
+            - text: x 是 9，expected 是 9
+              correct: true
+            - text: x 是 7，expected 是 5
+              why: x 不等于 expected，交换失败，x 不会被改
+            - text: x 是 9，expected 是 5
+              why: 失败时 C11 的版本会把 x 的当前值写进 expected，所以 expected 变成 9
+          explain: 这样下一轮循环可以直接用 expected 里的新值重新计算。
+      - card:
+          title: load-linked 和 store-conditional
+          body: |
+            MIPS 提供另一对指令，Alpha、PowerPC、ARM 也有类似的：
+
+            ```c
+            int LoadLinked(int *ptr) { return *ptr; }
+            int StoreConditional(int *ptr, int value) {
+                if (从上次对 ptr 做 LoadLinked 以来，没有别人写过 *ptr) {
+                    *ptr = value;
+                    return 1;      /* 成功 */
+                } else {
+                    return 0;      /* 失败，什么也不写 */
+                }
+            }
+            ```
+
+            LoadLinked（LL）就是普通的读。关键在 StoreConditional（SC）：只有这个地址在 LL 之后没被别人写过，它才写入并返回 1。
+      - card:
+          title: 用 LL/SC 加锁
+          body: |
+            ```c
+            void lock(lock_t *lock) {
+                while (1) {
+                    while (LoadLinked(&lock->flag) == 1)
+                        ;                                   /* 等它变成 0 */
+                    if (StoreConditional(&lock->flag, 1) == 1)
+                        return;                             /* 设成 1 成功：拿到锁 */
+                    /* 失败：从头再试 */
+                }
+            }
+            void unlock(lock_t *lock) { lock->flag = 0; }
+            ```
+          reveal:
+            - title: 第 1 步：两个线程都读到 0
+              body: 线程 1 和线程 2 先后执行 LL，都看到 flag 是 0，都跳出了内层循环。
+            - title: 第 2 步：线程 1 先做 SC
+              body: 从它的 LL 以来没人写过 flag，SC 成功，flag 变成 1，线程 1 拿到锁。
+            - title: 第 3 步：线程 2 的 SC 失败
+              body: 在线程 2 的 LL 和 SC 之间，线程 1 写过 flag，所以线程 2 的 SC 返回 0，什么也不写。
+            - title: 第 4 步：线程 2 从头再试
+              body: 它回到外层循环，LL 读到 1，在内层循环里等，直到线程 1 解锁。两个线程里只有一个能把 flag 设成 1。
+      - item:
+          id: sc-fail
+          type: choice
+          prompt: 线程 2 执行了 LoadLinked(&flag)，读到 0。它执行 StoreConditional(&flag, 1) 时返回了 0。原因是什么？
+          options:
+            - text: 在它的 LL 和 SC 之间，另一个线程写过 flag
+              correct: true
+            - text: flag 现在的值不是 0
+              why: SC 不比较值，它只看这个地址在 LL 之后有没有被写过；就算别人写进去的又是 0，SC 也会失败
+            - text: SC 要求连续调用两次才会成功
+              why: 没有这种规定；只要中间没人写过，第一次就会成功
+          explain: LL/SC 检查的是“有没有人碰过”，比 CAS 检查“值是不是没变”更严格。
+      - item:
+          id: llsc-order
+          type: order
+          prompt: 把用 LL/SC 拿到一把空闲的锁的步骤排好（没有别的线程竞争）。
+          steps:
+            - LoadLinked 读 flag，得到 0
+            - 跳出“等它变成 0”的内层循环
+            - StoreConditional 把 1 写进 flag
+            - SC 返回 1，lock 函数返回
+          explain: 有竞争时，第三步可能失败，线程回到第一步重新开始。
+
+  - id: fetch-add
+    chapter: 原子操作
+    title: fetch-and-add、排号锁和 C11 的原子操作
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 银行办业务：每人进门先取一个号，叫到自己的号才去窗口。和“窗口一空谁抢到算谁的”相比，取号最大的好处是什么？
+          options:
+            - text: 先来的一定先办，没有人会一直轮不到
+              correct: true
+            - text: 每个人办得更快
+              why: 办一笔业务的时间不变；变的是顺序有了保证
+            - text: 窗口可以同时办好几个人
+              why: 一个窗口还是一次一个人；取号只是决定谁先谁后
+          explain: 用 fetch-and-add 指令就能做出“取号”的锁，它比自旋锁公平。
+      - card:
+          title: fetch-and-add
+          body: |
+            fetch-and-add 原子地把一个值加 1，并返回加之前的旧值：
+
+            ```c
+            int FetchAndAdd(int *ptr) {
+                int old = *ptr;
+                *ptr = old + 1;
+                return old;
+            }
+            ```
+
+            x86 上它是 `lock xadd` 指令。C11 的 `atomic_fetch_add(&y, k)` 可以加任意的 k，同样返回旧值。在这台机器上，y 原来是 10，执行 `atomic_fetch_add(&y, 3)` 返回 10，之后 y 是 13。
+      - item:
+          id: faa-ret
+          type: number
+          prompt: y 原来是 20。执行 `int r = atomic_fetch_add(&y, 5);` 之后，r 等于多少？
+          answer: 20
+          explain: fetch-and-add 返回加之前的值 20，y 变成 25。
+      - card:
+          title: 排号锁（ticket lock）
+          body: |
+            ```c
+            typedef struct { int ticket; int turn; } lock_t;   /* 都从 0 开始 */
+            void lock(lock_t *lock) {
+                int myturn = FetchAndAdd(&lock->ticket);   /* 取一个号 */
+                while (lock->turn != myturn)
+                    ;                                       /* 等叫到我的号 */
+            }
+            void unlock(lock_t *lock) {
+                lock->turn = lock->turn + 1;                /* 叫下一个号 */
+            }
+            ```
+
+            ticket 是“下一个要发出去的号”，turn 是“现在叫到几号”。
+      - card:
+          title: 例题：三个线程排队
+          body: ticket 和 turn 都是 0。线程 A、B、C 依次调用 lock。
+          reveal:
+            - title: 第 1 步：A 取号
+              body: FetchAndAdd 返回 0，ticket 变成 1。turn 也是 0，A 立刻进入临界区。
+            - title: 第 2 步：B、C 取号
+              body: B 拿到 1、C 拿到 2，ticket 变成 3。turn 还是 0，两人都在空转。
+            - title: 第 3 步：A 解锁
+              body: turn 变成 1，B 的号到了，B 进入临界区；C 继续等。
+            - title: 第 4 步：B 解锁
+              body: turn 变成 2，轮到 C。三个线程严格按取号的先后进入。
+      - item:
+          id: ticket-wait
+          type: number
+          prompt: 一把排号锁现在 ticket 是 5，turn 是 3。一个新线程调用 lock。它还要等几次 unlock 才能进入临界区？
+          answer: 2
+          hint: 它取到的号是几？turn 要涨到几？
+          explain: 它取到 5 号，ticket 变成 6。turn 要从 3 涨到 5，需要 2 次 unlock。
+      - card:
+          title: 排号锁保证了什么
+          body: |
+            OSTEP 指出它和前面几种锁的一个重要区别：排号锁保证所有线程都能前进。一个线程一旦拿到了号，排在它前面的线程都离开临界区之后，就一定轮到它。
+
+            test-and-set 的自旋锁没有这个保证：一个线程可能一直空转，看着别的线程一次次拿到锁又放开。
+      - item:
+          id: ticket-fair
+          type: choice
+          prompt: 4 个线程反复抢一把锁。为什么排号锁不会让某个线程饿死，而 test-and-set 自旋锁可能会？
+          options:
+            - text: 排号锁按取号的顺序放行，前面的人数有限；test-and-set 每次都是谁先执行谁拿到
+              correct: true
+            - text: 排号锁里线程不会空转
+              why: 排号锁的线程照样在 while 循环里空转等自己的号；区别在顺序有没有保证
+            - text: 排号锁用的原子指令更快
+              why: 公平和快慢无关；公平来自“按号放行”这个规则
+          explain: 公平靠的是一个先后顺序。代价是：排在前面的线程如果被换下了，后面的人全都得等它。
+      - card:
+          title: C11 原子操作：不加锁的计数器
+          body: |
+            几个线程不加同步地访问同一个内存位置，其中至少一个是写，就是**数据竞争（data race）**；在 C 和 C++ 里，有数据竞争的程序是未定义行为。
+
+            在这台机器上：4 个线程各对普通变量 `cnt = cnt + 1` 执行 1,000,000 次，只得到一百多万。把它声明成 `atomic_long cnt` 并改用 `atomic_fetch_add(&cnt, 1)`，每次都正好是 4,000,000，而且不需要锁。
+
+            gcc 把它编译成一条 `lock addq $1, cnt(%rip)`（要用返回值时是 `lock xaddq`）。lock 前缀让“读、加、写”成为一个不可分割的整体。
+      - item:
+          id: atomic-counter
+          type: choice
+          prompt: atomic_fetch_add(&cnt, 1) 解决了普通 cnt++ 的什么问题？
+          options:
+            - text: 把读、加 1、写回合成一个不可分割的操作，别的线程插不到中间，不会丢更新
+              correct: true
+            - text: 让 cnt 存在寄存器里，读写更快
+              why: 原子操作直接在内存上做，而且通常比普通加法慢；它解决的是正确性
+            - text: 让几个线程轮流执行，同一时刻只有一个线程在运行
+              why: 别的线程照常并行运行，只是对 cnt 的这一次读改写不会被打断
+          explain: 原子操作还规定了内存顺序（默认是最严格的一种），这一点在内存模型那一章细讲。
+      - card:
+          title: 空转太久怎么办
+          body: |
+            拿着锁的线程被换下时，空转的线程整个时间片都白白浪费。OSTEP 的结论是：只靠硬件不够，还要操作系统帮忙。
+
+            - 让出 CPU（yield）：拿不到锁就主动让别的线程跑。可它不解决饿死：一个线程可能一直在让，别的线程反复进出临界区；
+            - 排队睡下：拿不到锁就把自己放进一个队列睡下，解锁时唤醒队首的线程。
+
+            Linux 提供的 futex 就是这一思路：没人抢的时候只用一条原子指令就拿到锁，完全不进内核；有人抢时才进内核睡下，等解锁的线程唤醒。pthread 的互斥锁就建在它上面。
+      - item:
+          id: sleep-vs-spin
+          type: choice
+          prompt: 在单个 CPU 上，持有锁的线程很可能被换下。为什么“拿不到就睡下”比“空转”好？
+          options:
+            - text: 睡下的线程不占 CPU，CPU 可以去运行持有锁的线程，让它尽快解锁
+              correct: true
+            - text: 睡下的线程醒来时一定能拿到锁
+              why: 醒来后还可能被别的线程抢先；好处在于等的时候不浪费 CPU
+            - text: 睡下不需要原子指令
+              why: 把自己放进等待队列、检查锁的状态，同样要靠原子操作保护
+          explain: 空转只在“马上就能拿到锁”时划算，比如多核上临界区很短。等得久就该睡下。
+  # ---------------------------------------------------------------- 内存模型
+  - id: shared-vars
+    chapter: 内存模型
+    title: 哪些变量是几个线程共享的
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个函数被两个线程同时运行，函数里有一个普通的局部变量 sum。两个线程看到的是同一个 sum 吗？
+          options:
+            - text: 不是，每个线程的栈上各有一个 sum
+              correct: true
+            - text: 是，因为它们运行的是同一个函数
+              why: 同一个函数可以同时被多次调用，每次调用都有自己的栈帧，局部变量放在栈帧里
+            - text: 是，因为线程共享地址空间
+              why: 地址空间是共享的，但每个线程有自己的栈，两个 sum 在两个不同的地址
+          explain: 局部变量各有一份；但这不是故事的全部，有的局部变量只有一份。下面一类一类地看。
+      - card:
+          title: 线程的内存模型
+          body: |
+            每个线程有自己的线程上下文：线程 ID、栈、栈指针、程序计数器、条件码和通用寄存器。除此之外的进程上下文由所有线程共享：整个用户地址空间（代码、读写数据、堆、共享库），以及打开的文件。
+
+            所以寄存器从来不共享，内存总是共享的。各线程的栈也在共享的地址空间里，平常各用各的，但并没有被保护起来：一个线程只要拿到指向另一个线程栈的指针，就能读写那里的任何东西。
+      - card:
+          title: 变量放在哪里
+          body: |
+            | 变量的种类 | 内存里有几份 |
+            |---|---|
+            | 全局变量（函数外面定义的） | 只有一份，在读写数据区 |
+            | 局部自动变量（函数里没有 static 的） | 每个线程的栈上各一份 |
+            | 局部静态变量（函数里加了 static 的） | 只有一份，和全局变量一样 |
+
+            判断一个变量是不是**共享变量**，看它在内存里的某一份是否被不止一个线程用到。
+      - item:
+          id: static-local
+          type: choice
+          prompt: 线程函数里有一行 `static int calls = 0;`，每次调用都 `calls++`。两个线程各调用一次这个函数，calls 有几份？
+          options:
+            - text: 一份，两个线程加的是同一个 calls
+              correct: true
+            - text: 两份，每个线程的栈上各一份
+              why: 加了 static 的局部变量不放在栈上，整个程序只有一份，和全局变量一样
+            - text: 两份，但第二个线程的会覆盖第一个的
+              why: 只有一份；正因为只有一份，两个线程同时 calls++ 还会有竞态
+          explain: static 局部变量只是名字只在函数里可见，它活在整个程序运行期间，只有一份。
+      - card:
+          title: 看一个程序
+          body: |
+            ```c
+            char *names[2] = { "alice", "bob" };   /* 全局数组 */
+            void *greet(void *vargp) {
+                long id = (long) vargp;            /* 局部自动变量 */
+                static int count = 0;              /* 局部静态变量 */
+                char buf[16];                      /* 局部自动数组 */
+                snprintf(buf, sizeof buf, "hi %s", names[id]);
+                printf("%s (count=%d)\n", buf, ++count);
+                return NULL;
+            }
+            int main(void) {
+                pthread_t tid[2];
+                int marker = 7;                    /* main 的局部变量 */
+                for (long i = 0; i < 2; i++)
+                    pthread_create(&tid[i], NULL, greet, (void *) i);
+                for (int i = 0; i < 2; i++)
+                    pthread_join(tid[i], NULL);
+                return 0;
+            }
+            ```
+
+            在这台机器上，一次运行打印 `hi alice (count=1)` 和 `hi bob (count=2)`。两个线程把同一个 count 加到了 2。它们同时 ++count 时还可能有竞态，这里只看共享。
+      - item:
+          id: which-shared
+          type: choice
+          review: false
+          multi: true
+          prompt: 在上面的 greet 程序里，哪些变量是共享变量（同一份被不止一个线程用到）？
+          options:
+            - text: names
+              correct: true
+            - text: count
+              correct: true
+            - text: id
+              why: id 是局部自动变量，每个线程的栈上各有一份，各用各的
+            - text: buf
+              why: buf 也是局部自动变量，每个线程有自己的 16 字节
+            - text: marker
+              why: marker 虽然在主线程的栈上，但只有主线程用到它，对等线程碰不到
+          explain: 两个对等线程都读 names、都改 count，所以它们是共享的。id 和 buf 每个线程各一份；marker 只有主线程用。
+      - item:
+          id: marker-shared
+          type: choice
+          review: false
+          prompt: 把上面的程序改成 `pthread_create(&tid[i], NULL, greet, &marker)`，greet 里通过这个指针读 marker。marker 现在是共享变量吗？
+          options:
+            - text: 是，它在主线程的栈上，却被三个线程用到了
+              correct: true
+            - text: 不是，栈上的变量不会被共享
+              why: 栈在共享的地址空间里；拿到指针的线程就能读写它
+            - text: 不是，只有全局变量才能被共享
+              why: 判断标准是“同一份被几个线程用到”，和它放在哪里无关
+          explain: 共享不共享看用法。把栈上变量的地址交给别的线程时要格外小心：主线程的函数返回后，这块栈就不能再用了。
+      - item:
+          id: registers
+          type: choice
+          prompt: 线程 1 把一个值装进了寄存器 %rax。线程 2 能读到线程 1 的 %rax 吗？
+          options:
+            - text: 不能，每个线程有自己的一组寄存器，切换时各自保存和恢复
+              correct: true
+            - text: 能，同一个进程的线程共享一切
+              why: 共享的是内存；寄存器属于线程上下文，每个线程一份
+            - text: 能，只要它们在同一个核心上运行
+              why: 在同一个核心上轮流运行时，切换会保存线程 1 的寄存器、装入线程 2 的，线程 2 看到的是自己的
+          explain: 这也是为什么 cnt++ 的中间结果（在 %rax 里）别人看不见，只有存回内存以后才看得见。
+
+  - id: reordering
+    chapter: 内存模型
+    title: 写进去的值，别人一定马上看得见吗
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            x 和 y 初值都是 0。两个线程同时运行：
+
+            | 线程 1 | 线程 2 |
+            |---|---|
+            | x = 1 | y = 1 |
+            | r1 = y | r2 = x |
+
+            两个线程都结束后，r1 和 r2 有没有可能**都是 0**？
+          options:
+            - text: 有可能
+              correct: true
+            - text: 不可能，总有一个线程先写，另一个线程就会读到 1
+              why: 按“指令一条条轮流执行”来想确实不可能；可真实的硬件不是这样执行的
+          explain: 在这台机器上试 200,000 次，每次运行都会出现 r1 和 r2 都是 0，少则几百次，多则几万次。这一课讲为什么。
+      - card:
+          title: 顺序一致性
+          body: |
+            我们直觉里的模型，Lamport 在 1979 年给了它一个名字：**顺序一致性（sequential consistency）**。一次执行的结果，和下面这样执行的结果相同：所有线程的所有内存操作排成一个先后顺序，一个接一个地执行，而且每个线程自己的操作在这个顺序里保持程序写的先后。
+
+            前面几课画进度图、数交错，用的就是这个模型。
+      - card:
+          title: 例题：顺序一致性下为什么不可能都是 0
+          body: 用顺序一致性分析开头那道题。
+          reveal:
+            - title: 第 1 步：看排在最前面的操作
+              body: 四个操作排成一个顺序。每个线程都是先写后读，所以排在最前面的一定是一次写：x = 1 或 y = 1。
+            - title: 第 2 步：假设 x = 1 排第一
+              body: 线程 2 的 r2 = x 排在它后面，读到的一定是 1。
+            - title: 第 3 步：假设 y = 1 排第一
+              body: 同理，线程 1 的 r1 = y 读到 1。
+            - title: 第 4 步：结论
+              body: 不管哪种情况，r1 和 r2 至少有一个是 1。00 在顺序一致性下不可能出现。
+      - item:
+          id: sc-outcomes
+          type: number
+          prompt: 在顺序一致性下，开头那道题的 (r1, r2) 有 (0,0)、(0,1)、(1,0)、(1,1) 四种组合。其中有几种是可能出现的？
+          answer: 3
+          hint: 刚才证明了哪一种不可能？其余三种各举一个顺序试试。
+          explain: (0,1)：线程 1 两步先做完再做线程 2。(1,0)：反过来。(1,1)：两个写先做、两个读后做。只有 (0,0) 不可能。
+      - card:
+          title: 真实的机器：实验
+          body: |
+            在这台机器上把开头那道题跑 200,000 次。x、y 用 C11 的原子变量，但用最宽松的 relaxed 方式读写；查过汇编，每个线程都是先一条写指令、后一条读指令，编译器没有调换顺序。
+
+            结果：每次运行都会出现 r1 和 r2 都是 0，少则几百次，多则几万次，次数相差很大。指令顺序是对的，结果却违反了顺序一致性，原因在 CPU 内部。
+      - card:
+          title: 存储缓冲
+          body: |
+            每个核心写内存时，先把这次写放进自己的**存储缓冲**（store buffer），然后马上执行下一条指令；写要过一会儿才真正进入 cache，别的核心这时才看得到。
+
+            于是：线程 1 的 x = 1 还在核心 1 的存储缓冲里，它就去读 y，从 cache 里读到 0；与此同时，线程 2 的 y = 1 也还在核心 2 的存储缓冲里，它读 x 也读到 0。在别的核心看来，“读”跑到了“写”的前面。
+      - item:
+          id: store-buffer
+          type: choice
+          prompt: 线程 1 执行了 x = 1，接着读 y。为什么线程 2 此刻可能还读到 x 是 0？
+          options:
+            - text: x = 1 还在核心 1 的存储缓冲里，没有进入 cache，别的核心看不到
+              correct: true
+            - text: 线程 1 的 x = 1 根本没有执行
+              why: 它执行了；线程 1 自己再读 x 会读到 1。只是别的核心暂时看不到
+            - text: 编译器把 x = 1 删掉了
+              why: 查过汇编，写指令在那里；违反直觉的结果来自硬件
+          explain: 写先进存储缓冲、过一会儿才对别人可见，是 CPU 为了不让每次写都停下来等而做的优化。
+      - card:
+          title: 内存一致性模型和 x86
+          body: |
+            一个处理器规定“内存操作在别的核心看来可能以什么顺序发生”，这份规定叫**内存一致性模型**（memory consistency model）。顺序一致性是最严格的一种。
+
+            x86 的模型叫 TSO（total store order）。按 Intel 手册的规则：读和读之间、写和写之间、先读后写，这三种先后都不会被调换；唯一的例外是**先写后读**：一次读可以排到它前面那次写（写到不同地址）的前面。这正是存储缓冲造成的，也正是开头那道题看到的。
+      - item:
+          id: tso-allows
+          type: choice
+          prompt: 在 x86 上，同一个线程里的哪一对内存操作，在别的核心看来可能调换先后？
+          options:
+            - text: 先写 a、后读 b（a 和 b 是不同的地址）
+              correct: true
+            - text: 先写 a、后写 b
+              why: x86 的写和写之间不会调换；存储缓冲是先进先出的
+            - text: 先读 a、后读 b
+              why: x86 的读和读之间不会调换
+            - text: 先读 a、后写 b
+              why: x86 上读之后的写不会排到这次读的前面
+          explain: TSO 只放松了“写之后的读”这一种。
+      - card:
+          title: 别的处理器更宽松
+          body: |
+            ARM、POWER 的内存模型比 x86 宽松，允许更多种调换。所以一段多线程代码在 x86 上“碰巧没出错”，换到 ARM 的手机上可能就出错了。
+
+            编程语言不想让程序员记每种 CPU 的规则，于是 C11 和 C++11 定义了自己的内存模型：程序员用原子操作和内存序写明需要的先后，编译器负责在每种 CPU 上生成合适的指令。
+      - card:
+          title: 一致性和缓存一致性不是一回事
+          body: |
+            多核机器上每个核心有自己的 cache。**缓存一致性**（cache coherence）协议保证：对**同一个地址**的写，所有核心看到的先后都一样，不会有核心永远看到旧值。
+
+            内存一致性模型管的是**不同地址**之间的先后。开头那道题涉及 x 和 y 两个地址：缓存一致性完全正常工作，结果照样违反了顺序一致性。
+      - item:
+          id: coherence-vs-consistency
+          type: choice
+          prompt: 某台机器的缓存一致性协议工作完全正常。开头那道题在它上面还可能得到 r1 = r2 = 0 吗？
+          options:
+            - text: 可能，缓存一致性只管同一个地址的写，这道题的问题出在 x 和 y 两个地址之间的先后
+              correct: true
+            - text: 不可能，缓存一致性保证所有核心看到一样的内存
+              why: 它保证的是每个地址各自的写的顺序；不同地址之间谁先被看见，由内存一致性模型规定
+            - text: 不可能，因为存储缓冲属于 cache
+              why: 存储缓冲在 cache 前面，写还在缓冲里时，缓存一致性协议还没开始处理它
+          explain: 两者都要：缓存一致性让每个地址的值不乱；内存一致性模型规定不同地址的操作能以什么顺序被看到。
+      - card:
+          title: 加屏障：恢复顺序
+          body: |
+            要禁止“读排到写前面”，要在写和读之间加一道**内存屏障**（memory fence）：屏障前的写都对别人可见之后，屏障后的读才能执行。x86 有专门的 mfence 指令，带 lock 前缀的指令也起同样的作用。
+
+            在 C 里，把读写改成 C11 默认的 `atomic_store` 和 `atomic_load`（顺序一致的内存序）就行。gcc 把这样的写编译成 `xchgl` 指令（它隐含 lock）。同样跑 200,000 次，r1 和 r2 都是 0 一次也没出现。
+      - item:
+          id: fence-cost
+          type: choice
+          prompt: 既然加屏障就能得到直觉中的结果，为什么 CPU 不干脆让每次写都带屏障？
+          options:
+            - text: 那样每次写都要等写真正进入 cache 才能往下走，程序会慢很多；大多数代码不需要这种保证
+              correct: true
+            - text: 屏障会让程序算错
+              why: 屏障只会让结果更符合直觉，不会算错；代价在速度
+            - text: 屏障只能在单核机器上用
+              why: 屏障正是为多核之间的可见性准备的
+          explain: 所以由程序员（或编译器）在真正需要的地方加屏障，其余地方让硬件放开跑。
+
+  - id: acquire-release
+    chapter: 内存模型
+    title: 用 acquire 和 release 安全地传数据
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 主线程过 1 秒后把普通全局变量 `int flag` 设成 1，另一个线程在 `while (!flag) ;` 里等它。用 gcc -O2 编译运行，猜一猜会怎样？
+          options:
+            - text: 等的那个线程可能永远出不来
+              correct: true
+            - text: 1 秒后等的线程就结束循环
+              why: 不加 -O2 时确实如此；加了优化，编译器可能只读一次 flag
+            - text: 编译时报错
+              why: 这段代码语法没问题，编译器会接受它
+          explain: 在这台机器上，-O2 编译的版本卡住了，3 秒后被 timeout 结束；-O0 编译的版本 1 秒后就打印了。
+      - card:
+          title: 编译器也会改顺序
+          body: |
+            ```c
+            int flag = 0;
+            void *waiter(void *v) {
+                while (!flag) ;
+                printf("seen\n");
+                return NULL;
+            }
+            ```
+
+            看 -O2 的汇编：flag 只在进入循环前读了一次，之后的循环里再也不读内存。编译器只考虑单线程：循环里没有代码改 flag，就认为它不会变。
+
+            这在 C 的规则下是合法的：两个线程不加同步地读写普通变量 flag，是数据竞争，程序的行为是未定义的。硬件会调换顺序，编译器也会合并、提前、删掉读写。
+      - item:
+          id: hoist-fix
+          type: choice
+          prompt: 怎样改，才能让等的线程按 C 的规则一定看得到 flag 的变化？
+          options:
+            - text: 把 flag 声明成 `atomic_int`，用原子操作读写它
+              correct: true
+            - text: 用 -O0 编译
+              why: -O0 下碰巧能工作，但程序仍然有数据竞争，换个编译器或选项可能又不行
+            - text: 在循环里加一行 printf 拖慢它
+              why: 这只是碰运气；不能保证编译器和硬件按你想的顺序执行
+          explain: 原子变量不构成数据竞争，编译器必须每次都真的去读它，也必须遵守它的内存序。
+      - card:
+          title: C11 的四种内存序
+          body: |
+            C11 的原子操作可以带一个内存序参数：
+
+            | 内存序 | 用在 | 保证什么 |
+            |---|---|---|
+            | `memory_order_seq_cst` | 读和写（默认） | 所有这样的操作排成一个全局顺序，像顺序一致性 |
+            | `memory_order_release` | 写 | 这次写之前的读写，不会被挪到它后面 |
+            | `memory_order_acquire` | 读 | 这次读之后的读写，不会被挪到它前面 |
+            | `memory_order_relaxed` | 读和写 | 只保证这一次操作本身是原子的，不保证和别的操作的先后 |
+
+            越宽松越快，但越难用对。不确定时就用默认的 seq_cst。
+      - item:
+          id: relaxed-means
+          type: choice
+          prompt: 一个原子计数器用 `atomic_fetch_add_explicit(&cnt, 1, memory_order_relaxed)` 加 1。4 个线程各加 1,000,000 次，最后 cnt 是多少？
+          options:
+            - text: 正好 4,000,000
+              correct: true
+            - text: 比 4,000,000 少，因为 relaxed 不保证顺序
+              why: relaxed 不保证的是“和别的变量的读写之间的先后”；每一次加 1 本身仍是原子的，不会丢
+            - text: 每次运行都不一样
+              why: 加 1 是原子的，最后的总数是确定的；不确定的只是别的线程在中途什么时候看到哪个值
+          explain: 在这台机器上运行，正好 4,000,000。只关心最后总数的统计计数，用 relaxed 就够了。
+      - card:
+          title: 发布数据：release 写和 acquire 读
+          body: |
+            ```c
+            int data = 0;
+            atomic_int ready = 0;
+            void *producer(void *v) {
+                data = 42;                                              /* ① 准备好数据 */
+                atomic_store_explicit(&ready, 1, memory_order_release); /* ② 发布 */
+                return NULL;
+            }
+            void *consumer(void *v) {
+                while (!atomic_load_explicit(&ready, memory_order_acquire)) ;  /* ③ 等发布 */
+                printf("%d\n", data);                                   /* ④ 读数据 */
+                return NULL;
+            }
+            ```
+
+            规则是：③ 这次 acquire 读读到了 ② 那次 release 写写入的 1，那么 ② 之前的所有写（包括 ①）在 ③ 之后都看得见。所以 ④ 一定打印 42。在这台机器上反复运行，每次都是 42。
+      - card:
+          title: 为什么两边都要
+          body: |
+            - 只有 release、没有 acquire：消费者对 data 的读可能被提前到读 ready 之前，读到旧的 0；
+            - 只有 acquire、没有 release：生产者对 data 的写可能被挪到写 ready 之后，消费者看到 ready 时 data 还没写好。
+
+            在 x86 上，gcc 把这里的 release 写和 acquire 读都编译成普通的 mov 指令，因为 TSO 本来就不调换这两种先后；但写成 relaxed 时，编译器自己仍可能调换它们。写明 acquire 和 release，编译器和任何 CPU 都得保持这里的先后。
+      - item:
+          id: publish-order
+          type: choice
+          prompt: 生产者要把一个填好内容的结构体交给另一个线程：先填结构体，再把全局的原子指针 p 指向它。写 p 应该用哪种内存序（消费者用 acquire 读 p）？
+          options:
+            - text: release
+              correct: true
+            - text: relaxed
+              why: relaxed 不阻止“填结构体”的写被挪到写 p 之后，消费者可能拿到指针却看到没填好的内容
+            - text: acquire
+              why: acquire 是给读用的，管的是它后面的操作；这里要保证的是写 p 之前的操作
+          explain: 这叫“发布”：release 写把之前的所有写一起“送出去”，配对的 acquire 读把它们一起“收进来”。
+      - card:
+          title: 用 C11 写自旋锁要带内存序
+          body: |
+            ```c
+            atomic_flag f = ATOMIC_FLAG_INIT;
+            void lock(void) {
+                while (atomic_flag_test_and_set_explicit(&f, memory_order_acquire)) ;
+            }
+            void unlock(void) {
+                atomic_flag_clear_explicit(&f, memory_order_release);
+            }
+            ```
+
+            加锁用 acquire：临界区里的读写不能跑到拿锁之前。解锁用 release：临界区里的读写不能跑到放锁之后。这样，下一个拿到锁的线程一定看得见上一个线程在临界区里做的全部修改。pthread 的互斥锁内部也是这样保证的。
+      - item:
+          id: unlock-relaxed
+          type: choice
+          prompt: 一把 C11 自旋锁：加锁用 acquire 的 test-and-set，解锁用 atomic_flag_clear。有人把解锁改成 memory_order_relaxed。可能出现什么问题？
+          options:
+            - text: 临界区里的写可能被挪到解锁之后，下一个拿到锁的线程看到的还是旧值
+              correct: true
+            - text: 锁会无法解开，程序卡死
+              why: relaxed 的 clear 照样会把标志清零；问题在于它不再约束临界区里的写什么时候对别人可见
+            - text: 两个线程会同时拿到锁
+              why: 拿锁靠的 test-and-set 仍是原子的，互斥还在；坏的是数据的可见性
+          explain: 锁不只保证“一次一个”，还要保证“前一个人做的修改，后一个人看得见”。后一半靠的就是 acquire 和 release。
+  # ---------------------------------------------------------------- IPC与竞态检测
+  - id: pipes
+    chapter: IPC与竞态检测
+    title: 进程之间传数据：管道
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 在 shell 里输入 `ls | wc -l`，ls 列出的文件名被 wc 数出了行数。ls 和 wc 是两个进程，各有自己的地址空间。猜一猜数据是怎么过去的？
+          options:
+            - text: 经过内核里的一块缓冲区：ls 往里写，wc 从里面读
+              correct: true
+            - text: ls 直接写进 wc 的内存
+              why: 进程的地址空间是私有的，一个进程不能直接写另一个进程的内存
+            - text: ls 先把结果存成磁盘上的临时文件，wc 再去读
+              why: 管道的数据不经过磁盘上的文件；它在内核的内存里，写进去的马上就能被读走
+          explain: 这块内核缓冲区就是管道。两个进程都用文件描述符访问它，像读写文件一样。
+      - card:
+          title: 进程间通信
+          body: |
+            进程的地址空间互不相通，要交换数据，得请内核帮忙。这类机制统称**进程间通信（interprocess communication，IPC）**：管道、命名管道（FIFO）、共享内存、消息队列、信号量，以及套接字。
+
+            最简单的是**管道（pipe）**：内核里一条单向的字节通道，一头写、一头读，读出来的顺序就是写进去的顺序。
+      - card:
+          title: pipe 和 fork 一起用
+          body: |
+            ```c
+            int fd[2];
+            pipe(fd);          /* fd[0] 是读端，fd[1] 是写端 */
+            ```
+
+            pipe 本身只是在一个进程里造出两个描述符。真正有用的是接着 fork：子进程继承了这两个描述符，于是父子两边都能拿到管道的两端。约定好谁写谁读，各自关掉自己不用的那一端。
+
+            管道的容量有限，在这台机器上是 65536 字节（16 个 4 KiB 的页）。管道满了，写的一方阻塞；管道空了，读的一方阻塞。
+      - item:
+          id: which-end
+          type: choice
+          prompt: 执行 `pipe(fd)` 以后，要从管道里读数据，应该用哪个描述符？
+          options:
+            - text: fd[0]
+              correct: true
+            - text: fd[1]
+              why: fd[1] 是写端；往 fd[1] 写进去的数据要从 fd[0] 读出来
+            - text: 两个都可以
+              why: 管道是单向的，一端只能读，另一端只能写
+          explain: 记法：0 和标准输入一样是读，1 和标准输出一样是写。
+      - card:
+          title: 子进程写，父进程读
+          body: |
+            ```c
+            int main(void) {
+                int fd[2];
+                char buf[16];
+                pipe(fd);
+                if (fork() == 0) {            /* 子进程：只写 */
+                    close(fd[0]);
+                    write(fd[1], "hello", 5);
+                    close(fd[1]);
+                    return 0;
+                }
+                close(fd[1]);                 /* 父进程：只读 */
+                ssize_t n = read(fd[0], buf, sizeof buf - 1);
+                buf[n > 0 ? n : 0] = '\0';
+                printf("%s\n", buf);
+                close(fd[0]);
+                wait(NULL);
+                return 0;
+            }
+            ```
+
+            运行后打印 hello。父进程如果再 read 一次，返回 0。
+      - card:
+          title: 两条规则
+          body: |
+            Linux 的 pipe(7) 手册规定：
+
+            1. 一个管道的**所有**写端描述符都关闭以后，再从它读，read 返回 0，表示 EOF；
+            2. 一个管道的所有读端描述符都关闭以后，再往它写，写的进程会收到 SIGPIPE 信号，默认被结束；如果它忽略了 SIGPIPE，write 返回 −1，errno 是 EPIPE（Broken pipe）。
+
+            注意“所有”：fork 之后写端有两份，父子各一份，要两份都关掉才算。
+      - item:
+          id: read-zero
+          type: choice
+          prompt: 父进程从管道读完了子进程写的全部数据，再调用 read。什么时候这次 read 会返回 0？
+          options:
+            - text: 指向写端的所有描述符都关闭了以后，包括父进程自己手里的那一份
+              correct: true
+            - text: 子进程关掉它的写端以后，不管父进程手里还有没有写端
+              why: 父进程自己也拿着一份写端时，内核认为还有人可能往里写，read 会一直等
+            - text: 管道里没有数据时马上返回 0
+              why: 没有数据但还有写端时，read 会阻塞等待，不会返回 0
+          explain: read 返回 0 的意思是“以后再也不会有数据了”。只要还有一个写端开着，内核就不能这么说。
+      - card:
+          title: 例题：忘了关写端
+          body: 把上面的程序改一处：父进程不执行 `close(fd[1])`。读完 hello 以后，父进程再 read 一次会怎样？
+          reveal:
+            - title: 第 1 步：数一数写端
+              body: fork 之后写端有两份。子进程写完关掉了自己那份，父进程那份还开着。
+            - title: 第 2 步：第一次 read
+              body: 管道里有 5 个字节，read 返回 5，父进程拿到 hello。
+            - title: 第 3 步：第二次 read
+              body: 管道空了，但还有一个写端开着（就在父进程自己手里），内核不能返回 EOF，只能让 read 等着。
+            - title: 第 4 步：在机器上验证
+              body: 在这台机器上运行，第二次 read 一直卡住，2 秒后被 timeout 结束。父进程在等一个只有它自己能写的管道，永远等不到。
+      - item:
+          id: sigpipe
+          type: number
+          prompt: 一个程序关掉了管道的读端，然后往写端写。在 bash 里查看它的退出状态 `$?`，是多少？（被信号结束时，$? 是 128 加上信号编号；SIGPIPE 是 13 号。）
+          answer: 141
+          explain: 没有读者时写管道，进程收到 SIGPIPE，默认被结束，128 + 13 = 141。在这台机器上实测也是 141。
+      - card:
+          title: shell 怎样搭 ls | wc -l
+          body: |
+            1. shell 调用 pipe，得到读端和写端；
+            2. fork 出第一个子进程：dup2 把写端复制到 1 号描述符，关掉原来的两个描述符，execve 运行 ls。ls 往标准输出写，写进的就是管道；
+            3. fork 出第二个子进程：dup2 把读端复制到 0 号，关掉原来的两个，execve 运行 wc；
+            4. shell 自己关掉管道的两端，等两个子进程结束。
+
+            第 4 步很重要：shell 手里的写端不关，wc 读完 ls 的输出后永远等不到 EOF。
+      - item:
+          id: pipeline-order
+          type: order
+          prompt: 把 shell 运行 `ls | wc -l` 时第一个子进程（运行 ls 的那个）要做的事排好。
+          steps:
+            - 从 fork 返回，知道自己是子进程
+            - dup2(写端, 1)，让标准输出指向管道
+            - 关掉管道原来的读端和写端描述符
+            - execve 运行 ls
+          explain: execve 之后描述符表保留，ls 不知道管道的存在，只管往 1 号写。
+      - card:
+          title: 其他几种进程间通信
+          body: |
+            | 机制 | 特点 |
+            |---|---|
+            | 管道 | 只能在有共同祖先的进程之间用（靠 fork 继承） |
+            | 命名管道（FIFO） | 在文件系统里有一个名字，不相关的进程也能按名字打开 |
+            | 共享内存 | 两个进程把同一块内存映射进各自的地址空间，最快，但要自己用信号量同步 |
+            | 消息队列 | 内核替你保存一条条完整的消息 |
+            | 套接字 | 同一台机器或网络上两台机器之间都能用 |
+      - item:
+          id: ipc-match
+          type: match
+          prompt: 把需求和最合适的进程间通信方式连起来。
+          pairs:
+            - [shell 把一个命令的输出交给它刚 fork 出来的另一个命令, 管道]
+            - [两个互不相关的程序，通过 /tmp/myfifo 这个名字交换数据, 命名管道]
+            - [两个进程要高速共用一大块图像数据, 共享内存]
+            - [浏览器和另一台电脑上的 Web 服务器通信, 套接字]
+          explain: 跨机器只能用套接字；同一台机器上看是否有亲缘关系、数据量大不大来选。
+
+  - id: sockets
+    chapter: IPC与竞态检测
+    title: 套接字：两台机器上的进程怎样说话
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你的浏览器要把请求发给另一台电脑上的 Web 服务器程序。要唯一指定“那台电脑上的那个程序”，至少需要知道什么？
+          options:
+            - text: 那台电脑的 IP 地址，加上那个程序使用的端口号
+              correct: true
+            - text: 那台电脑的 IP 地址就够了
+              why: 一台电脑上同时运行着很多网络程序，只知道地址分不清要找哪一个
+            - text: 那个程序的进程 PID
+              why: PID 只在那台电脑内部有意义，别的电脑不知道也用不上
+          explain: IP 地址找到主机，端口号找到主机上的程序。一个连接的两头各有一对“地址 + 端口”。
+      - card:
+          title: 客户端–服务器模型
+          body: |
+            网络应用大多是客户端–服务器模型：服务器进程管理某种资源（网页、数据库、文件），为客户端提供服务。一次事务分四步：
+
+            1. 客户端给服务器发一个请求；
+            2. 服务器处理请求，操作它的资源；
+            3. 服务器给客户端发回一个响应；
+            4. 客户端处理响应，比如把网页显示出来。
+
+            客户端和服务器都是**进程**，不是机器。一台机器上可以同时运行很多客户端和服务器，客户端和服务器也可以在同一台机器上。
+      - card:
+          title: IP 地址、域名和端口
+          body: |
+            - IP 地址：互联网上一台主机的编号。IPv4 地址是 32 位，习惯写成四个十进制数，比如 128.2.194.242；
+            - 域名：方便人记的名字，比如 www.cs.cmu.edu。DNS 系统负责把域名换成 IP 地址；
+            - 端口：16 位的数，标识主机上的一个进程。
+      - item:
+          id: dns
+          type: choice
+          prompt: 你在浏览器里输入 www.cs.cmu.edu。在真正连上服务器之前，先要做什么？
+          options:
+            - text: 通过 DNS 把这个域名换成 IP 地址
+              correct: true
+            - text: 直接用域名建立连接，不需要 IP 地址
+              why: 网络上的数据包只认 IP 地址；域名是给人记的，要先换成地址
+            - text: 先找到服务器进程的 PID
+              why: PID 只在那台主机内部有意义；找到主机靠 IP 地址，找到主机上的程序靠端口
+          explain: 域名 → IP 地址（找到主机）→ 端口（找到主机上的那个服务器进程）。
+      - card:
+          title: 端口和连接
+          body: |
+            服务器用固定的知名端口，比如 Web 是 80；客户端的端口通常由内核临时分配。Linux 上，1024 以下的端口是特权端口，普通进程不能 bind 它们。
+
+            一个连接由两头的“地址:端口”这一对唯一确定，比如 (128.2.194.242:51213, 208.216.181.15:80)。连接是点对点的，两个方向可以同时传数据，而且可靠：发出的字节按顺序到达。
+      - item:
+          id: connection-id
+          type: choice
+          prompt: 两个浏览器标签页同时连着同一个网站（同一个 IP、同一个 80 端口）。内核靠什么分清这是两个不同的连接？
+          options:
+            - text: 两个连接客户端那头的端口不同，所以两对“地址:端口”不同
+              correct: true
+            - text: 靠两个标签页的标题不同
+              why: 内核不知道标签页的标题；它只看连接两头的地址和端口
+            - text: 分不清，同一个网站同时只能有一个连接
+              why: 内核给每个连接分配一个不同的临时端口，所以可以同时有很多连接
+          explain: 服务器那头都是 80，但客户端那头的临时端口不同，两个连接的套接字对就不同。
+      - card:
+          title: 套接字
+          body: |
+            对内核来说，**套接字（socket）**是一个连接的一个端点；对程序来说，它就是一个文件描述符，读写它就是从网络收发数据。
+
+            | 客户端 | 服务器 |
+            |---|---|
+            | getaddrinfo：把主机名和端口换成套接字地址 | getaddrinfo |
+            | socket：创建一个套接字描述符 | socket |
+            | | bind：把套接字和本机的一个端口绑定 |
+            | | listen：告诉内核这是一个等着接受连接的套接字 |
+            | connect：向服务器发起连接 | accept：等一个连接到来 |
+            | 读写描述符 | 读写 accept 返回的描述符 |
+            | close | close |
+      - item:
+          id: server-order
+          type: order
+          prompt: 把服务器准备好接受连接、再服务一个客户的调用排好。
+          steps:
+            - getaddrinfo
+            - socket
+            - bind
+            - listen
+            - accept
+            - 读写 accept 返回的描述符
+          explain: bind 定下端口，listen 把它变成监听套接字，accept 才真正等到一个客户。
+      - card:
+          title: 监听描述符和已连接描述符
+          body: |
+            accept 返回的是一个**新的**描述符，叫已连接描述符（connfd），代表和这一个客户的连接；原来的那个叫监听描述符（listenfd），它不受影响，继续等下一个客户。
+
+            监听描述符在服务器的一生里只创建一次；每接受一个客户就有一个新的已连接描述符，服务完就关掉。分成两种描述符，服务器才能一边服务已经连上的客户，一边接着接受新的客户。
+      - item:
+          id: listen-vs-conn
+          type: choice
+          prompt: 服务器已经接受了 3 个客户，都还连着。它一共打开着几个和网络有关的描述符？
+          options:
+            - text: 4 个：1 个监听描述符，3 个已连接描述符
+              correct: true
+            - text: 1 个，所有客户共用监听描述符
+              why: 每个客户的连接都有自己的已连接描述符；监听描述符只用来接受新连接
+            - text: 3 个，每个客户一个
+              why: 还得加上那个一直开着、等新客户的监听描述符
+          explain: 每个已连接描述符对应一个客户，监听描述符只有一个。
+      - card:
+          title: getaddrinfo 和 open_clientfd
+          body: |
+            getaddrinfo 把主机名（或地址字符串）和服务名（或端口号）换成一串套接字地址结构，IPv4 和 IPv6 都能处理，程序不用关心具体用的是哪一种。CS:APP 用它写了一个辅助函数：
+
+            ```c
+            int open_clientfd(char *hostname, char *port) {
+                struct addrinfo hints, *listp, *p;
+                int clientfd;
+                memset(&hints, 0, sizeof hints);
+                hints.ai_socktype = SOCK_STREAM;          /* 要一个连接 */
+                hints.ai_flags = AI_NUMERICSERV | AI_ADDRCONFIG;
+                getaddrinfo(hostname, port, &hints, &listp);
+                for (p = listp; p; p = p->ai_next) {       /* 一个个试，直到连上 */
+                    if ((clientfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) < 0)
+                        continue;
+                    if (connect(clientfd, p->ai_addr, p->ai_addrlen) != -1)
+                        break;
+                    close(clientfd);
+                }
+                freeaddrinfo(listp);
+                return p ? clientfd : -1;
+            }
+            ```
+
+            服务器一侧的 open_listenfd 类似：getaddrinfo 时加上 AI_PASSIVE，然后 socket、bind、listen。
+      - item:
+          id: try-each
+          type: choice
+          prompt: open_clientfd 为什么要用循环把 getaddrinfo 返回的地址一个个试？
+          options:
+            - text: 一个主机名可能对应好几个地址（比如一个 IPv6、一个 IPv4），不一定每个都连得上
+              correct: true
+            - text: 因为 connect 第一次总会失败
+              why: connect 没有这种规定；第一个地址能连上，循环第一次就 break
+            - text: 为了同时连接所有地址
+              why: 一连上就 break，最后只返回一个已连接的描述符
+          explain: 这样写的程序在只有 IPv4、只有 IPv6 或两者都有的网络上都能工作。
+      - card:
+          title: 一次服务一个客户的回显服务器
+          body: |
+            ```c
+            void echo(int connfd) {
+                char buf[256];
+                ssize_t n;
+                while ((n = read(connfd, buf, sizeof buf)) > 0)
+                    write(connfd, buf, n);         /* 收到什么就发回什么 */
+            }
+            int main(int argc, char **argv) {
+                int listenfd = open_listenfd(argv[1]);
+                while (1) {
+                    int connfd = accept(listenfd, NULL, NULL);
+                    echo(connfd);
+                    close(connfd);
+                }
+            }
+            ```
+
+            在这台机器上运行它，客户端连上 localhost 的这个端口，发 fast，收到的就是 fast。客户端关闭连接后，服务器的 read 返回 0，echo 结束，服务器回去 accept 下一个客户。
+      - item:
+          id: eof-socket
+          type: choice
+          prompt: 回显服务器正在 echo 里 read 客户端的数据。客户端调用 close 关闭了连接。服务器的 read 会返回什么？
+          options:
+            - text: 0，表示对方不会再发数据了
+              correct: true
+            - text: −1，表示出错
+              why: 对方正常关闭不是错误；就像读文件读到末尾一样，返回 0
+            - text: 一直阻塞，直到有新客户连上来
+              why: 对方关闭后，这个连接上的 read 立刻返回 0；新客户连上来要靠监听描述符和 accept
+          explain: 套接字上的 EOF 就是“对方关了”。服务器据此结束对这个客户的服务。
+
+  - id: concurrent-servers
+    chapter: IPC与竞态检测
+    title: 同时服务好几个客户：用进程或线程
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个回显服务器一次只服务一个客户：accept 一个，服务完再 accept 下一个。它正在服务客户 A，A 连上以后迟迟不发数据。这时客户 B 连上来，发了一句话。B 会怎样？
+          options:
+            - text: 一直等到 A 结束，服务器才轮到它
+              correct: true
+            - text: 马上收到回显
+              why: 这个服务器一次只服务一个客户；它卡在 A 的 read 上，根本没去 accept B
+            - text: 连接被拒绝
+              why: 内核会替监听套接字先把 B 的连接接下来排队，只是服务器还没 accept 它
+          explain: 在这台机器上：A 连上后等 3 秒才发数据，B 晚 0.3 秒连上，B 要等约 2.8 秒才收到回显。一个慢客户拖住了所有人。
+      - card:
+          title: 基于进程的并发服务器
+          body: |
+            每接受一个客户，就 fork 一个子进程去服务它，父进程马上回去 accept 下一个：
+
+            ```c
+            void sigchld_handler(int sig) {
+                int olderrno = errno;
+                while (waitpid(-1, 0, WNOHANG) > 0)   /* 回收所有结束的子进程 */
+                    ;
+                errno = olderrno;
+            }
+            int main(int argc, char **argv) {
+                int listenfd = open_listenfd(argv[1]);
+                signal(SIGCHLD, sigchld_handler);
+                while (1) {
+                    int connfd = accept(listenfd, NULL, NULL);
+                    if (fork() == 0) {
+                        close(listenfd);   /* 子进程：不需要监听描述符 */
+                        echo(connfd);
+                        close(connfd);
+                        exit(0);
+                    }
+                    close(connfd);         /* 父进程：必须关掉自己那份 connfd */
+                }
+            }
+            ```
+
+            同样的实验，B 只等了约 0.1 秒就收到回显。
+      - item:
+          id: parent-close
+          type: choice
+          prompt: 基于进程的服务器里，父进程为什么必须 close(connfd)？
+          options:
+            - text: fork 后这个连接的引用计数是 2，父进程不关，子进程关了连接也不会真正关闭，描述符还会越积越多
+              correct: true
+            - text: 不关的话子进程就没法读写 connfd
+              why: 子进程有自己的一份描述符，父进程关不关都不影响它读写
+            - text: 父进程不关，下一次 accept 会失败
+              why: accept 只用监听描述符；问题在于泄漏和连接关不掉
+          explain: 内核为每个打开的文件（包括套接字）记引用计数，减到 0 才真正关闭连接，客户端才读到 EOF。
+      - item:
+          id: reap-children
+          type: choice
+          prompt: 基于进程的服务器为什么要装 SIGCHLD 处理程序，并在里面循环调用 waitpid？
+          options:
+            - text: 服务器长期运行，不回收的话结束了的子进程都成了僵尸，越积越多
+              correct: true
+            - text: 不回收的话子进程不会结束
+              why: 子进程 exit 就结束了；不回收的后果是它们留在僵尸状态占着资源
+            - text: 为了让子进程能读写 connfd
+              why: 回收发生在子进程结束之后，和它服务客户无关
+          explain: 循环是因为信号不排队：好几个子进程几乎同时结束时，可能只收到一个 SIGCHLD。
+      - card:
+          title: 进程的优点和缺点
+          body: |
+            | 优点 | 缺点 |
+            |---|---|
+            | 写法简单直接 | 创建和回收进程的开销大 |
+            | 共享的东西很清楚：只共享打开文件表，描述符和全局变量都各是各的 | 进程之间共享数据很麻烦，要靠进程间通信 |
+            | 一个子进程崩溃，不会把别的客户的服务带下去 | |
+      - card:
+          title: 基于线程的并发服务器
+          body: |
+            ```c
+            void *thread(void *vargp) {
+                int connfd = *((int *) vargp);
+                pthread_detach(pthread_self());   /* 没人会 join 它 */
+                free(vargp);
+                echo(connfd);
+                close(connfd);
+                return NULL;
+            }
+            int main(int argc, char **argv) {
+                int listenfd = open_listenfd(argv[1]);
+                while (1) {
+                    int *connfdp = malloc(sizeof(int));
+                    *connfdp = accept(listenfd, NULL, NULL);
+                    pthread_t tid;
+                    pthread_create(&tid, NULL, thread, connfdp);
+                }
+            }
+            ```
+
+            每个客户一个对等线程。线程共享地址空间，所以不用像进程版那样关两份描述符；但线程用完 connfd 必须自己 close，因为没有进程退出替它关。同样的实验，B 也只等了约 0.1 秒。
+      - item:
+          id: malloc-connfd
+          type: choice
+          prompt: 线程版服务器为什么每次都 malloc 一个整数来存 connfd，而不是把 main 里局部变量 connfd 的地址传给线程？
+          options:
+            - text: 传局部变量的地址，线程还没来得及读，main 的下一次 accept 可能已经把它改成了下一个客户的描述符
+              correct: true
+            - text: 线程函数的参数只能是 malloc 出来的指针
+              why: 参数可以是任何指针；问题在于所有线程共用 main 栈上的同一个变量
+            - text: 局部变量在 main 返回后才失效，没有问题，只是习惯
+              why: 这里的问题不是失效，而是多个线程和 main 共享这个变量，会读到被改过的值
+          explain: 这是一种竞态：线程的读和 main 的下一次写，谁先谁后决定了结果。每个线程拿一块自己的内存就没有这个问题。
+      - item:
+          id: approaches-match
+          type: match
+          prompt: 把服务器的写法和它的特点连起来。
+          pairs:
+            - [基于进程, 客户之间的数据天然隔开，但共享状态要靠进程间通信]
+            - [基于线程, 共享数据很容易，也很容易不小心共享出错]
+            - [accept 一个、服务完再 accept 下一个, 一个慢客户拖住所有人]
+          explain: 线程的长处（共享容易）同时是它最大的风险。下一课还有第三种写法：一个进程、一个线程同时服务所有客户。
+
+  - id: select-server
+    chapter: IPC与竞态检测
+    title: 一个线程服务所有客户：I/O 多路复用
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 不开新进程也不开新线程，一个程序能不能同时服务好几个客户？
+          options:
+            - text: 能，先问内核“哪些描述符现在有数据可读”，只去读那些，就不会卡在某一个上
+              correct: true
+            - text: 不能，一个执行流一次只能等一个描述符
+              why: 用一次 read 确实只能等一个；但有专门的系统调用能同时等很多个
+            - text: 能，只要把每个 read 都放进死循环
+              why: 卡在一个没有数据的 read 上，循环也转不起来
+          explain: 这种做法要靠一个专门的系统调用：select。
+      - card:
+          title: select
+          body: |
+            ```c
+            int select(int n, fd_set *fdset, NULL, NULL, NULL);
+            ```
+
+            fdset 是一个描述符集合，叫读集合。select 让进程睡下，直到集合里**至少有一个**描述符可以读（读它不会阻塞）。返回时它返回准备好的描述符个数，并且**直接修改** fdset，只留下准备好的那些。n 是集合里最大的描述符加 1。
+
+            这样同时等多个描述符的做法叫 **I/O 多路复用（I/O multiplexing）**。
+
+            操作集合用四个宏：`FD_ZERO(&s)` 清空，`FD_SET(fd, &s)` 加入，`FD_CLR(fd, &s)` 去掉，`FD_ISSET(fd, &s)` 检查在不在。
+      - item:
+          id: select-n
+          type: number
+          prompt: 读集合里有描述符 3、5、7。调用 select 时第一个参数 n 应该是多少？
+          answer: 8
+          explain: n 是最大的描述符加 1，7 + 1 = 8。内核检查 0 到 n − 1 这些号码。
+      - item:
+          id: copy-set
+          type: choice
+          prompt: 用 select 写循环时，为什么每次调用前都要把保存好的 read_set 复制一份给 select（`ready_set = read_set;`）？
+          options:
+            - text: select 返回时会把传进去的集合改成只剩准备好的描述符，不复制的话下一轮就丢了其余的
+              correct: true
+            - text: select 不接受同一个集合用两次
+              why: 没有这种规定；问题在于它会原地修改集合
+            - text: 为了让 select 运行得更快
+              why: 复制和速度无关，是为了保留完整的“要等哪些描述符”
+          explain: Linux 的 select 手册特意提醒：在循环里用 select，每次调用前都要重新设置集合。
+      - card:
+          title: 事件驱动的回显服务器
+          body: |
+            服务器把每个客户看成一个小的状态机：输入事件是“这个描述符可读了”，转移是“读一段数据并回显”。
+
+            ```c
+            FD_ZERO(&read_set);
+            FD_SET(listenfd, &read_set);
+            while (1) {
+                ready_set = read_set;
+                select(maxfd + 1, &ready_set, NULL, NULL, NULL);
+                if (FD_ISSET(listenfd, &ready_set)) {     /* 新客户 */
+                    int c = accept(listenfd, NULL, NULL);
+                    FD_SET(c, &read_set);
+                    if (c > maxfd) maxfd = c;
+                    add_client(c);
+                }
+                for (每个已连接的客户 c)                  /* 有数据的客户 */
+                    if (FD_ISSET(c, &ready_set)) {
+                        n = read(c, buf, sizeof buf);
+                        if (n <= 0) { close(c); FD_CLR(c, &read_set); remove_client(c); }
+                        else write(c, buf, n);
+                    }
+            }
+            ```
+
+            同样的实验：A 连上后不发数据，B 晚连上，B 也只等了约 0.1 秒就收到回显。服务器根本没去读 A，因为 A 的描述符没有准备好。
+      - card:
+          title: 例题：跟着 select 走一遍
+          body: 监听描述符是 3。客户 A 连上来，然后客户 B 连上来并发了 hi，A 一直不发。
+          reveal:
+            - title: 第 1 轮：A 连上
+              body: select 返回，ready_set 里只有 3。accept 得到 4，把 4 加进 read_set，maxfd 变成 4。
+            - title: 第 2 轮：B 连上
+              body: select 返回，ready_set 里只有 3。accept 得到 5，加进 read_set，maxfd 变成 5。
+            - title: 第 3 轮：B 发来 hi
+              body: select 返回，ready_set 里只有 5。服务器读 5，把 hi 写回去。4 不在 ready_set 里，服务器不去碰它。
+            - title: 之后
+              body: 只要 A 不发数据，4 就不会出现在 ready_set 里，A 拖不住别人。
+      - item:
+          id: blocking-handler
+          type: choice
+          prompt: 事件驱动的服务器里，处理某个客户时改用“一直读到读满一整行为止”。这个客户只发了半行就停了。会怎样？
+          options:
+            - text: 整个服务器卡在这个客户上，别的客户都得不到服务
+              correct: true
+            - text: 只有这个客户卡住，别的客户照常服务
+              why: 只有一个执行流；它卡在这个客户的 read 上，就没法回到 select 去服务别人
+            - text: select 会自动跳过这个客户
+              why: select 只在调用它的那一刻判断谁准备好了；已经进了处理函数，就由处理函数说了算
+          explain: 事件驱动服务器的每一步处理都必须很快、不能阻塞。这让它很难做到细粒度的并发，比如处理只到了一半的请求。
+      - card:
+          title: 三种写法比一比
+          body: |
+            | | 进程 | I/O 多路复用 | 线程 |
+            |---|---|---|---|
+            | 执行流 | 每个客户一个进程 | 只有一个 | 每个客户一个线程 |
+            | 共享数据 | 难，要靠进程间通信 | 容易，不用同步 | 容易，但要同步 |
+            | 开销 | 大 | 很小，没有进程或线程的切换 | 中等 |
+            | 能否用上多核 | 能 | 不能 | 能 |
+            | 写起来 | 简单 | 复杂 | 中等，但出错难调试 |
+
+            高性能的 Web 服务器（比如 nginx）和 Node.js 用的都是事件驱动的写法。另外，glibc 里 select 只能等号码小于 1024 的描述符，Linux 手册建议新程序改用 poll 或 epoll。
+      - item:
+          id: multicore
+          type: choice
+          prompt: 一台 16 核的服务器，用基于 select 的回显服务器（单进程单线程）。CPU 最多能用上几个核心来服务客户？
+          options:
+            - text: 1 个
+              correct: true
+            - text: 16 个，select 会把客户分给不同的核心
+              why: select 只是告诉一个执行流哪些描述符准备好了；只有一个执行流，同一时刻只能在一个核心上跑
+            - text: 每个客户一个核心
+              why: 那是基于进程或线程的写法；I/O 多路复用只有一个控制流
+          explain: 这是事件驱动写法的主要缺点。常见的补救是开几个进程或线程，每个各跑一个事件循环。
+
+  - id: races
+    chapter: IPC与竞态检测
+    title: 竞态：谁先到达决定了对错
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 主线程用循环变量 i 从 0 到 3 创建 4 个线程，把 `&i`（i 的地址）传给每个线程，线程打印 `*vargp`。猜一猜会打印什么？
+          options:
+            - text: 不一定是 0、1、2、3，可能有重复，甚至出现 4
+              correct: true
+            - text: 一定是 0、1、2、3，顺序可能不同
+              why: 4 个线程拿到的是同一个地址；它们读的时候 i 可能已经被主线程改了
+            - text: 4 个 0
+              why: 主线程不会等线程读完才 i++；线程读到的是读那一刻 i 的值
+          explain: 在这台机器上连续运行三次，每次打印的都是 1、2、3、4：线程 0 一次也没出现，倒冒出一个“线程 4”。
+      - card:
+          title: 有竞态的程序
+          body: |
+            ```c
+            #define N 4
+            void *thread(void *vargp) {
+                int myid = *((int *) vargp);
+                printf("Hello from thread %d\n", myid);
+                return NULL;
+            }
+            int main(void) {
+                pthread_t tid[N];
+                int i;
+                for (i = 0; i < N; i++)
+                    pthread_create(&tid[i], NULL, thread, &i);
+                for (int j = 0; j < N; j++)
+                    pthread_join(tid[j], NULL);
+                return 0;
+            }
+            ```
+
+            CS:APP 给**竞态**（race）的定义是：程序的正确性依赖于一个线程在另一个线程到达 y 点之前先到达 x 点。这里，x 是对等线程的 `*vargp`，y 是主线程的 i++。
+      - card:
+          title: 例题：线程 0 为什么读到 1
+          body: 一种可能的执行顺序。
+          reveal:
+            - title: 第 1 步：创建线程 0
+              body: 主线程以 &i 创建线程 0，这时 i 是 0。新线程已经存在，但还没开始运行。
+            - title: 第 2 步：主线程接着跑
+              body: 主线程执行 i++，i 变成 1，又创建了线程 1。
+            - title: 第 3 步：线程 0 终于运行
+              body: 它执行 `*vargp`，读的是 i 的地址里**现在**的值 1，于是打印 1。
+            - title: 第 4 步：最后一个线程
+              body: 循环结束时 i 是 4。读得晚的线程就会打印 4，虽然根本没有“线程 4”。在线程函数开头加一个 0.1 秒的 sleep 再运行，4 个线程全都打印 4。
+      - item:
+          id: why-four
+          type: choice
+          prompt: 主线程执行 `for (i = 0; i < 4; i++) pthread_create(&tid[i], NULL, thread, &i);`，把同一个 i 的地址传给 4 个线程，线程打印 `*vargp`。为什么可能打印出 4？
+          options:
+            - text: 循环结束时 i 等于 4，读得晚的线程通过地址读到的就是 4
+              correct: true
+            - text: pthread_create 自动把参数加了 1
+              why: pthread_create 原样把指针交给线程；变的是指针指向的 i
+            - text: 创建了 5 个线程
+              why: 循环只创建 4 个线程；4 是 i 在循环结束时的值
+          explain: 所有线程共享主线程栈上的同一个 i。只要线程读 i 晚于主线程某次 i++，就读错。
+      - card:
+          title: 修好它
+          body: |
+            给每个线程一块自己的内存，存它自己的编号：
+
+            ```c
+            for (i = 0; i < N; i++) {
+                int *ptr = malloc(sizeof(int));
+                *ptr = i;
+                pthread_create(&tid[i], NULL, thread, ptr);
+            }
+            /* 线程里：int myid = *((int *) vargp); free(vargp); */
+            ```
+
+            在这台机器上运行，打印 0、1、2、3（顺序不定）。也可以像前面那样把 i 的**值**强制转换成指针传进去，不传地址。
+      - item:
+          id: free-where
+          type: choice
+          prompt: 修好的版本里，能不能在 main 里 pthread_create 之后立刻 free(ptr)，省得线程自己去 free？
+          options:
+            - text: 不能，线程可能还没读 *ptr，内存就已经被释放了
+              correct: true
+            - text: 能，pthread_create 返回时线程已经读完了参数
+              why: pthread_create 返回时新线程可能还没开始运行，它什么时候读参数由调度决定
+            - text: 能，free 以后内存里的值还在
+              why: 释放后的内存可能马上被别的 malloc 重新使用，读它是未定义行为
+          explain: 内存由谁释放，要看谁最后用它。这里最后用的是线程，所以由线程 free。
+      - card:
+          title: 竞态和数据竞争
+          body: |
+            这两个词常被混用，但不一样：
+
+            - **数据竞争**：两个线程不加同步地访问同一个内存位置，至少一个是写。它是一种具体的内存访问模式；
+            - **竞态**：结果依赖于执行的先后时机。它说的是程序逻辑。
+
+            &i 那个程序两样都有。但竞态也可以没有数据竞争。比如取款：先加锁读余额、解锁；判断够不够；再加锁扣钱、解锁。每次访问余额都加了锁，没有数据竞争；可两个线程可能都看到余额够，各扣一次，扣成了负数。
+      - item:
+          id: race-kind
+          type: choice
+          prompt: 一个取款函数：先加锁读余额、解锁；判断余额够不够；够的话再加锁扣钱、解锁。每次读写余额都加了锁，两个线程同时取款，为什么还可能扣成负数？
+          options:
+            - text: “检查够不够”和“扣钱”在两个分开的临界区里，两个线程可以都在中间那段空隙里通过检查
+              correct: true
+            - text: 锁坏了，两个线程同时进了临界区
+              why: 每个临界区里的互斥都是对的；错在检查和扣钱没有放在同一个临界区里
+            - text: 有数据竞争
+              why: 所有访问都加了锁，没有数据竞争；这是一个逻辑上的竞态
+          explain: 修法是把“检查并扣钱”整个放进同一个临界区。这种竞态，专门查数据竞争的工具也查不出来。
+
+  - id: eraser
+    chapter: IPC与竞态检测
+    title: 让工具帮你找数据竞争：Eraser 和 ThreadSanitizer
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个多线程程序有数据竞争，但出错的那种交错一百万次运行里才碰上一次。只靠多跑几遍测试，靠得住吗？
+          options:
+            - text: 靠不住，测试很可能一次都碰不上
+              correct: true
+            - text: 靠得住，跑一千遍总能碰上
+              why: 一百万分之一的问题，跑一千遍碰上的机会大约只有千分之一
+            - text: 靠得住，数据竞争每次都会让结果出错
+              why: 很多时候交错恰好没问题，结果碰巧是对的，问题就藏起来了
+          explain: 所以需要能在“结果碰巧正确”时也发现问题的工具。
+      - card:
+          title: Eraser 的思路：锁集
+          body: |
+            1997 年的 Eraser（Savage 等人）检查的是一条纪律：**每个共享变量都应该始终被同一把锁保护**。
+
+            对每个变量 v，它维护一个候选锁集合 C(v)，表示“到目前为止一直保护着 v 的那些锁”：
+
+            ```text
+            locks_held(t) = 线程 t 当前拿着的锁
+            一开始，C(v) = 所有的锁
+            线程 t 每访问一次 v：
+                C(v) = C(v) ∩ locks_held(t)
+                如果 C(v) 变成空集，报告一个警告
+            ```
+
+            C(v) 变空，说明没有任何一把锁一直保护着 v。
+      - card:
+          title: 例题：C(v) 怎样缩小
+          body: 程序里有三把锁 a、b、c。变量 v 先后被访问四次。
+          reveal:
+            - title: 开始
+              body: C(v) = {a, b, c}。
+            - title: 第 1 次访问：线程拿着 a 和 b
+              body: C(v) = {a, b, c} ∩ {a, b} = {a, b}。
+            - title: 第 2 次访问：线程拿着 b 和 c
+              body: C(v) = {a, b} ∩ {b, c} = {b}。只剩 b 一直在保护 v。
+            - title: 第 3 次访问：线程什么锁也没拿
+              body: C(v) = {b} ∩ {} = {}，空了，Eraser 报警：v 有一次访问没有被 b 保护。
+      - item:
+          id: lockset
+          type: text
+          prompt: 有锁 a、b、c。变量 v 被访问三次，访问时线程分别拿着 {a, c}、{a, b, c}、{a}。三次之后 C(v) 里还剩哪把锁？（写字母）
+          answers: [a, '{a}']
+          explain: '{a, b, c} ∩ {a, c} = {a, c}；再 ∩ {a, b, c} 不变；再 ∩ {a} = {a}。a 一直保护着 v，不报警。'
+      - card:
+          title: 状态：别对初始化大惊小怪
+          body: |
+            只按上面的规则，很多正确的程序也会报警：比如一个线程先不加锁地把数据初始化好，再交给别的线程用。Eraser 因此给每个变量加了几个状态：
+
+            | 状态 | 什么时候 | 是否更新 C(v) | 是否报警 |
+            |---|---|---|---|
+            | 未访问（Virgin） | 刚分配 | — | — |
+            | 独占（Exclusive） | 只被一个线程访问过 | 否 | 否 |
+            | 共享（Shared） | 被第二个线程读过 | 是 | 否 |
+            | 共享修改（Shared-Modified） | 被第二个线程写过 | 是 | 是 |
+
+            只有在共享修改状态下 C(v) 变空，才报告竞争。
+      - item:
+          id: exclusive
+          type: choice
+          prompt: 为什么 Eraser 在“独占”状态下不更新 C(v)、也不报警？
+          options:
+            - text: 只有一个线程访问时不可能有竞争，比如不加锁的初始化是正常的
+              correct: true
+            - text: 为了让 Eraser 运行得更快，代价是会漏掉真正的竞争
+              why: 只被一个线程访问的变量本来就不会有数据竞争，不报警不是漏报
+            - text: 独占状态的变量都加了锁
+              why: 独占状态下线程可以不加锁访问；正因为只有它一个，才不需要锁
+          explain: Eraser 论文自己也承认，这样做让它的检查更依赖调度：交给第二个线程的时机不同，结果可能不同。
+      - card:
+          title: Eraser 的局限
+          body: |
+            论文报告的误报主要有三类：内存被自制的分配器重复使用；程序用了 Eraser 不认识的私有锁；无害的竞争（真有竞争，但不影响结果）。程序员可以加几条注解消除误报。
+
+            用 Eraser 跑的程序通常慢 10 到 30 倍。它只检查实际执行到的代码；而且它查的是“有没有一把锁一贯保护”，所以用别的方式正确同步的程序（比如用信号量通知、用 join 等待）会被误报，逻辑上的竞态（比如分成两个临界区的取款）则查不出来。MIT 6.033 讨论这篇论文时，问的正是：为什么锁集算法抓不到所有的竞态？
+      - item:
+          id: eraser-miss
+          type: choice
+          prompt: 下面哪个错误，Eraser 的锁集算法查不出来？
+          options:
+            - text: 取款时“检查余额”和“扣钱”各加了一次锁，分在两个临界区里
+              correct: true
+            - text: 两个线程都不加锁地给同一个全局计数器加 1
+              why: 这里 C(v) 会变成空集，正是 Eraser 能报告的
+            - text: 一个线程加锁 m 写 v，另一个线程加锁 n 写 v
+              why: '{m} ∩ {n} 是空集，Eraser 会报警'
+          explain: 每次访问余额都被同一把锁保护，C(v) 一直不空。错误在逻辑上，不在内存访问模式上。
+      - card:
+          title: 今天的工具：ThreadSanitizer
+          body: |
+            gcc 和 clang 都带着 ThreadSanitizer。编译时加 `-fsanitize=thread`（再加 `-g` 让报告带文件名和行号），照常运行程序，它在程序运行时检查每一次内存访问和同步操作。clang 的文档说，它通常让程序慢 5 到 15 倍，多用 5 到 10 倍内存。
+
+            对有错的计数程序（两个线程各加 1000 次）运行，这台机器上的输出（节选）：
+
+            ```text
+            WARNING: ThreadSanitizer: data race (pid=9312)
+              Read of size 8 at 0x555555558018 by thread T2:
+                #0 thread tsan.c:4
+              Previous write of size 8 at 0x555555558018 by thread T1:
+                #0 thread tsan.c:4
+              Location is global 'cnt' of size 8 at 0x555555558018
+            ```
+
+            这次运行打印的 cnt=2000 碰巧是对的，它照样报告了竞争。给 cnt++ 加上互斥锁再运行，就没有报告了。
+      - item:
+          id: tsan-correct
+          type: choice
+          prompt: ThreadSanitizer 报告了一个数据竞争，可程序这次的输出完全正确。应该怎么看？
+          options:
+            - text: 仍然是错误，只是这次交错碰巧没出事，换个时机就可能出错
+              correct: true
+            - text: 是误报，结果对就说明没问题
+              why: 它报告的是两次访问之间没有同步，和这次结果对不对无关；数据竞争在 C 里本身就是未定义行为
+            - text: 是 ThreadSanitizer 让程序变慢才出现的问题，不用管
+              why: 它不会制造竞争，只是把程序里已有的、没被同步排好先后的访问指出来
+          explain: 这正是工具比测试强的地方：不用等结果出错，就能发现隐患。
+      - item:
+          id: tsan-steps
+          type: order
+          prompt: 把用 ThreadSanitizer 查一个多线程程序的步骤排好。
+          steps:
+            - 用 gcc -g -fsanitize=thread 重新编译
+            - 照常运行程序，让它执行到可疑的代码
+            - 读警告：哪个变量、哪两处代码、哪两个线程
+            - 给这两处访问加上同步（锁、原子操作），再运行一遍确认没有警告
+          explain: 它只能检查实际执行到的代码，所以测试要尽量覆盖多线程的那部分。
+boss:
+  items:
+    - id: boss-fork
+      type: number
+      prompt: 在终端里运行下面的程序，一共打印几行？
+      code: |
+        int main(void) {
+            fork();
+            if (fork() == 0) {
+                printf("c\n");
+                exit(0);
+            }
+            printf("p\n");
+            return 0;
+        }
+      lang: c
+      answer: 4
+      explain: 第一个 fork 之后有 2 个进程，每个再 fork 一次。每个新生的子进程打印 c 后退出，2 个原来的进程各打印一次 p。2 个 c 加 2 个 p，一共 4 行。
+    - id: boss-sigterm
+      type: number
+      prompt: 在 bash 里，一个进程被 SIGTERM（15 号信号）结束了。紧接着执行 `echo $?`，显示多少？
+      answer: 143
+      explain: 被信号结束时，$? 是 128 加信号编号：128 + 15 = 143。
+    - id: boss-dup2
+      type: text
+      prompt: data.txt 的内容是 `abcdef`。下面的程序打印哪个字符？
+      code: |
+        int fd1 = open("data.txt", O_RDONLY);
+        int fd2 = open("data.txt", O_RDONLY);
+        char c;
+        read(fd1, &c, 1);
+        read(fd1, &c, 1);
+        dup2(fd1, fd2);
+        read(fd2, &c, 1);
+        printf("%c\n", c);
+      lang: c
+      answers: [c]
+      explain: fd1 读了两个字节，位置是 2。dup2 让 fd2 指向 fd1 在打开文件表里的那一项，共用位置 2，所以读到第三个字符 c。
+    - id: boss-umask
+      type: text
+      prompt: 进程的 umask 是 077。用 `open("s.txt", O_CREAT | O_WRONLY, 0666)` 新建文件，它的权限是多少（三位八进制）？
+      answers: ['600', '0600']
+      explain: 主人的 6 不变；同组和其他人的 6 都被 7 去掉，变成 0。结果是 600，只有文件主人能读写。
+    - id: boss-interleave
+      type: number
+      prompt: 全局变量 cnt 初值是 5。两个线程各执行一次 cnt++（编译成 L 装入、U 加 1、S 存回）。执行顺序是 L1、U1、L2、U2、S2、S1。最后 cnt 是多少？
+      answer: 6
+      explain: L1 和 L2 都在任何一次存回之前装入，都读到 5；各自加到 6；S2、S1 都写入 6。两次加 1 只留下一次。
+    - id: boss-semaphore
+      type: number
+      prompt: 信号量 s 的初值是 3。5 个线程先后调用 P(s)，之后有一个线程调用了一次 V(s)。此时一共有几个线程已经从 P(s) 返回？
+      answer: 4
+      explain: 前 3 个 P 把 s 减到 0 并返回；后 2 个睡下。V 把 s 加 1 并唤醒其中恰好一个，它减 1 后返回。3 + 1 = 4 个。
+    - id: boss-efficiency
+      type: number
+      prompt: 一个程序用 1 个核心要 20 秒，用 8 个核心要 4 秒。效率是百分之多少？
+      answer: 62.5
+      unit: '%'
+      explain: 加速比 20 / 4 = 5，效率 5 / 8 = 0.625，也就是 62.5%。
+    - id: boss-remove-order
+      type: order
+      prompt: 用信号量 mutex（初值 1）、slots（初值 n）、items（初值 0）实现有界缓冲区。把消费者取出一个数据项的步骤排好。
+      steps:
+        - P(items)
+        - P(mutex)
+        - 从缓冲区取出一个数据项
+        - V(mutex)
+        - V(slots)
+      explain: 先等有数据项，再拿锁取出、解锁，最后通知生产者多了一个空格子。如果先 P(mutex) 再 P(items)，空缓冲区上的消费者会拿着锁睡下，生产者进不来，就死锁了。
+    - id: boss-deadlock
+      type: choice
+      prompt: 线程 1 先锁 A 再锁 B，线程 2 先锁 B 再锁 A，程序偶尔会卡死。下面哪种改法能**保证**不再死锁？
+      options:
+        - text: 两个线程都改成先锁 A 再锁 B
+          correct: true
+        - text: 线程 2 加锁前先睡 10 毫秒
+          why: 只是让死锁更少发生；时机不巧时照样会卡死
+        - text: 把两把锁都换成初值为 1 的信号量
+          why: 初值为 1 的信号量就是互斥锁，加锁顺序的问题原样还在
+        - text: 两个线程都改成先解锁 A 再解锁 B
+          why: 解锁顺序不影响死锁；循环等待来自加锁的顺序
+      explain: 所有线程按同一个全局顺序加锁，就不可能出现循环等待，四个必要条件中的一个被破坏了。
+    - id: boss-ticket
+      type: number
+      prompt: 一把排号锁现在 ticket 是 10，turn 是 7。一个新线程调用 lock。它还要等几次 unlock 才能进入临界区？
+      answer: 3
+      explain: 它用 fetch-and-add 取到 10 号。turn 要从 7 涨到 10，需要 3 次 unlock。
+    - id: boss-cas
+      type: number
+      prompt: x 初值是 4。先执行 `CompareAndSwap(&x, 4, 8)`，再执行 `CompareAndSwap(&x, 4, 9)`。第二次调用的返回值是多少？
+      answer: 8
+      explain: 第一次 x 等于 4，被换成 8。第二次 x 是 8，不等于 expected 4，什么也不改，返回 x 原来的值 8。
+    - id: boss-sb
+      type: choice
+      prompt: x、y 初值都是 0。线程 1 执行 `x = 1; r1 = y;`，线程 2 执行 `y = 1; r2 = x;`（不加屏障）。哪种结果在 x86 上可能出现，在顺序一致性下却不可能？
+      options:
+        - text: r1 = 0 且 r2 = 0
+          correct: true
+        - text: r1 = 1 且 r2 = 1
+          why: 两个写都先完成、两个读后执行，顺序一致性下就能得到它
+        - text: r1 = 0 且 r2 = 1
+          why: 线程 1 两步先做完、再做线程 2，顺序一致性下就能得到它
+        - text: 没有这样的结果，x86 就是顺序一致的
+          why: x86 允许一次读排到它前面那次写到不同地址的写之前，这正是存储缓冲造成的
+      explain: 两个写都还在各自核心的存储缓冲里时，两个读都从 cache 里读到 0。
+    - id: boss-shared
+      type: choice
+      multi: true
+      prompt: |
+        两个对等线程都运行下面的 work 函数。哪些变量是共享变量（同一份被不止一个线程用到）？
+        ```c
+        int total = 0;
+        void *work(void *vargp) {
+            int local = 1;
+            static int calls = 0;
+            int *box = vargp;          /* 主线程把同一个 int 的地址传给两个线程 */
+            calls++;
+            *box += local;
+            total += local;
+            return NULL;
+        }
+        ```
+      options:
+        - text: total
+          correct: true
+        - text: calls
+          correct: true
+        - text: '*box 指向的那个 int'
+          correct: true
+        - text: local
+          why: 局部自动变量，每个线程的栈上各一份
+        - text: box 这个指针变量本身
+          why: box 是局部自动变量，每个线程有自己的一份；它们指向同一个 int，被共享的是那个 int
+      explain: 全局变量和局部静态变量只有一份；局部变量各有一份，但它的地址被交给几个线程时，那块内存就成了共享的。这里三处共享的都没有加锁，都有数据竞争。
+    - id: boss-select
+      type: number
+      prompt: 一个基于 select 的服务器，读集合里有描述符 3、4、9。调用 select 时第一个参数应该是多少？
+      answer: 10
+      explain: 第一个参数是集合里最大的描述符加 1：9 + 1 = 10。
+    - id: boss-lockset
+      type: text
+      prompt: 程序里有锁 a、b、c、d。按 Eraser 的锁集算法，变量 v 被访问三次，访问时线程分别拿着 {a, b, d}、{b, d}、{c, d}。三次之后候选锁集合 C(v) 里还剩哪把锁？（写字母）
+      answers: [d, '{d}']
+      explain: '{a, b, c, d} ∩ {a, b, d} = {a, b, d}；∩ {b, d} = {b, d}；∩ {c, d} = {d}。d 一直保护着 v，不报警。'
