@@ -3,12 +3,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { beginnerIssues, resolveTerms } from "../../scripts/lib/beginner.mjs";
+import { coverageIssues } from "../../scripts/lib/coverage.mjs";
 import { normalizeLesson } from "../../src/game/core/lesson.js";
 
 const q = (id, prompt = "1 + 1？", extra = {}) => ({ id, type: "number", prompt, answer: 2, explain: "因为 1 + 1 = 2。", ...extra });
 const lesson = (flow) => normalizeLesson({ id: "l", chapter: "c", title: "t", flow });
 const boss = { items: [1, 2, 3, 4, 5].map((i) => q("b" + i)) };
-const rules = (pack, lessons, opts) => beginnerIssues({ boss, ...pack }, lessons, opts).map((m) => m.split(" ")[0]);
+// The fixtures are tiny lessons, so B8 (a lesson's worth of explanation) is left out except in its own test.
+const allRules = (pack, lessons, opts) => beginnerIssues({ boss, ...pack }, lessons, opts).map((m) => m.split(" ")[0]);
+const rules = (pack, lessons, opts) => allRules(pack, lessons, opts).filter((r) => r !== "B8");
 
 test("B1: jargon before its definition is caught; defined, inherited or assumed jargon is fine", () => {
   const early = lesson([{ item: q("a", "这个变量是多少？") }, { card: { body: "**变量（variable）**是名字。" } }, { item: q("b") }]);
@@ -50,7 +53,29 @@ test("B2, B3, B4: three cards in a row, an overlong card, a graded sim before an
 test("B5, B6, B7: skipped steps, self-assessment, too few final checks", () => {
   assert.deepEqual(rules({}, [lesson([{ card: { body: "显然成立。" } }, { item: q("a") }, { item: q("b") }])]), ["B5"]);
   assert.deepEqual(rules({}, [lesson([{ card: { body: "做完请自评。" } }, { item: q("a") }, { item: q("b") }])]), ["B6"]);
-  assert.deepEqual(beginnerIssues({ boss: { items: [q("x")] } }, [lesson([{ card: { body: "一句。" } }, { item: q("a") }, { item: q("b") }])], { coreChapters: 6 }).map((m) => m.split(" ")[0]), ["B7"]);
+  assert.deepEqual(beginnerIssues({ boss: { items: [q("x")] } }, [lesson([{ card: { body: "一句。" } }, { item: q("a") }, { item: q("b") }])], { coreChapters: 6 }).map((m) => m.split(" ")[0]).filter((r) => r !== "B8"), ["B7"]);
+});
+
+// 2026-11-08: 35 packs of "guess, 2 cards, 2 two-option questions" passed B1–B7 (reports/quality-audit-2026-11-08.md).
+test("B8, B9, B10: a lesson's worth of explanation and questions, a final challenge guessing cannot pass, definitions that stand alone", () => {
+  const card = (n) => ({ card: { body: "例".repeat(n) } });
+  const template = lesson([card(100), { item: q("a") }, card(100), { item: q("b") }]);
+  assert.deepEqual([...new Set(allRules({}, [template]))], ["B8"], "200 characters and 2 questions");
+  const full = lesson([card(210), { item: q("a") }, { item: q("b") }, card(210), { item: q("c") }, { item: q("d") }]);
+  assert.deepEqual(allRules({}, [full]), [], "420 characters and 4 questions");
+  const two = (id) => ({ id, type: "choice", prompt: "哪个？", options: [{ text: "甲", correct: true }, { text: "乙", why: "不是乙。" }], explain: "甲。" });
+  assert.deepEqual(rules({ boss: { items: [1, 2, 3, 4, 5].map((i) => two("b" + i)) } }, [full]), ["B9"], "five two-option choices: 4 of 5 by chance is 19 %");
+  assert.deepEqual(rules({}, [full]), [], "typed answers cannot be guessed");
+  assert.deepEqual(rules({ terms: [{ term: "自旋锁", def: "，忙等直到锁可用" }] }, [full]).filter((r) => r === "B10"), ["B10"], "cut out of a card's sentence");
+  assert.deepEqual(rules({ terms: [{ term: "静态库", def: ".a 文件：链接时复制进程序" }] }, [full]).filter((r) => r === "B10"), [], "a file extension may lead");
+});
+
+test("C1 depth: a coverage table may not hand more sections to a pack than its explanation can teach", () => {
+  const outline = { outline: [{ number: "1", title: "c", items: [1, 2, 3, 4].map((i) => ({ number: "1." + i, title: "s" + i })) }] };
+  const pack = (n) => ({ lessons: [{ id: "l", flow: [{ card: { body: "例".repeat(n) } }] }] });
+  const table = "| 节 | 原文 | 课 |\n|---|---|---|\n" + [1, 2, 3, 4].map((i) => `| 1.${i} | s${i} | \`l\` |`).join("\n");
+  assert.deepEqual(coverageIssues("X", outline, pack(400), table).issues.map((m) => m.split(":")[0]), ["C1 depth"], "4 sections from 400 characters");
+  assert.deepEqual(coverageIssues("X", outline, pack(800), table).issues, [], "4 sections from 800 characters");
 });
 
 test("look-up links: first use in questions, not in the defining lesson's cards, not in code or options", () => {

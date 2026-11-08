@@ -13,6 +13,17 @@
 //  B5 no skipped steps: words like 显然 / 不难看出 are not allowed.
 //  B6 no self-assessment anywhere.
 //  B7 the final challenge has enough checks: at least max(5, core chapters).
+//  B8 a lesson carries a lesson's worth (R4, 10–15 minutes; added 2026-11-08 after 35 packs written to a
+//     "guess, 2 cards, 2 questions" template passed B1–B7 with 2–3 minutes per lesson,
+//     reports/quality-audit-2026-11-08.md): on average at least LESSON_CHARS characters of explanation
+//     (cards and their reveal steps, code blocks and display math not counted) and LESSON_ITEMS graded
+//     questions per lesson, and no lesson under 2 questions. The floors sit under the 12 packs kept then
+//     (lowest averages 422 characters and 3.7 questions; the archived template packs were at most 349 and 2.5).
+//  B9 the final challenge cannot be passed by guessing: the chance of reaching the 80 % first-try mark by
+//     picking options at random (1/k for a k-option choice, 1/(2^k−1) for multiple choice, 1/n! for an
+//     order or a match of n, 0 for typed answers and sims) is at most GUESS_LIMIT.
+//  B10 a term's look-up definition is a sentence of its own: it does not start with punctuation or 是
+//     (definitions cut out of a card's sentence read "，忙等直到锁可用" in the look-up box).
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -39,6 +50,30 @@ const fencedCode = (t) => [...String(t || "").matchAll(/```([^\n`]*)\n([\s\S]*?)
 const cardCode = (c) => [...[c.body, ...(c.reveal || []).map((r) => r.body)].flatMap(fencedCode), ...(c.sim?.name === "trace" ? [[c.sim.params?.code, "python"]] : [])];
 const itemCode = (it) => [...(it.code ? [[it.code, it.lang]] : []), ...(it.sim === "trace" && it.params?.code ? [[it.params.code, "python"]] : []), ...[it.prompt, it.explain].flatMap(fencedCode)];
 export const CARD_CHARS = 240;
+export const LESSON_CHARS = 400, LESSON_ITEMS = 3.5, GUESS_LIMIT = 0.01, BOSS_PASS = 0.8;
+// B8's measure: explanation characters of a lesson's cards, code blocks, display math and spaces removed.
+export const explanationChars = (lesson) => lesson.flow.filter((s) => s.card)
+  .flatMap((s) => [s.card.body, ...(s.card.reveal || []).map((r) => r.body)])
+  .reduce((n, t) => n + String(t || "").replace(/```[\s\S]*?```/g, "").replace(/\$\$[\s\S]*?\$\$/g, "").replace(/\s+/g, "").length, 0);
+const factorial = (n) => (n <= 1 ? 1 : n * factorial(n - 1));
+// B9: chance of answering one item right by picking at random.
+export function guessChance(it) {
+  if (it.type === "choice") { const k = it.options.length; return it.multi ? 1 / (2 ** k - 1) : 1 / k; }
+  if (it.type === "order") return 1 / factorial(it.steps.length);
+  if (it.type === "match") return 1 / factorial(it.pairs.length);
+  return 0;
+}
+// Chance that random picks get at least BOSS_PASS of the items right (items independent).
+export function guessPassChance(items) {
+  let dist = [1];
+  for (const it of items) {
+    const p = guessChance(it), next = new Array(dist.length + 1).fill(0);
+    dist.forEach((q, k) => { next[k] += q * (1 - p); next[k + 1] += q * p; });
+    dist = next;
+  }
+  const need = Math.ceil(BOSS_PASS * items.length - 1e-9);
+  return dist.slice(need).reduce((a, b) => a + b, 0);
+}
 const SKIPPED = ["显然", "易知", "易得", "不难看出", "不难发现", "同理可得", "众所周知", "简单地说就是"];
 const SELF = ["自评", "你掌握得怎么样", "全做对了", "我已经会了", "如实评价"];
 
@@ -118,6 +153,17 @@ export function beginnerIssues(pack, lessons, { inherited = new Set(), coreChapt
   for (const t of pack.terms || []) if (!bolded.some((d) => d.startsWith(t.term))) out.push(`B1 terms: "${t.term}" is never defined as **${t.term}** in a card`);
   const need = Math.max(5, coreChapters);
   if ((pack.boss?.items || []).length < need) out.push(`B7 boss: ${(pack.boss?.items || []).length} checks; the final challenge needs at least ${need} (one per core chapter, at least 5)`);
+  if (lessons.length) {
+    const chars = lessons.reduce((n, l) => n + explanationChars(l), 0) / lessons.length;
+    const items = lessons.reduce((n, l) => n + l.flow.filter((s) => s.kind === "item").length, 0) / lessons.length;
+    if (chars < LESSON_CHARS) out.push(`B8 lessons: ${Math.round(chars)} characters of explanation per lesson on average (at least ${LESSON_CHARS}) — a lesson is 10–15 minutes: give a concrete example, a worked example and the steps, not a summary`);
+    if (items < LESSON_ITEMS) out.push(`B8 lessons: ${items.toFixed(1)} graded questions per lesson on average (at least ${LESSON_ITEMS})`);
+    for (const l of lessons) if (l.flow.filter((s) => s.kind === "item").length < 2) out.push(`B8 ${l.id}: fewer than 2 graded questions`);
+  }
+  const guess = guessPassChance(pack.boss?.items || []);
+  if (guess > GUESS_LIMIT) out.push(`B9 boss: random picks pass the final challenge with probability ${(guess * 100).toFixed(1)} % (at most ${GUESS_LIMIT * 100} %) — use choices with real misconceptions as extra options, or typed answers`);
+  // (a leading "." is fine when it starts a file extension: ".a 文件：…")
+  for (const t of pack.terms || []) if (/^([\s，,。．；;：:、！!？?是]|\.(?![A-Za-z0-9]))/.test(t.def || "")) out.push(`B10 terms: the definition of "${t.term}" starts with "${t.def[0]}" — write it as a sentence of its own`);
   return out;
 }
 

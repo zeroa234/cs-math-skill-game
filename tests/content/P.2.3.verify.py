@@ -336,9 +336,23 @@ def add_prefix(prefix):
     folder = Path("notes")
     for f in folder.glob("*.txt"):
         if not f.name.startswith(prefix):
-            f.rename(f.with_name(f"{prefix}_{f.name}"))
+            new = f.with_name(f"{prefix}_{f.name}")
+            if new.exists():
+                print("已有同名文件，跳过：", new.name)
+            else:
+                f.rename(new)
 add_prefix("2026-10-31"); add_prefix("2026-10-31")
 add(sorted(os.listdir("notes")), ["2026-10-31_todo.txt", "a.csv"])
+# the target is taken: the lesson's code must leave both files as they were
+os.makedirs("taken/notes", exist_ok=True); write("taken/notes/x.txt", "new"); write("taken/notes/2026-10-31_x.txt", "old")
+here = os.getcwd(); os.chdir("taken"); add_prefix("2026-10-31"); os.chdir(here)
+add((open("taken/notes/x.txt").read(), open("taken/notes/2026-10-31_x.txt").read()), ("new", "old"))
+# the lesson's claim about Path.rename onto an existing file: replaced on POSIX, FileExistsError on Windows
+write("r_a.txt", "a"); write("r_b.txt", "b")
+try:
+    Path("r_a.txt").rename("r_b.txt"); add((os.name, open("r_b.txt").read()), ("posix", "a"))
+except FileExistsError:
+    add(os.name, "nt")
 TEXT["batch-files/new-name"] = "2026-10-31_todo.txt"
 
 # ---------------- classes / inheritance
@@ -812,6 +826,13 @@ env_py = os.path.join("envdemo", "Scripts" if os.name == "nt" else "bin", "pytho
 r = subprocess.run([env_py, "-c", "import sys; print(sys.prefix != sys.base_prefix, sys.prefix)"], capture_output=True, text=True)
 add((r.stdout.split()[0], os.path.abspath("envdemo").lower() in r.stdout.lower()), ("True", True))
 add(os.path.exists(os.path.join("envdemo", "Scripts" if os.name == "nt" else "bin", "activate")), True)
+# venv/user-flag: inside a virtual environment pip refuses --user (this script runs in the project's .venv)
+if sys.prefix != sys.base_prefix:
+    r = subprocess.run([sys.executable, "-m", "pip", "install", "--user", "--no-index", "requests"], capture_output=True, text=True)
+    add((r.returncode != 0, "Can not perform a '--user' install" in r.stderr), (True, True))
+    CHOICE["venv/user-flag"] = "pip 报错，什么也不装"
+else:
+    checks.append((False, "not in a venv", "run with the project's .venv for the --user check", inspect.stack()[0].lineno))
 # ---------------- dependencies
 CHOICE["dependencies/conflict-pick"] = ok_(">=1.16.0,<1.19.0,>=1.16.5", ["1.16.5", "1.18.5", "1.16.0", "1.19.0"])
 add(ok_(">=1.16.0,<1.19.0,>=1.16.5,>=1.19", ["1.16.5", "1.18.5", "1.19.0", "1.20"]), [])
@@ -851,7 +872,8 @@ rb_ = subprocess.run([sys.executable, "-c", "print(42)"], capture_output=True); 
 try:
     subprocess.run([sys.executable, "-c", "import sys; sys.exit(1)"], check=True); add("no error", "CalledProcessError")
 except subprocess.CalledProcessError: add(True, True)
-add(os.system("exit 5") if os.name == "nt" else 5, 5)
+# the card: os.system gives the exit code on Windows, the wait()-encoded status on Linux and macOS (3 → 768)
+add(os.system("exit 3"), 3 if os.name == "nt" else 3 << 8)
 add((sys._is_gil_enabled(), sys.getswitchinterval()), (True, 0.005))
 write("pool.py", "from multiprocessing import Pool\n\ndef square(x):\n    return x * x\n\nif __name__ == '__main__':\n    with Pool(4) as p:\n        print(p.map(square, range(10)))\n")
 add(script("pool.py")[1].strip(), "[0, 1, 4, 9, 16, 25, 36, 49, 64, 81]")

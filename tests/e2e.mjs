@@ -202,20 +202,18 @@ await session("packs", DESK, async (p, shot) => {
   }
 });
 
+// Every open recommended campaign, end to end: the earlier stops are lit in the save, the last two
+// are finished through the route (their lessons marked done, their final challenges played), and the
+// banner must then show every stop lit. Read from routes.yaml, so a campaign that reopens is covered.
 const graph = indexTree(TREE);
-for (const [campaign, total, updated] of [
-  ["embedded", 20, ["C.1.2", "H.3.1", "H.1.1", "H.3.2", "H.3.3"]],
-  ["enterprise", 11, ["P.1.3", "P.4.1", "P.4.4"]],
-  ["mobile", 9, ["S.2.3", "P.1.4", "P.5.2"]],
-  ["web", 10, ["P.4.5", "D.1.1", "D.1.2", "S.3.1", "D.1.3"]],
-  ["devops", 12, ["P.2.4", "P.5.1", "P.5.3", "C.2.3"]],
-  ["security", 9, ["C.2.2", "C.3.2", "C.4.2", "S.2.2"]],
-  ["ai", 14, ["M.1.3", "M.1.4.1", "M.6.1", "M.6.2", "A.2.1", "M.6.2.2", "A.2.3", "A.4.1"]],
-]) {
+for (const open of TREE.routes.filter((r) => r.kind === "recommended" && r.status === "open")) {
+  const campaign = open.id;
+  const { stops } = planRoute(graph, open);
+  const total = stops.length, updated = stops.slice(-2);
   await session(campaign, DESK, async (p, shot) => {
-    const route = planRoute(graph, TREE.routes.find((r) => r.id === campaign));
+    const route = planRoute(graph, open);
     const newStops = route.stops.filter((id) => updated.includes(id));
-    if (newStops.length !== updated.length) throw new Error("new skills must be on the campaign");
+    if (newStops.some((id) => !packs[id])) throw new Error("an open campaign has a stop without lessons");
     await p.click(".intro .skip");
     await p.goto(url + "#/pick");
     const card = p.locator(".route-card").filter({ has: p.getByRole("heading", { name: route.name, exact: true }) });

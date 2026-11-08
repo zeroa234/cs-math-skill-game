@@ -1914,7 +1914,7 @@ lessons:
           explain: 2026 年不是闰年，2 月只有 28 天。2 月 27 日往后 2 天是 3 月 1 日。timedelta 会自动处理月底和闰年。
       - card:
           title: 例题：给所有 .txt 文件名加日期前缀
-          body: 把 notes 文件夹里每个 .txt 文件改名，例如 notes.txt 改成 2026-10-31_notes.txt（日期是运行那天）。运行两次也不能加出两个前缀。
+          body: 把 notes 文件夹里每个 .txt 文件改名，例如 notes.txt 改成 2026-10-31_notes.txt（日期是运行那天）。同一天运行两次也不能加出两个前缀；新名字已经被别的文件占用时，不能把它覆盖掉。
           reveal:
             - title: 第 1 步：准备好文件夹和前缀
               body: |
@@ -1930,13 +1930,17 @@ lessons:
                 for f in folder.glob('*.txt'):
                     if not f.name.startswith(prefix):
                 ```
-            - title: 第 3 步：拼出新名字并改名
+            - title: 第 3 步：拼出新名字，确认没被占用再改名
               body: |
                 ```python
-                        f.rename(f.with_name(f'{prefix}_{f.name}'))
+                        new = f.with_name(f'{prefix}_{f.name}')
+                        if new.exists():
+                            print('已有同名文件，跳过：', new.name)
+                        else:
+                            f.rename(new)
                 ```
 
-                with_name 保留所在的文件夹，只换文件名；rename 真正改名。
+                with_name 保留所在的文件夹，只换文件名；rename 真正改名。新名字已经存在时，rename 在 Linux 和 macOS 上会直接覆盖那个文件，在 Windows 上会报 FileExistsError，所以先用 exists() 查一下。
       - item:
           id: new-name
           type: text
@@ -5859,13 +5863,13 @@ lessons:
           type: choice
           prompt: 在已经激活的虚拟环境里运行 `python -m pip install --user requests`，--user 起什么作用？
           options:
-            - text: 不起作用，所有安装都进当前的虚拟环境
+            - text: pip 报错，什么也不装
               correct: true
+            - text: 不起作用，照常装进当前的虚拟环境
+              why: Packaging 指南说虚拟环境里 --user “没有效果”，但真去运行，pip 会直接报错拒绝安装
             - text: 装到用户文件夹，绕过虚拟环境
-              why: 指南明确说：虚拟环境里 --user 没有效果
-            - text: 只给当前用户装，别的用户看不到这个环境
-              why: 虚拟环境本来就是一个文件夹，--user 在这里不改变任何事
-          explain: '--user 是在不用虚拟环境、又没有管理员权限时，把库装到自己用户名下的办法。'
+              why: 普通的虚拟环境看不到用户文件夹里的库，pip 不会往那里装，而是报错
+          explain: "pip 的回答是：ERROR: Can not perform a '--user' install. User site-packages are not visible in this virtualenv.（pip 26 实测）。--user 是在不用虚拟环境、又没有管理员权限时，把库装到自己用户名下的办法；在虚拟环境里直接 pip install 就行。"
 
   - id: dependencies
     chapter: 环境管理与自动化
@@ -6158,7 +6162,7 @@ lessons:
           body: |
             一个正在运行的程序叫一个**进程（process）**：操作系统给它一份自己的内存，记着它运行到哪里。同一个程序运行两次，就是两个进程。
 
-            从 Python 里启动的另一个程序，是当前进程的子进程。最简单的办法是 `os.system('ls')`：命令的输出直接显示在屏幕上，返回值是退出状态，但输出拿不到变量里（原文正是因此介绍了别的办法）。
+            从 Python 里启动的另一个程序，是当前进程的子进程。最简单的办法是 `os.system('ls')`（Windows 上换成 `dir`）：命令的输出直接显示在屏幕上，但拿不到变量里（原文正是因此介绍了别的办法）。返回 0 表示成功；不是 0 时，Windows 上就是程序的退出码，Linux 和 macOS 上却是编码过的值（程序以 3 退出，得到 768）。
       - card:
           title: subprocess.run
           body: |

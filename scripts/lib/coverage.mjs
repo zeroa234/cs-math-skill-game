@@ -8,7 +8,14 @@
 // Checks: every leaf section has a row; every lesson id exists in the pack; a section the outline's
 // `coverage` names is taught (a named chapter: at least one of its sections is taught). The other
 // columns and the sections below the table (CS2023, exercises, successors: C2–C5) are read by people.
+// Depth (added 2026-11-08): a table can hand 70 sections to 13 two-card lessons and still pass, so the
+// pack's explanation (beginner.mjs explanationChars) must come to at least SECTION_CHARS characters per
+// taught section. The 12 packs kept after reports/quality-audit-2026-11-08.md have 233–1266; the 35
+// archived template packs had 24–206.
 import fs from "node:fs";
+import { explanationChars } from "./beginner.mjs";
+
+export const SECTION_CHARS = 200;
 
 // Leaf sections in outline order: a chapter's items, or the chapter itself when it has none.
 export function outlineLeaves(outline) {
@@ -55,6 +62,8 @@ export function coverageIssues(skillId, outline, pack, md) {
       if (!ok) issues.push(`C1 ${no}: the outline's coverage names it for "${c.topic}", so a lesson must teach it`);
     }
   }
+  const chars = (pack?.lessons || []).reduce((n, l) => n + explanationChars(l), 0);
+  if (taught && chars / taught < SECTION_CHARS) issues.push(`C1 depth: ${Math.round(chars / taught)} characters of explanation per taught section (at least ${SECTION_CHARS}) — the table names more sections than the lessons teach`);
   return { issues, taught, skipped, total: leaves.length };
 }
 
