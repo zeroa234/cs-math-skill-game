@@ -1,0 +1,2869 @@
+skill: P.1.2
+version: 2
+authors: [main-agent]
+brief:
+  why: |
+    写出一个能跑的独立 Python 脚本只是开始。一旦系统扩展到几十个协作模块、长期多人维护，就需要把“谁管哪一份内部数据、哪些规则不准被外界改坏、哪些可替换模块怎么协同”用清晰的类型边界固定下来。本包承接 P.1.1 的基础程序思维，以 Java 21 为载体并融通面向对象分析与设计，带你亲手写出经过编译器检查的封装账户、多态图形、组合优先于继承的委托结构、泛型容器、集合哈希契约、受检异常、文件流与并发线程池及 Maven 构建生命周期。
+  outcomes:
+    - 使用类、对象、引用语义、构造器与方法重载组织独立对象状态，识别多引用别名引发的意外修改
+    - 设计严格守住业务不变量的封装类（如 `BankAccount`）与访问边界，并在设计期同步编写断言测试
+    - 区分继承重写多态（动态分派）、抽象类与面向接口编程，识别正方形继承长方形的里氏替换陷阱并用组合委托解耦
+    - 运用泛型类与上下界通配符、基础数值与集合哈希契约（`==` vs `equals` + `hashCode`）及 Stream 排序
+    - 合理取舍受检异常与非受检异常、安全关闭文本与原始字节流 I/O，使用锁与线程池避免竞态和死锁并理解 Maven 构建生命周期
+terms:
+  - term: 编译
+    def: 在运行前将高阶源码整体检查并翻译为另一运行环境可执行形式（如 Java 字节码）的过程。
+  - term: 编译器
+    def: 负责检查语法与静态类型约束并执行源码转换的工具（如 JDK 中的 `javac`）。
+  - term: 类
+    def: 描述同一类对象共有内部字段状态结构与对外可用行为方法的模板定义。
+  - term: 对象
+    def: 根据某个类模板实际创建出来的独立运行期实体，各自拥有一份互不混用的字段状态。
+  - term: 引用
+    def: 变量中保存的用来找到并操作堆区里某个具体对象实体的间接定位句柄（而非直接把整份对象抄进变量）。
+  - term: 生命周期
+    def: 事物或构件从创建初始化、经历各阶段运行直到最终结束清理退出的完整阶段过程。
+  - term: 方法重载
+    def: 在同一个类中定义多个名称相同但参数类型或数量列表互不相同的独立方法。
+  - term: 封装
+    def: 把内部字段访问权限严密隐藏在私有边界内，仅通过受控公开方法按业务规则读写修改状态。
+  - term: 不变量
+    def: 无论外界执行多少次公开操作，对象内部状态始终必须维持绝不被破坏的强制数学或业务约束条件。
+  - term: 继承
+    def: 让子类复用并扩展已有父类的字段与非私有方法契约，建立特殊与一般类别层次关系。
+  - term: 重写
+    def: 子类用完全兼容的方法签名提供与父类同名方法不同的专属具体实现版本。
+  - term: 抽象类
+    def: 不能直接实例化、常用来存放共通字段骨架并留有必须由子类补齐实现的抽象方法的半成品基类。
+  - term: 动态分派
+    def: 程序运行过程中依据引用实际指向的具体对象类型来自动选定对应重写方法执行（而非仅看变量声明类型）。
+  - term: 多态
+    def: 用统一的父类型或契约视角操作多种具体表现形态各异的对象，让调用方不必写满屏分支判断。
+  - term: 接口
+    def: 只规定一组公开操作签名契约而剥离具体实现细节的纯行为规范类型（支持类多实现）。
+  - term: 子类型
+    def: 严格遵守父类型公开行为契约、可以无缝安全放在父类型位置替换使用的类型。
+  - term: 组合
+    def: 在一个对象内部作为私有字段持有另一位独立协作者实例（has-a），取代死板继承（is-a）实现灵活拼装。
+  - term: 委托
+    def: 对象接到请求后自己不直接硬算，而是转发交给内部持有的协作者对象代为完成具体工作。
+  - term: 泛型
+    def: 把具体元素类型抽象成声明参数 `<T>`，由检查器在运行前即守死存取类型安全的通用参数化结构。
+  - term: 类型擦除
+    def: Java 将泛型参数约束仅用于在生成代码前检验，而在生成运行时产物时擦回上界原始类型的翻译机制。
+  - term: 数组
+    def: 长度创建后固定不变、可在内部紧邻按从零开始的整数下标直接存取元素的同类型容器。
+  - term: 越界
+    def: 访问列表或固定区间容器时传入了小于零或超出有效元素总数的非法下标位置。
+  - term: 正则表达式
+    def: 用一套紧凑特殊字符规则简洁描述并匹配或提取一类特定格式文本模式的表达语法。
+  - term: 迭代
+    def: 按容器或区间提供的标准遍历方式依次逐个访问全部成员元素的过程。
+  - term: 迭代器
+    def: 负责记住当前遍历进度并一步步对外逐个安全吐出集合元素的专用游标访问对象。
+  - term: 受检异常
+    def: Java 检查机制硬性要求调用方必须显式捕获处理或写明向上声明抛出的可恢复异常分支（如 `Exception` 非运行时子类）。
+  - term: 字节
+    def: 由 8 个比特位（0 到 255 无符号范围）构成的基本信息存储与原始流传输最小计数单位。
+  - term: 序列化
+    def: 把运行中对象结构或数据转化成一串有序纯传输文本或原始存储序列以供落盘和跨网传输。
+  - term: 进程
+    def: 操作系统独立分配专属资源与隔离运行环境的完整在跑应用程序实例。
+  - term: 线程
+    def: 同一个在跑应用内部并发执行的一条独立顺序控制路线，彼此共享同一份堆内对象空间。
+  - term: 中断
+    def: 协作式发出请求信号告知正在睡眠等待的工作路线“应当尽快清理停止工作”（`interrupt()`）。
+  - term: 竞态条件
+    def: 多个并发控制路线无协调地交替读写同一份共享状态，导致最终结果取决于运气先后而随机出错的现象。
+  - term: 临界区
+    def: 多条并发执行路线会同时访问并修改同一份共享状态、因此必须严格保护的代码片段。
+  - term: 互斥锁
+    def: 同一时刻只允许至多一条工作路线持有并进入临界区，其余竞争者阻塞等待的同步排他屏障。
+  - term: 死锁
+    def: 两条及以上并发路线各自死抱一把排他锁却互相干等对方手里另一把锁，导致全员永久卡死不动。
+  - term: 线程池
+    def: 预先创建并复用固定数量工作路线来持续排队处理大量短小异步任务的统一排程池。
+
+lessons:
+  # ======================================================================== 对象
+  - id: java-start
+    chapter: 对象
+    title: Java 初体验：静态类型、编译检查与标准输入输出（8.1.1–8.1.5）
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 刚从动态类型 Python 转到 Java 时，如果你在代码里写了 `int price = "abc";`（试图把一段文字直接塞给要求整数的变量），还没等真正运行程序输入任何数据，Java 工具在打包检查那一步就会直接报错叫停！这和 Python 平时“跑到那一行才炸 `TypeError`”有什么根本区别？（8.1.1–8.1.5 节）
+          options:
+            - text: Java 采用静态强类型检查：工具在真正运行前先扫描全部源文件核对所有变量类型是否相容，提早把低级拼错与类型乱塞挡在门外！
+              correct: true
+            - text: 因为 Java 规定全世界任何文件里都绝对不允许写双引号文字
+              why: Java 完全用 `String` 表示双引号文字，只是每个变量声明时必须写明归属类型（如 `int` 或 `String`），并在运行前严格核对
+            - text: 这表示计算机死机坏掉了，Python 永远跑得比 Java 快十倍
+              why: 提前静态查验能赶在用户拿到软件前发现大量类型错误，而且生成出来的低层运行码往往极快！
+          explain: 本课进入 `P.1.2` 第一章 **对象**：先跨过从 Python 到 Java 的第一步，用 JDK 21 亲手跑通输入、变量与 前端转换与类型检查（8.1.1–8.1.5 节）！
+      - card:
+          title: 编译（Compile）、编译器（Compiler）与程序入口（8.1.1–8.1.5）
+          body: |
+            Java 代码需先经过 **编译**（将人类源码转为 JVM 虚拟机可读中间码并严格查错），执行检查转换的工具叫 **编译器**（JDK 中的 `javac`）。
+            - **强静态类型**：每个变量声明要写明类型（如 `int count`、`double ratio`、`String name`）；
+            - **规范入口**：独立执行类以 `public static void main(String[] args)` 起跑，`Scanner` 读标准输入、`System.out.println(...)` 输出。
+
+            ```java
+            import java.util.Scanner;
+
+            class Main {
+                public static void main(String[] args) {
+                    Scanner input = new Scanner(System.in);
+                    int count = input.nextInt();
+                    System.out.println(count * 2);
+                }
+            }
+            // input: 7
+            // expect: 14
+            ```
+      - item:
+          id: q-compiler-role-start
+          type: choice
+          prompt: 刚写完一段 `Main.java` 代码后在命令行运行 `javac Main.java`（**编译器**工作阶段），紧接着再运行 `java Main`。这两步分工最准确的是哪一项？
+          options:
+            - text: "`javac` 负责检查语法与静态类型并将源码转换为中间运行码产物；`java` 启动虚拟机环境加载该产物并从 `main` 方法开始执行业务动作"
+              correct: true
+            - text: "`javac` 直接帮你把显示器擦干净，而 `java` 把源码倒序删除"
+              why: 先由 `javac` 完成语法类型检查与编译生成 `.class` 产物，再由 `java` 启动运行时真正执行程序
+            - text: 两步功能完全一模一样，随便删掉任意一句都不会报错
+              why: 如果不经过编译转换并跳过静态检查，JVM 虚拟机无法直接执行未检查的原始 `.java` 复杂工程源码
+          explain: 先用 `javac` 守住第一道类型边界（比如绝不让文字 `"abc"` 混进 `int`），再用 `java` 高速执行！
+      - card:
+          title: 例题：注意 Java 整数除法 `5 / 2 == 2` 与数值变量安全计算（8.1.4–8.1.5）
+          body: |
+            从 Python 转来最易中招的一点是：**Java 里两个整数 `int` 相除依然只取整数商！** 看清四条运算规则：
+          reveal:
+            - title: 第 1 步：`int` 除以 `int` 直接截断小数部分
+              body: 在 Python 中 `5 / 2` 得到 `2.5`（除非写 `5 // 2`）；而在 Java 中写 `int a = 5 / 2;` 算出的答案是整数 **`2`**！想要精确小数除法，必须把至少一边转成 `double`（例如 `5.0 / 2` 或 `(double) a / b` 得 `2.5`）。
+            - title: 第 2 步：整型边界与 `long` 升级
+              body: Java 默认 `int` 占用固定范围（约正负 21 亿），表示超大金额或时间戳时须显式声明为 **`long`** 并警惕相加数值溢位；这也是后面第 2 章里 `BankAccount` 要加防护的关键原因！
+            - title: 第 3 步：`Scanner` 读一行整数 vs 字符串拼接陷阱
+              body: 写 `"total=" + 3 + 4` 时，左边先成文字 `"total=3"` 再拼 `4` 得 `"total=34"`；只有加括号 `"total=" + (3 + 4)` 才得 `"total=7"`！
+      - item:
+          id: q-java-int-division
+          type: number
+          prompt: 在 Java 代码中执行 `int x = 7; int y = 2; System.out.println(x / y);`（注意两侧变量均声明为整数类型 `int`），屏幕最终打印出的整数结果是什么？（填整数）
+          answer: 3
+          explain: 两个 `int` 做 `/` 运算做整数商截断：`7 / 2` 严格输出 **`3`**！若需要小数值 `3.5`，须写 `(double) x / y`。
+      - item:
+          id: q-static-type-benefit
+          type: choice
+          prompt: 某团队刚把一段关键计费脚本写成 Java：在执行 `javac` 时直接报出“不兼容类型：无法将 `String` 转为 `int`”，压根没等到夜里线上跑出账务计算崩溃。这体现了什么优势？（8.1.4 节）
+          options:
+            - text: "**静态类型编译期检查**：在尚未实际跑任何用户数据前就能把一大批低级类型混淆错当场揪出拦截"
+              correct: true
+            - text: 说明 Java 变量名字绝对不能用英文单词
+              why: Java 鼓励极清晰可读的英文命名与明确类型标注，报错是因为把字符串放进了整数槽位
+            - text: 说明应该把 `String` 和 `int` 混在同一个变量里随意乱算
+              why: 严格区分文本与数值类型正是减少隐晦运行期计算事故的防护栏
+          explain: 既然过了基础输入输出与类型关，下课看 Java 里的分支、循环与小方法抽取（8.1.6–8.2.4）！
+      - item:
+          id: q-java-basics-match
+          type: match
+          prompt: 把 Java 入门四大基础要素（8.1.1–8.1.5 节）与对应作用精确匹配。
+          pairs:
+            - ["**`public static void main(String[] args)`**", "独立 Java 应用被虚拟机启动时默认找到并起跑的固定主入口方法"]
+            - ["**`javac` 编译工具**", "运行前检查语法与类型兼容性、生成可由虚拟机载入执行产物的前置关口"]
+            - ["**`Scanner` 标准输入**", "从控制台标准流中按整数、浮点数或整行读取外部用户输入数据"]
+            - ["**`(double) a / b` 显式转型除法**", "避免两个 `int` 相除发生整数截断丢失小数部分的准确浮算写法"]
+          explain: 记住上面 runnable `Main` 示例已经经由 JDK 21 真实输入 `7` → `14`、输入 `9` → `18` 验证通过！
+
+      - item:
+          id: q-string-plus-order
+          type: choice
+          prompt: 执行 Java 语句 `System.out.println("sum=" + 3 + 4);` 与 `System.out.println("sum=" + (3 + 4));`，两行分别打印什么？（8.1.5 节）
+          options:
+            - text: 第一行因从左向右先把 `3` 拼进字符串得出 `"sum=34"`；第二行括号先做整数加法得出 `"sum=7"`
+              correct: true
+            - text: 两行全部都直接打印 `"sum=7"`
+              why: 没有括号时 `+` 按左结合优先把 `"sum=" + 3` 拼成字符串 `"sum=3"`，随后再拼 `4` 得 `"sum=34"`
+            - text: 第二行会直接报错说括号里不准相加
+              why: 括号明确先做整型算术求和得 `7`，然后再与左侧文本拼接
+          explain: 字符串旁边做算术求值**一定顺手加上圆括号**！
+
+  - id: java-flow
+    chapter: 对象
+    title: 控制流、递归/循环习惯与小方法拆分（8.1.6、8.2.1–8.2.4、9.3.3）
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 在计算 `1` 到 `10` 累加或判断三类成绩等级时，如果你把全部判断与重复求和逻辑毫无章节地全塞进 `main` 函数一条从头写到第 300 行的代码里，不仅看的人头昏眼花，哪天别的地方又要算一次总和时只能整段复制粘贴！按 8.2.4 节工程建议该怎么整洁组织？（8.2.1–8.2.4）
+          options:
+            - text: 把独立可复用的判断或计算片段拆成输入清楚、返回明确结果的 **小辅助方法（Methods）**，让 `main` 读起来像清晰步骤目录！
+              correct: true
+            - text: 复制粘贴一模一样的计算段落十次才显得程序长而厉害
+              why: 复制粘贴会使以后修改一处边界规则时必须同时翻找修改十个角落，极易改漏出 Bug
+            - text: 禁止在同一个类里写超过 1 个函数名
+              why: 拆分成专注职责的小方法正是面向过程与面向对象结构清晰化的第一步
+          explain: 本课对齐 8.1.6、8.2.1–8.2.4 与 9.3.3 节：巩固 Java 条件判断、常见循环累加模式与职责清晰的小方法拆分！
+      - card:
+          title: 条件三元、循序累加模式与方法拆解（8.1.6、8.2.1–8.2.4）
+          body: |
+            常见结构套路（8.1.6–8.2.4）：
+            - **条件与简洁表达**：`if / else if / else` 分支覆盖全边界，极简二选一可用 `cond ? a : b`（`switch` 适合固定枚举分支）；
+            - **循环模式**：已知次数用 `for (int i = 1; i <= n; i++)`，条件停转用 `while`；
+            - **拆小方法**：给每段独立算术/校验起贴切动词名字并写清参数与返回类型。
+
+            ```java
+            static int sumUpTo(int n) {
+                int total = 0;
+                for (int i = 1; i <= n; i++) {
+                    total += i;
+                }
+                return total;
+            }
+            System.out.println(sumUpTo(5));
+            // expect: 15
+            ```
+      - item:
+          id: q-sum-up-to-trace
+          type: number
+          prompt: 阅读上方经由 JDK 21 实际运行验证的 `sumUpTo(5)` 方法代码：当 `i` 从 `1` 循环累加至 `i <= 5` 并返回 `total` 时，控制台打印的结果是 **多少**？（填整数）
+          answer: 15
+          explain: "`1 + 2 + 3 + 4 + 5 = 15`——且若忘了把 `<=` 写成 `<`，结果就会错成 `10`，正是循环上界差一常见检验点！"
+      - card:
+          title: 例题：为什么用辅助小方法拆出“单笔折后算价”，比全写死在 `for` 循环体内更容易测对？
+          body: |
+            假设我们要给一批购物车清单算总价（凡满 100 的单品立打 8 折，不满不打折）：
+          reveal:
+            - title: 第 1 步：混乱写法把打折条件与总累加搅成一团
+              body: 如果把找满百、算小数截断、加运费全揉进一个 80 行的 `main` 大循环里，一旦总价算歪了一块，根本分不清是累加逻辑错还是单品折算错！
+            - title: 第 2 步：抽出 `static long itemPrice(long raw)` 专管单品规则
+              body: 一个只有 4 行的纯小方法只测两句话：`itemPrice(99) == 99` 与 `itemPrice(100) == 80` 瞬间确认无差一 BUG；外层求和循环只专注调用并加总它们！
+            - title: 第 3 步：Java 中 `void` 与有返回值的清晰边界
+              body: 只干活不返回结果的方法写 `void`（如打印报告）；需要把答案传给调用方接着算的则必须写明确切返回类型（如 `int` 或 `long`），由检查器保证每条分支都有 `return`！
+      - item:
+          id: q-method-extraction-why
+          type: choice
+          prompt: 依据 8.2.4 节（Dividing the program into smaller parts），把一段重复出现或逻辑复杂的计算独立抽取成具名小方法，最直接带来的两个好处是什么？
+          options:
+            - text: ① 消除重复粘贴，规则变更时只需修改这一处；② 方法名直接当做清晰说明文档，且能拿边界输入独立验证这小块算得对不对
+              correct: true
+            - text: 让同一个程序无法使用任何参数输入
+              why: 方法通过形参接收各种输入并复用同一逻辑，正是最标准的模块化复用手法
+            - text: 可以从此不用写 `return` 或括号就能让电脑瞎猜逻辑
+              why: 每个方法严格声明参数类型和返回类型契约，使逻辑衔接更清晰严谨
+          explain: 一旦你发现好多小方法老在操作同一堆紧密相关的数据（比如都在读和改同一个账户编号与余额），下一步呼之欲出——**把数据与专门操作它的方法打包成“类与对象”！**
+      - item:
+          id: q-ternary-vs-if
+          type: choice
+          prompt: "Java 写法 `String badge = score >= 60 ? \"pass\" : \"retry\";`（8.1.6 节）等价于哪种条件结构？使用时何时不适合套多层三元运算符？"
+          options:
+            - text: 等价于简单的两路 `if/else` 条件赋值；一旦出现超过两层条件分支嵌套时切忌硬写成嵌套三元，改回直观的 `if / else if / else` 保证一眼可读
+              correct: true
+            - text: 它会在每次执行时自动删除整个分数变量
+              why: 三元条件表达式按条件求值其中一支结果并赋给 `badge`，纯简洁直观的两选一表达
+            - text: 三元表达式专门用来写无限循环
+              why: 重复循环用 `for` 或 `while`，三元条件仅用于两分支求值
+          explain: 工具要替清晰性服务：**简短二选一用 `?:`，复杂逻辑规规矩矩写清晰 `if/else`！**
+      - item:
+          id: q-loop-off-by-one-guard
+          type: choice
+          prompt: 用循环遍历处理前 `n` 项（从 `0` 开始编号，共 `n` 项）时，为什么几乎全世界语言都惯用左闭右开条件 `for (int i = 0; i < n; i++)` 而非 `<= n`？
+          options:
+            - text: 从 `0` 数到 `n - 1` 恰好精确包含 **`n` 项**；如果错写成 `i <= n`，循环实际跑了 `n + 1` 次，会在最末尾多出一次非法位置访问！
+              correct: true
+            - text: 因为电脑数字里最大绝对不允许超过 `n`
+              why: 核心算术是 `0, 1, ..., n-1` 共计 `(n - 1) - 0 + 1 = n` 项，正好避免最后多一步差一错！
+            - text: 因为小于号比小于等于号在屏幕上省墨水
+              why: 用 `i < n` 统一长度 `n` 与末尾开界，极大地减少循环步数错算
+          explain: 这两条基础逻辑关过掉后，下一课正式推开面向对象大门：**类（Class）与对象（Object）！**
+
+      - item:
+          id: q-switch-vs-if
+          type: choice
+          prompt: 当需要依据枚举订单状态（`PENDING`、`PAID`、`CANCELLED`）分路处理逻辑时，Java 中的 `switch` 表达或分支相比十层冗长 `else if` 链有什么可读优势？（8.1.6 节）
+          options:
+            - text: 结构紧凑对齐枚举全集（现代 Java `switch` 更能由编译器核查是否漏掉某种枚举情况并直接返回值）
+              correct: true
+            - text: "`switch` 规定绝对不能处理超过 1 个分支"
+              why: "`switch` 专为多离散枚举或固定常量分派设计，清晰直观"
+            - text: 写了 `switch` 后就能完全免除任何条件逻辑错误
+              why: 仍须审慎核查每条分支语义并覆盖全部有效枚举值
+          explain: 状态少且固定用 `switch`，区间大小不等式判断用 `if / else if / else`！
+
+  - id: objects
+    chapter: 对象
+    title: 类（Class）与对象（Object）：状态、构造器与实体建模（6.1–6.2、8.4.1、8.5.1、9.1.1）
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 想象你要管理图书馆里的 500 本借阅书籍，每本书都有自己的书名和当前是不是被借出去了。如果退回纯零散全局变量，就得建 `title1, title2...` 或者硬凑几张没关系的零散列表靠下标硬对齐，漏删一个全书错位！面向对象的核心点子怎么彻底治好这种乱象？（6.1–6.2、8.4.1 节）
+          options:
+            - text: 先定义一张统一的图纸叫 **类**（写好“每本书都有书名和借出状态字段 + 借书/归还方法”），再按图纸创建出 500 个彼此独立互不串台的具体 **对象**！
+              correct: true
+            - text: 直接禁止图书馆同时存超过 1 本书，大家共用同一变量覆盖来去
+              why: 真正需要的是让成百上千个同类实体各自拥有一份独立状态，并捆绑上只对它自己生效的操作方法！
+            - text: 把所有书名全拼成一行长一万字的单一字符串存进一个文本文件
+              why: 面向对象建模就是按现实与业务中的概念实体（账户、订单、书本）拆成各管各状态又互发消息的清晰单元！
+          explain: 本课依据 6.1–6.2、8.4.1、8.5.1 节，确立面向对象最核心的根基：**类模板 vs 对象实例、字段状态与构造器初始化**！
+      - card:
+          title: 什么是类（Class）与对象（Object）？（6.1–6.2、8.4.1）
+          body: |
+            - **类**：好比一张制造模具或蓝图，统一定义这类事物有什么内部数据字段（Field，如 `title`、`borrowed`）以及支持对外做什么动作方法（Method，如 `borrow()`）。
+            - **对象**：用 `new` 关键字按照图纸真实制造出的**独立实体**！每份实例有自己专属的一份字段值——你借走 `bookA`，`bookB` 的借出状态纹丝不动！
+            - **构造器（Constructor）**：与类名同名、在 `new` 的那一刻立刻运行，负责把对象初始化成合法可用起始态！
+
+            ```java
+            class Book {
+                private final String title;
+                private boolean borrowed = false;
+                Book(String title) { this.title = title; }
+                void borrow() { this.borrowed = true; }
+                boolean isBorrowed() { return this.borrowed; }
+            }
+            Book a = new Book("Java");
+            Book b = new Book("Algorithms");
+            a.borrow();
+            System.out.println(a.isBorrowed() + ":" + b.isBorrowed());
+            // expect: true:false
+            ```
+      - item:
+          id: q-two-book-objects-state
+          type: choice
+          prompt: 观察上方经 JDK 21 实际跑通的 `Book` 类代码：新建 `a = new Book("Java")` 与 `b = new Book("Algorithms")`，然后只调用了 `a.borrow()`。为什么打印输出 `a.isBorrowed() + ":" + b.isBorrowed()` 结果精确等于 `true:false`？
+          options:
+            - text: "`Book` 是共用图纸（**类**），而 `new Book(...)` 造出了两份完全独立存储各自字段状态的具体 **对象**；改动 `a` 的 `this.borrowed` 不会波及 `b`！"
+              correct: true
+            - text: 因为 Java 规定第一个字母必须是 `a` 的变量才准许存布尔值
+              why: 每个通过 `new` 创建出的实例都单独拥有一份自己的实例字段槽位，`this` 永远指向当前正在接受调用的那一个具体对象！
+            - text: 因为调用 `a.borrow()` 后 `b` 也被默认顺便修改成了 `true`
+              why: 各个实例自己的实例字段各自独立（除非显式声明为全类共用的 `static` 字段）
+          explain: 一句话区分：**类是蓝图模具，对象是按模具产出的一个个活生生、各管各数据的实体！**
+      - card:
+          title: 例题：`this` 关键字到底指代谁？实例字段 vs 类共用 `static` 字段（8.5.1）
+          body: |
+            看清为什么构造器里写了 `this.title = title;`、以及什么时候该写 `static` 什么时候千万别写 `static`：
+          reveal:
+            - title: 第 1 步：`this.title = title` 消除了参数和实例字段同名冲突
+              body: 构造器传入的参数叫 `title`，类里面存的字段也叫 `title`。加上 **`this.`** 就明明白白告诉检查器：“左边把数据写进**当前正在新建这只对象自己名下字段里**，右边读传进来的形参！”
+            - title: 第 2 步：若不小心手滑给字段 `borrowed` 加上 `static` 修饰会出什么惨案？
+              body: 一旦写成 `private static boolean borrowed;`，它立刻不再属于每一本具体书，而是全图书馆所有书共享同一根共用变量！小王借走第 1 本书，`b.isBorrowed()` 瞬间跟着全站书都变成已借出！**每个对象自己专属的状态绝不能写成 `static`！**
+            - title: 第 3 步：`static` 只属于类自身（例如全班共享常量或只看参数算术的工具方法）
+              body: 如圆周率常量 `static final double PI = 3.14159;` 或前面不依赖任何具体对象状态的纯算式方法，才用 `static` 挂在类级别！
+      - item:
+          id: q-class-vs-object-match
+          type: match
+          prompt: 把面向对象入门（6.1–6.2、8.5.1 节）中的四个基本构件与各自核心职责精准配对。
+          pairs:
+            - ["**类（Class）**", "规定某一族实体的共同属性结构与行为方法集合的统一类型蓝图"]
+            - ["**对象（Object）**", "通过 `new` 依据类蓝图实实在在建出来的具体实体，各自持有一份独立的实例字段数据"]
+            - ["**构造器（Constructor）**", "在 `new` 创建实体一刹那自动运行、把必需起始状态校验并初始化就位"]
+            - ["**`this` 自指句柄**", "在实例方法内部指向“当前到底是谁在被调用”的那个具体接收对象本身"]
+          explain: 搞定了单个独立对象，下一课看一件极其容易踩坑的事：**当把对象赋值或传参给另一个变量时，到底复制了整个对象，还是复制了一把指向同一对象的“引用钥匙”？**
+      - item:
+          id: q-accidental-static-bug
+          type: choice
+          prompt: 一位新手写了个 `Counter` 计数器类，原本想建 `c1`（计 A 班人数）和 `c2`（计 B 班人数）两个独立计数器，结果不小心把字段写成了 `private static int count = 0;`。给 `c1` 加 3 次后查看 `c2.getCount()`，竟然也变成了 `3`！根本原因在哪？
+          options:
+            - text: 加上 `static` 后 `count` 变成了全类共用的唯一类共用字段而非各自对象的独立实例字段，导致 `c1` 和 `c2` 共用同一个计数器！去掉 `static` 即可恢复每只对象各记各数
+              correct: true
+            - text: 因为 Java 规定任何变量都只允许保存数字 `3`
+              why: 是 `static` 把“属于每只对象的状态”变成“全类全局共享只有一份”造成的！
+            - text: 因为应当删掉构造器才不会共用
+              why: 即使保留或去掉构造器，只要实例专属字段上带着 `static` 就依然全类共享同一格状态
+          explain: 牢记：**对象自己的属性绝不加 `static`**——仅在全类共享统一常数值或无关单只对象的辅助方法时才写 `static`！
+      - item:
+          id: q-constructor-purpose
+          type: choice
+          prompt: 如果设计一个订单类 `Order`，要求刚创建出来那一刻必须带有非空下单人编号 `owner` 和合法正整数金额 `amount`。最应该在哪个机制里把这件事锁死？（6.2、8.5.1 节）
+          options:
+            - text: 写一个带必需参数的 **构造器 `Order(String owner, long amount)`** 并取消无参半成品构造，使得外部根本造不出缺少 `owner` 或金额非法的半残废对象
+              correct: true
+            - text: 先 `new Order()` 造一个全空对象，再口头嘱咐调用方记着自己手动调五次零散 `set` 方法填完才许用
+              why: 把完整合规建档全托付给“人记住去调一连串 setter”，早晚有人忘记调其中一句并把半成品残缺对象传给下游引爆空报错！
+            - text: 把 `owner` 和 `amount` 全删掉不存起来
+              why: 构造器正是守门对象一诞生即满足合法初始状态的第一道强保障门！
+          explain: 下课来看极关键的 **引用（Reference）**、对象图与可变 vs 不可变大坑！
+
+  - id: references
+    chapter: 对象
+    title: 引用语义、别名共享修改、不可变对象与生命周期（1.1–1.2、8.5.3–8.5.4、9.1.1）
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 看这三行再短不过的 Java 代码：`Box a = new Box(10); Box b = a; b.value = 99; System.out.println(a.value);`——你把 `a` 赋给了 `b`，然后只改了 `b.value = 99`，难道 `a.value` 不应该还是原本的 `10` 吗？！怎么一打印出来 `a.value` 居然**也跟着变成了 `99`**？！（8.5.3–8.5.4 节）
+          options:
+            - text: 因为 `a` 和 `b` 里面存的根本不是一整份复制的 `Box` 数据，而是指向同一只堆区对象的同一把定位钥匙（即 **引用**）！`b = a` 复制的是钥匙本身，两把钥匙开的却是同一间房间里的同一份状态！
+              correct: true
+            - text: 因为 Java 的赋值号 `=` 永远按数字倒减计算
+              why: 对基本类型（如 `int x = 10; int y = x;`）赋值确实复制值本身；而对一切对象变量，变量中存的只是找出对象的 **引用**，赋值只是让两个变量并排指向同一个对象（别名 Aliasing）！
+            - text: 因为 `Box` 类的名字太短只有 3 个字母
+              why: 所有类对象的变量在 Java 中都遵守引用语义，理解这一点是读懂后续集合、参数传递与并发分享的命脉！
+          explain: 本课依据 CS 2110 第 1.1–1.2 节对象图（Object Diagrams）与 8.5.3–8.5.4 节：**彻底搞透引用别名、基本类型 vs 对象引用、以及不可变对象与对象存在周期！**
+      - card:
+          title: 引用（Reference）语义、对象图与对象生命周期（1.1–1.2、8.5.3–8.5.4）
+          body: |
+            - **引用**：对象变量中装的并非对象内容本身，而是指向堆存储区中某只具体对象的定位句柄。`Box b = a` 让 `a` 与 `b` 指向同一实体（**别名共享**）！
+            - **基本值 vs 引用**：`int y = x` 真拷贝数字，改 `y` 不改 `x`；传对象给方法时拷贝的是引用，方法内改动对方内部字段会同步反映在外部！
+            - **生命周期**：对象从 `new` 诞生并被变量持有开始存活，直到所有有效引用都断开再也无人触达，随后由垃圾回收器自动清理退场。
+
+            ```java
+            class Box { int v; Box(int v) { this.v = v; } }
+            Box a = new Box(10);
+            Box b = a;
+            b.v = 99;
+            System.out.println(a.v + ":" + (a == b));
+            // expect: 99:true
+            ```
+      - card:
+          title: 不可变对象（Immutable）为什么天生无惧别名共享？（1.1）
+          body: |
+            当 `a` 和 `b` 共指同一只可变列表或可改 `Box` 时，一方不小心改了它，另一方不知情就跟着遭殃。**如果对象一经构造就彻底不允许修改内部状态（如 `String`、或全 `private final` 且无任何变更方法的货币值类）**——即便把它任意传递共享给十个不同方法或并发路线，谁也不可能改坏对方手里那份状态！
+      - item:
+          id: q-reference-aliasing-99
+          type: choice
+          prompt: 针对上方已在 JDK 21 运行通过的 `Box` 代码：`Box a = new Box(10); Box b = a; b.v = 99;`。如果接下来又写一行 `b = new Box(50);`，请问这时打印 `a.v` 与 `b.v` 各自是多少？
+          options:
+            - text: "`a.v` 仍为 `99`，`b.v` 为 `50`——`b = new Box(50)` 只是把 `b` 自己手中的引用改指向一只全新造出来的对象，不再与 `a` 共指刚才那只对象"
+              correct: true
+            - text: "`a.v` 也一起立刻变成 `50`，因为 `a` 和 `b` 这辈子彻底焊死了名字"
+              why: 改变变量 `b` 本身让它重新指向新对象（重绑定变量引用），不会影响原先另一边依然握着旧对象的变量 `a`！
+            - text: "`a.v` 变回最初的 `10`"
+              why: 之前通过 `b.v = 99` 已经真实改写了原先那只共用对象的内部字段值 `v`，所以 `a.v` 保持为 `99`
+          explain: 用画圆圈连箭头对象图（1.2 节）一看就秒懂：**`b.v = ...` 顺着箭头进房间改家具；`b = new ...` 把 `b` 的箭头拧转向一间新房间！**
+      - card:
+          title: 例题：用 `Object Diagram（对象图，1.2 节）` + 防御性拷贝化解一次隐蔽越权修改 Bug！
+          body: |
+            假设某人写了一个“课程名单 `Roster`”类，里面存着学生列表 `students`，但一不小心提供了 `List<String> getStudents() { return this.students; }` 直接把内部列表引用原封返回出去了！顺着对象图看看灾难怎么发生：
+          reveal:
+            - title: 第 1 步：外部调用 `List<String> view = roster.getStudents(); view.clear();`
+              body: 因为 `getStudents()` 直接吐出了内部私藏列表的同一把 **引用**，外面拿到手后直接一记 `.clear()`——看似只操作局部变量 `view`，实际隔山打牛把 `roster` 肚子里的官方花名册清空得干干净净！
+            - title: 第 2 步：解法一——改为不可变对象与只读快照副本
+              body: 在 `getStudents()` 里返回 `List.copyOf(this.students)`（返回一份**不可变只读副本**）！这样外部无论怎么看甚至试图改写副本，原对象自己的核心列表纹丝不动！
+            - title: 第 3 步：同时看清为什么 `String` 在 Java 里可以放心直接到处传引
+              body: "`String` 被设计成彻底**不可变对象**！哪怕执行 `String s1 = \"hi\"; String s2 = s1; s2 = s2 + \"!\";`，`s2` 只是指向了新造的 `\"hi!\"`，而 `s1` 永远稳如磐石等于 `\"hi\"`！"
+      - item:
+          id: q-string-immutability
+          type: choice
+          prompt: 在 Java 中运行两行字符串代码：`String s1 = "abc"; String s2 = s1; s2 = s2.toUpperCase();`。此时打印 `s1` 会输出什么、为什么？（1.1 节）
+          options:
+            - text: "`s1` 仍然稳稳输出小写 `\"abc\"`——因为 Java 的 `String` 是**不可变对象**，`toUpperCase()` 绝不会原地改坏 `\"abc\"`，而是新造出一个 `\"ABC\"` 对象返回并重新赋给 `s2`"
+              correct: true
+            - text: "`s1` 也会同步被改写成大写 `\"ABC\"`，因为它们一开始共指同一串文字"
+              why: "`String` 不提供任何原地改写字符的方法，哪怕多个变量共享同一串字符的引用也绝对安全不会被彼此修改！"
+            - text: 程序会当场报错说两个变量不允许拿同一个字符串
+              why: 恰恰相反，正因为不可变，多个引用安全共享同一个不可变字符串对象既省空间又绝无意外串改风险！
+          explain: 下一步我们马上在自己编写业务类（如 `BankAccount`）时用 **不可变副本 + 私有封装** 狠狠用上这招！
+      - item:
+          id: q-null-reference-trap
+          type: choice
+          prompt: 当一个对象引用变量尚未指向任何实体（即值为 `null`）时，代码却顺手调用了 `user.getName()`，Java 运行期立刻抛出 `NullPointerException`。这揭示了关于 `null` 引用的哪条日常编码守则？
+          options:
+            - text: "`null` 表示“没有任何对象实体在箭头另一端”；设计方法边界时尽量少返回 `null`（可用空集合、明确抛无效参数或 `Optional` 表达无值），并在入口尽早做非空前置校验"
+              correct: true
+            - text: "`null` 等同于整数数字 `0`，可直接用来参与普通加减乘除算术"
+              why: 基本数值 `0` 是实实在在的整数，而 `null` 是引用类型专属的“空句柄（无指向任何实体）”标记
+            - text: 只要方法里给变量改名叫 `item` 就再也不会碰到 `NullPointerException` 了
+              why: 避免空引用崩溃靠的是构造期赋合法非空初值、入口及早防御性校验 `Objects.requireNonNull` 以及优先用不可变空集合替代返回 `null`
+          explain: 对**生命周期**、对象图与不可变安全共享有了画面感后，下一课看同一类中同名方法如何干净协奏：**同名不同参方法与构造器链**！
+      - item:
+          id: q-primitive-vs-ref-match
+          type: match
+          prompt: 把基本数值变量与对象引用变量在赋值、传参和生命周期上的四种核心表现对应匹配（1.1–1.2、8.5.3–8.5.4 节）。
+          pairs:
+            - ["**基本类型赋值 `int b = a; b = 5;`**", "完整拷贝了一份数值过去，`a` 与 `b` 互不相干，`a` 保持原值不变"]
+            - ["**对象引用赋值 `Box b = a; b.v = 5;`**", "只复制了查找句柄形成别名，经 `b` 修改内部字段会直接反映在 `a` 上"]
+            - ["**不可变对象（如 `String`、`LocalDate`）**", "构造后状态永不允许就地改动，再多变量共享同一个对象引用也高枕无忧"]
+            - ["**对象结束生命周期可回收**", "当再无任何可达变量或数据结构持有指向该对象的有效引用时，由运行时自动回收清理"]
+          explain: 下一课收尾第 1 章 `对象`：**同名不同参方法与多构造器协同复用（8.5.2 节）**！
+
+  - id: overload
+    chapter: 对象
+    title: 同名不同参方法（Overloading）与构造器链消除重复（8.5.2）
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 写一个 `Logger` 类：有时候调用者只传一条纯消息 `log("started")`，有时还想顺带指定日志等级 `log("WARN", "low disk")`。难道必须被迫起两个名字 `logSimple(...)` 和 `logWithLevel(...)` 折磨自己记不住吗？Java 里怎么既保持统一方法名 `log`、又能让调用方按需传 1 个或 2 个不同类型参数？（8.5.2 节）
+          options:
+            - text: 使用 **同名不同参方法（Overloading）**：同一个类里可以并存多个同名 `log(...)` 方法，只要参数列表（个数、类型或顺序）各不相同，**编译器**在写代码那一步就按实参精确配对过去！
+              correct: true
+            - text: 直接允许仅改变返回值类型（一个返回 `void`、另一个返回 `int`）而参数列表完全一字不差的两个同名方法并存
+              why: 注意！如果两方法连参数类型、个数、顺序全一模一样，仅返回值不同，调用方单写一句 `foo(5);` 根本分不出该选哪一个，编译器会直接拒绝报错！
+            - text: 因为只能把两条日志拼成一行字符串传进来
+              why: 靠参数数量或类型迥异的同名方法即可提供极自然的默认入口与完整入口，且内部还能互相委托消重！
+          explain: "本课对应 8.5.2 节（Removing repetitive code: overloading methods and constructors）：彻底搞懂 **同名不同参方法判定规则与 `this(...)` 构造器链复用**！"
+      - card:
+          title: 方法重载（Method Overloading）核心准则与消重（8.5.2）
+          body: |
+            - **方法重载**：允许在同一个类中定义多个**名称相同、参数签名不同**（参数个数不同，或对应位置参数类型不同）的方法！注意：**仅改返回值类型或仅改形参变量名都不算有效重载**。
+            - **消除重复的黄金搭档**：把参数较少（简便版）的重载方法写成一行去委托调用参数最齐全（核心完整版）的方法，验证校验规则只写一份！
+
+            ```java
+            class Tag {
+                final String label;
+                Tag(String label) { this.label = label; }
+                String format(String body) { return format("[", body, "]"); }
+                String format(String left, String body, String right) {
+                    return left + label + ":" + body + right;
+                }
+            }
+            System.out.println(new Tag("API").format("ok"));
+            // expect: [API:ok]
+            ```
+      - item:
+          id: q-overload-signature-rule
+          type: choice
+          prompt: 判断哪一组方法放在同一个 Java 类 `PriceCalculator` 里会**通过编译且构成合法有效的方法重载**？
+          options:
+            - text: "`int calc(int price)` 与 `double calc(int price, double rate)`（参数个数或参数类型签名截然不同）"
+              correct: true
+            - text: "`int calc(int a)` 与 `double calc(int b)`（只换了返回值类型与形参名字，传入的参数个数和类型完全相同）"
+              why: 调用方写 `calc(10)` 时，仅看参数 `(int)` 根本分不清你想调返回 `int` 还是返回 `double` 的版本——仅返回值不同绝对不构成合法重载！
+            - text: 两个连参数类型、个数和返回值全都一模一样的 `void calc(int a)`
+              why: 方法签名完全冲突重复，编译器会直接报错 `method calc(int) is already defined`
+          explain: 记死公式：**方法重载看“方法名 + 参数类型序列”（合称方法签名），绝不靠返回值区分！**
+      - card:
+          title: 例题：用构造器重载 + `this(...)` 委派链避免把非空检验写两遍！（8.5.2）
+          body: |
+            需求：建一个 `Task` 类，通常要传标题和优先级 `Task("整理测试", 2)`；为了懒省事也允许只传标题默认优先级为 `1`：`Task("整理测试")`。怎样只写一份标题非空校验？
+          reveal:
+            - title: 第 1 步：反模式——两个构造器里各自抄写一遍 `if (title == null ...)`
+              body: 明天新需求规定标题还必须去掉前后空格 `.trim()` 且不允许超过 40 字——你改了双参构造器却忘了改单参构造器，立刻留下校验漏洞！
+            - title: 第 2 步：正确做法——单参构造器第一行直接用 `this(title, 1);` 转发给完整全参构造器！
+              body: 在单参构造器 `Task(String title) { this(title, 1); }` 里把默认值补齐转给主构造器 `Task(String title, int priority)` 统一执行校验和赋值——全部规则只有唯一真理源！
+            - title: 第 3 步：Java 静态绑定记住：重载是在“运行前（静态类型匹配）”就选定的！
+              body: 不同于下一章多态靠“运行时真正实体是谁”再选方法，**方法重载挑哪个版本完全看你写代码时传入参数在编译器眼里的静态类型和个数**！
+      - item:
+          id: q-constructor-chaining-this
+          type: choice
+          prompt: 设计多个同名构造器提供“带默认值捷径”（例如 `Product(String name)` 想自动把库存默认值 `0` 转给 `Product(String name, int stock)`），按照 8.5.2 节消重写法应该怎么做？
+          options:
+            - text: 在少参数的简便构造器首行使用 `this(name, 0);` 委派调用主构造器，把全部字段校验与初始化集中保存在主构造器唯一一处
+              correct: true
+            - text: 照抄复制粘贴全部 `if` 检验逻辑五遍放进五个构造器里互相独立维护
+              why: 复制验证逻辑会在后期新增检查规则时极易漏改一处，造出非法残缺对象
+            - text: 必须把五个构造器改成完全不同的五个毫无关系的方法名
+              why: 构造器名必须与类名完全一致，通过参数表不同做构造器重载加 `this(...)` 委派正是标准优雅手法
+          explain: 第一章 **对象** 五课全面收官！既然建出了有状态、有边界、能灵活初始化的对象，下一章立刻把最关键的安全守护护栏焊死：**封装、业务不变量与 `BankAccount` 实战（综合练习 1）！**
+      - item:
+          id: q-overload-same-signature-reject
+          type: choice
+          multi: true
+          prompt: 下列关于 Java **方法重载（Overloading）** 的说法中，哪些表述准确无误？（多选）
+          options:
+            - text: 同一个类中两个同名方法若参数数量不同或对应位参数类型不同，可以共存并按实参列表自动分辨选用
+              correct: true
+            - text: 仅修改返回值类型而保持方法名及参数列表完全一致，无法编译通过，不构成有效重载
+              correct: true
+            - text: 简便重载版本应当委托转发至参数最完整的主版本，避免把同一套校验与核心计算复制多遍
+              correct: true
+            - text: 方法重载的挑选决定严格推迟到代码跑完了才靠猜大小随机选择
+              why: 方法重载依据调用点实参的静态参数类型与数量在检查转换（编译）阶段即已确定选定哪一个版本
+          explain: 记清：**重载看参数列表（编译期选定）**，别与后面第 3 章的 **重写多态（运行期动态选定）** 搞混！
+
+  # ======================================================================== 封装
+  - id: account
+    chapter: 封装
+    title: 封装与不变量实战：不可攻破的 BankAccount 账户（2.1、8.5.1、综合练习 1）
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一家新手写了一个银行账户类，直接把余额写成了 `public long balance;` 暴露在外。某次业务促销页面代码手滑写了 `acct.balance -= 50000;` 忘了查余额够不够，账户余额瞬间直接变成了 **`-49800` 元**！怎么从根源上保证“全系统无论任何人怎样调用，账户余额永远绝不可能跌破零、也绝不许存负数”？（2.1 节、综合练习 1）
+          options:
+            - text: 把 `balance` 设为 `private` 彻底藏起不让外部直接乱改（**封装**），强制所有变动必须走 `deposit` / `withdraw` 方法在门内死卡全部约束，守住余额绝非负的 **不变量**！
+              correct: true
+            - text: 在纸条上写“请各位程序员自觉不要把余额减成负数”，继续保持字段全公开
+              why: 靠人工默记口头君子协定在大型团队里必败；必须靠编译器级私有修饰符 + 公开方法前置检查把守门规则焊进对象自身！
+            - text: 只要把金额数据类型全改成字符串就不会超支了
+              why: 财务金额需要精确整数分（`long`）演算，守住业务规则靠私有隔离数据加上方法入口校验！
+          explain: 本课对照 CS 2110 第 2.1 节、8.5.1 节与综合练习第 (1) 题，用真实 JDK 21 实测亲手打造 **滴水不漏的 `BankAccount` 封装边界**！
+      - card:
+          title: 封装（Encapsulation）与不变量（Invariant）守护铁律（2.1、综合练习 1）
+          body: |
+            - **封装**：把内部字段藏在 `private` 后严防外部乱改，仅开放公开受控行为方法并在每次写入口严格验证前提；
+            - **不变量**：对象一辈子必须永不打破的核心真实状态约束（如 `balance >= 0`）。
+            看综合练习第 (1) 题完整 `BankAccount`（`IllegalArgumentException` 拒非法参数，`IllegalStateException` 拒余额不足，`Math.addExact` 拒整数溢出）：
+
+            ```java
+            class BankAccount {
+                private long balance;
+                BankAccount(long opening) {
+                    if (opening < 0) throw new IllegalArgumentException();
+                    this.balance = opening;
+                }
+                void deposit(long amount) {
+                    if (amount <= 0) throw new IllegalArgumentException();
+                    this.balance = Math.addExact(this.balance, amount);
+                }
+                void withdraw(long amount) {
+                    if (amount <= 0) throw new IllegalArgumentException();
+                    if (amount > this.balance) throw new IllegalStateException();
+                    this.balance -= amount;
+                }
+                long balance() { return this.balance; }
+            }
+            BankAccount acc = new BankAccount(12);
+            acc.deposit(8);
+            acc.withdraw(5);
+            System.out.println(acc.balance());
+            // expect: 15
+            ```
+      - item:
+          id: q-bankaccount-invariant-ex1
+          type: choice
+          prompt: 对照综合练习第 (1) 题与验证脚本 `P.1.2.verify.py` 对上述 `BankAccount` 类的 7 项极端非法实测：为什么 `deposit(long amount)` 里既校验 `amount <= 0` 又调用 `Math.addExact(this.balance, amount)`，而不直接写 `this.balance += amount`？
+          options:
+            - text: "`amount <= 0` 拒绝无意义或伪装成存钱的恶意负存（`IllegalArgumentException`）；而 **`Math.addExact`** 能在充值大额如 `Long.MAX_VALUE` 导致长整型上溢变成负数时立刻抛 `ArithmeticException` 拒绝修改，牢牢守住余额永不为负的不变量！"
+              correct: true
+            - text: 因为 Java 规定不允许使用加号运算，只能靠 `Math.addExact` 做全部普通加法
+              why: 普通 `this.balance += amount` 在遇到 `12 + Long.MAX_VALUE` 时会静默整数回绕变成巨大负数而毫无察觉，彻底击穿账户不变量！
+            - text: 因为如果不用 `Math.addExact` 就绝不可能往账户里存入任何钱
+              why: 平时小额存款照常能加，唯独接近整数天花板溢出时 `+=` 会静默回绕成负数，`addExact` 是精确溢出保险闸！
+          explain: 太细腻了！**拒负起始、拒非正存取、拒超额透支、拒长整型回绕溢出**——`P.1.2.verify.py` 用真实 JDK 21 把这四类异常全部试探通过且验证余额纹丝不动维持 `12`！
+      - card:
+          title: 例题：为什么 `deposit(-5)` 和 `withdraw(13)`（余额 12）要抛不同的异常，以及只留“假 getter/setter”的陷阱？
+          body: |
+            对照 `P.1.2.verify.py` 对 `BankAccount(12)` 发起的全套拒绝检验，看清设计好封装类的三个专业细节：
+          reveal:
+            - title: 第 1 步：输入本身胡闹（`IllegalArgumentException`） vs 违背当前对象状态（`IllegalStateException`）
+              body: 往系统传存钱 `0` 元、存 `-5` 元、取 `-2` 元、开户传 `-1` 元，无论账上现在有几个亿这参数本身就荒谬无效（抛 `IllegalArgumentException`）；而取款 `13` 元参数本身正经是正数，但违背了“当前账户里只有 `12` 元不够扣”的当前状态，清晰地抛 `IllegalStateException`！
+            - title: 第 2 步：异常发生时保证“原子无破坏（Failure Atomicity）”
+              body: 哪怕 `deposit(Long.MAX_VALUE)` 发生溢出报错，或是 `withdraw(13)` 被拒，由于 `this.balance` 的最终赋值发生在全部检查（包括 `addExact`）成功之后，账上原有的 `12` 元毫发无损——验证脚本最后复查 `acc.balance() == 12`！
+            - title: 第 3 步：千万别写“伪封装”：`private int balance;` 配上一行直接 `public void setBalance(int b) { this.balance = b; }`！
+              body: 如果明明设了 `private`，紧接着又顺手用编辑器自动生成了一套毫无校验直接覆盖写的 `setBalance(b)`，那外部照样一句 `acc.setBalance(-999)` 直接打破不变量！**暴露有业务语义动作方法（`deposit` / `withdraw`），拒绝无脑裸 setter！**
+      - item:
+          id: q-pseudo-encapsulation-setter
+          type: choice
+          prompt: 某同学号称已经给自己的订单金额和账户余额字段做好了 **封装**（都写成了 `private`），结果代码下一行紧跟着自动生成了 `public void setBalance(long newBal) { this.balance = newBal; }`！这种写法为什么在工程里常被吐槽为“伪封装”？
+          options:
+            - text: 毫无限制的裸 setter 仍然允许任何外部调用方直接任意绕过业务校验（比如直接 `setBalance(-500)`），完全没有守住对象的 **不变量** 与操作语义！应删去裸 setter，改由 `deposit`/`withdraw` 等带严格前置检查的业务方法管理变更
+              correct: true
+            - text: 因为 Java 规定方法名字绝对不允许以字母 `set` 开头
+              why: 真正有问题的不是字母叫 `set`，而是暴露了一个不检查任何规则直接随意强改核心约束字段的后门！
+            - text: 因为应该把所有字段恢复成 `public` 才能算真封装
+              why: 真正封装强调隐蔽可变内部字段，并通过有业务意义、严守前置条件的不变量维护方法对外交互
+          explain: 下次在代码审查看见一排“无脑自动生成的 getter/setter”时立刻警铃大作：**这个对象自己到底有没有守住不变量，还是沦为了一个被人随便塞数据的空袋子？**
+      - item:
+          id: q-bankaccount-verify-cases-match
+          type: match
+          prompt: 对照 `P.1.2.verify.py` 实测过的 `BankAccount(12)` 非法调用拒收矩阵，把四种恶意或非法操作与对应预期异常类型匹配。
+          pairs:
+            - ["`new BankAccount(-1)` 或 `deposit(-5)` / `withdraw(0)`", "**`IllegalArgumentException`**（违背参数自身合法域范围）"]
+            - ["余额仅有 `12` 时调用 `withdraw(13)`", "**`IllegalStateException`**（参数虽正，但当前账户状态余额不足以支取）"]
+            - ["余额 `12` 时调用 `deposit(Long.MAX_VALUE)`", "**`ArithmeticException`**（`Math.addExact` 截获长整型上溢防变负数）"]
+            - ["以上全部失败请求后再次查询 `acc.balance()`", "严格保持原合法余额 **`12`** 纹丝不动（不破坏既有不变量）"]
+          explain: 守住了对象自己这间小房子的不变量之后，如果工程拆出了几十上百个类，该怎样安排包目录与可见性等级（`private` / `protected` / `public`）？下课进 **`access` 访问控制与包边界**！
+
+      - item:
+          id: q-domain-invariant-boundary
+          type: choice
+          prompt: 如果领域类 `BookDesk` 规定每位读者至多同时借 3 本书，为什么测试 `borrowOne()` 必须重点测满第 3 本通过、**第 4 本失败且已借数不涨到 4**？
+          options:
+            - text: 验证对象恰好贴近边界上限时的合法性，同时验证违约拒绝时既抛异常又绝对没有改坏内部计数不变量
+              correct: true
+            - text: 因为第 4 本书一定会让显示器变黑
+              why: 边界一侧允许、紧邻超出一格拒绝且保持状态纯净，是检验封装不变量最有效的测试套路
+            - text: 只要测了第 1 本书能借，第 4 本一定也会神奇地自己拦住
+              why: 若代码中写漏 `if (count >= limit)` 或错写成 `>`，只测第 1 本书根本捉不出来！
+          explain: 牢牢围绕业务不变量边缘测齐“恰好允许 vs 刚越上限拒绝”！
+
+  - id: access
+    chapter: 封装
+    title: 包边界（Packages）与四级可见性精细控制（2.2、6.5、9.4.2）
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你们团队把项目划分成了 `payments` 支付包和 `orders` 订单包两个模块。`payments` 包里有个用来存银行连接密码的内部辅助类 `BankGatewayClient` 和一个不希望给外包模块乱调的方法——结果因为全部类和方法顺手都写成了 `public`，`orders` 包里新来的开发嫌正规下单接口太长，直接偷懒跨包调进 `BankGatewayClient` 把付款步骤绕开了！Java 怎么靠 **包（Package）与可见性修饰符** 从语言边界把不该公开的内部 helper 关回自己包里？（2.2、6.5、9.4.2 节）
+          options:
+            - text: 合理区分四级可见性：**包私有（不写修饰符，默认仅同包可见）** 与 **`private`（仅本类内可见）** 用来锁死包内辅助细节；仅把极少数真正对外承诺的契约接口标为 **`public`**！
+              correct: true
+            - text: 把所有成百个辅助工具类和私有变量通通写上 `public` 才显得代码最开放大气
+              why: 全部标 `public` 等于毫无边界防线——一旦别人偷用了你的内部 helper，你连改自己包里一个内部小类名都会破坏别人工程！
+            - text: 因为 Java 不允许建立超过 1 个文件夹目录
+              why: Java 靠清晰的 `package` 命名空间目录划分模块职责，并用可见性修饰符由语言编译器强制守门！
+          explain: 本课依据 2.2、6.5 与 9.4.2 节，掌握 Java **包划分命名空间** 与 **四级访问控制（`public` / `protected` / 包私有 / `private`）最小暴露法则**！
+      - card:
+          title: 包（Package）边界与四级可见性阶梯（2.2、6.5、9.4.2）
+          body: |
+            **包（Package）** 按业务域将相关类收拢命名空间，消除重名冲突并确立模块访问隔离墙。Java 可见性严格遵守**最小公开原则**：
+            1. **`private`（最严）**：只限**当前这个类自己内部**访问（所有可变内部字段默认首选 `private`！）；
+            2. **默认包私有（不写修饰符，Package-Private）**：同处一个 `package` 目录下的内部协作伙伴可见，外包模块连碰都碰不到——极其适合拆藏包内辅助类！
+            3. **`protected`**：同包可见 + 跨包子类继承可见（慎用于公开 API 约束）；
+            4. **`public`（最宽）**：向全世界任何包开放——标上去就是立下长期兼容承诺！
+      - item:
+          id: q-default-package-private
+          type: choice
+          prompt: 在 Java 中，如果你在某个类里定义了一个辅助方法 `void auditInternal()`（前面**刻意没有写 `public`、`protected` 或 `private` 中的任何一个关键词**），它的真实可见范围是什么？（2.2 节）
+          options:
+            - text: "**包私有（Package-Private / 默认访问权限）**：仅允许位于**完全同一个 `package`** 下的协作者调用，跨越到其它包的类无法看见和调用它"
+              correct: true
+            - text: 等同于完全公开的 `public`，全球任意其它包全部都可以随意直接调用
+              why: Java 里不写可见性关键词既**不是** `public` 也**不是** `private`，而是极为实用的“仅同包内部兄弟类可见（包私有）”！
+            - text: 只要不写关键词就会让方法在运行时自动变成随机乱码
+              why: 它是在编译期即强制拦截“外包跨界偷调包内辅助实现”的天然模块化护城河
+          explain: 善用**不写 `public` 的包私有默认权限**，把一个大模块内部互相配合的小组件稳稳锁在自己包里，向外只亮出一个干净的 `public` 门面！
+      - card:
+          title: 例题：给电商“计费模块 `billing`”标对四个位置的精确可见性（最小权限实操）
+          body: |
+            假设包 `shop.billing` 下有核心类 `InvoiceCalculator` 和包内专用的税率辅助器 `TaxTable`：
+          reveal:
+            - title: 第 1 步：`TaxTable` 仅在本包内拼装计算使用 → 类前不加 `public`！
+              body: 写成 `class TaxTable { ... }`（包私有）。外面的订单包、界面包想直接去绕路查 `TaxTable`，**编译器当场报错拒绝跨包访问**！你可以随时按需大改 `TaxTable` 内部写法零外部代价！
+            - title: 第 2 步：`InvoiceCalculator` 里的内部缓存金额与公式细节 → 标为 `private`！
+              body: 连同一包里的其它兄弟类都不准直接越过规则手伸进 `InvoiceCalculator` 的 `private` 字段里乱改！
+            - title: 第 3 步：`public final class InvoiceCalculator` 与 `public long calculateTotal(...)` → 清晰公开 API！
+              body: 只有真正打算给外部包长期依赖调用的主入口方法与不可变返回结果标 `public`！记住：**把一个原本包私有的成员事后放宽成 `public` 很容易；把已经铺开给全公司调用的 `public` 收回来难如登天！**
+      - item:
+          id: q-visibility-ladder-order
+          type: order
+          prompt: 请将 Java 语言四大成员访问可见性从**最严格保密（范围最小）到最完全开放（范围最大）**按从小到大的正确顺序排列。
+          steps:
+            - "`private`（仅限当前所在类自己的代码内部可见与访问）"
+            - "默认包私有 Package-Private（不写修饰符，限同一 `package` 内部类之间互访）"
+            - "`protected`（同包内类可见，加上跨包的继承子类内部可见）"
+            - "`public`（对外全模块与全包任意调用方彻底开放）"
+          explain: 工程编码黄金习惯：**默认先紧（`private` / 包私有），确需跨包交互才小心地按最小契约放出 `public`！**
+      - item:
+          id: q-why-minimize-public
+          type: choice
+          prompt: 为什么富有经验的库作者在设计 Java 类库时，极度克制轻易把内部辅助类和内部方法标成 `public`？（6.5、9.4.2 节）
+          options:
+            - text: 一旦标为 `public` 就意味着向所有外部调用方公开承诺了接口稳定性；若外方真的调用了这些内部 helper，日后想内部重构或改名时就会牵一发动全身难以兼容退场
+              correct: true
+            - text: 因为 Java 规定一个工程总共最多只允许存在三个 `public` 方法
+              why: 数量没有限制，约束来自维护成本与封装边界——暴露得越少、内部自由演进空间越大！
+            - text: 因为 `private` 方法运行速度比 `public` 慢一万倍
+              why: 可见性约束主要在编译期检验模块化访问边界，并非为了拖慢速度
+          explain: 本章最后一课马上看 **设计与测试协同（2.1、8.3.1、8.6.2–8.6.3、9.4.1）**：把核心领域类从 UI 界面剥离出来单独测透，再对照类图查清关系！
+      - item:
+          id: q-package-role-match
+          type: match
+          prompt: 把包管理（Packages）与可见性控制中的四个场景与最恰当的修饰选择匹配（2.2、6.5、9.4.2 节）。
+          pairs:
+            - ["维护对象不变量的内部可变状态字段（如 `balance`）", "使用 **`private`**，彻底杜绝哪怕同包类也跳过业务校验直接修改"]
+            - ["仅供同一业务包内互相协助拆分实现的内部工具类", "使用 **默认包私有**（省略 `public`），把内部辅助细节关在包边界内"]
+            - ["刻意留给不同模块调用方稳定调用的核心服务方法", "使用 **`public`**，作为经过深思熟虑、配齐参数检查与注释的对外契约"]
+            - ["解决两个不同模块各自恰好都写了 `User` 类造成的命名冲突", "放入清晰分层的 **`package` 命名空间**（如 `auth.User` vs `billing.User`）"]
+          explain: 做好了包边界与最小公开原则，下一课进入封装收尾：**UI 与核心领域剥离 + 基于设计不变量写就单元测试与读类图！**
+
+  - id: design-tests
+    chapter: 封装
+    title: 领域逻辑与界面分离、设计可测试类与类图入门（2.1、8.3.1、8.6.2–8.6.4、9.4.1）
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一位同学写的借书小软件把核心借还书规则和控制台 `Scanner` / `System.out.println` 死死混写在一起：`void borrowBook()` 第一句就阻塞等着从键盘读一行字、最后一句直接往屏幕上乱打字而不返回结果！结果写自动化测试时一运行就卡死等着人类敲键盘，根本没法批跑检验！怎么改才能让核心领域对象既能挂控制台、又能明天挂网页或测试里一毫秒验完？（8.6.2–8.6.4 节）
+          options:
+            - text: "**把界面交互层（UI/输入输出）与核心领域业务逻辑彻底拆分开**！让借书台对象接收明确参数、更新状态并返回确定结果或布尔/异常信号，不把标准输入和打印写死在核心规则类里！"
+              correct: true
+            - text: 雇佣一名实习生每天坐在测试服务器前，每跑一次单元测试就人工盯着屏幕敲键盘输入一行字
+              why: 只有将纯粹业务领域类从输入输出设备剥离出来（UI–Domain Separation），才能做到极速可重复自动化验证并随时换皮复用！
+            - text: 干脆删掉所有测试与类拆分，全写回 1 个函数里永远不检查对错
+              why: 可测试的设计恰恰就是清晰职责分层设计：界面只管收输入画展示，领域对象只管业务计算与守住不变量！
+          explain: 本课对齐 2.1、8.3.1、8.6.2–8.6.4 与 9.4.1 节：**分离 UI 与领域模型、对照类图阅读类结构，并用可重复断言检验不变量**！
+      - card:
+          title: 分离用户界面与领域逻辑 + 读懂类图三段框（8.6.2–8.6.4、9.4.1）
+          body: |
+            - **UI 与核心逻辑分离（8.6.2）**：用户界面（键盘、弹窗、网页按钮）极易翻新变动且难测；而账务、借书额度、库存扣减这类核心规则应放进纯领域类里，只靠清晰方法入参/返回值/异常沟通，不直接碰 `Scanner` 或屏幕！
+            - **读懂 UML 类图三段格子（9.4.1）**：一个矩形分三栏：**类名** / **字段（`-` 表 `private`，`+` 表 `public`）** / **对外操作方法签名**！这帮我们在动手敲大堆代码前先看清协作边界！
+      - card:
+          title: 设计“先写边界检验，再用小测试钉死不变量”（2.1、8.3.1、8.6.3）
+          body: |
+            把设计与测试拧到同一时刻（8.3.1 & 8.6.3 节）：写好一个类公开签名后，顺手列全三种检验：
+            1. **正常主路径**（借一本可用书，可用余量减 1 并记录借出）；
+            2. **临界尽头边界**（最后一本书刚借完变成 0；再借第 2 次明确拒绝）；
+            3. **异常非法输入**（传空书名、超限或负数名额立刻抛出对应异常，确保原状态纹丝不动！）。
+      - item:
+          id: q-ui-domain-separation
+          type: choice
+          prompt: 按照 8.6.2 节（Separating the user interface from program logic），如果你正在开发一个校园图书借阅台程序，下面哪种 `LibraryDesk` 领域类设计最容易做快速自动化测试且未来最容易无缝换成手机 App 或网页版？
+          options:
+            - text: "`LibraryDesk` 内部只用方法（如 `borrow(memberId, bookId)` 返回明确回执或抛特定异常）维护馆藏和借阅上限规则，完全不包含任何 `Scanner` 键盘读取或 `System.out.println`；控制台菜单交互另放专门的 `ConsoleUI` 类中调用它"
+              correct: true
+            - text: 把每一条 `if (borrowed >= limit)` 判断直接跟 `System.out.println` 和 `scanner.nextLine()` 写死在同一个 500 行大函数里
+              why: 一旦把业务判定与控制台 IO 搅成一团，想加自动化单测验证借满 3 本再借拒收就必须笨拙地重定向标准输入输出，想移植到桌面窗口或 Web API 更是几乎重写一遍！
+            - text: 把所有书名全部硬编码成不能修改的字符串常量
+              why: 分离 UI 与业务层核心收益正是获得高内聚、独立无设备依赖的可测试领域核心
+          explain: "**领域对象不懂屏幕键盘长啥样，UI 外壳只懂收用户输入去喊领域对象办事！**——这正是后面架构分层模式（第 1–4 节/P.4.3/P.4.4）的源头起点！"
+      - card:
+          title: 例题：给极简“借书台 `Desk`”读清类图符号 `-`/`+` 并写出 3 条覆盖全部边界的验证断言（9.4.1）
+          body: |
+            假设在草稿类图里画好一个限制每人最多同时借 3 本书的 `Desk` 类：顶部写 `Desk`；中间字段区写 `- limit: int = 3` 与 `- current: int = 0`；底部分方法区写 `+ borrowOne(): void`、`+ returnOne(): void`、`+ remaining(): int`。看设计验证三步：
+          reveal:
+            - title: 第 1 步：识别类图可见性符号（9.4.1）
+              body: 字段 `limit` 与 `current` 前面画着减号 **`-`**，代表它们是严格保护的 **`private`** 私有字段，谁也不许在外面瞎把 `current` 改写成 `999`；三个操作方法前面画着加号 **`+`**，代表它们是对外开放的 **`public`** 合法协作接口！
+            - title: 第 2 步：设计期顺手写三类断言（正常态 + 上下限边界态 + 非法拒绝）
+              body: ① 新建默认上限 `Desk`，调 3 次 `borrowOne()` 后断言 `remaining() == 0`；② **接着再试第 4 次 `borrowOne()` 必须抛 `IllegalStateException` 拒绝且 `remaining()` 依然是 `0`！**；③ 一开始零借出状态下调 `returnOne()` 也必须拒绝防止借出数被扣成 `-1`！
+            - title: 第 3 步：发现问题越早越便宜（8.3.1）
+              body: 在还没套上繁杂前端页面之前就把这个纯领域小类测得严丝合缝，哪怕日后界面翻新五次，核心借还账目法则一分都不错！
+      - item:
+          id: q-class-diagram-minus-plus
+          type: choice
+          prompt: "在标准面向对象 **类图（Class Diagram，9.4.1 节）** 矩形三段栏中，字段 `- secretBalance: long` 前面的 **`-`** 号以及方法 `+ deposit(amount: long): void` 前面的 **`+`** 号各自对应 Java 代码里的什么可见性关键字？"
+          options:
+            - text: "`-` 代表私有 **`private`**（对外彻底隐蔽内部状态）；`+` 代表公开 **`public`**（外部协作者可以调用的接口）"
+              correct: true
+            - text: "`-` 代表每次调用都会强行把余额减去 100，`+` 代表永远加上 100"
+              why: 类图成员名左侧的 `-` / `+` / `#` 是标准的可见性标记符号（`-` private、`+` public、`#` protected），不是加减运算符！
+            - text: 两者全都代表不允许编译通过的语法错误
+              why: 类图用于快速可读地沟通类之间持有关系与外部可见接口契约
+          explain: 记死 `-` = `private`、`+` = `public`、`#` = `protected`，以后在 `P.4.3` 看任何架构与设计模式类图都不在话下！
+      - item:
+          id: q-design-test-checklist
+          type: match
+          prompt: 把可测试类设计与错误早发现实践（2.1、8.3.1、8.6.2–8.6.4 节）中的四个要素与最恰当工程动作匹配。
+          pairs:
+            - ["**界面逻辑分离**", "把交互展示留在薄 UI 层，把状态与规则放进不直接读写控制台/屏幕的纯领域对象"]
+            - ["**类图符号（`-` / `+`）设计沟通**", "动手编码前先用极简框图确认哪些属性必须隐蔽、哪些方法构成最小对外契约"]
+            - ["**设计期边界与异常自测**", "围绕对象不变量同时验证正常流、极值满额与超限非法调用不坏账"]
+            - ["**早暴露缺陷原则（8.3.1）**", "趁核心领域小对象独立清晰时用几毫秒小测试先揪出逻辑硬伤，远胜接上整套前端后再排错"]
+          explain: 前两章搞定了“单个类怎么建、怎么把数据关进笼子里守规则”，下一章进入面向对象最迷人也最易滥用的特性：**继承、方法重写与运行期动态多态（Chapter 3）！**
+
+  # ======================================================================== 继承
+  - id: inheritance
+    chapter: 继承
+    title: 类继承、super 复用与子类重写规则（4.1、6.3、9.2.1）
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 系统里已经写好了一个成熟稳固的通用会员卡父类 `MemberCard`（有持卡人名字、卡号和算基础折扣的方法 `rate()` 返回 `1.0`）。现在新增一种“VIP 会员卡”不仅同样要保存持卡人名字和卡号，只是算折扣时改用 VIP 专属 `0.8` 折！难道要把 `MemberCard` 整段代码全部复制粘贴改名成 `VipCard` 吗？如果以后总卡加了个字段岂不是要改双份？（6.3、9.2.1 节）
+          options:
+            - text: 用 **继承**！让 `class VipCard extends MemberCard` 承接父类的已有字段和通用操作，只用 **`@Override` 重写** 那个需要特殊定制的 `rate()` 方法返回 `0.8` 就行！
+              correct: true
+            - text: 把整个父类代码一字不差重新复制十份改十个名字，以后发现共同 Bug 就慢慢手动去十个文件一个个找着改
+              why: 对真正满足 “是一种（is-a）” 概念特化的家族来说，通过父类抽出共通骨架、子类扩展定制差异正是为了复用共性同时维持统一父类视角！
+            - text: 因为 Java 规定一个项目里只能同时存在 1 个类文件，不允许子类扩展父类
+              why: 继承（单继承树）与后续接口（多实现）共同支撑起了类层次扩展机制
+          explain: 本课进入第 3 章 **继承（4.1、6.3、9.2.1 节）**：学清 `extends` 语法、`super(...)` 初始化顺序、`@Override` 保护校验以及“只为了偷懒省几行代码乱继承”的隐患！
+      - card:
+          title: 继承（Inheritance）、`super` 构造链与重写（Overriding，4.1、6.3、9.2.1）
+          body: |
+            - **继承**：通过 `class Child extends Parent`，子类承接父类的非私有状态与公开契约方法（注：Java 中一个类**最多只能 `extends` 一个直接父类**，防菱形冲突）。构造子类实例时，子类构造器必须先调 `super(...)` 把父类那半边骨架安全建好！
+            - **重写**：子类针对继承自父类的非私有实例方法提供同名同参实现，并在头上标 **`@Override`** 让检查器帮你抓拼写手误！
+
+            ```java
+            class Card {
+                final String owner;
+                Card(String owner) { this.owner = owner; }
+                int ratePercent() { return 100; }
+            }
+            class VipCard extends Card {
+                VipCard(String owner) { super(owner); }
+                @Override int ratePercent() { return 80; }
+            }
+            Card c = new VipCard("Lin");
+            System.out.println(c.owner + ":" + c.ratePercent());
+            // expect: Lin:80
+            ```
+      - item:
+          id: q-override-annotation-value
+          type: choice
+          prompt: 观察上方已在 JDK 21 跑通的代码，为什么规范要求在子类重写父类方法上方务必加上 **`@Override`** 注解？
+          options:
+            - text: 让编译器严格核对该方法是否确实与父类的已有方法签名兼容匹配——万一你手滑把 `ratePercent()` 拼错成了 `ratepercent()`（或改错了参数），编译器立刻报错叫停，防止悄悄变成了一个全新的无关方法而没盖掉父类旧版本！
+              correct: true
+            - text: 如果不写 `@Override`，方法在运行时就会默认自动执行双倍收费
+              why: 不写注解若拼对名字也确实能重写，但一旦手误拼错字母或父类改了签名，没有 `@Override` 提醒就会默默变成不覆盖父行为的诡异隐蔽 Bug！
+            - text: 加了 `@Override` 可以让子类任意修改父类里的 `private` 隐藏字段
+              why: 父类的 `private` 字段对子类依然彻底不可见（严格封装防破壁），必须通过父类 `super(...)` 构造器或受控非私有方法协同！
+          explain: "**凡是要覆盖父类方法的，永远顺手贴死 `@Override`**——花 9 个字母换编译器帮你免费防呆抓拼写错！"
+      - card:
+          title: 例题：`super(...)` 调用链与继承时的构造先后次序（4.1 节）
+          body: |
+            如果父类 `Card` 没有无参构造器、只有 `Card(String owner)`，而在子类 `VipCard` 里忘了写 `super(owner)` 会发生什么？看清继承初始化两道铁律：
+          reveal:
+            - title: 第 1 步：构造器先建好“父类基础躯干”，再装“子类扩展附件”！
+              body: 就像盖楼必须先打好地基一楼才盖二楼：当 `new VipCard("Lin")` 启动时，构造器第一行**必定先执行 `super("Lin")` 把父类 `Card` 的字段 `owner` 与父类不变量全部初始化验证完**，接着才执行子类自己的扩展赋值！如果父类没有无参构造而子类忘了显式 `super(owner)`，**`javac` 直接拒绝编译**！
+            - title: 第 2 步：`private` 成员不跨非法超限限——子类依然无权跳过父类的封装校验！
+              body: 哪怕是亲儿子子类，也**看不见更改不了父类里声明为 `private` 的敏感字段**（比如父类银行账户里的 `private long balance`）！这样即便日后有人继承写新子类，也休想从子类里面直接把父类余额改歪！若确有必要仅放行给直系子类协作扩展的内部钩子方法，才谨慎用 `protected`。
+            - title: 第 3 步：什么时候千万别盲目 `extends` 继承？（4.1 节预告）
+              body: 只有当 `Child` 真正是 `Parent` 的一种特化版本且**严格遵守父类全部对外行为契约**（如后面的“正方形 vs 长方形”警告！）时才考虑继承；如果只是想借用另一个类一两个函数工具，直接把对方放在私有字段里持有协作就行——那是第 5 章 **组合优先于继承**！
+      - item:
+          id: q-super-constructor-order
+          type: choice
+          prompt: 已知父类 `Account` 仅定义了一个带参数的构造器 `Account(String owner)`（未提供无参构造），子类 `SavingsAccount extends Account` 在其构造器首行若既不写 `super(...)` 也不调同类其它构造器，会发生什么结果？（4.1 节）
+          options:
+            - text: 编译期立刻报错！因为 Java 要求子类构造器必须在首行先显式通过 `super(owner)` 调通父类构造器初始化父类部分，而父类没有无参构造可供自动默认插入调用
+              correct: true
+            - text: 程序自动跳过父类所有字段不管直接启动运行
+              why: 父类必需字段与不变量绝对不能跳过不初始化，因此语言强制先走通合法 `super(...)` 构造链
+            - text: 子类自动删除父类里的所有变量名
+              why: 正确做法是在子类构造器首行写 `super(owner);` 传入必需初始化参数
+          explain: "**先父后子、`super(...)` 放构造首行**——牢记这条铁律！"
+      - item:
+          id: q-private-in-subclass
+          type: choice
+          prompt: 父类 `BaseWallet` 有一个严谨守住不变量的私有字段 `private long cents;`。子类 `BonusWallet extends BaseWallet` 内部代码可以直接写 `this.cents = -500;` 吗？（6.3 节）
+          options:
+            - text: "**不能**！`private` 字段哪怕对继承下来的亲子类也严格不可见，这样保证了即使第三方写了奇怪子类也无法打破父类自己维护的核心业务不变量"
+              correct: true
+            - text: 完全可以，因为只要写上 `extends`，父类所有 `private` 门锁都会自动销毁失效
+              why: 正相反，Java 让 `private` 严格封死在本类自己范围内，只经父类提供的受控方法或构造器交互
+            - text: 可以，而且能绕开编译检查器直接修改任何系统常量
+              why: 想要给子类安全访问扩展点，应由父类审慎设计受控的方法契约（或仅在确有必要时使用 `protected` 方法钩子）
+          explain: "**封装不因继承而失效**！接下来一课马上迎来继承最有魔力的核心回报：**同一条调用语句，面对不同子类对象自动切出不同精准行为——运行期选派（综合练习 2）！**"
+      - item:
+          id: q-inheritance-match
+          type: match
+          prompt: 把继承层次设计中的四个关键词与各自在代码里的精确含义配对（4.1、6.3、9.2.1 节）。
+          pairs:
+            - ["**`extends` 单继承限制**", "Java 中一个具体类至多直接继承一个父类，避免多父类同名字段冲突二义性"]
+            - ["**`super(...)` 构造链调用**", "在子类构造器第一行先确保父类的基础状态与不变量初始化就位"]
+            - ["**`@Override` 方法重写标识**", "明示覆盖父类实例方法且请检查器核对签名一致防拼写漏覆盖"]
+            - ["**`final` 禁止覆盖或禁止继承**", "显式锁死关键核心类或关键不变法规则方法，明确不准任何子类改写其契约"]
+          explain: 接下来直奔第 3 章最高潮：**抽象类、`Shape` 多态与运行期按实体选派（综合练习 2）**！
+
+  - id: dispatch
+    chapter: 继承
+    title: 抽象类、多态统一视图与运行期运行期选派（4.1、9.2.3、综合练习 2）
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 综合练习第 (2) 题核心：假如你手里有一个几何画板图形列表，里面既有圆 `Circle(r)` 又有矩形 `Rectangle(w, h)`，以后还会不断加三角形、梯形。如果每次算总面积都写一长串丑陋的 `if (s instanceof Circle) ... else if (s instanceof Rectangle) ...`，每新加一种图形都要翻遍全系统改三十处 `if/else`！面向对象用哪一招让画板代码只写干干净净一行 `sum += s.area()` 就自动兼容未来一百种图形？（9.2.3 节、综合练习 2）
+          options:
+            - text: 用公共父类型（抽象类 `abstract class Shape` 或共同契约）声明统一方法 `area()`，让各种图形各自重写给出面积公式；调用方只管面对 `Shape` 列表调 `s.area()`——运行期自动按实际对象选对公式（**多态与运行期选派**）！
+              correct: true
+            - text: 永远不准往画板列表里添新形状，一辈子只能画同一种大小的正方形
+              why: 面向公共父类型抽象编程的核心目的，恰恰是让现有主流程代码无需改写半行就能无缝接入未来新增的新形状！
+            - text: 把圆和矩形强行全部当成一模一样的圆形，用半径公式硬算矩形面积
+              why: 每种图形自己保有各自精准独特的面积计算逻辑，只需对外统一用同一种方法签名表达即可！
+          explain: 本课对照 4.1、9.2.3 节与综合练习第 (2) 题：**彻底吃透抽象类、运行期运行期选派（Dynamic Dispatch）以及重写多态 vs 重载静态分派的本质大区分！**
+      - card:
+          title: 抽象类（Abstract Class）、多态与动态分派（9.2.3、综合练习 2）
+          body: |
+            - **抽象类**：前面写 `abstract`（不能直接 `new Shape()` 造虚空半成品！），允许包含空壳抽象方法 `abstract double area();`，逼着每个具体子类必须补齐实现！
+            - **多态**与**动态分派**：把圆和矩形统一放进 `Shape[]` 或 `List<Shape>` 中，表面看变量声明类型是泛称 `Shape`，但在**运行那一刻**调用 `s.area()`，JVM 会顺着当前引用指向的**真实实体类型**，自动跳转进 `Circle.area()` 或 `Rectangle.area()` 执行！
+
+            ```java
+            abstract class Shape { abstract int area(); }
+            class Rect extends Shape {
+                int w, h;
+                Rect(int w, int h) { this.w = w; this.h = h; }
+                @Override int area() { return w * h; }
+            }
+            class SquareShape extends Shape {
+                int s;
+                SquareShape(int s) { this.s = s; }
+                @Override int area() { return s * s; }
+            }
+            Shape a = new Rect(2, 5);
+            Shape b = new SquareShape(5);
+            System.out.println(a.area() + ":" + b.area());
+            // expect: 10:25
+            ```
+      - item:
+          id: q-dynamic-dispatch-shape-ex2
+          type: choice
+          prompt: 对照综合练习第 (2) 题与上方 JDK 21 实测代码：`Shape a = new Rect(2, 5); Shape b = new SquareShape(5);`，两个变量的静态声明类型明明一模一样都是 `Shape`，为什么运行 `a.area()` 返回 `10` 而 `b.area()` 却精确返回 `25`？
+          options:
+            - text: 这是实例方法重写下的 **动态分派（Dynamic Dispatch）**：实例方法调用在运行时看引用真实指向的**实际对象所属子类**（`Rect` vs `SquareShape`）分派对应 `@Override` 版本，使调用方能用统一 `Shape` 视角透明驱动多种真实实现！
+              correct: true
+            - text: 因为 Java 代码里看谁先被声明就强迫 `b` 也用矩形长宽算面积
+              why: 虽然变量静态声明都是 `Shape`，运行期虚拟机通过实际对象的真实类信息精确挑中各自重写后的 `area()`！
+            - text: 因为 `abstract class Shape` 默认自己算出了 `10` 加 `25`
+              why: 抽象类自身根本不能直接实例化，更没有固定单一公式，全凭运行期落在不同子类对象身上触发多态分派！
+          explain: 你看清了面向对象最优雅的设计分水岭：**不写丑陋的 `instanceof` 分支堆砌，而是把变化职责装进多态子类各自的 `@Override` 里，主流程只面向上层 `Shape` 写 `total += shape.area()`！**
+      - card:
+          title: 例题：为什么把 `Shape` 做成 `abstract` 抽象类（而非普通具体父类直接写死 `return 0;`），少踩一颗暗坑？
+          body: |
+            假设有人懒得写 `abstract`，直接写了个普通类 `class Shape { int area() { return 0; } }`。看看随后新增一个 `Triangle` 子类时出了什么隐蔽事故：
+          reveal:
+            - title: 第 1 步：忘记重写 `area()` 时，普通父类默默返回了假 `0`！
+              body: 新同事新建 `class Triangle extends Shape` 时匆忙间忘了重写 `area()`——因为父类写着普通具体实现 `return 0;`，编译器竟然毫不报错绿灯放行！结果上线后算三角形面积悄悄全是 `0`，静默丢钱！
+            - title: 第 2 步：改成 `abstract class Shape { abstract int area(); }` → 编译器立刻帮你守大门！
+              body: 一旦方法标了 `abstract`，不仅谁也休想 `new Shape()` 造出没有具体形状的幽灵图形，任何想继承 `Shape` 却漏写 `@Override int area()` 的半成品子类在还没运行前就会被 `javac` 直接拒收报错！
+            - title: 第 3 步：同时看清**静态分派（重载） vs 动态分派（重写）**的终极区别
+              body: 如果写 `print(Shape s)` 和 `print(Rect r)`（方法重载），拿 `Shape a = new Rect(2, 5); print(a);` 去调，**挑哪份看静态类型 `Shape`**（运行前定死）；而写 `a.area()`（实例方法重写），**调哪份看实际对象 `Rect`**（运行期动态分派）！
+      - item:
+          id: q-abstract-class-prevent-miss
+          type: choice
+          prompt: 如果我们要给几何图形、支付通道或报表导出定义一批同族基类骨架，为什么把必须由每种具体子类各自提供的核心方法标成 **`abstract` 抽象方法**（而不是在基类里写一句空方法或者 `return 0;` 糊弄过去）？
+          options:
+            - text: ① 禁止外部直接 `new` 出毫无具体形态的抽象基类对象；② **强制编译期守门**：任何具体子类若忘了重写提供该方法，立刻报错拒绝编译，绝不会悄悄静默执行出虚假默认值 `0`！
+              correct: true
+            - text: 因为写了 `abstract` 以后子类就再也不需要编写 `@Override` 方法体了
+              why: 恰恰相反，正是为了逼着每个可实例化具体子类**必须**自己实实在在重写补齐该方法实现！
+            - text: 因为非抽象方法绝不允许写 `return 0`
+              why: 普通父类能写 `return 0`，但极易让健忘的子类继承后误以为“写全了”，带来极难察觉的静默错算漏洞
+          explain: "**凡是不存在合理默认值的共有契约方法，要么放在抽象父类作为 `abstract`，要么更进一步直接放进下章的纯行为契约——`接口（Interface）`！**"
+      - item:
+          id: q-overload-vs-override-dispatch
+          type: match
+          prompt: 把 **方法重载（Overloading）** 与 **方法重写（Overriding / 动态分派）** 这对最易考混的概念特征精准配对。
+          pairs:
+            - ["**方法重载（同一类内同名不同参）**", "依据调用处实参个数与静态类型，在**编译检查期**即已锁定具体执行哪一个版本"]
+            - ["**方法重写（子类覆盖父类实例方法）**", "依据变量此刻实际指向对象的真实运行期类型，在**运行时动态分派**对应实现"]
+            - ["**试图 `new Shape()`（`Shape` 标为 `abstract`）**", "直接在编译阶段被拒绝——抽象类只能作为共有骨架和父类型引用视角，不能独立实例化"]
+            - ["**对 `List<Shape>` 统一循环累加 `s.area()`**", "典型 **多态（Polymorphism）** 运用：主汇总逻辑一行不改即可兼容未来新添多种具体子类"]
+          explain: 如果以后两个毫无血缘关系的东西（比如 `Car`、`Invoice` 和 `Drone`）仅仅需要支持同一个能力（比如都能 `Printable` 打印或都能 `Payable` 扣款），它们不能共有一个生物父类——下一章看真正松耦合的大杀器：**第 4 章《接口（Interfaces）》与子类型契约！**
+      - item:
+          id: q-poly-open-for-extension
+          type: choice
+          prompt: 现有画布汇总方法 `int totalArea(List<Shape> shapes)` 通过多态调用每一项的 `s.area()` 计算总面积。明天产品经理决定再加一种新图形 `Circle`。依照 9.2.3 节，需要改 `totalArea` 里面的循环计算逻辑吗？
+          options:
+            - text: "**一行都不用改**！只需编写实现了 `@Override int area()` 的新类 `class Circle extends Shape`，原有 `totalArea` 原封不动照样正确累加新图形面积（对扩展开放、对已有主流程稳定无侵入）"
+              correct: true
+            - text: 必须把所有旧图形类和 `totalArea` 全删掉重写十遍
+              why: 多态与动态分派的核心收益正是在不惊动已有稳定消费代码的前提下自由插拔新实现！
+            - text: 只要不重启计算机，`Circle` 永远算不出数字
+              why: 只要新增 `Circle` 实现了 `Shape` 契约，原有基于 `Shape` 编写的代码就能无缝接纳它！
+          explain: 第 3 章 **继承与多态** 完结！马上进入第 4 章：**接口与子类型（Interfaces & Subtyping）**！
+
+  # ======================================================================== 接口
+      - item:
+          id: q-super-keyword-method
+          type: choice
+          prompt: 子类 `VipAccount` 重写了父类 `Account` 的计算费用方法 `@Override int fee()`，但希望在父类基础费用上再减免 `10` 元。怎么在重写的子类方法里面稳妥调用到父类原来的 `fee()` 计算结果而不会导致自己调用自己无限循环？
+          options:
+            - text: 使用 **`super.fee() - 10`** 明确指明调用父类那一版实现；直接写 `fee()` 会重新跳回子类自己引发无限套娃调用栈溢崩
+              correct: true
+            - text: 直接写 `this.fee() - 10` 就行
+              why: 在子类实例方法里 `this.fee()` 依然会动态落回子类自己，无限套娃自调用耗尽调用栈！
+            - text: 必须把父类代码一字不漏重抄十行粘贴到子类里
+              why: "`super.method()` 正是安全复用父类已有方法核心逻辑并在其上叠加差异的官方通道"
+          explain: "`super(...)` 调父类构造器，`super.method()` 调父类被覆盖版本！"
+
+  - id: interfaces
+    chapter: 接口
+    title: 接口（Interface）、多实现与子类型替换契约（3、6.4、9.2.2）
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 系统里既有“订单收据 `Receipt`”，又有“员工工牌 `Badge`”和“物流运单 `Waybill`”，这三种事物在业务上毫无共同祖先父类，但现在收银台统一只想要让“凡是能打印出摘要文本的东西”全都送进同一台打印机！如果 Java 不允许多重父类继承，怎么让这三个毫不相干的类都能当成同一种“可打印件”交给打印机？（3、6.4、9.2.2 节）
+          options:
+            - text: 定义一个只声明行为规范契约的 **接口 `interface Printable { String summary(); }`**！让不同类自由去 `implements Printable`，一个类还能同时实现多个独立接口成为多种 **子类型**！
+              correct: true
+            - text: 强行伪造一个荒谬父类让“员工工牌继承自订单收据”，污染全部类层次
+              why: 继承表示强烈的“是一种（is-a）”分类关系；只共享某项外部行为能力时，绝对应该使用纯能力契约——**接口**！
+            - text: 因为 Java 规定毫无共同父类的东西这辈子只能各自手写三份一模一样的打印模块
+              why: 面向接口编程正是为了把“依赖具体实现类”彻底解耦成“只依赖最小稳定行为契约接口”！
+          explain: 本课进入第 4 章 **接口（Interfaces，3、6.4、9.2.2 节）**：学透行为契约、多实现与可替换的 **子类型** 关系！
+      - card:
+          title: 接口（Interface）、子类型（Subtype）与多实现（3、6.4、9.2.2）
+          body: |
+            - **接口**：用 `interface` 声明，专门规定“实现者对外承诺提供哪些方法签名”，不强加共有实例状态字段。一个类虽只能继承 1 个父类，却能同时 `implements` 任意多个接口！
+            - **子类型**：若类 `B` 严格满足类型 `A` 的行为契约，则可安全把 `B` 放进需要 `A` 的位置（`A x = new B()`）。用 `interface Notifier` 定义契约，正式版接短信、测试期瞬间换轻量假通知器！
+
+            ```java
+            interface Summarizable { String summary(); }
+            class Ticket implements Summarizable {
+                final int id;
+                Ticket(int id) { this.id = id; }
+                @Override public String summary() { return "T-" + id; }
+            }
+            class Memo implements Summarizable {
+                final String note;
+                Memo(String note) { this.note = note; }
+                @Override public String summary() { return "M:" + note; }
+            }
+            Summarizable first = new Ticket(7);
+            Summarizable second = new Memo("ok");
+            System.out.println(first.summary() + ";" + second.summary());
+            // expect: T-7;M:ok
+            ```
+      - item:
+          id: q-interface-why-multiple-impl
+          type: choice
+          prompt: 在 Java 语言中，一个类只能 `extends` 至多 1 个直接父类，却可以同时 `implements Loggable, Serializable, Comparable` 等多个 **接口**。这样设计的核心工程意义是什么？（3、6.4 节）
+          options:
+            - text: 避免多父类同名实例字段碰撞复杂性，同时允许一个具体类自由声明自己同时遵守多项正交的行为契约（既是可比较排序项、又是可摘要打印项）
+              correct: true
+            - text: 因为 Java 规定一个接口里必须写满五百个互不相关的私有字段
+              why: 接口聚焦于抽象的对外公开能力契约而不携带易冲突的多重可变实例字段
+            - text: 因为只要用了接口就不再需要 `@Override` 实现任何方法
+              why: 凡实现了某接口的具体类，必须老老实实逐一实现接口声明的所有抽象方法（否则编译器立刻报错拒绝）
+          explain: 记准：**`extends` 是单线条血缘扩展（慎用）；`implements` 是灵活贴上的“能力契约标签”（推荐多多面向接口设计）！**
+      - card:
+          title: 例题：为什么在接口里声明好 `Notifier`，不仅方便换第三方供应商，还能一键接通轻便假对象测试？
+          body: |
+            如果 `OrderService` 的构造器写成接收接口类型 `Notifier`（而非写死接收某个真邮箱库 `RealSmtpClient`），立享三大好处：
+          reveal:
+            - title: 第 1 步：业务模块与具体发送实现彻底松绑（只认 `interface Notifier`）
+              body: 今天公司用邮箱发回执（`EmailNotifier implements Notifier`），明年改成企业消息或手机推送（`SmsNotifier implements Notifier`），核心 `OrderService` 的每一行业务下单代码完全不用改写！
+            - title: 第 2 步：单元测试零真联网验证——写个 5 行假通知器顶上！
+              body: 测试 `OrderService` 下单时，只需现场写一个只记下发过哪些消息的轻量 `FakeNotifier implements Notifier` 传进去，几微秒断言确实发出了下单通知，绝不发真短信真邮件！
+            - title: 第 3 步：同时注意最小接口粒度与 `default` 方法的克制
+              body: 不要造一个塞满 30 个无关方法的臃肿大接口（逼得只需要用其中 1 个方法的实现者写 29 个空扔异常方法）；保持接口小巧专一，每个协作者只看它真需要的那几个方法！
+      - item:
+          id: q-abstract-class-vs-interface
+          type: choice
+          prompt: 什么时候应该优先考虑使用 **`interface`（接口）**，什么时候才考虑 **`abstract class`（抽象类）**？（3、9.2.1–9.2.2 节）
+          options:
+            - text: 当只想规定一组不相关类共有的行为契约、方便多能力叠加与随时换实现时首选 **`interface`**；只有确实存在紧密同一族类别且需要共享受控内部状态骨架与构造初始化时，才用 **`abstract class`**
+              correct: true
+            - text: 永远禁止使用接口，一切能力都必须塞进一个巨大的五层继承抽象基类里
+              why: 滥用单继承体系会把毫不相干的类强行拧进一条脆弱血缘链，且让类失去拓展其它契约的灵活性
+            - text: 接口专门用来存私有全局变量，抽象类专门用来写 HTML 文本
+              why: 恰好完全相反：接口是纯公开行为契约（不带实例可变状态），抽象类可以包含共享的构造器与半成品共用状态字段
+          explain: 工程口诀：**能用清晰小接口解耦协作者，就优先面向接口！**
+      - item:
+          id: q-subtyping-contract-match
+          type: match
+          prompt: 把接口与子类型设计（3、6.4、9.2.2 节）中的四个核心规则与精准工程解读配对。
+          pairs:
+            - ["**程序面向接口参数编写 `void send(Notifier n)`**", "调用主体与具体底层通道彻底解耦，真实现与测试假实现无缝互换"]
+            - ["**接口方法实现访问级别必须 `public`**", "既然在接口里作为公开能力对外承诺，实现类绝不许偷偷收紧访问权降级成私有"]
+            - ["**多接口组合实现 `implements A, B`**", "让同一个实体自由拥有多项彼此正交的独立角色身份契约"]
+            - ["**小巧专注的接口职责**", "防止强迫仅想提供某一能力的轻量实现者背负几十个用不上的空方法"]
+          explain: 既然接口这么香、乱继承又有这么多暗坑，下一课马上直击综合练习第 (3) 题经典反例：**为什么数学上的“正方形是长方形”在 OOP 可变继承里会当场翻车，为什么“组合优于继承”？**
+      - item:
+          id: q-subtype-liskov-preview
+          type: choice
+          prompt: 若类型 `B` 声明为类型 `A` 的 **子类型（Subtype）**，对使用 `A` 的调用方代码意味着什么最基本安全承诺？（3 节）
+          options:
+            - text: 凡是期望拿到 `A` 并按 `A` 公开方法契约正常调用的代码，把实际对象换成 `B` 后依然能够安全合法工作，绝不会被意外改坏原本前置或后置约定
+              correct: true
+            - text: "`B` 可以任意在内部破坏 `A` 对外承诺的所有计算前提并默默算错数"
+              why: 如果 `B` 悄悄打破了 `A` 承诺给调用方的契约（例如允许改窄宽而连带秘密改掉高），`B` 就不构成诚实安全的可替换子类型！
+            - text: 只要 `B` 比 `A` 的名字长 2 个字符就算子类型
+              why: 子类型替换的核心在于**严格遵守父类型对外行为契约**，而不仅仅是语法写上了 `extends` 或 `implements`
+          explain: 下课立刻拿经典“正方形 vs 长方形”实操验证这一重大原则！
+
+      - item:
+          id: q-interface-default-pitfall
+          type: choice
+          prompt: 某大型工程为了图快把“日志、发送通知、写文件、校验订单”全塞进同一个拥有 25 个方法的超级大接口 `AllInOneTool` 里，强制每个小实现类去实现它。这违反了什么接口设计常识？
+          options:
+            - text: 接口粒度过胖（Interface Bloat）：导致只需要其中 1 项小能力的类也被迫写一堆空实现或抛不支持异常，违背“接口应当小巧专注（接口隔离）”准则
+              correct: true
+            - text: 接口方法总数超过 3 个就无法通过任何 Java 编译
+              why: 编译器不拦大接口，真正遭殃的是被迫硬塞满无用空方法体、极度难测难改的协作者实现类
+            - text: 因为接口只能写成私有的才算好接口
+              why: 应当把臃肿大接口按职责拆成 `Notifier`、`Formatter`、`OrderStore` 等多个精悍小接口各自按需实现！
+          explain: 小接口组合起来，比一个大而全的万能臃肿接口灵活干净十倍！
+
+  - id: composition
+    chapter: 组合
+    title: 组合（Composition）与委托（Delegation）优于继承，打破正方形–长方形陷阱（5、7、8.4.2、8.6.1、综合练习 3）
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 综合练习第 (3) 题经典考题：在数学课上，“正方形当然是一种特殊的长方形”。于是程序员兴冲冲写下 `class Square extends Rectangle`，并在重写的 `setWidth(w)` 里把宽高同时顺手设成一样长 `w`！随后另一处正常代码拿到一个 `Rectangle r`，依次执行 `r.setWidth(4); r.setHeight(5);`，满怀信心断言 `assert r.area() == 20;`——结果传进来 `Square` 后居然算出 **`25` 报错崩了**！哪里出了根本矛盾？（5 节、综合练习 3）
+          options:
+            - text: "**违背了子类型安全替换原则（LSP）**！可变的 `Rectangle` 对外承诺“宽和高各自独立可变”，而 `Square` 强行把两者绑死，改宽连带秘密改变了高！面对这种契约冲突或只想借用一部分功能时，应当放弃继承改用不可变抽象或 **组合与委托**！"
+              correct: true
+            - text: 因为电脑不会算 4 乘以 5，只能算出 25
+              why: 问题在**行为契约不兼容**——现实世界分类学里的“正方形是一种长方形”仅适用于**不可变形状**（面积只读），放到“支持单独改宽改高”的可变对象上时，子类 `Square` 偷偷破坏了父类 `Rectangle` 的独立后置保证！
+            - text: 只要在 `Rectangle` 里禁止写任何构造方法就解决了
+              why: 根因在可变约束冲突而非构造器数量；正确设计是让二者共同实现只读几何契约 `Shape`，或者通过组合持有一个内部字段代为保存尺寸并转发算术！
+          explain: 本课依据 CS 2110 第 5/7 节、8.4.2/8.6.1 节与综合练习第 (3) 题：**彻底分清“何时用组合 + 委托，何时绝不能硬套 `extends` 继承”**！
+      - card:
+          title: 组合（Composition）、委托（Delegation）与“组合优于继承”（5.1–5.3、7）
+          body: |
+            - **组合**：如果 `A` 只是**拥有一个（has-a）**内部组件（如“借书台拥有一个名单集合”、“日志器拥有一个格式化器”），把组件作为 `private final` 字段装在 `A` 里，绝不为了偷省几行代码乱让 `A extends ArrayList`！
+            - **委托**：接到外部请求后自己不硬干，转头稳妥交给内部持有的私有协作者字段代办并校验边界！
+            Look at clean composition vs the Square-Rectangle inheritance violation:
+
+            ```java
+            interface MetricShape { int area(); }
+            class RectBox implements MetricShape {
+                private int w, h;
+                RectBox(int w, int h) { this.w = w; this.h = h; }
+                void setWidth(int w) { this.w = w; }
+                void setHeight(int h) { this.h = h; }
+                @Override public int area() { return w * h; }
+            }
+            class SquareBox implements MetricShape {
+                private final RectBox inner;
+                SquareBox(int side) { this.inner = new RectBox(side, side); }
+                @Override public int area() { return inner.area(); }
+            }
+            RectBox r = new RectBox(1, 1); r.setWidth(4); r.setHeight(5);
+            SquareBox sq = new SquareBox(5);
+            System.out.println(r.area() + ":" + sq.area());
+            // expect: 20:25
+            ```
+      - item:
+          id: q-square-rectangle-lsp-ex3
+          type: choice
+          prompt: 对照综合练习第 (3) 题第二问：当 `Rectangle` 类对外提供了两个各自独立的修改方法 `setWidth(w)`（契约要求只改宽、保持高不变）和 `setHeight(h)`（只改高、保持宽不变）时，为什么让可变 `Square extends Rectangle` 违背了安全替换原则（LSP 替换契约原则 LSP）？
+          options:
+            - text: 为了保住正方形四边相等约束，`Square` 必须在 `setWidth` 或 `setHeight` 时同时联动修改另一边；这打破了调用方按 `Rectangle` 契约假设“设置宽不会偷偷破坏高”的后置条件（导致原本 `4 × 5 = 20` 的断言崩溃成 `25`）
+              correct: true
+            - text: 因为 Java 语法规定禁止同时写出 `width` 和 `height` 两个英语词
+              why: 语法上可以编译过 `Square extends Rectangle`，但运行期行为契约彻底冲突！改用让两者平起平坐共享 `MetricShape`（或通过不可变设计/组合委托内部复用矩形计算）才是正道！
+            - text: 因为正方形本身没有面积
+              why: 正方形与长方形在“只读查询面积（`area()`）”契约上完全同族兼容，冲突只出在“分别单独修改宽高（可变性）”与父类不变量的矛盾上！
+          explain: 这就是为什么如上方 `SquareBox` 宁愿用 **`private final RectBox inner;`（组合持有）+ 委托计算 `inner.area()`** 且绝不对外乱继承 `setWidth/setHeight`——彻底消除契约撕裂！
+      - card:
+          title: 例题：为什么“让自建购物清单 `class Cart extends ArrayList<Item>`”也是一颗极其常见的继承大毒瘤？
+          body: |
+            假设你需要一个“最多装 3 件特价商品、且总价不能超过 500 元的购物车 `Cart`”。一位新手偷懒不想在内部放个列表，直接写了 `class Cart extends ArrayList<Item>`，自以为免费白嫖了 `.size()` 和 `.get()`！看看怎么瞬间翻车：
+          reveal:
+            - title: 第 1 步：父类 `ArrayList` 公开的一堆 `addAll` / `clear` / `removeRange` 方法直接绕过你的上限校验！
+              body: 哪怕你辛苦在 `Cart` 里重写覆盖了 `add(item)` 来检查 `size() < 3`，`ArrayList` 本身还有双参数 `add(0, item)`、`addAll(...)` 等一堆方法！外人顺手调 `cart.addAll(...)`，瞬间把 10 件商品塞进你的购物车打破了 3 件限制！
+            - title: 第 2 步：改成 **组合 + 委托**：`private final List<Item> items = new ArrayList<>();`
+              body: "`Cart` 不继承 `ArrayList`！它只把 `items` 锁作 `private final` 私有字段，对外仅仅谨慎暴露 `addItem(Item)`（守死上限与总价不变量！）、`count()`（直接 `return items.size();` 委托）和 `items()`（返回只读副本 `List.copyOf(items)`）！"
+            - title: 第 3 步：将来哪怕把内部存储从 `ArrayList` 换成 `LinkedHashSet` 去重，外方一行不用改！
+              body: 用组合把 `ArrayList` 藏成私有成员之后，不仅零漏洞守死业务边界，以后更换底层结构甚至更换成哈希映射实现也毫无耦合障碍！
+      - item:
+          id: q-composition-over-inheritance-ex3
+          type: choice
+          prompt: 对照综合练习第 (3) 题第一问：在构建复杂业务对象时，什么时候应当优先选用 **组合 + 委托**，而不是直接 `extends` 继承？（5、7、8.6.1 节）
+          options:
+            - text: 只要某对象只是“需要借助另一个类来完成部分工作 / 内部持有一份存储或策略”（has-a 关系），或发现子类并无法 100% 诚实遵守父类全部公开可写契约时，一律用 **组合私有字段 + 委托转发**；继承只留给真正严格满足“is-a + 行为完全可替代”且极稳定的窄场景！
+              correct: true
+            - text: 永远优先用 8 层深度继承，哪怕两个类八竿子打不着只要有 1 个相同字段名就硬继承
+              why: 过度深层继承不仅暴露父类内部脆弱细节（Fragile Base Class Problem），还会泄漏不该开放的外部写方法摧毁封装不变量
+            - text: 组合的意思是把所有类代码拼装进一个 1 万行大类里不再拆分
+              why: 组合恰恰把功能拆成小而专注的协作者对象（如通知器、仓库、格式器），再用对象字段像搭积木一样拼起来并委托合作！
+          explain: 记死面向对象的最高设计心法之一：**Favor composition over inheritance（组合优先于继承）！**
+      - item:
+          id: q-delegation-example
+          type: choice
+          prompt: 在一个 `ReportService` 类里面声明了私有字段 `private final Formatter fmt;`，并在方法 `export(data)` 中写一行 `return fmt.render(data);`。这种设计手法最精准称作什么？（5 节）
+          options:
+            - text: "**组合（持有 `fmt` 协作者）配合委托（将渲染职责直接交由被持有对象执行）**——使得渲染格式（CSV/HTML/JSON）可在运行时按需随构造注入切换！"
+              correct: true
+            - text: 互相干等死卡
+              why: 把具体渲染细节外包交给组合持有的独立接口成员正是最标准的委托复用模式
+            - text: 绕过编译器检查的硬编码全局状态
+              why: 清晰私有 `final` 组合字段配合委托不仅完全静态类型安全，还比死继承灵活百倍！
+          explain: 接下来第 6 章，看看如果写的不是只能装 `String` 的栈、而是想要**既能装 `String` 又能装 `Book`、同时编译器还要帮你死死防住往字符串栈里误塞进数字 `3`**——必须请出 **`泛型（Generics）` 与上下界通配符**！
+
+  # ======================================================================== 泛型与对象协作
+  - id: generic-stack
+    chapter: 泛型与对象协作
+    title: 泛型（Generics）、Stack<T> 参数化安全与参数擦回上界机制（5.1、9.5.1、综合练习 4）
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 综合练习第 (4) 题背景：你想写一个通用的后进先出容器 `Stack`。在没有 **泛型** 的古早年代，容器只能声明接收万能祖宗类 `Object`：于是你建了一个原本只想装订单号的 `Stack`，结果粗心同事顺手往里塞了个整数 `3` 竟然编译毫不报错！等取出来强制转成 `(String)` 那一刻直接线上爆 `ClassCastException` 崩溃！现代 Java 用什么机制在**运行前（编译期）**就把这种错塞类型一眼拦死？（5.1、9.5.1、综合练习 4）
+          options:
+            - text: 使用 **泛型类 `class Stack<T>`**，把“栈里放什么具体元素类型”当成参数 `<T>` 写明！声明 `Stack<String>` 后，任何试图 `stack.push(3)` 误塞整数的代码在 **编译** 那一步就会立刻报错拒绝！
+              correct: true
+            - text: 为字符串、整数、书籍、订单分别复制粘贴写一百份一模一样的 `StringStack`、`IntStack`、`BookStack` 代码
+              why: 手抄一百份除了文件名换了个类型名其它一字不差的类，后期维护直接崩溃；泛型让我们**只写一份 `Stack<T>` 逻辑，同时兼得任意具体类型的绝对静态类型安全**！
+            - text: 允许往任何一个列表里乱塞任何混杂东西，上线祈祷取的时候不要炸就行
+              why: 把运行期随机强转炸弹提前消灭在编译阶段，正是泛型最核心的价值！
+          explain: 本课对照 5.1、9.5.1 节、综合练习第 (4) 题与 `P.1.2.verify.py` 真实 `javac` 拒绝检验：`Stack<T>` **编译期守卫** 与 Java **参数擦回上界机制（Type Erasure）** 原理解密！
+      - card:
+          title: 泛型类 `Stack<T>`（5.1、9.5.1、综合练习 4，`verify` 实测）
+          body: |
+            - **泛型**：用尖括号声明类型形参 `<T>`，使同一份容器逻辑既复用代码又严格守住元素类型边界！
+            看 `P.1.2.verify.py` 用真实 `javac` 既跑通 `push/pop` 与空栈抛 `IndexOutOfBoundsException` 边界、又检验 `stack.push(3)` 被编译期报 `cant.apply.symbol` 拦下的 `Stack<T>`：
+
+            ```java
+            import java.util.ArrayList;
+            class Stack<T> {
+                private final ArrayList<T> items = new ArrayList<>();
+                void push(T item) { items.add(item); }
+                T pop() { return items.remove(items.size() - 1); }
+                boolean isEmpty() { return items.isEmpty(); }
+            }
+            Stack<String> stack = new Stack<>();
+            stack.push("A");
+            stack.push("B");
+            System.out.println(stack.pop() + ":" + stack.isEmpty());
+            // expect: B:false
+            ```
+      - card:
+          title: 揭秘 Java 独特的翻译机制：类型擦除（Type Erasure，5.1）
+          body: |
+            Java 为了向后兼容没有泛型的极早期老代码，在编译检查之后采用 **类型擦除**：
+            - **编译前检查**：编译器彻底核实所有向 `Stack<String>` 存入必须是 `String`，取出自动无需你手工强转即知是 `String`；
+            - **生成产物擦除**：把内部 `<T>` 擦回其上界 `Object`（并自动插上隐形安全转型）；也正因运行期擦除了具体 `T` 是谁，Java 中**不能写 `new T()` 或 `if (x instanceof Stack<String>)`**！
+      - item:
+          id: q-generic-stack-compile-reject-ex4
+          type: choice
+          prompt: 对照综合练习第 (4) 题与 `P.1.2.verify.py` 实测：针对上方定义 `Stack<T>`，当代码声明了 `Stack<String> s = new Stack<>();` 之后紧接着故意写一句 `s.push(3);`（试图推入一个整数），会发生什么？
+          options:
+            - text: 在尚未运行程序的 **`javac` 编译阶段即立刻报错拒绝**（实测报 `compiler.err.cant.apply.symbol`：`int` 无法作为 `String` 传入 `push(T)`），彻底杜绝混入脏数据到运行期再崩！
+              correct: true
+            - text: 编译稳稳通过，直到半年后把值取出来强转成 `(String)` 时才在用户电脑上轰然崩溃
+              why: 这是以前没有泛型用 `Object` 时的老毛病；启用 `Stack<String>` 后类型检查提前至编译期立刻封杀！
+            - text: 泛型会自动把数字 `3` 猜想成 `"three"` 放进去
+              why: 强静态泛型绝不会隐式瞎改数值为文字，类型不相容当场拒编报错！
+          explain: 验证脚本把 `s.push("A")` 替换为 `s.push(3)` 实打实送进 `javac` 拿到了精确错误码 `compiler.err.cant.apply.symbol` 校验通过！
+      - card:
+          title: 例题：空栈调用 `pop()` 该返回 `null` 还是明确抛异常？并看看泛型写死边界时为什么不能 `new T()`！
+          body: |
+            在写上面仅 6 行的 `Stack<T>` 时，有两个极其经典的工程细节值得一细究：
+          reveal:
+            - title: 第 1 步：空栈调用 `pop()` 时显式抛异常（失败快 Fail-Fast！）优于默默回 `null`
+              body: 万一栈里原本真的允许放入正常 `null` 值（或调用者忘了先判 `isEmpty()` 就去 `pop()`），如果空栈也偷偷返回 `null`，下游拿到后把异常吞成空引用继续往后传，十步开外才莫名崩掉！如上写法在空栈调 `items.remove(items.size() - 1)` 会立刻精准抛 `IndexOutOfBoundsException` 报警！
+            - title: 第 2 步：切忌用“原始类型（Raw Type）”写裸 `Stack s = new Stack();`
+              body: 如果偷懒漏掉尖括号 `<String>`，编译器为了兼容古早程序只会给你发一句警告并退回成毫无保护的 `Object`，刚才辛苦建起的编译期类型防火墙瞬间失效——写泛型永远带齐完整 `<具体类型>`！
+            - title: 第 3 步：理解由于类型擦除不能写 `new T()` 怎么办？
+              body: 因为运行期虚拟机看不见 `T` 到底传的是 `Book` 还是 `String`，Java 不准直接写 `new T()`；真需要容器在内部动态按需造新元素时，传入一个工厂回调如 `Supplier<T>`（例如 `create.get()`）即可优雅搞定！
+      - item:
+          id: q-type-erasure-limit
+          type: choice
+          prompt: 了解 Java 泛型的 **类型擦除（Type Erasure）** 机制后，为什么在 `class Box<T>` 内部代码里写 `T item = new T();` 会导致编译器直接报错？（5.1 节）
+          options:
+            - text: 因为泛型参数 `<T>` 经编译校验并在类型擦除后在运行期已被抹去具体类型（退回上界 `Object`），虚拟机在运行那一刻压根不知道该调用哪个具体类的无参构造器来分配实例
+              correct: true
+            - text: 因为在 `Box<T>` 里永远不允许存任何对象引用，只准存数字 `0`
+              why: 往 `Box<T>` 放入外面早已 `new` 好的 `T` 实例或用内部 `Object[]`/`ArrayList<T>` 保存完全合法；仅禁止在不知道具体类时直接凭空 `new T()`
+            - text: 因为 Java 规定构造器名字只能用一个英文字母
+              why: 这是 Java 运行时擦除机制的直接体现——真需要生成实例时可从外部注入 `Supplier<T>` 工厂对象
+          explain: 记清泛型双面特性：**编译前铁面守类型安全；编译后擦回上界留兼容（`new T()` 不行，`ArrayList<T>` 与入参校验极稳）！**
+      - item:
+          id: q-generic-stack-empty-pop
+          type: choice
+          prompt: 在我们通过 JDK 21 实测检验的 `Stack<T>` 边界测试用例里，对一个刚建好且为空（`isEmpty() == true`）的 `Stack<String>` 直接调用 `s.pop()` 会产生什么预期表现？
+          options:
+            - text: 立即明确失败并抛出 `IndexOutOfBoundsException`（快速暴露调用方未判空或契约违背错误，不返回歧义 `null` 掩盖故障）
+              correct: true
+            - text: 自动往栈里无中生有塞进一个 `"hello"` 返回给你
+              why: 空容器取出非法，严谨容器抽象数据类型（ADT）必须对空弹出明确拒错
+            - text: 让整台操作系统关机重启
+              why: 抛清晰运行期标准异常正是受控边界保护与尽早暴露调用错误的规范做法
+          explain: 下课用泛型再写一个极具代表性的抽象数据类型：**可计次无序集合——袋（Bag ADT，5.2–5.3 节）**，看看“接口规范和具体底层怎么存”如何拆开！
+
+      - item:
+          id: q-diamond-operator
+          type: choice
+          prompt: 创建泛型容器时，现代 Java 建议写成 `Stack<String> s = new Stack<>();`（右侧尖括号留空，称作 **菱形语法 Diamond Operator**），而不必冗长重抄两遍 `<String>`。右侧的实际元素类型是由谁推导锁定的？
+          options:
+            - text: 由 **`javac` 编译器** 根据左侧声明类型 `Stack<String>` 自动精准推导出，丝毫不会削弱编译期类型安全检查
+              correct: true
+            - text: 留空代表退化成毫无保护的 `Object` 原始杂物箱
+              why: 不写括号 `new Stack()` 才是丢掉保护的原始类型；写上菱形括号 `new Stack<>()` 则完全等价于完整的 `new Stack<String>()`！
+            - text: 在运行一年后由用户手动打字输入
+              why: 菱形语法在编译期就已完成完整静态类型推导与严格校验
+          explain: 牢记细节：**`new Stack<>()` 安全简洁，省略尖括号写成裸 `new Stack()` 则丢光了静态泛型保护！**
+
+  - id: generic-bag
+    chapter: 泛型与对象协作
+    title: 泛型 Bag（袋）ADT 设计、契约规格与多实现对比（5.2–5.3）
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 我们需要一个像购物篮一样能记住“苹果 2 个、香蕉 1 根、不关心摆在里面的先后位置、但允许重复放入同款物品并统计各自件数”的泛型容器，叫 **Bag（多重集/袋）**。如果先写一份干净接口 `interface Bag<T>`，之后用简单定长槽位还是用动态集合去实现它，外部使用购物篮的代码需要跟着改吗？（5.2–5.3 节）
+          options:
+            - text: "**不用改**！只要两种底层内部存储都严格遵守同一个泛型接口 `Bag<T>` 的语义契约（如 `add` 加一件、`frequencyOf` 查次数、`remove` 删一件），外部调用者完全无感知可随时无痛替换底层实现！"
+              correct: true
+            - text: 每换一种内部储存结构就必须把全站调用购物篮的十万行代码全删了重写
+              why: 把抽象数据类型（ADT）的操作契约放在接口 `Bag<T>`，而把内部存储细节严格封装进具体实现类里，正是实现低耦合高可换性的核心诀窍！
+            - text: 因为泛型容器绝不允许存放两个完全相同内容的元素
+              why: Set 拒绝重复元素，而 **Bag（袋/多重集）** 的本质定义正是“无序但允许重复并统计出现次数”！
+          explain: 本课依据 CS 2110 第 5.2–5.3 节，围绕 **Bag（袋）抽象数据类型** 演练“接口契约 + 泛型参数 + 多种底层实现自由互换”！
+      - card:
+          title: 什么是 Bag（袋/多重集）ADT？（5.2–5.3）
+          body: |
+            - **Bag 规范定义**：无顺序约束、**允许同一件物品出现多次**的泛型收集袋接口 `Bag<T>`！常见核心操作：
+              `add(T item)`（装入 1 件）、`remove(T item)`（拿走 1 件并返回是否成功）、`frequencyOf(T item)`（数共有几件相同项）、`size()`（总件数）。
+            - Look at a concise `Bag<T>` contract backed by `HashMap<T, Integer>` in Java:
+
+            ```java
+            import java.util.HashMap;
+            class CounterBag<T> {
+                private final HashMap<T, Integer> counts = new HashMap<>();
+                void add(T item) { counts.merge(item, 1, Integer::sum); }
+                int count(T item) { return counts.getOrDefault(item, 0); }
+            }
+            CounterBag<String> bag = new CounterBag<>();
+            bag.add("pen");
+            bag.add("pen");
+            System.out.println(bag.count("pen") + ":" + bag.count("ink"));
+            // expect: 2:0
+            ```
+      - item:
+          id: q-bag-vs-set-vs-list
+          type: match
+          prompt: 对比面向对象标准数据结构系中的四类常见抽象容器契约特性，精准配对。
+          pairs:
+            - ["**Bag（袋 / 多重集）**", "不规定排列顺序、**允许同款元素多次出现并支持统计各自出现次数**"]
+            - ["**Set（集合）**", "不保证固定位置，严格**去重**（同一值最多只能存留唯一一份）"]
+            - ["**List（列表）**", "保持明确前后排列顺序，允许按位置存取且允许元素重复出现"]
+            - ["**Stack<T>（后进先出栈）**", "限制只从同一端压入与弹出，最近压入元素最先被弹出"]
+          explain: 挑对容器抽象语义本身就已经解决了核心代码的一大半复杂度！
+      - card:
+          title: 例题：当底层换实现（定长扩容槽位 vs 计数映射 `CounterBag`），为什么 `Bag<T>` 契约不该顺带暴露内部下标 `get(i)`？
+          body: |
+            假设某人设计 `interface Bag<T>` 时一不留神多加了个方法 `T getAt(int index);`，立刻破坏了整套抽象！看看发生了什么：
+          reveal:
+            - title: 第 1 步：暴露 `getAt(index)` 泄漏了“内部用有序表存放”的实现秘密！
+              body: 既然袋子在数学契约上本就定义为“无序一堆东西”，拿底层用紧凑表存确实可以按编号 `i` 取；可哪天为了给海量重复项提速换成上面 `CounterBag`（内部用 `HashMap` 只记录 `"pen" -> 2` 计数！）时，你发现它根本没有下标位置编号 `i` 可以返回，被迫崩溃破坏所有旧调用方！
+            - title: 第 2 步：只暴露抽象共性方法（`add`、`remove`、`count`、`size`）
+              body: 上层业务代码（如统计购物车商品件数、词频统计）压根不需要按 `index` 乱翻袋子！接口契约只留真正符合概念本质的操作，底层怎么存才拥有 100% 自由演进权！
+            - title: 第 3 步：同时注意对“找不到的物品调用 `count("ink")`”稳定返回 `0`
+              body: 就像 `counts.getOrDefault(item, 0)`，对从未加入袋里的物品返回干净的 `0`，别返回 `null` 诱发调用方炸 `NullPointerException`！
+      - item:
+          id: q-bag-leak-implementation
+          type: choice
+          prompt: 要编写一个真正优秀的通用接口 `interface Bag<T>`（5.2–5.3 节），应当**刻意避免**把下面哪个方法硬塞进 `Bag<T>` 的接口规范里？
+          options:
+            - text: 避免塞入 `T getInternalBucketAt(int index)` 这类强绑定“必须按连续物理下标顺次存放”的细节方法，以免彻底堵死日后切换为哈希计数袋等无序高效实现的路！
+              correct: true
+            - text: 必须禁止写 `add(T item)`，绝对不让任何人往袋子里装东西
+              why: "`add(item)` 正是任何袋容器必不可少的最基础对外核心契约操作"
+            - text: 必须禁止任何泛型参数 `<T>` 存在
+              why: 泛型 `<T>` 使同一个接口既能做 `Bag<String>` 又能做 `Bag<Order>` 而不丧失编译器类型安全
+          explain: 接口契约设计的艺术常常在于：**少放不必要的内部承诺，多留未来换底层实现的自由度！**
+      - item:
+          id: q-bag-remove-boundary
+          type: choice
+          prompt: 用 `CounterBag<String>` 往袋子里加了两次 `"pen"`（计数变成 `2`），若实现 `boolean removeOne(String item)` 方法只拿走其中一件，下面哪一种边界处理最严谨正确？
+          options:
+            - text: 先查当前计数：若原本是 `0`（袋中根本没有该物品），保持计数不变并安全返回 `false`；若原本 `>= 2`，只将计数减 `1` 并返回 `true`（仅当减到 `0` 时清理键）；绝不能把计数减成负数 `-1`！
+              correct: true
+            - text: 只要调一次 `removeOne("pen")`，不管原本有几件全都直接把 `"pen"` 整条删光变成 `0`
+              why: 装了 2 只苹果后拿走 1 只，袋里必须还稳稳剩着 1 只；直接删光就退化成普通去重集合而非 Bag！
+            - text: "袋里原本没有 `\"ink\"` 时依然硬往映射里写一条 `\"ink\": -1`"
+              why: 每种元素数量必须永远满足 `count >= 0` 不变量！
+          explain: 接下来第 6 章最后一课看泛型里最让人抓狂却极度优雅的一步：**为什么 `List<Dog>` 居然不能直接传给要 `List<Animal>` 的方法？需要上下界通配符 PECS 来救驾！**
+      - item:
+          id: q-adt-meaning
+          type: choice
+          prompt: 我们常把 `Stack<T>` 和 `Bag<T>` 称作 **抽象数据类型（ADT）**，它的本质核心思想是什么？（5.1–5.3 节）
+          options:
+            - text: 用清晰规范定义清楚“容器有什么行为操作与应维持哪些数学不变量（对外契约）”，并将具体底层究竟用什么储存方式严密隐藏在具体实现类内部
+              correct: true
+            - text: 规定所有数据必须用最复杂最慢的写法才能算高级
+              why: ADT 关注的是接口语义与封装隔离，底层实现既可先用简明结构快速做对，也可随时无感换用极致高效的存储方案
+            - text: 必须禁止在容器里放入超过 2 个元素
+              why: 通用抽象数据类型通常不假定死板微小数目，而是用干净契约服务各种规模业务场景
+          explain: 下课解锁泛型协变/逆变通配符奥秘：**`<? extends T>` 与 `<? super T>`（5.1、9.5.1）**！
+
+  - id: wildcards
+    chapter: 泛型与对象协作
+    title: 泛型不变性陷阱、上下界通配符（PECS）与面向协作者（5.1、9.5.1）
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 明明 `VipCard extends Card`（VIP 卡绝对是一种卡！），可当你写了个通用打折汇总方法 `double totalFee(List<Card> cards)` 后，试着把手头的 `List<VipCard>` 传进去时，Java 编译器居然当场报错拒绝编译：`List<VipCard>` 无法转换成 `List<Card>`！这看着简直不讲道理！Java 为什么要死死拦住“把子类列表直接当作父类列表传”？（9.5.1 节）
+          options:
+            - text: 为了防止方法内部在不知情下往原本只装 `VipCard` 的列表里塞进一只普通卡 `new Card(...)`（如果允许强转传入，等外面再从 `List<VipCard>` 按 VIP 取出时就会当场类型崩坏！）；只读不写时要用通配符 **`List<? extends Card>`** 明确放行！
+              correct: true
+            - text: 因为 Java 编译器其实忘了 `VipCard` 继承了 `Card`
+              why: 编译器清清楚楚知道 `VipCard` 是 `Card` 的子类；正是为了堵住“借 `List<Card>` 别名偷塞进一只非 VIP 卡”的类型漏洞，Java 规定泛型容器默认**不变（Invariant）**！
+            - text: 因为列表里永远不允许放任何继承子类对象
+              why: 在一个单一 `List<Card>` 里当然能放任意各种卡子类；禁止的是把“`List<VipCard>` 容器自己”当成可写 `List<Card>` 容器传！
+          explain: 本课依据 5.1 与 9.5.1 节，破解泛型最硬核的精髓：**为什么泛型集合默认不变（Invariant）？怎么用上界 `<? extends T>` 和下界 `<? super T>` 放宽又安全？**
+      - card:
+          title: 泛型不变性（Invariant）与上界/下界通配符（5.1、9.5.1）
+          body: |
+            哪怕 `Dog` 是 `Animal` 的子类，`List<Dog>` **既不是** `List<Animal>` 的子类，也**不是**父类（称作 **泛型不变**），以防借父容器入口偷塞进一只 `Cat`！
+            想要写出高复用又安全的通用方法，用 **通配符** 声明你是“只读取出”还是“只管往里写入”：
+            - **上界通配符 `<? extends Card>`（只读取当生产者用）**：既收 `List<Card>` 又收 `List<VipCard>`，安全读出按 `Card` 用，但禁止往里随便 `add` 未知子类！
+            - **下界通配符 `<? super VipCard>`（只写入当消费者用）**：收 `List<VipCard>`、`List<Card>` 或 `List<Object>`，安全往里放 `new VipCard(...)`！
+      - item:
+          id: q-pecs-rule-choice
+          type: choice
+          prompt: 记死工程口诀 **PECS（Producer Extends, Consumer Super）**！若我们要写一个通用的方法 `void exportCards(List<___> source)`，该方法**只负责从 `source` 里面读取每一个元素并当作 `Card` 打印摘要，绝不往里添加新卡**，为了能同时兼容传入 `List<Card>` 和 `List<VipCard>`，括号横线上该写什么？
+          options:
+            - text: "`? extends Card`（`source` 作为提供 `Card` 对象的只读生产者，安全兼容 `Card` 及其任意子类列表！）"
+              correct: true
+            - text: "`? super Card`"
+              why: 若写 `? super Card` 虽然能放 `List<Object>`，但根本接收不了手头的 `List<VipCard>`，且读出来的元素只能当作 `Object` 而不能直接调 `Card` 方法！
+            - text: 死写成固定 `Card` 不写通配符
+              why: 死写成 `List<Card>` 会把传过来的 `List<VipCard>` 在编译期拒之门外！
+          explain: 一句话用一辈子：**仅从容器往外拿当父类型读（Producer）→ `extends`；仅往容器里面塞子类型写（Consumer）→ `super`！**
+      - card:
+          title: 例题：为什么把方法签名改成 `List<? extends Card>` 后，方法内部却立刻禁止写 `cards.add(new Card(...))`？
+          body: |
+            很多初学者用上 `List<? extends Card>` 后困惑：“为什么只让我 `for (Card c : cards)` 遍历读出，一写 `cards.add(...)` 编译器反而又报错？”顺着推理一秒通透：
+          reveal:
+            - title: 第 1 步：站在函数内部看，`? extends Card` 只保证“里面放的都是某种统一但具体不明的 `Card` 子类”
+              body: 外部今天可能传进来一份真正的 `List<VipCard>`，明天也可能传进来一份 `List<StudentCard>`！函数里面并不知道外部到底传了哪一种！
+            - title: 第 2 步：假如允许你在函数内部强塞一只 `new StudentCard()` 进去？
+              body: 万一调用方外面手里握着的明明是纯粹的 `List<VipCard>`，等你的函数返回后，调用方取出来的竟然是一只 `StudentCard`，当场爆炸！因此编译器对 `<? extends T>` 彻底封死写入（仅容 `null`），**把读取端 100% 安全放行！**
+            - title: 第 3 步：反观下界 `addVipTo(List<? super VipCard> dst)` 为什么就能放心 `dst.add(new VipCard(...))`！
+              body: 不管外部传来的是 `List<VipCard>`、`List<Card>` 还是 `List<Object>`，里面装着的全都能合法容纳一只 `VipCard`！所以往 `<? super T>` 里写入任何 `T` 100% 类型安全（只是从中读取时就只敢当成最顶层 `Object` 看待了）！
+      - item:
+          id: q-consumer-super-write
+          type: choice
+          prompt: 现在反过来写另一个方法 `void appendValidCards(List<___> target)`，它的职责是把校验合格的多张 `VipCard` 对象逐一 **`add` 塞进 `target` 容器里保存**，希望不仅能传入 `List<VipCard>`，也能传入更宽的 `List<Card>` 或 `List<Object>` 来统一收集。此处最贴切该写什么？
+          options:
+            - text: "`? super VipCard`（`target` 是接收写入 `VipCard` 的消费者容器——无论它是装 `VipCard`、`Card` 还是 `Object` 的桶，都能安全装下 `VipCard`！）"
+              correct: true
+            - text: "`? extends VipCard`"
+              why: 上界 `extends` 是只读生产者视角，编译器会彻底禁止你向里面调用 `.add(new VipCard(...))`！
+            - text: "`Object` 死写死成 `List<Object>`"
+              why: 因为泛型不变，写死 `List<Object>` 连你自己的 `List<VipCard>` 和 `List<Card>` 反而都传不进去！
+          explain: 第 6 章 **泛型与对象协作** 三课打通！马上切入第 7 章：**深入Java等语言实战里的数值表示、定长容器（Array）与文本正则处理工具！**
+      - item:
+          id: q-generics-wildcard-match
+          type: match
+          prompt: 把泛型协作进阶（5.1、9.5.1 节）的四种用法或现象与正确原因配对。
+          pairs:
+            - ["**`List<Dog>` 不可直接赋给 `List<Animal>`**", "泛型容器的默认**不变性**保护：防止经 `List<Animal>` 别名误向原本的狗列表里塞入猫"]
+            - ["**参数声明 `List<? extends Animal>`**", "上界通配符（只读生产者）：兼容接收狗/猫/动物列表并安全按 `Animal` 遍历读取"]
+            - ["**参数声明 `List<? super Dog>`**", "下界通配符（只写消费者）：兼容接收狗/动物/Object 目标桶并安全执行 `.add(new Dog())`"]
+            - ["**`<T extends Comparable<T>>` 类型形参约束**", "限制泛型参数类型必须实现可比较契约，从而可在通用方法内调用 `a.compareTo(b)`"]
+          explain: 第 7 章立刻来看最接地气的底层语言工具细节：基础值 vs 引用包装类型、定长连续槽位容器与正则匹配！
+
+  # ======================================================================== 以 Java 等语言实践类型
+  - id: value-types
+    chapter: 以 Java 等语言实践类型
+    title: 基本数值类型、装箱包装缓存（-128..127）与精确数值选型（8.5.3、9.3.3）
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 看一段令无数 Java 开发者抓狂的真实现象：`Integer a = 100; Integer b = 100;` 时 `a == b` 结果竟然是 `true`；紧接着写成 `Integer c = 200; Integer d = 200;` 时，`c == d` 居然变成了 **`false`**！！同一个 `Integer` 包装类型，怎么数字从 `100` 涨到 `200` 突然就不相等了？！（8.5.3、9.3.3 节）
+          options:
+            - text: "`Integer` 是对象引用类型而非基本 `int`！`==` 比较的是两只变量指向的是不是**同一只对象实体**——Java 对 `-128..127` 小整数启用了常量池缓存复用同一实体，而 `200` 超出缓存各自新建了两只对象！比较对象内容永远该用 `.equals()`！"
+              correct: true
+            - text: 因为 Java 计算器超过 150 就不会判断两个数字一不一样了
+              why: 用基本值 `int c = 200; int d = 200; c == d` 永远是 `true`！掉进陷阱是因为包装类 `Integer` 是堆对象，`==` 比的是引用同一性而非数值大小！
+            - text: 因为数字 `200` 在数学上不等于它自己
+              why: 算 `c.equals(d)` 无论 `200` 还是两亿都稳稳等于 `true`；教训就是比较封装包装类与任何对象的值务必用 `.equals()`！
+          explain: 本课进入第 7 章 **以 Java 等语言实践类型（8.5.3、9.3.3 节）**：分清 **8 种基本数值 vs 包装引用类型**、避开浮点 `0.1 + 0.2` 精度坑与装箱缓存陷阱！
+      - card:
+          title: 基本类型（Primitive） vs 包装对象（Wrapper）与金钱精度陷阱（8.5.3、9.3.3）
+          body: |
+            - **基本数值类型（`int`、`long`、`double`、`boolean`）**：直接存紧凑数值本身，性能极高且绝不为 `null`，用 `==` 比值完全准确；
+            - **包装类型（`Integer`、`Long`、`Double`）**：放进泛型集合 `List<Integer>` 时自动**装箱**成对象！永远用 `.equals()` 比值，别拿 `==` 拼运气撞 `-128..127` 缓存！
+            - **财务金额绝不用 `double`**：以 2 为底浮点数算 `0.1 + 0.2` 存在舍入误差，货币必须用整分 **`long`** 或 **`BigDecimal`**！
+
+            ```java
+            Integer x = 200;
+            Integer y = 200;
+            System.out.println((x == y) + ":" + x.equals(y));
+            // expect: false:true
+            ```
+      - item:
+          id: q-wrapper-integer-cache-trap
+          type: choice
+          prompt: 上方在 JDK 21 跑出精确输出 `false:true` 的代码里，`Integer x = 200; Integer y = 200;` 执行 `x == y` 得出 `false`、而 `x.equals(y)` 得出 `true` 的根本原因是什么？（8.5.3 节）
+          options:
+            - text: "`Integer` 属于对象引用，`==` 检验 `x` 与 `y` 是否指向堆区同一只对象（`200` 越过默认 `-128..127` 缓存区，创建了两只独立对象故 `==` 为 `false`）；`.equals()` 才按里面包装的整数内容 `200 == 200` 对比返回 `true`"
+              correct: true
+            - text: 因为 `Integer` 根本不允许使用 `.equals()` 方法
+              why: 所有包装类都已经正确重写好了 `.equals()`（甚至同时重写好了 `.hashCode()`），应当无条件优先使用 `.equals()` 比较对象值！
+            - text: 因为 Java 规定写 `200` 会立刻自动变成 `null`
+              why: 只要记住“基本值用 `==`，一切对象（`String`、`Integer` 等）比内容永远用 `.equals()`（配合空防 `Objects.equals(x, y)`）”！
+          explain: 再加一句实战护身：**`Objects.equals(x, y)`** 即使碰到 `x == null` 也不会炸空报错！
+      - card:
+          title: 例题：为什么用 `List<Integer>` 高频循环算百万次求总和时，不小心会发生百万次暗中“拆箱装箱”拖慢程序？
+          body: |
+            了解自动装箱（Autoboxing / Unboxing）的两个隐形代价，让你代码既优雅又不会莫名其妙卡顿或炸空异常：
+          reveal:
+            - title: 第 1 步：隐形开销——把累加器写成 `Long sum = 0L;` 而非基本型 `long sum = 0L;`
+              body: 写 `Long sum = 0L; for (int i = 0; i < 10_000_000; i++) sum += i;` 时，循环每跑一圈都要先拆箱算出基本 `long`、加上 `i` 之后**重新 `new` 装箱造一只新 `Long` 对象丢进堆区**，平白制造一千万只短命垃圾对象！改成基本型 **`long sum = 0L;`** 耗时瞬间跌至几毫秒！
+            - title: 第 2 步：空装箱炸弹——`Integer count = null; int n = count;`
+              body: 自动拆箱底层等价于偷偷调用 `count.intValue()`！只要包装类引用恰巧为 `null`（如数据库某可空列或 Map 没查到键），往基本类型 `int` 里一赋直接当场抛 `NullPointerException`！
+            - title: 第 3 步：金钱计算用整“分”（`long cents`）或 `BigDecimal("0.10")`
+              body: 在 Python/Java 里 `0.1 + 0.2 == 0.30000000000000004`！财务系统要么全按最小货币单位存成整数分（`long`），要么用**字符串构造**的 `new BigDecimal("0.10")`（切忌用浮点数构造 `new BigDecimal(0.1)` 带入原本误差！）。
+      - item:
+          id: q-double-vs-money-cents
+          type: choice
+          prompt: 设计一个要长期结算用户充值与精确分账的商业计费模块，以下哪种数值表示方式最符合工程安全规范？（9.3.3 节）
+          options:
+            - text: 用整数分 **`long`（如 12.50 元存为 `1250L`）** 或使用字符串精确构造的 **`BigDecimal`**，绝不用 `double` 以 2 为底浮点直接加减结算金额
+              correct: true
+            - text: 全程直接用 `double` 加减再用 `==` 判断用户余额是不是刚好等于 `0.3`
+              why: "`0.1 + 0.2` 在以 2 为底浮点下并不是精准 `0.3`（而是 `0.30000000000000004`），拿它结算会不断产生 1 分钱错账甚至 `==` 判定失效！"
+            - text: 用 `boolean` 来存放任意大额人民币数字
+              why: 布尔型只能表达真/假二态，货币需要精确十进制固定小数位或整数最小单位表示
+          explain: 记死：**科学测量模拟用 `double`；财务精确金额用整分 `long` 或 `BigDecimal(String)`！**
+      - item:
+          id: q-autoboxing-npe-trap
+          type: choice
+          prompt: 看这行常见 Java 代码：`Integer found = map.get("missingKey"); int qty = found + 1;`。已知 `"missingKey"` 并不在映射里，所以 `map.get` 返回了 `null`。下一行执行 `found + 1` 时会发生什么？（8.5.3 节）
+          options:
+            - text: 触发 **自动拆箱空异常（`NullPointerException`）**：Java 试图调用 `found.intValue()` 取整数参与 `+ 1`，遇到 `null` 当场崩溃！应改为 `map.getOrDefault("missingKey", 0)` 安全保底
+              correct: true
+            - text: Java 会把 `null` 自动当成数字 `100` 算出 `101`
+              why: 对象引用的 `null` 绝对不会自动变成数字 `0` 或 `100`，任何拆箱读值动作遇 `null` 必炸 `NullPointerException`！
+            - text: 会顺便向映射表自动插入一个新条目
+              why: "`map.get` 是只读查询，用 `getOrDefault(k, 0)` 提前收口缺省值才是稳健风格！"
+          explain: 讲完数值类型和包装坑，下一课来看与它们打交道最紧密的基础容器：**固定长度的连续容器——连续槽位（Array）、非法超限报错与伪随机数安全选型**！
+
+  - id: arrays
+    chapter: 以 Java 等语言实践类型
+    title: 定长连续容器（Array）、非法下标范围（Out of Bounds）、二维网格与随机性（8.3.3–8.3.4、9.5.3–9.5.4）
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你新建了一个正好装 3 个月度指标的固定格子容器 `int[] scores = {90, 85, 92};`。可因为粗心写循环时把终止条件错写成了 `i <= scores.length`（多跑了一次 `scores[3]`）！有些老语言（如 C）在越出这格边界后甚至不报错直接读到旁边乱七八糟的无辜数据，而在 Java 里跑出 `scores[3]` 会立刻发生什么？（8.3.3、9.5.3–9.5.4 节）
+          options:
+            - text: Java 运行时会严格对每一次下标存取做边界检验，一碰到小于 `0` 或 `>= length` 的非法下标，**当场立刻抛 `ArrayIndexOutOfBoundsException` 停住暴露错误**，绝不让代码悄悄篡改隔壁数据！
+              correct: true
+            - text: 系统会自动悄悄忽略 `scores[3]` 并把它改写成 `scores[0]` 的数值继续糊弄跑完
+              why: Java 牢牢看护住每块容器上下界，任何 **超出合法区间** 读写第一时间抛异常拦截（Fail-Fast），防止静默损坏相邻状态
+            - text: 容器长度会自动瞬间在原地变成 100 格
+              why: 固定长度容器创建时大小即永远定死；若需要自动弹性伸缩增删，请选用第 8 章的 `ArrayList`！
+          explain: 本课依据 8.3.3–8.3.4 与 9.5.3–9.5.4 节，掌握 **定长连续容器/多维表、严防非法下标范围、字符串切分拼接与 `Random` vs `SecureRandom` 使用场景**！
+      - card:
+          title: 数组（Array）、下标越界（Out of Bounds）与二维表格（8.3.3、9.5.4）
+          body: |
+            - **数组**：一旦通过 `new int[5]` 或字面值建好，容量 `.length` 永久定死，内部元素连续排列可按从 `0` 到 `length - 1` 下标一跳即达！访问 `< 0` 或 `>= length` 即发生 **越界** 报错。
+            - **二维表格**：用 `int[][] grid = new int[rows][cols]` 表示棋盘与矩阵（`grid[r].length` 可各自查本行宽度）；增强 `for (int v : row)` 无需碰下标就杜绝手滑越界！
+
+            ```java
+            int[][] grid = {{1, 2, 3}, {4, 5, 6}};
+            int sum = 0;
+            for (int[] row : grid) {
+                for (int cell : row) { sum += cell; }
+            }
+            System.out.println(grid.length + "x" + grid[0].length + ":" + sum);
+            // expect: 2x3:21
+            ```
+      - card:
+          title: 字符串处理与随机性安全：普通 `Random` vs `SecureRandom`（8.3.4、9.5.3）
+          body: |
+            - **字符串基础（8.3.4）**：`length()` 求字符数，`equals()` 判文本内容，`.split(",")` 拆分数据行，**循环内高频拼装海量文字用 `StringBuilder`**（防每次 `+` 重复抄写全串变成平方慢速！）。
+            - **随机性区分（9.5.3）**：做游戏掉落、洗牌与随机测验可以用普通 `java.util.Random`（指定种子 `new Random(seed)` 更便于**重现排查**！）；而生成密码重置令牌、验证码与密钥**必须用密码学强度的 `SecureRandom`**！
+      - item:
+          id: q-array-bounds-last-index
+          type: number
+          prompt: 已知声明了一维容器 `String[] days = {"Mon", "Tue", "Wed", "Thu", "Fri"};`，其中 `days.length` 等于 `5`。若想访问最后一项 `"Fri"` 而不触发 **越界** 异常，允许使用的最大合法下标整数是多少？（填整数）
+          answer: 4
+          explain: 因为下标从 `0` 起算，长度为 `5` 的连续空间合法下标恰好是 `0, 1, 2, 3, 4`——**最大合法下标永远等于 `length - 1 = 4`**，写 `days[5]` 必报越界！
+      - card:
+          title: 例题：为什么把 `for (int i = 0; i < 10000; i++) out += line;` 换成 `StringBuilder` 能让耗时从几秒降到 1 毫秒？
+          body: |
+            对比这两种看似效果一模一样的循环字符串拼接写法（8.3.4 节结合前面学过的 `String` 不可变特性）：
+          reveal:
+            - title: 第 1 步：循环内直接用 `out += line;` → 每次都重造全长新拷贝！
+              body: 记得上一章说过 Java 的 `String` 是彻底不可变对象！每执行一次 `out += "a"`，系统都必须新建一只容量更长的新字符串，把前面几万个已有字符老老实实全抄过去一遍再扔掉旧串！累加 `N` 次总拷贝量高达 `O(N^2)`！
+            - title: 第 2 步：改成 `StringBuilder sb = new StringBuilder();` → 可变内部缓冲攒满一次转出！
+              body: "`StringBuilder` 内部维护着一段可复用动态扩展字符槽，每次 `.append(line)` 只往后尾顺着写入，循环结束再统一调一次 `.toString()` 产出一枚干净的不可变 `String`（均摊 `O(N)` 极快）！"
+            - title: 第 3 步：同时记住固定数组传 `.length` 属性、字符串调 `.length()` 方法！
+              body: 经典新手语法混淆：**数组**是写定属性 `arr.length`（不带括号！），而 **`String` 字符串**（以及各种集合 `.size()`）才是带括号的方法调用 `str.length()`！
+      - item:
+          id: q-random-vs-securerandom
+          type: choice
+          prompt: 依照 9.5.3 节随机性实战选型，下面哪一项任务如果图省事直接使用了 `new java.util.Random()`（而不是 `SecureRandom`）会引发严重安全隐患？
+          options:
+            - text: 生成用户登录会话编号（Session ID）或“忘记密码”一次性重置令牌
+              correct: true
+            - text: 在离线单人俄罗斯方块小游戏里随机挑下一个方块形状，并用固定种子记录录像回放
+              why: 单机游戏关卡、模拟采样和可重现自动化测试反而正适合用可设固定种子的普通 `Random`（甚至专靠固定种子做到 100% 精准复现 BUG！）
+            - text: 蒙特卡洛仿真撒点粗略估算圆周率
+              why: 统计模拟与普通仿真随机用普通高速伪随机器极合适；唯独涉及**防猜测安全凭证与秘密令牌**必须采用密码学级的 **`SecureRandom`**！
+          explain: "**性能调试与重现用 `Random(seed)`，安全秘密凭证一率用 `SecureRandom`！**"
+      - item:
+          id: q-array-vs-list-choice
+          type: match
+          prompt: 把基础实战类型（8.3.3–8.3.4、9.5.3–9.5.4 节）的四个常见操作或陷阱与恰当工具匹配。
+          pairs:
+            - ["**长度一经确定永不增减、极致追求连续紧密存取或二维表格**", "使用固定长度 **`数组`（如 `int[][] grid`）**，注意下标永远落在 `0..length-1`"]
+            - ["**循环中拼接上万行报表导出文本**", "使用可变 **`StringBuilder`** 追加 `.append(...)`，避免不可变 `+=` 平方级拷贝拖慢"]
+            - ["**生成密码重置随机口令或 CSRF 防伪串**", "必须选用密码学强度 **`SecureRandom`**，严禁拿按线性同余算出的普通 `Random` 充数"]
+            - ["**增强型循环 `for (int x : arr)`**", "仅读取各元素而不改位置时免写下标 `i`，从语法根源上彻底杜绝差一越界"]
+          explain: 下一课把文本处理拉到专业工业级别：**`text-tools`（精准字符串工具、`Pattern`/`Matcher` 正则表达式与日期安全表示，9.3.3 节）**！
+
+  - id: text-tools
+    chapter: 以 Java 等语言实践类型
+    title: 正则表达式（Regex）、文本规范解析与时间日期实践（9.3.3）
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 业务要求校验用户输入的订单号必须精准符合格式 `ORD-年份4位数字-6位数字`（例如 `ORD-2026-004812`）。难道必须用一串 `if (s.length() == 15 && s.charAt(0) == 'O' && ...)` 写二十行脆弱丑陋的手工下标拆字符去检查吗？如果明天还想从一大段日志里把所有这种格式订单号全抓取出来呢？（9.3.3 节）
+          options:
+            - text: 用一条简明 **正则表达式**（如 `ORD-\d{4}-\d{6}`）统一描述这种精确字符规律，让标准正则引擎 `Pattern` / `Matcher` 替你一步完成整行格式匹配与捕获提取！
+              correct: true
+            - text: 只能禁止订单号里同时出现横杠和数字
+              why: 用声明式的模式描述字符规律正是为了既可读又严密地校验或提取结构化文本片段
+            - text: 靠写 20 层嵌套 `switch` 判断每一个下标字符才是唯一好维护写法
+              why: 手写逐位判断不仅枯燥易写错一位，而且一旦要提取段落里位置不固定的匹配项就彻底失灵
+          explain: 本课对应 9.3.3 节（Other useful techniques）：聚焦 **正则表达式（`Pattern`/`Matcher`）、安全切分与防灾难回溯坑，以及不可变现代时间日期类型 `LocalDate`/`Instant`**！
+      - card:
+          title: 正则表达式（Regex）、预编译复用与防回溯陷阱（9.3.3）
+          body: |
+            - **正则表达式**：用极简模式语法精准刻画字符串格式规矩（`\d` 数字、`[A-Z]` 大写字母、`+` 至少一次、`{4}` 精确四次、`^`/`$` 锚定头尾防只撞半截！）。
+            - **实战铁律**：高频调用时把 `Pattern.compile(...)` 抽为静态常量只解析一次复用；绝不写出嵌套重复量词（如 `(a+)+$`）防恶意畸形长串触发指数回溯拖死 CPU！
+
+            ```java
+            import java.util.regex.Pattern;
+            Pattern ORDER_PAT = Pattern.compile("^ORD-(\\d{4})-(\\d{6})$");
+            var m = ORDER_PAT.matcher("ORD-2026-004812");
+            System.out.println(m.matches() + ":" + (m.matches() ? m.group(1) : "-"));
+            // expect: true:2026
+            ```
+      - card:
+          title: 不可变现代时间 API 与文本格式注意细节（9.3.3）
+          body: |
+            - **日期时间踩坑指南**：淘汰早已废弃的古董可变 `Date` 与月份从 0 起算奇葩 `Calendar`！一律使用不可变 **`java.time`（`Instant` 存全局绝对时间戳、`LocalDate` 存无时区日历、`ZonedDateTime` 存明确带时区展示）**！
+            - **切分空白坑**：`s.split("\\s+")` 能吞掉多个连续空格与制表符；而 `s.split(".")` 会把 `.` 当通配符把字符串全切没——必须转义为 `\\.` 或使用字面匹配！
+      - item:
+          id: q-regex-anchors-match-vs-find
+          type: choice
+          prompt: 针对合法订单号模式 `"ORD-\\d{4}-\\d{6}"`（注意：如果不加头尾约束，只在文字中搜寻出现过），如果用户输入了一段恶意垃圾串 `"bad!!ORD-2026-004812<script>"` 而程序用了不带 `^...$` 锚定的 `.find()`，会发生什么结果？
+          options:
+            - text: "`.find()` 会惊喜地在整串垃圾中间抠出匹配的那一截然后返回 **`true`** 放行整条恶意输入！验证“整串必须完全符合格式”时，必须用 Java 整串匹配 `.matches()` 或明确加上 `^...$` 头尾锚定！"
+              correct: true
+            - text: "`.find()` 会把 `<script>` 自动翻译成大写英文并保存进数据库"
+              why: "`.find()` 的职责是在长文本里“找出包含某段局部模式的子串”；只有 `.matches()`（或带 `^` 和 `$` 锚定）才校验整个字符串从第一个到最后一个字符全部严丝合缝合规！"
+            - text: 不加 `^` 和 `$` 时 `.find()` 永远什么都匹配不到
+              why: 恰恰相反，正是因为没锚定头尾才让带脏尾巴脏前缀的违规输入从缝隙里混了过去！
+          explain: 一句话区分两兄弟：**整串表单格式校验用 `.matches()`（或头尾锚 `^...$`）；从长日志里捞多个隐藏片段用 `while (m.find())`！**
+      - card:
+          title: 例题：为什么把 `split(".")` 传进 Java 字符串切分，结果居然返回了一个长度是 `0` 的空壳？！
+          body: |
+            看三段日常文本处理最容易被老手都踩中的小机关（全在 9.3.3 节常见实用陷阱里）：
+          reveal:
+            - title: 第 1 步：`String.split(regex)` 吃进去的参数是“正则表达式”，不是纯普通字面字符！
+              body: 正则里一个裸英文句点 `.` 代表“**匹配任意一个字符**”！写 `"a.b.txt".split(".")` 等同按“每个字符全是分隔符”一路砍光，最终返回空结果 `length == 0`！按真正小圆点或竖线切分必须转义成 **`"\\."` 与 `"\\|"`**（或用 `Pattern.quote(delim)` 自动包全转义）！
+            - title: 第 2 步：`Pattern.compile(...)` 放进循环体里白干百万遍
+              body: 把固定不变的模式写进循环里每圈调用 `"abc".matches("^[a-z]+$")` 都会现场重新解析一次状态机图！把它提升成 `private static final Pattern PAT = Pattern.compile("^[a-z]+$");` 在类加载时一次建好，后面毫秒复用千万次！
+            - title: 第 3 步：时间日期永远用不可变 `java.time` 避开时区偏移暗坑
+              body: 比如记录用户下单发生时刻用 **`Instant.now()`**（全球统一 UTC 绝对瞬间，绝不跟服务器本地时区打架），需要计算“生日是几月几号”用 **`LocalDate.of(2000, 11, 17)`**（实打实 11 就是 11 月，绝不像古早 `Calendar` 一样把 11 写成 `10`！）。
+      - item:
+          id: q-regex-split-dot-trap
+          type: choice
+          prompt: 一位程序员想把文件名 `"report.v2.pdf"` 按英文圆点符号 `.` 拆成三个独立片段，随手写了 `"report.v2.pdf".split(".")`。结果得到的切片数组长度为 **`0`**！这问题出在哪、该怎么改？
+          options:
+            - text: Java 的 `String.split` 接收的是**正则表达式**，裸句点 `.` 在正则中表示“匹配任意单个字符”，从而把每个字符全切掉了！必须写成 **`split("\\.")`**（或 `split(Pattern.quote("."))`）
+              correct: true
+            - text: 因为 Java 规定任何文件名字里只准出现 1 个英文字母
+              why: 只要按正则转义规则将特殊元字符 `.` 转义成字面点 `\\.`（Java 字符串里双反斜杠代表正则单反斜杠），立马准确拆出 `["report", "v2", "pdf"]`！
+            - text: 因为只能用 `-` 横杠来拆分任何名字
+              why: 按点切分完全合法，只是必须敬畏 `split` 的入参是正则模式而非普通文字！
+          explain: 下回在 Java 中用到 `.split`、`.replaceAll` 遇到特殊符号（`.`、`|`、`$`、`?`、`*`、`+`、`[`），第一秒就用 `\\` 或 **`Pattern.quote(...)`** 包起来！
+      - item:
+          id: q-java-time-modern-api
+          type: match
+          prompt: 把文本工具与日期时间实践（9.3.3 节）中的四种典型工程需求与最精准标准类型或方法配对。
+          pairs:
+            - ["**预编译复用检验海量文本是否合规**", "定义为 `static final Pattern` 常量后反复创建 `.matcher(s).matches()`"]
+            - ["**按用户输入的任意分隔符安全切分文本**", "使用 `Pattern.quote(userDelim)` 包裹防 `.` 或 `|` 等元字符意外失效"]
+            - ["**存储全球同步订单下单绝对时间戳（无本地时区歧义）**", "使用不可变 **`java.time.Instant`**（精确绝对时间点）"]
+            - ["**表达仅含年月日的生日或节假日（无具体小时分钟秒）**", "使用不可变 **`java.time.LocalDate`**（月份 1..12 直观准确）"]
+          explain: 第 7 章全部通关！现在正式步入开发天天握在手里的第 8 章：**集合（Collections）、哈希契约（equals/hashCode）、底层存储与 Stream 排序**！
+
+  # ======================================================================== 集合
+  - id: collections
+    chapter: 集合
+    title: 集合接口体系（List/Set/Map）、顺序遍历与游标对象安全删除（8.3.2、9.3.3）
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: "有个集合 `List<String> tags` 里装着几个字符串。你想一边用增强循环 `for (String t : tags)` 遍历它，一边顺手遇到 `\"draft\"` 时直接调 `tags.remove(t)` 把它删掉！结果程序跑到一半当场炸出一个 `ConcurrentModificationException` 崩溃停掉！明明全程序才 1 条路线在单干，怎么就报“并发修改异常”了？（8.3.2、9.3.3 节）"
+          options:
+            - text: 增强循环底层靠 **遍历游标** 按结构版本号步步前进——你从外面绕开它直接偷改原列表结构，使游标彻底对不上号！遍历期间需要安全删除必须显式使用 游标的 `.remove()` 或改用 **`tags.removeIf(...)`**！
+              correct: true
+            - text: 因为 Java 规定列表创建以后这辈子绝对不允许删掉哪怕 1 个元素
+              why: 列表完全支持增删（除非用 `List.of` 造了不可变集合），错在“正在靠游标推进遍历的同时，不打招呼绕道直接从列表本体删除改变了元素位置与总数”！
+            - text: 因为只有名字超过 10 个字母的字符串才允许从集合里被移除
+              why: 无论字符串长短，只要边遍历边直接篡改集合结构，标准集合的快速失败游标机制就会立刻报警截停防漏算！
+          explain: 本课进入第 8 章 **集合（Collections，8.3.2、9.3.3 节）**：建立 **`List` / `Set` / `Map`** 接口视角，搞懂 **逐个元素遍历** 与 **游标（`Iterator`）安全修改铁律**！
+      - card:
+          title: 集合接口体系与迭代、迭代器（8.3.2、9.3.3）
+          body: |
+            Java 集合同样贯彻“变量声明只认上层接口契约（如 `List<String> xs = new ArrayList<>();`）”，核心分三大家族：
+            - **`List`**（有序可重复）、**`Set`**（无序去重）、**`Map<K, V>`**（键到值唯一映射，如 Python `dict`）。
+            - 按顺序逐个取出容器元素的过程叫 **迭代**，背后负责记录步进状态的安全游标对象叫 **迭代器（`Iterator<T>`）**！边逛边删请用 `it.remove()` 或一句干净利落的 `list.removeIf(cond)`！
+
+            ```java
+            import java.util.ArrayList;
+            import java.util.List;
+            List<String> tags = new ArrayList<>(List.of("ok", "draft", "live"));
+            tags.removeIf(t -> t.equals("draft"));
+            System.out.println(tags);
+            // expect: [ok, live]
+            ```
+      - item:
+          id: q-cme-iterator-remove-fix
+          type: choice
+          prompt: 在遍历一个可变的 `List<String> items` 时想删掉其中全部过期条目。下面哪种写法不会触发 `ConcurrentModificationException` 且简明不漏项？
+          options:
+            - text: 使用集合自带的 **`items.removeIf(x -> x.startsWith("tmp_"))`**，或者显式取得 `Iterator<String> it = items.iterator()` 后仅通过游标自身的 **`it.remove()`** 删除当前项
+              correct: true
+            - text: "直接在增强循环 `for (String x : items)` 里面调用 `items.remove(x)`"
+              why: 这正是会触发游标校验版号不一致直接抛出 `ConcurrentModificationException` 崩溃的反面写法！
+            - text: 先把集合设成 `List.of(...)` 不可变集合然后再去调用 `.remove`
+              why: "`List.of` 产出的不可变集合对任何修改调用一律立即抛出 `UnsupportedOperationException` 拒绝修改"
+          explain: 一句话用一辈子：**仅过滤删除集合条件项，首选一句 `items.removeIf(...)` 干净利落！**
+      - card:
+          title: 例题：为什么老手声明集合总写 `List<String> xs = new ArrayList<>();` 而不写死 `ArrayList<String> xs = ...`？
+          body: |
+            哪怕在方法参数里收集合（如 `void renderReport(List<String> lines)`），接口化声明也有三重直接好处：
+          reveal:
+            - title: 第 1 步：今天传进 `new ArrayList<>()`，明天测试传入 `List.of("a", "b")` 无缝兼容！
+              body: 如果函数参数死写成了 `ArrayList<String> lines`，外人顺手造出来的只读小列表 `List.of("a", "b")`（甚至 `Arrays.asList` 或 `LinkedList`）竟然全编译不过传不进去！而写 **`List<String> lines`** 把所有合理列表全部兼容接住！
+            - title: 第 2 步：`List.of(...)` / `Set.of(...)` / `Map.of(...)` 快速造出的不可变集合不收 `null` 也不准改！
+              body: 现代 Java 造轻量固定配置集常用 `Set.of("admin", "auditor")`——极快且绝对防意外改坏（连调 `.add` 都立刻报错！），不过注意它们禁止放 `null` 元素，需要可增删改时包一层 `new ArrayList<>(List.of(...))`！
+            - title: 第 3 步：正着写普通 `for (int i = 0; i < list.size(); i++)` 边删边往前移下标的大坑！
+              body: 即使不用增强循环，假如从 `i = 0` 正序删除第 `0` 号元素，后面的第 `1` 号立刻往前挪补成了新第 `0` 号，而下一步 `i++` 跳去第 `1` 号直接**跳过漏查了紧邻的那一个元素**！用 `it.remove()` 或 `removeIf` 完全没这错位坑！
+      - item:
+          id: q-list-interface-over-impl
+          type: choice
+          prompt: 在给业务服务写公开方法签名时，为什么规范推荐使用上层集合接口 **`List<Order>`** 或 **`Set<String>`** 作为参数和返回值类型，而不在对外接口里写死 **`ArrayList<Order>`**？（8.3.2 节）
+          options:
+            - text: 让实现类内部和外部调用方都能自由更换具体底层容器实现（例如从 `ArrayList` 换为不可变 `List.of(...)` 或 `LinkedList` 拷贝）而不破坏签名契约，完美贯彻面向接口编程
+              correct: true
+            - text: 因为 `ArrayList` 根本不是 `List` 接口的实现类
+              why: "`ArrayList` 本身正是 `List` 接口最经典最常用的实现之一；面向 `List` 编程让你拥有更换具体列表实现的自由度"
+            - text: 因为只要写成 `List` 就能把无序可重集硬塞进键值对里
+              why: 不同集合语义依然严格独立：`List` 管有序、`Set` 管唯一去重、`Map` 管键值查找
+          explain: "**“参数和返回值用接口（`List` / `Set` / `Map`），只在真正 `new` 那一刻挑具体实现类！”**"
+      - item:
+          id: q-immutable-list-of-behavior
+          type: choice
+          prompt: Java 代码里写了 `List<String> roles = List.of("user", "editor");`，紧接着后面的代码不小心执行了一句 `roles.add("admin");`。运行时会发生什么？
+          options:
+            - text: 立即抛出 **`UnsupportedOperationException`** 拒绝改动！因为 `List.of(...)` 创建的是不可变只读集合，天然防止被意外篡改或别名破坏不变量
+              correct: true
+            - text: 静默把 `"admin"` 追加成第三个元素并改写常量表
+              why: "`List.of` / `Set.of` / `Map.of` 专门产出真正不可变（Unmodifiable）集合，防止外部调用方篡改返回结果或配置集"
+            - text: 会先把整个列表彻底清空后再加上 `"admin"`
+              why: 若需要可自由增删改的可变副本，创建时包一层 `new ArrayList<>(roles)` 即可！
+          explain: 搞清接口骨架后，下一课迎战综合练习第 (5) 题也是 Java 面试头号杀手题：**为什么重写了 `.equals()` 却忘了同时重写 `.hashCode()`，刚塞进 `HashSet`/`HashMap` 的对象怎么转眼就查不着了？！**
+
+  - id: hashing
+    chapter: 集合
+    title: 对象相等契约（== vs equals）与 hashCode 协同法则（9.1.2–9.1.3、综合练习 5）
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 综合练习第 (5) 题核心：你写了一个坐标类 `Point(int x, int y)`，非常细心地重写了 `@Override public boolean equals(...)` 使得两个坐标 `(1, 2)` 算相等！于是你兴冲冲把 `new Point(1, 2)` 塞进了一个 `HashSet<Point>`，紧接着查一句 `set.contains(new Point(1, 2))`——结果竟然冷冰冰返回 **`false`**！！明明刚才才放进去、`.equals` 也明明相等，怎么 `HashSet` 里找不到了？！（9.1.2–9.1.3 节、综合练习 5）
+          options:
+            - text: "**只重写了 `equals` 却忘了同时重写 `hashCode()`**！`HashSet` / `HashMap` 先用 `hashCode()` 算桶位再去比 `equals`；没重写 `hashCode` 时两只不同 `new Point(1, 2)` 对象算出了完全不同的默认桶号，压根没去同一个桶里找！"
+              correct: true
+            - text: 因为坐标里数字 `1` 和 `2` 不能放到同一个 `HashSet` 里
+              why: 根源在于违背了 Java 最铁的相等契约：**只要 `a.equals(b)` 为 `true`，`a.hashCode()` 与 `b.hashCode()` 必须一模一样！**
+            - text: 因为忘记写成 `set.contains(p1 == p2)`
+              why: "`==` 比的是两只对象的引用是不是同一个房间位置句柄，而我们刚 `new` 出的两只 `(1, 2)` 是内容相同但分别创建的不同实体！"
+          explain: 本课对应 9.1.2–9.1.3 节与综合练习第 (5) 题：一次立死 **`==` vs `.equals()` 区分** 与 **`equals` / `hashCode` 协同四条铁律**（JDK 21 实测演示）！
+      - card:
+          title: "`==` 引用同一性 vs `.equals()` 内容相等，与 `hashCode` 契约（9.1.2–9.1.3、综合练习 5）"
+          body: |
+            - **`==`（对象间）**：仅检查两个变量是不是指向**同一只对象实体**；
+            - **`.equals(Object)`**：比较两只对象在**业务内容上是否逻辑等价**（须满足自反、对称、传递、一致、对 `null` 永返 `false`）。
+            - **黄金共生契约**：**若 `a.equals(b)` 为真，则 `a.hashCode() == b.hashCode()` 必须恒成立！**（否则哈希集合直接定位错桶查不到！）Java 16+ 的 `record` 会自动帮你安全生成全套！
+
+            ```java
+            import java.util.HashSet;
+            import java.util.Objects;
+            class Point {
+                final int x, y;
+                Point(int x, int y) { this.x = x; this.y = y; }
+                @Override public boolean equals(Object o) {
+                    return (o instanceof Point p) && x == p.x && y == p.y;
+                }
+                @Override public int hashCode() { return Objects.hash(x, y); }
+            }
+            var set = new HashSet<Point>();
+            set.add(new Point(1, 2));
+            Point other = new Point(1, 2);
+            System.out.println((new Point(1, 2) == other) + ":" + set.contains(other));
+            // expect: false:true
+            ```
+      - item:
+          id: q-hashcode-equals-contract-ex5
+          type: choice
+          prompt: 对照综合练习第 (5) 题，关于 Java 对象的 `==`、`.equals()` 与 `.hashCode()` 关系，下面哪一条表述**完全准确**？
+          options:
+            - text: 对对象而言 `==` 比较是否同一个实例，`.equals()` 才比较业务内容是否相等；凡重写 `.equals()` **必须同时基于同一组相等判定字段重写 `.hashCode()`**，使得逻辑相等的对象必然算出完全相同的哈希码
+              correct: true
+            - text: 若 `a.hashCode() == b.hashCode()` 相等，就必定意味着 `a.equals(b)` 绝对为 `true`
+              why: 千万别搞反方向！两只**完全不相等**的对象（比如 `"Aa"` 和 `"BB"`）也有可能刚好发生哈希碰撞算出同一个 `hashCode`！正确逻辑是：**内容相等 ⇒ 哈希码必相等**（反之碰巧同哈希时桶内仍须拿 `equals` 最终分辨）！
+            - text: 哪怕不重写 `hashCode()`，`HashMap` 也会自己扫描全世界每一个桶去对比 `equals`
+              why: 为了维持常数级 O(1) 查找速度，哈希表**只会去 `hashCode()` 指出的那唯一对应槽位桶里面寻找**，不同桶绝不去翻！
+          explain: 把真命题方向画上单向大箭头：**`equals == true  ===>  same hashCode`**；反过来 `same hashCode` 时仍要再用 `equals` 核实防碰撞！
+      - card:
+          title: 例题：为什么把“可变字段（如会修改的名字）”拿去算进 `hashCode()`，甚至比忘写 `hashCode` 更邪门？！
+          body: |
+            就算写全了 `equals` 和 `hashCode`，如果一个对象的关键比较字段是**可变的（没有加 `private final`）**，放进 `HashSet` / `HashMap` 键位后一旦修改它，对象竟然会像灵异事件一样“既删不掉也找不到”！看三步复现：
+          reveal:
+            - title: 第 1 步：放进 `HashSet` 那一刻，按当时的名字 `"old"` 算哈希 `h1` 放入 `桶 3`
+              body: 设 `MutableTag t = new MutableTag("old"); set.add(t);`，假设 `"old".hashCode()` 落进内部哈希表第 3 号槽位。
+            - title: 第 2 步：在外面通过可变 setter 把 `t.setName("new")` 改掉！
+              body: 现在 `t` 自己算出来的新哈希变成了 `h2`（对应第 9 号槽位），可对象本体依然傻傻躺在第 3 号旧槽位里没挪窝！
+            - title: 第 3 步：此时查 `set.contains(t)` 返回 `false`，调 `set.remove(t)` 也删不掉，对象永远卡死在集合里泄漏了！
+              body: 所以极重要规则：**凡是要放进 `HashSet` 或充当 `HashMap` 键的对象，其参与 `equals/hashCode` 计算的字段必须全部是不可变的（`final`），最好直接使用 `record Point(int x, int y) {}` 不可变值类型！**
+      - item:
+          id: q-mutable-key-in-hashmap
+          type: choice
+          prompt: 某团队把一个带有 `setLabel(String)` 的可变对象 `tag` 作为键放进了 `HashMap<Tag, Integer>` 之后，在外部调用了 `tag.setLabel("updated")`（而且 `label` 正参与了 `equals` 与 `hashCode` 计算）。紧接着再用 `map.get(tag)` 去找这个明明就在里面的键，为什么返回了 `null`？
+          options:
+            - text: 放入时按旧标签的 `hashCode()` 存进了旧槽位，修改 `label` 后重新算出了全新 `hashCode()`，查找时去新槽位找空扑了个空——因此充当 `HashMap` 键或 `HashSet` 元素的相等判定字段必须保持**不可变**！
+              correct: true
+            - text: 因为 `HashMap` 每次查完一个键就会立刻故意把全表清空
+              why: 故障全因修改了“已入表键值对象”参与哈希定位的字段，导致存时位置与查时位置错位
+            - text: 只要在方法里使用 `==` 替代 `hashCode` 就好了
+              why: 键值查找依赖不可变值语义及 `equals`/`hashCode` 协同一致；改用 Java 16+ 不可变 **`record`** 作复合键即可一键绝后患！
+          explain: Java 16+ 用一句 **`record Key(String user, int year) {}`** 就能零样板代码同时白得不可变字段 + 自动正确的 `equals` + `hashCode` + `toString`！
+      - item:
+          id: q-hashing-contract-match
+          type: match
+          prompt: 把对象比较与哈希表（9.1.2–9.1.3 节）中的四个关键概念或故障现象精准配对。
+          pairs:
+            - ["**`new String(\"hi\") == new String(\"hi\")`**", "结果为 **`false`**：因为两只各自新建的对象不是堆区同一个实例实体"]
+            - ["**重写 `equals` 却漏重写 `hashCode`**", "两只相等对象掉入不同哈希桶，放进 `HashSet` 后拿同值新对象居然 `contains` 为 `false`"]
+            - ["**改掉已放入 `HashMap` 键上的可变字段**", "查找与删除按新哈希码去错了桶位，致使对象在表内彻底迷失泄漏"]
+            - ["**Java `record` 不可变数据载体**", "自动保证字段不可变并生成与字段严格一致的 `equals`、`hashCode` 与可读 `toString`"]
+          explain: 知道了表面怎么用集合，下课把盖子掀开看看底下到底怎么跑快、慢又差在哪：**`ArrayList` vs 哈希桶存储布局（9.5.2 节）**！
+
+      - item:
+          id: q-equals-symmetry-null
+          type: choice
+          prompt: 按照 Java `Object.equals(Object o)` 规范，向任何合法对象调用 `a.equals(null)` 时，必须稳稳返回什么结果？（9.1.3 节）
+          options:
+            - text: 必须安全返回 **`false`**（绝不准抛出 `NullPointerException`！这也是 `o instanceof Point p` 模式匹配天然帮我们挡住 `null` 的原因）
+              correct: true
+            - text: 只要碰到 `null` 就必须立刻让程序崩毁报错
+              why: "`x.equals(null)` 必须返回 `false` 是 JDK 所有标准类型与自定义 `equals` 的强制合同条款"
+            - text: 永远应该返回 `true` 代表任何非空对象都等于空
+              why: 非空对象与 `null` 永远不相等，而使用 `Objects.equals(a, b)` 甚至连左侧 `a` 为 `null` 时也能安全比对不炸空
+          explain: 用 `if (!(o instanceof MyType other)) return false;` 一行搞定空安全判断 + 类型转换！
+
+  - id: container-storage
+    chapter: 集合
+    title: ArrayList 与哈希表的内部存储布局、扩容摊还与复杂度直觉（9.5.2）
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 手头存着 `100,000` 个活跃用户 ID，你的登录检查接口每秒都要问 10,000 次：`whitelist.contains(userId)`“这个 ID 在不在白名单里？”如果白名单用普通 `ArrayList` 存 vs 用 `HashSet` 存，查找耗时差距有多悬殊？（9.5.2 节）
+          options:
+            - text: "`ArrayList.contains` 每次不得不从头挨个比对十万次（线性 `O(n)`），而 `HashSet.contains` 靠 `hashCode()` 算余数一脚直接跨进对应小桶（均摊常数 **`O(1)`**），快出成千上万倍！"
+              correct: true
+            - text: 两者永远耗时严格一模一样，不管装一百万还是十亿条都一样快
+              why: 连续顺序表擅长按整数下标 `get(i)` 直接定位，按值搜则只能挨个找；哈希表牺牲微小空间算桶号，把按值判断存在性压进均摊 O(1)！
+            - text: "`HashSet` 只能用来存数字，绝对存不进任何字符串"
+              why: 只要对象正确实现了 `equals` 和 `hashCode`（如 `String`、`Integer` 与 `record`），`HashSet`/`HashMap` 全都极快支持！
+          explain: 本课依据 9.5.2 节（ArrayList and Hash Table）：看穿两种最常用集合的内部物理储存账本——**连续动态扩容缓冲 vs 哈希分桶链/树**！
+      - card:
+          title: "`ArrayList`（动态连续槽位） vs 哈希表（桶定位）底层原理（9.5.2）"
+          body: |
+            - **`ArrayList`**：底层裹着一块**连续定长槽位数组**！按数字位置 `get(i)` 一跳 `O(1)` 极快；尾部 `add(x)` 满格时自动新申请一块 **1.5 倍长** 新空间搬迁（均摊 `O(1)`！）；但在最开头 `add(0, x)` 得把后面全部元素往右挪一格，代价 **`O(n)`**！
+            - **`HashMap` / `HashSet`**：维护一排**哈希桶数组**！按 `hashCode()` 散列落在某号桶里；均摊 **`O(1)`** 增删查；当同一桶碰撞元素过多或负载因子过高（默认 0.75）时触发两倍扩容重哈希（Rehash）防退化！
+      - card:
+          title: 如何按“有序下标 / 判重快查 / 保插入序”精准选容器？（9.5.2）
+          body: |
+            日常 90% 的开发选型看这三格秒定：
+            - **按顺序保存全部允许重复记录、主要按位置访问或全量扫一遍**：选 **`ArrayList`**；
+            - **极高频查询“某键在不在 / 取对应配置”、不关心位置先后**：选 **`HashSet`** / **`HashMap`**；
+            - **既要哈希 O(1) 快查去重，又要打印时严格记住当初插入先后顺序**：选 **`LinkedHashSet`** / **`LinkedHashMap`**！
+      - item:
+          id: q-arraylist-vs-hashset-contains
+          type: choice
+          prompt: 某实时风控黑名单系统里存有 `200,000` 个已封禁账号 ID，每笔下单请求都需要极速核查一次当前用户 ID 是否命中黑名单，无需按整数位置索引也不必保留列表顺序。最应该把这 20 万个 ID 存进哪种容器？（9.5.2 节）
+          options:
+            - text: "**`HashSet<String>`** —— 借由哈希桶 `O(1)` 均摊时间瞬间判定存在性，完全避免 `ArrayList.contains()` 每次都要线性扫完多达二十万元素的性能灾难！"
+              correct: true
+            - text: "**`ArrayList<String>`** —— 每次调 `.contains()` 顺着表头挨个比对二十万次才可靠"
+              why: 在高频调用路径里对几十万级大列表反复 `.contains()` 是头号性能杀手之一（总开销 O(Q·N)）！
+            - text: 建 `200,000` 个各自叫 `id1`, `id2`... 的独立局部 `String` 变量用两万行 `if` 比对
+              why: 这既无法动态增减黑名单，也没法维持可维护性；`HashSet` 一行 `blacklist.contains(uid)` 又干净又快！
+          explain: 下回在评审代码看到“大 `for` 循环里面套了一个 `otherList.contains(x)`”时，立刻一秒提议换成 `HashSet` 把 `O(N^2)` 瞬间压成 `O(N)`！
+      - card:
+          title: 例题：为什么 `ArrayList` 每次满容扩大 `1.5` 倍（乘法翻倍），而绝不能每次只死板“加 `10` 个格”扩容？
+          body: |
+            很多初学者好奇：既然扩大空间还要把老数据全都搬去新块里，为啥不缺多少加几格省空间，偏要浪费点空间按倍数扩？算一笔极其漂亮的摊还账：
+          reveal:
+            - title: 第 1 步：如果每次满格只加死常数 `+1` 格或 `+10` 格 → 总搬运量爆成 `O(n^2)`！
+              body: 往里放 `10,000` 个元素若每次只多开 1 格：加第 100 个搬 99 次、加第 101 个搬 100 次……总复制次数 `1 + 2 + ... + n ≈ n^2 / 2`——插一万条搬五千万次，当场卡死！
+            - title: 第 2 步：按比例成倍扩（如 1.5x 或 2x）→ 平均每条插入搬运不到常数次 `O(1)`！
+              body: 假设从 `1` 扩到 `2 → 4 → 8 → ... → N`：最后一次搬 N/2、倒数第二次 N/4……全部搬迁求和 `N/2 + N/4 + N/8 + ... < N`！平摊到一万个元素上，**平均每个元素仅搬动不到 1 次！**
+            - title: 第 3 步：同时看清为什么 `HashMap` 在负载因子 `0.75` 时扩两倍重新算桶（Rehash）
+              body: 如果永远死守最初的 16 个桶却往里塞进 16 万个元素，每个桶里就会拖着一万长串的碰撞队列，O(1) 就退化成慢吞吞的 O(n)！趁着桶平均还没塞满（0.75）翻倍开新桶再重新散列分布（Java 8+ 在单桶极度碰撞冲突时甚至升级成平衡树防恶意碰撞攻击），才能常保丝滑均摊 O(1)！
+      - item:
+          id: q-arraylist-head-insert-cost
+          type: choice
+          prompt: 对一个已经装有 `50,000` 个整数的 `ArrayList<Integer>`，为什么在最末尾调用 `list.add(99)` 飞快，而反复在最开头第 0 位调用 `list.add(0, 99)` 却明显慢一个量级？（9.5.2 节）
+          options:
+            - text: 尾部追加只在空余槽位直接放入（均摊 `O(1)`）；而在索引 `0` 插入迫使底层必须把后面整整五万个元素全部向后逐格顺移腾空，单次即耗时 **`O(n)`**
+              correct: true
+            - text: 因为 Java 禁止往任何列表第 0 号位置放入数字 `99`
+              why: 语法完全支持 `add(0, 99)`，只是连续顺序存储的物理结构决定了头部增删的整段数据挪动代价高昂
+            - text: 因为往结尾放 99 时电脑会自动把它当成 `null` 丢掉
+              why: 尾部放入完整保留元素；若业务确实需要极其频繁的两端队列增删（头尾皆快），应改用 **`ArrayDeque`**！
+          explain: 选对容器靠的是看穿底下是“连续一块排队（挪头慢、按号跳读快）”还是“按哈希算编号进散列桶（按值查极快）”！
+      - item:
+          id: q-storage-choice-match
+          type: match
+          prompt: 把四种常见集合使用场景与底层性能最匹配、代码最简洁的标准 Java 容器精准配对（9.5.2 节）。
+          pairs:
+            - ["**高频按整数下标 `get(i)` 读取与尾部顺次追加**", "**`ArrayList`**（连续空间，按序号跳转 O(1)）"]
+            - ["**几十万白名单内极速核验“某 ID 是否存在”**", "**`HashSet`**（哈希分桶，`.contains` 均摊 O(1)）"]
+            - ["**按键名关联保存查找配置且要求保留最初添加顺序**", "**`LinkedHashMap`**（兼得 O(1) 查找与可预测迭代次序）"]
+            - ["**频繁从头部或尾部进出的队列/双端栈操作**", "**`ArrayDeque`**（循环缓冲两端 O(1) 收放，优于 `LinkedList` 与头插 `ArrayList`）"]
+          explain: 下一课看看手头拿着一万条散落数据用 `HashMap` 按类别“分组统计与默认安全累加”有多省事（**`grouping`，9.1.4–9.1.5 节**）！
+
+  - id: grouping
+    chapter: 集合
+    title: 用 HashMap 分组归类、computeIfAbsent 与频次统计实战（9.1.4–9.1.5）
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 拿到一长串选课流水账：`("CS101", "Mei")`, `("CS101", "Lin")`, `("MATH2", "Kai")`……想要按“课程名 → 该门课的选课名单 `List<String>`”快速分组归类整理。新手往往写一段繁琐的 `if (!map.containsKey(k)) { map.put(k, new ArrayList<>()); } map.get(k).add(v);` 还要重复查三次桶！现代 Java `Map` 有哪句一行优雅写法既只查一次桶又能自动建好缺省空列表？（9.1.4–9.1.5 节）
+          options:
+            - text: 使用 **`map.computeIfAbsent(course, k -> new ArrayList<>()).add(student)`**（以及计次用 `map.merge(word, 1, Integer::sum)`），缺键时按需只建一次空桶，老键直接拿现成桶追加！
+              correct: true
+            - text: 每次遇到新学生都要把整张历史已分组好的映射全表删光再重新从头写
+              why: 用好 `Map` 原生提供的聚合操作不仅消除样板空值判断、减少重复哈希查找，还能把漏判 `null` 的 bug 彻底消灭！
+            - text: 只能写五十个固定名叫 `cs101List`, `math2List` 的零散变量
+              why: 面对动态未知数量的分组类别，键值分组映射（`Map<K, List<V>>`）正是标准解决方案！
+          explain: 本课依据 9.1.4–9.1.5 节（Grouping data using hash maps / Fast data fetching）：练熟 **`Map` 分组、计数 `merge` 与读取默认防护** 三大高频实用招式！
+      - card:
+          title: "`HashMap` 分组与计数三大高频惯用法（9.1.4–9.1.5）"
+          body: |
+            不要再手写臃肿又容易漏空值判断的 `containsKey + put + get` 了，现代 Java `Map` 三连招：
+            - **按组归集列表**：`groups.computeIfAbsent(key, k -> new ArrayList<>()).add(val);`（键不在时才 `new ArrayList`，不浪费空列表对象！）；
+            - **频次统计累加**：`counts.merge(word, 1, Integer::sum);`（无则设为 1，有则原值加 1！）；
+            - **安全只读读取**：`counts.getOrDefault(word, 0)`（找不到时不返回 `null`，直接安全回 `0`！）。
+
+            ```java
+            import java.util.*;
+            Map<String, List<String>> byDept = new HashMap<>();
+            byDept.computeIfAbsent("eng", k -> new ArrayList<>()).add("Mei");
+            byDept.computeIfAbsent("eng", k -> new ArrayList<>()).add("Lin");
+            System.out.println(byDept.get("eng").size() + ":" + byDept.getOrDefault("art", List.of()).size());
+            // expect: 2:0
+            ```
+      - item:
+          id: q-computeifabsent-why-lazy
+          type: choice
+          prompt: 当要把几万条记录按键归入 `Map<String, List<String>> groups` 时，为什么老手更推崇写 **`groups.computeIfAbsent(k, _k -> new ArrayList<>()).add(v)`**，而不是顺手写成 `groups.putIfAbsent(k, new ArrayList<>()); groups.get(k).add(v);`？（9.1.4 节）
+          options:
+            - text: "`computeIfAbsent` 属于**惰性按需创建**：只有在键真正第一次缺失时才触发 Lambda 创建 `new ArrayList<>()`（且直接返回该列表供 `.add` 一气呵成）；而 `putIfAbsent` 哪怕键早已有值了每次依然多造一只白扔掉的空列表！"
+              correct: true
+            - text: 因为 `putIfAbsent` 每次都会把列表里原有的所有元素全清空
+              why: "`putIfAbsent` 不会清空旧值，但它的问题在于作为普通实参传入的 `new ArrayList<>()` 无论键存不存在都要白白先构造浪费一次对象对象空间分配"
+            - text: 因为 `computeIfAbsent` 会自动把映射表转换成数组
+              why: 它仍返回当前键对应的列表对象，只是惰性建桶 + 少一次额外 `get` 哈希查找，既干净又高效！
+          explain: "**按需惰性构造 `computeIfAbsent` + 安全计次 `merge` + 默认只读 `getOrDefault`**，写 Java 统计报表手到擒来！"
+      - card:
+          title: 例题：千万别在 `computeIfAbsent` 里面“顺手再往同一张 Map 添加别的键”！以及 `Map` 遍历最佳实践
+          body: |
+            用顺了上面三件宝，再避开两条实战小坑（9.1.5 节）：
+          reveal:
+            - title: 第 1 步：避免在 `computeIfAbsent` Lambda 内部修改同一张外层 `map` 自身
+              body: 在处理当前键映射函数期间如果往同一个外层 `map` 里又顺便插了别的键值对，会直接撞上结构冲突报错！回调里只专心把当前新空桶容器创建好即可！
+            - title: 第 2 步：需要同时读取键与值遍历全图时，直接扫 **`map.entrySet()`**！
+              body: "新手常写 `for (String k : map.keySet()) { val = map.get(k); ... }`——每圈先取键再多查一次哈希桶！直接写 `for (var entry : map.entrySet()) { k = entry.getKey(); v = entry.getValue(); }`，一步把键值全拿到手零多余查找！"
+            - title: 第 3 步：注意 `Map.of(...)` 不容忍 `null` 键和 `null` 值
+              body: 现代 Java 集合（包括 `List.of`、`Set.of`、`Map.of` 以及 `computeIfAbsent` 若函数返回 `null` 语义）都不欢迎拿 `null` 当有效业务值存放——空组直接对应空 `List.of()` 或零计次 `0`！
+      - item:
+          id: q-map-merge-wordcount
+          type: choice
+          prompt: 统计一篇万字长文里每个单词出现了多少次，需要把次数累进 `Map<String, Integer> freq`。下面哪一行代码最简洁安全、彻底不用写 `if (freq.containsKey(w))`？（9.1.5 节）
+          options:
+            - text: "`freq.merge(w, 1, Integer::sum);`（键不存在时直接写入 `1`；若已有旧计数 `old` 则执行 `Integer.sum(old, 1)` 更新）"
+              correct: true
+            - text: "`freq.put(w, 1);`（每次碰到同一个词全部粗暴盖回 `1`）"
+              why: 直接 `put(w, 1)` 会把之前的累计次数全部覆盖清零，永远统计成 1
+            - text: "`freq.get(w) + 1;` 写完不赋值回去也不判空"
+              why: 首次遇到新单词时 `get(w)` 返回 `null`，直接 `+ 1` 当场抛出空异常！
+          explain: 甚至记不起 `merge` 时写 `freq.put(w, freq.getOrDefault(w, 0) + 1)` 照样对；而 `merge(w, 1, Integer::sum)` 连哈希都少查一遍，完美满分！
+      - item:
+          id: q-entryset-over-keyset
+          type: choice
+          prompt: 当需要把整张 `Map<String, Long> totals` 里的所有商品名称和对应销售总额一并打印出来时，为什么规范更建议遍历 `totals.entrySet()` 而不是只遍历 `totals.keySet()` 再每次在循环体里面调用 `totals.get(k)`？
+          options:
+            - text: 遍历 `entrySet()` 直接顺手拿出当前节点里已经躺在一旁的键与值两手全齐；而 `keySet()` 外加每圈重新 `map.get(k)` 相当于白白多执行一遍哈希查找！
+              correct: true
+            - text: "`keySet()` 永远只能遍历到第 1 个键就停止了"
+              why: "`keySet()` 也能取出全部键，区别纯粹在于拿到键之后还得再查一遍表取对应值，徒增冗余查找"
+            - text: "`entrySet()` 会把所有价格自动清零"
+              why: "`entrySet()` 是条目只读集合，完整保真给出原原本本的键值配对！"
+          explain: 学会了分组、查找和计次，如果手头有一大把对象需要**按多字段排序、筛选前几名、转成新清单**，不用再写十层嵌套临时循环啦——下课迎来第 8 章压轴篇：**`Comparable` 比较排序与 Stream 数据流管道（9.3.1–9.3.2 节）**！
+
+  - id: stream-sort
+    chapter: 集合
+    title: Comparable 自然序、Comparator 多键排序与 Stream 管道（9.3.1–9.3.2）
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 现在要把一箱 `Task` 任务先筛选出“还没完工”的，再按照“紧急优先级从高到低、优先级相同再按标题字典序”排好队，最后只摘出前 3 个任务的名字放进新列表！如果用传统手写循环得建两个中间临时列表、写个匿名比较内部类再手动截前 3 项，足足二十行！现代 Java 用哪两套组合拳几行干净流利搞定？（9.3.1–9.3.2 节）
+          options:
+            - text: 用 **`Stream`（`.stream().filter(...).sorted(...).limit(3).map(...).toList()`）** 串联只读处理管道，配合 **`Comparator.comparing(...).thenComparing(...)`** 组合多条件排序规则！
+              correct: true
+            - text: 把整个任务列表先倒序转成文本拼在一起再去用减号强行相减
+              why: 清晰可读的数据流水线（筛选 → 排序 → 切片 → 映射收集）既不破坏原集合又能声明式一目了然表达加工步骤！
+            - text: 强行规定所有排序永远只准按随机顺序乱排
+              why: 按业务逻辑确定性顺序排列是榜单、分页与对账的基本刚需，`Comparable` 与 `Comparator` 正是标准对比规范！
+          explain: 本课对齐 9.3.1–9.3.2 节（Handling collections as streams & The Comparable Interface）：掌握 **自然排序 `Comparable` vs 外部定制排序 `Comparator` + 防整数减法溢出比较 + 无副作用 Stream 管道**！
+      - card:
+          title: "`Comparable<T>` 自然序 vs `Comparator` 防溢出组合比较（9.3.2）"
+          body: |
+            - **`Comparable<T>`**：写在类自身里面定义唯一**默认自然顺序**（`int compareTo(T other)`）；
+            - **`Comparator<T>`**：留在外部灵活定义多种不同视角排序规则（如先按分数降序、再按姓名升序：`Comparator.comparingInt(Student::score).reversed().thenComparing(Student::name)`）！
+            - **千万别手写 `(a, b) -> a.val - b.val` 比较整数大小**！遇到极小负数减极大正数时整数溢出翻号（`-20亿 - 10亿` 竟算出正数！）——务必用 **`Integer.compare(a, b)`**！
+
+            ```java
+            import java.util.*;
+            record Item(String name, int score) {}
+            var items = List.of(new Item("B", 10), new Item("A", 10), new Item("C", 25));
+            List<String> top = items.stream()
+                .sorted(Comparator.comparingInt(Item::score).reversed().thenComparing(Item::name))
+                .map(Item::name)
+                .toList();
+            System.out.println(top);
+            // expect: [C, A, B]
+            ```
+      - card:
+          title: "`Stream` 管道三阶段：源（Source）→ 惰性中间步骤 → 终端收集（9.3.1）"
+          body: |
+            把集合 `.stream()` 当成一条**不改坏原列表**的水流过滤网（9.3.1 节）：
+            - **常用中间动作**（不立刻开跑，遇到终端才一起算）：`.filter(筛选)`、`.map(变形映射)`、`.sorted(排序)`、`.limit(限条)`；
+            - **常用终端收口动作**：`.toList()`（收集新只读列表）、`.count()`、`.anyMatch(...)`、`.findFirst()`。一条 Stream 只能消费运行 **一次**，切勿复用已关闭的流！
+      - item:
+          id: q-comparator-overflow-bug
+          type: choice
+          prompt: 一位开发者写了一个比较两笔大额交易整数的比较器 `(a, b) -> a.cents() - b.cents()`。大部分测试小数字全过，可上线后碰到一条历史负调整账单 `-2_000_000_000` 和一笔正常入账 `1_000_000_000` 一比对，顺序居然彻底颠倒了！这颗经典隐蔽炸弹怎么来的，怎么一句根治？（9.3.2 节）
+          options:
+            - text: "`int` 直接相减会突破 32 位整数下限发生有符号溢出回绕成正数！永远严禁用减法写比较器，必须改用标准库 **`Integer.compare(a.cents(), b.cents())`**（或 `Comparator.comparingInt` / `Long.compare`）"
+              correct: true
+            - text: 因为 Java 规定负数永远大于十亿整数
+              why: 纯属 `-2e9 - 1e9 = -3e9` 越过 `Integer.MIN_VALUE`（约 `-2.14e9`）后二补码回绕翻成正数惹的祸！
+            - text: 因为只能把所有数字乘以 100 才敢排序
+              why: 乘以 100 只会更快触发溢出！标准 `Integer.compare(x, y)` 仅用 `<` 与 `==` 比较大小，永不溢出！
+          explain: 记死条规：**写任何 `compare` 或 `compareTo` 时，看到两个整数做减法 `a - b` 立刻打回去改成 `Integer.compare(a, b)` 或 `Long.compare(a, b)`！**
+      - card:
+          title: 例题：为什么把外部状态 `found.add(x)` 塞进 `.filter()` 或 `.map()` 里修改外部可变列表是个危险坏习惯？
+          body: |
+            看上面 `items.stream().sorted(...).map(...).toList()` 的纯洁流水线与“带着偷偷改外部副作用的烂流”对比：
+          reveal:
+            - title: 第 1 步：忘加终端操作时，中间步骤压根一次都不运行！
+              body: 有人只写了 `list.stream().filter(x -> { sideEffectLog.add(x); return true; });` 忘了后面接 `.toList()` 或 `.forEach(...)`。由于 Stream 中间步骤是**惰性（Lazy）**的，根本没人收尾拉动水流，这段代码等于零执行！
+            - title: 第 2 步：无副作用转换才能顺手保持原集合干净、甚至安全扩展！
+              body: 让 `.filter` 与 `.map` 始终做成纯函数式无副作用筛选与映射（不悄悄篡改外界共享可变列表），最终靠 `.toList()` 干净收成全新结果，原来的 `items` 列表完好无损留在手里！
+            - title: 第 3 步：`Comparable` vs `Comparator` 选择一句话
+              body: 如果一个类天生有唯一公认的天然顺序（比如 `LocalDate` 按日期先后、`String` 按字典序），类自己实现 `Comparable<T>`；如果想从外面按销量、价格、创建时间十几种花样换着排，全部独立写成 `Comparator` 外部比较器！
+      - item:
+          id: q-stream-lazy-and-immutable
+          type: choice
+          prompt: 对原有列表 `List<Item> items` 运行 `var names = items.stream().filter(x -> x.score() >= 20).map(Item::name).toList();` 之后，原本的 `items` 列表里分数低于 20 的元素会被删掉吗？这条流水线有什么特征？（9.3.1 节）
+          options:
+            - text: "**不会删掉原列表任何元素**！`Stream` 是无损只读转化管道，原 `items` 依然完整保留，同时产出一份全新过滤映射后的不可变列表 `names`（且中间操作仅在终端 `.toList()` 触发时惰性求值）"
+              correct: true
+            - text: 会顺带清空并永久破坏原有 `items` 列表里的全量元素
+              why: Stream 的核心哲学是不原地破坏源集合，始终经过不可变过滤映射生成新收集结果
+            - text: 同一个已经调用完 `.toList()` 的 Stream 对象变量之后还能反复再调二十次 `.count()`
+              why: 同一条具体 `Stream` 管道对象在执行完终端收集操作后即自动关闭消费完毕，再次使用须从源集合重新 `.stream()` 获取一条新流！
+          explain: 第 8 章 **集合（Collections）** 五课大满贯！现在进入第 9 章：**异常边界契约——什么时候该逼着调用方处理（必须声明或捕获的异常），什么时候代表代码写歪了（非必须声明或捕获的异常，综合练习 6）！**
+      - item:
+          id: q-comparable-vs-comparator-match
+          type: match
+          prompt: 把排序与流管道（9.3.1–9.3.2 节）中的四个技术选型与准确含义配对。
+          pairs:
+            - ["**类自身 `implements Comparable<T>`**", "为值或业务实体确立唯一天然默认主排序方式（如日期前后）"]
+            - ["**外部传递 `Comparator.comparing(...)`**", "按不同业务榜单要求随时组合升降序与多级次要排序键（不入侵类本身）"]
+            - ["**`Integer.compare(a, b)` 替代 `a - b`**", "彻底避免正负大整数相减越界溢出回绕导致的排序彻底反乱"]
+            - ["**`.stream().filter(...).map(...).toList()`**", "声明式只读无副作用筛选映射流水线，原样保留上游源数据集合"]
+          explain: 下一课直接进入第 9 章 **异常（Exceptions）** 并实测 `P.1.2.verify.py` 的 `InsufficientFundsException` 编译器拦截！
+
+  # ======================================================================== 异常
+  - id: exceptions
+    chapter: 异常
+    title: 须由调用方显式处理的一类异常（Checked） vs 非须由调用方显式处理的一类异常与 try–catch 处理链（9.4.3、综合练习 6）
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 对比两件完全不同性质的出错情况：① 用户往取款方法传了个负数 `-50`，或调用代码在空栈上硬调 `pop()`（明显是程序员调用代码写错了！）；② 取款时余额刚好不够，或者打开硬盘上的文件时文件刚好被用户删掉了（合法调用却遇到了可预期外部或业务失败！）。Java 为什么要大费周章把异常分成 **须由调用方显式处理的一类异常** 与 **非须由调用方显式处理的一类异常** 两派？（9.4.3 节、综合练习 6）
+          options:
+            - text: 凡是调用方合理可恢复且应当主动应对的预期业务/环境异常（如余额不足、文件缺失），设为 **须由调用方显式处理的一类异常** 让编译器逼着调用方必须写出处理；而程序员违反契约导致的编程错误（如传负数、数组下标越界、空引用）用 **非须由调用方显式处理的一类异常**（`RuntimeException`）暴露并早失败，免得满屏被迫包 `try-catch`！
+              correct: true
+            - text: 因为 Java 规定任何程序永远不允许同时抛出超过两种错
+              why: 区分两种异常纯粹为了“把可恢复的边界契约强制写成明确签名声明，同时别拿编程错误去强迫调用层到处写无意义吞异常代码”
+            - text: 碰到任何异常都只要写一行空的 `catch (Exception e) {}` 当没看见就永远平安了
+              why: 空 `catch` 默默吞掉报错（Swallowed Exception）是工程里最恶劣的隐患之一——不仅问题没修，事后连日志与线索全销毁得干干净净！
+          explain: 本课对照 9.4.3 节、综合练习第 (6) 题与 `P.1.2.verify.py` 真实 `javac` 拒绝检验：**透彻掌控须由调用方显式处理的一类异常 vs `RuntimeException` 取舍与 `finally` 资源安全保证！**
+      - card:
+          title: 受检异常（Checked） vs 非受检异常（Unchecked，9.4.3、综合练习 6）
+          body: |
+            - **受检异常**：直接继承自 `Exception`（非 `RuntimeException`），调用该方法时编译器强迫你**要么 `try-catch` 明确接住恢复、要么在方法签名 `throws` 向上转交**（如余额不足、网络/文件缺失）。
+            - **非受检异常**：继承自 `RuntimeException`（如 `IllegalArgumentException`、`IllegalStateException`、`NullPointerException`），多用于编程逻辑错误或违背前置契约，无需被迫到处写 `throws`。
+
+            ```java
+            class InsufficientFundsException extends Exception {
+                InsufficientFundsException(String msg) { super(msg); }
+            }
+            class Wallet {
+                private long cents;
+                Wallet(long cents) { this.cents = cents; }
+                void withdraw(long n) throws InsufficientFundsException {
+                    if (n <= 0) throw new IllegalArgumentException();
+                    if (n > cents) throw new InsufficientFundsException("short");
+                    cents -= n;
+                }
+                long cents() { return cents; }
+            }
+            Wallet wallet = new Wallet(5);
+            try {
+                wallet.withdraw(8);
+                System.out.println("ok");
+            } catch (InsufficientFundsException e) {
+                System.out.println("caught:" + wallet.cents());
+            }
+            // expect: caught:5
+            ```
+      - item:
+          id: q-checked-exception-compiler-ex6
+          type: choice
+          prompt: 对照综合练习第 (6) 题与 `P.1.2.verify.py` 对上方代码的实测：如果另一段代码创建了 `Wallet wallet = new Wallet(5);` 后直接写 `wallet.withdraw(7);`，既没写 `try-catch` 也没给所在方法加 `throws InsufficientFundsException`，Java 编译器会怎样处置？
+          options:
+            - text: 在编译期直接拒编并报 `unreported exception InsufficientFundsException; must be caught or declared to be thrown`（`verify` 脚本已实测确认该拒绝错误），强制调用者在编码时即正视并处理这条预期业务失败流！
+              correct: true
+            - text: 静默通过编译，然后把钱包余额偷偷扣成 `-2`
+              why: 这正是受检异常（Checked Exception）存在的设计价值：编译器把“不可忽视的预期业务分支”强行拉到调用方眼前处理！
+            - text: 把 `InsufficientFundsException` 当成整数 `0` 忽略跳过
+              why: 只有继承自 `RuntimeException` 的非受检异常才允许方法不声明 `throws`；继承自 `Exception` 自身就是编译期强检查契约
+          explain: 在 `P.1.2.verify.py` 里亲手把无 `try/throws` 的 `wallet.withdraw(7);` 送进 JDK 21 `javac`，实测稳稳截出 **`compiler.err.unreported.exception`**！
+      - card:
+          title: 例题：为什么千万不能写出 `catch (Exception e) {}`（吞掉异常），以及抛出异常前先维持原子干净状态？
+          body: |
+            写对了受检 vs 非受检分类后，看清工程异常处理中两条同样救命的实战细节（9.4.3 节）：
+          reveal:
+            - title: 第 1 步：严禁静默空 `catch` 块与丢失原始异常根因
+              body: 有人遇到编译报错嫌烦，随手写了个 `try { ... } catch (Exception e) { /* ignore */ }`。后果一旦出事故，用户看到账不对或文件没保存成功，后台日志却干干净净一行错误也没有！若无法现场真正恢复，请**记下日志并带着 `cause` 包装抛给上一层（`new AppException("failed", e)`）**，切勿把根因销毁！
+            - title: 第 2 步：早校验、后改状态——失败原子性（如上方 `wallet.cents()` 保持 `5`）
+              body: 观察前面语句段里验证过的结果 `caught:5`！因为 `if (n > cents) throw ...` 放在修改 `cents -= n` 的**前面**，即使抛异常退出后账户仍保持原来合法的 `5` 分钱不留半截烂尾账！
+            - title: 第 3 步：同时区分“Error（严重环境崩溃）”不应由普通业务代码盲目捕获
+              body: 如 `OutOfMemoryError` 等 `Error` 属虚拟机本身崩溃级别，普通业务接口不应写宽泛 `catch (Throwable t)` 试图硬拦吞掉！
+      - item:
+          id: q-checked-vs-unchecked-design-ex6
+          type: match
+          prompt: 对照综合练习第 (6) 题，把四类错误或处理策略准确匹配到对应的异常家族或原则（9.4.3 节）。
+          pairs:
+            - ["**余额不足（`InsufficientFundsException extends Exception`）**", "**受检异常**：合法调用下可预期的可恢复业务失败分支，编译期逼调用者提示或补偿"]
+            - ["**传入负数 `-4` 或下标越界（`IllegalArgumentException`）**", "**非受检异常（`RuntimeException`）**：调用方违反前置契约导致的编程错误，暴露修复代码本身"]
+            - ["**空的 `catch (Exception e) {}` 块**", "极度危险反模式：默默吞掉故障现场，让问题悄无声息继续往下腐烂且毫无追踪线索"]
+            - ["**校验前置后再改状态（Failure Atomicity）**", "确保一旦中途因异常退出，对象依然维持调用前原有合规完整状态不被改残"]
+          explain: 从下一章第 10 章开始，咱们马上打通外部存储真实世界：处理文本文件、字符编码（UTF-8）与原生 **8比特单元** I/O 与资源自动关闭（`try-with-resources`）！
+      - item:
+          id: q-exception-wrapping-cause
+          type: choice
+          prompt: 当底层数据库驱动抛出一条受检 `IOException` 或内部错误，但高层业务逻辑只希望向上呈现一个贴合业务的自定义异常时，下列哪一种做法能**保住完整故障追溯根因（`cause`）**？
+          options:
+            - text: 传入原异常构造包装异常：`throw new ServiceStorageException("保存订单失败", originalEx);`（完整保留底层调用轨迹供日志打印排查）
+              correct: true
+            - text: 直接写 `throw new ServiceStorageException("出错啦");`，刻意丢弃原本 `originalEx` 对象一个字不留
+              why: 丢掉 `originalEx` 就等于删光了犯罪第一现场栈信息，排查问题时只看到一句空洞的“出错啦”彻底抓瞎！
+            - text: 打印一行 `"ok"` 后假装无事继续返回成功
+              why: 底层保存失败时绝不可向上虚假报告成功！
+          explain: 下一章走进第 10 章 **I/O（输入输出）**：解决为什么必须指定 **`UTF-8` 字符编码**、怎么用 **`try-with-resources`** 永不泄露打开文件句柄，以及文本 vs 原始原生数据流划分！
+
+  # ======================================================================== I/O
+  - id: text-io
+    chapter: I/O
+    title: 文本文件 I/O、UTF-8 编码与 try-with-resources 安全关闭（8.4.3、9.4.4）
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一位同事写了一段读本地配置文件的 Java 代码：`BufferedReader br = new BufferedReader(new FileReader("cfg.txt"));`——没指定任何编码，而且读完最后忘了写 `close()`！结果文件里出现中文在自己电脑正常显示、发上测试服务器全部变成一堆乱码 `???`；跑久了之后服务器竟然彻底报出 `Too many open files` 崩溃！他同时犯了哪两个经典文件 I/O 大忌？（8.4.3、9.4.4 节）
+          options:
+            - text: ① 没显式锁死通用编码 **`StandardCharsets.UTF_8`** 而依赖各机器默认本地编码导致跨机乱码；② 没有使用自动关闭块 **`try-with-resources`** 导致即使中途抛异常也一直泄露未关闭文件句柄！
+              correct: true
+            - text: 因为 Java 规定文件名字里绝对不能包含点号 `.txt`
+              why: 老构造器 `new FileReader(file)` 会偷偷依赖操作系统当地区域默认编码，且人工手写末尾 `.close()` 一旦中途抛异常就被跳过不执行！
+            - text: 因为只能用鼠标右键记事本打开文本文件，程序本身禁止读写硬盘文件
+              why: 现代 Java `Files`（NIO.2）配 `StandardCharsets.UTF_8` 与 `try (...)` 是极为简洁安全的标准化读写文件姿势！
+          explain: 本课进入第 10 章 **I/O（8.4.3、9.4.4 节）**：牢立 **显式 `UTF-8` 字符集**、**`try-with-resources` 自动安全释放资源** 以及 **按块缓冲流读大文件** 三大原则！
+      - card:
+          title: "`UTF-8` 显式编码与 `try-with-resources`（8.4.3、9.4.4）"
+          body: |
+            操作本地文本（配置、CSV、日志）必须死守两条黄金标准：
+            - **永远显式指定 `StandardCharsets.UTF_8`**：杜绝在不同语言系统上中文、表情变乱码；
+            - **使用 `try (var r = ...)` 自动关闭资源**：凡实现 `AutoCloseable` 的流对象放进 `try (...)` 括号里，无论正常结束还是中途抛异常退出，Java 都会自动确保精确调用 `.close()` 归还操作系统文件句柄！
+
+            ```java
+            import java.io.*;
+            import java.nio.charset.StandardCharsets;
+            var raw = new ByteArrayInputStream("mei,12\nlin,30".getBytes(StandardCharsets.UTF_8));
+            int count = 0;
+            try (var br = new BufferedReader(new InputStreamReader(raw, StandardCharsets.UTF_8))) {
+                while (br.readLine() != null) count++;
+            }
+            System.out.println(count);
+            // expect: 2
+            ```
+      - item:
+          id: q-try-with-resources-guarantee
+          type: choice
+          prompt: 观察上方经 JDK 21 跑通的 `try (var br = new BufferedReader(...))` 语法。如果读取第 1 行之后第 2 行突然抛出了一个 `IOException`，使用 `try-with-resources` 和“在普通 `try` 最后手动写一句 `br.close()`”相比核心强在哪？（9.4.4 节）
+          options:
+            - text: 普通写在语句段最底行的 `br.close()` 一旦半途抛异常会被直接跳过不执行，造成文件句柄持久泄露；而 **`try (...)`** 由编译器保证无论是正常走出还是任何异常中途退出都会自动关闭资源（甚至安全保留主异常并把关闭附加错记为 suppressed）！
+              correct: true
+            - text: "`try-with-resources` 会把异常直接吞掉假装没发生过"
+              why: "`try-with-resources` 照常向外传递真实的 `IOException`，绝不吞异常，同时又妥妥履行资源释放关闭义务！"
+            - text: 如果写了 `try (...)`，文件就会永不准别人再打开第二次
+              why: 恰恰相反，正是为了按时归还系统关闭文件锁句柄，别人才不会遇到 `Too many open files` 或文件被长期死占报错！
+          explain: 一句话：**凡打开任何文件流、网络连接、数据库连接（只要有 `.close()` 方法），一律无条件写进 `try (...)` 括号里！**
+      - card:
+          title: 例题：读 `10 KB` 小配置用 `Files.readString(path, UTF_8)` 一句搞定；读 `10 GB` 超大日志呢？
+          body: |
+            不要拿 `readAllLines()` 去硬吞几个 G 的线上大文件！对比 9.4.4 节不同体量文本文件的恰当打开姿势：
+          reveal:
+            - title: 第 1 步：小配置文件（几十 KB 以内）→ `java.nio.file.Files.readString(path, StandardCharsets.UTF_8)`
+              body: 用现代 `Path.of("cfg.txt")` 搭配 `Files.readString` / `Files.writeString` 简短一行自带内部关闭与 `UTF-8` 字符集校验，完全不用堆砌三层嵌套装饰器流！
+            - title: 第 2 步：海量数 GB 日志文件 → `try (var lines = Files.lines(path, UTF_8))` 或 `BufferedReader.readLine()` 逐行流式处理！
+              body: 按行惰性流式逐条读入处理统计（只占用极微几 KB 缓冲窗口），哪怕面对百亿行日志也绝不把全量内容一次性倒爆堆空间！
+            - title: 第 3 步：字符流（`Reader`/`Writer`） vs 原生数据流（`InputStream`/`OutputStream`）绝不混用
+              body: 凡是面向可读文字（带回车换行、`UTF-8` 解码），使用 `Reader`/`Writer`；凡是要原封搬运照片 PNG、压缩包 ZIP、加密签名包等纯非文本数据，**绝不能套进文本 `Reader`**（一旦把数据流胡乱当成字符解码就永久损坏图片！），这正是下一课主角！
+      - item:
+          id: q-utf8-explicit-charset
+          type: choice
+          prompt: 在团队里大家各自开发用的电脑分别是中文 Windows、英文 Linux 容器和 macOS，读取包含中文用户名的 CSV 账单文件时最应当遵守哪条编码规矩？（8.4.3 节）
+          options:
+            - text: 写入端和读取端都在代码中显式写死传入 **`StandardCharsets.UTF_8`**（彻底摆脱操作系统默认区域编码差异）
+              correct: true
+            - text: 坚决不写任何字符集参数，祈祷全世界所有电脑默认编码永远一样
+              why: 同一份文本在不同环境如果靠系统默认编码互不相通，极易导致跨机部署后中文和符号全面错乱变乱码！
+            - text: 把所有中文字强行替成一串空格删掉
+              why: "`UTF-8` 覆盖全人类语言且完全向后兼容 ASCII，统一显式规定读写双方均用 `UTF-8` 即完美互通！"
+          explain: 下一课直接来看 I/O 的另一半：**原始原生数据流、缓冲流原理与对象序列化踩坑警告（9.4.4 节）**！
+      - item:
+          id: q-large-file-streaming-io
+          type: choice
+          prompt: 运维给你发了一本足足 `8 GB` 大小的服务器纯文本访问日志文件，需求是统计里面包含 `"ERROR"` 的行数。为什么直接调用 `Files.readAllLines(path)` 会出严重问题、正确替代方案是什么？
+          options:
+            - text: "`readAllLines` 会企图把全部 8 GB 文本行一股脑全加载进一个巨大 `List<String>` 里瞬间撑爆运行容量；应当用 `try (BufferedReader br = Files.newBufferedReader(path, UTF_8))`（或 `Files.lines` 流）逐行懒读取计数"
+              correct: true
+            - text: 因为 `Files.readAllLines` 只允许读文件里的前 2 行
+              why: "`readAllLines` 会尽全力试图把全文件所有行全都塞进集合列表里导致运行容量溢崩（`OutOfMemoryError`）"
+            - text: 因为只有写进 `String[][]` 二维矩阵才能统计 `"ERROR"`
+              why: 只需顺次逐行扫描累加计数，流式读取占用恒定极小常数容量！
+          explain: 记清分水岭：**小文件一句 `Files.readString` 图省心；大文件用 `Files.newBufferedReader` / `Files.lines` 逐行流式扫！**
+
+  - id: byte-io
+    chapter: I/O
+    title: 原始 8 比特流（Byte Streams）、缓冲包装与序列化选型安全（9.4.4）
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 某同学想写一个“把一张高清 `.png` 宠物头像从文件夹 A 复制到文件夹 B”的小程序。他顺手拿刚才刚学完的文本读取工具 `BufferedReader.readLine()` + `PrintWriter` 按文本字符一行一行去拷贝图片——结果拷贝出来的新 `.png` 文件大小变了、双击打开直接显示“文件已损坏打不开”！图片文件到底哪里跟纯文字不一样？（9.4.4 节）
+          options:
+            - text: 图片、音频和 ZIP 压缩包是由原原本本的原始 **8比特原始数据单元** 序列构成，绝不是字符文本！拿字符 `Reader` 去按 `UTF-8` 解码和替换换行符会瞬间篡改破坏原本非文本的数据比特！必须使用原汁原味不改值的 **`InputStream` / `OutputStream`（`Files.copy` / 缓冲原始流）**！
+              correct: true
+            - text: 因为 Java 规定任何图片都绝对不能用程序复制
+              why: "`InputStream` / `OutputStream` 可以丝毫不差地一比特接一比特搬运任何图片、视频与压缩文件！"
+            - text: 因为把图按文本 `toUpperCase()` 转大写字母画质就会更好
+              why: 图像压缩格式每 1 个 8 位数值都有严格非文本结构含义，任何文本编码解码或换行转写都会彻底毁掉文件结构！
+          explain: 本课依据 9.4.4 节收尾 I/O：**分清“8 比特单元”与字符边界、缓冲流原理，以及为什么应当警惕老旧 Java 固有“对象序列化”反序列化风险！**
+      - card:
+          title: 字节（Byte）流、`BufferedInputStream` 与序列化安全边界（9.4.4）
+          body: |
+            - **字节**：由 8 个比特（`0..255`）组成的信息基本存储与传输单元。搬运非文本原生档案（图像/音视频/加密包）一律使用 **`InputStream` / `OutputStream`**（配 `Buffered*` 批量整块读写提速百倍，而非逐格单读写慢如蜗牛！）。
+            - **序列化**：把运行中对象转成可存储或网传文本/字节序列（反之称反序列化）。极重要警示：**切忌直接反序列化来自不可信外部的 Java 原生 `ObjectInputStream` 流（极高危代码执行漏洞温床！），跨服务传数据优先使用受限结构化的 JSON / Protobuf！**
+      - item:
+          id: q-byte-vs-char-stream
+          type: choice
+          prompt: 下面哪种场景**绝对必须**使用原始 **字节** 流（`InputStream` / `OutputStream` 或 `Files.copy`），绝不能套用 `Reader` / `Writer` 字符流？（9.4.4 节）
+          options:
+            - text: 通过网络接口下载保存一张加密校验过的 `.zip` 软件包或 `.jpg` 照片文件
+              correct: true
+            - text: 按 `UTF-8` 逐行分析一份人类可读的英文/中文 JSON 错误日志文件
+              why: 明确知道编码为文本格式并按字符行解析时，正适合用显式声明 `StandardCharsets.UTF_8` 的字符流
+            - text: 往终端屏幕上打印 `"Hello"`
+              why: 屏幕文字日志输出同样属于文本字符世界；而 `.zip`、`.png`、`.pdf`、密钥指纹全都是不可强行按文本解码的原生原始序列！
+          explain: 一秒辨别法：**“这串东西用记事本打开是不是给人看的一行行文字？”** 不是文字 → 原生字节流 / `Files.copy`！
+      - card:
+          title: 例题：为什么用 `BufferedInputStream` / 缓冲区 `byte[8192]` 拷贝 100 MB 文件比一次仅读 1 个单位快几十倍，且为什么避开 `ObjectInputStream`？
+          body: |
+            看懂 I/O 性能调优与格式安全性两处常考真知：
+          reveal:
+            - title: 第 1 步：每次只向操作系统喊“给我读 1 单位” vs 一次抱回 8192 单位缓冲块！
+              body: 每次无缓冲的 `.read()` 都要穿过系统底层请求大门问硬盘或操作系统要一次，100 MB 就得敲门一亿次！包上 `BufferedInputStream` 或使用 `Files.copy` / `in.transferTo(out)` 每次整块批搬 `8 KB` 以上，敲门次数瞬间骤降几千倍，速率立飞！
+            - title: 第 2 步：别用 Java 自带的原生非文本 **`ObjectInputStream`（`Serializable`）** 接公网输入！
+              body: Java 原生反序列化在构造还原对象过程中允许自动触发任意类上的复杂链式构造/比较方法（Gadget Chains）！只要外部传进一段特制序列化字节包，还没等你业务代码检查它是不是想要的类型，服务器可能就已经被人注入执行恶意操作了！
+            - title: 第 3 步：跨系统交换统一改走显式白名单字段的 **JSON** 或标准格式 + `UTF-8`
+              body: 既跨语言（Python/JS/Java 全部互通），数据结构又一清二楚不会执行隐藏任意类逻辑！
+      - item:
+          id: q-deserialization-danger
+          type: choice
+          prompt: 在将业务对象进行 **序列化** 以便通过网络接口发送给前端或外部合作方时，为什么现代工程安全指南严禁接口直接用 Java 原生 `ObjectInputStream.readObject()` 解析外部传来的数据？
+          options:
+            - text: 因为 Java 原生反序列化允许还原复杂任意对象图并可能被构造恶意调用链触发任意危险行为，且绑定死了单一语言内部类版本；外部传参应采用 JSON 等纯数据格式配严密字段白名单校验
+              correct: true
+            - text: 因为 `JSON` 绝对无法表示人名和年龄两个字段
+              why: JSON、Protobuf 这类明确纯数据结构格式极其擅长表达业务实体字段，并且不携带任意可执行语言类构造步骤！
+            - text: 因为使用了原生 `ObjectInputStream` 后文件名就会自动变成空字符串
+              why: 致命问题在于安全性（反序列化 RCE 攻击面）与紧耦合脆弱性（一旦本地类名包名重命名重构，以前落盘旧字节流全部当场作废读不出来！）
+          explain: 第 10 章 **I/O** 全部通关！下一章走进极具挑战也极令人兴奋的终章第 11 章：**并发世界与 Maven 工程化构建！**
+      - item:
+          id: q-io-match-tools
+          type: match
+          prompt: 把第 10 章 I/O 与安全传输中的四个场景与正确选型策略精确匹配（8.4.3、9.4.4 节）。
+          pairs:
+            - ["**读取 5 KB 中文配置文本**", "使用显式带 `StandardCharsets.UTF_8` 参数的 `Files.readString(...)`"]
+            - ["**高保真复制 `.png` 图片或 `.zip` 压缩归档**", "使用不作任何字符集解码改写的原生字节流（`Files.copy` / `InputStream.transferTo`）"]
+            - ["**确保任何打开的文件流绝不发生句柄泄露**", "全部放进 **`try (...)`** 自动关闭声明括号中由语言兜底安全释放"]
+            - ["**对外暴露跨网络数据传输协议格式**", "采用纯数据格式如 **JSON + `UTF-8` + 显式输入白名单**，避开不可信 Java 原生 `ObjectInputStream`"]
+          explain: 第 11 章第一课马上起飞：一个在跑的 **在跑程序** 里面如果同时起跑多条 **并发路线** 抢改同一只余额桶，会发生什么诡异算丢账事故？！
+
+  # ======================================================================== 并发基础与构建工具
+  - id: threads
+    chapter: 并发基础与构建工具
+    title: 独立程序实例 vs 并发执行路线、启动 join 等待与协作停工通知（10.1–10.4）
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你同时开着音乐播放软件（在唱着歌）和聊天窗口，并且 Java 服务里为了同时处理两个后台打包任务，写下了 `Thread worker = new Thread(() -> compute()); worker.run();`！等运行完一看日志——怎么两个任务居然一前一后老老实实排成了单队执行，压根没有并发起来？！另外调对了 `start()` 以后，主线怎么乖乖等后台算完再拿结果，又怎么礼貌请求一个跑死循环的后台安全收尾停下来？（10.1–10.4 节）
+          options:
+            - text: 直接调 **`worker.run()` 只是在当前自己这条路线里普通同步调用方法！** 只有调用 **`worker.start()`** 才真正向系统开启另一条并发执行 **路线**；接着用 `worker.join()` 等待其收工，用 **`worker.interrupt()`** 发送协作停工请求信号请求它优雅退出！
+              correct: true
+            - text: 因为一个计算机运行中 **独立程序实例** 里绝对只能存在唯一一条路线干活，不允许开启多条并行路线
+              why: 一个正在运行中的应用程序实例就是一个隔离的 **独立程序实例**，而它内部完全可以起多条并发协作执行、共享堆内对象空间的不同 **并发执行路线**！
+            - text: 想要停掉一个死循环后台任务最安全礼貌的办法是直接拔掉机房电源线
+              why: Java 早就废除了粗暴随地杀停（容易撕裂损坏共享对象半成品状态！），标准设计是靠协作信号让任务自己在安全检查点收工撤退！
+          explain: 本课进入第 11 章 **并发基础与构建工具（10.1–10.4 节）**：理清 **独立程序实例 vs 并发执行路线**、`start()` vs `run()`、`join()` 等待与协作停工处理规范！
+      - card:
+          title: 进程（Process） vs 线程（Thread）与 `start` / `join` / 中断（10.1–10.4）
+          body: |
+            - **进程**：操作系统为每个正在跑的应用实例分配的独立隔离地盘（自带独享基础资源，彼此绝不乱串对象）。
+            - **线程**：同一个运行中应用内部并发起跑的多条执行路线——**各自有独立调用栈与局部基本变量，却共享同一块堆区对象空间**！
+            - **三大核心操作**：用 **`t.start()`** 真正起新路线并发（非 `t.run()`！）；用 **`t.join()`** 等它跑完汇合；用 `t.interrupt()` 发送协作 **中断** 请求信号，任务内部查 `Thread.currentThread().isInterrupted()` 优雅收尾！
+
+            ```java
+            var total = new int[1];
+            Thread worker = new Thread(() -> total[0] = 6 * 7);
+            worker.start();
+            worker.join();
+            System.out.println(total[0]);
+            // expect: 42
+            ```
+      - item:
+          id: q-start-vs-run-thread
+          type: choice
+          prompt: 想开启一条新并发后台 **线程** 执行一段耗时下载逻辑 `Thread t = new Thread(task);`，如果不小心错写成了直接调用 `t.run();` 而不是 `t.start();`，会发生什么结果？（10.2 节）
+          options:
+            - text: "**根本没有启动任何新线程**！程序只是老老实实留在原来的主线程上同步直接把 `run()` 方法跑完才继续下一行，并发优势彻底为零"
+              correct: true
+            - text: 会同时瞬间炸出八百条并发分支全部运行
+              why: "`run()` 本身只是一个平平无奇的普通实例方法定义；真正向系统请求分配独立调用栈并交由排程引擎并发运行该 `run()` 体的唯一启动开关是 **`t.start()`**！"
+            - text: "`start()` 会强制把同一个线程倒着跑两遍"
+              why: 一只 `Thread` 对象只能调用一次 `.start()`；多次启动同一对象反而会抛非法线程状态异常！
+          explain: 下回在代码里见到 `thread.run()` 直接指出来：这一定是个漏写了 `start()` 的低级并发 Bug！
+      - card:
+          title: 例题：千万别在 `catch (InterruptedException e)` 里什么都不做——务必“保留或传递中断信号”！
+          body: |
+            如果后台任务恰好正处于 `Thread.sleep(5000)` 等待时，主线程发了一记 `worker.interrupt()` 通知它赶紧停止退出：
+          reveal:
+            - title: 第 1 步：睡眠被提前叫醒，抛出 `InterruptedException` 且同时清除中断标志位！
+              body: 注意一个极隐蔽的细节：当 `sleep` / `wait` 收到中断醒来抛出 `InterruptedException` 时，JVM 默认顺手把该路线的中断状态标志位重新清成 `false`！
+            - title: 第 2 步：绝对不能空写 `catch (InterruptedException ignored) {}` 把请求咽下去继续死循环！
+              body: 如果外面的主循环写的是 `while (!Thread.currentThread().isInterrupted())`，你把 `InterruptedException` 悄悄空抓咽下去且不跳出也不重新标回去，下次判断 `isInterrupted()` 居然是 `false`——工作路线永远死扛着关不掉！
+            - title: 第 3 步：标准优雅收尾写法
+              body: 捕获 `InterruptedException` 时，**要么立刻明确收工 `break`/`return` 结束任务，要么在继续向外退出的路上调用一次 `Thread.currentThread().interrupt();` 重新点亮中断信号让上层外框感知停止请求！**
+      - item:
+          id: q-process-vs-thread-isolation
+          type: choice
+          prompt: 对比 **进程（Process）** 与同一应用内部的 **多条线程（Threads）** 在资源隔离上的本质差异（10.1 节），下面哪一项最准确？
+          options:
+            - text: 不同应用属于独立运行地盘隔离严密（彼此不直接共享对象引用）；而同一应用内多条并发路线彼此**共享同一个堆区上的对象实例**（仅各自持有私有的调用栈与局部变量），因此共享可变对象才极易并发撞车！
+              correct: true
+            - text: 不同进程强行共用所有局部变量，而同一应用内多条线程连堆对象也彻底禁止互通
+              why: 正好彻底反了！进程边界重、隔离性强，内部各条并发路线之间则靠共享同一个堆区快速协作（但也因此带来下课要讲的共享状态撞车风险！）
+            - text: 进程和线程其实是完全同一个单词的两种中文方言翻译
+              why: 进程是操作系统资源分配和孤立边界，线程才是同一个内部并发干活共享堆空间的不同流水路线
+          explain: 正因为多条线程天然共享同一个堆区上的所有可变对象，紧接着下课就迎来并发世界最经典也最骇人的算丢账事故：**并发丢失写、共享保护段与互相干等（10.5–10.7、10.9）**！
+      - item:
+          id: q-thread-join-and-interrupt-match
+          type: match
+          prompt: 把多线程协调控制（10.1–10.4 节）中的四个操作机制与各自精准语义对应配对。
+          pairs:
+            - ["**`worker.start()`**", "向运行时正式注册创建独立调用栈并发开启一条新路线，随后回调其 `run()` 体"]
+            - ["**`worker.join()`**", "让当前调用方暂停干等，直至目标工作路线彻底执行收尾结束后再继续往下跑"]
+            - ["**`worker.interrupt()`**", "以温和协作方式向目标路线发送停止请求标志（不暴力撕毁正在更新半截的对象状态）"]
+            - ["**捕获 `InterruptedException` 后重设 `interrupt()`**", "防止标志被清空导致上层循环误判没收到停工通知，保住完整取消撤退信号链路"]
+          explain: 如果主线调用了 `worker.start()` 却忘了写 `worker.join()`，上面代码示例里的 `total[0]` 很可能会在子路线还没算完那一微秒提前打印出还没更新的旧值 `0`！
+
+  - id: synchronization
+    chapter: 并发基础与构建工具
+    title: 并发更新丢失、共享保护区、排他锁与互相卡死（10.5–10.7、10.9）
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个窗口同时给同一个余额最初为 `0` 的账户各自执行 10,000 次 `count = count + 1;`！按理说一人加一万次、两个人加完总和应该铁定是 `20,000` 吧？结果实测运行完竟然只剩 **`13,482`**——整整六千多块钱凭空蒸发丢掉了！！这一行普普通通的 `count++` 怎么在并发下还能自己吞掉数据？（10.5–10.6 节）
+          options:
+            - text: 因为看似一行的 **`count++` 实际分“读旧值 → 加 1 → 写回新值”三小步！** 两条路线同时读到了旧值 `5`、各自算出 `6` 后前后覆写回去，发生更新丢失（**并发读写撞车**）！必须把读写共享状态那段 **共享保护区** 用 **排他锁** 锁起来一次只准一条进门！
+              correct: true
+            - text: 因为 Java 规定在 `for` 循环超过 5,000 次时随机漏算几百次
+              why: 单路线跑一千万次 `count++` 每次结果一分不差；全在多条并发路线无保护交错读写同一个可变变量引起竞态丢失！
+            - text: 解决办法是写一句 `System.out.println` 就能自动防止更新丢失
+              why: 只有加 **排他保护机制（如 `synchronized`）**、使用原子类（`AtomicInteger`）或改用完全 **不可变 / 局部不共享数据** 才能从根治上消灭并发读写冲突！
+          explain: 本课依据 10.5–10.7 与 10.9 节：**彻底搞清并发四大经典概念——并发读写冲突、共享保护区、排他保护锁与“互相持锁干等对方”的互相干等死卡！**
+      - card:
+          title: 竞态条件、临界区与互斥锁 `synchronized`（10.5–10.7）
+          body: |
+            - **竞态条件**：最终结果好坏完全看各条并发路线撞大运交替顺序而随机出错！
+            - **临界区**：读写共享可变状态、一旦被打断交错就会坏不变量的代码段落；
+            - **互斥锁**：用同一把显式锁对象（`synchronized (lock)` / 同步方法）包住临界区，规定同一瞬至多 1 条路线持锁进入，把“读–改–写”焊成不可劈开的不可拆分单步操作！
+
+            ```java
+            class SafeCounter {
+                private int n = 0;
+                synchronized void inc() { n++; }
+                synchronized int value() { return n; }
+            }
+            var c = new SafeCounter();
+            Thread t1 = new Thread(() -> { for (int i = 0; i < 1000; i++) c.inc(); });
+            Thread t2 = new Thread(() -> { for (int i = 0; i < 1000; i++) c.inc(); });
+            t1.start(); t2.start(); t1.join(); t2.join();
+            System.out.println(c.value());
+            // expect: 2000
+            ```
+      - card:
+          title: 死锁（Deadlock）是怎么发生的？按固定全局顺序加锁一招破解！（10.9）
+          body: |
+            加了两把锁却没约好次序就惨了：如果路线 A 先抓起 `账户1` 锁再想抓 `账户2` 锁，恰好同时路线 B 先抓起 `账户2` 锁再想抓 `账户1` 锁——双方谁都不肯先撒手，永远干等着对方手里那把锁，整段系统永久卡住，这就是 **死锁**！
+            - **防死锁最经典解法**：**全系统规定按唯一固定顺序拿锁**（如转账时先比两只账号 ID 大小，**永远统一先锁编号更小那只再锁更大那只**），彻底打破循环互相等待！
+      - item:
+          id: q-race-condition-count-loss
+          type: choice
+          prompt: 观察上面经 JDK 21 实测必定输出严格相等 `2000` 的 `SafeCounter` 代码。如果把方法头上的两个 `synchronized` 删掉再跑两路并发各加 1000 次，为什么有时输出会变成 `1640` 等小于 `2000` 的错数？（10.5–10.6 节）
+          options:
+            - text: 无保护下 `n++` 分解成读旧值、加一与写回，两条路线可能同时读到同一旧值 `k`，各自算成 `k + 1` 后覆盖写入两次结果总和只增加 `1` 而丢失一次增量——这就是典型 **竞态条件**
+              correct: true
+            - text: 因为不写 `synchronized` 时方法内部会把 `i` 倒退回 `0`
+              why: 各自的循环局部变量 `i` 呆在自己路线私有的栈里互不影响；唯独共享对象字段 `n` 的读写未受排他保护才互相覆盖丢数！
+            - text: 只要两条并发路线名字叫不同的字母就不会丢失任何增量
+              why: 命名毫无防竞争作用，必须通过 **互斥锁**（`synchronized`）或 `AtomicInteger` 不可拆分单步操作、或根本不共享可变状态来守住临界区不变量！
+          explain: 甚至最狡猾的一点记住：**写方法上 `inc()` 加了 `synchronized` 时，读取方 `value()` 同样必须用同一把锁同步（或保证可见性）**，否则读方可能因为 CPU/JIT 缓存根本看不到最新写入的值！
+      - card:
+          title: 例题：给银行“双向互相转账 `transfer(from, to, amt)`”排死锁雷！（10.9 节）
+          body: |
+            小张正在同时向小美转 100 元（想先锁张再锁美），同一毫秒小美也在向小张转 50 元（想先锁美再锁张）——极易把两把账锁咬成交叉 **死锁**！看两步排雷：
+          reveal:
+            - title: 第 1 步：反模式 `synchronized (from) { synchronized (to) { ... } }` → 按入参顺序拿锁必死！
+              body: 只要两笔方向相反的并发转账同时启动，第一条拿了 `zhang` 等 `mei`，第二条拿了 `mei` 等 `zhang`，立刻出现你等我、我等你的环路等待僵局，两条路线再也不会醒来！
+            - title: 第 2 步：正确解法——**按账户唯一不可变编号从小到大统一排序拿锁（Lock Ordering）**！
+              body: "先比较不可变的账户号：`BankAccount first = from.id() < to.id() ? from : to; BankAccount second = (first == from) ? to : from;`。然后统一 `synchronized (first) { synchronized (second) { ... } }`！于是两条转账全都先去争同一把编号更小的锁，谁先抢到谁就顺带拿下第二把顺利做完，**循环等待环路在数学上绝不可能形成！**"
+            - title: 第 3 步：同时注意尽量缩窄临界区！
+              body: 锁里面只做极快的算术余额加减改数字，千万别在抓着互斥锁不撒手的时候跑几秒钟的网络 HTTP 请求或写慢盘！
+      - item:
+          id: q-deadlock-lock-ordering
+          type: choice
+          prompt: 系统里账户 `A`（编号 `101`）与账户 `B`（编号 `205`）存在双向并发转账。下列哪种加锁设计可以从结构上彻底消灭交叉 **死锁**？（10.9 节）
+          options:
+            - text: 不管谁转给谁，转账前一律对比账户唯一不可变 ID 大小，**永远先锁定较小 ID（101）再锁定较大 ID（205）**，并在完成后按逆序自动退出释放
+              correct: true
+            - text: 谁发起转账就先锁谁自己账户再去锁收款人账户，完全不排序
+              why: A 转 B（先锁101等205）与 B 转 A（先锁205等101）一旦并发重叠必发循环等待死锁！
+            - text: 转账过程彻底去掉一切锁护卫，允许一边扣一边加随便覆盖余额
+              why: 去掉锁保护会瞬间引发余额丢钱竞态条件；按全局唯一序拿锁兼得无竞态与无死锁！
+          explain: "**破坏四个死锁必要条件里最容易落地的那一条——把任意多锁全部强行排成全局递增固定顺序（消除循环等待）！**"
+      - item:
+          id: q-concurrency-hazards-match
+          type: match
+          prompt: 把并发编程安全核心术语（10.5–10.7、10.9 节）与准确工程描述一一匹配。
+          pairs:
+            - ["**竞态条件（Race Condition）**", "多条路线未加同步协调交错读写同一份共享状态，结果随执行运气波动时对时错"]
+            - ["**临界区（Critical Section）**", "操作共享可变状态、若允许并行交错执行便会损坏对象不变量的窄代码片段"]
+            - ["**互斥锁（`synchronized` 监视器锁）**", "确保同一时刻至多只有一条路线获准进入对应共享保护区，维持原子性与可见性"]
+            - ["**死锁（Deadlock）**", "两条及以上路线各自紧抱一把锁不放并无限干等对方手里的另一把锁，永远卡住"]
+          explain: 如果服务器每天收成千上万个小异步请求，每次都呆傻现 `new Thread()` 开一条再毁掉太费劲又可能拖死系统——下课进高阶并发工具箱：**线程池、Future 与阻塞队列（10.8、10.10–10.11）**！
+
+  - id: executors
+    chapter: 并发基础与构建工具
+    title: 工作路线池（ExecutorService）、Future 与生产并发防饥饿活跃性（10.8、10.10–10.11）
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: Web 服务器突然迎来 `10,000` 个并发小请求。如果图省事每收到一个请求就傻傻地 `new Thread(...).start()` 硬开一条全新独立系统工作路线：开一万条工作路线直接把系统栈空间吃光崩溃且疯狂切来切去拖慢 CPU！高并发系统用什么既安全限流又能重复利用少部分工作成员的构件？（10.10–10.11 节）
+          options:
+            - text: 用 **工作路线池（`ExecutorService`）**！事先准备好有限数量的工作路线（如 8 或 16 个常驻工人）守在任务队列旁循环领取任务干活；人忙时多余新任务在有界队列安全排队，既免除频繁新建销毁开销又死保系统不被挤爆！
+              correct: true
+            - text: 允许请求有多少万个就硬开多少万条无上限工作路线直到机房崩溃
+              why: 无边界创建原生工作路线极易耗尽系统栈资源及触发剧烈排程颠簸拖垮全站，所以必须有受控有限上限并发池！
+            - text: 拒绝所有工作路线并发，改成每年只接收 1 个用户请求
+              why: 池化复用（Thread Pool）正是以受控有限工作路线数量承接海量异步任务的经典解法！
+          explain: 本课对应 10.8、10.10–10.11 节：掌握 **`ExecutorService` 工作路线池与 `Future` 结果接收、安全并发容器，以及活性（Liveness：防饥饿与活锁）**！
+      - card:
+          title: 线程池（Thread Pool）、`Future` 与高层并发容器（10.10–10.11）
+          body: |
+            现代 Java 极少直接裸手管理成百上千 `new Thread()`，优先交给 `java.util.concurrent`（10.10–10.11）：
+            - **线程池**：复用固定大小或弹性有限工作群从任务队列取任务执行，提交用 `executor.submit(...)` 拿回 **`Future<T>`** 凭证稍后 `.get()` 取返回值，用完务必 **`shutdown()`** 安全下班！
+            - **高层安全并发件**：高并发缓存映射直接用 **`ConcurrentHashMap`**，计数用 **`AtomicInteger`**，生产者–消费者接力用 **`BlockingQueue`**，免自己写死脆弱粗锁！
+
+            ```java
+            import java.util.concurrent.*;
+            try (ExecutorService pool = Executors.newFixedThreadPool(2)) {
+                Future<Integer> f = pool.submit(() -> 6 * 7);
+                System.out.println(f.get());
+            }
+            // expect: 42
+            ```
+      - card:
+          title: 活跃性（Liveness，10.8）：除了死锁，还有“饥饿”与“活锁”！
+          body: |
+            程序不光要防死锁不动，还得确保每件合法任务终能向前推进完成（**活跃性 Liveness，10.8 节**）：
+            - **饥饿（Starvation）**：低优先级或小任务长期抢不到锁/工作位置被持续排挤在队列后面永远等不到执行机会；
+            - **活锁（Livelock）**：像两个在窄走廊面对面碰上的过度客气路人——同时往左让又同时往右让，谁都没有堵死不动、表面一直都在跑动作重试，可有效工作进度纹丝不动推进不了！解法通常是加入随机退避时间错开同步冲突！
+      - item:
+          id: q-thread-pool-benefits
+          type: choice
+          multi: true
+          prompt: 相比每次接收小任务就手动 `new Thread(...).start()`，采用固定上限的 **`ExecutorService` 线程池**（10.10–10.11 节）主要解决了哪些实际生产工程难题？（多选）
+          options:
+            - text: 复用常驻工作路线，省去每次任务反复向操作系统申请和销毁栈空间的高昂开销
+              correct: true
+            - text: 控制最高并发工作数量上限（配合有界队列），防止流量突发时一下子拉起上万条路线吃光资源崩服
+              correct: true
+            - text: 将“提交计算任务”与“什么时候用多少条路线怎么排程执行”优雅解耦，并提供 `Future` 统一收集异常与计算结果
+              correct: true
+            - text: 只要上了线程池，所有任务就绝对不需要加锁也不存在共享变量竞争了
+              why: 多条池内工作路线同时读写同一份外部共享可变数据时，照样必须依靠 `ConcurrentHashMap` / `AtomicInteger` / 锁或不可变设计保证并发安全！
+          explain: 记清：**线程池负责“省资源、控并发上限、统一任务分发”；并发读写冲突安全仍靠并发容器/不可变或锁守卫！**
+      - card:
+          title: 例题：为什么老手喜欢用 `ConcurrentHashMap` 和 `BlockingQueue`，而很少手工拿粗大 `synchronized` 去锁一整个列表？
+          body: |
+            利用标准库自带高层并发工具（10.10 节），既比手写底层 `wait/notify` 更简单百倍，性能和正确性也远高得多：
+          reveal:
+            - title: 第 1 步：`BlockingQueue` 把生产者–消费者接力变成 3 行安全代码
+              body: 如果自己拿锁加 `wait()` / `notifyAll()` 写队列，极易忘掉用 `while (queue.isEmpty())` 防虚假唤醒或错把单路唤醒 `notify()` 叫错人卡死！用现成 `ArrayBlockingQueue` 的 `put()`（满时稳停等）与 `take()`（空时稳停等）直接一气呵成零 Bug！
+            - title: 第 2 步：`ConcurrentHashMap` 分段细粒度控制 + 原子 `computeIfAbsent`
+              body: 读大多数桶几乎免大锁飞快通行，不同桶写入互不堵车！比拿一把总门锁死死关住整张 `HashMap` 并发吞吐高得多！
+            - title: 第 3 步：Java 21 的 `try (ExecutorService pool = ...)` 自动收尾
+              body: 注意上面 JDK 21 runnable 代码写出的 `try (ExecutorService pool = ...)`！Java 19+ 令 `ExecutorService` 直接实现了 `AutoCloseable`，走出 `try` 块自动优雅等待已有提交任务完工并关闭线程池，绝不泄露后台挂起工人导致 JVM 退不出来！
+      - item:
+          id: q-liveness-starvation-livelock
+          type: match
+          prompt: 把并发活跃性与高层工具（10.8、10.10–10.11 节）中的四个概念精准配对。
+          pairs:
+            - ["**饥饿（Starvation）**", "某类任务虽未卡进环路死锁，却因排程偏心或长期抢不到锁而迟迟等不到任何推进机会"]
+            - ["**活锁（Livelock）**", "参与者彼此不断忙于相互退让或无退避立刻重试，虽未阻塞挂起却始终做不出实际有效进展"]
+            - ["**`Future<T>` 凭证对象**", "向线程池异步提交 Callable 后立刻拿到的结果凭据，可用于异步完成后安全取回算值或捕获其内抛出的异常"]
+            - ["**`ExecutorService.shutdown()` / `try(...)` 关闭**", "不再接收全新任务，等待已提交在队列里的作业平稳做完后有序解散清理工作路线"]
+          explain: 整个 Java 核心语言、面向对象、集合、I/O 与并发模块全部点亮！只剩最后一步就能把工程项目变成全组任何人拿到电脑前一行命令构建测试打包发布的标准制品——**压轴第 30 课：构建工具与 Maven 生命周期（11.1–11.5 节）**！
+
+  - id: maven
+    chapter: 并发基础与构建工具
+    title: 构建生命周期（Lifecycle）、阶段（Phase）、目标（Goal）与 Maven 实战（11.1–11.5）
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 项目里一共写了几百个 `.java` 业务文件、几十个单元测试类，还依赖了 `JUnit`、`PyJWT/Jackson` 等一堆第三方 Jar 包。难道每个新入职同事或自动化测试机都要手敲几十条又长又乱的 `javac -cp a.jar;b.jar ...` 去拼装编译打包吗？如果别人偷偷删掉了测试用例就强行打出上线 JAR 包呢？构建工具 **Maven** 用什么标准秩序把“拉依赖 → 编译 → 跑测试 → 打成品包”一键固化下来？（11.1–11.5 节）
+          options:
+            - text: 用声明式的 `pom.xml` 描述项目坐标与依赖，并通过固定有序的 **构建生命周期**（一连串依次递增的阶段如 `compile → test → package`）自动化串联完成：你只要喊一句 `mvn package`，它必定自动先编译、再强跑全部单元测试通过后才打包输出成品！
+              correct: true
+            - text: 必须每次全靠人脑凭记忆背出一百行长命令行手动粘贴执行才够可靠
+              why: 人工拼命令行极易漏掉依赖版本或跳漏测试门禁；构建自动化正是消除手工差异（“在我电脑上明明能跑”）的基石！
+            - text: 因为 Maven 是用来把所有代码自动删成空文件夹的清理工具
+              why: "`clean` 只是删除旧构建产物目录 `target/` 重头干净构建；主生命周期则严谨串联校验、编译、测试、打包与发布！"
+          explain: 本课作为第 11 章与整门 `P.1.2` 压轴课，对照 Maven 官方指南 11.1–11.5 节：**读透 `pom.xml` 核心声明、生命周期（Lifecycle） / 阶段（Phase） / 插件目标（Goal）三层概念与内置阶段绑定！**
+      - card:
+          title: Maven 构建生命周期（Lifecycle）、阶段（Phase）与插件目标（Goal）（11.1–11.4）
+          body: |
+            不要被术语绕晕，Maven 构建模型一共只有清晰三层：
+            1. **生命周期（Lifecycle，11.1）**：预设的三套标准主干总流程——最核心是 **`default`（构建与部署）**，另有 **`clean`（清掉旧 `target/`）** 与 `site`；
+            2. **阶段（Phase，11.2–11.3）**：`default` 里排好队的一串台阶：`validate → compile → test → package → verify → install → deploy`！喊运行后面任一台阶（如 `mvn package`），**会自动从头依序先把前面每级台阶全部跑通**！
+            3. **目标（Plugin Goal，11.4–11.5）**：真正干具体活的小工人（如 `compiler:compile` 编译源码、`surefire:test` 跑单元测试、`jar:jar` 打压缩包），按“内置生命周期绑定”各自挂进对应阶段槽位里！
+      - card:
+          title: "`pom.xml` 项目描述与测试失败即阻断打包门禁（11.3、11.5）"
+          body: |
+            在 `pom.xml` 里用规范 GAV 坐标（`groupId` / `artifactId` / `version`）与 `<dependencies>` 声明项目身份与所需依赖：
+            - **`mvn test`**：运行到测试阶段（只跑编译与测试，**绝不提前生成 `.jar` 包**！）；
+            - **`mvn package`**：先编译再跑全部单测；**一旦有任何 1 条单元测试失败，构建当场中止报错，绝不把残次品打包输出成 `.jar`！**
+
+            ```xml
+            <project xmlns="http://maven.apache.org/POM/4.0.0">
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>edu.demo</groupId>
+              <artifactId>desk</artifactId>
+              <version>1.0</version>
+            </project>
+            ```
+      - item:
+          id: q-maven-lifecycle-order
+          type: order
+          prompt: 在 Maven 默认主 **生命周期（`default` Lifecycle，11.1–11.3 节）** 中，当你执行高级阶段命令时它会自动严格从前向后依次流经各个前置步骤。请将以下四个核心构建阶段按**严格正确先后顺序**排列。
+          steps:
+            - "`validate`（校验项目配置文件 `pom.xml` 完整且合法）"
+            - "`compile`（将项目主源码转换编译生成对应中间运行码放进构建输出目录）"
+            - "`test`（编译测试代码并自动运行全部单元测试验证逻辑，失败则中止）"
+            - "`package`（仅在前述所有测试全数通过后，将代码打包成可分发的 JAR / WAR 制品）"
+          explain: 正因为阶段串成了一根严格有序铁链，你喊一句 `mvn package` 就等于自动顺带做了校验 + 编译 + 跑完所有测试 + 打包——想偷懒跳过 `test`？门禁直接卡死！
+      - card:
+          title: 例题：对应 `P.1.2` 检查用例——跑 `mvn test`、`mvn package`、`mvn clean` 与故意改错测试时的实际行为（11.3–11.5）！
+          body: |
+            看看真实工程运行一遍标准 Maven 生命周期命令时（对应 `src/main/java` 与 `src/test/java` 标准目录布局），屏幕上到底发生了什么：
+          reveal:
+            - title: 第 1 步：`mvn test` → 只跑到测试，**不会产生 `target/desk-1.0.jar`**！
+              body: "绑定在 `compile` 阶段的 `maven-compiler-plugin:compile` 先编译好 `Desk.java`；接着绑定在 `test` 阶段的 `maven-surefire-plugin:test` 跑 `DeskTest.java` 输出 `Tests run: 1, Failures: 0`。因为还没走到 `package` 阶段，最终压缩 `jar` 制品尚未生成！"
+            - title: 第 2 步：`mvn package` 后，再运行 `mvn clean` → 清空 `target/` 目录回归干净起点
+              body: 运行 `mvn package` 成功打出 `target/desk-1.0.jar`（内含 `Desk.class`）；紧接着执行 `mvn clean` 属于另一套独立 `clean` 生命周期，立刻彻底删除整个 `target/` 临时生成目录防止旧残余 `.class` 污染后续构建！常合写 `mvn clean package` 一键“先清空再全新打包”！
+            - title: 第 3 步：假如我们故意把 `DeskTest` 里的断言改坏成必定失败再跑 `mvn package`！
+              body: "运行到 `test` 阶段时立刻打出 `Tests run: 1, Failures: 1` 并**以非零错误码立即中断构建**！后面的 `jar:jar` 打包目标压根不会被运行，`target/desk-1.0.jar` **绝不会被制造出来**——这就是 CI 自动化防破损护城河！"
+      - item:
+          id: q-maven-hierarchy-match
+          type: match
+          prompt: 把 Maven 构建体系（11.1–11.5 节）中的四个核心概念与各自精准职责或表现配对。
+          pairs:
+            - ["**构建生命周期（Lifecycle）**", "预设的顶层标准化工程工作流总纲（包括 `clean`、`default` 与 `site` 三套）"]
+            - ["**阶段（Phase，如 `compile` / `test` / `package`）**", "某一生命周期中严格按前后顺序排队的一个个里程碑关卡，调用靠后阶段必先过前面所有阶段"]
+            - ["**插件目标（Plugin Goal，如 `surefire:test`）**", "实际执行一项具体干活步骤（编译、跑测试、打 JAR 包）的工具命令动作"]
+            - ["**内置生命周期绑定（Lifecycle Binding）**", "Maven 按打包类型（如 `<packaging>jar</packaging>`）自动预先把哪些插件目标挂入哪个阶段槽位执行"]
+          explain: 再留一个终极思考检验题收尾：如果在上面工程里想在发布前**先彻底清干净所有历史残余再重新打包验证**，同时保证如果哪怕有一条单元测试不通过就立刻阻止出包，该输什么命令？
+      - item:
+          id: q-maven-failed-test-blocks-jar
+          type: choice
+          prompt: "项目处于默认 JAR 打包规范下，一名工程师运行命令 `mvn clean package` 构建准备上线的制品包。恰巧里面有一条单元测试断言失败了（`Failures: 1`）。此时 Maven 会怎么处置？（11.3–11.5 节）"
+          options:
+            - text: 先通过 `clean` 清空旧产物，接着编译并在 `test` 阶段运行测试；一旦捕捉到这 `1` 条测试失败，**整个构建立刻失败中止**，后续 `package` 阶段绝不会执行，也不会产出带隐患的 `.jar` 成品！
+              correct: true
+            - text: 自动跳过忽略失败的那一条测试，照常强行把破损代码打包上线
+              why: 默认状态下 `test` 阶段任何未通过的测试或报错都会硬性拦停下游打包发布，守住成品质量底线
+            - text: 自动把 `src/test/java` 文件夹里的测试文件全删光
+              why: 源码和测试源码永远不会被删除，`clean` 只清点生成的临时 `target/` 构建结果目录
+          explain: 至此，《面向对象程序设计（P.1.2）》11 大章 30 课全盘点亮！准备进入覆盖全书、含真实 Java 与综合练习全部要点的终极 Boss 战吧！
+
+boss:
+  items:
+    - id: boss-bank-account-invariants
+      type: choice
+      prompt: 对照综合练习第 (1) 题：下面哪一套 `BankAccount` 类实现才真正符合 **封装与不变量守卫** 原则，经得起负额构造、负存、透支、长整型溢出及空调用考验？
+      options:
+        - text: "余额字段严格写死 `private long balance`（不留裸 `setBalance`）；构造器拒收负数；`deposit` 与 `withdraw` 先校验金额严格大于 `0`、取款不超余额，并使用 `Math.addExact` 防加法上溢回绕变负；校验全过方才改写余额"
+          correct: true
+        - text: "余额字段写成 `private` 后为了写测试方便，再提供一个无任何判断直接赋值的 `public void setBalance(long v) { balance = v; }`"
+          why: 留着直接赋值裸 setter 等同于彻底拆除了封装与不变量保护围栏，任何调用方一调 `setBalance(-999)` 即打破余额非负保证！
+        - text: "`deposit` 直接使用 `this.balance += amount;` 不防任何负数与整数溢出"
+          why: 既允许 `deposit(-500)` 借存款接口偷偷扣光余额，又会在遇到超大额如 `Long.MAX_VALUE` 时静默整数溢出成负数！
+        - text: 把 `balance` 设为 `public static long balance;` 让全城全部银行账户共享同一个钱罐
+          why: "`public` 直接暴露任意乱改，`static` 更会导致全行所有用户公用同一份余额相互覆写乱账！"
+      explain: 私有隐藏 + 无裸 setter + 全部前置与溢出检查先于状态更新，这才是工业级封装类！
+    - id: boss-dynamic-dispatch-trace
+      type: number
+      prompt: "对照综合练习第 (2) 题：给定抽象父类 `abstract class Shape { abstract int area(); }`，子类 `RectShape` 返回 `w * h`，子类 `SqShape` 返回 `s * s`。现在执行：`Shape[] shapes = { new RectShape(3, 4), new SqShape(5) }; int sum = 0; for (Shape x : shapes) sum += x.area();`。运行期通过动态分派最终累加出的 `sum` 值是 **多少**？（填整数）"
+      answer: 37
+      explain: "`RectShape(3, 4)` 动态分派算出 `3 × 4 = 12`，`SqShape(5)` 动态分派算出 `5 × 5 = 25`，统一面向 `Shape` 调用累加得 `12 + 25 = 37`！调用循环代码本身无需写任何 `instanceof` 分支！"
+    - id: boss-square-rectangle-composition
+      type: choice
+      prompt: 对照综合练习第 (3) 题：为什么在面向对象设计里常常说“**组合优先于继承**”，且明确指出 **可变 `Square extends Rectangle`** 是糟糕坏设计？
+      options:
+        - text: 可变 `Rectangle` 的方法契约承诺 `setWidth` 与 `setHeight` 各自独立改变一边而不动另一边；`Square` 为了守四边相等必须联动改两边，违背了子类型安全替换原则（LSP）；而采用共同只读契约或 **组合持有私有字段并委托**，既复用逻辑又不泄漏/破坏父类契约！
+          correct: true
+        - text: 因为 Java 语法在编译阶段完全禁止任何类使用 `extends` 关键字
+          why: 语法完全支持 `extends`，错的是把仅仅为了偷懒复用几行计算、却**在可变行为契约上互相冲突**的两个类强行硬塞进父子继承关系！
+        - text: 因为正方形和长方形连面积公式算出来的都不可能是整数
+          why: 两者在只读查询面积契约上高度兼容，冲突爆发于子类无法同时守住父类对“宽高相互独立修改”的契约承诺！
+        - text: 因为用组合把其它类放进 `private` 字段里后就不允许调用它的方法了
+          why: 组合恰恰通过清晰可控的内部**委托**（只把想要暴露的安全业务方法转发出去，屏蔽危险变更方法）达到远胜死继承的模块化灵活度！
+      explain: "**要“复用法则和行为”，用接口/组合委托；要“特化且行为契约 100% 相容”，才谨慎用继承！**"
+    - id: boss-generics-stack-wildcards
+      type: choice
+      prompt: 对照综合练习第 (4) 题并结合通配符：写好了通用泛型类 `Stack<T>` 之后，若声明 `Stack<String> s = new Stack<>();`，又写了一个只负责从任意数字栈读取求和（不往里塞新元素）的统计方法 `sumAll(List<___> nums)`。下面哪组说法全部准确？
+      options:
+        - text: 企图执行 `s.push(3)` 会在 **`javac` 编译阶段即刻报错拒收**（无需等到运行期才强转崩溃）；只从列表往外读数字作 `Number` 求和的参数应写上界通配符 `List<? extends Number>` 以同时接收 `List<Integer>` 与 `List<Double>`
+          correct: true
+        - text: 只要不加泛型尖括号用裸 `Stack s = new Stack();`，编译器反而检查得更严格彻底
+          why: 去掉泛型用原始类型（Raw Type）会立刻丢失所有编译期元素类型检查，退回到危险的运行期 `ClassCastException`！
+        - text: "`s.push(3)` 能正常在编译期通过，`Stack<String>` 会自动把数字 `3` 吞没变成空字符串"
+          why: 强静态泛型会在编译期即报类型不匹配错误阻止混入整数 `3`！
+        - text: 由于泛型兼容协变，`List<Integer>` 天然可以直接传进写死接收 `List<Number>` 的普通参数位置，无需任何 `? extends`
+          why: Java 泛型容器默认**不变**，`List<Integer>` **不能**直接赋给 `List<Number>`（防止通过 `List<Number>` 往里塞入小数 `Double` 弄坏原本只装整数的列表！）——只读时必须声明 `List<? extends Number>`！
+      explain: 编译期锁死类型 + `PECS` 读写区分，泛型设计从此一马平川！
+    - id: boss-equals-hashcode-pair
+      type: choice
+      prompt: 对照综合练习第 (5) 题：关于对象比较 `==`、`.equals(Object)` 与 `.hashCode()` 契约，以及把对象放进 `HashSet` / `HashMap` 时的行为，哪项判断完全正确？
+      options:
+        - text: 引用之间的 `==` 比的是是不是堆里同一只对象，`.equals()` 比的是业务内容等价性；凡重写 `.equals()` 必须用同样不可变字段重写 `.hashCode()` 保证相等对象哈希码必同（但不同对象碰巧同哈希码允许存在），否则放进 `HashSet` 查不到！
+          correct: true
+        - text: 如果两个对象 `a.hashCode() == b.hashCode()` 一样，那就不需要调用 `.equals()` 也能断定它们内容一定 100% 相等
+          why: 不同内容的对象可能恰好发生哈希碰撞算出同一个桶号（同一哈希码），所以“相等 ⇒ 同哈希码”成立，但反过来“同哈希码”仍须用 `equals()` 逐一核对确认！
+        - text: 可以放心拿带可变 `setter` 且该字段参与 `hashCode()` 的可变对象直接当 `HashMap` 的键放进去以后再随便修改该字段
+          why: 放入之后再修改参与哈希计算的字段会直接变更其哈希码，导致该键在映射表里再也查不到也删不掉！
+        - text: Java 字符串 `new String("ok") == new String("ok")` 永远保证返回 `true`
+          why: 两只分别 `new` 出来的独立 `String` 对象拥有不同对象句柄，`==` 为 `false`，只有 `.equals()` 才稳稳返回 `true`！
+      explain: "`==` 看句柄，`.equals` 看值，`equals` 配同源不可变 `hashCode` 保住哈希桶定位不丢件！"
+    - id: boss-checked-vs-unchecked-and-io
+      type: match
+      prompt: 对照综合练习第 (6) 题与资源流规范，将这四个 Java 工程场景与正确的异常或 I/O 处置方案精准匹配。
+      pairs:
+        - ["**合法调用下遭遇可预期业务恢复点（如 `InsufficientFundsException`）**", "使用 **受检异常（`extends Exception`）**，由编译器强迫调用点显式处理或向上传递"]
+        - ["**违反前置契约的编程错误（如传入负金额 `-5` 或空栈 `pop()`）**", "抛出 **非受检异常（`RuntimeException`）**，早失败暴露修复调用代码，无需满屏强迫 `try-catch`"]
+        - ["**按行读取含中文的文本或复制 `.png` 原图档案**", "文本流显式锁死 `StandardCharsets.UTF_8`；非文本原图严守原生字节流并全装进 `try-with-resources` 自动关流"]
+        - ["**直接把公网陌生包送进 `ObjectInputStream.readObject()`**", "高危反序列化漏洞风险：应全面改用带显式字段白名单的结构化 **JSON** 解析"]
+      explain: 异常分类得当 + 资源用完绝不泄露 + 字节文字分家 + 拒用不安全原生反序列化，系统底座牢不可破！
+    - id: boss-concurrency-pool-vs-deadlock
+      type: choice
+      prompt: 一个后端服务同时开了 `Executors.newFixedThreadPool(4)` 线程池来并发处理互相账户双向转账任务。下列哪一项实践兼顾了 **并发安全性（无竞态、无死锁）** 与 **优雅可控的资源生命周期**？
+      options:
+        - text: 对共享账户转账加锁时严格**按全局唯一不可变账户编号大小从小到大排序拿锁**防交叉死锁；高并发统计改用 `ConcurrentHashMap` / `AtomicInteger`；并用 `try (ExecutorService pool = ...)`（或明确 `shutdown()` + 协作 `interrupt()` 检查）确保线程池任务平稳收尾退出
+          correct: true
+        - text: 收到每个请求就新开一条无上限原生线程并直接调用 `worker.run()`，同时抓锁顺序随机全看调用参数前后
+          why: 调 `.run()` 根本没开新线程，无上限新建线程会撑爆系统，而按来回参数顺序乱拿双锁随时发生交叉死锁！
+        - text: 在 `catch (InterruptedException e)` 里什么都不写直接吞掉信号并把所有共享变量的锁全部删光
+          why: 吞掉中断信号会让任务无法响应取消停工，去掉共享变量互斥同步保护则会立刻引发严重算丢账竞态条件！
+        - text: 在持有账户排他互斥锁期间发起阻塞 30 秒的外部网络请求，并故意把读取方法不加任何同步
+          why: 持锁期间做长耗时外部 I/O 会直接拖垮全站吞吐甚至把线程池全部饿死；读取共享可变数据也须保持同步可见性！
+      explain: 按序拿锁破死锁、并发容器护竞态、池化复用稳收工——并发基本功稳稳拿下！
+    - id: boss-maven-build-gate
+      type: order
+      prompt: 回顾 Maven 默认构建体系（11.1–11.5 节），当工程执行 `mvn clean package` 准备产出可交付 `.jar` 制品时，系统依次自动经历下面四个关键动作。请按**严格真实执行先后顺序**排列。
+      steps:
+        - 执行 `clean` 清理生命周期，删除历史遗留的旧 `target/` 输出目录防止脏文件混入
+        - 在 `compile` 阶段调用编译插件将 `src/main/java` 业务源码全面类型检查并生成中间运行码
+        - 在 `test` 阶段自动运行 `src/test/java` 测试用例（若任何 1 条断言失败即立刻阻断构建！）
+        - 仅当测试全数通过后进入 `package` 阶段，打包生成最终干净可靠的成品 `.jar` 制品
+      explain: 恭喜你全面贯通《面向对象程序设计（P.1.2）》30 课知识大厦！带着封装、接口、组合、泛型、集合契约、异常 I/O、并发安全与 Maven 工程化，你已彻底具备进军软件设计与大型架构（P.4.3 → P.4.4）的硬核实力！
+    - id: boss-collections-hashset-vs-list
+      type: choice
+      prompt: 从 50 万个已注销黑名单用户编号里每秒核查一万次“当前下单人是否在黑名单中”，同时要把海量日志行里包含关键词的错误行高效统计并按频次累加到映射表。哪一组选择既快又稳？
+      options:
+        - text: 存在性查询用 **`HashSet<String>`**（均摊 O(1) 比 `ArrayList.contains` 快成千上万倍）；分组计次用 **`map.merge(key, 1, Integer::sum)`**，并用 **`Integer.compare`** 在排序中防止大整数相减溢位
+          correct: true
+        - text: 全部塞进 `ArrayList` 每次循环扫 50 万次比对，且排序比较器直接手写 `(a, b) -> a.cents() - b.cents()`
+          why: 大列表频繁 `.contains()` 耗时 O(N)，而整数比较手写减法遇到大负正值极易溢位回绕算反！
+        - text: 直接在普通增强 `for` 循环遍历列表期间调用 `list.remove(x)` 删掉元素
+          why: 遍历时直接调列表自身的 `.remove` 会立即引发 `ConcurrentModificationException` 失败，应改用 `removeIf` 或 `Iterator.remove()`！
+        - text: 直接用 `==` 比较两只各自 `new Integer(200)` 包装对象是否值相等
+          why: "`200` 超出包装缓存池，两只新对象 `==` 为 `false`，对象值比较永远使用 `.equals` 或 `Objects.equals`！"
+      explain: 选对容器数据结构、遵守比较溢出规矩与安全迭代删除，集合部分稳稳满分！
+    - id: boss-regex-and-arrays-bounds
+      type: match
+      prompt: 把 Java 基础工具、数值类型、数组与正则表达式（第 7 章）中的四个常见陷阱与对应正解精准匹配。
+      pairs:
+        - ["**财务人民币分/元结算用 `double`**", "存在以 2 为底的浮点 `0.1 + 0.2` 舍入错账；须用整数分 **`long`** 或 **`BigDecimal(String)`**"]
+        - ["**访问定长容器 `a[a.length]`**", "有效下标严格停在 `0..a.length-1`，触及 `a.length` 立即触发下标 **越界** 异常拦截"]
+        - ['**`"a.b.c".split(".")` 按点拆分成空**', '`.` 在正则中匹配任意字符；按字面圆点切分须转义 `split("\\.")` 或 **`Pattern.quote(".")`**']
+        - ["**循环内用 `str += item` 拼万条日志**", "因 `String` 不可变反复复制拖慢至平方复杂度；改用可变 **`StringBuilder`**"]
+      explain: 避开浮点金钱坑、记住 `.length-1` 上界、敬畏正则元字符 `.` 与不可变 `+=` 陷阱！
+    - id: boss-access-modifiers-and-ui-split
+      type: choice
+      prompt: 关于面向大型工程团队的包边界、可见性修饰与可测试类设计（第 2 章），下面哪套组织做法最为专业？
+      options:
+        - text: 所有核心字段用 **`private`** 藏好并由领域方法守住不变量；包内内部协作 helper 类省去 `public` 设为**包私有**限制外包误调；将业务领域逻辑从 `Scanner`/屏幕交互中彻底剥离，先用纯输入输出断言在设计期测透边界
+          correct: true
+        - text: 把所有内部辅助类、敏感字段与私有工具方法通通标成 `public`，并把控制台键盘读取直接写死进账户扣款方法里面
+          why: 全标 `public` 摧毁模块封装并堵死内部重构，键盘输入写死在规则类内部则会彻底瘫痪自动化单元测试与复用！
+        - text: 给所有核心对象统一加上 `static` 实例字段让全局不同用户共享同一格余额，并在类图里把 `-` 符号当成减法操作
+          why: 实例状态绝不能加 `static`，类图中的 `-` 代表私有 `private` 访问修饰！
+        - text: 面对异常先用一个空的 `catch (Exception e) {}` 彻底静默掩盖再继续算钱
+          why: 静默吞异常毁掉故障现场，极易造成静默算错账却无任何排查日志！
+      explain: 祝贺打通 `P.1.2` 全部 11 道 Boss 关卡！
