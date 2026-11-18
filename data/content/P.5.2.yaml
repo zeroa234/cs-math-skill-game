@@ -1,0 +1,1763 @@
+skill: P.5.2
+version: 2
+authors: [main-agent]
+brief:
+  why: |
+    手机应用开发和在电脑终端跑小脚本完全不同：屏幕随时会旋转重建页面、用户可能切回桌面甚至断网进地铁、相机定位等敏感能力要弹窗向用户求权限、一套代码还可能想同时发给 Android、iOS、桌面和网页。这一关带你把移动与跨端开发从“生命周期”到“状态驱动界面”、“设备权限与网络”再到“离线同步与多端上架”全部贯通。
+  outcomes:
+    - 梳理 Android Activity 六步生命周期与旋转配置变更、ViewModel / SavedStateHandle 与持久化分层保存状态
+    - 掌握 Kotlin 与 Dart 状态建模，写出 Jetpack Compose / Flutter 声明式计数器，理解状态提升与单向数据流
+    - 用 SafeArea、MediaQuery、LazyColumn 与平台适配设计响应式大小屏与折叠屏界面，按需调用具体运行时权限与传感器 API
+    - 比较原生（Kotlin/Swift）、跨平台（Flutter/React Native）与桌面（Electron/Qt）优缺点，落实 Electron 沙箱与 IPC 安全配置
+    - 设计本地单可信源 + SQLite 幂等待发送队列 + WorkManager 后台条件同步的离线优先架构，掌握代码混淆、包变体与多端持续发布
+terms:
+  - term: 内存
+    def: '程序在运行时用来存放当前页面变量、图片缓存和正在执行对象的临时存储空间'
+  - term: 进程
+    def: '操作系统分配了一独立块内存运行起来的应用实例，系统资源吃紧时后台进程随时可能被清理回收'
+  - term: 生命周期
+    def: '一个应用页面或界面从创建、进入前台可见、退到后台暂停到最终销毁回收的完整经历阶段'
+  - term: 声明式界面
+    def: '代码只直接描述“在当前状态值下屏幕应该长成什么样”，状态一变框架自动刷新受影响界面部件的开发方式'
+  - term: 状态提升
+    def: '把子组件里变化的数据和改动函数统一挪到共同上级管理，子组件只负责按收到的状态画图与上报事件'
+  - term: 运行时权限
+    def: '应用不提前打包占住全部敏感能力，而是等到真正点击拍照或定位那一刻，再由系统弹窗请求用户当场同意'
+  - term: 平台通道
+    def: '跨平台框架用来向底层 Android（Kotlin/Java）或 iOS（Swift）原生系统转发调用并拿回结果的通信桥梁'
+  - term: 离线优先
+    def: '把手机本地数据库作为唯一的即时读写来源，断网照样流畅操作，等联网和充电时再把待发送操作自动同步上云的架构'
+  - term: 打包变体
+    def: '英文叫 Flavors / Build Variants，同一套源码通过配置区分测试版、免费版或正式商店版的不同安装包构建产出'
+  - term: 持续部署
+    def: '英文简称 CD，每次提交通过测试后自动编译打包、签名并分批推送给测试员或应用商店的自动化发布流水线'
+  - term: 视图
+    def: 'Android 传统上用 XML 树状描述界面按钮与输入框的控件体系（View），可与新 Compose 页面双向互嵌'
+  - term: 编译
+    def: '将写好的应用源码经检查规则后转换并打包为可运行安装包的过程'
+
+lessons:
+  # ==== 平台生命周期 ====
+  - id: toolchain
+    chapter: 平台生命周期
+    title: 走进移动开发与 Kotlin / Android 工具链
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            写一个电脑端 Python 脚本，双击立刻就在屏幕上跑出结果；而写一个 Android 手机应用时，你写的 Kotlin 代码要先经过工具链转换检查并打包成安装包，再装进模拟器或真机运行。为什么不能只把单个 `.kt` 源码文件直接丢进手机点开？
+          options:
+            - text: 手机应用除了程序逻辑，还要把界面布局、图标资源、权限清单与系统适配配置一起打包签名成安装包才能被系统验证安装
+              correct: true
+            - text: 因为手机屏幕太小显示不下字母 `k` 和 `t`
+              why: 需要工具链构建打包是因为应用依赖系统沙箱验证、签名校验和统一资源格式，而不是因为文件名长度
+            - text: 因为手机绝对不可能装下任何代码文件
+              why: 安装包正是把转换好的程序、图片清单等打包整理在一起运行
+          explain: |
+            Android 官方推荐使用 **Android Studio** 集成开发环境与 **Kotlin** 语言，借助构建系统把源码、界面与声明打包成安全可装进设备的 APK 或 AAB 包。
+      - card:
+          title: Kotlin 初体验与 Android Studio 核心工具
+          body: |
+            在 Android 与现代移动生态中，Google 主推 **Kotlin** 语言（语法简洁、自带防空报错的空安全检查），经过**编译**（把源码按规则检查并转换成手机可安装执行的形式）与打包后才能在设备上跑起来：
+            - `val` 定义**不可重新赋值**的只读名字；`var` 定义**可改写**的变量；
+            - `fun main() { println("Hello Android") }` 就是最小入口函数！
+            ```kotlin
+            fun greet(user: String): String {
+                val prefix = "Hi, "
+                return prefix + user
+            }
+            ```
+            打开 **Android Studio** 后，你主要与三样东西打交道：① **项目文件与代码区**；② **Gradle 构建器**（自动下载库依赖并打包）；③ **Android 模拟器（Emulator）**，不用真买十部不同尺寸手机就能直接测试横竖屏效果。
+          reveal:
+            - title: 什么是一份应用的 `AndroidManifest.xml` 清单？
+              body: |
+                每个 Android 安装包根目录都带着一份清单文件，提前向手机系统“报备”：应用叫什么名、有哪些界面入口、需要用到相机或联网等什么敏感权限——下一阶段测试和安全审计都会紧紧盯住它！
+      - item:
+          id: kotlin-val-var
+          type: choice
+          prompt: |
+            在 Kotlin 代码里，如果一个变量 `maxRetries = 3` 希望一旦设定好之后就绝不允许被后面的代码不小心改写赋值，应该用哪个关键字声明？
+          options:
+            - text: '`val`（只读绑定，类似只赋值一次的常量引用）'
+              correct: true
+            - text: '`var`（专门用来随时随地反复重赋新值的变量）'
+              why: var 表示可变变量（variable），需要防误改时才用 val（value）
+            - text: '`print`（输出语句）'
+              why: print 负责向控制台输出文本，不是声明变量关键字
+          explain: |
+            默认优先用 `val`，只在确实需要随着状态改变重新赋值的少数地方再用 `var`，能挡掉大量意外修改。
+      - item:
+          id: emulator-purpose
+          type: choice
+          prompt: |
+            在 Android Studio 里自带的“虚拟模拟器（Emulator）”解决的最大实际开发痛点是什么？
+          options:
+            - text: 在自己电脑上就能模拟不同屏幕尺寸、折叠屏和多个系统版本运行调试，不必真去买齐几十台物理样机
+              correct: true
+            - text: 能把 Python 脚本直接物理变成铝合金手机外壳
+              why: 模拟器是运行在电脑上的软件虚拟手机环境，不生产硬件本身
+            - text: 能替程序员永远跳过测试阶段直接上传商店
+              why: 模拟器正是为了更方便地在开发期间反复测试各种分辨率与系统行为
+          explain: |
+            模拟器 + 真机联调是验证权限弹窗、旋转横屏与低电量限制的必备组合。
+      - item:
+          id: toolchain-roles-match
+          type: match
+          prompt: |
+            把 Android 开发工具链中的各个角色和它们承担的工作连起来。
+          pairs:
+            - ["Kotlin", "Google 主推的现代移动开发语言，简洁且带空安全检查"]
+            - ["Gradle", "自动管理第三方库版本，并把源码和资源编译打包成安装包"]
+            - ["Android 模拟器", "在开发电脑上虚拟手机与大屏平板测试界面与系统版本"]
+            - ["AndroidManifest.xml", "向操作系统报备应用入口组件与权限需求的清单文件"]
+          explain: |
+            语言写逻辑、Gradle 管构建打包、Manifest 报边界、模拟器快试错。
+
+  - id: lifecycle
+    chapter: 平台生命周期
+    title: Activity 六步生命周期、旋转重建与分层保存状态
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你正在用一款自己写的计时器 App，界面刚数到 `25`，随手把手机横过来准备全屏看，结果屏幕闪烁一下后数字竟然突然归零变成了 `0`！你又把手机切去微信聊了一分钟再切回来，系统甚至提示“应用已重启”。为什么普通变量里的数字说没就没？
+          options:
+            - text: 手机横竖屏切换属于“配置变化”，Android 默认会先彻底销毁旧界面实例再重新创建一个新实例；普通局部变量全丢了！
+              correct: true
+            - text: 因为手机旋转屏幕时只会清空整型变量，如果把 `25` 改成字符串变量就不会在旋转时归零
+              why: 数字归零是因为 Activity 默认销毁重建导致普通成员变量（无论整型还是字符串）全部被重新初始化
+            - text: 因为横屏和竖屏在操作系统里属于两个完全独立的应用程序，拥有不同的应用沙箱
+              why: 横竖屏属于同一个运行中的应用实例，触发数字归零的是旋转屏幕配置变化引起当前 Activity 实例销毁重建
+          explain: |
+            电脑端程序一般你点叉才关掉，但手机上的屏幕随时会旋转、切后台、被电话打断甚至因资源吃紧被系统杀死！这正是接下来要讲的页面存活规则与状态保管。
+      - card:
+          title: Android Activity 生命周期六步核心回调
+          body: |
+            **内存**是程序运行期间存放数据的临时空间，而应用打开运行后就是一个独立受管**进程**。每个页面容器（`Activity`）一生的**生命周期**按固定顺序走过六个关键时刻：
+            - **进入前台**：`onCreate`（创建界面布局与初始准备） → `onStart`（页面开始进入屏幕可见） → `onResume`（真正站上最前台，能响应手指点击！）；
+            - **退回或销毁**：`onPause`（半遮挡/即将失去焦点） → `onStop`（完全看不见退居后台） → `onDestroy`（实例被彻底销毁清理）。
+          reveal:
+            - title: 为什么切到微信（完全不可见）只停在 `onStop`，而不是立刻 `onDestroy`？
+              body: |
+                用户常常在微信和你的 App 之间来回切，停在 `onStop` 可以保留界面状态快速切换回来；但若用户在后台打开几个大型游戏导致系统内存紧张，系统就可能在未再通知的情况下直接回收后台进程！
+      - card:
+          title: 旋转屏幕与后台杀进程后，状态究竟该放哪？
+          body: |
+            面对三类“存活时长完全不同”的数据，Android 把保存手段分成了三层：
+            1. **内存里跨越旋转的界面状态 → `ViewModel`**：横竖屏切换销毁重启 `Activity` 时，`ViewModel` 实例会被架构组件贴心留存下来，屏幕一转过去数字依然是 `25`！
+            2. **哪怕被系统在后台杀进程再切回也要保留少量状态 → `onSaveInstanceState` / `SavedStateHandle`**：系统把键值对先写进临时轻量包，复活时自动还原（如输入框草稿、滚动位置、当前搜索关键词）。
+            3. **真正关掉明天还要用 → 本地持久数据库 / 文件**（如 SQLite / Room）。
+      - item:
+          id: lifecycle-callback-order
+          type: order
+          prompt: |
+            请按先后顺序列出一个 Android Activity 页面从**首次启动进入交互状态**，再到**退往后台并最终彻底销毁**经历的完整 6 步生命周期回调顺序。
+          steps:
+            - "onCreate（初始化创建）"
+            - "onStart（进入可见但未可交互）"
+            - "onResume（获得焦点可点击交互）"
+            - "onPause（失去焦点/即将离开前台）"
+            - "onStop（完全不可见退居后台）"
+            - "onDestroy（释放销毁实例）"
+          explain: |
+            启动三连：Create → Start → Resume；退场三连：Pause → Stop → Destroy，成对对称极好记。
+      - item:
+          id: rotation-state-loss
+          type: choice
+          prompt: |
+            为什么很多初学者把计数 `var count = 0` 直接写在 `Activity` 类的普通属性里时，用户横竖屏一旋转屏幕，`count` 就被悄悄清空回到 `0`？推荐放进哪里扛住旋转？
+          options:
+            - text: 旋转属于配置变化，系统默认销毁并重建 Activity；把状态放进 `ViewModel` 就能安全跨过旋转保留下来
+              correct: true
+            - text: 放进普通的局部变量 `var temp = 0` 就永远不会丢失
+              why: Activity 实例整体都被重新实例化了，所有直接挂在它上面的普通变量全部重新初始化成 0
+            - text: 把手机关机再开机就可以不丢失
+              why: 关机直接销毁全部内存里的状态；跨越配置旋转应该放进 ViewModel，长期存用本地库
+          explain: |
+            `ViewModel` 的存活跨度正好包裹着因屏幕旋转而销毁重建的多次 `Activity` 生命周期。
+      - item:
+          id: state-tier-match
+          type: match
+          prompt: |
+            把不同生存需求的应用数据放进最合适的 Android 状态保管层。
+          pairs:
+            - ["屏幕横竖旋转时保持列表滚动与计时计数不回零", "ViewModel（内存中跨越配置变更）"]
+            - ["退后台因系统内存吃紧被杀进程，切回时找回当前输入的搜索词", "SavedStateHandle / onSaveInstanceState"]
+            - ["用户的待办事项列表，明天甚至下周重开 App 依然存在", "本地持久化数据库（Room / SQLite）"]
+          explain: |
+            分清“配置变化期（ViewModel）”“系统暂存恢复期（SavedState）”与“永久落盘期（数据库）”，界面状态就不会莫名其妙消失了。
+      - item:
+          id: onpause-vs-onstop
+          type: choice
+          prompt: |
+            系统弹了一个半透明小授权框遮在你的页面中间（你的页面其实还露出半截看得见，只是点不到它），此时你的 `Activity` 会停在哪个生命周期状态？
+          options:
+            - text: 触发 `onPause` 暂停交互，但因为页面依然部分可见所以还不会走 `onStop`
+              correct: true
+            - text: 立刻彻底跑完 `onDestroy` 关掉应用
+              why: 只要界面仍有一部分在屏幕上看得见，就不会进到完全不可见的 onStop 和销毁
+            - text: 重新从头再次执行一遍 `onCreate`
+              why: 页面只是失去焦点暂停，并未销毁重建
+          explain: |
+            `onPause` 代表“失去前台输入焦点（可能还看得见）”，`onStop` 代表“已彻底被挡住完全看不见”。
+
+  - id: navigation
+    chapter: 平台生命周期
+    title: 界面导航、返回栈（Back Stack）与深链接
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            用户从“首页”点进“商品详情页”，再从“详情页”点进“评价页”。当用户按下手机底部的返回键时，应用是怎么精准记起“先回详情页、再按一次回首页、再按就退回手机桌面”的？
+          options:
+            - text: 靠一个后进先出的“返回栈（Back Stack）”：每跳转进新页面就压在栈顶，按返回就把栈顶弹出
+              correct: true
+            - text: 按字母表顺序排列所有页面名字，每次按返回键就跳向字母序前一个页面
+              why: 页面回退顺序必须严格按用户打开先后逆序回退，依赖后进先出的导航返回栈管理
+            - text: 每跳一个新页面就把整部手机重启一次
+              why: 导航框架只需在栈里压入或弹出目的页面路由记录
+          explain: |
+            无论 Android Jetpack Compose Navigation 还是 Flutter Navigator，底层都是围绕**返回栈（Back Stack）**、清晰路由参数与返回行为规则来组织多页跳转。
+      - card:
+          title: 返回栈（Back Stack）与常见跳转陷阱
+          body: |
+            每次跳转到新页面，导航器就把目标屏幕压入**返回栈**：
+            - **正常下钻**：`首页` → `首页 / 详情` → `首页 / 详情 / 支付`，按返回一次弹出栈顶。
+            - **登录成功后别留下“回退回登录页”！**：用户登录完跳去主界面时，务必把登录页从栈里清出（如 `popUpTo` / 替换根路由），否则用户在首页按一下返回键竟然又退回填密码的登录页！
+            - **路由传参最佳实践**：页面之间只传精简 ID（如 `order_id="101"`），详情内容由目标页面自己向统一数据仓库查——防止把大块复杂对象硬塞在路由里传丢或与最新数据脱节。
+          reveal:
+            - title: 如果从桌面通知点进来直接进 `订单详情页` 怎么办？
+              body: |
+                这叫**深层直达跳转（Deep Link）**：从短信、网页或系统通知直接按路径直达内页时，导航框架应帮你把父页面（例如`首页`）合成在返回栈底下，确保用户点返回时能先退回“首页”看其他订单，而不是一按返回直接闪退出去！
+      - item:
+          id: login-backstack-trap
+          type: choice
+          prompt: |
+            用户走完“欢迎页 → 登录页 → 首页”三步登录成功后，在“首页”顺手按了一下手机系统的返回键，却发现界面又退回“输入账号密码的登录页”！怎么修最干净？
+          options:
+            - text: 导航进入“首页”时，把“登录页”从返回栈中弹出清理掉，使“首页”成为新的栈底
+              correct: true
+            - text: 在首页重写系统返回事件直接调用 `System.exit(0)` 强制杀掉应用进程，不让返回栈执行任何回退
+              why: 应该在跳转首页时用 `popUpTo` 清掉导航栈里的中间认证页，而不是粗暴杀进程破坏返回体验
+            - text: 每次点返回键就强制自动给用户重新注册新账号
+              why: 问题只是返回栈里多留了一层不该再回去的历史登录页
+          explain: |
+            登录、开屏引导这类一次性中间流转页面，跳转完成后务必弹出返回栈。
+      - item:
+          id: nav-arg-choice
+          type: choice
+          prompt: |
+            从“商品列表页”跳转进“商品详情页”时，导航参数应该传什么最稳妥？
+          options:
+            - text: 只传轻量稳定的商品唯一 ID（如 `productId = "p-42"`），详情页拿到 ID 后自己从本地/网络数据层读取最新完整数据
+              correct: true
+            - text: 把商品的 10 张高清大图和 500 条评论原封不动全塞进跳转参数里传递
+              why: 系统保存跳转参数有大小上限，传超大图片与巨量列表极易触发崩溃，且易读到过时快照
+            - text: 完全不传任何信息，让详情页靠猜用户刚才点的是第几行
+              why: 没有商品 ID 根本无法确定用户点选的是哪一条记录
+          explain: |
+            路由传“轻标识 ID”，数据查“单一可信数据源”，这是移动端最抗崩溃也最不会产生脏数据的传参纪律。
+      - item:
+          id: nav-concepts-match
+          type: match
+          prompt: |
+            把移动应用导航里的概念与解决的问题配对。
+          pairs:
+            - ["返回栈（Back Stack）", "按后进先出顺序记录用户点过的页面路径，支撑按返回逐级回退"]
+            - ["弹出栈历史（popUpTo / replace）", "登录或结账完成后清理过程页，防止按返回键倒回过期表单"]
+            - ["深层直达跳转（Deep Link）", "从通知或外部网页按路径直达内页并补全应有的父级返回路径"]
+          explain: |
+            管好栈顶压入、清空与深层跳转回溯路径，多页面流程才顺畅自然。
+      - item:
+          id: deep-link-parent-stack
+          type: choice
+          prompt: |
+            用户点击快递推送通知直接打开 App 里的“包裹详情页（Deep Link）”，当他看完后按一下返回键时，怎样处理才不会直接意外退出 App？
+          options:
+            - text: 在合成深层路由时把“首页”压在详情页下方作为父栈底，点返回先回到首页方便浏览其他功能
+              correct: true
+            - text: 永远禁止从外部通知直达任何内页
+              why: 深层直达跳转的核心价值正是直达特定业务页面，只需正确构好父级返回栈即可
+            - text: 把通知直接塞进数据库永不清除
+              why: 返回行为取决于导航返回栈结构，而不是停留在数据库里不跳转
+          explain: |
+            合成父级栈结构让“从外面空降进内页”也能享受顺滑自然的返回路径。
+
+  # ==== 界面状态 ====
+  - id: kotlin-state
+    chapter: 界面状态
+    title: Kotlin 空安全、函数类型与界面状态建模
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            界面需要从网上加载一份用户信息，在结果回来前用户名还没拿到（处于空值缺失态）。如果语言像老式做法那样允许任何字符串变量偷偷藏着空引用 `null` 却不提醒你，直接调用 `name.length` 会怎样？
+          options:
+            - text: 运行到这里当场抛出空引用崩溃（NullPointerException）闪退！所以应该在类型上把“绝不会空”与“可能为空”明确分开
+              correct: true
+            - text: 程序会自动帮你瞎编一个 8 字符假姓名
+              why: 对空值直接调属性或方法会引发应用最常见的崩溃闪退
+            - text: 在编写代码阶段不会报错，直到上线后用户网络稍慢、界面读取空值属性时当场触发空引用崩溃（NullPointerException）
+              why: 未经检查的空引用一直都是移动客户端崩溃率排行榜第一元凶
+          explain: |
+            Kotlin 用严格的**可空类型 `?`** 把“可能为空”钉在表面上，还用不可变状态数据来稳稳喂给界面框架。
+      - card:
+          title: Kotlin 空安全与函数类型
+          body: |
+            Kotlin 用几个极轻巧的写法把常见界面崩溃拦截在写代码时：
+            - **`String` vs `String?`**：普通 `String` **绝对不能为 `null`**；只有末尾带问号 `String?` 才允许为空，想读长度必须安全写 `name?.length ?: 0`（如果空则给默认值 `0`）；
+            - **不可变数据模型（`data class`）**：`data class UiState(val count: Int = 0, val loading: Boolean = false)`，每次想改其中一个字段，直接用 `.copy(count = count + 1)` 产出一个全新状态快照，避免旧界面读到改了一半的半成品；
+            - **把动作也当作参数（Lambda）**：写界面按钮时可直接传入回调函数 `{ count++ }` 响应点击！
+          reveal:
+            - title: 从 Python 入门来到 Kotlin：三处语法对照秒懂
+              body: |
+                - Python 用 `def`，Kotlin 用 `fun`；
+                - `val` 相当于只绑定一次不重新指别的对象的名字；
+                - 函数参数后面的 `: String` 和返回值 `: Int` 是强制类型标牌，提前防错！
+      - card:
+          title: 用有限几个状态表达异步页面（加载 / 成功 / 失败）
+          body: |
+            别用 3 个散落的布尔值（`isLoading`、`isError`、`hasData`——万一不小心同时为真界面就乱套！），而要建模成互斥有限状态（Kotlin 里常用 `sealed interface` 封闭列举仅有的几种可能状态）：
+            1. `Loading`（显示转圈进度）；
+            2. `Success(items)`（画出列表）；
+            3. `Error(message)`（显示错误提示 + 重试按钮）。
+            这样页面永远只处于**精确唯一一种清晰状态**！
+      - item:
+          id: kotlin-nullable-op
+          type: choice
+          prompt: |
+            Kotlin 中声明 `val nick: String? = null`，下面哪一行写法能安全获取昵称长度并在为空时兜底返回 `0`，而**绝不会引发空引用崩溃**？
+          options:
+            - text: '`val size = nick?.length ?: 0`'
+              correct: true
+            - text: '直接写 `val size = nick.length` 不做任何安全操作符处理'
+              why: 因为 nick 类型是可空 String?，Kotlin 静态类型检查直接禁止不判空就调 `.length`
+            - text: '强行写 `val size = nick!!.length` 赌它一定不为空'
+              why: '`!!` 强制断言不为空，在 nick 确实是 null 时会在运行时立刻崩溃闪退'
+          explain: |
+            `?.` 安全调用配合 `?:` 默认兜底（Elvis 操作符）既简洁又绝不闪退；远离乱加 `!!`！
+      - item:
+          id: sealed-ui-state-why
+          type: choice
+          prompt: |
+            用单一互斥状态（`Loading` / `Success(data)` / `Error(msg)`）替代三个分散布尔变量（`isLoading`、`isSuccess`、`isError`），最大的工程好处是什么？
+          options:
+            - text: 从结构上杜绝“一边显示加载成功列表、一边又同时弹出加载失败红框”这种矛盾非法组合状态
+              correct: true
+            - text: 能让网络请求的物理往返时间直接缩短一半
+              why: 状态建模解决的是逻辑完整性与界面不自相矛盾，不改变网络物理耗时
+            - text: 因为编程语言禁止界面里存在布尔变量
+              why: 语言支持布尔变量，但三个独立布尔组合有 2×2×2=8 种组合，其中好几种毫无意义易出 bug
+          explain: |
+            让非法状态在类型上根本表达不出来，界面渲染逻辑会一下子变得像数学公式般简单明了。
+      - item:
+          id: kotlin-syntax-match
+          type: match
+          prompt: |
+            把 Kotlin 里常见高频写法和它们的作用配对起来。
+          pairs:
+            - ["`val x: String?`", "声明允许为空的引用，强迫使用前安全检查或给默认值"]
+            - ["`x?.length ?: 0`", "若 x 不空则取长度，否则安全兜底返回 0"]
+            - ["`state.copy(count = 1)`", "基于不可变数据快照仅替换其中个别字段生成新快照"]
+            - ["`onClick = { submit() }`", "把点击要执行的动作当成匿名函数传给按钮组件"]
+          explain: |
+            可空检查 + 不可变快照 `.copy()` + Lambda 回调，构成了现代声明式移动 UI 的地基。
+      - item:
+          id: ui-state-copy-why
+          type: choice
+          prompt: |
+            在 Kotlin `data class UiState(val count: Int, val name: String)` 中，为什么每次修改界面状态都推荐写 `state = state.copy(count = state.count + 1)` 产出新快照，而不是到处直接去偷偷改一个旧可变对象里的某个字段？
+          options:
+            - text: 不可变新快照能清晰触发界面框架对比更新，也不会让同时正在读旧快照的地方读到改了一半的半成品状态
+              correct: true
+            - text: 因为 `.copy()` 会把全部数字自动翻一百万倍
+              why: '`.copy()` 只替换显式指定的新字段值，其余未指定字段原封复制过来'
+            - text: 因为 Kotlin 禁止修改界面上的任何整数显示
+              why: 更新变量引用指向新不可变状态快照正是推荐做法
+          explain: |
+            基于不可变快照做 `.copy()` 更新，既安全又让状态变化历史一目了然。
+
+  - id: compose-counter
+    chapter: 界面状态
+    title: 声明式 UI“状态驱动界面”与计数器实战
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            老式界面写法是：先摆好一个按钮和文本框并记下它们的编号；每次用户点赞，你得手动查找文本框控件、亲自调用 `textView.setText(...)` 改文字，再手动切换颜色——屏幕大起来很容易忘记某处没改同步！声明式 UI（如 Jetpack Compose / Flutter）怎么彻底翻转这种写法？
+          options:
+            - text: 不再手找控件一个个改，只写一个描述“给定当前状态 `count` 时界面该画成什么样”的函数；状态一更新框架自动重绘受影响部分
+              correct: true
+            - text: 干脆禁止任何界面文字随用户点击发生变化
+              why: 界面当然要响应点击实时更新，只是更新工作交给“状态变化触发框架重组”自动完成
+            - text: 每次点一下按钮就弹窗要求用户重装一遍 App
+              why: 框架只会局部重新执行受该状态影响的那一小块绘制函数，毫秒级平滑刷新
+          explain: |
+            记住这句黄金公式：**`UI = f(state)`（界面是当前状态的函数）**！这就是现代客户端界面最核心的状态驱动思路。
+      - card:
+          title: Compose 基础布局与计数器完整实现
+          body: |
+            在 Jetpack Compose 和 Flutter 这类**声明式界面（Declarative UI）**里，你不用手动去找文本框一个个改字，而是直接写出“给定状态时界面长什么样”。来看一个计数器（数字文本 + `+1` 按钮 + `重置` 按钮）：
+            ```kotlin
+            @Composable
+            fun Counter() {
+                // remember 跨过多次刷新记住数字；rememberSaveable 还能扛住屏幕旋转重建！
+                var count by rememberSaveable { mutableStateOf(0) }
+                Column {
+                    Text("Count: $count")
+                    Button(onClick = { count++ }) { Text("+1") }
+                    Button(onClick = { count = 0 }) { Text("重置") }
+                }
+            }
+            ```
+          reveal:
+            - title: 零基础看懂 Compose 写法：注解、属性委托与布局组件
+              body: |
+                - `@Composable` 标明这个函数专门用来描述一块界面；`Column` 竖向排布子项，`Text` 画字，`Button` 画按钮；
+                - `var count by rememberSaveable { mutableStateOf(0) }` 里的 `by` 是属性读写委托简写，以后直接读改 `count` 就能被框架察觉；`"Count: $count"` 就像 Python 的 `f"Count: {count}"` 字符串插值！
+            - title: 什么叫**状态驱动界面（重组 Recomposition）**？
+              body: |
+                你从未写过 `findViewById(...).setText(...)`！点击 `+1` 修改了被 `mutableStateOf` 包装的 `count` 后，Compose 自动感知读过 `count` 的 `Text` 和 `Counter` 需要用新数字重新描述一次界面并局部刷新——**你只需管好状态值“是什么”，框架负责同步屏幕上“怎么画”**！
+            - title: Flutter 里长什么样？（对照一眼认出同源设计）
+              body: |
+                在 Flutter 里同样遵循 `UI = f(state)`：在 `StatefulWidget` 的 `State` 类里持有 `int count = 0;`，按钮 `onPressed` 调用 `setState(() { count++; })`，框架立刻自动重跑 `build(context)` 返回新的 `Column(children: [Text('$count'), ...])`！
+      - card:
+          title: 状态提升（State Hoisting）与单向数据流
+          body: |
+            如果某个页面顶部的总价和底部的“清空购物车”按钮都要读或改同一个数，别把状态死藏在局部按钮函数里！
+            用**状态提升（State Hoisting）**：
+            - 把可读状态（`value`）通过**参数**往下传给展示组件；
+            - 把修改动作（`onIncrement: () -> Unit`、`onReset: () -> Unit`）通过**回调事件**往上传回共同上级状态持有者！
+            这就是**“状态向下流动，事件向上汇报”**的单向数据流——子组件不藏私有状态，超好复用、超好做自动化测试！
+          reveal:
+            - title: 状态提升的代码形状一眼认清
+              body: |
+                父组件持有状态 `var count by rememberSaveable { mutableStateOf(0) }`，子组件写成 `CounterBar(count = count, onAdd = { count++ })`：子组件自己只负责显示 `count` 和在点击时呼叫 `onAdd()`，再也不用管数据从哪来或该改谁！
+      - item:
+          id: declarative-vs-imperative
+          type: choice
+          prompt: |
+            关于 Jetpack Compose 和 Flutter 等现代声明式 UI 中“状态驱动界面”的理解，以下哪项准确？
+          options:
+            - text: 界面只是一份描述“当前状态下应该展示什么组件”的函数；每当可观察状态改变时，框架自动重新计算并更新受影响的界面部分
+              correct: true
+            - text: 开发人员在点击事件里必须手动遍历屏幕上的每一个文本框 ID 并依次调用 setText 更新文字
+              why: 那是传统命令式手动操作控件的写法；声明式 UI 正是为了消灭繁琐易漏的手动控件同步
+            - text: 声明式 UI 一旦显示在屏幕上，任何状态变化都绝不可能触发刷新
+              why: 只要修改的是被框架追踪的可观察状态，框架就会自动触发局部重组刷新
+          explain: |
+            `UI = f(state)` 让开发者再也不用操心“改了这个数是不是忘了顺便改另一个按钮文字灰掉状态”。
+      - item:
+          id: remember-vs-saveable
+          type: choice
+          prompt: |
+            在 Compose 计数器代码里，用 `rememberSaveable { mutableStateOf(0) }` 比普通的 `remember { mutableStateOf(0) }` 多解决了哪一个问题？
+          options:
+            - text: 普通的 remember 只能扛住界面小刷新但手机旋转重构 Activity 会归零；rememberSaveable 连旋转甚至后台回收恢复都能留住计数值
+              correct: true
+            - text: rememberSaveable 能自动把用户的本地整数上传给全网所有用户共享
+              why: rememberSaveable 只在当前这台设备的系统状态恢复包里跨重建保留状态
+            - text: 普通的 remember 永远不允许在屏幕上增加任何 1
+              why: 普通的 remember 在不旋转屏幕时可以正常点按钮 +1 刷新
+          explain: |
+            短期临时动画用 `remember`；跨横竖屏旋转的界面输入/计数首选 `rememberSaveable` 或 `ViewModel`。
+      - item:
+          id: state-hoisting-match
+          type: match
+          prompt: |
+            把单向数据流与状态提升中的概念配给它们流动的方向或职责。
+          pairs:
+            - ["当前显示状态值（如 count: Int）", "从共同上级向下传入子界面组件展示"]
+            - ["用户交互动作回调（如 onReset: () -> Unit）", "子组件被点击时向上通知上级更新状态"]
+            - ["无状态可复用展示组件", "自身不藏私有状态，只依赖入参画图并把点击往外报"]
+          explain: |
+            状态向下流、事件向上冒，是 Compose 和 Flutter 共用的清爽数据流结构。
+      - item:
+          id: declarative-text-count
+          type: text
+          prompt: |
+            在下方 Compose 计数器片段中：
+            ```kotlin
+            var count by rememberSaveable { mutableStateOf(0) }
+            // 点击 "+1" 按钮触发：{ count++ }
+            // 点击 "重置" 按钮触发：{ count = 0 }
+            // 界面显示：Text("Count: $count")
+            ```
+            如果用户依次点击了 **三次 `+1`**，再点击 **一次 `重置`**，接着又点击 **两次 `+1`**，此时界面上 `Text` 最终显示的完整文字是什么？
+          answers: ["Count: 2"]
+          hint: '三次 `+1` 变 3，点一次重置回 `0`，再点两次 `+1` 后 `count` 是 `2`。'
+          explain: |
+            `0 -> 3 -> 0 -> 2`，`Text("Count: $count")` 随状态更新重组显示 `Count: 2`。
+
+  - id: lists-theme
+    chapter: 界面状态
+    title: 滚动长列表、懒加载复用与主题样式规范
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            新闻 App 里一次拉下来 5000 条新闻卡片。如果一进页面就直接用一个普通竖向排版 `Column` 把这 5000 张卡片在屏幕上全画出来、再装进普通滚动条里，用户滑动起来会发生什么？
+          options:
+            - text: 打开页面瞬间要创建 5000 份排版对象吃光内存甚至直接卡死，其实屏幕上一次只看得见六七张！应该只渲染“眼前可见区附近”的条目
+              correct: true
+            - text: 因为普通 `Column` 已经内置了按需回收机制，和 `LazyColumn` 的内存占用完全一样
+              why: 手机一屏高度有限，普通 `Column` 会一次性实例化全部 5000 个控件，渲染几千个屏幕外看不见的控件纯属巨大浪费
+            - text: 普通列表只能显示纯白空白页面
+              why: 控件都能创建出来，问题在于一次创建全部 5000 个会爆卡顿和内存占用
+          explain: |
+            处理成千上万条数据，永远使用**懒加载滚动列表**（Android `LazyColumn` / Flutter `ListView.builder`），配合统一**主题排版（Material Theme）**。
+      - card:
+          title: 懒加载长列表与稳定 Key
+          body: |
+            - **按需懒组装**：Compose 的 `LazyColumn`（以及 Flutter 的 `ListView.builder`）只创建**当前手机屏幕视窗可见范围 + 上下少量缓冲**的那十几行卡片；手指往下滑时，滑出顶部的卡片资源被回收，新露出来的条目按需再建，哪怕列表有 10 万条也能丝滑 60 帧滚动！
+            - **务必给每项配上稳定 `key`**（例如 `items(todos, key = { it.id })`）：若不给唯一 ID 作为 `key`，删除第一行或插入新行时框架按位置序号错位匹配，会导致输入框状态跳错行甚至错乱动画！
+      - card:
+          title: 主题样式系统：颜色、字体层级与深色模式
+          body: |
+            别在 80 个文件里到处硬编码死颜色值 `#222222` 和字体字号 `17`——以后设计改品牌主色调或者要适配夜间深色模式，你会改到崩溃！
+            **Material Design 主题**把设计抽成三本词典：
+            1. **配色方案（ColorScheme）**：用语义名（如 `primary` 主色、`surface` 背景面、`error` 错误红），一键切换浅色/深色模式全部跟着变；
+            2. **字体排版（Typography）**：按功能分 `titleLarge`、`bodyMedium`、`labelSmall`，统一全 App 视觉层级；
+            3. **形状圆角（Shapes）**与间距标准，保证组件视觉风格整齐一致！
+          reveal:
+            - title: 为什么深色模式切换不用写一百个 `if (isDark)`？
+              body: |
+                因为页面组件只引用“主背景色 `surface` / 主文字色 `onSurface`”等语义角色名——你在主题总控表里配好“白天和夜间分别对应哪种颜色”后，系统打开深色模式时整套 App 会自动跟着一键换装，省力又不会漏改某一角文字变成黑底黑字！
+      - item:
+          id: lazycolumn-why
+          type: choice
+          prompt: |
+            面对一个有 3000 条联系人的通讯录页面，为什么要用 `LazyColumn`（或 Flutter `ListView.builder`）而不是普通 `Column` 直接用 `for` 循环把 3000 项全部放进去？
+          options:
+            - text: 懒加载列表只组合并布局当前屏幕可见区域附近的十来项内容，滑动时复用回收，既快启动又极省内存
+              correct: true
+            - text: 因为普通列表最多绝对只允许放 3 行代码
+              why: 普通 Column 语法上能塞进几百项，缺点是一进入页面全部一次性构建排版导致严重卡顿爆内存
+            - text: 因为懒加载列表会自动把 3000 条联系人全都删成只剩 1 条
+              why: 所有 3000 条都可以顺利滑到查看，只是按需到屏幕前才创建对应界面节点
+          explain: |
+            长列表懒加载是移动客户端保持滚动流畅的最核心性能习惯。
+      - item:
+          id: list-key-bug
+          type: choice
+          prompt: |
+            待办列表中每条都有一个内部状态或勾选动画。如果在列表顶头删掉了第 0 项，下面原本第 1 项的动画状态突然诡异地串到了原来第 2 项身上！最可能是忘了配置什么？
+          options:
+            - text: 为每行条目指定唯一稳定的业务 `key`（如 `todo.id`），而不是默认靠临时列表下标位置匹配身份
+              correct: true
+            - text: 忘了把手机重启五次
+              why: 这是框架按位置索引复用了已被删除旧行状态导致的错位 bug
+            - text: 忘了把背景改成黑色
+              why: 列表项身份绑定靠的是稳定 key，跟主题颜色无关
+          explain: |
+            任何可能发生增删重排的动态列表，第一件事就是绑定稳定 `key = { it.id }`。
+      - item:
+          id: theme-semantic-why
+          type: choice
+          prompt: |
+            编写卡片和按钮样式时，为什么规范推荐使用主题语义色（如 `MaterialTheme.colorScheme.primary` / `surface`）而不是随手手写死固定颜色编码值 `#FFFFFF`？
+          options:
+            - text: 使用语义主题令牌可以零修改一键适配夜间深色模式与品牌换肤，并保持全局界面对比度协调
+              correct: true
+            - text: 因为手写白色在深色模式下会自动变成透明看不见，用语义词正好全盘失效
+              why: 恰恰相反：手写死白色 `#FFFFFF` 配黑色文字或反色时才会在深色模式彻底错乱，语义颜色会自动成对切换！
+            - text: 因为编程语言禁止界面里出现字母 `#`
+              why: 代码支持 `#FFFFFF` 颜色编码字面值，但跨主题可维护性极差
+          explain: |
+            抽象出颜色与字号的“语义名字”，既统一全局审美又免费拿到深色模式切换能力。
+
+  - id: adaptive-android
+    chapter: 界面状态
+    title: Android 自适应大屏布局与传统 View 渐进共存
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你在竖屏小手机上把聊天列表做得很好看，可把同一个界面打开在折叠屏或平板横屏上时，整条消息卡片被横着拉成一条宽 25 厘米的细长面条，看着巨别扭！怎么适配各种大小屏幕？
+          options:
+            - text: 按当前窗口的真实可用宽度分级（紧凑、中等、展开），在宽屏上自动切换到“左边目录列表 + 右边消息详情”双栏布局
+              correct: true
+            - text: 只把小手机上的字体硬生生放大 5 倍铺满平板屏幕
+              why: 粗暴同比放大文字反而浪费大屏信息密度，让人看得头晕
+            - text: 一旦检测到平板就直接弹窗报错拒绝启动
+              why: 平板、折叠屏和桌面窗口越来越普遍，应当按可用窗口尺寸优雅切换结构
+          explain: |
+            别用死猜“是不是平板型号”的笨办法，而是按当前应用窗口的尺寸级别动态布阵；还要了解现实项目里如何与传统老界面体系共存。
+      - card:
+          title: 窗口尺寸等级（WindowSizeClass）自适应布局
+          body: |
+            现在的屏幕不止手机竖屏，还有半屏分屏、平板和展开态折叠屏！正确做法是读取当前窗口宽度分成三档布局：
+            - **紧凑宽度（Compact，典型竖屏手机）**：单栏导航条 + 点击后跳转全屏详情页；
+            - **中等宽度（Medium，小平板/折叠屏半开）**：左侧窄导航栏 + 内容适度放宽留白或网格多列；
+            - **展开宽度（Expanded，大平板横屏/桌面窗口）**：左侧常驻侧边导航 + 中间列表 + 右侧实时详情**双栏/多栏同屏展示**！
+          reveal:
+            - title: 为什么要看“当前窗口尺寸”而不是查“设备是不是叫 iPad/平板”？
+              body: |
+                因为哪怕用户拿着一台大平板，一旦他把你的 App 缩成“三分之一分屏小窗”在屏幕一边，此刻分给你的真实宽度其实就是紧凑手机宽！按当前窗口宽度自适应，连折叠屏现场一折或拖拉窗口大小都能丝滑无缝变形！
+      - card:
+          title: 传统 Android 视图（Views）与 Compose 渐进互操作
+          body: |
+            在现代公司真实接手的百年老项目里，不可能停工半年把几百个老 XML 页面一次性重写成 Compose！Android 贴心提供了双向互操作桥梁：
+            - 老 **视图（View，传统 XML 控件树界面组件）**里想嵌入一小块新 Compose 卡片？放进一个 **`ComposeView`** 容器即可增量上线！
+            - 新 Compose 页面里需要借用一段成熟的旧地图或旧播放器 View 控件？用 **`AndroidView { context -> ... }`** 包装起来照样复用！
+          reveal:
+            - title: XML 视图与 Compose 函数思维到底差在哪里？
+              body: |
+                传统 XML 视图是把界面先写成静态标签文件，运行后再靠 Java/Kotlin 去 `findViewById` 手动改文字；而 Compose 直接把页面写成带状态的 Kotlin 函数——借助 `ComposeView` 和 `AndroidView` 双向套嵌，几十个页面可以一次一屏从容翻新，绝不耽误线上业务发版！
+      - item:
+          id: window-size-split
+          type: choice
+          prompt: |
+            为什么现代移动排版指南强调用**当前窗口宽度等级**（Compact / Medium / Expanded）决定切换单双栏，而不是简单判断设备型号“是不是平板”？
+          options:
+            - text: 平板上的应用也会被用户拖成窄分屏窗口，折叠屏更会在使用中途动态打开变宽；紧盯实时窗口尺寸才能覆盖所有形态
+              correct: true
+            - text: 因为平板设备上绝对不运行 Android 系统
+              why: Android 广泛跑在手机、折叠屏与大平板上，关键是分屏与折叠时真实可用宽高会变化
+            - text: 因为窗口宽度永远是一个固定死不变的常量
+              why: 分屏拖动与折叠屏开合会让应用运行期间实时经历不同窗口等级切换
+          explain: |
+            自适应布局响应的是“此刻我手头有多少空间可用”，而不是死硬件标签。
+      - item:
+          id: interop-match
+          type: match
+          prompt: |
+            在老 Android 视图代码和新 Compose 混编迁移期，把两个互操作桥梁配对清楚。
+          pairs:
+            - ["ComposeView", "把全新的 Compose 声明式小组件放进老 XML 视图布局里渐进改版"]
+            - ["AndroidView", "在全新 Compose 页面内包裹复用已有的成熟传统视图组件（如老地图控件）"]
+            - ["Expanded 宽屏布局", "充分利用宽裕屏幕同时并排展示列表和当前选中详情的双栏模式"]
+          explain: |
+            双向互操作让团队可以一屏一屏稳稳演进，不必冒险推倒重来。
+      - item:
+          id: adaptive-grid-choice
+          type: choice
+          prompt: |
+            在把原本一列排布的照片墙适配到大屏横屏时，如果盲目让照片宽度跟着拉宽到占满一整块横屏桌面宽度，会有什么问题？
+          options:
+            - text: 单行图片被过度拉伸变形且信息展示效率极低；应改成根据可用宽度动态增加网格列数（如从 2 列变 4 列）并限制卡片最大宽度
+              correct: true
+            - text: 每张照片会变成无限多张不同图片
+              why: 单纯拉宽会把 1 张图放成占据整屏的巨物，应该增加列数并控制行长/最大宽
+            - text: 横屏模式下系统不允许再显示图片
+              why: 大屏非常适合多列网格式高密度友好浏览
+          explain: |
+            大屏适配不是“等比蠢放大”，而是“增加同屏并行可见的信息维度（列数或左右分栏）”。
+
+  - id: adaptive-flutter
+    chapter: 界面状态
+    title: Flutter 跨端界面适配：SafeArea、折叠屏、无障碍与平台风格
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你用 Flutter 写了个顶部带返回按钮的界面，在电脑上预览完美，真装进最新全面屏手机时，顶部“返回”按钮竟然正好死死撞在屏幕顶部的摄像头挖孔/灵动岛里面点不着，底部也被小黑条盖住一半！Flutter 用什么一步避开这些系统遮挡区？
+          options:
+            - text: 用 `SafeArea` 组件把页面核心交互区包起来，让系统自动预留出刘海、状态栏与底部导航条以外的安全显示区域
+              correct: true
+            - text: 手动给顶部写死一个固定的 37 像素空白，赌全天下所有手机刘海都一样高
+              why: 各款机型状态栏、挖孔、底部手势条高度五花八门，写死固定像素换台手机照样撞孔
+            - text: 干脆把界面顶部所有按钮全删除不给用户返回
+              why: SafeArea 正是为了把交互控件安全留在系统不遮挡的可操作区域里
+          explain: |
+            跨平台框架一次跑通多台造型奇特的设备，正靠这套系统性的屏幕安全与平台自适应工具。
+      - card:
+          title: 安全区、媒体查询与折叠屏响应
+          body: |
+            Flutter 官方总结了自适应三件套：
+            - **`SafeArea`**：自动查询系统四周遮挡边距（刘海、圆角、系统手势横条），把里面内容往内缩进安全区域；
+            - **`MediaQuery` 与 `LayoutBuilder`**：前者读取整块屏幕尺寸与字号缩放比例，后者直接拿到**父组件实际分给你的宽高约束**（比死读全屏尺寸更适合分栏组件内部复用！）；
+            - **大屏与折叠屏**：识别折叠屏铰链遮挡区，避免把重要文字或按钮正好劈在折叠缝上。
+      - card:
+          title: 输入设备、无障碍与自动平台差异
+          body: |
+            同一套跨端应用跑到桌面、网页与手机上时，交互细节大不一样：
+            - **多种输入与无障碍**：在电脑与平板上还要支持**鼠标悬停、键盘 Tab 切焦点和快捷键**；加好语义标签供屏幕朗读，并适应放大字体不溢出。
+            - **自动平台差异**：随系统自动适配回弹阻尼、左滑返回以及原生风格日期弹窗！
+          reveal:
+            - title: 为什么不能让 iOS 和 Android 强制长得连细节手感都完全相同？
+              body: |
+                iOS 用户习惯边缘右滑返回、列表滚到底弹性回弹以及底部苹果风格选择器；Android 用户习惯系统返回键、水波纹点按反馈与 Material 对话框——顺应所在系统习惯能让跨端应用更贴心自然！
+      - item:
+          id: safearea-vs-hardcode
+          type: choice
+          prompt: |
+            为什么在 Flutter 页面最外层推荐使用 `SafeArea` 而不是凭经验手写 `EdgeInsets.only(top: 24)` 来躲避手机顶部状态栏和挖孔？
+          options:
+            - text: 不同设备刘海高度、挖孔位置与底部手势条尺寸各异，SafeArea 会动态读取当前设备的系统安全内边距准确避让
+              correct: true
+            - text: 因为手写数字 24 会让界面变成纯黑色
+              why: 硬写固定数值只在一部分旧手机刚好合适，换台新挖孔屏或横屏时就会盖住按钮或留白错位
+            - text: SafeArea 能自动给图片美颜修图
+              why: SafeArea 专职负责避让系统保留遮挡区，确保内容落进可安全展示和触摸的位置
+          explain: |
+            永远不要拿某一台样机的状态栏像素高度硬写死去应付几千种屏幕。
+      - item:
+          id: flutter-adapt-match
+          type: match
+          prompt: |
+            把 Flutter 跨端适配概念和解决的实际痛点配对起来。
+          pairs:
+            - ["SafeArea", "自动避让顶部挖孔、刘海与底部系统导航手势条"]
+            - ["LayoutBuilder", "依据父容器实分到的可用宽高自适应切换单/双栏布局"]
+            - ["键盘焦点与语义标签（Accessibility）", "支持平板外接键盘 Tab 操作及屏幕朗读器无障碍播报"]
+            - ["平台风格与导航差异自适应", "按系统惯例区分左滑返回、滚动物理手感及原生风格弹窗控件"]
+          explain: |
+            优秀的跨端体验既能一套代码走天下，又能让每个平台的用户都觉得“像原生应用一样贴心顺手”。
+      - item:
+          id: desktop-hover-shortcut
+          type: choice
+          prompt: |
+            原本只跑在手机触摸屏上的 Flutter 应用直接打包发布到桌面端（Windows / macOS）后，最常被桌面用户吐槽缺少的交互体验是？
+          options:
+            - text: 缺乏桌面惯用的鼠标悬停高亮反馈、滚轮顺畅缩放与键盘快捷键（如 Ctrl+S / Esc 关闭弹窗）支持
+              correct: true
+            - text: 因为桌面操作系统不支持渲染任何在移动端编写的滚动列表组件
+              why: 问题出在把“只有手指点按”的移动思维原封照搬到了鼠键桌面环境
+            - text: 因为桌面端窗口默认锁死在固定手机尺寸，不允许用户调整窗口大小
+              why: 桌面框架完全支持丰富键盘与鼠标交互事件，只是需要开发者在跨端适配时显式照顾到
+          explain: |
+            真正做好跨平台，不仅是“在电脑上跑起来画面没糊”，还要补上鼠标悬停、快捷键和桌面窗口缩放支持。
+      - item:
+          id: foldable-hinge-avoid
+          type: choice
+          prompt: |
+            适配左右折叠屏手机展开态时，为了防止正中间一条提示弹窗文字或操作按钮正好被折叠屏的物理折痕铰链缝劈成两半，应该利用哪一类适配信息？
+          options:
+            - text: 通过设备展示特征（DisplayFeatures / MediaQuery）避开铰链遮挡区域，把主次内容分到折叠缝左右两侧各自显示
+              correct: true
+            - text: 忽略折痕位置，依然按单一大平板把弹窗居中横跨在屏幕正中央折痕上
+              why: 展开后的大屏很适合左右双窗格自然躲开中间铰链区
+            - text: 要求用户每次点按钮前把手机掰直永不折叠
+              why: 应用应主动响应折叠状态和窗口安全显示区域信息优雅排版
+          explain: |
+            识别铰链缝区域把双栏分列两侧，正好把折叠硬件缺陷转化为自然分区优势。
+
+  # ==== 设备能力 ====
+  - id: device
+    chapter: 设备能力
+    title: 设备能力、运行时权限请求实操与传感器功耗（平台权限文档）
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你正在开发一个记账 App，顺手在应用启动第一秒就把“相机权限”“精确 GPS 定位”“通信录读取”“麦克风”一次性连弹四个授权框给用户点。猜猜大多数现代用户会怎么做，商店审核又怎么看？
+          options:
+            - text: 用户反感惊吓直接全拒绝甚至卸载，商店也可能直接驳回审核！应该遵循最小化原则：等用户真正点击“扫小票”那一刻，再只按需申请相机权限
+              correct: true
+            - text: 用户会感激地全点同意并赞美作者思虑周全
+              why: 启动瞬间狂要不相干隐私权限是用户卸载和商店拒审的高发红线
+            - text: 不需要任何权限提示，任意应用随时都能暗中开启全部用户摄像头录像
+              why: 现代 Android 和 iOS 在系统沙箱层严格限制敏感能力，未经明确同意调用直接抛异常被拒
+          explain: |
+            调用敏感设备硬件绝不能写几句空口号“尊重隐私”就算了——这一课把 Android 按需索权的实际代码流程与传感器功耗控制学扎实！
+      - card:
+          title: Android 运行时权限标准三步 API 实操
+          body: |
+            **运行时权限（Runtime Permission）**是指等到用户真要点某个功能时才当场弹窗求授权。在 Android 中即使在清单声明了 `<uses-permission android:name="android.permission.CAMERA"/>`，依然必须在**真正用到那一刻**走真实系统 API 流程：
+            1. **先查有没有权限**：调用 `ContextCompat.checkSelfPermission(ctx, Manifest.permission.CAMERA)`；若已是 `PackageManager.PERMISSION_GRANTED` 直接开拍！
+            2. **解释原因再发申请**：若 `shouldShowRequestPermissionRationale(...)` 为真（用户上次拒过一次），先温和弹窗解释“仅用于识别发票小票”，再用 **`ActivityResultContracts.RequestPermission()`** 注册的启动器调 `.launch(Manifest.permission.CAMERA)`！
+            3. **接住拒绝结果不闪退**：如果用户拒绝甚至点“不再询问”，优雅降级让用户手填金额或引导去“系统设置”里开启——**绝不闪退、也绝不死循环狂弹窗**！
+          reveal:
+            - title: iOS 对应的隐私控制怎么配合？
+              body: |
+                iOS 同样要求在 `Info.plist` 写出清晰人话用途说明（例如 `NSCameraUsageDescription` 写明“用于扫描报销小票”）；且 iOS 支持“仅本次允许”“模糊近似位置”和“仅选几张授权照片”，应用代码必须同时适配部分授权情形！
+      - card:
+          title: 传感器选择、采样频率与省电
+          body: |
+            手机里集成的硬件能力远不止相机定位，还包括三类**传感器（Sensor）**：
+            - **移动传感器**（加速度计、陀螺仪——算计步、摇一摇）；
+            - **位置传感器**（磁场计、GPS/GNSS——看朝向、导航）；
+            - **环境传感器**（光线传感器——自动调节屏幕亮度）。
+            **功耗铁律**：通过 Android `SensorManager` 注册监听时，**只选够用的最低采样频率**（计步用普通延迟即可，别狂用最高游戏/超快采样率！）并且在页面进入 `onPause` 退后台时**立刻注销监听器 `unregisterListener`**，否则手机放口袋半天就会被你偷偷吸干电发烫！
+      - item:
+          id: runtime-perm-order
+          type: order
+          prompt: |
+            在 Android 应用里，当用户点击“拍照上传发票”按钮准备调用相机时，按官方文档推荐的安全运行时权限申请流程排序。
+          steps:
+            - "调用 checkSelfPermission 检查是否已拥有 CAMERA 权限"
+            - "若尚未授权且 shouldShowRequestPermissionRationale 返回 true，先用对话框说明为何需要拍照"
+            - "调用 RequestPermission 协议启动系统授权弹窗让用户选择"
+            - "在回调里判断 true/false：同意则启动拍照；拒绝则降级保留手工录入路径不崩溃"
+          explain: |
+            先查再解释、按需调 `RequestPermission`、拒绝降级兜底，再配合最小化权限清单，就是标准的工程级权限处理流程。
+      - item:
+          id: sensor-battery-trap
+          type: choice
+          prompt: |
+            你写了一个利用加速度传感器实现“摇一摇领券”的页面，在 `onResume()` 里以最快频率注册了传感器监听，却忘了在 `onPause()` 离开页面时注销它。会发生什么常见故障？
+          options:
+            - text: 哪怕用户早就切出这个页面甚至锁屏了，传感器依然高速持续采集并唤醒代码耗电发热，严重掉电
+              correct: true
+            - text: 手机会自动学会自己替用户花掉优惠券
+              why: 系统不会自动注销注册在代码上的监听器，只要页面暂停或不可见就应立即停用省电
+            - text: 因为退到后台后系统会自动把传感器采样率提高十倍
+              why: 传感器只返回加速坐标数值，不会修改图片文件大小，伤的是电池与处理器功耗
+          explain: |
+            对称配对生命周期：`onResume` 注册，**务必在 `onPause` 注销**，且按实际需要挑低频省电挡位。
+      - item:
+          id: perm-deny-fallback
+          type: choice
+          prompt: |
+            如果用户连续拒绝了两次定位权限弹窗，系统此后自动屏蔽了你的弹窗申请（调用 `RequestPermission` 瞬间直接返回拒绝）。此时最合适的工程表现是？
+          options:
+            - text: 保留应用其余主流程（如允许用户手动选择城市收货），并在需要定位处提供一个友好的“前往系统设置开启权限”引导入口
+              correct: true
+            - text: 用死循环每秒再调用十次权限弹窗逼迫系统重新弹框
+              why: 一旦用户永久拒绝，代码狂调用也弹不出系统框，只会无限卡死界面触发闪退
+            - text: 不提供任何手动选城入口，直接调用 `System.exit(0)` 强制关闭应用
+              why: 强制阻断核心可用功能或崩溃是糟糕用户体验，也不符合各商店审核规范
+          explain: |
+            体面地接受拒绝、提供手动输入替补和明确设置引导，才算成熟应用。
+
+  - id: stacks
+    chapter: 设备能力
+    title: 原生、跨平台与桌面技术选型及 Electron 安全加固
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            老板让你调研做一款同时发到手机和电脑上的桌面/移动软件：有人提议用 HTML+CSS+JS 的 Electron 打包成桌面程序，说开发飞快！可实际打出来一个小“记事本”安装包竟然高达 120 MB，一开五个窗口就吃了 1 GB 内存！这是为什么？
+          options:
+            - text: 每个 Electron 应用里几乎都自带打包了一整套独立的 Chromium 浏览器引擎和 Node.js 运行环境，且每个窗口是独立高开销进程
+              correct: true
+            - text: 因为 Electron 默认会把整套桌面操作系统底层核心也一起打包进安装包里
+              why: 体积和内存大源于整套打包内置的 Web 引擎（Chromium）加 Node.js 运行时，而不是打包了操作系统本身
+            - text: 因为原生系统禁止任何记事本小于 100 MB
+              why: 同功能原生应用或 Flutter/Qt 通常只有几 MB 到十几 MB
+          explain: |
+            没有放之四海皆准的最优框架，工程上要把**开发效率、包体内存、原生生态贴合度与安全边界**全部摆上天平比较（第 5 问）！
+      - card:
+          title: 五大客户端技术路线核心权衡
+          body: |
+            面对对比移动端主流路线：
+            - **纯原生（Kotlin / Swift）**：性能与最新系统特性支持最好，缺点是双端要维护两套代码、人力翻倍；
+            - **Flutter**：自绘引擎配 Dart 一套代码视觉一致，包略大且硬件常靠插件；
+            - **React Native**：借 JS/React 驱动原生控件，Web 团队上手快，需留意桥接开销与适配。
+          reveal:
+            - title: 桌面端路线对比：Electron vs Qt
+              body: |
+                - **Electron**：用网页技术（HTML/CSS/JS）极快开发跨 Win/macOS/Linux 桌面应用，代价是打包了 Chromium 与 Node 导致体积大（常超 100 MB）、内存高；
+                - **Qt**：原生 C++ 高性能编译且跨平台省内存，但学习门槛高并需留意开源/商业授权协议条款！
+      - card:
+          title: Electron 安全隔离必查六条铁律
+          body: |
+            如果网页在普通浏览器里跑，它绝不能随便读写你的本机磁盘删文件；但 Electron 应用里的网页渲染器一旦开错了安全开关，哪怕只是展示了一条恶意外部网址或跨站脚本，攻击者就能直接拿走整台电脑的系统权限！记住**主进程**掌管文件权限、**渲染进程**只负责画网页，两者间通过 **IPC（进程间消息通道）**通信，创建桌面窗口 `new BrowserWindow({...})` 时务必死守六项安全设置：
+            ```javascript
+            new BrowserWindow({
+              webPreferences: {
+                nodeIntegration: false,    // 1. 绝不让网页端直接调用 Node 磁盘/命令能力
+                contextIsolation: true,    // 2. 把预加载脚本和网页环境彻底隔离
+                sandbox: true,             // 3. 开启操作系统级沙箱限制渲染器权限
+                // 4. __dirname 指当前源码目录；preload 仅经 contextBridge 暴露少数白名单方法
+                preload: path.join(__dirname, "preload.js")
+              }
+            })
+            ```
+          reveal:
+            - title: 再加两道底线防线（第 5–6 条）
+              body: |
+                5. 设置严格**内容安全策略（CSP）**，只允许加载本地打包静态页，**绝不加载不可信远程网页给内部高权限窗口执行**；
+                6. 主进程（后端管理层）接到渲染网页通过进程间通道（IPC）发来的请求参数时，**永远要重做校验和路径白名单限制**，决不能盲信网页传来的任意路径！
+      - item:
+          id: stack-pick-match
+          type: match
+          prompt: |
+            把各组主流客户端技术路线与各自最显著优缺点连起来。
+          pairs:
+            - ["纯原生（Swift / Kotlin）", "系统原生性能与新特性支持最优，但双端需维护两套代码成本高"]
+            - ["Flutter", "自绘引擎保障各端 UI 高度一致、一套代码多端跑，依赖插件调新特性且包体略大"]
+            - ["React Native", "沿用 Web/React 技能栈调用原生控件，需留意通信桥接与多端兼容适配"]
+            - ["Electron / Qt（桌面路线）", "前者 Web 技术快开发但包大耗内存，后者 C++ 原生省资源但门槛高且留意授权"]
+          explain: |
+            根据团队已有技能（Web 背景 vs 原生背景）、性能内存预算以及各平台一致性要求做理性取舍。
+      - item:
+          id: electron-bloat-reason
+          type: choice
+          prompt: |
+            为什么哪怕一个非常简单的 Electron 桌面小工具，打出来的安装包也往往超过 100 MB、运行时常驻内存比普通原生应用高出很多？
+          options:
+            - text: 它需要把完整的 Chromium 浏览器引擎与 Node.js 运行时一起打包分发，且不同窗口往往各自开启高开销渲染进程
+              correct: true
+            - text: 因为 Electron 必须帮用户下载全部维基百科文本打包进去
+              why: 体积膨胀来自随包附带的 Chromium 引擎与 Node 运行时，而不是百科数据
+            - text: 因为 Electron 必须把项目所有的历史 Git 提交记录也原样打包进安装包里
+              why: 应用内依然存着常规 HTML/JS 与内置的 Chromium + Node.js 运行时外壳程序
+          explain: |
+            开发速度的红利是以分发体积和内存占用为代价换来的；所以安全隔离和进程管控更不能含糊。
+      - item:
+          id: electron-security-choice
+          type: choice
+          prompt: |
+            配置 Electron `BrowserWindow` 的 `webPreferences` 以防范网页内容越权操作用户电脑本机文件时，下面哪一组配置是**唯一安全推荐的底线**？
+          options:
+            - text: '`nodeIntegration: false`、`contextIsolation: true`、`sandbox: true`，并仅通过 `preload` + `contextBridge` 暴露少数经参数校验的白名单操作'
+              correct: true
+            - text: '`nodeIntegration: true` 且 `contextIsolation: false`，方便页面里随便一句脚本都能直接 `fs.unlink` 删电脑任意文件'
+              why: 开启 nodeIntegration 且关闭隔离会让页面上任何注入或误点脚本直接完全接管本机系统权限！
+            - text: 关闭全部参数校验和沙箱，把远程陌生广告网址直接作为应用首页加载并开全权
+              why: 高权限桌面外壳加载不受信任的远程网页是典型高危漏洞
+          explain: |
+            最小暴露面（关闭直接 Node、开沙箱与上下文隔离、经 `contextBridge` 只露细粒 API、IPC 服务端严格验参）缺一不可。
+      - item:
+          id: bridge-choice-vs-native
+          type: choice
+          prompt: |
+            一款专业级高帧率 3D 音视频剪辑桌面工作站软件，需要压榨极低延迟磁盘流与 C++ 底层音视频硬件编解码库、并严控内存占用到极致，且不考虑使用浏览页面技术做主核心。选哪类桌面方案比 Electron 更贴切？
+          options:
+            - text: Qt（原生 C++ 编译型跨平台框架，直接贴近系统底层与高性能库，省去浏览器引擎包袱）
+              correct: true
+            - text: 为桌面端再套进两层浏览器的纯网页外壳
+              why: 浏览器单路事件循环机制与跨进程序列化开销不适合高吞吐音视频重工作站核心
+            - text: 只写 1 份 AndroidManifest.xml 不写任何代码
+              why: 清单文件不能实现剪辑功能且属于 Android 格式
+          explain: |
+            工具无好坏，重效率展示用 Electron / Web、重极致计算贴硬件用原生 C++/Qt。
+
+  - id: platform-code
+    chapter: 设备能力
+    title: 平台通道（MethodChannel）与原生底层绑定
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你正在用跨平台语言（比如 Dart / Flutter）开发一款 App，但某天急着调用某家国产厂商刚发布的新型号指纹硬件接口——现有社区里根本还没有现成第三方插件！只能把全项目全部扔掉改回两套纯原生重写吗？
+          options:
+            - text: 不用推翻重来！只针对那一小块平台能力写一段原生代码，通过跨平台框架内置的“平台通道”或原生绑定暴露一个轻量调用方法给 Dart 调用即可
+              correct: true
+            - text: 必须立刻把几十万行界面代码全部删光推倒重写
+              why: 所有主流跨平台框架都留好了调用原生系统 API 的专门桥梁通道
+            - text: 不写任何原生桥接代码，只要把 Dart 函数名起成和厂商 C 语言驱动一样的名字就能自动跨语言调用
+              why: 需要由原生系统层注册平台通道（Platform Channel）接收消息并返回结果
+          explain: |
+            跨平台并不等于“被关在笼子里用不了系统底层功能”——**平台通道（MethodChannel）**和 **FFI 原生绑定**就是留好的逃生门。
+      - card:
+          title: 两条互通桥梁：平台通道（MethodChannel）vs 原生 FFI
+          body: |
+            当 Dart / JS 需要调用系统底层能力时有两招：
+            1. **平台通道（Platform Channels）**：以 Flutter `MethodChannel("app/battery")` 为例——Dart 端异步把方法名和基础参数打包成消息发给通道；Android 的 Kotlin 或 iOS 的 Swift 监听器收到消息、调系统原生 API 拿结果，再异步把值传回 Dart！
+            2. **原生语言绑定（FFI / JNI）**：如果你已经有成熟的 C / C++ 或 Rust 算法库，直接按原生函数签名零消息折腾直接绑定调用，省掉多次来回打包开销！
+          reveal:
+            - title: 看一眼 `MethodChannel` 双边约定长什么样
+              body: |
+                ```dart
+                const channel = MethodChannel('demo.app/device');
+                final level = await channel.invokeMethod<int>('getBatteryLevel');
+                ```
+                只要 Dart 端的通道名 `'demo.app/device'`、方法名 `'getBatteryLevel'` 与 Android/iOS 原生端注册的字符串一模一样，就能跨语言顺畅握手通信——其中 `<int>` 表示期望系统回传整数，`await` 则表示异步等待原生端把结果取回后再继续（注意检查平台是否支持并捕获 `PlatformException`！）
+      - item:
+          id: platform-channel-use
+          type: choice
+          prompt: |
+            用 Flutter 开发的应用需要读取某个社区暂时还没有现成插件的“手机特定芯片安全区接口”。正确的破局方案是？
+          options:
+            - text: 只针对这个底层能力编写少量 Android Kotlin / iOS Swift 原生代码，用 MethodChannel 平台通道把接口安全转发暴露给 Flutter 调用
+              correct: true
+            - text: 在 Dart 里瞎猜系统内存位置强行写入
+              why: 受控系统硬件接口无法靠应用层猜出来，必须由原生代码通过合法系统框架访问
+            - text: 彻底放弃这个安全能力，改成弹窗让用户自己心算暗号
+              why: 用平台通道即可只把那 5% 专属系统能力下沉原生层处理
+          explain: |
+            “95% 界面与业务共享 + 5% 系统深度接口走平台通道原生编写”，是跨平台落地的经典黄金比例。
+      - item:
+          id: ffi-vs-channel-match
+          type: match
+          prompt: |
+            把不同原生互通场景和更对路的技术机制连起来。
+          pairs:
+            - ["调用 Android Kotlin 或 iOS Swift 系统弹窗与系统服务 API", "平台通道（MethodChannel 异步消息通信）"]
+            - ["直接复用一份已编译的 C/Rust 高性能音视频或加密库", "原生语言函数绑定（FFI）"]
+            - ["捕获通道不支持或系统拒绝时抛出的通道错误", "按平台做好异常容错与不支持分支处理"]
+          explain: |
+            系统平台服务找 `MethodChannel`，纯性能与通用 C/Rust 库找 `FFI` 直连。
+      - item:
+          id: channel-mismatch-bug
+          type: choice
+          prompt: |
+            写好 Flutter 与 Android 的平台通道后，运行 `invokeMethod("getLevel")` 却总是报错提示“未实现该方法（MissingPluginException）”。最先应该检查哪里？
+          options:
+            - text: 核对 Dart 端和原生端注册的通道名称、方法名字符串拼写是否完全一致，以及通道是否在主引擎启动时正确挂上了
+              correct: true
+            - text: 检查手机屏幕的刷新率是不是 60 Hz
+              why: MissingPluginException 几乎全是两边通道名字或方法名对不上号导致找不到处理器
+            - text: 检查是否把数字写太小
+              why: 找到方法后才会进参数读取；未实现报错说明消息发去的方向压根没听众认领
+          explain: |
+            把通道名称字符串定义成统一常量，双端严格按约定名字与入参类型对接。
+
+  - id: network
+    chapter: 设备能力
+    title: 客户端异步联网取数、图片加载与携带认证凭证
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            点开手机天气 App，界面需要联网请求今天的温度数据（耗时约 0.8 秒）。如果直接把发起网络等待的代码硬塞在“负责画页面、响应手指滑动”的**主界面绘制通道**里原地傻等 0.8 秒，画面会出现什么尴尬一幕？
+          options:
+            - text: 整整 0.8 秒内界面完全冻结卡死（甚至长等直接触发“应用无响应 ANR”强制关闭提示）！网络等耗操作必须异步移出主界面渲染通道
+              correct: true
+            - text: 在 UI 主通道同步等待网络时，操作系统会自动开启另一个辅助渲染通道替你保持 60 帧动画刷新
+              why: 卡死 UI 渲染主通道会让应用彻底来不及重绘新的一帧、掉帧卡死
+            - text: 同步等待只会影响后台日志打印，对用户的手指滑动与按钮点击响应没有任何影响
+              why: 不会乱改数据，只会导致界面严重卡顿甚至系统弹无响应报错框
+          explain: |
+            屏幕每秒要刷新 60–120 帧（每帧只有 8–16 毫秒预算！）。哪怕卡顿 100 毫秒用户手指就能感觉到掉帧，所以**联网与读盘一律在后台异步进行**！
+      - card:
+          title: 客户端联网三步与 HTTP / JSON 入门
+          body: |
+            哪怕没学过 Web 开发，记住三步也能看懂手机联网：
+            1. **发请求**：按约定服务路径（URL）发 `GET` 请求取数，先显示“加载中”；
+            2. **拆数据（JSON）**：服务器返回像 Python 字典一样的文本（如 `{"city": "Beijing", "temp": 22}`），确认状态码为 `200` 成功后再解析给界面；
+            3. **容错与图文缓存**：接住断网或 `404`（找不到资源）/`500`（服务端出错）并支持重试；加载网络图片走异步 + 本地缓存省流量！
+          reveal:
+            - title: 为什么图片加载必须有“占位图 + 本地缓存”？
+              body: |
+                刚滑到的新闻图片还没下载完时先放一个固定高度灰色占位图框，图片下好后再显示——否则图一加载完突然撑高页面会把文字挤跳下去！下载过一次的图放进内存和磁盘缓存，回头滑过去立刻秒开。
+      - card:
+          title: 携带认证凭证与绝不硬编码私钥
+          body: |
+            读取私人订单列表不能谁都能看，客户端发请求时要在请求头里带上登录令牌（`Authorization: Bearer <token>`）：
+            - **令牌放哪存？**：绝不写死或明文留在普通公开日志里！要交给 Android EncryptedSharedPreferences / Keystore 或 iOS Keychain 加密保管；
+            - **绝不在安装包里写死后端万能密钥！**：任何打进客户端代码里的硬编码密码或 API 管理员秘钥，别人把安装包拆包三分钟就能提取出来冒充你！长期私钥必须只留在自己的后端服务器上，客户端只拿有时效的短期用户令牌！
+      - item:
+          id: ui-thread-freeze
+          type: choice
+          prompt: |
+            为什么在移动开发里，Android 会严格抛出 `NetworkOnMainThreadException` 拒绝在渲染主界面通道发起同步网络请求，Flutter 也同样严禁在主事件循环阻塞等待网络？
+          options:
+            - text: 网络等待动辄几百毫秒甚至超时几秒，阻塞主界面渲染通道会导致画面彻底假死掉帧甚至触发系统无响应弹窗
+              correct: true
+            - text: 因为移动网络只能在半夜两点通过同步方式连接
+              why: 白天也能连网，禁止的是在负责流畅刷新屏幕的 UI 主通道里干等着网包回来
+            - text: 因为主界面通道无法处理大于 1 的整数
+              why: 主界面通道负责界面输入与每 16 毫秒画一帧，根本等不起漫长网络 I/O
+          explain: |
+            界面主通道只负责响应手指和画画；凡是耗时未知的网络与读写操作一律异步放后台跑。
+      - item:
+          id: async-image-why
+          type: choice
+          prompt: |
+            一个商品瀑布流里要展示 50 张商品照片，使用异步图片加载组件并开启磁盘/内存缓存，带来的主要体验改进是？
+          options:
+            - text: 图片加载期间先展示轻量占位框不阻塞列表滑动，且划过看过一次的图片直接命中本地缓存省流量秒开
+              correct: true
+            - text: 会迫使用户每划动 1 厘米都重新花 10 MB 流量把同一张图重下十遍
+              why: 开启多级缓存恰恰是为了避免反复消耗用户流量与重复解码卡顿
+            - text: 只能显示纯粹没有任何像素的空白白板
+              why: 异步加载好之后会自动淡入显示高清图，加载期间显示轻量占位符
+          explain: |
+            占位图防页面跳动 + 后台下载解码 + 内存/磁盘二级缓存，是图片列表丝滑的秘密。
+      - item:
+          id: client-secret-trap
+          type: choice
+          prompt: |
+            小李写了个调用收费大模型接口的手机 App，图省事直接把自己的管理员万能付费密钥 `sk-admin-999` 写死在客户端代码字符串里发给对方服务器。这样做隐藏着什么灾难性漏洞？
+          options:
+            - text: 任何人把你的手机安装包下载后解包分析都能轻松翻出这个密钥，拿去白嫖刷爆你的全部账户余额！客户端只能拿用户短期授权令牌，万能密钥必须留在自家后台服务器
+              correct: true
+            - text: 没有任何危险，因为打包成正式发布安装包后所有的明文字符串都会被构建工具自动用单向哈希抹除
+              why: 手机安装包其实就是压缩文件加可反编译代码，写入里面的固定秘钥在有心人眼里几乎等于明文公开
+            - text: 只要把密钥拆成两段字符串再用 `+` 号拼接，任何反编译或抓包工具就都拿不到完整密钥了
+              why: 字符串内容原封不动存在安装产物里，且运行期发出的请求头里同样能直接抓到完整密钥，必须由后端服务器代持密钥！
+          explain: |
+            客户端永远是跑在别人手机上的“不可信环境”，绝不存放高权限永久密钥！
+      - item:
+          id: http-error-retry-ui
+          type: choice
+          prompt: |
+            移动 App 联网请求列表时用户刚好进电梯导致超时报错（或收到服务端 `500` 错误），界面层怎样交互才算及格？
+          options:
+            - text: 切换成清晰的错误提示态并提供“点击重试”按钮（同时若本地已有上次缓存旧列表，先展示旧列表配一条轻提示不白屏）
+              correct: true
+            - text: 让加载中圆圈一直永远原地转下去直到用户电量耗尽
+              why: 忘记在 catch 异常分支关掉加载状态会导致页面永远卡死在转圈动画里
+            - text: 直接把应用强行闪退崩溃关闭
+              why: 移动网络断线是高频常态，绝不能把网络错误当成程序崩溃直接闪退
+          explain: |
+            永远给异步失败分支留好出口：停止转圈 + 友好提示 + 重试或旧缓存保底！
+
+  - id: api-writes
+    chapter: 设备能力
+    title: 向服务端新增、更新与删除数据
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            刚才我们学了用 `GET` 从服务器拉取天气数据。如果用户在手机待办清单里新建一条任务、改了一个勾选状态，或者点“删除”，依然全部混着用不区分语义的方法乱发请求，万一客户端超时重试发了两遍“创建新待办”，会发生什么？
+          options:
+            - text: 列表里一下子莫名其妙多出两条一模一样的待办！不同写操作要明确分工（新增、全量/局部更新、删除）并在协议上做好重试与成功状态校验
+              correct: true
+            - text: 因为 `POST` 请求在 HTTP 标准里天然具有幂等性，服务端无需任何幂等键也会自动合并重复请求
+              why: 服务端如果不按协议区分操作含义及防重，重复 POST 会直接插入两条独立记录
+            - text: 重复点击只会让客户端本地缓存刷新两次，绝不会向服务端发出第二次网络请求
+              why: 界面按钮不会自动拦截未加防抖的第二次点击，多出来的是数据库里的重复脏记录
+          explain: |
+            移动客户端跟服务端做增删改时，既要选对写语义，更要第一时间把服务端返回值和客户端界面的本地状态同步对齐！
+      - card:
+          title: 写数据的标准动作与局部更新差异
+          body: |
+            移动客户端向云端发写入请求时，对应三套常见 HTTP 动作（在推荐前修 Web 关也会深入遇到）：
+            - **新增创建（`POST`，10.4）**：把新条目做成 JSON 请求体发给集合路径 `/todos`，成功常见返回 `201 Created` 及新建出的 `id`；
+            - **更新修改（`PUT` vs `PATCH`，10.5）**：`PUT` 通常替换整条完整记录，而 **`PATCH` 只发你想改的那一两个字段**（比如只传 `{"done": true}`，在手机弱网下特别省流量！）；
+            - **删除记录（`DELETE`，10.6）**：发往 `/todos/42`，常见返回 `200` 或 `204 No Content`，拿到确认后再把界面项移除或按乐观策略回滚！
+          reveal:
+            - title: '为什么请求头常要带上 Content-Type: application/json？'
+              body: |
+                它像快递外箱贴的标签一样告诉后台服务器：“我寄来的请求体是 JSON 文本格式，请用 JSON 解析器拆包！”而服务器回复的 `201`（新建成功）和 `204`（删完成功但无需回传多余内容）能让客户端一眼分清该拿新 ID 还是直接删掉界面条目！
+      - card:
+          title: 发送中转圈防连点 + 乐观更新 vs 悲观更新
+          body: |
+            用户手指点下“保存订单”后万一网络慢转了 2 秒，最怕用户以为没点中狂点五下！
+            - **加载锁定禁用按钮**：点击发起写入瞬间把按钮设为“保存中禁用态”，防用户手抖连发五次；
+            - **悲观更新 vs 乐观更新**：像支付下单这类大事一定要等服务端确认成功再跳成功页（**悲观确认**）；而像给照片“点赞”或切换待办勾选，可以先立刻把界面图标亮起来让用户感觉“零延迟秒响应”，万一后台请求真失败再弹提示退回原状（**乐观更新**）！
+      - item:
+          id: write-methods-match
+          type: match
+          prompt: |
+            把移动端向云端修改数据的四种常见操作配对到规范请求方式。
+          pairs:
+            - ["新建提交一条全新的待办记录并由后端分配新 ID", "POST（新增资源，常见返回 201）"]
+            - ["在弱网下仅仅把某条待办的 done 状态改成已完成，不想重发整条简介正文", "PATCH（只传局部变更字段，省流高效）"]
+            - ["把某条表单的整套完整字段一次性全量覆盖提交上去", "PUT（全量替换更新记录）"]
+            - ["删掉一条无用历史记录", "DELETE（删除指定路径资源，常见返回 200/204）"]
+          explain: |
+            分清新增、局部修、全量换与删除，再配上合理的请求体编码（`Content-Type: application/json`），客户端接口协作一目了然。
+      - item:
+          id: double-submit-guard
+          type: choice
+          prompt: |
+            在手机待办新建页点击“提交新增”按钮后，网速慢要转圈 2 秒才收到服务器回复。如果不禁用提交按钮又没配防重标识，用户心急连点三下“提交”，后果往往是什么？
+          options:
+            - text: 发出去三次 `POST` 新增请求，列表瞬间莫名多出三条一模一样的待办记录
+              correct: true
+            - text: 手机会自动把网速加快三倍立刻只加一条
+              why: 每次点击独立触发发包，无防重机制就会建出多份重复记录
+            - text: 三次点击会自动相互抵消删光整个列表
+              why: POST 的行为是新建而不是删除
+          explain: |
+            客户端提交即锁定按钮 + 请求体携带唯一幂等 ID，双管齐下告别重复提交！
+      - item:
+          id: optimistic-vs-pessimistic
+          type: choice
+          prompt: |
+            对于“确认转账付款 1000 元”和“给朋友圈点赞小爱心”，以下哪种客户端界面反馈选择最合理？
+          options:
+            - text: 付款用“悲观确认”（先禁用等服务器真扣款回执再显示成功）；点赞可用“乐观更新”（先变红，失败再退回并提示）
+              correct: true
+            - text: 转账 1000 元不管网断没断先立刻骗用户“已到账”，哪怕失败悄悄吞掉报错不管
+              why: 财务交易绝对不能假装成功误导用户产生严重钱款纠纷
+            - text: 点赞小爱心时先强制让用户黑屏傻等 5 秒钟
+              why: 点赞这种高频轻交互适合乐观秒变红，极大提升流畅手感
+          explain: |
+            高风险难撤销大事“等确认”，低风险高频小动作“先响应+出错回退”。
+
+  # ==== 离线同步与发布 ====
+  - id: local-data
+    chapter: 离线同步与发布
+    title: 本地存储选型：SQLite/Room 关系表 vs DataStore 键值对
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你给 App 做设置页，只需要存两个小选项：“夜间模式开/关”和“默认字体大小 16”；同时另一个页面又要存上千条能按日期排序、按关键字搜索、带标签关联的待办任务记录。这两类数据适合全硬塞在同一个存储工具里吗？
+          options:
+            - text: 不合适！少量简单开关设置放进轻量键值配置库（如 DataStore）；上千条结构化待搜索列表放进本地关系型数据库（SQLite / Room）
+              correct: true
+            - text: 全塞进一个全局变量字典里不写任何文件，关掉手机再重开一样会自动保留
+              why: 内存变量一旦杀死应用进程就彻底清空了，持久化必须落盘存进闪存文件或数据库
+            - text: 上千条要按分类筛选的待办必须拆成 1000 个独立纯文本小文件手工搜
+              why: 大量零散文件极慢又难做事务保证，本地关系数据库就是专为结构化查询与并发安全写的
+          explain: |
+            小配置找轻量键值对，大结构化记录找 **SQL 与 Room 数据库**！
+      - card:
+          title: SQL 入门与 Android Room 数据持久层
+          body: |
+            还没学数据库？只要先懂三句 **SQL（结构化查询语言）**就能操作本地数据库 **SQLite**（每部手机里都内置了这个零配置本地文件数据库！）：
+            - **建表（Table）**：像 Excel 表格一样先定好列名与类型（例如 `CREATE TABLE Task(id TEXT PRIMARY KEY, title TEXT, done INTEGER);`，其中 `PRIMARY KEY` 主键保证每行唯一不重复）；
+            - **查询（`SELECT ... WHERE ...`）**：快速筛选没完成的条目（`SELECT title FROM Task WHERE done = 0`）；
+            - **增改删事务**：用 `INSERT INTO ... VALUES ...` 新增、`UPDATE ... SET ... WHERE ...` 更新、`DELETE` 删除！在 Android 中，**Room** 就在 SQLite 上面套了一层安全外衣：写错列名在**写代码阶段立刻报错**，不用跑起来才闪退！
+          reveal:
+            - title: 为什么数据库写多条记录时常包在“本地事务（Transaction）”里？
+              body: |
+                假设你要“一边把任务标为已完成，一边往待同步队列插入一条变更日志”，**必须两张表同时成功、万一中途出错断电则两张表全部退回原状**（不能只改了表一却漏记同步日志！）——把它们放进一个数据库事务里就能做到同生共死！
+      - card:
+          title: 轻量配置选 DataStore，绝别当大表仓库用
+          body: |
+            - **Preferences DataStore（Android 6.3）**：以异步安全不阻塞主界面的方式存储少量的“键值对配置”（是否打开消息推送、上次引导弹窗看没看过、用户偏好的主题配色）。
+            - **反面陷阱**：千万别把几千条商品列表或待办记录序列化成一个 2 MB 大字符串塞进偏好设置键值里——每次读一小项都要把整块 2 MB 拆解一遍，会拖慢启动！
+      - item:
+          id: local-storage-match
+          type: match
+          prompt: |
+            为 Android 应用里三类常见需要“关机重开依然还在”的本地数据挑选合适落盘方式。
+          pairs:
+            - ["夜间模式开关、是否已完成新手引导（少量简单配置键值对）", "Preferences DataStore"]
+            - ["可按截止日期筛选排序的上千条离线待办及标签关联记录", "Room / SQLite 本地关系型数据库"]
+            - ["在开发编译期检查 SQL 查询语句列名拼错与返回类型匹配", "Room 数据访问对象（DAO）"]
+          explain: |
+            轻量简单设置放 DataStore，复杂关联查改与事务保障交给 Room / SQLite。
+      - item:
+          id: room-benefit-choice
+          type: choice
+          prompt: |
+            对比直接手拼纯字符串执行原始 SQLite 查询，在 Android 官方推荐中使用 **Room** 库的核心优势是？
+          options:
+            - text: 编译期间自动帮你核对表名、字段拼写和返回对象类型，还能直接对接异步更新流在数据变化时自动刷新界面
+              correct: true
+            - text: Room 会把所有表里的数据全部删光变成只有数字 0
+              why: Room 正是为了安全便捷地在本地持久读写结构化实体数据
+            - text: Room 会阻止你在手机本地离线时读自己电脑里存好的表
+              why: Room 底层就是本机本地 SQLite，断网照样飞快离线读写
+          explain: |
+            编译期 SQL 检验 + 数据变更自动推给 UI，大大减少低级字段拼写闪退。
+      - item:
+          id: datastore-vs-db-trap
+          type: choice
+          prompt: |
+            某新人图方便，把用户的 5000 条聊天历史全部拼成一条超长字符串写进了轻量键值对偏好设置里。最直接的恶果是什么？
+          options:
+            - text: 哪怕只是去读一个小配置开关，系统也要加载解析整段超大字符串，既耗内存又易阻塞卡顿且无法高效检索部分行
+              correct: true
+            - text: 5000 条记录会自动变成可按任意字段极速索引的 SQL 关系表
+              why: 键值存储根本不懂里面字符串结构，无法按条件局部索引查询或安全更新单行
+            - text: 这能让 App 安装包体积瞬间变成负值
+              why: 只会让沙箱内配置数据文件臃肿缓慢且极难维护
+          explain: |
+            “键值对存小配置，关系库存长列表”是非常清晰好守的界线。
+
+  - id: flutter-storage
+    chapter: 离线同步与发布
+    title: Flutter 持久化三板斧：键值、沙箱文件与 SQLite
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            做跨端 Flutter 应用时，需要把用户下载下来准备离线读的一本 `8 MB` PDF 电子书保存进本地存储。应该存在哪种形式下？
+          options:
+            - text: 拿 `path_provider` 拿到应用沙箱专用文件目录，写成普通的原生本地文件（如离线 PDF、音频）；键值配置放 shared_preferences；表格记录进 sqflite 数据库
+              correct: true
+            - text: 把 8 MB 电子书转成一行字强行塞进存夜间模式开关的轻量偏好键值文件里
+              why: 偏好键值文件不适合放几 MB 大文件，每次启动全量加载会极度缓慢
+            - text: 随便塞进别的软件的安装路径甚至根目录里
+              why: 移动端每个应用都在沙箱内活动，只能向系统发给自己的专属目录读写安全数据
+          explain: |
+            Flutter 官方文档把持久存储划成了极其干净的三类工具：键值、文件与 SQLite。
+      - card:
+          title: Flutter 本地持久化方案选型地图
+          body: |
+            1. **磁盘键值存储（`shared_preferences`，11.2）**：存小规模简单配置（`darkMode: true`、`launchCount: 3`），**严禁存放密码令牌或大文件**（明文存盘且全量加载）！
+            2. **读写沙箱文件（`path_provider` + `dart:io File`，11.3）**：存放大块文件如离线文档、语音录音、导出报表缓存，先问系统拿应用专属安全路径再写；
+            3. **关系型数据库（`sqflite` SQLite，11.4）**：存放有结构、要查询过滤并需保持事务一致性的多张表数据！
+          reveal:
+            - title: 敏感登录令牌或私密密钥该放这三者里的哪一个？
+              body: |
+                **三个普通存储都不能明文直接放！** `shared_preferences` 和沙箱普通文件在越狱/Root 或调试备份下容易直接被读走；密码令牌和加密私钥必须交给带系统硬件加密的 **Keychain（iOS）/ Keystore（Android）**（如 `flutter_secure_storage`）保存！
+      - item:
+          id: flutter-storage-match
+          type: match
+          prompt: |
+            对照 Flutter 持久化指南，把四种应用数据放进最合适安全的位置。
+          pairs:
+            - ["是否展开新手提示（布尔设置开关）", "shared_preferences（轻量非敏感键值）"]
+            - ["用户离线保存的 10 MB PDF 教材或录音文件", "沙箱私有文件（path_provider 获取目录 + File）"]
+            - ["几千条支持条件过滤检索的离线笔记本记录", "SQLite 关系数据库（sqflite）"]
+            - ["用户的长期登录认证 Refresh Token 敏感凭证", "系统加密钥匙串 / 密钥库（Keychain / Keystore）"]
+          explain: |
+            “小配置 / 大文件 / 结构化表格 / 敏感凭据”四条道各走各的，既顺手又守住隐私底线。
+      - item:
+          id: shared-prefs-secret-trap
+          type: choice
+          prompt: |
+            在 Flutter 应用里把用户密码或个人授权令牌直接 `prefs.setString("token", secret)` 存进 `shared_preferences` 合适吗？为什么？
+          options:
+            - text: 不合适！`shared_preferences` 底层只是未加密的普通磁盘配置文件，敏感凭证应存入系统加密保护的 Keystore / Keychain 安全存储
+              correct: true
+            - text: 非常合适，只要取名字叫 `prefs` 芯片就会自动上三把硬件物理锁
+              why: 偏好设置本来只为放普通非敏感小配置而设计，不提供密钥级硬件加密保护
+            - text: 错在不能存字符串，只能把密码变成负整数才安全
+              why: 无论文字还是整数，明文放在普通配置文件里都很容易被读取泄露
+          explain: |
+            记住安全铁律：**普通配置归 preferences，秘密凭据归 Keystore / Keychain**。
+      - item:
+          id: path-provider-why
+          type: choice
+          prompt: |
+            在移动设备上用 `File` 读写应用的私有本地离线文件时，为什么要调用系统接口（如 `path_provider` 的 `getApplicationDocumentsDirectory()`）去动态查询路径，而不是硬编码写入 `/sdcard/myfiles/` 或 `C:\Users\`？
+          options:
+            - text: Android 与 iOS 各自为每个应用分配了系统隔离好的专属沙箱目录路径，且不同系统路径前缀完全不同，硬写路径会直接无权限崩溃
+              correct: true
+            - text: 因为如果直接手写相对路径 `"./notes.json"`，在手机系统沙箱里往往指向只读根目录而导致权限报错失败
+              why: path_provider 只问当前操作系统索要归属本应用的合规目录，完全不联网
+            - text: 因为 Android 的路径里禁止包含斜杠 `/`
+              why: 跨平台路径构造与系统沙箱权限隔离决定你必须向平台动态请求合法目录
+          explain: |
+            只往系统分配给你自己的“家门口沙箱目录”写入，才不会在不同手机系统版本上碰壁报错。
+
+  - id: background-sync
+    chapter: 离线同步与发布
+    title: 离线优先同步架构、冲突解决与 WorkManager 调度
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            一款“离线也能用的待办清单 App”：用户在地铁没信号的 15 分钟里新勾选完成两条旧待办、又新加了一条待办。很多差应用一断网点一下就直接转圈半分钟弹出“网络错误保存失败！”让用户彻底干不了活。怎样做才能让用户断网时操作跟满格信号时一样秒响应，回地面再自动悄悄传到服务器？
+          options:
+            - text: '离线优先（Offline-First）：界面永远只先读写本地数据库（秒成功），同时在同一本地事务里往 `Pending` 待同步队列记一笔带唯一编号的操作，等恢复联网且电量充足时由系统后台任务自动批量同步上云！'
+              correct: true
+            - text: 一检测到没网就把整个待办列表强制隐藏只显示一张白屏
+              why: 离线优先的核心目标正是“没网时照样可读可写核心本地数据”
+            - text: 只把新改动留在内存临时字典里不落盘，万一地铁里手机切去回消息或被回收就全都扔掉
+              why: 未落进本地数据库队列的临时操作在应用被系统清理后立刻丢失
+          explain: |
+            这一课完整搭起移动端本地先读写、再在联网充电时悄悄同步上云的架构！
+      - card:
+          title: 离线优先四支柱与 SQLite 本地事务幂等模型
+          body: |
+            构建**离线优先（Offline-First）**待办同步系统时，先立两条基本纪律：
+            1. **本地单可信数据源**：界面永远只盯本地数据库画图（哪怕没网秒更新、无加载黑屏）；
+            2. **本地操作事务记账**：在同一个数据库事务里，一边更新 `Task` 表状态，一边往待发队列 `Pending` 插入一条操作（带唯一 `op_id` 和当前基准版本号 `base_revision`）——同成功或报错回滚，绝不遗漏同步记录（下方 SQL 已在 `sqlite3` 实测验证防重回滚）！
+            ```sql
+            BEGIN;
+            UPDATE Task SET done = 1 WHERE id = 'task-7';
+            INSERT INTO Pending(op_id, task_id, base_revision, done)
+            VALUES ('op-17', 'task-7', 4, 1);
+            COMMIT;
+            ```
+          reveal:
+            - title: 手机端特有的五大环境约束
+              body: |
+                相比插电插网线的电脑服务器，手机天生面对五重限制：**① 网络随时不稳定或进电梯断网；② 电池与移动流量都很金贵；③ 可用内存比电脑小得多；④ 必须等用户动态授权敏感权限；⑤ 退到后台随时可能被系统杀进程回收**——所以界面不能把云端当唯一依靠！
+            - title: 为什么 `op_id` 设为主键配合显式事务回滚能防重复执行？
+              body: |
+                因为同一个 `op_id`（例如 `'op-17'`）若在本地误触发重复写入，会触发 `PRIMARY KEY` 唯一性冲突错误（注意：SQLite 默认冲突只中止单条出错语句，所以应用代码捕获 `IntegrityError` 后务必显式执行 `ROLLBACK` 或使用 `ON CONFLICT ROLLBACK` 整笔撤回前面改过的 `Task`！）；而上云超时重试时服务端认出老编号直接跳过！
+      - card:
+          title: 联网同步、WorkManager 条件约束与三类冲突解决
+          body: |
+            - **条件触发同步**：用 Android **WorkManager** 登记后台同步，带上前提“必须恢复联网且非低电量”，绝不没网时狂重试吸干电池！
+            - **三类同步冲突解决（手机与平板同时改同一任务）**：
+              1. **最后写入者胜（LWW）**：按时间戳/版本新者覆盖旧者（最简单，可能盖掉别的字段）；
+              2. **按字段合并**：手机改标题、平板勾选已完成，双方各自保留；
+              3. **CRDT**：支持多端无损自动汇合的专门数据模型！
+          reveal:
+            - title: 看看 Flutter/Dart 发送同步操作载荷的小写法
+              body: |
+                ```dart
+                String encodeSyncOp(String opId, int baseRevision, bool done) {
+                  return '{"op_id":"$opId","base_revision":$baseRevision,"done":$done}';
+                }
+                ```
+                上传只推变更操作消息而不是整份大数据库重传一遍，省流省电又方便服务端对账确认！
+      - item:
+          id: offline-order
+          type: order
+          prompt: |
+            当用户在离线状态下把待办 `task-7` 勾选完成，请排列出“离线优先”架构从用户点击到最终云端同步完成的正确步骤顺序。
+          steps:
+            - 在同一个本地数据库事务里把 task-7 标记完成，并往 Pending 队列写入一条带 op_id 的待发送操作
+            - 界面从本地数据库直接读取新状态立即展示已完成（零网络等待）
+            - 向 WorkManager 提交一个要求“已联网且电池非极低电量”才触发的后台同步任务
+            - 恢复联网后系统唤醒后台任务批量上传 Pending 队列、解决冲突并拉取远端增量更新本地库
+          explain: |
+            本地事务先落稳 + 界面立即可见 + 满足网络/电量条件再后台推拉合并，这就是离线优先的完整闭环。
+      - item:
+          id: field-merge-vs-lww
+          type: choice
+          prompt: |
+            用户在没网的高铁上，用手机把任务 A 的标题改成了“买车票（已带身份证）”，同一时间他在平板上也离线把任务 A 勾选成了“已完成（`done = true`）”。恢复联网后，哪种冲突策略能把两端的意图都完好留住？
+          options:
+            - text: 按字段粒度合并（手机贡献新标题、平板贡献新完成状态），而不是整条记录粗暴覆盖
+              correct: true
+            - text: 整条记录按最后提交者粗暴全覆盖（LWW），把先提交那一端改掉的标题或完成勾选整份抹去
+              why: 整行最后写入胜出在修改不同属性时会造成另一端的编辑白白丢失
+            - text: 因为发生冲突，直接把任务 A 和用户的整个账号一起删掉
+              why: 并发编辑同一任务两个不同字段完全可以通过字段级合并或 CRDT 无损保留
+          explain: |
+            理解 LWW 简单却易丢互不冲突的字段编辑，字段级合并/CRDT 能更好守住用户心血。
+      - item:
+          id: workmanager-benefit
+          type: choice
+          prompt: |
+            为什么离线待办的后台批量上传应该交给 Android `WorkManager` 这类系统级后台任务管理器来安排执行，而不是自己写死一个 `while True` 死循环每秒联网试试？
+          options:
+            - text: WorkManager 可声明“必须联网/充电”等系统约束并保证即使 App 被划掉或手机重启后系统也会在合适时机可靠补跑，避免白白耗电空转
+              correct: true
+            - text: 因为 WorkManager 能在完全没有任何硬件天线的手机上凭空发出无线电波
+              why: WorkManager 不会凭空变出网络，它恰恰会乖乖等到系统告诉你真正连上网再发包省电
+            - text: 因为自己写死循环不会耗费任何电量
+              why: 没网时死循环重试是手机发热掉电快的最大帮凶
+          explain: |
+            把异步可延迟后台活交给系统统一排期唤醒，既省用户电量又能保证任务最终一定跑完。
+      - item:
+          id: duplicate-op-rollback
+          type: choice
+          prompt: |
+            在本地同步队列模型中，`Pending` 表的 `op_id` 列设置了主键唯一约束。如果在一次事务里先执行 `UPDATE Task SET done = 1`，紧接着第二句往 `Pending` 插入一个已经存在过的重复 `op_id` 触发主键冲突报错，并且应用代码捕获错误后立刻显式执行了 `ROLLBACK`。此时数据库状态如何？
+          options:
+            - text: 整笔事务回滚退回原状：`Pending` 表依然保持唯一一条记录，前面的 `UPDATE` 也不会孤零零留下半截脏修改
+              correct: true
+            - text: 第一句修改必定永久保存，哪怕事务显式执行 `ROLLBACK` 也绝对无法撤回
+              why: 事务（BEGIN ...）配合显式 ROLLBACK 的作用正是绑定两条写操作同成功或全撤回
+            - text: 重复 `op_id` 会把 `Task` 表格整张直接删空
+              why: 主键冲突报错后回滚只退回事务开始前状态，绝不损坏其他合法数据
+          explain: |
+            靠本地事务 + 唯一操作编号 `op_id` + 捕获冲突后显式 `ROLLBACK`，断电、闪退和重试都不会弄乱同步账本！
+
+  - id: release
+    chapter: 离线同步与发布
+    title: 代码混淆、打包变体（Flavors）与 Android / iOS 应用发布
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            准备把 App 发给外面的真实用户测试，同事却把还在连本地测试假服务器、甚至把调试用的测试一键登录按钮也打包放进了发给应用商店的包里！怎样用同一套源码安全地分出“开发测试包”和“正式商店包”？
+          options:
+            - text: '配置构建变体（Flavors / Schemes）：共用一套代码，通过变体配置切换各自独立的应用包名、图标、后台接口环境并关闭调试标志'
+              correct: true
+            - text: 建两个完全互不联网的新代码仓库每天人工复制粘贴修改两边
+              why: 手动抄两套仓库很快就会改忘一边导致严重错乱；构建配置变体可从同份源码派生多个目标产出
+            - text: 先把正式商店包写死连内网测试机再上传商店看审核员会不会发现
+              why: 正式发布包必须使用正式线上环境域名并关闭全部调试后门开关
+          explain: |
+            从开发机走上千万用户手机的最后一公里，靠的是**混淆瘦身、打包变体、密钥签名与商店发布核查**。
+      - card:
+          title: 发布前四大必检动作
+          body: |
+            1. **关调试与混淆瘦身**：Flutter 加 `--obfuscate --split-debug-info=...`（Android 用 R8/ProGuard）裁剪无用代码并打乱符号名；映射还原表留团队不打进包！
+            2. **正式签名验证**：Android 用私有密钥签名（丢私钥老用户将无法覆盖升级），iOS 配齐发布证书；
+            3. **清单核对**：清掉开发用测试开关、多余权限与明文调试域名。
+          reveal:
+            - title: 为什么千万不能丢失 Android 应用发布密钥？
+              body: |
+                手机系统通过比对“新安装包的发布签名”和“已安装旧版的签名”来防止恶意替换——如果新包换了签名密钥，系统会拒绝把它作为原应用的升级版覆盖安装！因此强烈推荐开启应用商店官方托管签名密钥备份。
+      - card:
+          title: Android / iOS 多环境变体与灰度试发
+          body: |
+            用**打包变体（Flavors，Android 13.2；iOS/macOS Schemes 13.3）**从同一仓库构建出不同身份的包：
+            - `dev` 变体：包名后缀 `.dev`，连测试接口、允许装在同一部手机里与正式版并排对比；
+            - `prod` 变体：正式包名与品牌图标，连正式环境、开启全套混淆；
+            - **先小圈子内测再放量**：发布前先用 Google Play 内部测试轨道或 Apple **TestFlight** 给几名内测员真机试跑，正式放开也先按 5% → 20% → 100% 灰度推进！
+      - item:
+          id: obfuscate-symbol-map
+          type: choice
+          prompt: |
+            启用代码混淆打包正式版应用后，虽然黑客看不懂拆包后的类名了，可明天真有线上用户闪退发回一串写着 `a.b.c()` 的报错栈时，团队怎么知道究竟是哪行原源码挂了？
+          options:
+            - text: 构建混淆时一定要同步保存一份对应的符号还原对照文件（如 `--split-debug-info` 产物或 mapping.txt），在本地把短代号还原回原函数名与源码行号
+              correct: true
+            - text: 干脆永远不要收集或查看任何线上报错信息
+              why: 放弃线上崩溃定位会让严重闪退长期残留在用户手机上
+            - text: 只要闭眼把用户手机重启就能自动变回未混淆源码
+              why: 用户手里的线上安装包始终是混淆版，还原靠的是团队私下留存的还原映射文件
+          explain: |
+            混淆产物发给用户，映射还原对照文件上传进崩溃收集系统（千万别一起打进安装包公开！）。
+      - item:
+          id: flavor-use-match
+          type: match
+          prompt: |
+            把移动发布准备步骤和它们各自保障的工程目标连起来。
+          pairs:
+            - ["Flutter --obfuscate / Android R8", "裁剪无用代码并打乱符号名，减小包体且提高静态逆向分析门槛"]
+            - ["打包变体（Flavors / Schemes）", "同一套源码分别打包出独立包名的开发测试版与正式发布版"]
+            - ["应用发布签名密钥（Keystore / Apple 证书）", "证明安装包来源与后续无缝更新身份的唯一合法凭证"]
+            - ["Play 内部测试轨道 / TestFlight", "正式面向所有商店用户前先给小部分真实真机用户试测兜底"]
+          explain: |
+            一套源码靠 Flavors 切环境，靠混淆+签名+内测把好线上质量最后一关。
+      - item:
+          id: signing-key-lost
+          type: choice
+          prompt: |
+            发布 Android 正式版应用时用的发布签名私钥如果不小心弄丢了且没开 Google Play 应用签名托管备份，会产生什么严重后果？
+          options:
+            - text: 商店和用户手机会因为新包签名对不上旧包身份，拒绝将新版作为原应用覆盖升级安装！
+              correct: true
+            - text: 没关系，明天随便自己新造一个随机名字新签名，所有老用户照样自动升级成功
+              why: 系统正是靠对比新旧包的签名是否一致来防止恶意应用假冒替换原版应用，换私钥就会被拒绝覆盖安装
+            - text: 商店会自动帮你改成不用签名的无身份运行模式
+              why: 任何现代商店与手机系统都强依赖签名链保证更新连续性与完整度
+          explain: |
+            发布私钥和敏感凭据一样极其金贵，务必按规范开启应用商店签名密钥托管并离线安全备份。
+      - item:
+          id: prod-debug-flag-off
+          type: choice
+          prompt: |
+            打包提交应用商店前的最后检查里，为什么要确认 `dev` 测试包名和调试测试接口开关已完全关闭？
+          options:
+            - text: 既能防止测试环境假数据或调试免登后门流进真实用户手里，又能靠独立的正式包名与环境隔离避免测试包覆盖正式数据
+              correct: true
+            - text: 因为正式版手机绝对运行不了名字里有 `prod` 的任何程序
+              why: 构建变体正是为了用独立的应用包名与环境配置彻底隔开开发测试包与正式生产包
+            - text: 为了让测试工程师再也没办法在自己手机上测试新版
+              why: dev 变体继续保留给测试人员装机对比，prod 变体才发给商店公开用户
+          explain: |
+            分清变体职责，`dev` 留给测试、`prod` 发往商店，互不串扰！
+
+  - id: multi-release
+    chapter: 离线同步与发布
+    title: 跨端打包（Linux/Win/macOS/Web）与持续部署
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            随着产品发展，同一套 Flutter 代码不仅跑在 Android 和 iOS 上，现在还要定期给 Windows、macOS、Linux 和网页版（Web）同时发新版本。如果每修一个小错都要工程师手工坐在各自电脑前，按六个平台挨个点六个打包步骤再上传商店，会出现什么大乱子？
+          options:
+            - text: 人肉重复极易漏一步或忘了切环境变体，甚至把本地未提交的半成品发出去！应该建成自动执行的持续部署（CD）流水线
+              correct: true
+            - text: 手工点六遍比自动化脚本更快一百万倍且绝不会手滑点错
+              why: 多端 6 平台人工点选打包耗时费力，最容易出现环境切漏或私钥版本混用事故
+            - text: 因为网页版禁止用自动化脚本构建上传
+              why: Web、桌面和移动端都极适合通过自动流水线统一构建部署
+          explain: |
+            从单一端扩展到**六大目标平台**，最后必须用**持续部署（CD）**把发布变成无痛可控的常规工作！
+      - card:
+          title: 多端桌面与 Web 分发形态一眼认清
+          body: |
+            跨端项目面向桌面和浏览器发布时各有讲究：
+            - **桌面端（Win / macOS / Linux）**：Windows 打安装包并做代码签名防误报；macOS 需苹果公证（Notarization）才不被拦；Linux 可出 AppImage / Snap；各平台均支持变体区分测试版；
+            - **网页版 Web**：产出静态网页文件直接丢上静态托管即可访问，修错免审秒更新！
+          reveal:
+            - title: 为什么 macOS 和 Windows 桌面包不做代码签名与公证常被系统拦截？
+              body: |
+                现代桌面系统看到未签名陌生安装包时，Windows SmartScreen 和 macOS Gatekeeper 会弹严重安全警告甚至默认拒绝打开——在流水线里配上合法开发者代码签名和苹果公证，用户双击才信任放行。
+      - card:
+          title: 持续部署（CD）流水线保障
+          body: |
+            **持续部署（Continuous Deployment）**让每次合入主分支或打上版本标签（如 `v1.4.0`）时，自动化服务器按统一流水线执行：
+            1. 跑完全部单元与界面测试；
+            2. 用云端加密托管机密填入签名证书（**绝不把私钥提交进 Git 代码仓库！**）；
+            3. 在对应平台构架机（Linux / Windows / macOS 运行器）并行打好各端包产物、自动保存混淆还原映射表；
+            4. 先自动推去内测频道/分阶段灰度，确认崩溃率正常再推全量！
+      - item:
+          id: cd-secret-guard
+          type: choice
+          prompt: |
+            配置多平台自动打包持续部署（CD）流水线时，Android 签名证书密码和苹果应用商店接口密钥应该存放在哪里？
+          options:
+            - text: 存在自动化托管平台提供的加密“秘密环境变量仓库（Secrets）”里，构建时临时注入，绝不写进明文 Git 代码仓库
+              correct: true
+            - text: 为了脚本方便读，直接把证书密码明文写死在开源公开仓库 README 第一行
+              why: 明文写进源码库相当于把自家商店官方签章钥匙送给全世界，极度危险
+            - text: 放在本地咖啡店 Wi-Fi 共享文件夹里让所有人随时下载
+              why: 发布私钥泄露可以直接导致伪造包冒充更新或撤下整个应用
+          explain: |
+            代码进 Git 仓库，构建签名私钥和 API 凭证进加密 Secrets 库受权限隔离保护。
+      - item:
+          id: platform-build-match
+          type: match
+          prompt: |
+            把不同发布目标端和它的常见构建分发特征连起来。
+          pairs:
+            - ["macOS 桌面应用", "需要签名并经苹果公证（Notarization），避免被系统门禁直接拦截"]
+            - ["Windows / Linux 桌面应用", "产出各自安装包与可执行程序，并可配置平台独立构建变体"]
+            - ["Web 网页版", "构建产出纯静态网页资源，免商店漫长审核即可随时部署上线"]
+            - ["持续部署（CD）", "测试通过后在干净自动化环境下用加密密钥完成多端构建与分批推送"]
+          explain: |
+            桌面端看签名/公证与分发格式，Web 看静态缓存刷新，CD 靠环境统一与密钥安全托管。
+      - item:
+          id: multi-runner-why
+          type: choice
+          prompt: |
+            你的自动化流水线要同时产出一套应用在 Windows 上的 `.exe` 安装包和 macOS / iOS 上的 `.ipa` / `.app` 包。为什么流水线里通常需要分别指定不同操作系统的构建运行机（如 `windows-latest` 和 `macos-latest`）？
+          options:
+            - text: 苹果的 Xcode 编译及 iOS/macOS 签名工具只能在 macOS 系统运行，而部分 Windows 桌面原生编译与打包同样依赖 Windows 工具链
+              correct: true
+            - text: 因为电脑每换一个时区就只能写一种语言的字母
+              why: 需要多平台运行器是因为各家原生编译和系统签名工具链绑定了对应桌面系统
+            - text: 因为同一个 Git 仓库绝不允许超过 1 台电脑拉取代码
+              why: 多个不同系统构建机可以同时拉取同一份源码各自完成目标平台编译
+          explain: |
+            干净按需拆分跨端构建机，让每次发布产出可追踪、可复现！
+      - item:
+          id: cd-rollout-stage
+          type: choice
+          prompt: |
+            持续部署（CD）流水线刚自动完成新版本打包与签名，准备上线面向几十万用户的真实应用商店时，最稳健的自动化推送节奏是？
+          options:
+            - text: 先自动推向内部测试轨道与 5% 小比例灰度用户观察崩溃率与关键指标，确认健康后再逐步放量到 100%
+              correct: true
+            - text: 每次随便改完两行代码跳过全部自动化测试，一秒内强行全量推给 100% 全部用户且永不留备份符号
+              why: 跳过自动化测试与灰度验证会让一个小崩溃瞬间影响全体用户且极难即时止损
+            - text: 永远只停留在打包成功阶段，绝不允许发给任何用户
+              why: 流水线最终是为了安全高频地把经过验证的新版本送达真实用户手里
+          explain: |
+            自动化测试把关 + Secrets 安全签名 + 内测灰度渐进放量，组成了现代多端发布的稳定闭环。
+
+boss:
+  items:
+    - id: boss-stack-c4
+      type: choice
+      prompt: |
+        对比纯原生（Swift/Kotlin）、跨平台（Flutter/React Native）与桌面方案（Electron/Qt）时，下面哪一项评估完全站得住脚？
+      options:
+        - text: 原生性能与新特性响应最快但需维护双端代码；Flutter 自绘一致但包略大且系统能力常走插件；Electron 基于 Web 研发快却体积大占内存；Qt 原生省资源却门槛高且需留意商业许可
+          correct: true
+        - text: Electron 由于直接调用操作系统原生按钮，安装包体积通常小于 1 MB 且内存开销低于纯 C++ 程序
+          why: Electron 打包内置 Chromium 与 Node.js，安装包和内存开销显著高于原生或 Qt
+        - text: 纯原生开发只要写 1 份 Swift 代码就能直接无修改编译出 Android APK
+          why: iOS 使用 Swift/UIKit/SwiftUI，Android 使用 Kotlin/Compose，纯原生需要维护两套代码
+        - text: Flutter 通过在每个平台上直接实例化系统原生按钮控件来绘制界面，因此不需要自带渲染引擎
+          why: Flutter 采用自绘引擎（Skia/Impeller）直接绘制像素以保证跨端视觉一致，而非映射为系统原生控件
+      explain: |
+        技术选型没有标准唯一解，看清团队能力栈、包体内存限制与系统特性深度就能合理拿捏。
+    - id: boss-lifecycle-c4
+      type: order
+      prompt: |
+        按先后顺序列出一个 Android Activity 从打开到退回后台并彻底销毁的 6 步生命周期标准回调。
+      steps:
+        - "onCreate"
+        - "onStart"
+        - "onResume"
+        - "onPause"
+        - "onStop"
+        - "onDestroy"
+      explain: |
+        进入前台：Create → Start → Resume；退隐销毁：Pause → Stop → Destroy。
+    - id: boss-rotation-state-c4
+      type: choice
+      prompt: |
+        用户在手机上玩你的计时软件，刚过 25 秒把手机横屏旋转，Android 默认把当前 `Activity` 销毁重建了。如果希望这 25 秒不仅**跨越横竖屏旋转不丢失**，连退去玩别的游戏被系统清理后台进程后再回来都能接着还原，最恰当的状态分层保管方案是？
+      options:
+        - text: 用 `ViewModel` 接住屏幕旋转导致的配置重建，用 `SavedStateHandle` / `onSaveInstanceState` 保管少量进程被杀恢复状态，真正长期记录存本地数据库
+          correct: true
+        - text: 全放进 Activity 类自己的普通私有字段里就绝不会丢
+          why: 旋转配置变更会整个销毁重建 Activity 实例，挂在实例上的普通字段全部清零
+        - text: 只放进 `ViewModel` 内存字段里，即使后台进程被操作系统因内存紧张整个杀死也能自动从内存里恢复
+          why: "`ViewModel` 只存活于当前进程的配置重建期间，一旦进程被系统杀死内存即清空，必须配合 `SavedStateHandle` 或本地持久化"
+        - text: 把每一毫秒的界面临时滚动偏移和几十 MB 大图直接塞进 `onSaveInstanceState` 的 `Bundle` 里传递
+          why: "`Bundle` 受跨进程 Binder 事务大小限制（通常约 1 MB），只适合存轻量恢复标识与小状态，大块数据应存数据库或文件"
+      explain: |
+        生命周期决定存储去向：跨越旋转看 ViewModel，跨越后台杀进程看 SavedState，永久记录进本地库。
+    - id: boss-declarative-c4
+      type: choice
+      prompt: |
+        写出一个包含数字文本、`+1` 按钮和`重置`按钮的 Jetpack Compose 声明式计数器时，“状态驱动界面”究竟是什么意思？
+      options:
+        - text: 组件函数只描述“给定状态 count 时屏幕该画成什么样”；点按钮改动状态 `count` 后，框架自动局部重组受影响的文本而不必手动查控件调 `setText`
+          correct: true
+        - text: 代码必须用传统方式拿到每个 Text 对象的引用句柄再手动覆盖文字内容
+          why: 那是传统命令式控件修改方式；声明式界面靠状态变化自动驱动重组刷新
+        - text: 把普通局部变量 `var count = 0` 直接写在可组合函数里而不加 `remember` 和 `mutableStateOf`，点击按钮时界面也会自动刷新并记住新值
+          why: 普通局部变量既不会通知 Compose 触发重组，也会在下次重组重跑函数时被重新初始化回 `0`
+        - text: 每次状态 `count` 变化时，Compose 必须销毁整个手机窗口的全部控件树并从零全量重绘整屏像素
+          why: Compose 只会智能追踪并局部重组（Recompose）真正读取了 `count` 状态的那一小块组件，不会全量销毁重绘整屏
+      explain: |
+        牢记 `UI = f(state)`：修改单向数据流里的状态，屏幕由框架自动对齐！
+    - id: boss-offline-sync-c4
+      type: choice
+      prompt: |
+        为“离线也能用的待办清单”设计数据同步策略时，以下架构组合哪项完整且严谨？
+      options:
+        - text: 本地数据库作唯一读写源；改待办时在同一事务里记录带唯一 `op_id` 和版本的操作进待发队列；交给 `WorkManager` 等条件后台任务在联网时批量上传、按字段合并或 LWW 解决冲突后再拉取远端增量
+          correct: true
+        - text: 一没网就禁止打开待办页面，等用户走到 Wi-Fi 底下再重新手写重录全部任务
+          why: 离线优先要求无网时核心待办功能一样能顺畅新建和勾选完成
+        - text: 断网时每次点勾选都在主界面通道里开一个死循环不断重试 HTTP 请求，直到网络恢复为止
+          why: 无条件高频空转重试会阻塞界面并迅速榨干用户电池，应该交给系统条件后台唤醒机制等有网再发
+        - text: 先把修改只保存在内存变量里不落盘，等下次联网成功后再写入本地 SQLite 数据库
+          why: 离线修改如果还没落盘用户就划掉应用或手机没电，未同步的修改就会永久丢失
+      explain: |
+        本地单一数据源 + 幂等 Pending 队列 + WorkManager 条件后台推拉 + 确定冲突策略 = 专业级离线体验！
+    - id: boss-electron-security-c4
+      type: choice
+      prompt: |
+        把原本只打算展示几个本地工作面板的 Electron 桌面程序打包上线前做安全审查，以下配置检查哪项**合格**？
+      options:
+        - text: 渲染进程关闭 `nodeIntegration`，开启 `contextIsolation` 和 `sandbox`，通过 `preload` + `contextBridge` 仅露极小必需接口、设严苛 CSP 且主进程严格校验 IPC 参数
+          correct: true
+        - text: 为了写代码省事把 `nodeIntegration` 设为 `true` 且允许在渲染器随意加载任意陌生第三方网页
+          why: 这相当于把电脑所有磁盘命令权限拱手交给随便哪个外部网页网址，后果极其严重
+        - text: 在 `preload.js` 里把完整的 `ipcRenderer` 和 `fs` 模块原封不动挂到 `window` 全局对象上供前端脚本随意调用
+          why: 把完整 `fs` 或原始 `ipcRenderer` 暴露给渲染层等同于绕过了上下文隔离，一旦页面遭遇 XSS 就能直接读写本机任意文件
+        - text: 把用户的所有管理员私钥直接放进公开网页 HTML 里方便调试
+          why: 任何网页 HTML/JS 都在渲染层公开可见，绝不可放入高权限凭证
+      explain: |
+        Electron 绝不能当“无防护大权限浏览器”裸奔！关闭直连 Node、开沙箱与隔离、窄化 `contextBridge` 并验好 IPC 参数缺一不可。
+    - id: boss-device-perm
+      type: choice
+      prompt: |
+        应用新增扫码功能要调用手机相机，以下权限申请实现方式哪项最合规？（最小权限 + 实际平台 API）
+      options:
+        - text: 在用户点击扫码那一刻先用 `checkSelfPermission` 检查，未授权时必要先说明用途再调 `RequestPermission` 弹窗；拒绝时保留手输号降级而不崩溃
+          correct: true
+        - text: 刚打开 App 闪屏第一秒直接连带申请位置、通讯录、麦克风和短信一共十项权限
+          why: 没用到就不该提前申请无关敏感权限，启动瞬间狂弹窗更会大幅拉高拒审与卸载率
+        - text: 只在 `AndroidManifest.xml` 里写一行 `<uses-permission android:name="android.permission.CAMERA"/>`，运行期不需要弹窗询问用户就能直接打开相机
+          why: 相机属于危险权限（Runtime Permission），除清单声明外必须在运行期经用户弹窗动态授权后才能调用
+        - text: 如果用户点一次拒绝，就不提供任何手动输入条码的降级入口并直接让应用闪退退出
+          why: 被用户拒绝特别是永久拒绝时应优雅降级（如允许手动输入编号）或给出温和去设置页引导，绝不能直接崩溃退出
+      explain: |
+        用时再问、先查再申、拒绝体面降级——把用户信任放第一位。
+    - id: boss-flutter-storage
+      type: choice
+      prompt: |
+        一款 Flutter 应用需要分别保存：① 夜间模式布尔开关；② 用户登录换回的刷新令牌（Refresh Token）；③ 5000 条要检索过滤的本地笔记。最安全的分组存法是？
+      options:
+        - text: ① 存 `shared_preferences`；② 存基于 Keystore / Keychain 的安全加密存储；③ 存 SQLite 数据库（`sqflite`）
+          correct: true
+        - text: 全塞进一个未加密的普通 `shared_preferences` 文件里最简单省事
+          why: 轻量配置里既不能放明文隐私令牌，也扛不住几千条高频条件查询数据
+        - text: 把刷新令牌明文写进手机公共外部存储（SD 卡下载目录）的 JSON 文件里，方便重装应用后自动恢复登录
+          why: 公共外部存储可被其他应用或电脑连接直接读取，敏感令牌必须放进受系统硬件保护的 Keystore / Keychain 安全存储
+        - text: 把 5000 条笔记拼成一个巨大的字符串存进 Keychain / Keystore 密钥库里，每次搜索时全量读出用正则匹配
+          why: 硬件安全密钥库只适合存短小密钥或令牌，几千条需要分页与条件索引检索的结构化笔记应存入 SQLite 数据库
+      explain: |
+        各司其职、加密分离，手机换代或系统迁移也不出事故。
+    - id: boss-obfuscation-release
+      type: choice
+      prompt: |
+        使用 Flutter `--obfuscate` 或 Android R8 启用混淆发布正式商店包时，为什么构建机打包结束后**务必把生成出来的调试符号映射表妥善留存保管好（且不要一起打进应用包）**？
+      options:
+        - text: 线上用户手机遇到崩溃发回来的调用栈全是被打乱的代号，开发团队必须靠对应版本留存的映射表把崩溃位置还原回真实可读源码行号来修 bug
+          correct: true
+        - text: 因为不同版本构建出的混淆代号映射完全通用，只要随便留存一年前某次旧版本的映射表就能还原今天新版本的崩溃栈
+          why: 每次代码改动重新构建时，混淆器生成的短代号映射都会变化，必须按每个正式发布版本号精确归档对应的映射表
+        - text: 必须把映射表连同私钥一起塞进安装包让所有下载的人自由还原源码
+          why: 映射表和签名私钥都不应直接打进公开分发的正式安装包里面
+        - text: 因为开启代码混淆后应用运行时的网络请求也会被自动加密，服务端必须用这份映射表才能解密客户端发来的 JSON
+          why: 代码混淆只重命名编译产物中的类与方法符号以增加逆向难度，不会加密网络报文，映射表专供崩溃堆栈符号化还原
+      explain: |
+        既要对外加大逆向难度，又要留给自己随时精准定位线上闪退的“译码字典”。
+    - id: boss-sqlite-transaction
+      type: text
+      prompt: |
+        在本地离线同步库里，初始时 `Task` 表有一条记录 `('task-7', 0)`，`Pending` 表为空。我们用一笔数据库事务先执行 `UPDATE Task SET done = 1 WHERE id = 'task-7'`，接着往 `Pending` 插入唯一操作记录 `('op-17', 'task-7', 4, 1)` 并提交；随后如果有人不小心**又拿完全相同的 `'op-17'` 再跑同一笔事务**，结果主键冲突报错触发捕获并显式 `ROLLBACK`。此时数据库里 `Pending` 表共有几条记录？（填数字）
+      answers: ["1"]
+      hint: 第一次事务成功写入了 1 条 `'op-17'`；第二次带同样 `'op-17'` 的事务报错回滚，整笔失败不会留下第二条重复记录。
+      explain: |
+        祝贺通关《移动应用开发》！你已经打通了生命周期状态、跨端自适应布局、运行时权限硬件、安全隔离以及离线优先同步与多端发布的全链路架构！

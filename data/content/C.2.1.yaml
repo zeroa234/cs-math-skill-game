@@ -885,7 +885,7 @@ lessons:
       - card:
           title: 等待时间
           body: |
-            原技能树的练习还用到等待时间：任务在就绪队列里等了多久，没在跑的那些时间。
+            还有一个常用的量是等待时间：任务在就绪队列里等了多久，也就是没在跑的那些时间。
 
             $$T_{等待} = T_{周转} - T_{运行}$$
 
@@ -1996,7 +1996,7 @@ lessons:
       - item:
           id: why-multilevel
           type: choice
-          prompt: 原技能树的问题：为什么需要多级页表？
+          prompt: 为什么需要多级页表？
           options:
             - text: 只给实际用到的那部分地址分配页表，地址空间里大片的空当不占内存
               correct: true
@@ -2177,7 +2177,7 @@ lessons:
           params: { frames: 3, refs: [7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2], policy: FIFO, help: true }
           goal: { misses: 10 }
           solution: [7, 0, 1, 2, 3, 0, 4]
-          prompt: 原技能树的练习：引用串 7 0 1 2 0 3 0 4 2 3 0 3 2，3 个页框，你来当 FIFO。
+          prompt: 引用串 7 0 1 2 0 3 0 4 2 3 0 3 2，3 个页框，你来当 FIFO。
           explain: FIFO 一共缺页 10 次，每次换出的是最早进来的页：7、0、1、2、3、0、4。
       - card:
           title: Belady 异常
@@ -2946,7 +2946,7 @@ lessons:
             好几个生产者时，两个可能同时往同一个格子里放，所以放和取本身还要用第三个信号量 mutex（初值 1）互斥。
       - card:
           title: 例题：有界缓冲区
-          body: 原技能树的练习：用信号量写出有界缓冲区，说明每个信号量的作用。
+          body: 练一练：用信号量写出有界缓冲区，说明每个信号量的作用。
           reveal:
             - title: 第 1 步：定下三个信号量和初值
               body: |
@@ -3447,8 +3447,8 @@ lessons:
               correct: true
             - text: 就是 report.txt
               why: report.txt 是给人看的名字，同一个文件还可以有好几个这样的名字
-            - text: 它在磁盘上的颜色
-              why: 磁盘上只有一个个数据块，没有颜色
+            - text: 文件的第一行文字
+              why: 文件可以为空，也可以改内容，真正标识它的是一个固定编号
           explain: 人用名字，文件系统用编号。目录负责把名字对到编号上。
       - card:
           title: 文件和目录

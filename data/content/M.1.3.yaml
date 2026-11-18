@@ -1,0 +1,730 @@
+skill: M.1.3
+version: 2
+authors: [main-agent]
+brief:
+  why: |
+    暴雨下得时大时小、汽车车速每时每刻都在变——如果只知道“每一瞬间的变化率”，怎么把成千上万个微小时间段的贡献精准累加回“总雨量”或“总路程”？反过来，怎么仅凭端点原函数就一秒算出曲边面积，并判断一直向右无限延长的尾巴面积究竟是有限还是无限？这一关为你打通后续电路积分、微分方程与概率密度不可缺少的一元积分学。
+  outcomes:
+    - 用求和记号 Σ 和窄矩形黎曼和逼近曲边面积，理解定积分按横轴上下记正负的净累积意义
+    - 掌握积分中值定理与微积分基本定理两大方向：变上限积分求导（含链式上界）与牛顿–莱布尼茨公式求值
+    - 熟练运用第一换元法（凑微分与同步改上下限）和反常积分（无穷区间与瑕点收敛比较判别）
+    - 掌握原函数族、常用基本积分表以及由乘积法则推来的分部积分法，彻底吃透积分四道综合大题
+terms:
+  - term: 黎曼和
+    def: '把区间分成很多小段，每段取一个代表高度乘以段宽得到窄矩形面积后全部相加的和'
+  - term: 定积分
+    def: '分段加细后黎曼和的极限，横轴上方贡献记正、横轴下方贡献记负'
+  - term: 微积分基本定理
+    def: '连起“累积面积变化率等于当前高度（变上限求导）”与“定积分等于原函数端点差”的核心定理'
+  - term: 变量
+    def: '在算式或过程里可以取不同数值的符号量（如积分哑变量 t 或上限 x）'
+  - term: 换元积分
+    def: '反用复合函数链式法则，把里层算式和微分换成新字母并同步替换积分端点，化繁为简的方法'
+  - term: 反常积分
+    def: '当积分区间无限延伸或被积函数在区间端点附近无界时，先算有限界定积分再取极限的定义'
+  - term: 原函数
+    def: '求导之后恰好等于指定被积函数 f(x) 的函数 F(x)，加上任意常数 C 构成完整不定积分族'
+  - term: 分部积分
+    def: '反用函数乘积求导法则推出来的积分公式：∫u dv = uv − ∫v du，常用来消掉乘在前面的多项式'
+
+lessons:
+  # ==== 定积分 ====
+  - id: riemann
+    chapter: 定积分
+    title: 求和记号 Σ、分割逼近与黎曼和
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你想测量一段弯曲坡道下方到地面的准确面积，先在底下并排摆 4 个一样宽的矩形去尽量贴近坡面，发现误差挺大；如果把矩形缩窄百倍、改成并排摆 400 个超窄矩形，整体近似结果会怎样变化？
+          options:
+            - text: 矩形越窄越多，顶部留下的锯齿空隙越薄，结果越贴近真实的曲线下面积
+              correct: true
+            - text: 矩形越窄，锯齿误差反而必定越来越大十倍
+              why: 更窄的小段能让每段里的高度波动大幅减小，误差总体随分段加密趋于 0
+            - text: 无论摆多少个矩形，算出来的面积永远是精确整数 0
+              why: 只要曲线在横轴上方高度为正，窄矩形面积之和就会逼近正的曲边面积
+          explain: |
+            这种“**先切成很多极窄小矩形再加总、最后取极限缩到无限细**”的策略，正是**黎曼和**与定积分的出发点！
+      - card:
+          title: 求和记号 Σ 与黎曼和构造
+          body: |
+            用大写希腊字母 **Σ（Sigma）**把一串按编号相加的项简写成 $\sum_{i=1}^n a_i = a_1 + a_2 + \dots + a_n$。
+            把区间 $[a, b]$ 等分成 $n$ 份，每小份宽 $\Delta x = \frac{b - a}{n}$，第 $i$ 份里挑一个代表点 $x_i^*$ 取高度 $f(x_i^*)$，这 $n$ 个窄矩形面积总和就是**黎曼和（Riemann sum）**：
+            $$S_n = \sum_{i=1}^{n} f(x_i^*)\,\Delta x$$
+            常用三种取法：**左端点** $x_i^*=a+(i-1)\Delta x$、**右端点** $x_i^*=a+i\Delta x$、或**中点**。
+          reveal:
+            - title: 例题手算：用 2 个左端 vs 右端矩形估算 $[0, 2]$ 上 $f(x)=x$
+              body: |
+                等分成 $n=2$ 段，每段宽 $\Delta x = \frac{2-0}{2} = 1$（分成 $[0,1]$ 和 $[1,2]$）：
+                - **左端点**：高度取 $f(0)=0$ 与 $f(1)=1$，面积和 $= 0\times 1 + 1\times 1 = 1$；
+                - **右端点**：高度取 $f(1)=1$ 与 $f(2)=2$，面积和 $= 1\times 1 + 2\times 1 = 3$（真实三角形面积恰好在两者正中间 $= 2$！）。
+      - item:
+          id: sigma-squares-num
+          type: number
+          prompt: |
+            练习读懂求和记号 $\Sigma$：计算 $\sum_{j=1}^{3} j^2$（即 $1^2 + 2^2 + 3^2$）等于多少？
+          answer: 14
+          hint: '依次算出 $1^2=1$、$2^2=4$、$3^2=9$ 再相加。'
+          explain: |
+            $1 + 4 + 9 = 14$。熟练读懂 $\Sigma$ 的上下起止编号就能轻松写出任意步数的黎曼和公式。
+      - item:
+          id: right-riemann-x2
+          type: number
+          prompt: |
+            在区间 $[0, 2]$ 上把函数 $f(x) = x^2$ 等分成 $n = 2$ 段（每段宽 $\Delta x = 1$），用**右端点**取高度做黎曼和近似面积，结果是多少？
+          answer: 5
+          hint: 两段分别是 $[0,1]$ 与 $[1,2]$，右端点分别是 $x=1$ 和 $x=2$。
+          explain: |
+            右端点高度 $f(1)=1^2=1$ 与 $f(2)=2^2=4$，乘以段宽 $1$ 相加得 $1\times 1 + 4\times 1 = 5$。
+      - card:
+          title: 动手演示：分段加细看黎曼和如何逼近真实面积
+          body: |
+            在下面交互图里拖动分段数 $n$，亲自观察 $[0, 1]$ 上递增曲线 $y = x^2$ 的**左端点矩形**：因为递增函数每段左端最矮，矩形全部藏在曲线下方；但只要把 $n$ 调大，矩形上方的锯齿缝隙会迅速消瘦！
+          sim:
+            name: plot
+            params:
+              mode: riemann
+              f: x^2
+              a: 0
+              b: 1
+              rule: left
+              nMax: 200
+      - item:
+          id: error
+          type: sim
+          sim: plot
+          params:
+            mode: riemann
+            f: x^2
+            a: 0
+            b: 1
+            rule: left
+            nMax: 200
+          goal:
+            errorBelow: 0.02
+          solution:
+            'n': 50
+          prompt: |
+            拖动滑动条增加 $[0, 1]$ 上 $f(x) = x^2$ 的左端矩形数量 $n$，使它与真实面积 $1/3$ 之间的逼近误差严格小于 `0.02`！
+          explain: |
+            左端黎曼和与真值 $1/3$ 的精确误差为 $\frac{3n-1}{6n^2} \approx \frac{1}{2n}$：当 $n \ge 25$ 时误差就已经严格小于 $0.02$（$n=25$ 时误差 $\approx 0.01973$），$n=50$ 时误差仅 $0.00993$，切得越细越接近真值！
+
+  - id: signed-area
+    chapter: 定积分
+    title: 定积分定义、带符号净面积、几何总面积与区间性质
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你在平直跑道上出发：先向东往前走 `3 米`，然后转身向西往回退 `1 米`。算下来你的**最终位移（带方向位置差）**和**实际走过的总路程**分别是多少？
+          options:
+            - text: 位移是 +2 米，而实际走过的总路程是 4 米
+              correct: true
+            - text: 两者永远完全一样，都是 4 米
+              why: 向相反方向折返的 1 米会抵消部分向东位移，但路程只累加绝对步数
+            - text: 位移是 −4 米
+              why: 往前走 3 米减去后退 1 米得到净向东 +2 米
+          explain: |
+            同样道理：**定积分**算的是“横轴上方为正、横轴下方为负”的**净累积量（有向净面积）**；想要不算正负互相抵消的“纯几何总面积”，就要分段或套上绝对值！
+      - card:
+          title: 定积分 $\int_a^b f(x)\,dx$ 与净有向面积
+          body: |
+            把区间细分令段数 $n \to \infty$，黎曼和若存在唯一有限极限，就叫做 $f(x)$ 在 $[a, b]$ 上的**定积分（definite integral）**（凡闭区间上的连续函数一定可积！）：
+            $$\int_a^b f(x)\,dx = \lim_{n \to \infty} \sum_{i=1}^n f(x_i^*)\,\Delta x$$
+            - **正负净抵消（Net Signed Area）**：曲线在横轴上方那块面积加为**正**，在横轴下方那块减为**负**；
+            - **几何总面积（Total Area）**：如果要算两块纯占地面积之和，必须算 $\int_a^b |f(x)|\,dx$——也就是在函数穿过横轴的零点处拆开分段，把轴下那段加上负号翻正后再加起来！
+      - card:
+          title: 定积分的四条常用运算性质
+          body: |
+            不必每次都展开成 $n$ 个小矩形，靠下面四条性质常能秒算常见积分：
+            1. **同一区间可拆加**：$\int_a^c f(x)\,dx + \int_c^b f(x)\,dx = \int_a^b f(x)\,dx$；
+            2. **交换上下限反号**：$\int_b^a f(x)\,dx = -\int_a^b f(x)\,dx$，而单个点 $\int_a^a f(x)\,dx = 0$；
+            3. **数乘与加减线性**：常数可提外面，两函数和差的积分等于积分和差；
+            4. **几何秒算**：直线段、矩形、三角形与半圆可直接画图按面积加正负算！
+          reveal:
+            - title: 例题对比：$\int_0^4 (2 - x)\,dx$ 的“带符号定积分” vs“几何总面积”
+              body: |
+                直线 $y = 2 - x$ 在 $x=2$ 穿过横轴：左边 $[0, 2]$ 在轴上构成直角边 2×2 的三角形（面积 $2$）；右边 $[2, 4]$ 在轴下构成对称 2×2 三角形（面积 $2$）。
+                - **定积分（带符号净面积）** $= +2 + (-2) = 0$；
+                - **纯几何总面积** $= \int_0^4 |2 - x|\,dx = 2 + 2 = 4$！
+      - item:
+          id: net-signed-num
+          type: number
+          prompt: |
+            某连续曲线在区间 $[0, 5]$ 上，位于横轴上方的区域几何面积是 `5`，位于横轴下方的区域几何面积是 `2`。它在 $[0, 5]$ 上的定积分 $\int_0^5 f(x)\,dx$ 等于多少？
+          answer: 3
+          hint: 轴上方贡献 $+5$，轴下方贡献 $-2$。
+          explain: |
+            定积分计入方向符号：$\int_0^5 f(x)\,dx = 5 - 2 = 3$（若问纯几何总面积则是 $5 + 2 = 7$）。
+      - item:
+          id: total-area-abs
+          type: number
+          prompt: |
+            函数 $f(x) = 2 - x$ 在区间 $[0, 4]$ 上分别在 $[0, 2]$（横轴上方）和 $[2, 4]$（横轴下方）各自围出几何面积等于 `2` 的两块三角形。求纯几何总面积 $\int_0^4 |2 - x|\,dx$ 是多少？
+          answer: 4
+          hint: 计算几何总面积时，横轴下方那块也取正值直接相加。
+          explain: |
+            在穿过零点 $x=2$ 拆开后，两边正几何面积均为 $2$，故 $\int_0^4 |2-x|\,dx = 2 + 2 = 4$；而直接算带符号定积分 $\int_0^4(2-x)\,dx$ 则正负抵消为 $0$。
+      - item:
+          id: interval-reverse-num
+          type: number
+          prompt: |
+            已知 $\int_0^3 f(x)\,dx = 6$，且调转方向后 $\int_3^1 f(x)\,dx = -4$。那么 $\int_0^1 f(x)\,dx$ 的值是多少？
+          answer: 2
+          hint: '由方向反转知 $\int_1^3 f(x)\,dx = -\int_3^1 f(x)\,dx = 4$，再减去这段即可。'
+          explain: |
+            利用区间可加性与方向反转：$\int_0^1 f = \int_0^3 f + \int_3^1 f = 6 + (-4) = 2$。
+      - item:
+          id: geometry-circle-integral
+          type: choice
+          prompt: |
+            不用繁琐公式，直接看几何形状就能算出 $\int_{-2}^{2} \sqrt{4 - x^2}\,dx$（被积函数 $y=\sqrt{4-x^2}$ 是半径 $r=2$ 的上半圆周），结果是多少？
+          options:
+            - text: '$2\pi$（半径为 2 的上半圆面积 $= \frac{1}{2}\pi r^2 = \frac{1}{2}\pi \cdot 4$）'
+              correct: true
+            - text: '$4\pi$（算成了整整一整个圆面积）'
+              why: 算术平方根非负，仅表示横轴上方的上半个圆
+            - text: '$-2\pi$'
+              why: 被积函数始终大于等于 0 且从左向右积分，结果为正
+          explain: |
+            画图认出半径 $2$ 的上半圆，几何面积 $\frac{1}{2}\pi \cdot 2^2 = 2\pi$ 一秒出答案。
+
+  # ==== 微积分基本定理与反常积分 ====
+  - id: fundamental
+    chapter: 微积分基本定理与反常积分
+    title: 积分中值定理与微积分基本定理两大方向
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            水箱底下正在往里疯狂放水，当前这 1 秒钟水龙头的瞬时进水流速特别大。那么画出的“累计总水量随时间变化曲线”在此时此刻的斜率（增长速度）会怎样？
+          options:
+            - text: 累计总量正飞快往上升，累计曲线在这瞬间的斜率恰好就等于当下水龙头的流速！
+              correct: true
+            - text: 累计总量曲线此刻完全平躺水平，斜率为 0
+              why: 只要正有水往里注（流速不为 0），总水量就会以此刻流速作为斜率往上爬
+            - text: 累计总量反而必定猛跌成负数
+              why: 流速为正时累积总量持续增加，其导数正是被积的速度函数
+          explain: |
+            “累计水量的导数等于当下流速”与“总进水量等于前后水量原函数差”正是**微积分基本定理**一体两面的精华！
+      - card:
+          title: 微积分基本定理与积分中值定理
+          body: |
+            设 $f$ 在 $[a, b]$ 上连续，**微积分基本定理（Fundamental Theorem of Calculus, FTC）**包含两条神来之笔：
+            1. **变上限积分求导（FTC 第一部分）**：若定义面积累积函数 $F(x) = \int_a^x f(t)\,dt$，则它的导数恰好回到被积函数本身：
+               $$F'(x) = \frac{d}{dx}\int_a^x f(t)\,dt = f(x)$$
+            2. **牛顿–莱布尼茨求值公式（FTC 第二部分）**：若找得到任何满足 $G'(x) = f(x)$ 的原函数 $G$，定积分不用画矩形，只需代两端点相减：
+               $$\int_a^b f(x)\,dx = G(b) - G(a) = \big[G(x)\big]_a^b$$
+          reveal:
+            - title: 积分中值定理：高度波动的函数有“平均高度”吗？
+              body: |
+                既然 $[a,b]$ 上面下面积是 $\int_a^b f(x)\,dx$，区间平均高度就是 $\frac{1}{b-a}\int_a^b f(x)\,dx$。连续函数总能在区间内部找到某一点 $c \in [a,b]$，使得 $f(c)(b-a) = \int_a^b f(x)\,dx$——也就是说，总能找到一个与真实曲边等面积的完美水平均值矩形！
+      - card:
+          title: 必考例题：变上限带复合函数求导 & $\int_0^\pi \sin x\,dx$
+          body: |
+            记住两个实战模板：
+          reveal:
+            - title: 例 1：上限本身是 $u(x) = x^2$ 怎么办？——用链式法则！
+              body: |
+                求 $F(x) = \int_0^{x^2} e^{-t^2}\,dt$ 的导数 $F'(x)$：
+                哪怕 $e^{-t^2}$ 根本写不出用基础函数拼出来的公式原函数也毫不影响！先把积分结果看成关于上限 $u$ 的函数，先对上限求导得 $e^{-u^2}$，再乘以上限 $u(x) = x^2$ 自己的导数 $u'(x) = 2x$：
+                $$F'(x) = e^{-(x^2)^2} \cdot 2x = 2x\,e^{-x^4}$$
+            - title: 例 2：牛顿–莱布尼茨计算 $\int_0^\pi \sin x\,dx$
+              body: |
+                因为 $(-\cos x)' = \sin x$，所以：
+                $$\int_0^\pi \sin x\,dx = \big[-\cos x\big]_0^\pi = (-\cos\pi) - (-\cos 0) = -(-1) - (-1) = 2$$
+                因 $\sin x \ge 0$ 于 $[0, \pi]$，结果 $2$ 的几何意义正是正弦曲线 $y = \sin x$ 与横轴在 $[0, \pi]$ 之间围出的完整面积！
+      - item:
+          id: sine-pi-num
+          type: number
+          prompt: |
+            利用牛顿–莱布尼茨公式计算定积分 $\int_0^\pi \sin x\,dx$ 的值是多少？（提示：$(-\cos x)' = \sin x$）
+          answer: 2
+          hint: '计算 $(-\cos\pi) - (-\cos 0)$，其中 $\cos\pi = -1$、$\cos 0 = 1$。'
+          explain: |
+            $\big[-\cos x\big]_0^\pi = 1 - (-1) = 2$，这也正是正弦曲线一个拱包下面的全部几何面积。
+      - item:
+          id: ftc-chain-c4
+          type: choice
+          prompt: |
+            设变上限积分 $F(x) = \int_0^{x^2} e^{-t^2}\,dt$，则它的导数 $F'(x)$ 等于哪一项？
+          options:
+            - text: '$2x\,e^{-x^4}$'
+              correct: true
+            - text: '$e^{-x^4}$'
+              why: 漏掉了上限 $u = x^2$ 关于 $x$ 的导数因子 $u'(x) = 2x$
+            - text: '$2x\,e^{-t^2}$'
+              why: 积分结果中的内部字母 $t$ 已在上限定界积掉，必须代入上限 $t = x^2$ 得 $e^{-(x^2)^2}=e^{-x^4}$
+          explain: |
+            变上限积分求导公式通式：$\frac{d}{dx}\int_a^{u(x)} f(t)\,dt = f(u(x))\cdot u'(x)$！
+      - item:
+          id: ftc-chain-3x
+          type: choice
+          prompt: |
+            再巩固一题：若 $G(x) = \int_1^{3x} \cos(t)\,dt$，则 $G'(x)$ 是多少？
+          options:
+            - text: '$3\cos(3x)$'
+              correct: true
+            - text: '$\cos(3x)$'
+              why: 上限是 $3x$，链式法则必须再乘上限的导数 $(3x)' = 3$
+            - text: '$-3\sin(3x)$'
+              why: 积分求导只是去掉外层积分号代入上限，不要额外再对 $\cos$ 求一次导！
+          explain: |
+            代入 $t = 3x$ 得 $\cos(3x)$，乘以上限导数 $3$，结果是 $3\cos(3x)$。
+      - item:
+          id: mvt-integral-match
+          type: match
+          prompt: |
+            把微积分基本定理相关的三条结论与其直观或公式含义连起来。
+          pairs:
+            - ["$\\frac{d}{dx}\\int_a^x f(t)\\,dt = f(x)$", "累积面积随右边界扩张的变化率就等于当前边界高度"]
+            - ["$\\int_a^b f(x)\\,dx = G(b) - G(a)$", "只要知道导数为 f 的原函数 G，定积分就变成端点值相减"]
+            - ["$\\frac{1}{b-a}\\int_a^b f(x)\\,dx = f(c)$", "连续函数总能取到恰好代表整段平均高度的某一点 c"]
+          explain: |
+            一条连结微分与积分，一条一秒求面积，一条定义连续函数区间平均值。
+
+  - id: substitution
+    chapter: 微积分基本定理与反常积分
+    title: 换元积分法（凑微分）与定积分同步换上下限
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            求积分 $\int \frac{2x}{1 + x^2}\,dx$ 时，眼睛一扫发现分子里的 $2x$ 恰好就是分母 $1 + x^2$ 求导的导数！如果把里面整体打包叫一个新字母 $u = 1 + x^2$，算式会变成多简单？
+          options:
+            - text: '利用链式微分关系 $du = 2x\,dx$，整个算式立刻缩成最简单的 $\int \frac{1}{u}\,du = \ln|u| + C = \ln(1+x^2) + C$（$\ln|u|$ 加绝对值覆盖正负取值）！'
+              correct: true
+            - text: 不管用什么字母替换，最后都必须写成一个原地打转的无解迷宫
+              why: 把里层组合打包换元正是专门用来一秒拆解复合导数结构的利器
+            - text: 只要换了字母 $u$，微积分就彻底不需要求导了
+              why: 换元正是反用复合求导的链式法则
+          explain: |
+            遇到“被积函数里同时藏着某个内层式子 $u(x)$ 以及它自己的导数因子 $u'(x)$”，立刻想起用换字母打包简化的技巧！
+      - card:
+          title: 第一换元法（凑微分）：不定积分与定积分换限
+          body: |
+            把里层算式取作可取不同值的**变量** $u = g(x)$、利用微分 $du = g'(x)\,dx$ 反用链式法则改写积分，这就是**换元积分**：
+            $$\int f(g(x))\,g'(x)\,dx = \int f(u)\,du$$
+            **两步落地诀窍**：
+            1. **求不定积分**：对 $\int \frac{2x}{1+x^2}\,dx$，令 $u = 1+x^2$，则 $du = 2x\,dx$，化为 $\int \frac{1}{u}\,du = \ln|u| + C$；因为 $1+x^2 > 0$，把 $u$ 替回 $x$ 得 **$\ln(1+x^2) + C$**！
+            2. **求定积分必须同步换上下限！**：算 $\int_a^b f(g(x))g'(x)\,dx$ 时，一定要把原本 $x=a$ 与 $x=b$ 代进 $u=g(x)$ 换成 **$u=g(a)$ 到 $u=g(b)$**，之后直接对 $u$ 代入端点，**不用换回 $x$**！
+          reveal:
+            - title: 例题实战：计算 $\int_0^1 2x(1+x^2)\,dx$
+              body: |
+                令 $u = 1+x^2$，$du = 2x\,dx$：
+                - 当 $x=0 \Rightarrow u = 1+0^2 = 1$；当 $x=1 \Rightarrow u = 1+1^2 = 2$；
+                - 原式变成 $\int_1^2 u\,du = \left[\frac{u^2}{2}\right]_1^2 = \frac{4}{2} - \frac{1}{2} = \frac{3}{2}$！
+      - item:
+          id: sub-bounds-num
+          type: number
+          prompt: |
+            使用换元法计算定积分 $\int_0^2 2x(1 + x^2)\,dx$ 的精确数值是多少？
+          answer: 12
+          hint: '令 $u = 1 + x^2$，$du = 2x\,dx$；当 $x$ 从 $0$ 变到 $2$ 时，$u$ 从 $1$ 变到 $1 + 2^2 = 5$。'
+          explain: |
+            同步换限后变成 $\int_1^5 u\,du = \frac{5^2 - 1^2}{2} = \frac{24}{2} = 12$！
+      - item:
+          id: sub-bounds-rule
+          type: choice
+          prompt: |
+            计算定积分 $\int_a^b f(g(x))\,g'(x)\,dx$ 时做了换元 $u = g(x)$ 后，最常见的新手低级错误是哪一个？
+          options:
+            - text: 积分式已经换成关于 $u$ 的原函数，最后代数字时却粗心直接把原来的 $x=a$、$x=b$ 代进 $u$ 的原函数而不先转成 $g(a)$ 和 $g(b)$
+              correct: true
+            - text: 先把 $x=a$ 和 $x=b$ 代进 $u=g(x)$ 算出新的 $u$ 上下限后再直接求差
+              why: 同步替换积分上下限后对新变量直接代限求差完全正确，还能少走一步换回旧字母弯路
+            - text: 算完原函数后也可以先换回关于 $x$ 的式子，再代回原来的 $x=a, b$
+              why: 把算式替回 $x$ 后再代原端点也是完全正确一致的做法，错的是“算式已是 $u$ 却拿 $x$ 端点往里硬代”
+          explain: |
+            永远检查：“算式里的变量字母是谁，积分上下限就必须对应是谁的数值！”
+      - item:
+          id: sub-ln-choice
+          type: choice
+          prompt: |
+            不定积分 $\int \frac{2x}{1 + x^2}\,dx$ 的结果是什么？
+          options:
+            - text: '$\ln(1 + x^2) + C$'
+              correct: true
+            - text: '$\frac{x^2}{1 + x^2} + C$'
+              why: 分母凑微分后是 $\int \frac{1}{u}\,du$，原函数是对数函数 $\ln|u| + C$ 而不是除法本身
+            - text: '$\frac{2}{1 + x^2} + C$'
+              why: 用链式法则求导检查可得 $(\ln(1+x^2))' = \frac{2x}{1+x^2}$
+          explain: |
+            认准“分子恰好是分母的导数”：$\int \frac{g'(x)}{g(x)}\,dx = \ln|g(x)| + C$！
+      - item:
+          id: sub-sin-cos-check
+          type: choice
+          prompt: |
+            计算 $\int_0^{\pi/2} \cos(x) \sin^3(x)\,dx$ 时，令 $u = \sin(x)$。换元并同步改写上下限后，等价于哪一个关于 $u$ 的简单定积分？
+          options:
+            - text: '$\int_0^1 u^3\,du$（值为 $\frac{1}{4}$）'
+              correct: true
+            - text: '$\int_0^{\pi/2} u^3\,du$'
+              why: 忘了把 $x=0$ 与 $x=\pi/2$ 代入 $\sin(x)$ 换成 $u=0$ 和 $u=1$
+            - text: '$\int_0^1 u^4\,du$'
+              why: $\sin^3(x)$ 换成 $u^3$，$\cos(x)\,dx$ 正好凑成 $du$，因此被积函数是 $u^3$
+          explain: |
+            $\sin 0 = 0, \sin(\pi/2) = 1$，$du = \cos x\,dx$，整题秒变成 $\int_0^1 u^3\,du = 1/4$！
+
+  - id: improper
+    chapter: 微积分基本定理与反常积分
+    title: 反常积分、无限尾巴 vs 瑕点以及比较判别法
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            有一条曲线 $y = f(x) > 0$ 从 $x=1$ 开始一直向右延伸到无穷远 $+\infty$，虽然曲线不断往下贴近 $x$ 轴，但始终不碰零。这条长了无穷远尾巴的图形下面总面积**必定无穷大**吗？
+          options:
+            - text: 不一定！如果高度跌得足够快（如 $1/x^2$），无限多段加起来总和仍可能收敛到一个有限数值（如 $1$）；跌得不够快（如 $1/x$）才会发散到无穷大
+              correct: true
+            - text: 必定永远无穷大，只要底边往右无限拉长面积绝不可能有限
+              why: 等比级数 $1/2 + 1/4 + 1/8 + \dots = 1$ 告诉我们无限多个正小块之和完全可以是有限的！
+            - text: 因为右端无限，积分面积一定永远等于负数
+              why: 正值曲线的面积不可能为负
+          explain: |
+            遇到“区间没边”或“某端点冲向无穷无界（瑕点）”，普通定积分不够用了——把界线先划到一个临时有限字母再取极限！
+      - card:
+          title: 两类反常积分的严格极限定义
+          body: |
+            当积分区间无限延伸或被积函数在端点附近无界时，通过有限积分取极限定义的结果叫**反常积分（improper integral）**——**千万别拿符号 `∞` 当普通数硬代！**
+            1. **无穷区间**：$\int_a^\infty f(x)\,dx = \lim_{B \to \infty} \int_a^B f(x)\,dx$（两边都无穷则在中间找点 $c$ 拆成两段极限，**两边都收敛才叫收敛**！）；
+            2. **无界瑕积分**：如 $f(x)=\frac{1}{\sqrt{x}}$ 在 $x=0$ 处趋向无穷大，就令下限从内侧 $\varepsilon \to 0^+$ 逼近：$\int_0^1 f(x)\,dx = \lim_{\varepsilon \to 0^+} \int_\varepsilon^1 f(x)\,dx$！若中间点无界同样左右分别取极限！
+          reveal:
+            - title: 对比实战（b, c 三道典型标杆！）
+              body: |
+                - a) $\int_1^\infty \frac{1}{x^2}\,dx = \lim_{B \to \infty} \big[-\frac{1}{x}\big]_1^B = \lim_{B \to \infty}(1 - \frac{1}{B}) = 1$（**收敛**！）；
+                - b) $\int_1^\infty \frac{1}{x}\,dx = \lim_{B \to \infty} \big[\ln x\big]_1^B = \lim_{B \to \infty}\ln B = +\infty$（**发散**！）；
+                - c) $\int_0^1 \frac{1}{\sqrt{x}}\,dx = \lim_{\varepsilon \to 0^+} \big[2\sqrt{x}\big]_\varepsilon^1 = \lim_{\varepsilon \to 0^+}(2 - 2\sqrt{\varepsilon}) = 2$（**收敛**！）。
+      - card:
+          title: 比较判别法（Comparison Theorem）：不必算死原函数也能判敛散
+          body: |
+            很多函数（如概率论正态分布里天天见的 **$e^{-x^2}$**！）压根写不出用基本常见函数拼出来的封闭原函数公式，怎么知道 $\int_1^\infty e^{-x^2}\,dx$ 收不收敛？
+            **比较定理**：如果当 $x \ge a$ 时一直有 $0 \le f(x) \le g(x)$：
+            - 若**顶上更大的 $\int_a^\infty g(x)\,dx$ 都收敛**，被压在底下的 $\int_a^\infty f(x)\,dx$ 必然也**收敛**（且总和不大于上面那位）；
+            - 若**底下更小的 $\int_a^\infty f(x)\,dx$ 都发散到 $+\infty$**，被抬在头顶的 $\int_a^\infty g(x)\,dx$ 必然更**发散**！
+            （例如 $x \ge 1$ 时 $0 \le e^{-x^2} \le e^{-x}$，而 $\int_1^\infty e^{-x}\,dx = e^{-1}$ 收敛，于是正态尾部立刻得证收敛！）
+          reveal:
+            - title: 幂次反常积分 $\int_1^\infty x^{-p}\,dx$ 的分界线（p-判别基准）
+              body: |
+                对比刚才算过的 $\int_1^\infty x^{-2}\,dx = 1$（收敛）与 $\int_1^\infty x^{-1}\,dx = \infty$（发散）可知：**当幂指数 $p > 1$ 时收敛于 $\frac{1}{p-1}$，当 $p \le 1$ 时发散到 $+\infty$**——以后遇到复杂衰减无穷尾巴，往这个 $p$-标尺上压一压就一秒定胜负！
+      - item:
+          id: improper-x-minus-2
+          type: number
+          prompt: |
+            已知反常积分 $\int_1^\infty x^{-2}\,dx$ 收敛，算出的精确积分值是多少？
+          answer: 1
+          hint: '先计算到 $B$：$\int_1^B x^{-2}\,dx = [-1/x]_1^B = 1 - 1/B$，再令 $B \to \infty$。'
+          explain: |
+            随着 $B \to \infty$，$1/B \to 0$，极限存在且等于 $1$，收敛。
+      - item:
+          id: improper-singular-half
+          type: number
+          prompt: |
+            在左端点 $x = 0$ 处趋向无穷的无界反常积分（瑕积分）$\int_0^1 x^{-1/2}\,dx$ 是否收敛，值是多少？
+          answer: 2
+          hint: '写出有限内侧下限 $\varepsilon \to 0^+$：$\int_\varepsilon^1 x^{-1/2}\,dx = [2\sqrt{x}]_\varepsilon^1 = 2 - 2\sqrt{\varepsilon}$。'
+          explain: |
+            当 $\varepsilon \to 0^+$ 时 $2\sqrt{\varepsilon} \to 0$，极限为有限数 `2`，所以这枚瑕积分收敛到 `2`！
+      - item:
+          id: improper-compare-1-over-x2
+          type: choice
+          prompt: |
+            对于所有 $x \ge 1$，某非负连续函数始终满足 $0 \le f(x) \le \frac{1}{x^2}$。不用求出 $f$ 的原函数，能直接判断 $\int_1^\infty f(x)\,dx$ 的收敛性吗？
+          options:
+            - text: 一定收敛！因为上面压顶的 $\int_1^\infty \frac{1}{x^2}\,dx = 1$ 收敛，且非负累加函数单调有上界，总值也不超过 1
+              correct: true
+            - text: 必定发散，因为右端伸到了无穷远 $+\infty$
+              why: 无穷区间只要尾巴压在已知可积的 $1/x^2$ 下方，累积和有上界必收敛
+            - text: 绝对发散，跟 $\int_1^\infty \frac{1}{x}\,dx$ 完全相同
+              why: $1/x^2$（$p=2>1$）收敛，而 $1/x$（$p=1$）正好处于分界线发散
+          explain: |
+            熟记无穷尾巴比较基准 $\int_1^\infty x^{-p}\,dx$：**$p > 1$ 时收敛，$p \le 1$ 时发散**，再用比较定理秒杀大量复杂无穷尾！
+      - item:
+          id: improper-center-singularity-trap
+          type: choice
+          prompt: |
+            新手直接用牛顿–莱布尼茨计算 $\int_{-1}^{1} \frac{1}{x^2}\,dx$ 时，套上原函数 $-\frac{1}{x}$ 算得 $(-\frac{1}{1}) - (-\frac{1}{-1}) = -1 - 1 = -2$！明明 $1/x^2$ 全程为正，面积怎么荒谬算出负数 `-2` 了？
+          options:
+            - text: 被积函数在区间内部 $x = 0$ 处无穷间断不连续，不能直接套端点公式！必须在 $x=0$ 拆成 $(-1, 0)$ 与 $(0, 1)$ 各自取极限，发现两边都发散到 $+\infty$
+              correct: true
+            - text: 说明面积确实本来就是负数 -2
+              why: 严格正值函数在 $[a, b]$（$a < b$）上的积分如果收敛只可能为正
+            - text: 因为只能对常数做积分
+              why: 牛顿–莱布尼茨定理前提是被积函数在整个区间上连续（无无穷断点）
+          explain: |
+            代端点公式前永远瞄一眼区间里外有没有分母变零的无穷断点（瑕点）！
+
+  # ==== 不定积分 ====
+  - id: antiderivative
+    chapter: 不定积分
+    title: 从导数倒查原函数家族与基础不定积分公式
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            函数 $F_1(x) = x^2$ 和 $F_2(x) = x^2 + 100$ 在图像上只差了一段垂直平移的常数 `100`。把它们俩分别求导之后，导数 $F_1'(x)$ 和 $F_2'(x)$ 会有什么不同吗？
+          options:
+            - text: 完全相同！两者求导都是 $2x$——因为常数 `100` 求导是 `0`，所以求导能找出同一个目标导数的函数有带任意常数 `+ C` 的一整大家子！
+              correct: true
+            - text: 图像更高的那个斜率一定陡 100 倍
+              why: 整体垂直上移不改变曲线上任何一点的切线斜率
+            - text: $F_2'(x)$ 等于 $2x + 100$
+              why: 任何固定常数的瞬时变化率（导数）恒等于 $0$
+          explain: |
+            因为导数为 $f(x)$ 的函数只差一个任意常数 $C$，我们把所有原函数合起来写成**不定积分** $\int f(x)\,dx = F(x) + C$！
+      - card:
+          title: 原函数与常用不定积分公式速查表
+          body: |
+            若 $F'(x) = f(x)$，称 $F(x)$ 为 $f(x)$ 的一个**原函数（antiderivative）**，全部原函数家族记作 $\int f(x)\,dx = F(x) + C$。熟记几条从 $M.1.2$ 求导倒推回来的基本公式（做完题随时再求一次导就能 100% 自检对错！）：
+            1. **幂函数法则**：当 $n \neq -1$ 时，$\int x^n\,dx = \frac{x^{n+1}}{n+1} + C$；
+            2. **特例 $n = -1$（千万别套进除零分母里！）**：$\int \frac{1}{x}\,dx = \ln|x| + C$（加绝对值覆盖负数区间！）；
+            3. **指数与三角**：$\int e^x\,dx = e^x + C$，$\int \cos x\,dx = \sin x + C$，$\int \sin x\,dx = -\cos x + C$。
+      - item:
+          id: antideriv-power-x3
+          type: choice
+          prompt: |
+            运用逆幂法则求出不定积分 $\int x^3\,dx$ 等于什么？
+          options:
+            - text: '$\frac{x^4}{4} + C$'
+              correct: true
+            - text: '$3x^2 + C$'
+              why: $3x^2$ 是对 $x^3$ 往前求导的结果，而不是倒查出来的原函数！求完记得再求导验证一次
+            - text: '$\frac{x^4}{4}$'
+              why: 不定积分必须加上代表整族原函数的任意常数 $+ C$
+          explain: |
+            算完再心算求一次导：$(\frac{x^4}{4} + C)' = x^3$，完美吻合。
+      - item:
+          id: antideriv-1-over-x
+          type: choice
+          prompt: |
+            对 $\int \frac{1}{x}\,dx$（即 $n = -1$ 的情形），为什么不能套用幂积分公式 $\frac{x^{n+1}}{n+1}$？它的正确答案是什么？
+          options:
+            - text: '$n=-1$ 时公式分母 $n+1=0$ 非法；$1/x$ 在正负两半侧的真正原函数是 $\ln|x| + C$'
+              correct: true
+            - text: 照样可以写成 $\frac{x^0}{0} + C$
+              why: 分母绝不允许出现 $0$
+            - text: 结果是 $e^x + C$
+              why: $(e^x)' = e^x$ 而不是 $1/x$
+          explain: |
+            $\ln|x|$ 当 $x>0$ 和 $x<0$ 时求导结果全部都是 $1/x$，绝对值 $|x|$ 让定义域完整涵盖非零全实数。
+      - item:
+          id: antideriv-formulas-match
+          type: match
+          prompt: |
+            靠“心算反向求导”把常见被积函数与其不定积分原函数连起来。
+          pairs:
+            - ["$\\int \\cos x\\,dx$", "$\\sin x + C$"]
+            - ["$\\int \\sin x\\,dx$", "$-\\cos x + C$"]
+            - ["$\\int e^x\\,dx$", "$e^x + C$"]
+            - ["$\\int x^{-1}\\,dx$", "$\\ln|x| + C$"]
+          explain: |
+            三角正余弦积分正负号最易反，每次写完花半秒求导检查就能 100% 不掉坑。
+      - item:
+          id: init-cond-find-c
+          type: number
+          prompt: |
+            已知曲线每点切线斜率满足 $F'(x) = 2x$，且曲线经过固定点 $(0, 5)$（即 $F(0) = 5$）。从整族原函数 $F(x) = x^2 + C$ 中确定常数后，$F(3)$ 的值是多少？
+          answer: 14
+          hint: '先代入 $F(0) = 0^2 + C = 5$ 算出 $C = 5$，再计算 $F(3) = 3^2 + 5$。'
+          explain: |
+            任意常数 $C$ 在给定一个初值点（如 $F(0)=5$）后就能唯一确定下来：$F(x) = x^2 + 5$，故 $F(3) = 14$。
+
+  - id: integration-by-parts
+    chapter: 不定积分
+    title: 分部积分法：把乘积求导反过来化简多项式与对数
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            遇到 $\int x\,e^x\,dx$ 时，前面多乘了个 $x$，既凑不出像 $2x \cdot e^{x^2}$ 那样的换元结构，又不能瞎猜等于两项分别积分相乘！回忆 $M.1.2$ 学过的**乘积求导法则** $(u\cdot v)' = u'v + u v'$，能否把它反过来移项变成算积分的帮手？
+          options:
+            - text: 能！两边积分移项得 $\int u\,dv = uv - \int v\,du$：挑走会求导越变越简单的 $u=x$，一次就把前面的 $x$ 降成常数 `1` 消掉！
+              correct: true
+            - text: 直接分别积完再乘起来得到 $\frac{x^2}{2}\cdot e^x + C$
+              why: 对乘积求导会有交叉两项，绝对不能“积分的乘积等于乘积的积分”！
+            - text: 这个积分绝对永远写不出基本函数公式原函数
+              why: 只需用分部积分一次立刻得到干净解析式 $(x-1)e^x + C$
+          explain: |
+            **分部积分（Integration by Parts）**就是把“乘积求导公式”移个项，把难算的 $\int u\,dv$ 甩给更好算的 $\int v\,du$！
+      - card:
+          title: 分部积分公式与挑 $u$ 口诀
+          body: |
+            由乘积求导公式 $(uv)' = u'v + u v'$ 两边积分整理，立刻得到**分部积分（integration by parts）**公式：
+            $$\int u\,dv = uv - \int v\,du$$
+            **口诀挑 $u$（优先把难缠或求导变简单的给 $u$）**：对数函数（$\ln x$） > 反三角函数（如 $\arcsin x$） > 幂多项式（$x, x^2$） > 三角/指数函数（放进 $dv$ 积分不变复杂）。
+          reveal:
+            - title: 例题：分部积分算 $\int x\,e^x\,dx$
+              body: |
+                1. 选 $u = x$（求导直接变成 $du = dx$，彻底消去 $x$！），剩下的 $dv = e^x\,dx$（积分得 $v = e^x$）；
+                2. 套入公式：$\int x\,e^x\,dx = x e^x - \int e^x\,dx = x e^x - e^x + C = (x - 1)e^x + C$；
+                3. 求导验算：$((x-1)e^x)' = 1\cdot e^x + (x-1)e^x = x\,e^x$，丝毫不差！
+            - title: 小技巧：单独一个 $\int \ln x\,dx$ 怎么分部？
+              body: |
+                直接看成 $\int (\ln x)\cdot 1\,dx$：令 $u = \ln x$（求导变简单成 $\frac{1}{x}dx$！），$dv = 1\,dx \Rightarrow v = x$，一秒得 $x\ln x - \int x \cdot \frac{1}{x}\,dx = x\ln x - x + C$！
+      - item:
+          id: parts-x-cosx-pick
+          type: choice
+          prompt: |
+            用分部积分计算 $\int x\cos x\,dx$ 时，令 $u = x$（对应 $dv = \cos x\,dx$），应该选哪一项作为 $v$？
+          options:
+            - text: '$v = \sin x$'
+              correct: true
+            - text: '$v = -\sin x$'
+              why: $(-\sin x)' = -\cos x$ 差了负号，注意这里是“从 $\cos x$ 倒找原函数 $v$”
+            - text: '$v = x$'
+              why: 剩下的 $dv$ 是 $\cos x\,dx$，求原函数得到 $\sin x$
+          explain: |
+            $dv = \cos x\,dx \Rightarrow v = \sin x$，再代公式得 $x\sin x - \int \sin x\,dx = x\sin x + \cos x + C$！
+      - item:
+          id: parts-xex-c4
+          type: choice
+          prompt: |
+            以下哪一项是不定积分 $\int x\,e^x\,dx$ 的正确答案？
+          options:
+            - text: '$(x - 1)e^x + C$'
+              correct: true
+            - text: '$x\,e^x + C$'
+              why: 对 $x\,e^x$ 求导等于 $e^x + x e^x$，多出来一项 $e^x$ 没有减去
+            - text: '$\frac{x^2}{2}e^x + C$'
+              why: 乘积不能分开各自积分再相乘
+          explain: |
+            牢记分部积分公式减掉余项 $\int v\,du$，结果 $(x-1)e^x + C$ 求导恰回 $x e^x$。
+      - item:
+          id: parts-lnx-choice
+          type: choice
+          prompt: |
+            用分部积分法把 $\int \ln x\,dx$ 写成 $\int (\ln x)\cdot 1\,dx$ 时，挑哪一部分作为 $u$ 才能一步消掉 $\ln$ 变简单？
+          options:
+            - text: 令 $u = \ln x$、$dv = 1\,dx$（因为 $(\ln x)' = 1/x$，与 $v = x$ 相乘后只剩 $\int 1\,dx$，得 $x\ln x - x + C$）
+              correct: true
+            - text: '令 $u = 1$、$dv = \ln x\,dx$'
+              why: 这就又变回原问题求 $\ln x$ 的原函数，完全没化简！
+            - text: '直接写成 $\frac{1}{x} + C$'
+              why: $1/x$ 是 $\ln x$ 的导数，不是它的原函数！
+          explain: |
+            记住“**基本积分表里没有直接给出的 $\ln x$ 原函数公式，就丢给 $u$ 让它求导变成 $1/x$**”，瞬间迎刃而解。
+      - item:
+          id: parts-choice-match
+          type: match
+          prompt: |
+            遇到以下乘积结构积分时，分别适合用换元还是分部积分（以及怎样挑 $u$）？
+          pairs:
+            - ["$\\int x\\,e^x\\,dx$", "分部积分，令 u = x 降掉一次幂后消去乘积因子"]
+            - ["$\\int 2x\\,e^{x^2}\\,dx$", "直接凑微分换元，令 u = x²（du = 2x dx）一步出 e^(x²)"]
+            - ["$\\int \\ln x\\,dx$", "分部积分，令 u = ln x、dv = dx，利用求导消掉对数"]
+          explain: |
+            见到里层导数正好在外面乘着（如 $2x$ 陪 $x^2$）优先凑微分换元；遇到两类不同函数相乘（$x$ 配 $e^x$ 或 $\sin x$）用分部积分！
+
+boss:
+  items:
+    - id: boss-riemann-right
+      type: number
+      prompt: |
+        在区间 $[0, 2]$ 上把函数 $f(x) = x^2$ 等分成 $2$ 段（每段宽 $1$），用每段**右端点**的函数值作矩形高度估算黎曼和，总和是多少？
+      answer: 5
+      explain: |
+        两段右端点分别为 $1$ 和 $2$，面积之和 $= 1^2\times 1 + 2^2\times 1 = 5$。
+    - id: boss-signed-vs-total
+      type: number
+      prompt: |
+        连续函数在区间 $[a, b]$ 上位于横轴上方的区域几何面积是 $7$，位于横轴下方的区域几何面积是 $3$。该区间上的定积分 $\int_a^b f(x)\,dx$（带符号净面积）是多少？
+      answer: 4
+      explain: |
+        轴上记正 $+7$、轴下记负 $-3$，定积分 $= 7 - 3 = 4$。
+    - id: boss-parts-c4
+      type: choice
+      prompt: |
+        以下哪一项是不定积分 $\int x\,e^x\,dx$ 的正确计算结果？
+      options:
+        - text: '$(x - 1)e^x + C$'
+          correct: true
+        - text: '$x\,e^x + C$'
+          why: 求导后为 $e^x + x e^x$，漏减去了 $\int e^x\,dx$
+        - text: '$\frac{x^2}{2}e^x + C$'
+          why: 积分不可对乘积两项各自单独积完再硬乘
+        - text: '$(x + 1)e^x + C$'
+          why: 求导得 $(x + 2)e^x$，符号加反了
+      explain: |
+        分部积分 $uv - \int v\,du = x e^x - e^x + C = (x-1)e^x + C$。
+    - id: boss-sub-c4
+      type: choice
+      prompt: |
+        用换元法计算 $\int \frac{2x}{1 + x^2}\,dx$ 的结果是？
+      options:
+        - text: '$\ln(1 + x^2) + C$'
+          correct: true
+        - text: '$\ln(2x) + C$'
+          why: 换元令 $u = 1 + x^2$，分子 $2x\,dx$ 凑进 $du$，最后替回 $x$ 得 $1 + x^2$
+        - text: '$\frac{1}{(1+x^2)^2} + C$'
+          why: 积分后的是 $\int \frac{1}{u}\,du = \ln|u|+C$，不是幂升负二
+        - text: '$2x\ln(1+x^2) + C$'
+          why: $2x\,dx$ 已经化作 $du$，不能在结果外再乘一次 $2x$
+      explain: |
+        换元令 $u = 1 + x^2 > 0$，得 $\ln(1 + x^2) + C$。
+    - id: boss-sine-ftc-c4
+      type: number
+      prompt: |
+        用牛顿–莱布尼茨公式计算 $\int_0^\pi \sin x\,dx$，其精确结果（也是曲线在 $[0, \pi]$ 下的几何面积）是多少？
+      answer: 2
+      explain: |
+        $\big[-\cos x\big]_0^\pi = -(-1) - (-1) = 2$。
+    - id: boss-variable-upper-c4
+      type: choice
+      prompt: |
+        设 $F(x) = \int_0^{x^2} e^{-t^2}\,dt$，求导数 $F'(x)$ 应为？
+      options:
+        - text: '$2x\,e^{-x^4}$'
+          correct: true
+        - text: '$e^{-x^4}$'
+          why: 忘记按链式法则乘以上限 $u=x^2$ 对 $x$ 的导数 $2x$
+        - text: '$e^{-x^2}$'
+          why: 代入 $t = x^2$ 后应得 $(x^2)^2 = x^4$，并且还要乘 $2x$
+        - text: '$2x\,e^{x^4}$'
+          why: 被积函数指数里的负号保持不变，为 $-x^4$
+      explain: |
+        微积分基本定理 + 链式法则：$F'(x) = e^{-(x^2)^2}\cdot (x^2)' = 2x\,e^{-x^4}$。
+    - id: boss-improper-c4
+      type: choice
+      prompt: |
+        对比下面三个反常积分：① $\int_1^\infty \frac{1}{x^2}\,dx$；② $\int_1^\infty \frac{1}{x}\,dx$；③ $\int_0^1 \frac{1}{\sqrt{x}}\,dx$。收敛情况正确的是？
+      options:
+        - text: ① 收敛（值为 1），② 发散（到 $+\infty$），③ 收敛（值为 2）
+          correct: true
+        - text: 全部三个都发散到无穷大，一个都不收敛
+          why: ① 衰减够快收敛到 1，③ 在 0 处瑕点增长缓慢收敛到 2
+        - text: ① 发散，② 收敛到 1，③ 发散
+          why: 正好把 $\int_1^\infty 1/x^2$（收敛）与 $\int_1^\infty 1/x$（同调和级数 $1/n$ 一样缓慢衰减而发散）写反了
+        - text: ① 和 ② 都收敛到 1
+          why: $\int_1^B 1/x\,dx = \ln B \to +\infty$ 发散
+      explain: |
+        ① 值为 `1`、② $\ln B \to \infty$ 发散、③ $2\sqrt{x}|_0^1 = 2$ 瑕积分收敛——彻底掌握两类反常积分标杆！
+    - id: boss-comparison-tail
+      type: choice
+      prompt: |
+        已知对于所有 $x \ge 1$，有 $0 \le e^{-x^2} \le e^{-x}$，且 $\int_1^\infty e^{-x}\,dx = e^{-1}$ 收敛。据此能立刻推出 $\int_1^\infty e^{-x^2}\,dx$ 怎样？
+      options:
+        - text: 必然收敛，且它的积分值也不大于 $e^{-1}$
+          correct: true
+        - text: 必然发散到无穷大
+          why: 被押在已知收敛非负上界函数底下的非负积分一定收敛
+        - text: 必定等于负数
+          why: 非负函数的积分只要收敛必然非负
+        - text: 必须先求得 $e^{-x^2}$ 的初等原函数才能知道是否收敛
+          why: 比较判别法最大的威力正是“不用求出初等原函数就能直接定收敛”
+      explain: |
+        后续学概率正态分布（$M.6.1$）时，全实轴正态曲线下面积之所以有限等于 1，背后靠的正是这个尾部比较收敛性质！

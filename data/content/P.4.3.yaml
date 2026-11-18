@@ -1,0 +1,2830 @@
+skill: P.4.3
+version: 2
+authors: [main-agent]
+brief:
+  why: |
+    会写单个类之后，更大的难题往往不是语法，而是“这段逻辑该放在哪个类里”“为什么改一个需求要改十个文件”“怎样在不连真实数据库的情况下测试代码”。软件设计与面向对象分析设计教你如何分配职责、用 UML 沟通结构与交互、设计稳定接口、遵守设计原则，并用经过验证的设计模式和重构手法把复杂代码改得清晰好维护。
+  outcomes:
+    - 用高内聚、低耦合与 GRASP 原则为类分配职责，并用领域驱动设计划清实体、值对象、聚合与限界上下文
+    - 读懂并画出类图、时序图、活动图与状态机图，说清关联、聚合、组合与下单失败回滚流程
+    - 用契约、依赖倒置与依赖注入把核心业务和数据库、外部接口隔离开，让单元测试不碰真库就能跑通
+    - 识别单一职责、开闭、里氏替换与接口隔离原则的违背，用策略、观察者、工厂、装饰器等模式解耦
+    - 认出六类常见代码坏味，并用对应的重构手法安全地改善已有代码结构
+terms:
+  - term: 设计思维
+    def: '从理解问题和干系人需求出发，提出多种候选方案并在约束下反复验证与取舍的思考方式'
+  - term: 内聚
+    def: '一个类或模块内部各部分代码围绕同一职责紧密协作的程度，内聚越高越容易看懂和修改'
+  - term: 耦合
+    def: '一个类或模块对另一个类内部细节的依赖程度，耦合越低，改一处越不容易牵连别处'
+  - term: 信息专家
+    def: 'GRASP 原则：把某项计算或职责分配给拥有完成它所需数据的那个类'
+  - term: 创建者
+    def: 'GRASP 原则：让负责包含、聚合或最先掌握初始化数据的类来负责创建目标对象'
+  - term: 控制器
+    def: 'GRASP 原则：在界面之外设立专门接收系统请求并协调业务流程的入口对象'
+  - term: 间接性
+    def: 'GRASP 原则：在两个原本直接耦合的类之间插入中间对象或接口，降低彼此牵连'
+  - term: 变化预防
+    def: 'GRASP 原则：识别未来最可能改动的地方，在它外面包一层稳定接口把变化挡在里面'
+  - term: 纯虚构
+    def: 'GRASP 原则：当领域概念都不适合承担某项技术职责时，专门虚构一个服务类来保持高内聚'
+  - term: 实体
+    def: '在领域模型里依靠唯一编号而非属性内容来区分身份、状态会随时间变化的对象'
+  - term: 值对象
+    def: '没有独立身份编号、只靠内部字段值判断是否相等且通常不可变的小对象，如金额和日期区间'
+  - term: 聚合
+    def: '把联系紧密的一组实体和值对象打包成一个整体单元，并由一个聚合根统一守住不变量'
+  - term: 限界上下文
+    def: '领域驱动设计中划定特定业务词典和模型生效范围的明确边界，边界内外同名概念含义可以不同'
+  - term: UML
+    def: '统一建模语言（Unified Modeling Language），一套用标准图形描述软件结构、交互和行为的图示法'
+  - term: 视图
+    def: '从某一个特定关注点（如静态类结构、运行时交互或部署环境）观察软件系统得到的模型侧面'
+  - term: 契约
+    def: '接口对调用方和实现方作出的明确约定，包含前置条件、后置条件、不变量与错误约定'
+  - term: 依赖倒置
+    def: '高层业务逻辑和底层实现细节都去依赖抽象接口，而不是高层直接依赖具体实现类'
+  - term: 依赖注入
+    def: '不让类在内部自己新建依赖对象，而是从外部通过构造函数或方法把实现传给它'
+  - term: 里氏替换
+    def: '任何使用父类或接口的地方，换成它的子类对象后都必须还能遵守原有契约正常工作'
+  - term: 单一职责原则
+    def: '一个类或模块应该只有一个引起它变化的原因，避免把多条无关变化线绑在一起'
+  - term: 开闭原则
+    def: '软件实体应该对扩展新功能开放、对修改已有稳定代码关闭'
+  - term: 接口隔离原则
+    def: '不要强迫类去实现它根本用不到的方法，宁可把臃肿大接口拆成几个专注的小接口'
+  - term: 设计模式
+    def: '前人在反复遇到的软件设计问题中总结出来的可复用解决方案模板与命名词汇'
+  - term: 策略模式
+    def: '把一组可以互换的算法分别包成实现同一接口的类，让主流程能在运行或组装时自由切换它们'
+  - term: 观察者模式
+    def: '让多个订阅方登记到被观察主题上，每当主题状态变化时自动循环通知所有订阅方'
+  - term: 工厂方法
+    def: '把创建具体对象的过程放进专门的工厂方法里，让子类或实现类决定实际构造哪一种对象'
+  - term: 抽象工厂
+    def: '提供一套能创建一整族彼此配套对象的接口，保证产出的组件互相兼容而不混搭'
+  - term: 建造者
+    def: '把复杂对象的构造过程拆成一步步配置方法，让同一个建造流程能产出不同配置的结果'
+  - term: 原型模式
+    def: '通过复制已有实例来生成新对象，避免重新走一遍代价高昂的初始化或构造细节'
+  - term: 单例模式
+    def: '保证某个类全局最多只有一个实例并提供统一访问点，但容易引入隐藏全局状态导致难测试'
+  - term: 适配器
+    def: '把一个现有类的接口转成调用方期待的另一种接口，让原本接口不合的类能协同工作'
+  - term: 外观模式
+    def: '为一堆复杂子系统提供一层简单统一的入口，让调用方不必直接面对零散细节'
+  - term: 代理模式
+    def: '提供一个与目标对象接口相同的替身，在真正调用前后加上权限校验、缓存或延迟加载'
+  - term: 装饰器
+    def: '把目标对象包在同样实现该接口的包装层里，一层层动态叠加新行为而不改原类'
+  - term: 桥接模式
+    def: '把抽象控制维度和底层实现维度拆成两条独立的类层次，用组合连接以免子类数量爆炸'
+  - term: 组合模式
+    def: '让单个叶子对象和装满子对象的容器实现同一个接口，使调用方能用统一方式处理整棵树'
+  - term: 享元模式
+    def: '把大量相似对象共有的不可变内部状态抽出来共享，只把各自不同的外部状态留在外面'
+  - term: 状态模式
+    def: '把对象在不同状态下的行为拆成独立状态类，让状态切换时自动改变对象的外在表现'
+  - term: 模板方法
+    def: '在父类里固定住算法的总体骨架步骤，把其中几步留给子类各自重写实现'
+  - term: 命令模式
+    def: '把一次请求动作打包成独立对象，方便排队执行、记录日志、撤销或重做'
+  - term: 责任链
+    def: '把多个处理对象串成一条链，请求沿着链依次传递，直到被某个节点处理或流到底'
+  - term: 备忘录
+    def: '在不暴露对象内部私有字段的前提下，把某一时刻的状态快照保存下来以便日后恢复'
+  - term: 中介者
+    def: '用一个中心协调对象接管多个组件之间的网状通信，让各组件只跟中介者打交道'
+  - term: 访问者
+    def: '在不改动原有稳定元素类的前提下，把针对各元素的新增操作集中放进独立访问者对象'
+  - term: 代码坏味
+    def: '代码虽然还能跑，但结构上透出重复、过长、高耦合等容易滋生缺陷和维护困难的警示信号'
+  - term: 重构
+    def: '在不改变软件外部可观察行为的前提下，通过小步调整内部代码结构来消除坏味、提高可读性'
+lessons:
+  # ==== 职责分配 ====
+  - id: design-context
+    chapter: 职责分配
+    title: 设计思维、上下文与高层/详细划分
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            接到一个新系统需求（比如做一个点餐 App）时，很多新手会立刻把整套系统的每个字段和几十个类的所有细节在纸上一次定死，直到画完才写第一行代码。这种做法最容易撞上什么问题？
+          options:
+            - text: 需求还没验证完就花大量精力锁死底层细节，一旦需求或技术假设有变，整份设计图全部作废
+              correct: true
+            - text: 只要纸上写得够细，实际编码时绝对不会遇到任何新问题
+              why: 真实写代码和给用户试用时总能暴露出最初想不到的边界与约束
+            - text: 应该干脆完全不做任何设计，直接写在一个文件里最稳妥
+              why: 没有任何职责划分会把逻辑糊成一团，关键在于控制设计的粒度与节奏
+          explain: |
+            好的设计既不是“零思考直接硬写”，也不是“写代码前把每行细节画死”。软件设计分层次、分上下文，也是一个围绕问题不断迭代验证的过程。
+      - card:
+          title: 什么是设计思维与设计的上下文
+          body: |
+            **设计思维（design thinking）**把设计看成带着约束解问题：先弄清谁在用、什么约束（时间、团队规模、已有系统、可靠性）最重要，再对比几个备选方案并做取舍。
+
+            设计不是孤立画画：业务规则、团队人手、部署环境和已有接口共同构成**设计的上下文**。同一套点餐业务，写给 3 人初创团队的简单单体，和写给 30 人多团队协作的模块划分，在边界粒度和部署复杂度上会截然不同。
+      - item:
+          id: context-constraint-choice
+          type: choice
+          prompt: |
+            某团队只有 3 个人，两周后就要上线第一版校园二手书交易工具，未来用户规模不确定。以下哪种设计思路最符合设计上下文的取舍？
+          options:
+            - text: 先划清订单、商品、用户这几个核心模块边界，用简单清晰的单体推进，把精力留给核心业务
+              correct: true
+            - text: 一上来先搭 12 个独立微服务和全套跨机房多活框架
+              why: 过度设计会耗尽 3 人两周的精力，超出了当前上下文的真实约束
+            - text: 把页面 HTML、SQL 语句、库存扣减全塞进一个 2000 行的函数里
+              why: 完全不划分边界会让后续改一点功能就牵连全文件
+          explain: |
+            设计思维要求匹配上下文约束：在时间和人力有限时，先用干净的模块边界保证好改，比盲目堆重型设施更有价值。
+      - card:
+          title: 高层设计 vs 详细设计，重量级 vs 轻量级
+          body: |
+            SWEBOK 把设计过程分成两层，Cornell CS 5150 也强调按风险挑粒度：
+          reveal:
+            - title: 第 1 步：高层设计（架构 / 概要设计）
+              body: |
+                先把需求拆成几个大组件和它们之间的公开接口（比如“订单服务”“库存模块”“支付网关”），关心职责怎么切、数据往哪流，不急着定具体循环怎么写。
+            - title: 第 2 步：详细设计（类与方法级）
+              body: |
+                把每个组件内部细化成具体的类、方法签名、不变量和异常处理，准备交给编码和测试。
+            - title: 第 3 步：重量级 vs 轻量级设计
+              body: |
+                航空航天等高危系统常用**重量级设计**（前期大文档评审全签字）；日常迭代软件多用**轻量级设计**（先画关键草图与接口，边实现边验证演化）。
+      - item:
+          id: high-vs-detailed
+          type: match
+          prompt: |
+            把不同设计任务和它们所属的设计阶段或风格连起来。
+          pairs:
+            - ["划分“点餐、支付、配送”三大模块及对外接口", "高层设计（概要设计）"]
+            - ["确定 Order 类有哪些字段和 add_item 方法签名", "详细设计"]
+            - ["先搭关键接口并用原型试跑，随需求迭代调整", "轻量级设计"]
+            - ["编码前编写完备规格书并逐级冻结评审", "重量级设计"]
+          explain: |
+            高层设计管模块与接口切分，详细设计管类内部实现；重量级适合变更代价极高的系统，轻量级适合需求持续演化的项目。
+      - item:
+          id: design-steps-order
+          type: order
+          prompt: |
+            按 Cornell CS 5150 推荐的程序设计步序，把做设计的常规流程排好序。
+          steps:
+            - "理解问题场景与系统边界（输入、输出、约束）"
+            - "识别关键概念与各自职责，画出高层模块和主要类"
+            - "理清类之间的关系、接口契约与主要交互流程"
+            - "落实到细节实现并对照原则检查耦合与可测试性"
+          explain: |
+            先定边界和概念职责，再定交互与接口，最后下沉到细节实现并检验设计质量。
+
+  - id: ownership
+    chapter: 职责分配
+    title: 找类与职责：高内聚、低耦合与信息专家
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            电商系统里有 `Order`（订单）、`OrderLine`（订单明细，存着单价和数量）和 `Product`（商品）。要写一个算单行小计 `subtotal` 的方法，猜猜把它放在哪个类里最合适？
+          options:
+            - text: 放在 OrderLine 里，因为单价和数量就在 OrderLine 自己手里
+              correct: true
+            - text: 放在全局工具类 OrderUtils 里，让它去扒 Order 和 OrderLine 的字段来算
+              why: 把计算和数据拆开会造出到处伸手拿字段的“贫血”对象和脆弱耦合
+            - text: 放在 User 用户类里，因为订单是用户下的
+              why: User 并不知道这条明细的单价和数量，放进 User 会让无关类背上多余依赖
+          explain: |
+            把数据和使用这份数据的行为放在一起，不仅顺理成章，还能减少类与类之间的牵连——这正是职责分配里最基础的思路。
+      - card:
+          title: 高内聚、低耦合与面向对象分析
+          body: |
+            评价一个类分得好不好，最看重两把尺子：
+            - **内聚（cohesion）**：类里面的方法是不是都在干同一件事。把“算税率、连数据库、发邮件”全塞进一个类，就是低内聚。
+            - **耦合（coupling）**：一个类有多依赖另一个类的内部实现。类 A 直接去翻类 B 的私有列表结构，就是高耦合。
+
+            面向对象设计常从需求文字里找**名词**作候选类（如 `Order`、`Item`）、找**动词**作候选方法，再筛掉同义词和纯辅助名词。
+      - item:
+          id: cohesion-coupling-spot
+          type: choice
+          prompt: |
+            某程序员写了一个 `InvoiceManager` 类，里面同时包含 `calculate_total()`、`format_pdf_bytes()`、`send_smtp_email()` 和 `save_to_sqlite()`。这段代码最明显违背了哪条准则？
+          options:
+            - text: 高内聚：把计费、排版、发邮件、存数据库四件毫无关系的事塞进了同一个类
+              correct: true
+            - text: 低内聚：一个类里方法个数不能超过两个
+              why: 内聚看的是“是不是围绕同一个职责”，不是死板限制方法数量
+            - text: 封装过多：应该把所有私有字段改成公开字典
+              why: 问题出在职责太杂（低内聚），改成公开字典只会进一步破坏封装并升高耦合
+          explain: |
+            好设计追求**高内聚、低耦合**：算总价、生成 PDF、发邮件和存库各自会因不同理由变化，应当拆到各自内聚的模块里。
+      - card:
+          title: 信息专家原则与分步算总价
+          body: |
+            **信息专家（Information Expert）**说：把职责交给拥有完成它所需数据的那个类。有时完成一个大任务需要几个类接力合作：
+          reveal:
+            - title: 第 1 步：OrderLine 自己算小计
+              body: |
+                `OrderLine` 自己握着 `qty` 和 `unit_price`，所以 `line.subtotal()` 由它自己算。
+            - title: 第 2 步：Order 汇总所有明细行
+              body: |
+                `Order` 握着所有 `lines`，于是 `order.total()` 只需逐行调用 `line.subtotal()` 并求和——`Order` 不用关心单价和数量怎么相乘。
+            - title: 第 3 步：Python 类语法小抄与可运行代码
+              body: |
+                Python 写类只需记住三点：`def __init__(self, ...)` 相当于 Java 构造函数，`self` 就是 `this`，建对象直接写 `OrderLine(...)` 不写 `new`：
+                ```python
+                class OrderLine:
+                    def __init__(self, name, qty, unit_price):
+                        self.name = name
+                        self.qty = qty
+                        self.unit_price = unit_price
+
+                    def subtotal(self):
+                        return self.qty * self.unit_price
+
+                class Order:
+                    def __init__(self, lines):
+                        self.lines = lines
+
+                    def total(self):
+                        return sum(line.subtotal() for line in self.lines)
+
+                order = Order([OrderLine("Pen", 3, 5), OrderLine("Book", 2, 30)])
+                print(order.total())
+                ```
+      - item:
+          id: expert-order-total
+          type: number
+          prompt: |
+            按信息专家原则，`OrderLine(name, qty, unit_price).subtotal()` 返回 `qty * unit_price`，`Order(lines).total()` 汇总所有行小计。如果 `Order` 包含 `("Pen", 3, 5)` 和 `("Book", 2, 30)` 两行明细，那么 `order.total()` 返回多少？
+          answer: 75
+          explain: |
+            第一行 `subtotal()` 为 `3 * 5 = 15`，第二行 `subtotal()` 为 `2 * 30 = 60`，`Order.total()` 汇总得 `15 + 60 = 75`。
+      - item:
+          id: noun-verb-filter
+          type: choice
+          prompt: |
+            阅读需求：“顾客在购物车里添加商品并结账，系统生成订单并保存交易流水。”按面向对象分析找候选类时，下面哪一项**最不适合**直接建成一个业务类？
+          options:
+            - text: “系统”——范围太大太笼统，几乎等价于整个程序本身
+              correct: true
+            - text: “购物车 Cart”——有明确的内部商品列表和增删行为
+              why: 购物车有清晰的状态和行为，是很自然的候选领域类
+            - text: “订单 Order”——保存下单明细、状态与总价计算
+              why: 订单是核心业务对象，适合建模成类
+          explain: |
+            做名词筛选时要淘汰像“系统”“程序”“软件”这种空泛名词，留下有明确状态和职责边界的实体。
+
+  - id: grasp-roles
+    chapter: 职责分配
+    title: GRASP 职责分配：创建者、控制器与变化预防
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            假设你的系统需要把订单保存成磁盘文件、或者调用第三方短信通道。业务领域里原本没有“订单仓库”或“短信适配器”这两个现实名词，但为了不让 `Order` 类自己去写数据库 SQL，你专门造了一个 `OrderRepository` 类。这种做法合理吗？
+          options:
+            - text: 很合理，专门虚构一个技术服务类来隔离外部存储，能保护 Order 保持高内聚
+              correct: true
+            - text: 不合理，所有类名必须严格出自用户的业务故事，不能造技术类
+              why: 工程里把领域对象和技术基础设施分开非常关键，不能让 Order 兼管写数据库
+            - text: 应该把 SQL 直接写进按钮点击事件里，这样类最少
+              why: 把 SQL 写进界面按钮会让界面、业务和数据库死死耦合在一起
+          explain: |
+            GRASP（通用职责分配软件模式）给出了一套比“看名词”更进一步的职责分工法则，帮你决定谁负责建对象、谁负责接请求，以及怎样把易变部分和技术细节隔离开。
+      - card:
+          title: 创建者与控制器：谁来造对象，谁来接请求
+          body: |
+            - **创建者（Creator）**：如果类 A 包含、聚合类 B，或者紧密使用 B 并掌握初始化 B 的数据，就由 A 来创建 B。例如 `Order` 包含 `OrderLine`，让 `order.add_item(name, qty, price)` 内部创建 `OrderLine`。
+            - **控制器（Controller）**：界面按钮不直接操作一堆领域对象，而是交给专门的**控制器**（如 `OrderController`）统一接收请求并转给服务层。
+      - card:
+          title: 间接性、变化预防与纯虚构
+          body: |
+            Cornell CS 5150 区分**应用/领域类**（贴近业务问题，如 `Order`）和**解决方案类**（为软件实现引入的辅助类，如 `Repository`）：
+          reveal:
+            - title: 变化预防（Protected Variations）
+              body: |
+                **变化预防（Protected Variations）**找出未来最可能变的点（比如换支付通道、换税率算法），在它外面包一层稳定接口，让变化不会扩散到调用方。
+            - title: 间接性（Indirection）
+              body: |
+                为了防止两个类直接死死绑在一起，在中间插一个协调或转接层，叫**间接性（Indirection）**（例如控制器、适配器）。
+            - title: 纯虚构（Pure Fabrication）
+              body: |
+                当没有哪个领域类适合承担“存数据库”“写日志”这类技术职责时，就人工捏造一个**纯虚构（Pure Fabrication）**服务类（如 `OrderRepository`），让领域类保持干净。
+      - item:
+          id: grasp-match
+          type: match
+          prompt: |
+            把具体的设计决定和它用到的 GRASP 职责分配原则配对。
+          pairs:
+            - ["由 Order.add_item() 负责新建 OrderLine 实例", "创建者（Creator）"]
+            - ["设立 OrderController 统一接住下单请求", "控制器（Controller）"]
+            - ["为易变的运费规则抽出一层 ShippingPolicy 接口", "变化预防（Protected Variations）"]
+            - ["虚构出 OrderRepository 专门负责存取数据库", "纯虚构（Pure Fabrication）"]
+          explain: |
+            记住各自解决的痛点：谁包含谁就负责创建（Creator）；界面不直连领域层靠 Controller；防波动加稳定接口（Protected Variations）；技术杂活放进 Pure Fabrication。
+      - item:
+          id: app-vs-solution-class
+          type: choice
+          prompt: |
+            在一个图书馆借阅程序里，有 `Book`、`Member`、`Loan`、`SqliteBookRepo`、`HttpServer` 五个类。按 CS 5150 的分类，哪一组属于**解决方案类**（为跑在电脑和网络上才引入的类）？
+          options:
+            - text: SqliteBookRepo 和 HttpServer
+              correct: true
+            - text: Book 和 Member
+              why: 图书和会员在没有电脑的传统图书馆里就已经存在，属于应用/领域类
+            - text: Loan 和 Book
+              why: 借阅记录和图书都是图书馆业务本身的核心领域概念
+          explain: |
+            领域/应用类来自问题本身（图书、会员、借阅）；解决方案类是为了在软件架构里落盘、联网、缓冲而引入的技术实现类。
+      - item:
+          id: creator-python-trace
+          type: number
+          prompt: |
+            如果 `Order` 按创建者原则提供 `add_item(price, qty)`，每调用一次就新建一个 `OrderLine` 存进 `self.lines`。对空订单连续调用 `order.add_item(12, 2)` 和 `order.add_item(5, 4)` 后，订单总金额是多少？
+          code: |
+            class OrderLine:
+                def __init__(self, price, qty):
+                    self.price = price
+                    self.qty = qty
+
+            class Order:
+                def __init__(self):
+                    self.lines = []
+
+                def add_item(self, price, qty):
+                    self.lines.append(OrderLine(price, qty))
+
+                def total(self):
+                    return sum(x.price * x.qty for x in self.lines)
+          lang: python
+          answer: 44
+          explain: |
+            `12 * 2 + 5 * 4 = 24 + 20 = 44`。
+      - item:
+          id: controller-benefit
+          type: choice
+          prompt: |
+            为什么不要把“校验库存、计算折扣、创建订单”直接写在桌面窗口的 `Button.on_click()` 里，而要交给一个独立控制器？
+          options:
+            - text: 界面层只负责展示和转交，业务逻辑脱离图形界面后还能被命令行、API 和单元测试直接复用
+              correct: true
+            - text: 因为按钮回调里不允许调用超过一个函数
+              why: 语法上没有任何限制，问题在于界面代码和业务逻辑混在一起难以测试与复用
+            - text: 因为控制器会自动加快 CPU 执行速度
+              why: 控制器解决的是分层解耦和可测试性，不是为了加速 CPU
+          explain: |
+            控制器把界面事件与业务编排隔开，同一套业务流程就能同时服务网页、手机端和自动化测试。
+
+  - id: domain-modeling
+    chapter: 职责分配
+    title: 领域驱动设计：实体、值对象、聚合与限界上下文
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            在一家电商公司里，下单部门说“商品”要有价格和库存，物流部门说“商品”只关心重量和长宽高，财务部门说“商品”只要税目编码。如果硬把这三个部门的需求全塞进同一个超级 `Product` 类里，猜猜会发生什么？
+          options:
+            - text: 这个 Product 类会膨胀成几十个字段，任何一个部门改需求都会波及另外两个部门
+              correct: true
+            - text: 会让三个部门的数据完美共享，永远不会产生冲突
+              why: 不同部门对同一词关注的规则和生命周期不同，强行合并会导致职责混乱和频繁冲突
+            - text: 面向对象语言禁止同一个名字在不同模块出现两次
+              why: 不同模块（或命名空间）完全可以各自定义贴合自己语境的类
+          explain: |
+            领域驱动设计（DDD）按不同业务语境划清各自模型的边界，并在边界内部用具有唯一身份的对象、不可变值对象以及打包守卫不变量的组合单元把模型管住。
+      - card:
+          title: 实体 vs 值对象，以及聚合守住不变量
+          body: |
+            - **实体（Entity）**：靠唯一 ID 区分身份。用户改了昵称还是同一个人（ID 没变），两个同名同姓的人是两个不同实体。
+            - **值对象（Value Object）**：没有 ID，只看字段值是否相等，通常**不可变**。两张 `Money(100, "CNY")` 完全等价，改金额就换一个新对象。
+            - **聚合（Aggregate）**：把强关联的实体和值对象打包成一个整体，选一个**聚合根**（如 `Order`）作为唯一外部入口，保证“订单总额必须等于明细之和”这类不变量绝不被外部绕过破坏。
+      - item:
+          id: vo-immutability
+          type: choice
+          prompt: |
+            在 Python 里用 `@dataclass(frozen=True)`（自动生成字段且禁止修改的不可变数据类）把 `Money(amount, currency)` 写成值对象。如果把 `m = Money(50, "CNY")` 传给折扣函数，下面哪项说法正确？
+          options:
+            - text: 折扣函数必须返回新的 Money 对象，不会意外改掉原来的 m
+              correct: true
+            - text: 不可变意味着无法用两个不同的 Money 对象做比较
+              why: 值对象天生按全部字段内容比较相等，Money(50, "CNY") == Money(50, "CNY") 为 True
+            - text: 因为没有唯一 ID，Money 无法作为字典里的字段或键使用
+              why: frozen=True 的不可变值对象天生可哈希、可安全放进字典或集合，恰恰适合当字典键或字段
+          explain: |
+            不可变值对象消除了“传出去就被悄悄改掉金额”的别名隐患，也更容易做单元测试。
+      - card:
+          title: 限界上下文与通用语言
+          body: |
+            一个系统大到一定规模，词的含义会在不同业务领域分化。划清一个模型适用边界的范围，就是**限界上下文（Bounded Context）**。
+
+            在“销售上下文”里，`Product` 关心标价与折扣；到了“物流上下文”，同名物品叫 `CargoItem`，只关心重量、体积与是否易碎。两个上下文之间通过明确接口或事件传需要的数据，不互相偷改对方内部模型。
+          reveal:
+            - title: 第 1 步：为什么不能共用一张“万能商品表”？
+              body: |
+                促销团队要加“满减券规则”，仓储团队要加“危险品冷链标记”，全塞进同一个 `Product` 类会导致两边改需求互相牵扯、测试也得全库准备十几种无关字段。
+            - title: 第 2 步：边界之间如何协作？
+              body: |
+                下单成功后，销售上下文只把 `{order_id, sku, qty}` 发给仓储上下文；仓储上下文根据 `sku` 查自己那份 `CargoItem(weight, bin_loc)`，两套模型各自保持简洁高内聚。
+      - item:
+          id: entity-vs-vo-match
+          type: match
+          prompt: |
+            判断下面四个业务概念最适合建模成**实体**、**值对象**、**聚合**还是**限界上下文**。
+          pairs:
+            - ["银行账户（依靠账号标识，余额随存取不断变化）", "实体（Entity）"]
+            - ["收件人位置或货币金额（字段相同即相等，不可变替换）", "值对象（Value Object）"]
+            - ["订单及订单明细（外部只能经订单改明细以守住总价一致）", "聚合（Aggregate）"]
+            - ["把“交易中的商品”和“仓储里的包裹物品”划开各自边界", "限界上下文（Bounded Context）"]
+          explain: |
+            有持续身份选实体；只看数值且不可变选值对象；需一起守住不变量选聚合；不同业务语境划清词义选限界上下文。
+      - item:
+          id: aggregate-rule
+          type: choice
+          prompt: |
+            已知 `Order`（订单）是包含 `OrderLine`（明细）的聚合，聚合要求保持“订单总价等于所有明细小计之和”且已付款订单不能增删明细。外部代码想要添加商品时，正确的做法是？
+          options:
+            - text: 调用聚合根的 order.add_line(...)，由 Order 先检查是否已付款，再更新明细和总价
+              correct: true
+            - text: 直接拿到 order.lines.append(...) 往列表里塞一行，省掉检查
+              why: 绕过聚合根直接改内部列表会破坏“已付款订单不可修改”和“总价同步”的不变量
+            - text: 把 OrderLine 设计成全局单例，所有订单共用同一份明细
+              why: 不同订单各自拥有自己的明细，混用会串单
+          explain: |
+            聚合根是外部唯一能调用的入口大门，所有业务不变量都在聚合根方法里统一把关。
+      - item:
+          id: bounded-context-why
+          type: choice
+          prompt: |
+            为什么在较大规模的企业系统里，不推荐全公司所有子系统都共用同一张、同一套 80 个字段的超级 `User` 类？
+          options:
+            - text: 登录认证、人事薪资、客服工单关注的属性和规则完全不同，按限界上下文拆开能避免牵一发动全身
+              correct: true
+            - text: 因为编程语言不支持一个类有超过 20 个字段
+              why: 语言允许写很多字段，问题是维护和跨团队耦合代价太高
+            - text: 因为拆成多个上下文后就不需要任何唯一用户编号了
+              why: 各上下文仍可通过用户 ID 关联，只是各自只保留自己关心的属性和行为
+          explain: |
+            **限界上下文**让每个团队只维护自己领域里干净精准的模型，靠 ID 和清晰契约跨边界协作。
+
+  - id: design-loop
+    chapter: 职责分配
+    title: 从分析走向最终设计的迭代闭环
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            画完了第一版类和职责分配草图，接下来怎么知道这份设计是不是足够好了？猜猜 CS 5150 建议怎么推进到最终设计？
+          options:
+            - text: 拿关键场景（如下单、退货）沿着草图从头走到尾，检查有没有类太胖、接口太啰嗦或循环依赖，再迭代调整
+              correct: true
+            - text: 只要每个名词都有了对应的类，哪怕类之间互指一团也不用检查
+              why: 初步类图常常漏掉交互边界或把职责放错位置，必须拿真实场景走查
+            - text: 等全部代码都上线一年以后再第一次检查设计
+              why: 越晚发现结构错误，修改成本越高；画图和写核心原型时就应走查
+          explain: |
+            设计不是一次性拍脑袋画完就交差，而是“建模 → 场景走查 → 查耦合内聚 → 调整简化”的闭环。
+      - card:
+          title: 走向最终设计的走查清单
+          body: |
+            拿到初版设计后，用下面四问做一轮“干跑”检查：
+          reveal:
+            - title: 第 1 步：核心用例走得通吗？
+              body: |
+                挑 2–3 条最关键的场景（正常流程 + 失败分支），看每一跳分别是谁调谁、参数里需要的信息拿得到吗。
+            - title: 第 2 步：有没有“上帝类”或“数据袋子”？
+              body: |
+                是不是所有逻辑全堆在 `Manager` 一个类里，而 `Order` 只有 getter/setter？把属于数据的行为还给信息专家。
+            - title: 第 3 步：依赖方向有没有打架（循环依赖）？
+              body: |
+                模块 A 依赖 B，B 又反过来依赖 A，往往说明职责边界没切清，可以抽出第三个接口或用回调解开。
+            - title: 第 4 步：难测的部分能替换掉吗？
+              body: |
+                涉及真数据库、真时间或第三方 HTTP 调用的地方，有没有留出接口让测试时换上假实现。
+      - item:
+          id: god-class-fix
+          type: choice
+          prompt: |
+            走查初版设计时，发现 `CheckoutService` 有 600 行，既负责算优惠券金额，又负责扣库存、拼物流单号；而 `Cart` 类里只有几个字段没有任何方法。最合理的调整方向是？
+          options:
+            - text: 把只依赖购物车自身商品的算价和校验移回 Cart（信息专家），让 CheckoutService 专注协调流程
+              correct: true
+            - text: 把 Cart 类也删掉，所有字段全部搬进 CheckoutService
+              why: 这样只会造出更大的上帝类，完全丧失面向对象封装
+            - text: 给 Cart 加上十几个空方法和 setter，保持 CheckoutService 不动
+              why: 空壳方法不能分担真实计算职责，问题依然存在
+          explain: |
+            消除“上帝类 + 贫血数据类”的关键，是把紧贴数据的业务计算交还给数据所在的领域类，服务类只做跨对象编排。
+      - item:
+          id: circular-dep-choice
+          type: choice
+          prompt: |
+            如果发现模块 `Orders` 导入了 `Payments`，而 `Payments` 又反过来导入了 `Orders` 的具体类，这种互相依赖会带来什么麻烦？
+          options:
+            - text: 两个模块绑死在一起，改一个可能破坏另一个，也无法单独测试或独立编译复用
+              correct: true
+            - text: 程序运行速度会变慢一倍
+              why: 循环依赖主要伤害的是模块化、可测试性和维护性，而不是单次算术速度
+            - text: 没有任何麻烦，说明两个模块关系非常紧密友好
+              why: 模块之间应该尽量形成无环的分层或依赖接口，双向耦合是设计警报
+          explain: |
+            通过抽取抽象接口或事件通知，可以把双向死结拆成单向清晰依赖。
+      - item:
+          id: walkthrough-priority
+          type: choice
+          prompt: |
+            在设计走查阶段，用“场景演练（比如模拟支付失败时订单和库存怎么办）”比光盯着静态类清单有什么优势？
+          options:
+            - text: 能提前暴露缺少的方法参数、忘记释放的资源或谁负责协调失败分支等动态漏洞
+              correct: true
+            - text: 可以不用编写任何单元测试
+              why: 设计走查能减少结构返工，但依然需要自动化测试验证代码行为
+            - text: 能自动生成最终数据库的索引参数
+              why: 场景走查检查的是对象协作与接口契约，不会自动调优数据库索引
+          explain: |
+            静态名单只告诉你“有哪些角色”，带着正常与异常场景走一遍，才能看出协作链条是否缺环节。
+      - item:
+          id: design-loop-match
+          type: match
+          prompt: |
+            把设计走查发现的症状和对应调整方案配对。
+          pairs:
+            - ["一个 Service 包揽全部计算，领域类只有字段", "把贴近数据的计算移回领域类"]
+            - ["模块 A 和 B 互相 import 对方具体类", "抽出公共接口打破循环依赖"]
+            - ["单元测试时必须连真数据库才能跑", "为存储抽接口并从外部传入实现"]
+            - ["加一个新优惠规则要改好几个无关类", "检查职责边界，隔离变化点"]
+          explain: |
+            走查就是为了把结构问题留在改造成本最低的时候，靠小步调整让模型既好懂又好测。
+
+  # ==== UML ====
+  - id: uml-views
+    chapter: UML
+    title: 基于模型的设计与 UML 多视图选择
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            要向新同事讲清楚一个在线购票系统“有哪些核心类”“下单时消息按什么顺序飞”“一张订单会经历哪些状态”，用一张巨大无比的图纸把这三件事全画在一起合适吗？
+          options:
+            - text: 不合适，应该按关注点拆成几种不同的图视角（类图看结构、时序图看交互、状态图看生命周期）
+              correct: true
+            - text: 很合适，越多信息挤在同一张图里越专业
+              why: 把静态结构和动态时序混在一张图上会让线交叉成一团麻，谁都看不懂
+            - text: 不需要任何图，只把 100 个代码文件扔给新同事自己猜就行
+              why: 关键草图和模型能在几分钟内建立全局心智图景，成本远低于通读全部源码
+          explain: |
+            一栋大楼有平面图、水电图、外观效果图；软件设计也需要从不同角度分别画图来观察同一个系统，Unified Modeling Language 就是最通用的标准图示语言。
+      - card:
+          title: 基于模型的设计、视图与 UML 分类
+          body: |
+            **UML（Unified Modeling Language）**是一套画软件模型图的通用约定。每张图只从某一个角度观察系统，叫做一个**视图（view）**。
+
+            UML 主要分两大阵营：
+            - **结构视图（静态）**：系统里有哪些东西、谁包含谁（例如**类图**、组件图、部署图）。
+            - **行为视图（动态）**：运行起来后谁按顺序调谁、流程怎么分叉、状态怎么变（例如**时序图**、活动图、状态机图）。
+      - item:
+          id: uml-static-vs-dynamic
+          type: match
+          prompt: |
+            把常见设计问题和最适合用来回答它的 UML 图连起来。
+          pairs:
+            - ["系统里有哪些类，各自有哪些属性与继承关系？", "类图（结构视图）"]
+            - ["下单时 Controller、Service、支付依次怎样互发消息？", "时序图（行为视图）"]
+            - ["一张订单从待支付到已发货、已退款有哪些合法状态转换？", "状态机图（行为视图）"]
+            - ["请假审批业务流程里哪里并排跑、哪里分条件走？", "活动图（行为视图）"]
+          explain: |
+            类图看静态骨架；时序图看对象间按时间先后发的消息；状态机图看单个对象的状态迁移；活动图看工作流与并发分支。
+      - card:
+          title: 什么时候画、画到多细
+          body: |
+            Cornell CS 5150 提醒新手：别为了画满全部 14 种 UML 图而画图！按“草图（沟通）→ 蓝图（规格）→ 可执行代码”选最省力的程度：
+            - 和队友对齐职责：白板上画 10 分钟类图和关键场景时序图就够了。
+            - 复杂状态流转（比如支付状态机）：必须画出完整状态机图防止漏掉非法转换。
+            - 简单 getter/setter 和一目了然的小工具函数：直接写代码比画图更快更准。
+          reveal:
+            - title: 第 1 步：用同一功能对比该画哪几张图
+              body: |
+                做“借书预约”功能时：先画一张简明**类图**确认 `Member`、`Book`、`Reservation` 各自的字段；再画一张**时序图**看“无库存时排队预约”的消息先后；至于 `Reservation` 的“等待/已通知/已过期”状态，再用一张小**状态机图**防漏。
+            - title: 第 2 步：图画完就和代码一起演进
+              body: |
+                不要追求画全所有 14 种 UML 图——挑能最快澄清歧义的那 2–3 张，写代码时发现接口不对就同步顺手改草图。
+      - item:
+          id: uml-purpose-choice
+          type: choice
+          prompt: |
+            日常团队开发里，画 UML 图最主要的工程价值是什么？
+          options:
+            - text: 在写大段代码前用统一图形沟通核心结构、对齐接口并尽早发现协作漏洞
+              correct: true
+            - text: 规定必须把系统里每一个局部变量都画成标准图才能动工
+              why: 过度细碎的画图不仅浪费时间，代码一改图就过时
+            - text: 只要画了 UML 图，代码就会自己跑起来不需要写测试
+              why: 图是沟通与思考工具，依然需要编写实现和自动化测试
+          explain: |
+            画图是为思考和沟通服务：挑最能暴露风险和理清边界的 2–3 种图画清主干即可。
+      - item:
+          id: choose-view-deploy
+          type: choice
+          prompt: |
+            架构师想向运维同事展示“Web 前端跑在浏览器，API 服务跑在两台容器节点上，PostgreSQL 跑在独立数据库主机上”，应该选哪种静态视图？
+          options:
+            - text: 部署图（展示软件构件怎样映射到物理或虚拟机器节点）
+              correct: true
+            - text: 状态机图（展示单个对象的状态变化）
+              why: 状态机图看的是单个对象的状态转移，不描述服务器和网络节点部署
+            - text: 时序图（展示方法调用先后）
+              why: 时序图画的是消息调用时间线，不是物理节点与进程布局
+          explain: |
+            组件图看模块依赖边界，部署图看程序跑在哪些服务器或容器节点上——这也是后续学习软件架构时最常用的视角。
+      - item:
+          id: model-mismatch-trap
+          type: choice
+          prompt: |
+            小王在黑板上画了一张类图，却发现很难用它表达“第 1 步先锁库存，第 2 步调支付，第 3 步如果支付失败就释放库存”的时间顺序。他该换哪种图？
+          options:
+            - text: 换用时序图，沿着从上往下的时间轴画消息调用与失败分支
+              correct: true
+            - text: 在类图上给每条连线标上 100 个数字硬塞进去
+              why: 类图是静态结构图，硬塞调用时间顺序会非常混乱
+            - text: 换成部署图
+              why: 部署图画的是机器与容器拓扑，不画方法调用先后
+          explain: |
+            静态关系用类图，时间顺序和交互分支用时序图——选对视图，表达事半功倍。
+
+  - id: class-diagrams
+    chapter: UML
+    title: 类图与六种关系：关联、聚合、组合与依赖
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            类图里有两对经常被初学者搞混的包含关系：一个是“公司和员工”（公司解散了员工还在），另一个是“订单和订单明细”（订单删掉了它的明细行也就没意义了）。UML 里猜猜用什么来区分它们的强弱？
+          options:
+            - text: 用空心菱形（聚合）表示“松散拥有、可独立存在”，用实心菱形（组合）表示“生死绑定、部分随整体销毁”
+              correct: true
+            - text: 两边全画普通直线就行，面向对象里包含关系没有强弱之分
+              why: 生命周期是否绑定直接影响删除操作和谁该负责创建销毁（Creator），在设计上区别很大
+            - text: 公司和员工用虚线箭头，订单和明细用继承空心三角
+              why: 订单并不是一种特殊的订单明细（不是 is-a），不能用继承箭头
+          explain: |
+            类图是画得最多也最容易画错的图。这一课把类名框、可见性符号、`1..*` 多重性，以及六种常见关系线一次分清楚。
+      - card:
+          title: 读懂一个 UML 类框与可见性符号
+          body: |
+            UML 里一个类画成三格矩形：
+            1. 顶格：**类名**（斜体或带 `«interface»` 表示抽象/接口）。
+            2. 中格：**属性**，格式为 `可见性 名字 : 类型`，如 `- total : float`。
+            3. 底格：**方法**，格式为 `可见性 方法(参数) : 返回类型`，如 `+ pay(amount: float) : bool`。
+
+            可见性只有三个常用符号：`+` 代表公开（public），`-` 代表私有（private），`#` 代表受保护（protected，子类可用）。
+      - item:
+          id: uml-box-syntax
+          type: choice
+          prompt: |
+            在 UML 类框里写着 `- balance : int` 和 `+ deposit(n: int) : void`，它们分别代表什么？
+          options:
+            - text: balance 是私有整数属性（外部不能直接改），deposit 是公开方法且不返回值
+              correct: true
+            - text: balance 每次取款会减钱，deposit 每次存款会加钱
+              why: + 和 - 在 UML 类图里代表可见性（public/private），不是加减运算
+            - text: balance 是全局常量，deposit 是受保护方法
+              why: 受保护用 #，公开用 +，私有属性用 -
+          explain: |
+            记住这三个符号：`+` 公开、`-` 私有、`#` 受保护（对子类开放）。
+      - card:
+          title: 六种常见类关系与多重性
+          body: |
+            从弱到强记住六种箭头/连线（箭头永远指向被依赖、被实现或父类一端）：
+          reveal:
+            - title: 第 1 组：依赖 vs 关联 vs 多重性
+              body: |
+                - **依赖（虚线普通箭头 `..>`）**：临时用一下（比如方法参数里收了一个 `Formatter`）。
+                - **关联（实线 `—` 或 `—>`）**：长期持有字段引用（如 `Order` 持有一个 `Customer`）。线两端标 `1`、`0..1`、`1..*` 表示数量**多重性**（如一个订单对 `1..*` 个明细行）。
+            - title: 第 2 组：聚合（空心菱形）vs 组合（实心菱形）
+              body: |
+                - **聚合 `◇—`**：整体拥有部分，但部分可以脱离整体独立存活（如 `Team ◇— Player`）。
+                - **组合 `◆—`**：强拥有、生命周期绑定，整体没了部分跟着销毁（如 `Order ◆— OrderLine`）。
+            - title: 第 3 组：泛化继承（实线空心三角）vs 实现接口（虚线空心三角）
+              body: |
+                - **泛化 `—▷`**：子类继承父类（is-a），如 `Car —▷ Vehicle`。
+                - **实现 `..▷`**：类实现接口契约，如 `CsvFormatter ..▷ Formatter`。
+      - item:
+          id: uml-arrows-match
+          type: match
+          prompt: |
+            把六种业务关系和正确的 UML 类图画法配对。
+          pairs:
+            - ["CsvFormatter 实现 Formatter 接口", "虚线空心三角（实现 ..▷）"]
+            - ["Dog 继承 Animal 父类", "实线空心三角（泛化 —▷）"]
+            - ["House 与 Room（房子拆了房间就不存在）", "实心菱形（组合 ◆—）"]
+            - ["Playlist 与 Song（删掉歌单歌本身还在）", "空心菱形（聚合 ◇—）"]
+          explain: |
+            口诀：实线继承、虚线实现（空心三角）；实心组合强绑定、空心聚合可独立（菱形在整体一侧）。
+      - item:
+          id: multiplicity-read
+          type: choice
+          prompt: |
+            类图上 `Department` 一端标着 `1`，`Employee` 一端标着 `1..*`，两者之间连着实线。正确的读法是什么？
+          options:
+            - text: 每个部门至少有 1 名员工（1 到多个），每名员工属于 1 个部门
+              correct: true
+            - text: 每个部门恰好只能有 1 名员工
+              why: Employee 那一端写的是 1..*（1 个或多个），不是 1
+            - text: 部门可以有 0 名员工
+              why: 0 个或多个写作 0..*（或 *），1..* 表示至少 1 个
+          explain: |
+            读多重性看对方那头：站在 `Department` 看向 `Employee` 端是 `1..*`（1 到多）；反过来站在 `Employee` 看向 `Department` 端是 `1`。
+      - item:
+          id: dep-vs-assoc
+          type: choice
+          prompt: |
+            `ReportGenerator` 自己没有任何 `Printer` 字段，只在方法 `print_to(printer)` 里临时收进一个 `Printer` 调它的 `write()`。两者在类图里画成什么关系最贴切？
+          options:
+            - text: 从 ReportGenerator 指向 Printer 的虚线依赖箭头（..>）
+              correct: true
+            - text: 实心菱形组合，ReportGenerator 拥有 Printer 的生死
+              why: ReportGenerator 只是临时借用参数，并不持有更不销毁 Printer
+            - text: 实线空心三角泛化，ReportGenerator 是一种 Printer
+              why: 报表生成器和打印机不是“is-a”继承关系
+          explain: |
+            临时通过参数或局部变量用到另一个类，用最轻的虚线箭头（依赖）；长期保存成对象属性才画实线关联。
+
+  - id: sequence-diagrams
+    chapter: UML
+    title: 时序图与交互追踪：下单流程与失败回滚
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            在下单流程里，`OrderService` 先让 `Inventory` 预留了库存，接着让 `Payment` 扣款，结果扣款失败（余额不足）。如果 `OrderService` 只把错误直接抛给用户，忘了做一件事，猜猜会发生什么灾难？
+          options:
+            - text: 库存白白被锁死扣着不放，后面想买的顾客也买不到货
+              correct: true
+            - text: 库存会自动在 1 秒后自己恢复，不需要发消息释放
+              why: 除非明确写出补偿/释放调用或超时机制，已经预留的库存不会自己回滚
+            - text: 扣款会强行再扣一次直到成功为止
+              why: 余额不足重试依然失败，必须做失败补偿
+          explain: |
+            **时序图（Sequence Diagram）**专门沿着时间从上到下画对象之间的来回消息，特别擅长检查正常路径之外的**失败分支与补偿动作**。
+      - card:
+          title: 读懂时序图的生命线、同步调用与返回
+          body: |
+            时序图横向排开参与协作的对象（每个对象往下一条竖直虚线叫**生命线**），纵向从上往下表示时间推移：
+            - **实心箭头 `->`**：发送同步请求消息（比如 `reserve(items)`），调用方等待对方办完。
+            - **虚线箭头 `-->`**：返回结果（比如 `ok`、`orderId` 或失败原因）。
+            - **条件框 `alt`**：画出“如果成功走上面一格，如果失败走 `[else]` 下面一格”的分支。
+      - card:
+          title: 例题：下单时序与支付失败释放库存
+          body: |
+            用四个对象把下单正常路径和失败补偿画清楚：`OrderController`、`OrderService`、`Inventory`、`Payment`。
+          reveal:
+            - title: 第 1 步：入口请求与预留库存
+              body: |
+                1. `OrderController -> OrderService: placeOrder(cart)`
+                2. `OrderService -> Inventory: reserve(items)`
+                3. `Inventory --> OrderService: ok (reservation)`
+            - title: 第 2 步：尝试支付与成功分支 `[alt charge ok]`
+              body: |
+                4. `OrderService -> Payment: charge(amount)`
+                5. 若支付成功：`Payment --> OrderService: ok` → `OrderService -> Inventory: commit(reservation)` → `OrderService --> OrderController: orderId`。
+            - title: 第 3 步：失败补偿分支 `[else charge fails]` 与代码模拟
+              body: |
+                若支付失败：`Payment --> OrderService: fail` → `OrderService -> Inventory: release(reservation)`（把刚才预留的库存还回去！）→ `OrderService --> OrderController: error`。下面模拟一下状态：
+                ```python
+                class Inventory:
+                    def __init__(self, stock):
+                        self.stock = stock
+                        self.reserved = 0
+                    def reserve(self, n):
+                        if self.stock < n:
+                            return False
+                        self.stock -= n
+                        self.reserved += n
+                        return True
+                    def commit(self, n):
+                        self.reserved -= n
+                    def release(self, n):
+                        self.reserved -= n
+                        self.stock += n
+
+                inv = Inventory(10)
+                inv.reserve(3)
+                inv.release(3)
+                print(inv.stock, inv.reserved)
+                ```
+      - item:
+          id: seq-place-order
+          type: order
+          prompt: |
+            按“下单时支付失败并补偿”的正确时间先后，排列下面五条消息的顺序。
+          steps:
+            - "OrderController -> OrderService: placeOrder(cart)"
+            - "OrderService -> Inventory: reserve(items) 预留库存"
+            - "OrderService -> Payment: charge(amount) 发起扣款"
+            - "Payment --> OrderService: 返回支付失败"
+            - "OrderService -> Inventory: release(reservation) 释放预留库存并向上返回失败"
+          explain: |
+            只有先预留再扣款、发现扣款失败后立刻补偿释放预留库存，才能保证既不超卖也不永久锁死库存。
+      - item:
+          id: seq-alt-block
+          type: choice
+          prompt: |
+            在 UML 时序图里，用来表示“成功时执行这一段，失败时执行 `[else]` 另一段”的方框标签是什么？
+          options:
+            - text: alt（条件分支组合片段）
+              correct: true
+            - text: loop（循环片段）
+              why: loop 表示重复执行多次，条件二选一或多选一用的是 alt
+            - text: par（并发片段）
+              why: par 表示多段同时并发执行，条件分叉用 alt
+          explain: |
+            记住三个常用片段标签：`alt`（if/else 条件）、`opt`（可选 if）、`loop`（循环）。
+      - item:
+          id: seq-stock-num
+          type: number
+          prompt: |
+            假设 `Inventory` 初始可用库存 `stock = 10`：`reserve(n)` 把 `n` 件从 `stock` 挪到预留，`commit(n)` 确认发出（不回退），`release(n)` 把预留还回 `stock`。若用户 A 下单 `4` 件完成 `reserve(4)` 并支付成功执行 `commit(4)`；用户 B 下单 `3` 件完成 `reserve(3)` 后支付失败执行 `release(3)`。最后剩余可用库存 `stock` 是多少？
+          answer: 6
+          hint: A 买走 4 件正式提交扣减；B 预留的 3 件因为支付失败被 `release(3)` 加回去了。
+          explain: |
+            初始 `10` → A 预留并提交扣走 `4` 剩 `6` → B 预留 `3` 临时变 `3`，失败后 `release(3)` 还回 `3`，最终 `stock = 6`。
+      - item:
+          id: seq-why-controller-thin
+          type: choice
+          prompt: |
+            从上面时序图可以看出，`OrderController` 和 `Inventory` / `Payment` 之间为什么没有直接连箭头？
+          options:
+            - text: Controller 只负责转交请求给 OrderService，由 Service 统一编排库存、支付和失败补偿，职责更清楚
+              correct: true
+            - text: 因为时序图最多只允许画三个对象互相连线
+              why: 时序图可以画任意多个对象，不直连是刻意分层解耦的设计选择
+            - text: 因为 Controller 没有权限调用任何方法
+              why: Controller 是故意把多步业务编排与事务补偿交给应用层的 OrderService
+          explain: |
+            把跨模块协作和失败补偿收口到 `OrderService`，控制器只管协议转换和转发，未来加命令行或定时任务也能复用同一套编排。
+
+  - id: activity-state
+    chapter: UML
+    title: 活动图、状态机图与架构部署视角
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            一份订单有 `Created`（已创建）、`Paid`（已支付）、`Shipped`（已发货）、`Cancelled`（已取消）几种状态。某次写错代码，让“已发货”的订单还能被点“取消并发放全额退款”，或者让“已取消”的订单突然发货。怎样在写代码前把这类非法路径全部堵住？
+          options:
+            - text: 画出状态机图，写明每个状态只允许哪些事件触发转移，其余事件一律拒绝
+              correct: true
+            - text: 写一张长长的 if/else 列表，想到一个补一个
+              why: 零散的 if 很容易漏掉某种状态和事件的组合
+            - text: 只画静态类图，标出 status 字段是字符串就行
+              why: "静态类图只写 `status: str`，看不出状态之间哪些转移合法、哪些禁止"
+          explain: |
+            **状态机图**盯住“单个对象随事件怎么变状态”；**活动图**盯住“一条业务工作流怎么分叉和并行”；而组件图与部署图则是通往下一关“软件架构”的桥梁。
+      - card:
+          title: 活动图 vs 状态机图
+          body: |
+            两种行为图外观有点像（都有圆角矩形和箭头），但画的对象截然不同：
+            - **活动图（Activity Diagram）**：像升级版流程图，画**一个流程的一步步动作**，支持用粗横线（Fork/Join）画出“同时发通知和生成发票”这种并行步骤，还能用泳道按部门分栏。
+            - **状态机图（State Machine Diagram）**：只盯着**单个对象**（如订单、连接、电梯），标出它有限个稳定**状态**，以及 `事件 [守卫条件] / 动作` 触发的状态切换。
+      - item:
+          id: activity-vs-state-choice
+          type: choice
+          prompt: |
+            要描述“在打包发货时，仓库打印快递单与客服系统发发货通知同时并行进行，两件事都完成后才把包裹交给快递员”，应该选哪种图？
+          options:
+            - text: 活动图（用分叉 Fork 和汇合 Join 横条画出并行动作）
+              correct: true
+            - text: 状态机图（只描述单个快递单的生命周期）
+              why: 跨多个子步骤并行协同的业务工作流适合用活动图，而不是单对象状态机
+            - text: 类图（画出快递单类的属性）
+              why: 类图不表达动作先后和并行汇合
+          explain: |
+            活动图专门表达业务流程中的顺序、判断菱形、泳道分工与并发 Fork/Join。
+      - card:
+          title: 例题：写一个带守卫校验的订单状态机
+          body: |
+            把状态机图直接写成代码，就能用一条明确转移表把非法状态切换彻底拦住：
+          reveal:
+            - title: 第 1 步：列出允许的状态转移表
+              body: |
+                - `(Created, "pay") -> Paid`
+                - `(Created, "cancel") -> Cancelled`
+                - `(Paid, "ship") -> Shipped`
+                其余任何组合（如 `(Shipped, "cancel")`）全部报错拒绝！
+            - title: 第 2 步：在 Python 里用字典查表实现并运行
+              body: |
+                ```python
+                TRANSITIONS = {
+                    ("Created", "pay"): "Paid",
+                    ("Created", "cancel"): "Cancelled",
+                    ("Paid", "ship"): "Shipped",
+                }
+
+                def apply_event(state, event):
+                    if (state, event) not in TRANSITIONS:
+                        raise ValueError(f"illegal: {state} + {event}")
+                    return TRANSITIONS[(state, event)]
+
+                s = apply_event("Created", "pay")
+                s = apply_event(s, "ship")
+                print(s)
+                ```
+      - item:
+          id: state-machine-trace
+          type: choice
+          prompt: |
+            订单状态转移表只允许：`("Created", "pay") -> "Paid"`、`("Created", "cancel") -> "Cancelled"`、`("Paid", "ship") -> "Shipped"`，不在表里的组合一律抛出 `ValueError`。如果订单当前处于 `"Paid"` 状态，连续收到 `"ship"` 和 `"cancel"` 两个事件，结果会怎样？
+          options:
+            - text: 先变成 "Shipped"，接着收到 "cancel" 时因不在转移表里而抛出 ValueError 拒绝
+              correct: true
+            - text: 顺利从 "Shipped" 退回 "Cancelled"
+              why: 转移表里没有 ("Shipped", "cancel") 这一项，已发货不能直接取消
+            - text: 一开始收到 "ship" 就报错
+              why: ("Paid", "ship") 在转移表里，会正常切到 "Shipped"
+          explain: |
+            状态机把所有合法迁移显式写死：`"Paid" -> "Shipped"` 合法，而 `("Shipped", "cancel")` 未定义，直接被拦截。
+      - item:
+          id: arch-bridge-views
+          type: choice
+          prompt: |
+            在迈向软件架构时，除了类图和行为图，还需要哪两种视图来说明“代码怎样按大组件接口拆分”和“进程最终部署在哪些服务器上”？
+          options:
+            - text: 组件图（组件与提供/需求接口）和部署图（节点、容器与网络拓扑）
+              correct: true
+            - text: 活动图和类图就足以代替一切服务器部署拓扑
+              why: 活动图只看业务流程，类图偏重类内部细节，都看不到物理或云端部署节点
+            - text: 只需要状态机图就能看出数据库和 API 服务之间的网络边界
+              why: 状态机图只描述单个对象内部状态变化，不描述系统组件边界与部署
+          explain: |
+            组件图与部署图把“类级设计”抬升到“系统级模块边界与运行部署”，正好衔接下一阶段的软件架构。
+
+  # ==== 接口 ====
+  - id: api-contracts
+    chapter: 接口
+    title: 接口契约、不变量与 API 设计原则
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你写了一个支付接口 `charge(order_id, amount)` 给前端和定时任务调用。过了一个月，你觉得函数内部应该用 `cents`（分）而不是 `yuan`（元），于是悄悄改了参数含义，却没改接口名字也没有文档或校验。猜猜最先出什么事？
+          options:
+            - text: 所有传“元”的调用方会无声地少扣 100 倍金额，这种悄悄破坏约定的改动最难排查
+              correct: true
+            - text: 编译器一定能自动看出“元”和“分”的业务单位差别并帮你换算
+              why: int 或 float 类型看不出业务单位是元还是分，只有明确的接口契约才能防错
+            - text: 只要内部算法是对的，接口参数含义随时可以随便改
+              why: 接口是对外承诺的稳定边界，擅自破坏语义契约会害死所有调用方
+          explain: |
+            **接口**不只是一行函数签名，还包含调用前必须满足的条件、调用后保证的结果，以及错误怎么报——这就是**契约（contract）**。
+      - card:
+          title: 接口的三个契约要素与信息隐藏
+          body: |
+            好的接口隐藏内部实现细节，只把一份清楚的**契约（contract）**露在外面：
+            1. **前置条件（Precondition）**：调用前你必须满足什么（例如 `amount > 0`、`currency` 必须是 `"CNY"`）。
+            2. **后置条件（Postcondition）**：如果满足前置条件，返回时我保证做到什么（例如返回新余额且扣款后不变量 `balance >= 0` 成立）。
+            3. **错误约定**：不满足条件时明确抛什么异常或返回什么错误码，绝不悄悄返回看似正常的假值。
+      - item:
+          id: contract-pre-post
+          type: match
+          prompt: |
+            对银行取款方法 `withdraw(amount)`，把它的契约条款和对应类别连起来。
+          pairs:
+            - ["调用方传入的 amount 必须大于 0 且不超过当前余额", "前置条件"]
+            - ["方法返回后，新余额恰好等于旧余额减去 amount", "后置条件"]
+            - ["无论取款多少次，账户余额始终满足 balance >= 0", "不变量"]
+            - ["金额非法或余额不足时抛出 ValueError，不悄悄吞掉", "错误约定"]
+          explain: |
+            前置条件管输入要求，后置条件管输出保证，不变量管对象全生命周期始终成立，错误约定管违约怎么报。
+      - card:
+          title: API 设计原则：最小惊讶、向后兼容与隐藏细节
+          body: |
+            设计给别的模块或团队调用的 API 时，遵守四条实用准则：
+            - **小而专注**：只暴露调用方真正需要的操作，不要把内部 `sqlite_conn` 或私有字典漏在返回值里。
+            - **命名自解释**：把单位和含义写进名字或类型，如 `amount_cents: int` 比裸写 `amount` 安全得多。
+            - **参数校验尽早失败**：入口用清晰检查拦住非法输入，别把脏数据带进深层逻辑。
+            - **演进兼容**：需要加功能时优先加新可选参数或新接口，别偷偷改变旧参数单位。
+          reveal:
+            - title: 第 1 步：把隐含假设写进前置校验
+              body: |
+                不要只在注释里写“amount 必须为正”；直接在入口检查 `if amount <= 0: raise ValueError(...)`，让违约调用在第一行就暴露出来，不把负数余额污染到账本里。
+            - title: 第 2 步：把内部表示彻底藏在属性后
+              body: |
+                把 `_balance` 藏成私有属性，并用 `@property` 把 `balance` 方法暴露成“只读属性”（调用方能写 `acc.balance` 读取，却不能写 `acc.balance = 999` 直接绕过校验改值），就能守住 `balance >= 0` 的不变量。
+      - item:
+          id: api-leak-detail
+          type: choice
+          prompt: |
+            一个缓存模块 `Cache` 对外暴露了 `get(key)`、`put(key, val)` 和 `internal_dict()`（直接把底层存放数据的 dict 交出去）。哪一项指出了它的 API 设计隐患？
+          options:
+            - text: internal_dict() 泄露了内部存储结构，调用方一旦直接修改它就会破坏缓存不变量，以后也换不成别的实现
+              correct: true
+            - text: 应该连 get 和 put 也删掉，全部让调用方自己改 dict
+              why: 恰恰相反，应该隐藏内部 dict，只保留受控的 get/put 接口
+            - text: 因为 Python 字典不能作为返回值
+              why: 语法上可以返回，但在 API 设计上暴露内部可变容器会彻底破坏信息隐藏
+          explain: |
+            好的模块接口像一堵防火墙：后面想把进程里的普通字典换成 LRU 缓存或 Redis 时，只要契约不变，调用方一行都不用改。
+      - item:
+          id: api-design-error
+          type: choice
+          prompt: |
+            设计一个查询用户的接口 `find_user(user_id)`，找不到该用户时，哪种做法最符合清晰的 API 契约？
+          options:
+            - text: 在接口类型和文档里明确返回 None（Optional）或抛出 UserNotFoundError，让调用方不会把“找不到”误当成合法用户
+              correct: true
+            - text: 返回一个姓名叫 ""、id 为 -1 的假 User 对象
+              why: 魔数 -1 容易被调用方漏查并拿去发邮件或记账，埋下隐蔽 bug
+            - text: 随便返回数据库里的第一个用户凑数
+              why: 返回错误用户会直接造成严重数据串号事故
+          explain: |
+            用明确的类型（如 `Optional` / `None`）或具名异常标出“不存在”，比塞进 `-1` 等魔数安全得多。
+      - item:
+          id: contract-withdraw-check
+          type: number
+          prompt: |
+            下面按契约设计的 `Account` 类初始余额 `100`，先调用 `acc.withdraw(35)`，再尝试调用 `acc.withdraw(80)`（会触发异常被 `try/except` 接住），最后 `acc.balance` 是多少？
+          code: |
+            class Account:
+                def __init__(self, balance):
+                    assert balance >= 0
+                    self._balance = balance
+
+                @property
+                def balance(self):
+                    return self._balance
+
+                def withdraw(self, amount):
+                    if amount <= 0 or amount > self._balance:
+                        raise ValueError("invalid withdraw")
+                    self._balance -= amount
+          lang: python
+          answer: 65
+          explain: |
+            `withdraw(35)` 后余额变为 `65`；接着 `withdraw(80)` 因违背 `80 <= 65` 被前置条件检查直接拒绝，不变量得以守住，余额仍为 `65`。
+
+  - id: dependency-injection
+    chapter: 接口
+    title: 依赖倒置与依赖注入：把数据库换成假仓库
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            假如你写了一个算销售总额的 `ReportGenerator`，它在方法里直接 `import sqlite3` 并写死 `sqlite3.connect("prod.db")`。现在你想给计算逻辑写一个跑得飞快的单元测试，不用真建硬盘数据库文件，行得通吗？
+          options:
+            - text: 很难直接绕开，因为 ReportGenerator 把具体的 sqlite3 死死硬编码在里面了
+              correct: true
+            - text: 完全行得通，单元测试会自动跳过 sqlite3.connect 这行代码
+              why: Python 执行到 connect 就会真的去连或建数据库文件，不可能自己跳过
+            - text: 只要把文件改名叫 test.db 就不再是外部依赖了
+              why: 依然依赖硬盘 IO 和真数据库引擎，既慢又需要建表和清理测试文件
+          explain: |
+            高层业务类直接去构造具体的底层数据库或网络客户端，就会被底层绑死。把依赖方向反过来并从外部传入具体实现，就能解开这个死结。
+      - card:
+          title: 依赖倒置原则 DIP
+          body: |
+            以前是：`ReportGenerator`（高层业务）→ 直接依赖 `sqlite3`（底层细节）。一旦换成 PostgreSQL 或想测纯列表假数据，业务类就得改。
+
+            **依赖倒置（Dependency Inversion）**把箭头反过来：高层定义自己需要的抽象接口（例如 `SalesRepository`），让 `ReportGenerator` 和 `SqliteSalesRepository` **都去依赖这个抽象接口**！
+      - card:
+          title: 例题：用依赖注入给 ReportGenerator 换上假仓库
+          body: |
+            定好抽象接口后，别在 `ReportGenerator` 里面写 `SqliteSalesRepository()`，而是通过构造函数参数从外面传进去——这就叫**依赖注入（Dependency Injection）**。
+          reveal:
+            - title: 第 1 步：高层定义抽象接口 Protocol
+              body: |
+                Python 的 `Protocol` 相当于“结构化接口”：不用写 `implements`，只要类里实现了同名方法就算满足契约（空方法体用 `...` 占位，`list[Sale]` 表示元素为 `Sale` 的列表）。业务层只需一句 `all_sales() -> list[Sale]`，完全不提 SQLite。
+            - title: 第 2 步：生产实现 vs 测试用的纯数据假仓库 FakeRepo
+              body: |
+                `@dataclass` 自动帮 `Sale` 生成 `__init__`。生产环境传 `SqliteSalesRepository("prod.db")`；单元测试传 `FakeRepo([Sale(3), Sale(4)])`，不用建库文件就能毫秒跑完！
+            - title: 第 3 步：可运行的 Python 测试代码
+              body: |
+                ```python
+                from dataclasses import dataclass
+                from typing import Protocol
+
+                @dataclass
+                class Sale:
+                    amount: int
+
+                class SalesRepository(Protocol):
+                    def all_sales(self) -> list[Sale]: ...
+
+                class FakeRepo:
+                    def __init__(self, rows):
+                        self.rows = rows
+                    def all_sales(self):
+                        return self.rows
+
+                class ReportGenerator:
+                    def __init__(self, repo: SalesRepository):
+                        self.repo = repo
+                    def total_csv(self):
+                        total = sum(s.amount for s in self.repo.all_sales())
+                        return f"total,{total}"
+
+                print(ReportGenerator(FakeRepo([Sale(3), Sale(4)])).total_csv())
+                ```
+      - item:
+          id: di-test-output
+          type: text
+          prompt: |
+            用依赖注入改造 `ReportGenerator(repo)` 后，`FakeRepo(rows)` 的 `all_sales()` 直接返回预设列表 `[Sale(3), Sale(4)]`，`total_csv()` 计算总和并返回 `f"total,{total}"`。调用 `ReportGenerator(FakeRepo([Sale(3), Sale(4)])).total_csv()` 返回的字符串是什么？
+          answers: ["total,7"]
+          hint: 金额 `3` 和 `4` 相加后按 `f"total,{total}"` 拼接。
+          explain: |
+            `FakeRepo` 返回两条记录，求和 `3 + 4 = 7`，得到 `"total,7"`，全程没有碰任何真数据库文件。
+      - item:
+          id: dip-arrow-direction
+          type: choice
+          prompt: |
+            在遵守依赖倒置原则后，关于“业务层 `OrderService`”和“底层存储 `PostgresOrderRepo`”的依赖方向，哪项描述正确？
+          options:
+            - text: OrderService 依赖抽象的 OrderRepository 接口；PostgresOrderRepo 也依赖并实现同一个抽象接口
+              correct: true
+            - text: 抽象接口应该写在 PostgresOrderRepo 里，并且反向导入 OrderService
+              why: 抽象接口属于高层业务需要什么能力，不应由具体数据库驱动来决定
+            - text: OrderService 直接在 __init__ 里写 self.repo = PostgresOrderRepo()
+              why: 在内部自己 new 具体类会让高层重新死死绑定底层实现
+          explain: |
+            抽象接口放在业务需求方一侧，具体实现去适配这个接口，这就把“高层依赖底层”倒置成了“底层依赖高层的抽象”。
+      - item:
+          id: di-vs-dip-distinction
+          type: match
+          prompt: |
+            分清**依赖倒置**和**依赖注入**各自在解决什么问题。
+          pairs:
+            - ["依赖倒置（DIP）", "设计原则：规定高层和底层都面向抽象接口，不直接依赖具体类"]
+            - ["依赖注入（DI）", "实现手法：在构造函数或参数里从外部把依赖对象传进来，而不是内部自己新建"]
+            - ["FakeRepo / 测试替身", "按抽象接口写的纯数据列表假实现，用来不碰真库快跑单元测试"]
+          explain: |
+            DIP 是“依赖谁”的架构方向原则，DI 是“怎么把具体实现递给对象”的接线手法，两者配合让代码既解耦又好测。
+      - item:
+          id: di-pitfall-hidden
+          type: choice
+          prompt: |
+            下面哪种写法虽然用了 `SalesRepository` 名字，却**没有真正做到依赖注入**？
+          options:
+            - text: |
+                `def __init__(self): self.repo = SqliteSalesRepository("prod.db")`
+              correct: true
+            - text: |
+                `def __init__(self, repo: SalesRepository): self.repo = repo`
+              why: 从外部构造函数参数传入 repo 正是标准的构造器依赖注入
+            - text: 在主程序入口装配好 SqliteSalesRepository 再传给 ReportGenerator
+              why: 在程序最外层组装（组合根）再注入业务对象是正确做法
+          explain: |
+            在 `__init__` 里自己硬写死 `SqliteSalesRepository("prod.db")`，调用方和测试依然塞不进 `FakeRepo`。
+
+  - id: adapter-facade-proxy
+    chapter: 接口
+    title: 接口整理三剑客：适配器、外观与代理
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            买来的老款显示器只认 VGA 接口，新笔记本只有 Type-C 口；或者你想把一个特别啰嗦的 5 步视频转码库包成一个 `convert(file)` 方法。这两种需求用的分别是哪种结构型模式？
+          options:
+            - text: 转接口让双方对上口径是适配器；把多步复杂流程包成一个简明入口是外观
+              correct: true
+            - text: 两个都叫单例模式，因为都要创建一个转接对象
+              why: 单例只关心全局只有一个实例，不解决接口转换或简化子系统问题
+            - text: 两个都是继承模式，必须把显示器和笔记本合并成一个父类
+              why: 老库和硬件接口往往无法改动源码，不能靠强行改继承树解决
+          explain: |
+            **适配器**、**外观**和**代理**都站在接口边缘做“包装”，但各自解决完全不同的场景。
+      - card:
+          title: 适配器模式 Adapter与外观模式 Facade
+          body: |
+            - **适配器（Adapter）**：现有类的方法名或参数格式跟我们期待的接口不合（比如老支付 SDK 叫 `make_charge(cents)`，我们系统要求 `pay(yuan)`），写一个包了一层的**适配器**做格式和单位换算，两边都不用改源码。
+            - **外观模式（Facade）**：系统后台有一堆子模块（鉴权、拆帧、编码、写盘），为外部提供**一个简单干净的入口类**，屏蔽繁琐调用顺序和参数组合，让常见任务一行代码就能跑起来。
+      - card:
+          title: 代理模式 Proxy 与可运行对比
+          body: |
+            **代理模式（Proxy）**和目标对象实现**一模一样的接口**，调用方甚至分不清自己在跟真对象还是代理说话。代理能在真正转发前加上权限校验、结果缓存或按需延迟创建：
+
+            ```python
+            class LegacyPay:
+                def make_charge(self, cents: int):
+                    return cents
+
+            class PayAdapter:
+                def __init__(self, legacy: LegacyPay):
+                    self.legacy = legacy
+                def pay(self, yuan: float):
+                    return self.legacy.make_charge(round(yuan * 100))
+
+            print(PayAdapter(LegacyPay()).pay(12.5))
+            ```
+      - item:
+          id: adapter-cents-calc
+          type: number
+          prompt: |
+            老支付接口 `LegacyPay.make_charge(cents)` 只收整数“分”，`PayAdapter.pay(yuan)` 在内部调用 `self.legacy.make_charge(round(yuan * 100))`。调用 `PayAdapter(LegacyPay()).pay(19.99)` 时，最终传给老接口的整数（分）是多少？
+          answer: 1999
+          explain: |
+            `round(19.99 * 100) = 1999`。适配器在不改动 `LegacyPay` 的前提下把“元”转成了“分”。
+      - item:
+          id: wrap-three-match
+          type: match
+          prompt: |
+            对比三个“包装型”模式，把场景和最合适的模式连起来。
+          pairs:
+            - ["老库方法叫 send_v1(xml)，新系统只认 send(json_dict)", "适配器模式（Adapter）"]
+            - ["把音频解码、字幕合成、封装导出 6 个步骤包成一个 export_mp4()", "外观模式（Facade）"]
+            - ["接口完全不变，但在调真实图片加载前先检查缓存和登录权限", "代理模式（Proxy）"]
+          explain: |
+            核心区别看“接口变没变”和“意图”：改接口形状对口径是 Adapter；把多个复杂步骤简化成统一新入口是 Facade；接口保持原样只加前置控制/缓存是 Proxy。
+      - item:
+          id: proxy-lazy-benefit
+          type: choice
+          prompt: |
+            文档编辑器打开一本 500 页的书时，每张高清插图占用几十兆空间。用“虚拟代理”包住图片对象有什么好处？
+          options:
+            - text: 先用轻量代理占位，真正滚到那一页要显示时才加载真实大图，接口对编辑器保持不变
+              correct: true
+            - text: 代理能把图片文件自动缩小成 1 个像素并永久删掉高清图
+              why: 代理延迟的是加载时机，不是毁掉原图画质
+            - text: 编辑器必须把所有调用图片的地方重写成两套代码
+              why: 代理实现和真实图片相同的接口，编辑器代码无需感知
+          explain: |
+            代理因为与真对象同接口，可以无痛插入延迟加载（Virtual Proxy）、权限拦截（Protection Proxy）或结果缓存。
+      - item:
+          id: facade-not-lock
+          type: choice
+          prompt: |
+            给复杂的视频处理子系统加上了外观类 `VideoConverterFacade` 后，高级调用方如果偶尔需要直接微调里面某个底层编码器参数，应该允许吗？
+          options:
+            - text: 可以，外观只是方便多数人的快捷入口，不强行禁止高级用户按需访问底层组件
+              correct: true
+            - text: 绝对禁止，外观必须把所有底层模块物理删除
+              why: 外观封装简化常用流程，不代表要封死所有底层能力
+            - text: 外观和适配器一样，只能包住恰好一个类
+              why: 外观通常会协调一整个子系统的多个类，而适配器主要转换某个不兼容接口
+          explain: |
+            外观模式旨在降低常见用法的认知门槛，必要时仍可让高级调用方访问底层子系统。
+
+  # ==== 设计原则 ====
+  - id: srp-ocp
+    chapter: 设计原则
+    title: 单一职责与开闭原则：为什么 if/elif 越改越脆
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            看这几行常见的报表代码：`def generate(fmt):` 里先连接 `sqlite3` 查表，再算总和，最后写 `if fmt == "html": ... elif fmt == "csv": ...`。如果以后公司要求加 PDF、Excel 格式，或者把 SQLite 换成网络接口，这段代码会怎样？
+          options:
+            - text: 不管是改数据源、改汇总规则还是加新格式，每次都要撬开同一个类去改，越改越容易互相弄坏
+              correct: true
+            - text: 写在一个方法里最直观，加十个 elif 也绝对不会改错老代码
+              why: 每次修改已有类都要重新回归全部老分支，还很容易误改共享的查询或计算逻辑
+            - text: 这是最标准的开闭原则写法
+              why: 每加一种格式就必须修改原有 if/elif 链，恰恰违背了开闭原则
+          explain: |
+            这段经典的 `ReportGenerator`同时踩中了三条 SOLID 原则：**单一职责（SRP）**、**开闭（OCP）**和**依赖倒置（DIP）**。
+      - card:
+          title: 单一职责原则 SRP：一个类只有一个变化原因
+          body: |
+            **单一职责原则（SRP）**并不是“一个类只能有一个方法”，而是**一个类应该只有一个引起它变化的原因**。
+
+            在把查库、算总价、拼 HTML/CSV 塞在一起的 `ReportGenerator` 里，至少有三个团队会来改它：
+            1. DBA 换数据库表结构时要改它；
+            2. 财务改汇总规则时要改它；
+            3. 产品加新导出格式时还要改它！三条变化线搅在一起，改一处容易撞坏另一处。
+      - card:
+          title: 开闭原则 OCP：扩展开放，修改关闭
+          body: |
+            **开闭原则（OCP）**要求：新增一种需求时，理想情况下只需**新增一个类或模块（对扩展开放）**，而不用去修改已经测稳的老代码（对修改关闭）。
+
+            例题对比 `if/elif` 写法与遵循 OCP 的解法：
+          reveal:
+            - title: 第 1 步：诊断旧 ReportGenerator 的三个毛病
+              body: |
+                - 违背 **SRP**：读库、汇总、多格式输出三个变化原因混在一个类。
+                - 违背 **OCP**：每加一种输出格式（如 PDF）都要修改 `generate()` 里的 `if/elif`。
+                - 违背 **DIP**：直接写死 `sqlite3.connect(...)`，业务层死死绑在具体数据库上。
+            - title: 第 2 步：把“变化的部分”抽成 Formatter 接口
+              body: |
+                把格式化逻辑抽成 `Formatter` 接口，每新增 `PdfFormatter` 只需新建一个类，老的 `ReportGenerator` 一行不动！
+      - item:
+          id: srp-change-reason
+          type: choice
+          prompt: |
+            下列关于**单一职责原则（SRP）**的理解，哪一项最准确？
+          options:
+            - text: 一个类应该只承担一种职责方向，只有一个引起它修改的业务或技术原因
+              correct: true
+            - text: 每个类绝对只能写 1 个方法，超过 2 个方法就违背 SRP
+              why: 如果 5 个方法都在操作同一份订单状态且随同一组业务规则变化，它们属于同一个职责
+            - text: 把一个大文件拆成 10 个随机平均分的文件就是遵守 SRP
+              why: 拆分必须按“变化原因和职责边界”，不是按行数机械切分
+          explain: |
+            判断 SRP 的最好方法是问：“哪几个角色或哪几类需求会来要求修改这个类？”超过一个无关原因就该拆开。
+      - item:
+          id: ocp-add-pdf
+          type: choice
+          prompt: |
+            当 `ReportGenerator` 改成接收一个抽象的 `Formatter` 后，老板新要求支持导出 PDF。此时理想的代码修改量是？
+          options:
+            - text: 新增一个实现 Formatter 的 PdfFormatter 类，ReportGenerator 核心代码和 HtmlFormatter 都不用改
+              correct: true
+            - text: '在 ReportGenerator 里再加一条 elif fmt == "pdf":'
+              why: 再写 elif 就回到修改旧代码的做法，破坏了开闭原则
+            - text: 把 HtmlFormatter 删掉直接改写成 PdfFormatter
+              why: 老格式依然要继续工作，新增扩展不应破坏现有格式
+          explain: |
+            对扩展开放（新增 `PdfFormatter`）、对修改关闭（不动 `ReportGenerator`），这就是 OCP 的真正威力。
+      - item:
+          id: report-solid-match
+          type: match
+          prompt: |
+            回顾坏的 `ReportGenerator`（内部连 `sqlite3`、算总和、又写 `if fmt == "html" elif "csv"`），把症状和它违背的 SOLID 原则配对。
+          pairs:
+            - ["读库、汇总计算、格式排版三种变化原因全挤在一个类里", "单一职责原则（SRP）"]
+            - ["每增加一种导出格式都要回去改原有的 if/elif 链", "开闭原则（OCP）"]
+            - ["业务类直接写死 sqlite3 具体驱动，无法换成假仓库测试", "依赖倒置原则（DIP）"]
+          explain: |
+            这三条原则相辅相成：SRP 把不同变化原因拆开，DIP 靠抽象接口隔开底层，OCP 让新扩展只需加新实现。
+      - item:
+          id: srp-over-split
+          type: choice
+          prompt: |
+            是不是每次看到 `if/elif` 就必须立刻抽接口建五六个类？
+          options:
+            - text: 不是，只有当这类分支明确是未来会不断扩展的变化点时才抽接口，避免为不会变的简单分支过度设计
+              correct: true
+            - text: 是的，程序里一个 if 语句都不允许出现
+              why: 基础控制流条件本来就需要 if；设计原则针对的是随需求不断生长的扩展点
+            - text: 只有面向过程的 C 语言才能写 if，面向对象语言禁止写 if
+              why: 任何语言都需要 if，关键看是不是频繁膨胀的多路分发点
+          explain: |
+            原则是帮我们管理“真实会变的地方”，而不是搞形式主义把三行简单代码拆成十个文件。
+
+  - id: lsp-isp
+    chapter: 设计原则
+    title: 里氏替换与接口隔离原则：别让企鹅硬飞
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            数学上正方形是一种特殊的矩形。有人让 `Square` 类继承 `Rectangle`，并在 `Square.set_width(w)` 里偷偷把高也一起改成 `w`（否则就不是正方形了）。结果一段接收 `Rectangle` 的测试代码调用 `r.set_width(5); r.set_height(4); assert r.area() == 20`，传进 `Square` 后居然失败了！为什么？
+          options:
+            - text: 子类偷偷改掉了父类“改宽不影响高”的行为约定，导致无法安全替换父类
+              correct: true
+            - text: 因为 Python 的乘法算错了 5 乘 4
+              why: 5 * 4 是 20，但 Square.set_height(4) 把宽也悄悄改成了 4，算出 4 * 4 = 16
+            - text: 因为数学上正方形不是矩形
+              why: 数学集合概念和程序里的可替换行为契约不是一回事，程序里必须看行为契约能不能兼容
+          explain: |
+            这个著名的“正方形-矩形悖论”说明：**不能只靠现实名词感觉“A 是一种 B”就用继承**！子类的行为必须遵守父类定下的契约。
+      - card:
+          title: 里氏替换原则 LSP：子类不能破坏父类承诺
+          body: |
+            **里氏替换（Liskov Substitution）**规定：只要函数能正常使用父类 `Base`（或接口），把它换成任何子类 `Sub` 后，也必须继续遵守原有契约正常工作。
+
+            常见的违背信号：
+            - 子类重写方法时直接 `raise NotImplementedError`（例如让 `Penguin` 继承 `Bird` 却在 `fly()` 里抛异常）；
+            - 子类加了比父类更严苛的前置条件，或悄悄破坏父类原本承诺的后置状态（如上面 `Square` 改高连带改了宽）。
+      - item:
+          id: lsp-square-area
+          type: number
+          prompt: |
+            如果 `Square` 继承了 `Rectangle` 且每次设宽或高都同时修改两条边。那么在下面函数里传入 `Square()`，最终打印出的面积是多少？
+          code: |
+            class Rectangle:
+                def set_width(self, w): self.w = w
+                def set_height(self, h): self.h = h
+                def area(self): return self.w * self.h
+
+            class Square(Rectangle):
+                def set_width(self, w): self.w = self.h = w
+                def set_height(self, h): self.w = self.h = h
+
+            r = Square()
+            r.set_width(5)
+            r.set_height(4)
+            print(r.area())
+          lang: python
+          answer: 16
+          explain: |
+            `r.set_height(4)` 把 `w` 和 `h` 都改成了 `4`，因此 `r.area()` 算出 `16` 而不是调用方期待的 `20`，违背了里氏替换。
+      - card:
+          title: 接口隔离原则 ISP：把胖接口拆小
+          body: |
+            **接口隔离原则（ISP）**说：不要强迫实现类去实现它根本不需要的方法。与其定义一个大而全的 `SmartMachine`（含 `print`、`scan`、`fax`），不如拆成三个小接口 `Printer`、`Scanner`、`Fax`：
+          reveal:
+            - title: 第 1 步：胖接口的麻烦
+              body: |
+                一台只有打印功能的廉价打印机去实现 `SmartMachine` 时，被迫写出空实现或抛异常的 `scan()` 和 `fax()`——顺带还常触发违背 LSP！
+            - title: 第 2 步：拆成小接口按需组合
+              body: |
+                `SimplePrinter` 只实现 `Printer`；多功能一体机同时实现 `Printer` 和 `Scanner`；需要打印的模块也只依赖 `Printer`，不会因为 `Fax` 接口改签名而被迫跟着重新编译或修改。
+      - item:
+          id: lsp-penguin-fix
+          type: choice
+          prompt: |
+            设计鸟类系统时，发现 `Bird` 类有个 `fly()` 方法，但后来新增了不会飞的 `Penguin`（企鹅）和 `Ostrich`（鸵鸟）。哪一种改法既遵守 LSP 又遵守 ISP？
+          options:
+            - text: 把 fly() 从通用 Bird 抽离成独立的 Flyable 接口，只让会飞的鸟实现 Flyable，Penguin 只继承 Bird
+              correct: true
+            - text: 让 Penguin 在 fly() 里抛 NotImplementedError("penguins can't fly")
+              why: 拿到 Bird 去调 fly() 的函数会当场崩溃，违背里氏替换
+            - text: 让 Penguin 的 fly() 什么都不做（pass）
+              why: 调用方以为企鹅飞起来了，实际上原地没动，同样违背了 fly() 的行为契约
+          explain: |
+            把“会飞”和“是鸟”拆成不同能力，不会飞的鸟就不会被逼着去承诺做不到的 `fly()` 契约。
+      - item:
+          id: isp-split-benefit
+          type: choice
+          prompt: |
+            接口隔离原则（ISP）如何帮助降低模块之间的耦合？
+          options:
+            - text: 每个调用方只依赖它真正用到的小接口，别的接口变动不会连累它
+              correct: true
+            - text: 把所有方法全部塞进同一个大接口里，方便一次全导入
+              why: 大接口正是 ISP 要拆分的反面案例，会导致牵一发动全身
+            - text: 规定接口里绝对不能写方法参数
+              why: ISP 关心接口按职责拆细，不是禁止参数
+          explain: |
+            小接口既减少无用的空实现，也让不同调用方各自只绑定最小能力子集。
+      - item:
+          id: solid-five-match
+          type: match
+          prompt: |
+            把 SOLID 五条原则和各自的一句话核心记住并连线。
+          pairs:
+            - ["单一职责（SRP）", "一个类只因一种职责原因而变化"]
+            - ["开闭原则（OCP）", "用新增扩展代替修改原有稳定代码"]
+            - ["里氏替换（LSP）", "子类必须完整遵守父类契约可随时替换"]
+            - ["接口隔离（ISP）", "拆小胖接口，不强迫实现用不到的方法"]
+            - ["依赖倒置（DIP）", "高层和底层共同依赖抽象接口而非具体实现"]
+          explain: |
+            SOLID 五条合在一起构成面向对象设计的五把标尺，各管一个维度又互相呼应。
+
+  - id: design-decisions
+    chapter: 设计原则
+    title: 关键设计议题、权衡取舍与设计理由
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            半年后你接手一个项目，看到订单数据存进了 PostgreSQL 而不是 MongoDB，却没有任何说明。如果你要修改数据结构或扩容，最想知道什么信息？
+          options:
+            - text: 当时为什么选 PostgreSQL、考虑过哪些替代方案、又接受了什么代价
+              correct: true
+            - text: 只看最终选了什么库就够了，原因完全不重要
+              why: 不知道当初基于什么约束做决定，后来人很容易在旧约束还没变时盲目推翻重做，或踩进同一坑
+            - text: 把当初所有写废的草稿代码全部注释保留在文件里
+              why: 死代码会严重污染代码库，决策理由应该用简短的架构或设计决策记录写清
+          explain: |
+            SWEBOK 把**关键设计议题**（并发、分布、错误恢复等）和**设计理由（Design Rationale）**单独列出来：因为好设计永远是在多条路里权衡代价的结果。
+      - card:
+          title: 软件设计的关键难点议题
+          body: |
+            写单机玩具程序很少遇到这些，但做真实软件时，设计阶段必须正面回答四类关键议题：
+            - **并发与竞态**：多线程或多请求同时改同一笔库存怎么办（加锁、不可变还是事务）？
+            - **分布与网络故障**：跨服务调用超时、断网或重复发送时怎样保证不重复扣款？
+            - **错误检测与恢复**：失败后是重试、降级兜底，还是像时序图那样发补偿释放？
+            - **持久化与安全边界**：哪些状态必须落盘，谁有权限碰敏感接口？
+      - item:
+          id: key-issues-match
+          type: match
+          prompt: |
+            把真实系统遇到的棘手问题和它对应的关键设计议题配对。
+          pairs:
+            - ["两个用户同时抢最后 1 张车票，防止超卖", "并发与共享状态控制"]
+            - ["支付网关返回超时，重发请求但不能扣两次钱", "分布式故障与幂等处理"]
+            - ["扣款失败后把刚才预留的库存释放回来", "错误恢复与补偿"]
+            - ["进程里的临时缓存重启会丢，已成交订单必须写入数据库", "持久化与状态存放"]
+          explain: |
+            在设计阶段提前把这几类横切议题想清楚，比上线后再零敲碎打补洞安全得多。
+      - card:
+          title: 记录设计理由：别只写选了什么，要写为什么和放弃了什么
+          body: |
+            **设计理由（Design Rationale）**专门记录“当时的背景约束、对比过的候选方案、最终选择和愿意承担的后果”。份量轻、一页纸就能写清：
+          reveal:
+            - title: 第 1 步：写清背景与放弃的替代方案
+              body: |
+                例如决定用 PostgreSQL 存订单：背景是“需要原子扣库存和创建订单”；放弃纯文档库的原因是“事务和报表关联查询更强”。
+            - title: 第 2 步：写清接受的后果与后续入口
+              body: |
+                接受的后果是“需要写表迁移脚本，未来单机写满时需要分库或分区”。这份简短记录就是工程里常用的架构决策记录，也是后面**软件架构**课程的核心工具。
+      - item:
+          id: rationale-must-have
+          type: choice
+          prompt: |
+            一份有用的设计决策记录里，除了写明“最终采用了方案 A”，最核心还要补上哪两项？
+          options:
+            - text: 当时的约束背景与备选方案对比，以及采用方案 A 后必须承担的代价与后果
+              correct: true
+            - text: 当天开会参会人员的午饭菜单
+              why: 决策记录只服务于后续工程演化，无关琐事只会干扰阅读
+            - text: 所有实现类的完整逐行源码
+              why: 源码就在代码库里，决策记录聚焦“为什么这样选”和“有哪些权衡”
+          explain: |
+            记录背景、权衡和已知代价，能让未来接手的人明白什么时候该坚持原设计、什么时候环境变了可以推翻。
+      - item:
+          id: tradeoff-no-silver-bullet
+          type: choice
+          prompt: |
+            某团队为了追求极致低耦合，在只有 300 行的配置读取脚本里套了 7 层抽象工厂、代理和中介者，结果改一个配置键要跳转 8 个文件。这说明了设计中的什么原则？
+          options:
+            - text: 每个模式和抽象层都有理解和维护代价，设计要在“当下复杂度”和“未来变化收益”之间做权衡
+              correct: true
+            - text: 说明设计模式本身全都是多余的垃圾
+              why: 设计模式在真正存在多变体或高耦合痛点时很有价值，错的是不看规模盲目套用
+            - text: 说明应该把所有文件压缩成单行不带任何函数
+              why: 走向另一个极端同样会让代码不可读、不可测
+          explain: |
+            没有免费的抽象。多加一层间接性，就要确定它确实隔离了一个会变化的风险，而不是增加无谓的跳转负担。
+
+  # ==== 模式与重构 ====
+  - id: creational-factories
+    chapter: 模式与重构
+    title: 创建型模式：工厂方法与抽象工厂
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            主流程代码里原本写死了一句 `conn = MySQLConnection()`。后来软件要同时支持 MySQL 和 PostgreSQL，而且希望一套“连接 + 查询语句构造器”必须成套配套（不能拿 MySQL 的连接去跑 PostgreSQL 的方言）。直接把 `new` 散写在业务代码里行吗？
+          options:
+            - text: 不行，应该把“决定创建哪一种具体类”抽进专门的工厂里，让业务流程只管调用接口
+              correct: true
+            - text: 可以，用 Ctrl+H 全局查找替换把 MySQL 改成 Postgres 就行
+              why: 如果要按配置文件在运行时切换两种数据库，全局替换代码无法同时支持两者
+            - text: 让每个连接类自己随机决定要连哪个数据库
+              why: 对象创建需要由统一配置或工厂控制，并且成套组件必须配套一致
+          explain: |
+            创建型模式专门管“怎么把对象造出来”，让调用方免于直接写死具体类名。这一课先看工厂家族。
+      - card:
+          title: 工厂方法 Factory Method
+          body: |
+            前人把反复遇到的设计结构起名并总结成**设计模式（design pattern）**词汇表。直接写 `Truck()` 或 `Ship()` 会把业务代码绑死在具体类上。**工厂方法（Factory Method）**把创建产品的动作包进专门的创建方法里，主流程只面向抽象产品（如 `Transport`）编程：
+            - 陆运物流的工厂方法返回 `Truck`；
+            - 海运物流的工厂方法返回 `Ship`。
+
+            主流程的“下单 → 创建运输工具 → 发货”逻辑完全不用改动。
+      - card:
+          title: 抽象工厂 Abstract Factory 与可运行示例
+          body: |
+            **抽象工厂（Abstract Factory）**比工厂方法更进一步：它一次提供**一整族**创建方法（例如 `create_button()` + `create_checkbox()`），确保拿出来的组件同属一套风格（Mac 风格或 Win 风格），绝不会混搭错！
+
+            ```python
+            class MacButton:
+                def render(self): return "MacBtn"
+            class WinButton:
+                def render(self): return "WinBtn"
+
+            class MacFactory:
+                def create_button(self): return MacButton()
+            class WinFactory:
+                def create_button(self): return WinButton()
+
+            def render_screen(factory):
+                return factory.create_button().render()
+
+            print(render_screen(MacFactory()), render_screen(WinFactory()))
+            ```
+      - item:
+          id: factory-output-choice
+          type: choice
+          prompt: |
+            上面 `render_screen(factory)` 函数本身没有写死 `MacButton` 或 `WinButton`，分别传入 `MacFactory()` 和 `WinFactory()` 时会输出什么？
+          options:
+            - text: MacBtn 和 WinBtn
+              correct: true
+            - text: 两次都输出 MacBtn
+              why: 第二次传入的是 WinFactory，调用它的 create_button() 会产出 WinButton
+            - text: 会报错，因为 render_screen 没有判断 factory 的类名
+              why: 两个工厂遵守相同的 create_button() 接口，靠多态就能自动产出对应按钮
+          explain: |
+            调用方 `render_screen` 只认识工厂接口和按钮接口，切换整套风格时只需在入口换一个工厂对象。
+      - item:
+          id: factory-vs-abstract
+          type: match
+          prompt: |
+            分清简单创建和两个标准工厂模式的区别。
+          pairs:
+            - ["由创建方法或子类决定实例化哪一种单一产品", "工厂方法（Factory Method）"]
+            - ["提供接口成套创建同一风格家族的多个配套产品", "抽象工厂（Abstract Factory）"]
+            - ["在业务代码里到处直接写死 MySQLConn()", "紧耦合直接实例化（未解耦）"]
+          explain: |
+            工厂方法关注“一种产品的多个变体”；抽象工厂关注“一族相互配套的多个产品”（如深色主题按钮+输入框+弹窗）。
+      - item:
+          id: abstract-factory-family
+          type: choice
+          prompt: |
+            某游戏需要同时支持“像素风”和“写实风”两套界面，每套都包含按钮、对话框、字体三种组件，且绝对不能出现“像素风按钮配写实风对话框”。哪种模式最对症？
+          options:
+            - text: 抽象工厂（定义 PixelUiFactory 和 RealisticUiFactory 分别产出整套配套组件）
+              correct: true
+            - text: 单例模式（保证全游戏只能打开一个按钮）
+              why: 单例只限制实例个数，不能成套切换成组控件
+            - text: 备忘录模式（记录按钮上一次被点击的颜色）
+              why: 备忘录用于保存恢复状态快照，不负责创建配套产品族
+          explain: |
+            抽象工厂把整套产品的创建约束在同一个工厂实现里，从结构上杜绝不同风格组件混搭。
+      - item:
+          id: factory-when-not-needed
+          type: choice
+          prompt: |
+            如果你的程序里 `Point(x, y)` 永远只有这一种二维坐标实现，而且没有任何可替换子类，有必要给它强行再包一层 `PointFactory` 吗？
+          options:
+            - text: 没必要，没有多种变体或复杂创建逻辑时直接写 Point(x, y) 更简单直接
+              correct: true
+            - text: 必须包，否则永远不算面向对象代码
+              why: 直接调用构造函数创建稳定值对象再正常不过，不必滥用工厂
+            - text: 必须包，因为 Python 不允许直接调用类名构造对象
+              why: Python 本身就是用 `Point(x, y)` 直接构造对象
+          explain: |
+            模式用来隔离“多变体、多家族或复杂创建规则”；稳定单一的小对象直接构造即可。
+
+  - id: creational-build-copy
+    chapter: 模式与重构
+    title: 创建型模式：建造者、原型与单例
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            要构造一个带 10 个可选配置项的 HTTP 请求（URL、超时、重试次数、请求头、代理、证书……），如果全塞进一个构造函数 `Request("https://...", 5, 3, None, True, None, ...)`，最容易出现什么问题？
+          options:
+            - text: 参数又长又容易传错位置，很多不用的选项也要填一堆 None，可读性极差
+              correct: true
+            - text: Python 语法规定函数最多只能接收 5 个参数
+              why: 语言允许传很多参数，但人类看一长串位置参数极其容易看花眼、传错顺序
+            - text: 每次构造都会自动把所有参数清零
+              why: 不会清零，问题在于可读性与构造中间合法性难保证
+          explain: |
+            除了工厂，创建型模式还有处理“分步组装复杂对象”的**建造者**、处理“复制现成样本”的**原型**，以及争议最大也最需谨慎的**单例**。
+      - card:
+          title: 建造者 Builder与原型 Prototype
+          body: |
+            - **建造者（Builder）**：把复杂对象的构造过程拆成链式或分步方法（如 `.timeout(5).retry(3).header(...)`），最后调 `.build()` 统一校验并生成不可变成品，避免构造函数“参数爆炸”。
+            - **原型模式（Prototype）**：当新建一个对象初始化成本很高，或者只和已有模板差一个字段时，直接调用对象自带的 `clone()` 拷贝自己再微调，调用方甚至不用知道它的具体子类！
+      - card:
+          title: 单例 Singleton 的用处与测试陷阱
+          body: |
+            **单例模式（Singleton）**保证某类全局最多只有一个实例（例如共享硬件驱动句柄），并提供全局访问点。但它本质上就是披着面向对象外衣的全局变量，会导致测试用例之间互相串改状态、也难用依赖注入替换！多数时候，**只建一个实例并通过依赖注入传入**比硬写全局单例更好测。
+
+            ```python
+            class RequestBuilder:
+                def __init__(self, url):
+                    self._url = url
+                    self._timeout = 30
+                    self._retries = 0
+                def timeout(self, sec):
+                    self._timeout = sec
+                    return self
+                def retries(self, n):
+                    self._retries = n
+                    return self
+                def build(self):
+                    return (self._url, self._timeout, self._retries)
+
+            print(RequestBuilder("https://api.example").timeout(5).retries(2).build())
+            ```
+      - item:
+          id: builder-chain-calc
+          type: number
+          prompt: |
+            `RequestBuilder(url)` 默认超时 `30`、重试 `0`，`.timeout(sec)` 与 `.retries(n)` 分别设置对应字段并返回 `self`，`.build()` 返回 `(url, timeout, retries)` 元组。执行 `r = RequestBuilder("https://a").timeout(10).retries(3).build()` 后，`r[1] + r[2]` 等于多少？
+          answer: 13
+          explain: |
+            `timeout` 被设为 `10`，`retries` 被设为 `3`，两者之和为 `13`；链式返回 `self` 让每一步都能优雅串写。
+      - item:
+          id: creational-five-match
+          type: match
+          prompt: |
+            把全部 5 种创建型模式和它们最贴切的用途连起来。
+          pairs:
+            - ["由子类或方法决定造哪一种产品", "工厂方法"]
+            - ["成套创建同一风格的多个配套组件", "抽象工厂"]
+            - ["分步链式配置复杂对象再统一 build()", "建造者"]
+            - ["克隆现有复杂样本再微调差异字段", "原型模式"]
+            - ["限制全局只有一个共享实例（慎用）", "单例模式"]
+          explain: |
+            创建型 5 种模式全部围绕“把构造逻辑与使用逻辑解耦”。
+      - item:
+          id: singleton-test-danger
+          type: choice
+          prompt: |
+            为什么很多现代工程团队极力克制使用全局单例 `Config.get_instance()`，而更倾向在入口建一个配置实例通过依赖注入传递？
+          options:
+            - text: 全局单例会让所有测试共享同一个可变状态，一个测试改了配置会导致下一个测试莫名其妙失败，也很难替换成测试假对象
+              correct: true
+            - text: 因为 Python 无法写只有一个实例的类
+              why: 语法上很容易写单例，问题是它造成的隐藏全局耦合与测试污染
+            - text: 因为单例模式下函数不能接收参数
+              why: 单例对象方法照样能收参数，症结在于全局隐式状态
+          explain: |
+            “需要只有一个实例”不等于“必须写成全局静态获取点”；靠组合根造一个并注入，既保唯一又好测试。
+      - item:
+          id: prototype-why-clone
+          type: choice
+          prompt: |
+            画图软件里有“复制选中图形（可能是圆形、组合图形或带复杂样式的多边形）”功能，复制代码只拿到了抽象基类 `Shape` 引用，不想写一大堆 `if isinstance(...)` 分别抄字段。这时用哪种模式最干净？
+          options:
+            - text: 原型模式，给 Shape 定义统一的 clone() 方法，由每个具体图形自己复制自己
+              correct: true
+            - text: 建造者模式，在复制函数里把所有图形类的私有字段全部重写一遍
+              why: 复制函数一旦知道所有子类的私有字段，每加一种新图形就要改复制函数
+            - text: 单例模式，让复制出来的图形和原图形共享同一个对象
+              why: 复制品修改位置或颜色时不能影响原图形，必须独立拷贝
+          explain: |
+            `shape.clone()` 利用多态让对象自己负责深/浅复制细节，外部代码无需了解具体类型。
+
+  - id: structural-bridge-decorator
+    chapter: 模式与重构
+    title: 结构型模式：桥接与装饰器
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你在写一款跨平台窗口库：窗口类型有“普通窗口、弹窗、警告框”3 种，底层画图引擎有“Windows、Linux、macOS”3 套；或者你在写“通知发送器”，需要把“发邮件 + 写日志 + 失败重试 + 加密”自由叠加上去。如果全靠写死继承子类，类数量会怎样？
+          options:
+            - text: 子类数量会按乘积或组合数爆炸（3×3=9 个，或几十种组合），改用组合就能把维度拆开
+              correct: true
+            - text: 只会多出 3 个类，完全不需要任何组合
+              why: 3 种窗口 × 3 套引擎就要 9 个子类；4 种附加功能任意排列组合更是十几个子类
+            - text: 继承可以同时在运行时自由摘掉某一层功能
+              why: 继承关系在类定义时就写死了，无法在运行时按需动态叠加或去掉某层行为
+          explain: |
+            **组合优于继承**在结构型模式里体现得淋漓尽致：**桥接**把两个独立变化维度拆开，**装饰器**把可选附加行为一层层套上去。
+      - card:
+          title: 桥接模式 Bridge：把两个独立维度拆开用组合连接
+          body: |
+            如果有 3 种遥控器（基础、触屏、语音）× 4 种设备（电视、空调、音响、风扇），全靠继承要写 `3 × 4 = 12` 个子类！
+
+            **桥接模式（Bridge）**把“遥控器层次”和“设备实现层次”彻底拆成两棵小树，在 `Remote` 里放一个 `self.device` 引用，用**组合**架一座桥连起来——只需 `3 + 4 = 7` 个类就能任意配对！
+          reveal:
+            - title: 第 1 步：为什么叫“桥”？
+              body: |
+                左边是操作方式维度（`BasicRemote`、`VoiceRemote`），右边是设备实现维度（`TV`、`AC`、`Fan`），`Remote.device` 这根组合引用就是架在两棵小树之间的桥。
+            - title: 第 2 步：独立扩展任意一侧
+              body: |
+                加一种“手势遥控器”只需加 1 个类；加一台“加湿器”只需加 1 个类，两边互不影响，再也不用写 `GestureHumidifierRemote`、`VoiceHumidifierRemote` 一串组合类。
+      - card:
+          title: 装饰器模式 Decorator：像穿衣服一样层层叠加功能
+          body: |
+            **装饰器（Decorator）**同样实现目标接口，并在内部包着另一个实现同接口的对象，在调用前后顺便加一点新动作（例如加密、压缩、打日志），而且想套几层套几层：
+
+            ```python
+            class PlainWriter:
+                def write(self, text): return text
+
+            class UpperDecorator:
+                def __init__(self, inner): self.inner = inner
+                def write(self, text): return self.inner.write(text.upper())
+
+            class BracketDecorator:
+                def __init__(self, inner): self.inner = inner
+                def write(self, text): return self.inner.write(f"[{text}]")
+
+            w = BracketDecorator(UpperDecorator(PlainWriter()))
+            print(w.write("hi"))
+            ```
+      - item:
+          id: decorator-order-text
+          type: text
+          prompt: |
+            看下面装饰器组合代码，调用 `w.write("hi")` 返回的字符串是什么？
+          code: |
+            class PlainWriter:
+                def write(self, text): return text
+
+            class UpperDecorator:
+                def __init__(self, inner): self.inner = inner
+                def write(self, text): return self.inner.write(text.upper())
+
+            class BracketDecorator:
+                def __init__(self, inner): self.inner = inner
+                def write(self, text): return self.inner.write(f"[{text}]")
+
+            w = BracketDecorator(UpperDecorator(PlainWriter()))
+            print(w.write("hi"))
+          lang: python
+          answers: ["[HI]"]
+          hint: "`BracketDecorator` 先在外面把 `\"hi\"` 包成 `\"[hi]\"`，传给里面的 `UpperDecorator` 转大写。"
+          explain: |
+            外层 `BracketDecorator` 把 `"hi"` 变成 `"[hi]"`，送入 `UpperDecorator` 转成 `"[HI]"`，最后交给 `PlainWriter` 返回 `"[HI]"`。
+      - item:
+          id: bridge-class-count
+          type: number
+          prompt: |
+            某消息系统有 `4` 种通知渠道（短信、邮件、App 推送、桌面弹窗）和 `5` 种消息等级模板（普通、告警、账单、验证码、营销）。如果不用继承做笛卡尔乘积，而是用桥接模式把“消息模板”和“发送渠道”两个维度拆开并用组合连接，一共只需要写多少个具体类？
+          answer: 9
+          hint: 拆成独立维度后，类总数是两类各自数目相加（而不是相乘）。
+          explain: |
+            用继承组合需要 `4 × 5 = 20` 个类；用桥接拆分后只需 `5 + 4 = 9` 个类，而且两边还能各自独立扩展。
+      - item:
+          id: bridge-vs-decorator
+          type: match
+          prompt: |
+            把场景和对应的设计模式配对（注意区分“拆分两个正交维度”和“动态层层叠加同类增强”）。
+          pairs:
+            - ["把“形状（圆/方）”和“渲染引擎（OpenGL/SVG）”拆成两棵独立层次再组合", "桥接模式（Bridge）"]
+            - ["给数据流按需在运行时动态套上“缓冲 + 压缩 + 加密”三层包装", "装饰器模式（Decorator）"]
+            - ["在继承链上把每层都硬编码死，导致功能组合不可调换", "刚性静态继承（反例）"]
+          explain: |
+            桥接拆开“抽象”与“实现”两个独立维度防止类爆炸；装饰器把多个同接口包装器像洋葱一样叠起来动态增强功能。
+      - item:
+          id: decorator-vs-adapter
+          type: choice
+          prompt: |
+            装饰器（Decorator）和适配器（Adapter）都在内部包着另一个对象，它们最根本的接口区别是什么？
+          options:
+            - text: 装饰器保持原接口不变只叠加新行为（可套多层）；适配器则是把不兼容的旧接口转成另一套新接口
+              correct: true
+            - text: 装饰器必须改变返回值类型，适配器绝对不改接口
+              why: 刚好说反了：适配器的核心任务就是转换接口，装饰器保持接口一致才能反复套叠
+            - text: 适配器可以嵌套十层，装饰器只能套一层
+              why: 装饰器因为输入输出保持同接口，才能像套娃一样自由叠加任意多层
+          explain: |
+            正因为装饰器对外暴露和被包对象相同的接口，调用方才能无感地套上一层又一层功能。
+
+  - id: structural-composite-flyweight
+    chapter: 模式与重构
+    title: 结构型模式：组合模式与享元
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            电脑桌面里，“单个文件”有大小（比如 10 KB），“文件夹”里可以装好几个文件，还能再套子文件夹。如果想用一个 `size()` 方法统一算出“选中项的总大小”，不管用户点的是一个文件还是一个套了五层的文件夹，最省心的设计是？
+          options:
+            - text: 让 File 和 Folder 实现同一个 Node 接口的 size()，调用方不用写一堆 if isinstance(x, Folder)
+              correct: true
+            - text: 在主程序里写死三层嵌套循环，规定文件夹最多只能套三层
+              why: 树形嵌套深度是不确定的，写死三层循环无法应对任意深度的目录
+            - text: 强迫单个文件内部也维护一个空文件夹列表和添加文件方法
+              why: 只要统一最核心的共同查询操作，不必让文件假装能装子文件
+          explain: |
+            把对象组织成树形结构并让“叶子”和“容器”统一对外呈现，这就是**组合模式**；而当树里或场景里出现成千上万个几乎一样的细小对象时，就需要**享元**省空间。
+      - card:
+          title: 组合模式 Composite：把部分和整体一视同仁
+          body: |
+            **组合模式（Composite）**让“单个叶子对象”（如 `File`）和“装了一堆子节点的容器”（如 `Folder`）实现**同一个组件接口**（如 `size()`）。
+
+            `File.size()` 直接返回自身大小；`Folder.size()` 只需累加所有子节点的 `child.size()`——不管子节点是文件还是更深的子文件夹，调用方完全不用区分！
+
+            ```python
+            class File:
+                def __init__(self, kb): self.kb = kb
+                def size(self): return self.kb
+
+            class Folder:
+                def __init__(self, children): self.children = children
+                def size(self): return sum(c.size() for c in self.children)
+
+            root = Folder([File(10), Folder([File(20), File(5)])])
+            print(root.size())
+            ```
+      - item:
+          id: composite-tree-sum
+          type: number
+          prompt: |
+            用组合模式实现文件系统：`File(kb).size()` 返回 `kb`，`Folder(children).size()` 返回 `sum(c.size() for c in children)`。如果 `tree = Folder([File(12), Folder([File(8), Folder([File(15)])])])`，调用 `tree.size()` 返回多少？
+          answer: 35
+          explain: |
+            内层文件夹大小 `15`，中层 `8 + 15 = 23`，根文件夹 `12 + 23 = 35`。
+      - card:
+          title: 享元模式 Flyweight：抽出共有状态省空间
+          body: |
+            游戏森林里有 10 万棵树：每棵树的坐标 `(x, y)` 不同，但同一树种的 3D 网格和贴图纹理（几兆字节）一模一样！如果每棵树都各自拷贝一份贴图，电脑早卡爆了。
+
+            **享元模式（Flyweight）**把状态拆成两半：
+            - **内部状态（可共享、不可变）**：树种名称、网格、贴图——全森林只需存几份享元对象复用！
+            - **外部状态（随实例变化）**：每棵树自己的 `(x, y)` 坐标——传给享元的渲染方法即可。
+      - item:
+          id: flyweight-state-match
+          type: match
+          prompt: |
+            在一个文档编辑器里展示 50,000 个字符，使用享元模式节省空间时，把属性分进内部共享状态或外部独立状态。
+          pairs:
+            - ["字体名称、字形轮廓矢量数据（全篇共用）", "内部状态（放在享元对象中共享）"]
+            - ["某个字符当前排在第几行第几列", "外部状态（由调用方各自保存并传入）"]
+            - ["60 种常用字形样式按内部状态去重缓存复用，不复制 50,000 份", "享元池共享机制"]
+          explain: |
+            关键在于把“大家一模一样且只读”的笨重数据抽进共享享元，把“每个位置各不相同”的轻量数据留在外面。
+      - item:
+          id: composite-benefit
+          type: choice
+          prompt: |
+            组合模式最适合用来建模下面哪类数据结构？
+          options:
+            - text: 能自然构成“整体-部分”树形层级、且希望从上到下统一按同一接口汇总计算的结构（如菜单树、UI 组件树、表达式语法树）
+              correct: true
+            - text: 所有元素完全平铺、没有任何嵌套层级关系的纯线性列表
+              why: 扁平列表没有整体套部分的树形结构，用普通数组或列表即可
+            - text: 必须保证全局只存在恰好一个节点的系统配置
+              why: 那是单例（或单个配置实例）的意图，不是组合模式
+          explain: |
+            只要出现“容器里既能装叶子又能套小容器”的树形结构，组合模式就能用同一套从上到下累加的逻辑搞定。
+      - item:
+          id: flyweight-prereq-rule
+          type: choice
+          prompt: |
+            为什么享元对象里保存的“内部共享状态”通常必须设计成**不可变**的？
+          options:
+            - text: 因为成千上万个地方同时指着同一个享元对象，一旦原地改写就会把所有共享它的地方全部连带改坏
+              correct: true
+            - text: 因为编程语言禁止对共享对象里的字段赋值
+              why: 语言本身不会自动阻止，正是为了避免“改一棵树颜色结果整片森林全变色”的别名 bug 才要求内部状态只读
+            - text: 因为不可变对象不需要任何参数就能渲染
+              why: 渲染时仍然需要把位置等外部状态当参数传进来
+          explain: |
+            共享加上可变等于灾难。享元安全省空间的前提，就是共享的内部状态只读不变。
+
+  - id: behavioral-strategy-template
+    chapter: 模式与重构
+    title: 行为型模式：策略模式与模板方法
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            导航软件帮用户规划路线，有时候按“最快到达”，有时候按“少花过路费”，有时候按“骑行路线”。主界面只管算好后画在地图上，不关心里面怎么算路。想让算法可以像换插头一样随时切换，你会用什么方式？
+          options:
+            - text: 把每种算路算法分别写成实现同一接口的小策略类，让导航主类通过组合持有一个当前策略
+              correct: true
+            - text: '写一个 500 行的巨大的 if mode == "fast": ... elif ... 函数'
+              why: 每次新增路线算法都要动主类代码，违背开闭原则，测试也不便单独测某种算法
+            - text: 给整个导航地图类复制三份，分别叫 FastMap、TollFreeMap、BikeMap
+              why: 地图渲染等公共代码全被重复拷贝三遍，改地图 UI 要改三个类
+          explain: |
+            **策略模式**用组合换算法，**模板方法**用继承固定骨架——这一课把它们彻底分清，并把这个报表重构落地。
+      - card:
+          title: 例题：用策略模式重构 ReportGenerator
+          body: |
+            **策略模式（Strategy）**把可互换的算法抽成同一接口的独立策略类。还记得之前违背 OCP 的 `ReportGenerator` 吗？把格式输出抽成 `Formatter(Protocol)` 接口，每种格式做成一个策略类，就能不改主类随意扩充新格式：
+          reveal:
+            - title: 第 1 步：定义统一策略接口 Formatter
+              body: |
+                `class Formatter(Protocol): def format(self, total: int) -> str: ...`，约定每种策略都只负责把总金额转成字符串。
+            - title: 第 2 步：写 HtmlFormatter 与 CsvFormatter，注入 ReportGenerator
+              body: |
+                ```python
+                from typing import Protocol
+
+                class Formatter(Protocol):
+                    def format(self, total: int) -> str: ...
+
+                class HtmlFormatter:
+                    def format(self, total: int) -> str:
+                        return f"<b>{total}</b>"
+
+                class CsvFormatter:
+                    def format(self, total: int) -> str:
+                        return f"total,{total}"
+
+                class ReportGenerator:
+                    def __init__(self, formatter: Formatter):
+                        self.formatter = formatter
+                    def render(self, amounts):
+                        return self.formatter.format(sum(amounts))
+
+                print(ReportGenerator(HtmlFormatter()).render([3, 4]))
+                print(ReportGenerator(CsvFormatter()).render([3, 4]))
+                ```
+            - title: 第 3 步：同时注入 repo 和 formatter，新增 PDF 只需改哪里？
+              body: |
+                若把之前的仓库注入和这里的格式策略合在一起，写成 `ReportGenerator(repo, formatter)`，只需新建实现 `format(total)` 的 `PdfFormatter` 类并在组装处传入；`ReportGenerator`、`HtmlFormatter`、`CsvFormatter` 一行都不用改！
+      - item:
+          id: strategy-pdf-change
+          type: choice
+          prompt: |
+            用策略模式把格式化逻辑抽成 `Formatter(Protocol)`，由 `ReportGenerator(formatter)` 从构造函数接收。现在要新增 `PdfFormatter` 支持导出 PDF，需要修改 `ReportGenerator` 类的代码吗？
+          options:
+            - text: 不需要修改 ReportGenerator，只需新增 PdfFormatter 类并在外部组装时传入它
+              correct: true
+            - text: '需要打开 ReportGenerator 加一条 elif fmt == "pdf":'
+              why: 用策略模式后已经没有判断格式字符串的 if/elif 链了
+            - text: 需要同时修改 HtmlFormatter 和 CsvFormatter
+              why: 各策略彼此完全独立，新增策略不会影响已有策略
+          explain: |
+            策略模式把变化点隔在独立类里，完美践行了开闭原则和单一职责原则。
+      - card:
+          title: 模板方法 Template Method：固定流程骨架，留空几步给子类
+          body: |
+            有时候整个流程的大步骤永远不变（比如数据导入永远是 `1.读文件 → 2.解析行 → 3.保存`），只有第 2 步“怎么解析”对 CSV 和 JSON 不同。
+
+            **模板方法（Template Method）**在父类里写好固定顺序的骨架方法，把会变的几步写成抽象步骤让子类填空重写。注意对比：**模板方法用继承，策略模式用组合**（运行时还能替换）。
+      - item:
+          id: strategy-vs-template-match
+          type: match
+          prompt: |
+            把特征和对应的模式连起来。
+          pairs:
+            - ["用组合替换整个算法，支持在运行期随时切换", "策略模式（Strategy）"]
+            - ["在父类固定多步算法骨架，子类只重写其中几个步骤", "模板方法（Template Method）"]
+            - ["设计模式在架构层次上也对应更宏观的系统组织模板", "架构风格"]
+          explain: |
+            算法骨架固定、只微调中间几步用模板方法；想把整套算法抽成可随时替换、单独测试的零件用策略模式。
+      - item:
+          id: strategy-html-out
+          type: text
+          prompt: |
+            策略模式里 `HtmlFormatter.format(total)` 返回 `f"<b>{total}</b>"`，`ReportGenerator(formatter).render(amounts)` 把 `sum(amounts)` 传给 `formatter.format(...)`。调用 `ReportGenerator(HtmlFormatter()).render([10, 15, 5])` 返回的字符串是什么？
+          answers: ["<b>30</b>"]
+          explain: |
+            `sum([10, 15, 5]) = 30`，`HtmlFormatter.format(30)` 返回 `"<b>30</b>"`。
+      - item:
+          id: template-order-run
+          type: choice
+          prompt: |
+            一个 `DataMiner` 父类有模板方法 `mine()`：依次调用 `open_file()`、`parse()`（子类重写）、`close_file()`。子类 `CsvMiner` 重写了 `parse()`。为什么一般不建议在 `CsvMiner` 里直接重写 `mine()`？
+          options:
+            - text: mine() 是固定好的公共流程骨架（包含打开和确保关闭文件），子类只负责重写变化步骤 parse() 才不会漏关文件
+              correct: true
+            - text: 因为 Python 语法不允许子类重写父类的方法
+              why: 语法允许重写，但重写掉模板骨架就失去了复用公共控制流的意义
+            - text: 因为重写 mine() 会把父类删掉
+              why: 重写只影响子类自身，但会让多个子类重复写打开关闭文件的样板代码
+          explain: |
+            模板方法保护的就是“不变的控制流骨架”，子类只填自己差异化的钩子步骤。
+
+  - id: behavioral-observer
+    chapter: 模式与重构
+    title: 行为型模式：观察者模式解耦通知
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            股票行情中心 `Stock` 每次价格刷新，手机面板、邮件预警、日志审计都需要第一时间知道并各自反应。如果让 `Stock` 在 `set_price()` 里直接写死 `phone.refresh(); email.alert(); logger.write()`，过两天产品要新加一个“大屏滚动条”，怎么办？
+          options:
+            - text: 得去改核心 Stock 类并加依赖，耦合太重；应该让订阅者自己登记到 Stock 的观察者列表，价格一变 Stock 循环通知即可
+              correct: true
+            - text: 让每个看板每 1 毫秒死循环问一次“现在多少钱了”，不用通知
+              why: 高频空轮询既白白浪费大量 CPU，又经常错过瞬间变化或延迟过高
+            - text: 把手机界面和邮件代码全写进 Stock 类里
+              why: 股票价格对象完全不应该知道手机界面、邮件服务器长什么样
+          explain: |
+            **观察者模式（Observer）**建立“一对多”的订阅通知机制：主题状态一改，自动通知所有已登记的观察者，而且主题根本不需要认识具体有哪些看板。
+      - card:
+          title: 例题：股票价格观察者模式
+          body: |
+            **观察者模式（Observer）**定义统一的通知接口 `Observer`（提供 `update(symbol, price)` 方法），主题 `Stock` 维护一个订阅者列表，提供 `attach`（订阅）和 `set_price`（改价并逐个通知）：
+          reveal:
+            - title: 第 1 步：定义 Observer 接口和具体订阅者
+              body: |
+                所有订阅者（屏幕看板、高价警报）都实现 `update(symbol, price)`。
+            - title: 第 2 步：Stock 维护订阅名单并逐个通知
+              body: |
+                ```python
+                from typing import Protocol
+
+                class Observer(Protocol):
+                    def update(self, symbol: str, price: float) -> None: ...
+
+                class PriceAlert:
+                    def __init__(self, limit: float):
+                        self.limit = limit
+                        self.hits = []
+                    def update(self, symbol: str, price: float) -> None:
+                        if price >= self.limit:
+                            self.hits.append((symbol, price))
+
+                class Stock:
+                    def __init__(self, symbol: str, price: float):
+                        self.symbol = symbol
+                        self.price = price
+                        self._observers: list[Observer] = []
+                    def attach(self, obs: Observer) -> None:
+                        self._observers.append(obs)
+                    def set_price(self, price: float) -> None:
+                        self.price = price
+                        for obs in self._observers:
+                            obs.update(self.symbol, price)
+
+                s = Stock("ACME", 10.0)
+                alert = PriceAlert(15.0)
+                s.attach(alert)
+                s.set_price(12.0)
+                s.set_price(16.0)
+                print(len(alert.hits), alert.hits[0][1])
+                ```
+      - item:
+          id: observer-alert-hits
+          type: number
+          prompt: |
+            观察者 `PriceAlert(limit=15.0)` 只在 `update(symbol, price)` 收到 `price >= 15.0` 时往 `hits` 追加记录。股票 `Stock("ACME", 10.0)` 挂上 `alert` 后依次调用 `set_price(12.0)`、`set_price(16.0)`、`set_price(18.0)`，最后 `len(alert.hits)` 等于多少？
+          answer: 2
+          explain: |
+            `12.0 < 15.0` 不触发警报；`16.0 >= 15.0` 和 `18.0 >= 15.0` 各触发一次，共记录 `2` 次。
+      - item:
+          id: observer-ocp-why
+          type: choice
+          prompt: |
+            使用观察者模式后，如果想新加一个“把每次涨跌写入文件”的 `AuditLogger` 订阅者，需要修改 `Stock` 类的代码吗？
+          options:
+            - text: 不需要，AuditLogger 只需实现 update(symbol, price) 再调 stock.attach(logger) 注册进去
+              correct: true
+            - text: 需要修改 Stock.set_price，专门加一行调用 logger
+              why: set_price 只是遍历 self._observers 调用统一的 update，新订阅者无需改动 Stock
+            - text: 必须把原来的 PriceAlert 删掉才能加新订阅者
+              why: 观察者支持一对多，同一个 Stock 可以同时挂任意多个互不干扰的订阅者
+          explain: |
+            主题 `Stock` 只依赖抽象的 `Observer` 接口，因此新增或取关订阅者都能做到对 `Stock` 零修改。
+      - item:
+          id: observer-detach-pitfall
+          type: choice
+          prompt: |
+            在界面程序里，一个弹窗打开时调用 `stock.attach(popup)` 订阅了行情更新。用户关闭弹窗后如果忘了调用 `detach(popup)` 取消订阅，会引发什么隐患？
+          options:
+            - text: Stock 依然抓着已关闭弹窗的引用不断发通知，造成无效更新甚至对象一直释放不掉
+              correct: true
+            - text: Stock 会因为弹窗关掉而自动停止更新所有其他正常面板
+              why: 失效观察者还在列表里占着引用，主要是资源释放不掉和浪费通知
+            - text: Python 会在关闭窗口瞬间自动重写 Stock 类的代码
+              why: 没有取消订阅逻辑时，列表里的普通引用会一直留着
+          explain: |
+            使用观察者模式务必注意生命周期管理：组件销毁或关闭时记得取消订阅（detach）。
+      - item:
+          id: observer-vs-strategy
+          type: match
+          prompt: |
+            区分观察者模式和策略模式的关键特征。
+          pairs:
+            - ["一个主题状态变化时，主动逐个通知多个订阅方", "观察者模式（Observer）"]
+            - ["主对象把某一步计算委托给单个可替换算法对象", "策略模式（Strategy）"]
+            - ["subject.attach(obs) / subject.detach(obs)", "管理动态订阅名单"]
+          explain: |
+            策略解决“怎么算可以换”，观察者解决“变了以后通知谁可以动态增减”。
+
+  - id: behavioral-command-chain
+    chapter: 模式与重构
+    title: 行为型模式：命令与责任链
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            文档编辑器要支持 Ctrl+Z 撤销每一步操作，或者一个审批请求要依次经过“组长（≤1天）→ 经理（≤3天）→ 总监”谁能批谁就接住处理。如果操作只是一个瞬间执行完的普通函数调用，撤回为什么做不到？
+          options:
+            - text: 普通函数调用执行完就过去了，没有留下“执行与逆向撤销”的对象记录；把动作打包成对象才能排队和撤销
+              correct: true
+            - text: 因为函数里不允许写减法
+              why: 关键不是能不能算减法，而是需要把“做过什么和当时参数”封装存进历史栈
+            - text: 只要在函数里写 print 就能自动撤回数据修改
+              why: 打印文字不能还原之前被修改的变量或文档内容
+          explain: |
+            把“请求动作”对象化就能排队与撤销，把“处理节点”串成流水线就能逐层审批。
+      - card:
+          title: 命令模式 Command与责任链 Chain of Responsibility
+          body: |
+            - **命令模式（Command）**：把一次请求封成包含 `execute()` 和 `undo()` 的小对象。把执行过的命令压进一个栈，就能轻松实现排队、重做和 Ctrl+Z 撤销！
+            - **责任链（Chain of Responsibility）**：把多个处理器连成一串，每个处理器看自己能不能接：能处理就消化掉，处理不了（或顺带检查完）再传给 `next_handler`，发请求的调用方不用知道到底由链上谁接了这单。
+
+            ```python
+            class AddTextCmd:
+                def __init__(self, doc, text):
+                    self.doc = doc
+                    self.text = text
+                def execute(self):
+                    self.doc.append(self.text)
+                def undo(self):
+                    self.doc.pop()
+
+            doc = []
+            c1 = AddTextCmd(doc, "Hello ")
+            c2 = AddTextCmd(doc, "World")
+            c1.execute(); c2.execute(); c2.undo()
+            print("".join(doc))
+            ```
+          reveal:
+            - title: 第 1 步：把动作与逆向撤销打包成对象
+              body: |
+                每次敲字生成一个 `AddTextCmd(doc, text)` 并执行 `execute()`，同时压进 `history` 列表里；普通函数调用跑完就消失，只有命令对象能留住当初的参数以便撤回。
+            - title: 第 2 步：按顺序追踪责任链与撤销栈
+              body: |
+                撤销时从 `history` 弹出最后一个命令调用 `undo()`；而如果一串审批或日志中间件不需要撤销、只需要接力检查放行，就用责任链把处理节点串起来。
+      - item:
+          id: cmd-undo-text
+          type: text
+          prompt: |
+            看下面命令模式 `AddTextCmd` 代码，`"".join(doc)` 最终输出什么字符串？（注意 `c1` 末尾有个空格，不过 `c2` 被撤销了）
+          code: |
+            class AddTextCmd:
+                def __init__(self, doc, text):
+                    self.doc = doc
+                    self.text = text
+                def execute(self):
+                    self.doc.append(self.text)
+                def undo(self):
+                    self.doc.pop()
+
+            doc = []
+            c1 = AddTextCmd(doc, "Hello ")
+            c2 = AddTextCmd(doc, "World")
+            c1.execute(); c2.execute(); c2.undo()
+          lang: python
+          answers: ["Hello "]
+          explain: |
+            `c1` 放入 `"Hello "`，`c2` 放入 `"World"`，`c2.undo()` 弹出 `"World"`，列表只剩 `["Hello "]`。
+      - item:
+          id: chain-approver-choice
+          type: choice
+          prompt: |
+            Web 框架的中间件（1. 限流 → 2. 登录鉴权 → 3. 记录审计日志 → 4. 业务处理）通常串联执行，任何一层发现不合法就可以直接拦截返回错误，合法才放行给下一层。这体现了哪种模式？
+          options:
+            - text: 责任链模式（每个中间件决定自己拦截还是交给下一个处理器）
+              correct: true
+            - text: 享元模式（共用相同配置对象节省空间）
+              why: 中间件管道强调沿链传递并逐层判断处理或转发，不是共享池
+            - text: 抽象工厂（成套产出跨平台界面组件）
+              why: 这里并不在创建成套产品对象，而是在串联请求处理步骤
+          explain: |
+            Web 中间件管道和审批链都是责任链模式的典型应用：新增或调整一道安检环节只需插进链里，业务处理器本身不用改。
+      - item:
+          id: cmd-vs-chain-match
+          type: match
+          prompt: |
+            把场景和更合适的行为型模式连起来。
+          pairs:
+            - ["编辑器要支持操作历史栈、Ctrl+Z 撤销与宏录制", "命令模式（Command）"]
+            - ["把请假审批或 HTTP 校验过滤拆成一条可插拔处理链", "责任链模式（Chain of Responsibility）"]
+            - ["把一组互斥算法包成独立对象在运行期互换", "策略模式（Strategy）"]
+          explain: |
+            命令把请求做成可存可撤销的数据对象；责任链把请求沿处理者链传递；策略则聚焦算法替换。
+      - item:
+          id: chain-unhandled-trap
+          type: choice
+          prompt: |
+            写责任链时，如果请求一路传到链条最后一个节点，而最后一个节点也处理不了，最稳妥的设计是？
+          options:
+            - text: 在链尾放一个兜底处理或明确返回/抛出“无人可处理”结果，避免静默丢失请求
+              correct: true
+            - text: 让链尾默默把请求又传回链头形成死循环
+              why: 循环传回会让线程无限打转卡死
+            - text: 强行让第一个节点把所有请求全部硬吞掉
+              why: 第一个节点如果能全处理就不需要链了
+          explain: |
+            责任链必须保证链尾有明确终点或兜底处理，不能让请求掉进黑洞或绕成环。
+
+  - id: behavioral-state-memento
+    chapter: 模式与重构
+    title: 行为型模式：状态模式与备忘录
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            一个音乐播放器有“未播放”“播放中”“暂停”三种状态，按下同一个“播放/暂停”按钮，在三种状态下的反应截然不同。如果把所有按钮方法都写成 `if self.state == "playing": ... elif self.state == "paused": ...`，加新状态会怎样？
+          options:
+            - text: 每个方法里都铺满同一套 if/elif 状态判断，每多一个状态就要改遍所有方法
+              correct: true
+            - text: 只有第一次写稍微长点，以后加状态只需改一行
+              why: 只要有 5 个按钮方法（播放、停止、下一首、快进、拖动），每个方法里都要挨个补新分支
+            - text: 用一个布尔值就能表示 5 种以上状态
+              why: 一个布尔值只有 True/False 两种可能，根本装不下多种状态
+          explain: |
+            当一个对象的行为跟着状态剧烈变化时，可以把每个状态抽成一个对象（**状态模式**）；而如果想把对象某个瞬间的状态保存下来以便日后回退，又不暴露私有字段，就要用**备忘录**。
+      - card:
+          title: 状态模式 State与备忘录 Memento
+          body: |
+            - **状态模式（State）**：把每种状态（如 `DraftState`、`PublishedState`）拆成实现同一接口的状态类，主对象把方法调用直接委托给 `self.state.handle()`，切换状态就是换掉 `self.state`。
+            - **备忘录（Memento）**：让原对象自己生成一份封装好的状态快照交由历史管理器保存，之后再还给原对象恢复，**外部代码不用去偷看或直接改原对象的私有字段**。
+
+            ```python
+            class Draft:
+                def publish(self, doc):
+                    doc.state = Published()
+                    return "moved to published"
+            class Published:
+                def publish(self, doc):
+                    return "already published"
+            class Doc:
+                def __init__(self): self.state = Draft()
+                def publish(self): return self.state.publish(self)
+
+            d = Doc()
+            print(d.publish(), "|", d.publish())
+            ```
+          reveal:
+            - title: 第 1 步：为什么状态切换能消灭多处 if/elif？
+              body: |
+                `Doc` 本身不判断“当前是不是草稿”，它只管把请求交到 `self.state.publish(self)`；`Draft` 知道发布完要换成 `Published()`，`Published` 则回复已经发布过。
+            - title: 第 2 步：需要回退时如何配对备忘录？
+              body: |
+                如果要在编辑或状态迁移前拍一张快照，只需由 `Doc` 自己构造一个不对外暴露私有字段的快照对象交给管理器保管，日后直接送回 `Doc.restore(snap)` 即可恢复。
+      - item:
+          id: state-doc-trace
+          type: choice
+          prompt: |
+            状态模式里，`Doc()` 初始状态 `self.state = Draft()`。调用 `Draft.publish(doc)` 会把 `doc.state` 改为 `Published()` 并返回 `"moved to published"`；调用 `Published.publish(doc)` 返回 `"already published"`。连续调用两次 `d.publish()`，依次返回什么？
+          options:
+            - text: "moved to published | already published"
+              correct: true
+            - text: "moved to published | moved to published"
+              why: 第一次调用时 Draft 把 doc.state 换成了 Published，第二次会执行 Published.publish
+            - text: 报错，因为 Doc 没有写任何 if 语句
+              why: 状态模式正是用多态把 if/elif 拆进了 Draft 和 Published 两个独立状态类里
+          explain: |
+            第一次委托给 `Draft` 完成发布并切到 `Published`；第二次自动委托给 `Published`，全程没有重复的条件判断。
+      - item:
+          id: memento-encapsulation
+          type: choice
+          prompt: |
+            如果存档系统想在用户编辑文档前拍个快照以便随时恢复，为什么不用“外部代码直接读取文档的 `_cursor`、`_buffer` 等全部私有字段存进字典”的方式？
+          options:
+            - text: 直接读取私有字段破坏了封装，文档内部数据结构一改，存档代码就全坏了；备忘录让文档自己生成并解析快照
+              correct: true
+            - text: 因为 Python 字典不能保存整数和字符串
+              why: 字典可以保存任何值，问题在于破坏了类内部细节的封装边界
+            - text: 因为备忘录模式不需要任何存储空间
+              why: 备忘录同样需要占存储来保存快照，区别在于谁有权看快照内部细节
+          explain: |
+            备忘录把“保存/还原细节”关在原发器类自己手里，外部的 `History` 负责人只管保管一个黑盒快照对象。
+      - item:
+          id: state-vs-strategy-diff
+          type: choice
+          prompt: |
+            状态模式（State）和策略模式（Strategy）的类图几乎长得一模一样（都是主类组合一个接口），它们在设计意图上最大的区别是什么？
+          options:
+            - text: 策略一般由外部主动选定且彼此独立不知道对方；状态常常随内部操作自动转移，各状态类知道如何切到下一个状态
+              correct: true
+            - text: 策略模式用继承，状态模式用全局变量
+              why: 两者都用组合和委托，都不依赖全局变量
+            - text: 状态模式绝对不能有超过两个状态类
+              why: 状态模式正是为了应付三个以上的复杂状态切换才更有优势
+          explain: |
+            看谁来决定切换：策略通常是“外部选好用哪个排序算法”；状态则是“对象生命周期内部按规则从草稿流转到已发布”。
+      - item:
+          id: state-memento-match
+          type: match
+          prompt: |
+            把问题需求与对应模式连线。
+          pairs:
+            - ["消除多处重复的 if state == ... 分支，让状态流转各自成类", "状态模式（State）"]
+            - ["在不破坏对象私有封装的前提下保存并还原历史快照", "备忘录模式（Memento）"]
+            - ["把用户操作封装成带 execute/undo 的动作对象", "命令模式（Command）"]
+          explain: |
+            三者常一起出现：命令模式需要撤销某步复杂操作时，甚至可以顺便向目标对象要一个备忘录快照！
+
+  - id: behavioral-iterator-mediator-visitor
+    chapter: 模式与重构
+    title: 行为型模式：迭代器、中介者与访问者
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            有 5 个界面控件（复选框、输入框、提交按钮、错误提示栏、密码框）需要互相联动：勾上复选框就显示输入框，输完才能点提交……如果每个控件直接保留另外 4 个控件的引用互相调来调去，很快会织成一张蜘蛛网。怎么整理最清爽？
+          options:
+            - text: 设立一个“表单协调者”，所有控件只通知协调者，由协调者统一发号施令
+              correct: true
+            - text: 再增加第 6 个控件让它也连上前面 5 个控件
+              why: 网状直连只会越来越乱（n 个控件之间最多有 n(n-1)/2 条互相依赖线）
+            - text: 把所有控件合并成一个巨型纯文本字符串
+              why: 合并成字符串无法表达面向对象 UI 组件的事件与展示
+          explain: |
+            收官最后三种行为型模式：**迭代器**（统一遍历不漏底层结构）、**中介者**（把网状直连收拢成星型中心协调）、**访问者**（稳定元素结构上灵活加新操作）。
+      - card:
+          title: 迭代器 Iterator与中介者 Mediator
+          body: |
+            - **迭代器（Iterator）**：不管容器底层是数组、集合还是树，只提供统一“拿下一个元素”的接口，调用方就能用 `for x in container` 遍历而不知道内部存法，还能同时开两个互不干扰的遍历游标。
+            - **中介者（Mediator）**：在原本两两互指的一群组件中间放一个协调中心（如 `DialogMediator` 或机场塔台）。各组件只对中介者汇报事件，彼此完全解耦，彻底把复杂的网状关系简化成星型结构。
+      - card:
+          title: 访问者 Visitor 与可运行示例
+          body: |
+            **访问者（Visitor）**适合“元素种类很稳定（比如语法树只有 `Num` 和 `Add`），但经常要新增整套新操作（一会儿要算值、一会儿要打印 XML、一会儿要类型检查）”的场景：把每种新操作集中写进一个访问者类，不必每次都去翻改所有元素类。
+
+            ```python
+            class Num:
+                def __init__(self, v): self.v = v
+                def accept(self, visitor): return visitor.visit_num(self)
+
+            class Add:
+                def __init__(self, left, right): self.left = left; self.right = right
+                def accept(self, visitor): return visitor.visit_add(self)
+
+            class EvalVisitor:
+                def visit_num(self, n): return n.v
+                def visit_add(self, a): return a.left.accept(self) + a.right.accept(self)
+
+            expr = Add(Num(4), Add(Num(5), Num(6)))
+            print(expr.accept(EvalVisitor()))
+            ```
+      - item:
+          id: visitor-eval-num
+          type: number
+          prompt: |
+            访问者 `EvalVisitor` 对 `Num(v)` 返回 `v`，对 `Add(left, right)` 返回左右子节点访问结果之和。构造 `expr = Add(Add(Num(2), Num(3)), Num(10))`，调用 `expr.accept(EvalVisitor())` 返回的整数是多少？
+          answer: 15
+          explain: |
+            `Num(2)` 得 `2`，`Num(3)` 得 `3`，内层 `Add` 得 `5`，加上 `Num(10)` 得 `15`。
+      - item:
+          id: three-behavioral-match
+          type: match
+          prompt: |
+            把最后三种行为型模式和它们的典型适用场景配对。
+          pairs:
+            - ["不暴露树或图内部结构的前提下提供统一的顺序遍历方式", "迭代器模式（Iterator）"]
+            - ["像机场塔台一样接管多架飞机之间的网状直连通信", "中介者模式（Mediator）"]
+            - ["元素类型很少变，但需要频繁成批添加跨所有元素的新操作", "访问者模式（Visitor）"]
+          explain: |
+            迭代器统一遍历，中介者解开多对多网状引用，访问者把跨多个稳定元素类的新算法集中到一起。
+      - item:
+          id: mediator-star-risk
+          type: choice
+          prompt: |
+            把 6 个 UI 组件之间的互相引用全部收归给 `FormMediator` 协调后，要特别防范什么新问题？
+          options:
+            - text: 别把所有无关业务算术也全塞进中介者里，让中介者膨胀成一个新的“上帝类”
+              correct: true
+            - text: 控件从此就彻底不能接收用户输入了
+              why: 控件照样接收点击或输入，只是事件发生后通知中介者来协调联动
+            - text: 中介者只能在有两个以下组件时使用
+              why: 组件越多、网状联系越密时中介者才越有价值
+          explain: |
+            中介者只管“谁变化了要通知谁联动”，具体业务校验与计算仍应留在各自的领域类里。
+      - item:
+          id: visitor-tradeoff
+          type: choice
+          prompt: |
+            如果一个项目里的**元素种类（比如文档节点类型）每周都在新增**，而操作很少变，还适合用访问者模式吗？
+          options:
+            - text: 不太适合，因为每加一种新元素，就得去修改每一个已有访问者类并补上对应的 visit_xxx 方法
+              correct: true
+            - text: 非常适合，访问者对新增元素类完全不需要改动任何现有代码
+              why: 刚好相反：访问者让“加新操作”容易，却让“加新元素类”变难
+            - text: 适合，因为访问者会自动忽略新元素不执行任何代码
+              why: 漏掉新元素的 visit 方法会在调用 accept 时报错
+          explain: |
+            没有万能模式：普通面向对象多态容易加“新元素类”，访问者容易加“新操作”，选择前要先看哪一维更稳定。
+
+  - id: code-smells
+    chapter: 模式与重构
+    title: 识别六类代码坏味
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            一段代码测试全绿、能正常跑出结果，但一个函数足足有 300 行、参数列表有 9 个参数、两段 30 行的逻辑几乎完全一模一样，而且每次改用户规则都要同时翻开 4 个类去加新代码。这种代码有什么问题？
+          options:
+            - text: 它散发着明显的坏结构信号——虽然眼下能跑，但改一点就容易漏、新人也极难看懂
+              correct: true
+            - text: 只要今天能跑出正确结果，结构好不好对长期项目毫无影响
+              why: 软件大部分生命周期花在后续修改和排错上，结构坏掉会让团队速度越来越慢
+            - text: 应该把这 300 行合并成 1 行，就能消灭全部坏味
+              why: 强行压行只会让可读性更差，需要的是按职责拆出清晰小函数和类
+          explain: |
+            Martin Fowler 和 Refactoring.Guru 把这些预示“结构生病”的警示信号归纳成六大类，方便团队在评审时一眼认出结构隐患。
+      - card:
+          title: 前三类坏味：膨胀、滥用面向对象、阻碍修改
+          body: |
+            **代码坏味（code smell）**指代码虽还能跑，但透出结构隐患：
+            - **膨胀型（Bloaters）**：过长函数、过胖类、过长参数列表、把本来能成小对象的字段拆成基本类型到处传（基本类型偏执）。
+            - **面向对象滥用（OO Abusers）**：硬写 `if/elif` 按类型码分派、或子类拒绝父类一半方法（被拒绝的遗赠）。
+            - **阻碍修改（Change Preventers）**：改一个功能被迫同时改 5 个文件（散弹式修改），或一个类因多条无关需求总被改写（一类多变）。
+          reveal:
+            - title: 第 1 步：用具体代码认出“过长参数 + 基本类型偏执”
+              body: |
+                比如写 `def ship(city, street, zip_code, amount, currency, vip_flag, coupon):`，把属于 `Address` 和 `Money` 的字段全部摊平传进函数，以后多加一个字段就要改遍所有调用方。
+            - title: 第 2 步：认出“散弹式修改”与“一类多变”
+              body: |
+                新加一种会员等级时要改 5 个不同文件，这是散弹式修改；反过来每次不管改税率、改导出格式还是改数据库都要去动同一个 `OrderUtil` 类，说明它杂糅了太多变化方向。
+      - card:
+          title: 后三类坏味：多余物、紧耦合与杂项
+          body: |
+            - **多余物（Dispensables）**：重复代码、再也跑不到的死代码、毫无意义的过度注释（其实是代码写得太绕不得不靠注释解释）。
+            - **紧耦合（Couplers）**：一个方法里整天去摸另一个对象内部的七八个字段（**依恋情结 Feature Envy**）、或者连续串写 `a.get_b().get_c().do_d()`（**消息链**）。
+            - **其他坏味**：两个名字不同但干着类似事情的空壳类、或者不完全类库扩展。
+      - item:
+          id: smell-groups-match
+          type: match
+          prompt: |
+            把下面四个具体现象和它对应的代码坏味类别连起来。
+          pairs:
+            - ["一个 250 行的函数、8 个参数且把 Money 拆成 int+str 到处传", "膨胀型（Bloaters）"]
+            - ["每增加一种支付方式都要同时在 Order、Bill、Log 三个类里改代码", "阻碍修改（Change Preventers）"]
+            - ["一模一样的税率算式在三个模块里各复制了一份，加上几行死代码", "多余物（Dispensables）"]
+            - ["方法里的代码十有八九都在读取并拼装另一个类对象的属性", "紧耦合（依恋情结）"]
+          explain: |
+            认出这些坏味名字，就能和队友一句“这里有依恋情结 / 散弹式修改”精准对焦问题在哪。
+      - item:
+          id: feature-envy-fix
+          type: choice
+          prompt: |
+            发现 `Invoice.print_summary(customer)` 方法里，几乎每一行都在读 `customer.first_name`、`customer.last_name`、`customer.city`、`customer.zip_code` 来拼完整收件位置文字，跟 `Invoice` 自己反而没啥关系。这属于哪种坏味？又该怎么治？
+          options:
+            - text: 依恋情结（Feature Envy）：把“拼完整收件文字”的方法搬回 Customer 类里（信息专家）
+              correct: true
+            - text: 死代码：直接把 Customer 类整个删掉
+              why: 客户收件信息依然是正常业务需求，不是死代码，只是职责放错了家
+            - text: 散弹式修改：给收件位置多加三个全局变量
+              why: 全局变量只会进一步恶化耦合
+          explain: |
+            哪段逻辑最热衷于翻谁的数据，它多半就该住到谁家去——这正是依恋情结的治法。
+      - item:
+          id: diverged-vs-shotgun
+          type: choice
+          prompt: |
+            分清两种“阻碍修改”坏味：当“加一种新日志格式”要同时改 4 个不同的文件，这叫**散弹式修改**；那如果“1 个类每次不管改数据库、改税率还是改导出格式都要动它”，这叫什么？
+          options:
+            - text: 一类多变（Divergent Change）：一个类承担了太多无关的变化方向
+              correct: true
+            - text: 消息链（Message Chains）：连续点出好几层内部对象
+              why: 消息链是 Couplers 耦合类的坏味（a.b().c().d()）
+            - text: 基本类型偏执（Primitive Obsession）
+              why: 基本类型偏执是指该封成小值对象的数据散成基础类型
+          explain: |
+            一改需求动多处 = 散弹式修改（职责太散）；多类需求全动一处 = 一类多变（职责太杂，违背 SRP）。
+      - item:
+          id: smell-not-auto-bug
+          type: choice
+          prompt: |
+            看到一个类有 120 行且有两个类似的方法，正确的态度应该是？
+          options:
+            - text: 坏味是提示我们需要停下来思考是否值得重构的“线索”，不是必须机械套用的绝对死刑
+              correct: true
+            - text: 只要代码能编译通过，永远不应该花时间理会任何重复和耦合
+              why: 放任坏味累积会拖慢后续每次改动的速度并提高缺陷率
+            - text: 不写任何测试就大刀阔斧把 20 个文件一次全拆掉
+              why: 没有测试保护时猛改结构极易引入新 bug
+          explain: |
+            发现坏味 → 确认有修改痛点 → 确保有自动化测试护航 → 小步重构改善。
+
+  - id: refactorings
+    chapter: 模式与重构
+    title: 安全重构六组常用手法
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            要把一个 100 行的长函数拆小、顺便把一个错放的方法搬到另一个类里，甚至把大堆 `if/elif` 重构成策略模式。在开始动手**重构（refactoring）**之前，最稳妥的第一步前提是什么？
+          options:
+            - text: 先确认有可靠的自动化测试覆盖这段外部行为，再一小步一小步改、每改一步跑一次测试
+              correct: true
+            - text: 先同时顺手改掉三个新产品需求，和重构混在一个提交里做完
+              why: 重构要求“不改变外部行为”，一旦把新需求混进重构里，测试出错时根本分不清是重构改坏了还是新需求写错了
+            - text: 凭眼力通读一遍然后一次改完二十个文件再运行
+              why: 大跨度修改极其容易出错，小步快跑并随时跑测试才是安全重构的核心
+          explain: |
+            在不改变软件外部可观察行为的前提下小步调整内部代码结构，叫做改善代码设计。这一课总结六大类常用重构手法。
+      - card:
+          title: 第一到三组：提炼函数、搬移特性、整理数据
+          body: |
+            **重构（refactoring）**是保持外部行为不变的小步结构改造：
+            - **组织函数**：把长函数里独立的一段提炼成有好名字的短函数（**Extract Method**）；把无谓的冗余中间封装内联回去（Inline）。
+            - **在对象间搬移特性**：治依恋情结用**搬移方法（Move Method）**；把膨胀大类拆成两个职责清晰的类的叫**提炼类（Extract Class）**；把“替调用方藏住 `a.b().c()` 链条”叫**隐藏委托关系**。
+            - **组织数据**：把散落传参的 `(amount, currency)` 用小类包起来（**用对象代替基本值**），把魔法数字换成具名常量。
+      - card:
+          title: 第四到六组：简化条件、方法调用与继承体系
+          body: |
+            - **简化条件表达式**：用**卫语句（Guard Clause）**提前 `return` 消除多层嵌套 `if`；把反复按类型码分支的 `if/elif` 变成**用多态取代条件表达式**。
+            - **简化方法调用**：把太长的参数列表合并成**参数对象**；如果函数既改状态又返回值让人迷惑，把它**拆成查询和修改两个独立方法**。
+            - **处理继承与泛化**：两个兄弟类有重复方法就**上移方法**到父类；如果继承把无关方法硬塞给了子类，就改用**以委托取代继承**！
+          reveal:
+            - title: 第 1 步：先把复杂逻辑装进小函数
+              body: |
+                遇到 80 行嵌套 `if` 时，先用卫语句把“余额不足”“未登录”早早拦掉 `return`；再把中间算运费那段提炼成 `shipping_fee(order)`。
+            - title: 第 2 步：用测试守住每一步小改动
+              body: |
+                每提炼完一个函数、每搬移一个方法，立刻跑一遍单元测试绿灯再做下一步——小步走即使改错也只需撤回几行代码。
+      - item:
+          id: refactor-guard-clause
+          type: choice
+          prompt: |
+            看下面左边三层嵌套 `if` 的代码，哪一项用了**卫语句（Guard Clause）**做了等价且更平直的重构？
+          code: |
+            def pay_amount(emp):
+                if emp.is_dead:
+                    return 0
+                else:
+                    if emp.is_separated:
+                        return 0
+                    else:
+                        return emp.base * 12
+          lang: python
+          options:
+            - text: |
+                `if emp.is_dead: return 0` 与 `if emp.is_separated: return 0` 提前返回，最后直接 `return emp.base * 12`
+              correct: true
+            - text: '再包第四层 if emp.base > 0: 让嵌套更深'
+              why: 卫语句的目的正是提前处理异常或边界情况并立刻 return，拉平主干代码
+            - text: 删掉 is_dead 和 is_separated 的判断，永远返回 emp.base * 12
+              why: 删掉业务判断会改变外部可观察行为，这叫改功能/引入 bug，不是重构
+          explain: |
+            用卫语句先把特殊边界早早拦截 `return`，主逻辑就不需要缩进三四层，阅读负担立刻减半。
+      - item:
+          id: refactor-six-match
+          type: match
+          prompt: |
+            把代码痛点和最对症的重构手法配对。
+          pairs:
+            - ["函数长 120 行，中间一段专门在算税费", "提炼函数（Extract Method）"]
+            - ["方法里频繁翻看另一个类的 5 个属性", "搬移方法（Move Method）"]
+            - ["三层深嵌的 if/else 边界检查", "以卫语句取代嵌套条件表达式"]
+            - ["子类只需要复用父类 1 个工具方法却硬继承了一堆不想要的东西", "以委托（组合）取代继承"]
+          explain: |
+            每类坏味都有现成的标准小步手法来拆解，而且每一步都有明确名字便于结对评审。
+      - item:
+          id: extract-method-check
+          type: number
+          prompt: |
+            对订单算价函数做了“提炼函数 + 卫语句”重构后，重构前后输入相同数据时结果**必须完全一致**。按下面重构后的代码，调用 `checkout([10, 20, 30], vip=True)`（VIP 满 50 减 10）返回多少？
+          code: |
+            def discount(subtotal, vip):
+                if not vip or subtotal < 50:
+                    return 0
+                return 10
+
+            def checkout(prices, vip=False):
+                if not prices:
+                    return 0
+                subtotal = sum(prices)
+                return subtotal - discount(subtotal, vip)
+          lang: python
+          answer: 50
+          explain: |
+            `subtotal = 10 + 20 + 30 = 60`，满足 `vip` 且 `60 >= 50`，`discount` 返回 `10`，最终 `60 - 10 = 50`。
+      - item:
+          id: refactor-vs-rewrite
+          type: choice
+          prompt: |
+            “正在改结构时，发现客户顺便想把 VIP 折扣从减 10 改成减 15”，遵循安全重构纪律应该怎么做？
+          options:
+            - text: 先只完成保持行为不变的重构、跑全测试并提交；再单独改折扣为 15 并补新测试
+              correct: true
+            - text: 把提炼函数和改折扣数字同时写进同一次大改里
+              why: 混合改动一旦跑红测试，很难定位究竟是结构拆错了还是业务规则写错了
+            - text: 重构期间不需要跑任何测试，全部写完再说
+              why: 只有小步重构并高频跑测试，才能敢放心地改善复杂代码
+          explain: |
+            戴“重构帽”时只改结构不改行为，戴“加功能帽”时只改行为——两顶帽子分开戴，代码永远稳步变好。
+
+boss:
+  items:
+    - id: boss-grasp-expert
+      type: choice
+      prompt: |
+        在订单系统中，谁应该负责计算单条明细 `OrderLine(qty, unit_price)` 的小计，以及谁应该负责新建 `OrderLine` 放进订单？
+      options:
+        - text: OrderLine 自己算小计（信息专家）；Order.add_line() 负责新建 OrderLine（创建者）
+          correct: true
+        - text: 全写进页面按钮事件里直接算，领域类只放空字段
+          why: 把计算塞进界面会造成低内聚、高耦合和贫血模型
+        - text: 让 User 用户类来计算每条 OrderLine 的单价乘数量
+          why: User 不掌握明细的数量和单价，违反信息专家原则
+        - text: 让全局单例 Utils 类保存所有订单和明细的列表
+          why: 全局单一列表会混单并导致严重的全局状态耦合
+      explain: |
+        GRASP 的信息专家把计算交给拥有数据的类，创建者把构造交给包含它的整体类。
+    - id: boss-uml-rel-match
+      type: match
+      prompt: |
+        把 UML 类图关系名称和对应含义配对。
+      pairs:
+        - ["组合（实心菱形 ◆—）", "整体与部分生命周期绑定，整体销毁部分随之销毁"]
+        - ["聚合（空心菱形 ◇—）", "整体拥有部分，但部分可脱离整体独立存在"]
+        - ["实现（虚线空心三角 ..▷）", "具体类遵守并实现接口契约"]
+        - ["依赖（虚线普通箭头 ..>）", "通过方法参数或局部变量临时使用另一个类"]
+      explain: |
+        分清菱形实空（强弱拥有）和三角虚实（接口实现 vs 类继承），看懂类图就不会歧义。
+    - id: boss-seq-compensation
+      type: order
+      prompt: |
+        排好下单时“扣款失败释放库存”的正确 UML 时序消息顺序（涉及 `OrderController`、`OrderService`、`Inventory`、`Payment`）。
+      steps:
+        - "OrderController -> OrderService: placeOrder(cart)"
+        - "OrderService -> Inventory: reserve(items) 成功"
+        - "OrderService -> Payment: charge(amount)"
+        - "Payment --> OrderService: 返回支付失败"
+        - "OrderService -> Inventory: release(reservation) 并向 Controller 返回失败"
+      explain: |
+        跨服务/模块协作时，支付失败必须紧跟着执行补偿释放预留库存。
+    - id: boss-solid-diag
+      type: choice
+      prompt: |
+        `ReportGenerator` 在 `generate(fmt)` 里自己连 `sqlite3`、算总和、再用 `if fmt == "html" elif fmt == "csv"` 拼接返回。这段代码同时违背了哪三条 SOLID 原则？
+      options:
+        - text: 单一职责（SRP）、开闭（OCP）、依赖倒置（DIP）
+          correct: true
+        - text: 只违背了里氏替换（LSP），完全符合 SRP、OCP 和 DIP
+          why: 这里甚至没有继承层次，问题在于多变化原因混杂、加格式要改 if/elif、且硬编码依赖 sqlite3
+        - text: 完全遵守所有 SOLID 原则，是最理想的写法
+          why: 加 PDF 格式要改主类、且单元测试无法脱离真实数据库，明显违背多条原则
+        - text: 只违背了接口隔离（ISP），只要给它加三个空方法就行
+          why: 加空方法只会让类更加膨胀低内聚，治标不治本
+      explain: |
+        三种变化原因混在一处（SRP）、扩展新格式需改已有分支（OCP）、高层直连具体 `sqlite3`（DIP）。
+    - id: boss-di-test-calc
+      type: text
+      prompt: |
+        用依赖倒置与策略模式重构后，`ReportGenerator(repo, formatter)` 从构造函数传入仓库和格式化器。单元测试传入 `FakeRepo([Sale(12), Sale(8), Sale(5)])` 与返回 `f"total,{total}"` 的 `CsvFormatter()`，输出的字符串是什么？
+      answers: ["total,25"]
+      explain: |
+        `12 + 8 + 5 = 25`，经 `CsvFormatter` 格式化为 `"total,25"`，全程不碰真数据库。
+    - id: boss-lsp-square
+      type: number
+      prompt: |
+        已知错误的 `Square` 继承了 `Rectangle` 并在设宽或高时同时改两条边。调用 `s = Square(); s.set_width(7); s.set_height(3)` 后，`s.area()` 返回多少？（原本期待 `7 * 3 = 21`）
+      answer: 9
+      explain: |
+        后调用的 `set_height(3)` 把宽和高都覆写成了 `3`，算出 `3 * 3 = 9`，违背了里氏替换原则。
+    - id: boss-observer-check
+      type: choice
+      prompt: |
+        用观察者模式通知股价变化：`Stock` 维护 `Observer` 列表并在 `set_price` 时循环调用 `obs.update(symbol, price)`。下面哪项说法**正确**？
+      options:
+        - text: 新加一个审计日志观察者只需实现 update 接口并 attach，不必修改 Stock 源码，且不用时记得 detach
+          correct: true
+        - text: 每增加一个界面看板都必须打开 Stock.set_price 多写一行硬编码调用
+          why: 观察者模式正是为了把新增订阅者对主题源码的修改降到零
+        - text: Stock 必须在内部知道所有订阅者的具体类名和私有字段
+          why: 主题只认识统一的 Observer 抽象接口，对具体订阅者一无所知
+        - text: 组件销毁后留在观察者列表里不会造成任何资源释放或无效通知问题
+          why: 忘记 detach 会让已废弃对象继续被强引用并接收无用更新
+      explain: |
+        主题面向抽象 `Observer` 逐个通知，新老订阅者动态插拔而不修改主题代码。
+    - id: boss-patterns-match
+      type: match
+      prompt: |
+        把常见软件设计痛点和最匹配的经典设计模式连起来。
+      pairs:
+        - ["不改老接口源码，把外部 SDK 单位从元转成分对上口径", "适配器模式（Adapter）"]
+        - ["在保持同接口的同时动态叠加日志、压缩等可选包装层", "装饰器模式（Decorator）"]
+        - ["树形目录下把单个文件和嵌套文件夹当作同一接口统一算大小", "组合模式（Composite）"]
+        - ["把变化中的格式化算法抽成可互换对象注入主流程", "策略模式（Strategy）"]
+        - ["成套创建风格一致的一族组件而不混搭", "抽象工厂（Abstract Factory）"]
+      explain: |
+        准确区分意图，才能对症选用模式而不是生搬硬套。
+    - id: boss-smell-refactor
+      type: choice
+      prompt: |
+        发现某个方法里 90% 的代码都在调用 `customer` 对象的属性拼装收件位置文字，而且方法内部还有 4 层嵌套 `if` 判断。同时进行哪两项改善最对症？
+      options:
+        - text: 在可靠测试保护下，先用卫语句拉平嵌套条件，再把拼装收件文字的方法搬移回 Customer 类
+          correct: true
+        - text: 先删除全部单元测试，再把整个工程改写成一个 3000 行的脚本
+          why: 没有测试护航的大合并只会制造更难维护的巨型泥球
+        - text: 把 customer 的所有属性拷贝 4 份做成全局变量
+          why: 全局变量会彻底破坏封装与并发安全
+        - text: 给这个方法再塞进 6 个无关参数，并改名成 do_everything
+          why: 这会进一步制造膨胀型坏味，与清晰职责背道而驰
+      explain: |
+        识别“依恋情结”和“深层条件嵌套”，在测试护航下小步执行搬移方法与卫语句重构。
+    - id: boss-ddd-rationale
+      type: choice
+      prompt: |
+        在领域驱动设计与设计理由记录里，下面哪项做法**最值得提倡**？
+      options:
+        - text: 区分有唯一 ID 的实体与不可变的值对象，按限界上下文拆清边界，并记录技术选型的背景与取舍代价
+          correct: true
+        - text: 全公司所有子系统必须共用一张含 100 个字段的超级类，且绝对不写任何决策理由说明
+          why: 超级共享模型会导致跨团队高耦合，不记理由会让后人盲目踩坑
+        - text: 把货币金额写成随时能被外部函数原地修改的全局变量
+          why: 金额属于典型值对象，应该做成不可变小对象防止意外别名串改
+        - text: 只要画出类图就永远不再随需求变化调整职责分配
+          why: 设计要在验证和演化中不断修正，而不是画完就冻结一切反思
+      explain: |
+        实体/值对象/聚合/限界上下文守住模型清晰，设计理由留住决策上下文。祝贺通关《软件设计与面向对象分析设计》！

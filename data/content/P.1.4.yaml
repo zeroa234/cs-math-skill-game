@@ -1,0 +1,2242 @@
+skill: P.1.4
+version: 2
+authors: [main-agent]
+brief:
+  why: |
+    在入门关学会写出能跑的 Python 小脚本之后，真正写大程序还会遇到三类硬骨头：打开的文件/锁在异常退出时怎么保证不漏放、怎样用所有权和类型把大量低级 bug 拦截在运行前；多个任务同时跑起来怎么重叠 I/O 等待又不互相撞坏共享数据；面对变慢或出错的复杂代码，怎样靠规格、抽象边界和真实性能剖析精确定位。这一关带你把零散脚本提升到工程级程序设计。
+  outcomes:
+    - 掌握上下文管理器（with）、RAII 与 Rust 所有权/借用/切片规则，把资源释放绑定到作用域
+    - 区分静态类型检查、泛型、带标记的递归 ADT 与反射/宏元编程，用类型收窄限制非法状态
+    - 理解进程与线程交错造成的竞态条件、互斥锁保护整段读写与锁序防死锁，并用 async/await 并发与消息传递协作
+    - 编写含前后置条件与副作用说明的规格、表示不变量（RI）与抽象函数（AF），用分区测试与科学调试定位缺陷
+    - 编译并解读 gprof 平坦剖面与调用图，用 timeit 对比 list 与 set 查找并用缓存把指数递归降为线性
+terms:
+  - term: 作用域
+    def: '名字在程序里有效并能被访问的范围，离开该范围后对应资源或绑定结束生命周期'
+  - term: 上下文管理器
+    def: '约定进入代码块时取得资源、无论正常还是报错离开都必定释放资源的规则（如 Python 的 with）'
+  - term: 内存
+    def: '供程序在运行时存放数据和对象的存储空间'
+  - term: 编译
+    def: '把写好的代码在正式运行前翻译成计算机可执行形式、并同步检查语言规则的过程'
+  - term: 编译器
+    def: '负责把代码翻译并提前找出语法、类型或所有权违例的工具'
+  - term: 所有权
+    def: '明确“此刻究竟由哪一个变量负责持有并在结束时清理这份资源”的规则'
+  - term: 借用
+    def: '在不把所有权交出去的前提下，暂时通过引用读取或受控修改原值'
+  - term: 字节
+    def: '由 8 个二进制位组成的数据计量单位'
+  - term: 数组
+    def: '按连续位置顺序存放多个同类型数据的容器'
+  - term: 泛型
+    def: '用类型占位参数写出同一份可复用规则，同时保留调用者传入的具体类型信息'
+  - term: 抽象数据类型
+    def: '只凭公开提供的操作和行为约定来定义、对外部隐藏内部存放方式的数据类型（简称 ADT）'
+  - term: 递归
+    def: '数据或函数在其定义内部引用同类但更小一级的子问题，直到触发最简单终止条件为止'
+  - term: 反射
+    def: '程序在运行过程中动态查看或按名字访问对象当前属性、方法与类型的机制'
+  - term: 元编程
+    def: '编写能够检查、包装甚至在运行前生成或变换其他程序代码的代码'
+  - term: 进程
+    def: '正在运行的独立程序实例，拥有自己的一份受保护资源'
+  - term: 线程
+    def: '在同一个进程内部并发执行任务、并共享进程内存的工作路线'
+  - term: 竞态条件
+    def: '最终结果依赖于多个线程恰好交错执行的先后顺序，从而可能破坏正确性的缺陷'
+  - term: 异步等待
+    def: '遇到耗时等待（如读写网络或定时睡眠）时先暂停并让出控制权给别的任务，结果就绪后再恢复执行'
+  - term: 互斥锁
+    def: '确保同一段共享读取与更新一次只允许一个持有者进入执行的同步工具'
+  - term: 死锁
+    def: '多个参与者各自占着对方正在苦等的资源不放手，导致所有任务永久卡死的状态'
+  - term: 规格
+    def: '以书面契约写明调用方必须满足的前置条件、返回值后置条件以及允许产生的可见变化'
+  - term: 表示不变量
+    def: '简称 RI，约定对象内部存放的数据在任何公开操作完成后都必须始终保持合法的条件'
+  - term: 抽象函数
+    def: '简称 AF，解释“怎样把内部存放的原始数据翻译成外部调用者理解的抽象值”的对应规则'
+  - term: 性能剖析
+    def: '通过运行真实代表性输入，测量程序每个函数耗时和调用次数分布，找出真正瓶颈所在'
+
+lessons:
+  # ==== 资源管理 ====
+  - id: cleanup
+    chapter: 资源管理
+    title: 上下文管理器 with 与 C++ RAII：异常也不漏放资源
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你写了一段脚本：`f = open("log.txt", "w")`，写到一半突然触发报错异常退出，而 `f.close()` 写在函数最末一行。`f.close()` 还会自动执行吗？
+          options:
+            - text: 不会，控制流在报错瞬间直接跳出函数，末尾的手动关闭会被彻底跳过
+              correct: true
+            - text: 会，Python 会不管报错强行继续把末尾所有行全部跑完
+              why: 一旦抛出未捕获异常，当前函数剩余代码立即跳过，手动清理非常脆弱
+            - text: 会，文件自己每过一秒都会猜程序员忘记关了
+              why: 没有边界自动清理绑定时，错误路径会漏掉显式清理语句
+          explain: |
+            手动在末尾写 `close()` 或 `release()` 很容易因为**提前 return** 或**抛出异常**而漏掉。现代语言用“进入获得、离开必清理”的作用边界规则解决它！
+      - card:
+          title: Python 上下文管理器：with 与 __enter__ / __exit__
+          body: |
+            Python 的**上下文管理器（context manager）**给资源规定了清晰的**作用域（变量与资源生效的边界）**：
+            1. 进入 `with` 块时自动调用 `__enter__()` 拿到资源；
+            2. 无论 `with` 块**正常结束**还是**中途抛异常跳出**，系统都保证调用 `__exit__()` 释放资源！
+            ```python
+            from threading import Lock
+            lock = Lock()
+            try:
+                with open("lesson.log", "w") as f, lock:
+                    f.write("entry\n")
+                    raise ValueError("demo error")
+            except ValueError:
+                pass
+            print(f.closed, lock.locked())
+            ```
+          reveal:
+            - title: 为什么多个资源按“后进先出”退出？
+              body: |
+                上面 `with open(...) as f, lock:` 先拿文件、再拿锁；退出时按相反顺序**先调用 `lock.__exit__` 释放锁、再关闭文件 `f`**，就像穿外套后脱外套必须先脱外层一样安全！
+            - title: 没用 `with` 时怎么对比看出危险？
+              body: |
+                如果写成 `f = open(...); write_data(f); f.close()`，一旦 `write_data(f)` 里发生任何异常或提前 `return`，控制流立刻跳出函数，`f.close()` 永远不会被执行——系统很快就会耗尽可用文件句柄而无法再打开新文件！
+      - card:
+          title: C++ 的对应机制：RAII（资源获取即初始化）
+          body: |
+            在 C++ 里没有 `with`，而是把资源包装成对象（例如文件流对象或锁守卫）：
+            - **构造函数**（创建对象时执行）负责打开文件或加锁；
+            - **析构函数**（对象离开大括号范围时自动触发）负责关闭文件或解锁。
+            ```cpp
+            #include <mutex> // 引入标准库锁工具
+            std::mutex mtx;    // std::mutex 是互斥锁类型
+            void write_safe() { // void 表示函数不返回值
+                std::lock_guard<std::mutex> guard(mtx); // 构造时加锁
+                // 即使这里提前 return 或 throw 异常...
+            } // 离开花括号时自动调用 guard 析构函数解锁！
+            ```
+          reveal:
+            - title: 三门语言的统一规律：把清理焊在作用域出口
+              body: |
+                Python 靠 `with` 自动调用 `__exit__`；C++ 靠局部对象离开花括号自动调用析构函数（RAII）；Rust 同样在变量离开作用域时自动触发 `Drop` 回收资源。尽管语法不同，底层逻辑高度一致：绝不靠人肉在每个 `return` 前背诵关闭语句，让语言机制代劳！
+      - item:
+          id: cleanup-order-choice
+          type: choice
+          prompt: |
+            设 `lock = threading.Lock()`，执行 `with open("a.txt", "w") as f, lock:` 时，写入内容中途突然触发 `ValueError` 异常退出。资源清理是如何发生的？
+          options:
+            - text: 保证先调用 `lock` 的 `__exit__` 释放锁，再调用 `f` 的 `__exit__` 关闭文件
+              correct: true
+            - text: 因为发生了异常，两个 __exit__ 都会被全部跳过造成泄漏
+              why: with 的核心承诺就是异常发生时依然必定执行所有已进入资源的 __exit__
+            - text: 先关闭文件，而锁会永久保持占用状态
+              why: 多个管理器会严格按进入顺序的反序逐个清理，不会漏掉其中任何一个
+          explain: |
+            按后进先出依次触发 `__exit__`，即使出错也不会留下半打开的文件或忘记解锁永久阻塞的隐患。
+      - item:
+          id: raii-why-safe
+          type: choice
+          prompt: |
+            在 C++ 中使用 **RAII**（如用 `std::lock_guard` 管锁、用文件对象管文件）时，为什么中途 `throw` 抛出异常也不会泄漏资源？
+          options:
+            - text: 异常往外退回大括号范围（栈展开）时，所有已创建对象的析构函数会被自动依次调用完成释放
+              correct: true
+            - text: 因为 C++ 语法规则会偷偷禁止程序里出现任何 return 或 throw
+              why: 程序完全可以提前 return 或抛异常，RAII 正是让这些出口都安全执行析构
+            - text: 因为操作系统每毫秒都会直接杀掉当前正在运行的程序
+              why: 资源是在离开作用范围时由对象析构精准归还，而不是靠杀掉整个程序
+          explain: |
+            不管是 Python `with` 的 `__exit__` 还是 C++ RAII 的析构函数，本质都是把“谁申请谁释放”死死焊在语言离开出口上。
+      - item:
+          id: cleanup-pitfall-match
+          type: match
+          prompt: |
+            把资源管理场景和正确做法或结论配对。
+          pairs:
+            - ["文件写入中途突然抛异常", "with 自动调用 __exit__ 关闭文件"]
+            - ["多个资源同时交给 with 管理", "按先打开后关闭的反序依次清理"]
+            - ["C++ 中把锁交给局部守卫对象管理", "离开花括号自动调用析构函数解锁（RAII）"]
+          explain: |
+            把清理动作放进离开边界时的自动退出钩子，才能在面对异常与多出口提前返回时做到零遗漏。
+      - item:
+          id: cleanup-output-bool
+          type: text
+          prompt: |
+            执行以下带异常的代码：
+            ```python
+            import threading
+            lock = threading.Lock()
+            try:
+                with open("tmp.txt", "w") as f, lock:
+                    raise RuntimeError("boom")
+            except RuntimeError:
+                pass
+            print(f.closed, lock.locked())
+            ```
+            最终打印出来的两个布尔值（用单个空格隔开）是什么？
+          answers: ["True False"]
+          hint: '`with` 在异常跳出时会自动关闭 `f`（`f.closed` 为 `True`）并释放 `lock`（`lock.locked()` 为 `False`）。'
+          explain: |
+            异常虽然打断了 `with` 块内部执行，但 `__exit__` 保证文件已关闭（`True`）、锁已解除锁定（`False`）。
+
+  - id: ownership
+    chapter: 资源管理
+    title: Rust 所有权：谁负责释放这块内存？
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            假设程序运行时申请了一段动态文本存放区，两个变量 `a` 和 `b` 都以为“这片区域归我管，待会儿退出作用域我要负责把它回收销毁”。如果退场时两人都去销毁同一片存储区一次，会出什么事？
+          options:
+            - text: 会触发同一片区域被“重复释放两次”的严重崩溃！必须明确只由唯一一个所有者负责销毁
+              correct: true
+            - text: 销毁两次比销毁一次更干净，没有任何危害
+              why: 第二次释放已经归还系统的空间会损坏分配记录并引发崩溃或安全漏洞
+            - text: 存储区会自动复制出第三份给系统用
+              why: 若不规定唯一归属或显式复制，两个名字指向同一份底层数据就会产生冲突
+          explain: |
+            Python 靠后台垃圾回收替你盯着引用数；而 Rust 选择在正式运行前就通过工具按**所有权**算清谁负责销毁！
+      - card:
+          title: 所有权的三条铁律
+          body: |
+            **内存**是电脑在运行时给程序存放数据和对象的临时存储空间。**编译**是把写好的代码在运行前转成机器可执行形式的过程，而**编译器（compiler）**正是提前检查**所有权（ownership）**规则的守门人：
+            1. 每个值都有一个变量作为它的**所有者（owner）**；
+            2. 同一时刻只能有**唯一一个所有者**；
+            3. 当所有者离开自己的作用域时，这块**内存**立刻被自动销毁回收（`Drop`）。
+            ```rust
+            // fn main() 是程序入口；let 新建绑定；String::from(...) 申请动态字符串；{} 是打印占位符
+            fn main() {
+                let a = String::from("ready");
+                let b = a; // String 所有权从 a 移动（move）给 b，a 立即失效！
+                println!("{}", b);
+            }
+            ```
+          reveal:
+            - title: 为什么 `println!("{}", a)` 连编译都过不去？
+              body: |
+                执行 `let b = a;` 后，堆上那段文字数据只剩 `b` 这唯一一个主人。此时如果再写 `println!("{}", a)`，Rust 编译器会立刻报错拒绝编译（`use of moved value: a`）——把重复销毁和失效访问拦在运行前！
+            - title: 栈（固定小卡片）vs 堆（动态大文字）
+              body: |
+                **栈**存放随作用域进出自动对齐的小型定长记录（变量 `a` 里只记着“文字存哪、有多长”），而**堆**则是按需申请的弹性大存储空间，真正的 `"ready"` 字符序列躺在堆里。若让 `b` 抄走卡片并继续留着 `a` 有效，离场时两人都会去删同一块堆空间；Rust 干脆作废 `a`，只保留唯一主人 `b`！
+      - card:
+          title: 区分移动（Move）、显式 clone 与简单整数 Copy
+          body: |
+            是不是所有赋值都会交出原变量？看类型大小与成本：
+            - **简单固定大小值**（如整数 `x = 5; y = x;`）实现了 `Copy`，直接按值抄一份小成本副本，`x` 和 `y` 还能一起用；
+            - **带动态内存的大对象**（如 `String`）默认只做**移动（Move）**；如果真想让两边各自拥有一份独立字符串，要显式写 `let b = a.clone();` 提醒读者这里花了一次复制成本！
+          reveal:
+            - title: 把 String 传进函数时也会发生移动吗？
+              body: |
+                会！调用 `take_text(s)` 把 `String` 当普通参数按值传进去，就像赋值一样把 `s` 的所有权移进了函数形参；函数结束如果没把所有权当返回值还回来，原变量在调用之后也不能再使用！
+      - item:
+          id: rust-move-after-use
+          type: choice
+          prompt: |
+            看这两行 Rust 代码：`let s1 = String::from("hi"); let s2 = s1;`。如果紧接着下一行尝试打印 `s1`，会发生什么？
+          options:
+            - text: 编译器在运行前直接报错拒绝编译，因为 s1 的所有权已移动给 s2
+              correct: true
+            - text: 程序能顺利编译并打印两遍 hi，因为变量赋值永远自动深拷贝全部字符串
+              why: String 默认赋值是所有权移动而不是自动深拷贝
+            - text: 运行到那一行时再随机返回一个空字符串
+              why: Rust 在编译期就把失效访问挡在门外，不会等运行时才出怪结果
+          explain: |
+            确保每一刻动态字符串只有唯一所有者，退出作用域时只清理一次，绝不重复销毁。
+      - item:
+          id: rust-clone-vs-copy
+          type: choice
+          prompt: |
+            在 Rust 里写 `let s1 = String::from("hi");`，希望 `s1` 和 `s2` **都能继续独立持有并修改各自的字符串文本**，最恰当的做法是？
+          options:
+            - text: '用 `let s2 = s1.clone();` 显式复制一份独立的底层字符串数据'
+              correct: true
+            - text: '直接写 `let s2 = s1;` 后强行同时修改 `s1` 和 `s2`'
+              why: 普通赋值会把所有权转走，之后编译器不再允许读写 s1
+            - text: 把 `String` 改名成叫 `Copy` 的变量就行
+              why: 改变量名字不会改变类型是否有独立底层堆内存
+          explain: |
+            需要多份互不干涉的所有权时，必须显式 `.clone()` 表明你愿意承担复制内存的成本。
+      - item:
+          id: ownership-match
+          type: match
+          prompt: |
+            把不同场景下 Rust 赋值的行为配对起来。
+          pairs:
+            - ["let s2 = s1;（s1 为 String）", "发生所有权移动，s1 不再可用"]
+            - ["let s2 = s1.clone();（s1 为 String）", "显式复制一份底层数据，两者独立有效"]
+            - ["let y = x;（x 为 32 位整数）", "小巧定长值按 Copy 自动复制，两者都可用"]
+            - ["所有者变量离开大括号作用域", "自动触发清理并释放底层资源"]
+          explain: |
+            移动保安全、显式 clone 标成本、小整数免开销复制、离场即清理。
+      - item:
+          id: rust-int-copy-choice
+          type: choice
+          prompt: |
+            在 Rust 里写完 `let x: i32 = 42; let y = x;` 之后，接着写 `println!("{} {}", x, y);` 能通过编译并打印 `42 42` 吗？
+          options:
+            - text: 可以！像 `i32` 这类小巧固定长度的整数默认实现 Copy，赋值时会按值复制一份，原来的 `x` 依然有效
+              correct: true
+            - text: 不能，只要在 Rust 里写 `let y = x` 就一定永远报移动错误
+              why: 只有持有堆分配资源的 String 等未实现 Copy 的类型才会在赋值时发生移动
+            - text: 会编译通过但打印出随机乱码
+              why: Copy 按值精准拷贝整数比特内容，结果稳定为 42 42
+          explain: |
+            定长基础类型（整数、布尔、字符）走 `Copy` 自动按位拷贝，无需手动 `.clone()`。
+
+  - id: borrowing
+    chapter: 资源管理
+    title: 引用、借用与切片：只看不拿走所有权
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你写了一个辅助函数，仅仅想数一数一段 `String` 有几个字符，数完调用方还要继续用那段文本。把整份文本的“所有权”彻底过户送给函数，再让函数费劲过户还回来，合理吗？
+          options:
+            - text: 不合理！只需暂时“借”个只读引用给函数看一眼长度，所有权始终留在调用方手里
+              correct: true
+            - text: 必须把整份内存永远销毁重写一份
+              why: 只读查询不需要转移或重建数据，借用引用是零多余拷贝的办法
+            - text: 只要不调用任何函数就不会遇到这种麻烦
+              why: 模块化编程需要频繁把数据传给各种辅助函数处理
+          explain: |
+            用**借用（borrowing）**传个临时引用 `&s`，函数只看一眼、不抢所有权，函数返回时也不会提前销毁原数据！
+      - card:
+          title: 不可变借用（&T）vs 可变借用（&mut T）
+          body: |
+            **借用**让你通过引用 `&` 暂时使用值而不拥有它。为了防止“一边有人大改内容、一边有人正在读旧位置”造成错乱，Rust 编译器立下一条“共享读 vs 独占写”规则：
+            - **任意多个共享只读借用（`&T`）**可以同时存在；
+            - **同一时刻只能有一个可变借用（`&mut T`）**，且它活跃期间不能同时有别的只读或可变借用！
+            ```rust
+            fn main() {
+                let text = String::from("note");
+                let head = &text[..2]; // 借用前 2 个字节，不拿走 text 所有权
+                println!("{}:{}", head, text);
+            }
+            ```
+          reveal:
+            - title: 什么叫“不能借用比原主活得更久（悬垂引用）”？
+              body: |
+                如果在函数里创建一个局部变量，再试图把指向这个即将销毁局部变量的 `&` 引用当作返回值传出去，函数结束时原主已经销毁了——Rust 编译器会当场报错阻止这种“空悬引用”出现！
+            - title: 非词法作用域：用完只读借用立刻就能新开可变借用！
+              body: |
+                如果写了 `let r = &s; println!("{}", r);` 后**再也不使用 `r`**，那么在这行打印之后编译器就知道只读借用 `r` 已经功成身退了——紧接着下一行就能顺利借出 `&mut s` 修改 `s`，既保证读写永不同时活跃，又不会不近人情地卡死正常代码！
+      - card:
+          title: 字节偏移与切片（Slice）边界
+          body: |
+            计算机里 1 个**字节（byte）**由 8 个 0/1 比特位组成。像 `&text[..2]` 这样的字符串切片并不新复制内存，而是借用从开头到第 2 个**字节**的一段区间引用：
+            - 对英文 ASCII（每字母 1 字节）`"note"`，`&text[..2]` 借出 `"no"`；
+            - 注意下标按**字节**算而不是按“字符个数”算！如果字符串里有 3 字节一个的中文字符，切在半个汉字中间会在运行时立刻报错阻止乱码或非法切分！
+            - 同理对**数组（array）**或可变序列也能用 `&arr[1..3]` 借出其中连续一段作为切片，不必复制整段元素。
+          reveal:
+            - title: 可变借用的写法 `&mut T` 实战一眼看懂
+              body: |
+                如果函数真的需要往传入的 `String` 末尾追加内容，可以把参数写成 `&mut String`：调用方传入 `&mut s`，函数原地修改完就归还借用——既不挪走 `s` 的所有权，又保证此时没有别人同时读着旧内存乱套！
+            - title: 数组切片 `&nums[1..3]` 与 Python 切片 `nums[1:3]` 的本质区别
+              body: |
+                Python 写 `nums[1:3]` 会新建并复制出一个小列表；而 Rust 写 `&nums[1..3]` **连一个元素也不复制**，直接借用原数组从 0 算起下标 `1` 和 `2`（即第 2、第 3 个元素，不含右端 `3`）的一段区间，既快又省内存，同时编译器保证借用期间原数组不能被改乱！
+      - item:
+          id: borrow-rule-choice
+          type: choice
+          prompt: |
+            对于同一个可变字符串变量 `s`，在以下哪种情况下 Rust 编译器**会允许编译通过**？
+          options:
+            - text: 同时借出两个只读引用 `r1 = &s` 和 `r2 = &s`，只读不改写
+              correct: true
+            - text: 先借出只读引用 `r1 = &s`，在后面还要使用 `r1` 之前再借出可变引用 `r2 = &mut s`
+              why: 只读引用活跃期间不允许同时存在会改写数据的可变引用，读写冲突会被编译器拒绝
+            - text: 同时借出两个活跃的可变引用 `m1 = &mut s` 和 `m2 = &mut s` 一起修改
+              why: 同一作用域活跃的可变借用只能有唯一一个（独占写），防止竞争改坏状态
+          explain: |
+            记住核心口诀：**多读不互斥，一写须独占**；上一个只读借用最后一次使用结束后，才可以新开可变借用。
+      - item:
+          id: slice-ascii-output
+          type: text
+          prompt: |
+            在下面 Rust 代码里，输出会是什么？
+            ```rust
+            let text = String::from("note");
+            let head = &text[..2];
+            println!("{}:{}", head, text);
+            ```
+          answers: ["no:note"]
+          hint: '`&text[..2]` 借用 `"note"` 的前 2 个字节 `"no"`，而且借用并未移走 `text` 的所有权。'
+          explain: |
+            `head` 借用前两字节 `"no"`，`text` 依然完整拥有 `"note"`，所以最终打印 `no:note`。
+      - item:
+          id: slice-utf8-trap
+          type: choice
+          prompt: |
+            如果 `s = String::from("你好");`（UTF-8 中每个汉字占 3 个字节），尝试取切片 `&s[..2]` 会发生什么问题？
+          options:
+            - text: 切片偏移 2 落在了第一个汉字的 3 字节中间，没有对齐字符边界导致报错崩溃
+              correct: true
+            - text: 自动只显示汉字左半边的半张图
+              why: UTF-8 字符的多字节编码不能从中间劈开成半个字符
+            - text: 因为借用了一个切片，原变量 `s` 的所有权会被永远删掉
+              why: 切片是借用操作不会移走所有权，问题在于字节下标未落在合法字符边界上
+          explain: |
+            字符串切片按**字节**切分，处理包含中文的多字节文本时应按字符边界切或逐个字符处理。
+      - item:
+          id: dangling-ref-choice
+          type: choice
+          prompt: |
+            如果一个 Rust 函数在内部创建了局部字符串 `let tmp = String::from("hi");`，却想直接把只读借用 `&tmp` 作为函数返回值传给外面，编译器会怎么处理？
+          options:
+            - text: 编译报错拒绝！因为函数结束时 `tmp` 就被销毁了，若返回 `&tmp` 会指向一片早已回收的无效内存（悬垂引用）
+              correct: true
+            - text: 自动把局部字符串变成整个电脑开机期间永不销毁的东西
+              why: 局部变量寿命由函数作用域决定，要往外传就应直接返回 `String` 把所有权移交出去
+            - text: 会悄悄返回空数字 0
+              why: 借用不能活得比原主更久，Rust 在编译阶段就守住这条安全底线
+          explain: |
+            想把函数内部新造的动态数据送出去，直接返回所有权（`String`）而不是返回指向将亡局部变量的借用（`&String`）。
+
+  # ==== 泛型元编程 ====
+  - id: typing
+    chapter: 泛型元编程
+    title: 静态检查、动态检查与可变对象 vs 重绑定
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你写了一个算总价函数，要求输入数字列表，但队友不小心传了一串汉字进去。希望在哪一个时刻就抓出这个类型错误代价最小？
+          options:
+            - text: 程序根本还没启动运行、还在编辑器或编译检查阶段就直接画红线报错拦截
+              correct: true
+            - text: 等代码部署上线半个月后，某个半夜结账用户点按钮时再崩溃
+              why: 越晚才暴露的缺陷排查和挽回损失成本越高
+            - text: 干脆悄悄把汉字当成 0 元加进去，永远不要报任何错
+              why: 静默吞掉错误会让账目严重出错却浑然不知（“不检查”是最危险的做法）
+          explain: |
+            先讲清楚三种防错防线：**静态检查**（运行前拦截）、**动态检查**（运行时检查值）与“不检查”。
+      - card:
+          title: 三种检查阶段与 Hacking vs Engineering
+          body: |
+            6.102 把语言检查分成三类：
+            - **静态检查（Static Checking）**：不用运行程序，就能在写代码/编译时抓出类型不匹配、参数个数不对、拼错变量名（例如 TypeScript 或 Rust）；
+            - **动态检查（Dynamic Checking）**：等代码跑到这一步时检查具体值是否合法（例如除数为 0、列表下标超出范围、或运行前无法预知的外部 JSON 格式）；
+            - **工程化思维（Engineering vs Hacking）**：拼凑代码只求“眼下能跑”；工程化要求代码易懂、免于低级 bug、并且日后好改动！
+          reveal:
+            - title: 三种语言的“检查时间轴”对比一眼分清
+              body: |
+                - **静态检查（TypeScript / Rust）**：写完代码还没点运行就报错拦截类型错配；
+                - **动态检查（Python）**：`5 / 0` 或列表下标超出范围会在执行到那一行时抛出异常叫停；
+                - **不做检查（部分不安全低级操作）**：悄悄读取或踩进相邻数据而不报任何错，后果最难查！
+      - card:
+          title: 区分“重新赋值变量”与“修改可变对象内容”
+          body: |
+            在 Python 和 TypeScript 里，`const`（或“不要重绑变量”）和“内容不可变”是两码事！
+            - **重新绑定变量**（`items = [9]`）：让名字指去一块**新**列表，别处手里的旧引用不受影响；
+            - **原地修改对象**（`items.append(9)`）：名字还是指那块列表，只是把袋子里面的东西换了！TypeScript 用冒号写变量类型，例如 `const items: string[] = []`（`: string[]` 表示字符串数组，`const` 只禁止重新赋值 `items = ...`，却**不禁止** `items.push("x")` 往数组里面加东西！）。
+            ```python
+            a = [1, 2]
+            b = a        # a 和 b 别名指向同一列表
+            b.append(3)  # 原地修改，a 也能看到 [1, 2, 3]
+            b = [99]     # 重新赋值 b，a 依然是 [1, 2, 3]
+            print(a, b)
+            ```
+          reveal:
+            - title: TypeScript 中如何真正表达“不能改里面元素”？
+              body: |
+                光写 `const xs: number[] = [1, 2]` 还能 `push`；要加上 `readonly` 修饰（`readonly number[]`），静态检查才会禁止调用 `.push()` 修改里面！
+            - title: 在 Python 函数传参时对照重绑定 vs 修改
+              body: |
+                如果函数里写 `def reset_var(xs): xs = [0]`，这只是把局部参数 `xs` 重新指向 `[0]`，调用方原本外面的列表纹丝不动；而如果函数里写了 `xs.clear()` 或 `xs.append(9)`，因为没重绑定而是顺着引用原地修改，外面的原列表也会一起被改掉！
+      - item:
+          id: check-stage-match
+          type: match
+          prompt: |
+            把下面这些错误和更适合发现它们的检查阶段配对起来。
+          pairs:
+            - ["调用函数 `add(a, b)` 时把字符串当成数字传入", "静态类型检查（运行前报错）"]
+            - ["算平均分时 `total / count` 遇到 `count == 0` 除零", "动态检查（运行时检验值）"]
+            - ["把用户外部发来的 JSON 文本直接当成整数使用", "边界显式校验（运行时解析并验证范围）"]
+          explain: |
+            静态检查解决“形状和类型对不对得上”；运行时外部值、边界除零和范围规则需要动态检查。
+      - item:
+          id: const-mutate-trap
+          type: choice
+          prompt: |
+            在 TypeScript 里写 `const tags: string[] = ["a"];`，下面关于这行代码约束的说法哪项正确？
+          options:
+            - text: '仅禁止把 `tags` 重新指向别的数组，如果不加 `readonly`，依然能往里面 `push` 新元素'
+              correct: true
+            - text: '`const` 会让数组里的所有元素永久彻底只读不可变'
+              why: const 锁住的是变量名字到引用的绑定本身，而不是锁住底层数组内部元素
+            - text: '`const` 会自动把字符串变成整数'
+              why: const 不改变任何类型，只限制变量名重新绑定
+          explain: |
+            “不可重新赋值（`final` / `const`）”与“对象内容不可变（`readonly` / 不可变类）”一定要分清，很多隐蔽别名 bug 就出在这里。
+      - item:
+          id: mutating-rebind-python
+          type: text
+          prompt: |
+            看以下 Python 代码：
+            ```python
+            a = [1, 2]
+            b = a
+            b.append(3)
+            b = [99]
+            print(a, b)
+            ```
+            最终打印出来的输出是什么？
+          answers: ["[1, 2, 3] [99]"]
+          hint: '`b.append(3)` 改了共享列表，`b = [99]` 只是把 `b` 指向了新列表。'
+          explain: |
+            `b.append(3)` 让 `a` 和 `b` 共同看到的列表变成 `[1, 2, 3]`；接着 `b = [99]` 重新绑定 `b`，`a` 仍指向原来的 `[1, 2, 3]`。
+
+  - id: generics
+    chapter: 泛型元编程
+    title: 泛型、接口、子类型与枚举状态
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你想写一个通用函数 `first(items)` 取出列表的第一个元素。列表有时装整数，有时装用户名字符串。怎么避免为整数写 `firstInt`、为字符串写 `firstStr`，又能让编辑器记住返回值的具体类型？
+          options:
+            - text: 用一个类型占位符号 `T` 表示元素类型：接收 `T` 的列表，就承诺返回 `T`（或空时的缺失标记）
+              correct: true
+            - text: 干脆一律声明成“未知万能任意类型”，丢掉全部类型检查
+              why: 丢失类型信息会让你无法在运行前发现把返回值字符串误加减的错误
+            - text: 只支持整数，永远不处理字符串列表
+              why: 业务里绝大多数容器操作逻辑完全不关心元素究竟是什么具体类型
+          explain: |
+            这个“把类型当作参数传给函数或类”的机制，就是**泛型（generics）**！
+      - card:
+          title: 泛型与接口契约
+          body: |
+            **泛型（generics）**用占位类型参数 `T` 写出既通用又不丢失静态类型检查的代码；而**接口（Interface）**则声明一个类型对外必须提供哪些操作签名，任何满足这套约定的**子类型（Subtype）**都能无缝替换进来！
+            ```typescript
+            // TypeScript 语法说明：readonly T[] 表示只读 T 数组，T | undefined 表示“要么返回 T，要么返回缺失值 undefined”
+            function first<T>(items: readonly T[]): T | undefined {
+                return items[0];
+            }
+            // 调用 first(["book", "pen"]) 时，T 自动推导为 string
+            // 调用 first<number>([]) 时，空容器返回 undefined
+            ```
+          reveal:
+            - title: Python 里也能写出类似的泛型标注吗？
+              body: |
+                Python 类型标注同样支持 `def first[T](items: list[T]) -> T | None:`，让 IDE 和静态检查工具在不改动一行运行逻辑的前提下帮你拦截错配！
+            - title: 接口 + 子类型举例：日志器的多态替换
+              body: |
+                只要接口约定“实现 `log(msg)` 方法即可”，不管是把日志写进本地磁盘的 `FileLogger` 还是测试时只存列表方便断言的 `MemoryLogger`，都是该接口的合格子类型——测试业务时就能零修改塞进内存日志器飞快跑完！
+      - card:
+          title: 枚举与有限可辨别状态
+          body: |
+            当一个值只能取少数几种合法状态（比如订单只有 `PAID`、`CANCELLED`、或者“成功携带数据 `T` / 失败携带错误信息”），别用随便写的字符串 `"piad"`（拼错也不报错）！
+            - 用**枚举（Enumeration）**列全有限几个取值；
+            - 或用泛型携带状态分支（如 Rust 的 `Result<T, E>` 或 TypeScript 联合分支），强制调用者先检查状态再读取对应字段！
+          reveal:
+            - title: 字符串魔数 vs 枚举常量：错拼一眼看穿
+              body: |
+                用 `if status == "piad":` 时程序既不报错又永远走不进条件；换成 `from enum import Enum` 定义 `OrderStatus.PAID` 后，打错 `OrderStatus.PIAD` 在静态检查或测试第一时间立刻报出名字不存在！
+      - item:
+          id: generic-empty-choice
+          type: choice
+          prompt: |
+            看泛型函数签名 `function first<T>(items: readonly T[]): T | undefined`。当调用 `first([10, 20])` 时，为什么静态类型结果依然包含 `undefined`（缺失）？
+          options:
+            - text: 因为静态类型只看契约：虽然这次传了两个元素，但参数类型是通用列表，契约允许空列表返回 undefined
+              correct: true
+            - text: 因为泛型 `T` 只对字符串有效、碰到数字一定返回缺失
+              why: T 会被具体传入的 number 替换，undefined 源自空列表分支契约
+            - text: 因为任何列表的 0 号位置永远不存在元素
+              why: 非空列表下标 0 存在元素；静态类型系统只依据函数返回类型签名推导可能结果
+          explain: |
+            用 `T | undefined` 强迫调用者显式考虑“万一列表是空的怎么办”，防止空引用崩溃。
+      - item:
+          id: subtype-interface-match
+          type: match
+          prompt: |
+            把 6.102 类型系统的四大核心概念和它们解决的工程问题连起来。
+          pairs:
+            - ["泛型参数 `<T>`", "写出与具体元素类型无关的通用容器，并保留返回类型信息"]
+            - ["接口（Interface）", "声明调用者可依赖的操作契约，隐藏具体实现"]
+            - ["子类型（Subtype）", "满足更宽输入或更强保证，可安全替换父契约位置"]
+            - ["枚举（Enumeration）", "把合法取值锁死在有限几种状态，杜绝魔数拼写错"]
+          explain: |
+            接口 + 子类型 + 泛型 + 枚举是静态类型语言表达业务不变式的四大支柱。
+      - item:
+          id: enum-state-guard
+          type: choice
+          prompt: |
+            一个返回值类型表示“要么 `{ ok: true, data: string }`，要么 `{ ok: false, error: string }`”。想安全读取 `.data` 之前必须先做什么？
+          options:
+            - text: 先检查 `res.ok === true`，把状态分支收窄到成功分支后再读 `res.data`
+              correct: true
+            - text: 不做任何判断直接强制读 `res.data`
+              why: 失败分支根本没有 data 字段，直接读会引发崩溃或静态报错
+            - text: 先把失败错误消息删掉就能凭空出现 `data`
+              why: 两个互斥分支只能同时处于一种情况，必须通过条件判断走对分支
+          explain: |
+            先检查状态标记再取字段（类型收窄），能消除“成功才有的字段在失败时被错读”的整类缺陷。
+      - item:
+          id: subtype-substitute-choice
+          type: choice
+          prompt: |
+            假设接口 `Readable` 规定只需提供一个只读方法 `read_text()`，而 `MemoryNote` 和 `EncryptedNote` 两个类型都实现了完全符合该签名的 `read_text()`。这在 6.102 类型设计里体现什么特性？
+          options:
+            - text: 两者都是 Readable 的子类型，只要调用方只依赖接口契约，就能在任何期待 Readable 的地方安全互相替换
+              correct: true
+            - text: 必须把两个文件里的所有注释删成一字不差才能一起放进同一个列表
+              why: 子类型替换靠的是共同满足的接口操作签名与行为保证，与内部写法无关
+            - text: 接口一旦写好就只能由全宇宙唯一一个类型实现
+              why: 接口正是为了允许多个不同实现共享同一个调用约定而设的
+          explain: |
+            接口约定“你能做什么”，子类型让不同实现可以按统一契约即插即用。
+
+  - id: recursive
+    chapter: 泛型元编程
+    title: 递归抽象数据类型（ADT）、动态类型检查与共享子树
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你在做一个项目管理工具：一项工作既可以是个“耗时 15 分钟的小任务”，也可以是个“大任务包”，而大任务包里面又包含若干个小任务或其他大任务包！怎样用程序干净地算出总工时？
+          options:
+            - text: 用同一套结构允许“任务里套任务”，分两种情况判断：小任务直接返耗时，大任务包把子项结果全加起来
+              correct: true
+            - text: 只能写 `OneLevel`、`TwoLevel`、`ThreeLevel` 三个分开的不同类型，超过三层就报错
+              why: 嵌套深度往往事先固定不了，分开定义永远不够用
+            - text: 把所有子任务手动删成只能填 0
+              why: 删掉任务内容无法正确统计真实工作量
+          explain: |
+            数据定义里允许套自己同类子项的结构与求解方式，构成了按“基本情况 + 自包含子情况”展开的模块设计；外部靠公开规则操作、内部隐藏具体怎么存的类型，叫**抽象数据类型（ADT）**！
+      - card:
+          title: 递归 ADT 与模式分支求值
+          body: |
+            定义内部包含同类更小一级子问题的规则叫**递归（recursion）**。无论是面向对象多态类，还是函数式/TypeScript 带标记联合（`kind` 字段），递归 ADT 都由两部分组成：**基本情形（不再嵌套的叶子）** + **递归情形（包含同类子项）**！
+            ```python
+            def total_minutes(task):
+                if task["kind"] == "one":      # 基本情形：直接返回工时
+                    return task["minutes"]
+                # 递归情形：用列表推导把每个子任务工时算好并加总
+                return sum([total_minutes(sub) for sub in task["items"]])
+
+            plan = {"kind": "group", "items": [
+                {"kind": "one", "minutes": 10},
+                {"kind": "group", "items": [{"kind": "one", "minutes": 5}, {"kind": "one", "minutes": 8}]},
+            ]}
+            print(total_minutes(plan))
+            ```
+          reveal:
+            - title: 非面向对象语言里的 ADT
+              body: |
+                在没有 `class` 的函数式语言或 TypeScript 联合类型里，不一定需要类继承：用带 `kind` 标签的数据分支加上操作该类型的纯函数，同样能把**抽象数据类型**表达得清清楚楚。
+            - title: 为什么“基本情形”哪怕漏写一行也会彻底崩掉？
+              body: |
+                如果没有遇到单个任务时立刻直接返回的分支，程序就会无穷无尽往下层自调用，直到触发 `RecursionError` 栈满报错退出——设计递归永远先把最简单终止分支写出来！
+      - card:
+          title: 运行时类型探测与不可变共享子树
+          body: |
+            - **少用动态类型试探**：在代码里到处写 `isinstance(x, ...)` 去猜输入类型往往比不上统一接口或带标记分支清晰；况且 TypeScript 的 `type` 别名在编译成 JavaScript 后运行时**根本不存在**，只能靠真实的 `kind` 字段判断！
+            - **不可变与性能共享**：如果有一棵一万个节点的不可变任务树，只想改其中某一片叶子又要保留旧树快照，不必把一万个节点全复制一遍——只需**新建从根到那片叶子的路径节点**，其余没变的大子树直接**安全共享**（因为旧子树不可变，不会受污染）！
+          reveal:
+            - title: 举例看懂“只新建路径、共享未改子树”
+              body: |
+                假如根节点 `root` 下挂着“左子树 A（5000 个节点）”和“右子树 B（5000 个节点）”，我们只更新了 B 里的 1 片叶子变成 `B_new`：只需新建 `(A, B_new)` 这条新路径上的少数几个节点并把左分支依然连回旧的不可变 `A` 即可，旧树 `root` 与新树互不污染且省下 5000 次无谓复制！
+      - item:
+          id: recursive-task-calc
+          type: number
+          prompt: |
+            若一个任务组的定义规则为：单个任务 `{"kind": "one", "minutes": m}` 工时就是 `m`；组合任务 `{"kind": "group", "items": [...]}` 工时等于所有子项工时之和。那么下面嵌套任务的总工时是多少分钟？
+            `{"kind": "group", "items": [{"kind": "one", "minutes": 10}, {"kind": "group", "items": [{"kind": "one", "minutes": 5}, {"kind": "one", "minutes": 8}]}]}`
+          answer: 23
+          hint: 先算内层组 `5 + 8 = 13`，再加外层的 `10`。
+          explain: |
+            内层组返回 `5 + 8 = 13`，外层组汇总 `10 + 13 = 23` 分钟。
+      - item:
+          id: immutable-tree-share
+          type: choice
+          prompt: |
+            有一个 1000 个节点的不可变任务树，你要改写其中 1 片叶子节点的内容并生成新版本树，同时要求旧版本树绝不能被改动。怎样做既安全又省复制开销？
+          options:
+            - text: 只沿根到被修改叶子的那条路径创建少数新节点，其余没改的不可变子树直接共享复用
+              correct: true
+            - text: 直接原地覆盖修改那片旧叶子上的数值字段
+              why: 原地修改会同时篡改旧版本树看见的值，违反不可变快照约定
+            - text: 每次改一个叶子都把全部 1000 个节点逐个重新深拷贝一遍
+              why: 虽然安全，但未变化的大片不可变子树完全可以直接结构共享来省掉复制成本
+          explain: |
+            “不可变 + 结构共享（只重建受影响路径）”是兼顾快照安全与内存效率的经典技巧。
+      - item:
+          id: dynamic-check-warning
+          type: choice
+          prompt: |
+            关于 TypeScript 中的类型定义（如 `type Task = ...`），以下在运行时的表现哪项正确？
+          options:
+            - text: 编译成 JavaScript 运行后类型标注会全部擦去，因此运行时必须靠真实存在的字段（如 `task.kind === "one"`）区分分支
+              correct: true
+            - text: TypeScript 类型别名会自动在浏览器内存里保留并与每个字典绑定
+              why: 静态类型只存在于编译检查期，JS 运行时对象上并没有 type 别名信息
+            - text: TypeScript 永远不允许在对象上添加 `kind` 字符串字段
+              why: 显式添加可辨别的字面值字段（discriminated union）正是推荐写法
+          explain: |
+            区分“只活在静态检查阶段的标签”和“运行时真正存进对象的 `kind` 字段”。
+
+  - id: meta
+    chapter: 泛型元编程
+    title: 运行时反射、装饰器与编译期宏（CS2023 元编程）
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            项目里有 30 个业务函数，你想在每次调用前自动打一条 `"开始调用"` 日志、耗时太长发告警，但不希望手动去修改这 30 个函数的内部代码！有什么办法在不复制粘贴 30 遍的情况下给它们统一套一层包装？
+          options:
+            - text: 写一个接收原函数并返回“新包装函数”的高阶函数（装饰器），由代码自动帮你外包日志逻辑
+              correct: true
+            - text: 只能老老实实复制粘贴 30 遍相同的 print 行，然后祈祷以后不用改格式
+              why: 重复粘贴既烦琐又容易漏改；用元编程包装能把横切日志逻辑收归一处
+            - text: 把 30 个函数全部删成空函数
+              why: 业务计算体依然要保留并正常执行
+          explain: |
+            用代码去检查、包装或生成其他代码的技术就是一种高阶代码复用手段——这一课把运行时的**反射**/装饰器和运行前的编译器规则生成分清楚。
+      - card:
+          title: 运行时反射（Reflection）与 Python 装饰器
+          body: |
+            **反射（reflection）**允许程序在**运行时**动态检查对象的类型、属性名或方法并按名调用（比如 Python 的 `getattr(obj, name)` 或 Java 查类型信息）——切记只允许白名单字段，绝不能把外部用户传来的任意字符串直接交给反射！
+            而用 `@traced` 写在函数头顶的**装饰器**语法，等价于执行 `double = traced(double)`，能在不改原函数内部逻辑的前提下给函数外包一层日志或计时（`@wraps(fn)` 则顺手保留原函数的名字与说明文档）：
+            ```python
+            from functools import wraps
+            def traced(fn):
+                @wraps(fn)
+                def inner(val):
+                    print("call")
+                    return fn(val)
+                return inner
+
+            @traced
+            def double(x):
+                return x * 2
+
+            print(double(4))
+            ```
+          reveal:
+            - title: 安全使用反射的正确姿势：显式允许列表（Allowlist）
+              body: |
+                假如网页前端发来操作名称想路由到对应处理器，千万别直接 `getattr(handler, user_cmd)()`（用户若传入 `"__init__"` 或私有辅助函数就直接失控！）；应该建一张明确白名单字典 `ALLOWED = {"add": handler.add, "list": handler.list}` 按键查表再调，兼顾灵活与安全！
+      - card:
+          title: 编译期元编程：Rust 声明式宏 `macro_rules!`
+          body: |
+            让程序去检查、改造甚至在运行前生成新代码的技术叫做**元编程（metaprogramming）**。如果说 Python 装饰器和反射是在**程序跑起来之后**动结构，那 Rust 的**宏（Macro）**则是在**代码编译运行之前**按模式展开成真实代码：
+            ```rust
+            macro_rules! say_hello {
+                ($who:expr) => { println!("hello {}", $who); };
+            }
+            fn main() { say_hello!("world"); } // 编译前已展开为 println!("hello {}", "world");
+            ```
+            注意三者边界：**泛型**按类型复用；**宏**在编译前按语法模式展开；**反射**在运行时探查已存在对象！
+          reveal:
+            - title: 为什么应该“能用普通函数和泛型就不用宏和反射”？
+              body: |
+                反射查名字容易绕过静态类型检查且报错延后到运行期；复杂的宏展开代码一旦报错，报错行号常指向生成结果而不是原文件。工程上先挑简单直白的普通函数和泛型，确实需要横切日志、批量生成重复代码或按约定插件注册时才用元编程！这样既保留可读性，也能让编辑器提示与静态检查全程起作用。
+      - item:
+          id: decorator-output-text
+          type: text
+          prompt: |
+            看这段装饰器代码：
+            ```python
+            def traced(fn):
+                def inner(val):
+                    print("call", end=" ")
+                    return fn(val)
+                return inner
+
+            @traced
+            def double(x):
+                return x * 2
+
+            print(double(4))
+            ```
+            运行后屏幕上打印出的一行结果是什么？
+          answers: ["call 8"]
+          hint: '先在 `inner` 里不换行打印 `call `（带一个空格），再由外层 `print(double(4))` 打印返回值 `8`。'
+          explain: |
+            `@traced` 把 `double` 替换成 `inner`：先打印 `"call "`，再执行原 `double(4)` 返回 `8` 并打印 `8`，输出 `call 8`。
+      - item:
+          id: meta-phase-match
+          type: match
+          prompt: |
+            把三种机制和它们真正发挥作用的时机配对。
+          pairs:
+            - ["Rust `macro_rules!` 展开重复代码", "编译阶段（程序运行前展开为源码）"]
+            - ["Python `getattr(obj, name)` 查看成员", "运行阶段（动态探测对象属性，即反射）"]
+            - ["泛型参数 `T` 保留列表元素返回类型", "类型检查阶段（按类型参数复用同一规则）"]
+          explain: |
+            分清“编译期展开生成”、“运行期反射查看”与“类型参数复用”，才能按需求挑到合适机制而不滥用黑魔法。
+      - item:
+          id: reflection-safety-choice
+          type: choice
+          prompt: |
+            若一个 Web 接口把用户 URL 里传来的 `action` 字符串直接传进 `getattr(service, action)()` 执行，为什么极其危险？
+          options:
+            - text: 攻击者可传入意外的内部属性或隐藏方法名越权调用或破坏状态，必须用允许列表限制可调用名
+              correct: true
+            - text: 因为 Python 禁止字符串作为函数参数
+              why: getattr 的第二个参数正是字符串；危险在于没过滤不受信任的外部输入
+            - text: 因为反射只能读数字，不能调用任何函数
+              why: 反射不仅能读属性还能拿到函数方法并直接调用
+          explain: |
+            强大灵活性伴随着安全边界责任：反射查名永远要配合显式允许列表（allowlist）。
+
+  # ==== 异步/并发 ====
+  - id: shared
+    chapter: 异步/并发
+    title: 进程、线程、并发交错与为什么 GIL 也会发生竞态
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            银行账户当前余额 `0` 元。甲、乙两个并发任务同时来各给它存 `1` 元：甲先读到 `0`，还没来得及存回时，乙也读到了旧值 `0`。接着甲算出 `0+1=1` 写回，乙也算出 `0+1=1` 写回。两次加 `1` 完成后账户里剩下多少钱？
+          options:
+            - text: 只剩 1 元！后写回的把先写回的增量彻底覆盖弄丢了
+              correct: true
+            - text: 必定自动变成 2 元，电脑会自己心算合并
+              why: 两次“读-算-写”交错覆盖了第一次加 1 的结果
+            - text: 变成 0 元，因为两个操作互相抵消
+              why: 两者都把 0 + 1 = 1 写入同一位置，结果是 1 而不是 2
+          explain: |
+            两个并发任务对同一份内存“读取旧值 → 计算 → 写回”时恰好互相插队交错，让最终结果依赖于运气和执行时机——这就是并发世界最防不胜防的读写撞车缺陷！
+      - card:
+          title: 进程（Process）vs 线程（Thread）
+          body: |
+            程序跑起来后需要组织并发执行的模型，主要有两条路：
+            - **进程（Process）**：正在独立运行的程序实例，彼此内存隔离、互不乱碰，适合跑多个 CPU 密集重计算、靠互发消息协作；
+            - **线程（Thread）**：同一个进程内部的几条执行路线，**共享同一份内存里的全局变量和对象**——切换轻快，但如果多个线程同时读写同一个共享变量，一不小心就会交错撞车！
+          reveal:
+            - title: 日常比喻：两个独立小厨房 vs 同厨房两位厨师
+              body: |
+                两个**进程**就像两间各自配了全套锅碗瓢盆的独立厨房，哪怕一间弄翻了盐罐也不会撒进另一间；而同一个进程里的两个**线程**就像挤在同一个厨房里共用同一口大汤锅和同一个记事板的两名厨师——递菜极快，但两人不商量同时拿笔改同一行账就会算乱！
+      - card:
+          title: 竞态条件复现与 GIL 误区
+          body: |
+            结果因并发交错先后不同而出错的现象叫做**竞态条件（race condition）**。为什么 Python 有一把全局大锁（GIL），两个线程各自执行 `counter += 1` 一百万次，最后依然可能**小于 `2,000,000`**？
+          reveal:
+            - title: 第 1 步：`counter += 1` 不是不可分割的一整步！
+              body: |
+                Python 里的 `counter += 1` 至少拆成三小步操作：① 读取旧 `counter`；② 加 1；③ 写回 `counter`。**GIL 只保证同一瞬间只有一个线程在执行单步小步骤，却允许执行几步后半路把执行权切换给另一个线程！**
+            - title: 第 2 步：用同步点精准复现两线程交错丢失一次加 1
+              body: |
+                标准库 `threading.Barrier(2)` 像一道“凑齐 2 个线程才一起放行”的起跑线，用来固定复现交错：
+                ```python
+                from threading import Barrier, Thread
+
+                counter = 0
+                both_read = Barrier(2)  # 让两个线程在读完旧值后齐步等待，强行复现交错
+
+                def inc_once():
+                    global counter
+                    old = counter
+                    both_read.wait()
+                    counter = old + 1
+
+                ts = [Thread(target=inc_once) for _ in range(2)]
+                for t in ts: t.start()
+                for t in ts: t.join()
+                print(counter)
+                ```
+            - title: 第 3 步：逐步拆解两线程“读-加-写”怎么丢掉一次增量
+              body: |
+                1. **线程甲**读到 `counter = 0`，还没来得及存回，GIL 把执行权切给乙；
+                2. **线程乙**也读到同一个旧值 `0`，加上 `1` 后把 `counter` 写成 `1`；
+                3. 切回**线程甲**，甲拿着手里旧值 `0` 算出 `1` 覆盖写回——两人一共各加了一次，最终却只涨了 `1`！
+      - item:
+          id: shared-barrier-num
+          type: number
+          prompt: |
+            设有两个线程同时执行 `inc_once()`（全局变量 `counter` 初始为 `0`），代码先执行 `old = counter`，再在 `Barrier(2)` 处互等直到两线程都读完旧值，最后各自写入 `counter = old + 1`。两个线程都结束后 `counter` 的值是多少？
+          answer: 1
+          hint: 两个线程都在 `Barrier(2)` 处把 `old = 0` 拿在手里，随后各自写回 `0 + 1`。
+          explain: |
+            后写回的 `1` 覆盖了先写回的 `1`，一次递增白白丢失。
+      - item:
+          id: gil-race-why
+          type: choice
+          prompt: |
+            在标准 CPython 中有一个全局大锁（GIL），为什么两个线程各对共享变量执行 100 万次 `counter += 1` 依然可能算出小于 `2,000,000` 的结果？
+          options:
+            - text: GIL 只保护单步基础字节码不并行，而 `counter += 1` 包含“读、加、写”多步，线程切换可插在中间打断
+              correct: true
+            - text: 因为 Python 里的整数加 1 每次有 50% 概率故意算错
+              why: 整数加法本身完全精确，出错是因为两个线程交替读到同一个旧值后覆盖写回
+            - text: 因为 Python 线程在运行期间永远不会发生切换
+              why: 正是因为运行一定步骤或时间后会切换线程，才会把复合操作从中间劈开
+          explain: |
+            永远不要指望 GIL 替代业务同步保护锁！任何涉及共享状态的读-改-写都必须显式加锁。
+      - item:
+          id: test-once-trap
+          type: choice
+          prompt: |
+            某位同学写了一段不加锁的多线程加一程序，本机试跑了 3 次居然刚好都得到 `2,000,000`。能否就此认定“这段代码绝对线程安全，不会有竞态条件”？
+          options:
+            - text: 不能！只是那 3 次运气好没在“读完之后、写回之前”恰好切换线程，换机器或高负载下仍会出错
+              correct: true
+            - text: 能！只要连续测过 3 次正确就从数学上证明了所有未来交错顺序都安全
+              why: 多线程交错顺序成千上万种，随机试跑只走过极小一部分
+            - text: 不能，因为数字过两天会自己从 200 万缩水
+              why: 问题出在并发时序未受保护，而不是数值放久了自己变化
+          explain: |
+            并发 bug 最狡猾的地方就是“测十次对十次，上线半夜崩一次”；必须靠锁保护规则而不是侥幸心理保证正确性。
+      - item:
+          id: process-vs-thread-match
+          type: match
+          prompt: |
+            把**进程**和**线程**各自的典型特征配对起来。
+          pairs:
+            - ["进程（Process）", "拥有各自独立受保护的内存空间，崩溃或污染默认不直接破坏其他实例"]
+            - ["线程（Thread）", "同进程内多条执行路线，直接共享同一份全局对象，但读写需防撞车"]
+            - ["竞态条件（Race Condition）", "输出对错随并发步骤交错顺序碰运气而波动的并发缺陷"]
+          explain: |
+            明确是否共享同一片内存，决定你用“加锁护区”还是“互发消息”。
+
+  - id: await
+    chapter: 异步/并发
+    title: 异步等待（async/await）与 I/O vs 纯 CPU 并发对比
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你要写脚本去 3 个不同网站抓网页数据，每个网站都需要漫长等待网络响应 `1 秒钟`（CPU 几乎全在闲着等网卡回信）。怎么让 3 个请求总耗时从 `3 秒` 缩到 `约 1 秒`？
+          options:
+            - text: 先把 3 个等待任务一口气同时发出去，在第一个等回信的空闲时间先切出去等另外两个，让等待重叠
+              correct: true
+            - text: 依然乖乖等第 1 个彻底花完 1 秒回来，再发第 2 个，再等第 3 个
+              why: 顺序傻等会把三次 1 秒串在一起耗满 3 秒
+            - text: 把循环改成倒序从第 3 个网站抓到第 1 个网站，顺序一反耗时就会缩减到 1 秒
+              why: 网络等待是外部对方服务器反应时间，必须靠并发重叠等待
+          explain: |
+            既然三个人都在等外卖，不用傻等第一家送到才去第二家点单——同时点三家，总时间约等于**最慢那一家**的时间！这就是把等待重叠起来的协程并发威力。
+      - card:
+          title: async / await 协作让出控制权
+          body: |
+            在函数前写 `async def`，内部遇到需要等外部响应的步骤时写 `await ...`，这就是**异步等待（async await）**：
+            - **普通顺序等**：A 等 1s → B 等 1s → C 等 1s = **3s**；
+            - **异步并发（`asyncio.gather`）**：单一**事件循环**（不断轮询谁的等待结束了就唤醒谁的总循环）同时挂起 A/B/C 的等待，三段 `1s` 等待高度重叠，总耗时 **≈ 1s**！
+            ```python
+            import asyncio
+
+            async def fetch(tag):
+                await asyncio.sleep(0.02)  # 让出控制权，不阻塞别的任务
+                return tag
+
+            async def main():
+                res = await asyncio.gather(fetch("a"), fetch("b"), fetch("c"))
+                print("".join(res))
+
+            asyncio.run(main())
+            ```
+          reveal:
+            - title: 时间线走一遍：为什么三段 1 秒只花约 1 秒？
+              body: |
+                第 `0.00s` 时 `gather` 依次启动 `fetch("a")`、`fetch("b")`、`fetch("c")`，三者遇到 `await` 立即把等待挂到系统计时器并交出控制权；到第 `1.00s` 左右三项同时醒来返回结果——三段等待时间被彻底重叠在同一个 1 秒窗口内！
+      - card:
+          title: 别忙等！I/O 等待 vs 纯 CPU 计算该怎么选？
+          body: |
+            对应把三类任务执行模型对比透：
+          reveal:
+            - title: 第 1 步：绝不要“忙等（Busy-wait）”
+              body: |
+                用 `while not ready: pass` 死循环原地干等会白白吃满 CPU 且把事件循环彻底卡死！应该 `await` 可等待的事件或休息信号，把控制权交还事件循环。
+            - title: 第 2 步：如果是“等待 I/O” vs“纯 CPU 密集算数学”
+              body: |
+                - **I/O 等待型（3 个各等 1s 的网络请求）**：`asyncio` 单线程并发 ≈ **1s**；Python **多线程**同样 ≈ **1s**（线程在等网络 I/O 时会自动放开 GIL！）。
+                - **纯 CPU 计算型（如 3 个各算 1s 质数的死算循环）**：`asyncio` 依然要 **≈ 3s**（单线程里算完一个才能轮到下一个），Python 多线程因为 GIL 争夺也还是 **≈ 3s**——想让 CPU 多核真并行提速，必须使用**多进程**（`multiprocessing`）！
+            - title: 工程速查：三选一并发模型怎么挑？
+              body: |
+                成百上千个高并发网络请求或连接等待优先选 `asyncio`；需要调用不支持异步的传统同步网络库选多线程池；真要压榨多核做图像处理或大规模数值计算，直接用多进程池分给多个 CPU 核心各自独立跑！
+      - item:
+          id: asyncio-cpu-trap
+          type: choice
+          prompt: |
+            你用 `asyncio.gather` 同时启动了 3 个任务，但其中 1 个任务里写了一段需要纯 CPU 连续算 5 秒的 `for` 循环，中间没有任何 `await`。事件循环里另外 2 个小任务会怎样？
+          options:
+            - text: 整条事件循环都会被那段纯计算活生生卡死拖延 5 秒，因为 async 函数必须主动到 await 才交出控制权
+              correct: true
+            - text: Python 会自动把它悄悄挪到另外 8 颗 CPU 核心同时算，毫无延迟
+              why: 声明 async 不会自动创造多核并行，所有协程都在同一个单线程事件循环里协作切换
+            - text: 另外两个任务会直接把那 5 秒计算自动删掉
+              why: 没到 await 让出控制权之前，事件循环拿不到切换执行机会
+          explain: |
+            `asyncio` 解决的是“等待大量慢 I/O 时的空等浪费”，如果是纯计算重活要交给多进程池运行！
+      - item:
+          id: io-vs-cpu-match
+          type: match
+          prompt: |
+            执行 3 个相互独立的任务（每个本身耗时 1 秒），把执行方式和预计总耗时配对。
+          pairs:
+            - ["顺序逐个调用 3 个 1s 网络请求", "约 3 秒（三段等待串行叠加）"]
+            - ["asyncio.gather 并发 3 个 1s 网络请求", "约 1 秒（等待在单事件循环里重叠）"]
+            - ["Python 多线程跑 3 个 1s 网络 I/O", "约 1 秒（等 I/O 时会释放 GIL）"]
+            - ["想让 3 个纯 CPU 密集大循环真正在多核上一起跑快", "使用多进程（multiprocessing）绕开 GIL"]
+          explain: |
+            分清“I/O 密集靠异步或线程重叠等”、“CPU 密集靠多进程占多核”是 Python 并发选型的黄金准则。
+      - item:
+          id: gather-output-text
+          type: text
+          prompt: |
+            下面这段异步 Python 代码执行后，打印在屏幕上的字符串是什么？
+            ```python
+            import asyncio
+
+            async def tag(s):
+                await asyncio.sleep(0.01)
+                return s.upper()
+
+            async def main():
+                out = await asyncio.gather(tag("x"), tag("y"))
+                print(",".join(out))
+
+            asyncio.run(main())
+            ```
+          answers: ["X,Y"]
+          hint: '`gather` 按传入参数的顺序收集每个任务的返回值（即使它们异步等待）。'
+          explain: |
+            `asyncio.gather` 按传入参数顺序把 `"X"` 和 `"Y"` 拼成列表，最终输出 `X,Y`。
+
+  - id: promises
+    chapter: 异步/并发
+    title: 组合多条异步结果与异常处理
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            一个结账页面要同时发两条互不依赖的异步请求：“拉取收件人信息”和“拉取可用优惠券”。两条都成功才展示结算按钮。如果两条里其中一条突然超时失败，你的代码应该怎么面对？
+          options:
+            - text: 必须专门接住异步失败分支（catch / try-except），并清楚决定“全失败报错”还是“降级保留另一项结果”
+              correct: true
+            - text: 假装网络永远 100% 成功，从不写任何异常处理
+              why: 网络请求随时可能失败；未捕获的异步拒绝往往会安静丢掉报错或让页面永远卡死在转圈状态
+            - text: 只要第一个请求成功了，直接忽略第二个请求就算全成功
+              why: 若页面必须两项数据，缺一项就会导致显示错乱
+          explain: |
+            单个 `await` 很容易写，真正的工程难点在于**同时组合多条异步未来结果**并管好失败分支！
+      - card:
+          title: Promise 聚合（`all` vs `allSettled`）与异常传播
+          body: |
+            在 TypeScript / JavaScript 中，异步函数返回一个代表“未来结果或拒绝”的 **Promise**（Python 中对应 `Task` / `Future`）。组合多个异步任务时有两种常见策略：
+            - **全有或全无（`Promise.all` / `asyncio.gather(..., return_exceptions=False)`）**：按传入顺序收集全部结果；一旦**某一项失败，组合结果立即抛出异常**！
+            - **各自汇报（`Promise.allSettled` / `return_exceptions=True`）**：等全部任务结束，分别拿到每项各自是“成功带值”还是“失败带原因”，适合允许部分失败降级展示的页面！
+          reveal:
+            - title: 常见误解：Promise.all 失败会自动把别人停下来吗？
+              body: |
+                **不会！** `Promise.all` 在某一项拒绝时立刻向上报失败，但**已经发出去正在跑的其余异步任务不会自动中止撤销**；如需省流或真正取消，必须由调用方主动传取消信号（`task.cancel()` 或 `AbortController`）清理。
+            - title: 用 Python `return_exceptions=True` 捕获单条失败不炸整批
+              body: |
+                ```python
+                import asyncio
+                async def job(fail):
+                    if fail: raise ValueError("bad")
+                    return "ok"
+                async def run():
+                    res = await asyncio.gather(job(False), job(True), return_exceptions=True)
+                    print(res[0], isinstance(res[1], ValueError))
+                asyncio.run(run())
+                ```
+      - item:
+          id: promise-cancel-trap
+          type: choice
+          prompt: |
+            两个并发异步请求 A 和 B 交给 `Promise.all([A, B])` 组合等待，第 100 毫秒时 A 率先报错拒绝。此时已经跑了 100 毫秒的 B 会自动被强行中止吗？
+          options:
+            - text: 不会自动取消：Promise.all 只是立刻让组合结果走向失败分支，B 的底层工作若无显式取消机制仍可能继续跑完
+              correct: true
+            - text: 会立刻自动发送取消信号掐断 B 的底层网络连接，并回滚 B 在服务器端已经执行的修改
+              why: Promise 聚合只管理结果回调，不具备撤销已发出远端工作或自动终止任务的能力
+            - text: Promise.all 会把 A 的失败悄悄变成 null 塞进去假装成功
+              why: 只要有一个子项失败，Promise.all 就会整体拒绝，而不会假装成功
+          explain: |
+            区分“结果聚合提前失败”与“底层任务真实取消”，需要真撤销时应配合取消令牌显式中止。
+      - item:
+          id: partial-failure-choice
+          type: choice
+          prompt: |
+            你的网页仪表盘同时请求“天气预报”和“今日待办”，哪怕天气接口临时挂掉，依然希望把“今日待办”正常展示出来、只在天气框显示“暂无数据”。哪种异步组合模型最合适？
+          options:
+            - text: 各自保留独立成败状态的聚合（如 `Promise.allSettled` 或分别捕获每项异常）
+              correct: true
+            - text: 一项出错就瞬间引爆整页白屏的默认 `Promise.all` 不写局部容错
+              why: 全成功才返回的模型只要天气挂了就会直接抛异常把待办也一起扔掉
+            - text: 彻底把待办接口也一起删掉不调用
+              why: 独立捕获或 allSettled 正是为了保留不受影响的功能
+          explain: |
+            按业务容错要求选择“全有或全无”或“逐项独立收集成败”。
+      - item:
+          id: promise-match
+          type: match
+          prompt: |
+            把异步结果组合需求与对应手段连起来。
+          pairs:
+            - ["必须全部成功才继续，按输入顺序取回全部结果列表", "Promise.all / asyncio.gather"]
+            - ["允许部分面板降级，分别检查每一项最终成功还是失败", "Promise.allSettled / return_exceptions=True"]
+            - ["用 try/catch（或 try/except）包裹 await 调用", "捕获并处理异步操作抛出的错误"]
+          explain: |
+            不管异步还是同步，不遗漏错误路径都是保证界面和后端稳健的前提。
+      - item:
+          id: gather-partial-code-text
+          type: text
+          prompt: |
+            看下面用 `return_exceptions=True` 收集单条异步异常的 Python 代码：
+            ```python
+            import asyncio
+            async def job(fail):
+                if fail:
+                    raise ValueError("bad")
+                return "ok"
+            async def run():
+                res = await asyncio.gather(job(False), job(True), return_exceptions=True)
+                print(res[0], isinstance(res[1], ValueError))
+            asyncio.run(run())
+            ```
+            程序打印出来的两个输出值（用单个空格隔开）是什么？
+          answers: ["ok True"]
+          hint: '第一个正常返回 `"ok"`；第二个异常作为对象放进 `res[1]`，类型恰好是 `ValueError`。'
+          explain: |
+            设置 `return_exceptions=True` 后，单项失败不会直接抛爆整个 `gather`，方便逐个降级处理。
+
+  - id: locks
+    chapter: 异步/并发
+    title: 互斥锁、保护整段读-改-写与避免死锁
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你要给余额扣款函数加锁防止竞态：“① 读出余额 `bal = get_bal()` → ② 判断 `bal >= 100` → ③ 写入 `set_bal(bal - 100)`”。有人觉得“加锁耗时”，只把第 ③ 步 `set_bal` 包在 `with lock:` 里，第 ①② 步放在锁外面。这样做安全吗？
+          options:
+            - text: 不安全！两个线程完全可能同时在锁外通过第 ①② 步的检查，然后排队进锁里把同一个账户扣成负数！
+              correct: true
+            - text: 绝对安全，只要最后写入那一行加了锁就万事大吉
+              why: 两次检查用的都是锁外读到的同一个旧余额，排队写入照样把余额扣爆
+            - text: 加锁会让电脑把余额自动翻倍
+              why: 同步保护锁只负责串行化进入受保护的代码区，不会修改数学数值
+          explain: |
+            加锁保护的不是某一行孤零零的赋值，而是“**读-检-改-写**”整段不能被插队的业务逻辑！
+      - card:
+          title: 用 `with lock:` 保护整段共享更新
+          body: |
+            **互斥锁（mutex）**让受它保护的代码段在同一时刻只允许**一个线程**拿着钥匙进入，从而彻底消灭 `shared` 那课的丢失更新（且用 `with lock:` 确保即使里面抛异常也会解锁！）：
+            ```python
+            from threading import Lock, Thread
+
+            lock = Lock()
+            counter = 0
+
+            def add_1000():
+                global counter
+                for _ in range(1000):
+                    with lock:        # 读、加、写整段在锁内一口气完成，绝不中途被插队
+                        counter += 1
+
+            ts = [Thread(target=add_1000) for _ in range(2)]
+            for t in ts: t.start()
+            for t in ts: t.join()
+            print(counter)
+            ```
+          reveal:
+            - title: 如果忘了把“条件检查”一起包进同一把锁会怎样？
+              body: |
+                假设剩余库存只剩 `1`，线程甲和线程乙在锁外同时读到 `stock >= 1`（双双通过检查），随后再各自排队进锁执行 `stock -= 1`——结果库存照样被扣成 `-1`！必须从“检查前提”那一刻就拿住同一把锁直到写完才放开！
+      - card:
+          title: 死锁（Deadlock）与统一加锁顺序
+          body: |
+            有了锁，又会出现新问题——**死锁（deadlock）**：
+            - 甲线程先锁住了**账户 A**，紧接着想去锁**账户 B**；
+            - 同一瞬间，乙线程先锁住了**账户 B**，紧接着想去锁**账户 A**！
+            两人各抱一只筷子死等对方先放手，程序就地永久卡死！
+            **治本招**：规定所有人要拿多把锁时，必须严格**按统一顺序**先拿编号小的、再拿编号大的（例如一律先锁 A 再锁 B），或者干脆减少共享状态改用单一所有者消息队列！
+          reveal:
+            - title: 异步函数里千万别拿“阻塞式同步锁”一直挂着！
+              body: |
+                在 `async def` 协程里，持有同步锁期间绝对不能 `await` 让出，否则其他协程拿到循环后也会撞死在那把同步锁上，甚至卡死整个事件循环；异步代码里应尽量用不可变数据、`asyncio.Lock` 或把共享状态收到单个专属任务里管。
+            - title: 加锁排序破死锁：比较编号决定先后
+              body: |
+                给两个账户 `a` 和 `b` 同时加锁前，先用 `first, second = (a, b) if a.id < b.id else (b, a)` 排定顺序再依次加锁。哪怕同一毫秒同时发起“1 给 9 转账”和“9 给 1 转账”，两边都先抢 `1` 号锁再拿 `9` 号锁，永远形不成互等待环！
+      - item:
+          id: locks-sum-num
+          type: number
+          prompt: |
+            两个线程共同更新全局变量 `counter = 0`，每个线程循环 `1000` 次、每次都使用同一把锁 `with lock: counter += 1` 保护整段读取与写回。两线程全部结束后的精确结果是多少？
+          answer: 2000
+          hint: 在同一把互斥锁保护下，每次读-改-写不会互相交错覆盖。
+          explain: |
+            2000 次递增每次都被完整串行保留，结果恒为 `2000`。
+      - item:
+          id: deadlock-order-fix
+          type: choice
+          prompt: |
+            转账业务要同时锁住转出账户和转入账户，怎么写能彻底杜绝“张三给李四转账”和“李四给张三转账”并发时互相卡死（死锁）？
+          options:
+            - text: 永远按账户 ID 从小到大的统一固定顺序先锁小 ID、再锁大 ID，破坏互相等待的闭环
+              correct: true
+            - text: 让一个先锁转出、另一个先锁转入，靠祈祷两者永远别同时点击确认
+              why: 并发越高，反序加锁越容易迎面相撞形成永久等待环
+            - text: 干脆彻底删掉两把锁，让两边随便改账户余额
+              why: 删锁会直接引爆并发竞态，把账算错或转丢钱
+          explain: |
+            破坏等待环路最经典的办法，就是为全部资源排定全局一致的加锁顺序。
+      - item:
+          id: lock-scope-pitfall
+          type: choice
+          prompt: |
+            为了扣减库存，以下写法中哪一种才真正保证了“库存永远不会被并发减成负数”？
+          options:
+            - text: '把 `if stock >= 1:` 判断和 `stock -= 1` 扣减一起放进同一个 `with stock_lock:` 块内'
+              correct: true
+            - text: '只把 `stock -= 1` 放在 `with stock_lock:` 里，`if stock >= 1:` 留在锁外面图省事'
+              why: 在库存只剩 1 时，两线程可同时在锁外通过 `>= 1` 检查，接着先后进锁扣两次成 -1
+            - text: '先放进 `with lock:` 里写死 `pass` 空语句，把检查和扣减都留在锁外'
+              why: 空锁块什么保护作用都没有，检查和扣减依然暴露在竞态之下
+          explain: |
+            从读取判断前提那一刻起，直到新状态写完落地，整条因果链都必须留在同一把锁的保护下。
+      - item:
+          id: async-no-sync-lock
+          type: choice
+          prompt: |
+            在一个单线程运行的 `async def` 异步协程函数里，如果你拿着一把普通同步 `threading.Lock()` 不放，却在锁内部写了一句耗时 2 秒的 `await asyncio.sleep(2)` 等待，会出现什么问题？
+          options:
+            - text: 别的协程切换到循环里想拿那把同步锁时会原地阻塞卡死，甚至锁死整条事件循环，绝不能跨 await 持有普通阻塞同步锁
+              correct: true
+            - text: 同步锁会自动分裂成一万把互相不影响的小锁
+              why: 同一把互斥锁在同一时刻只能被一个人拿着，拿着去挂起等 I/O 会堵死所有后来者
+            - text: 因为在 `async` 里，锁会在 sleep 期间自动永久消失
+              why: 同步锁不会自动失效，反而在单线程循环内把整个线程锁死
+          explain: |
+            写异步并发时尽量减少跨挂起点的共享可变状态，若确需互斥应使用专用的 `asyncio.Lock` 且缩短持锁范围。
+
+  - id: messages
+    chapter: 异步/并发
+    title: 消息传递协作、客户端/服务端与幂等请求
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            与其让 8 个线程共享同一张大字典、整天绞尽脑汁加锁还怕死锁，还有另一种思路：只派“1 个专职管理员线程”独自拥有那张字典，其余 7 个线程需要改数据时，一律往队列里塞一张请求纸条。这样为什么轻松很多？
+          options:
+            - text: 字典自始至终只被这 1 个管理员碰，其他线程不直接读写共享内存，天然消灭读写交错与死锁！
+              correct: true
+            - text: 因为队列会在入队时自动为整张大字典生成深拷贝快照，让 8 个线程各自修改自己的副本
+              why: 内存照样用，省掉的是多个任务直接争抢修改同一片内存带来的混乱
+            - text: 因为队列会自动把同时到达的两条修改消息合并覆盖成一条，跳过中间步骤
+              why: 管理员按队列顺序一条一条取出请求纸条并顺序处理
+          explain: |
+            “不要靠共享内存来通信，而要靠**消息传递**来协作！”——这就是并发与分布式系统的通用思维。
+      - card:
+          title: 队列消息传递与 Worker 协作
+          body: |
+            当多个并发单元各自保存私有数据、通过**队列（Queue）**发送消息请求更新时，就不再需要四处插满锁：
+            ```python
+            from queue import Queue
+            inbox = Queue()
+            inbox.put(("deposit", 50))
+            op, amount = inbox.get()  # 接收方一次顺序取一条处理，不会交错撞车
+            print(op, amount)
+            ```
+            只要每条消息都是不可变数据或只由接收方接管，不同进程甚至不同电脑上的模块都能用同一套**请求-响应**方式稳稳协作！
+          reveal:
+            - title: 如果发送方送出一条列表后自己还留着改呢？
+              body: |
+                那就在进程间打破了安全边界！所以发进队列的消息尽量使用**不可变元组、字符串或副本**，发送方送完就不再碰那份数据，这样接收线程拿在手里怎么处理都不会撞车。
+      - card:
+          title: 客户端/服务端模式、网络基础与 Web API
+          body: |
+            把单机队列再往外扩展跨过网络，就来到**客户端/服务端（Client/Server）**架构：
+            - **约定协议与格式**：客户端发构造好的请求（例如 HTTP 方法 + 路径 + 数据参数），服务端做权限与业务校验后再返回状态码与结果。
+            - **跨网络的不确定性**：网络发出去可能半路丢失，更难缠的是**“服务端其实扣款成功了，回执却半路超时代断掉了”**——因此重要写请求必须附带**唯一请求编号（Request ID）**，让服务端识别重试、做到“收到同一编号两次也只执行一次”！
+          reveal:
+            - title: Web API 返回常见状态码一眼读懂
+              body: |
+                例如 `GET /orders/42` 成功拿到结果返回 `200 OK`；传入格式非法返回 `400 Bad Request`；无权限访问返回 `403 Forbidden`；带着相同 `request_id` 重试写操作时，服务端发现旧编号已记下，直接把上次记好的回执安全原样再回一次！
+      - item:
+          id: queue-output-text
+          type: text
+          prompt: |
+            看这段消息队列代码：
+            ```python
+            from queue import Queue
+            q = Queue()
+            q.put(("add", 7))
+            op, val = q.get()
+            print(op, val)
+            ```
+            程序打印的输出是什么？
+          answers: ["add 7"]
+          hint: '先放入元组 `("add", 7)`，接着 `q.get()` 按先进先出取出它并拆包打印。'
+          explain: |
+            `op` 拿到 `"add"`，`val` 拿到 `7`，打印结果是 `add 7`。
+      - item:
+          id: network-timeout-retry
+          type: choice
+          prompt: |
+            手机客户端向支付服务端发出一笔“扣款 100 元”请求，等了 5 秒超时报错（没收到回复，但也可能服务端其实已经记下账了！）。下面哪种处理方式最稳妥？
+          options:
+            - text: 发送时携带唯一请求编号；超时后带同一编号查状态或安全防重重试，避免重复扣两次钱
+              correct: true
+            - text: 只要超时就换个全新编号连发五次扣款请求
+              why: 没带同一防重标识盲目重发，会把一笔订单扣成好几百块
+            - text: 永远把请求放在本地内存队列里假装已经连上网扣完钱了
+              why: 客户端本地不掌握服务器账本状态，无法凭空假定处理结果
+          explain: |
+            跨网络通信最核心的设计纪律，就是区分“我没收到回复”和“对方没执行”，靠请求编号防重兜底。
+      - item:
+          id: msg-passing-why-safe
+          type: choice
+          prompt: |
+            对比“8 个线程直接靠多把互斥锁改同一张全局表”和“由 1 个线程独占表、其他线程往队列发消息请求修改”，消息传递模型的核心优势是什么？
+          options:
+            - text: 把并发访问自然收拢到接收者一条顺序队列里，消除了跨线程共享写冲突和错综复杂的死锁风险
+              correct: true
+            - text: 消息传递能自动把单核 CPU 变成一万核
+              why: 它改变的是并发组织方式与边界清晰度，而不是物理核数
+            - text: 队列里的消息永远禁止携带任何业务数值
+              why: 队列专门用来在边界之间安全投递数据与命令
+          explain: |
+            让数据归单一所有者保管，外界只发消息，是最不容易写错的并发模式之一。
+
+  # ==== 性能剖析与工程化抽象 ====
+  - id: specs
+    chapter: 性能剖析与工程化抽象
+    title: 函数规格（前置/后置条件与副作用）与行为等价性
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            两个程序员各自写了一个 `find_min(xs)` 函数，里面一个用普通循环，一个先做二分筛选（算法完全不同），但对于任意允许传入的非空列表，两者返回的值和产生的所有可见影响完全一样。调用者能否在接口契约下放心把旧函数换成新函数？
+          options:
+            - text: 完全可以！调用者只受公开契约约束，只要满足同一份规格即“行为等价”
+              correct: true
+            - text: 绝对不能换，只要函数里面用了一个不同的局部循环变量名字就算不合法
+              why: 局部变量和内部实现细节被函数藏了起来，外部调用者根本看不见也无权依赖
+            - text: 必须把原代码一字不差背下来才行
+              why: 封装与规格的意义正是解放实现自由，让你能在不惊动调用方的前提下升级算法
+          explain: |
+            这就是**规格（Specification）**：它是函数提供者和调用方之间的书面防火墙！
+      - card:
+          title: 一份规格写清哪三件事？
+          body: |
+            合格的**规格（specification）**包含三要素：
+            1. **前置条件（`requires`）**：调用方必须先保证的前提（如“`xs` 已升序且非空”）；违约时函数不再兜底！
+            2. **后置条件（`effects`）**：前提满足时函数保证做到的结果（如“返回等于目标值的下标，未找到返回 `-1`”）。
+            3. **可见副作用**：明文约定**会不会改传入参数**（就地重排 vs 返回新列表）！
+          reveal:
+            - title: 具体写一条 Python 函数规格注释长什么样？
+              body: |
+                例如：`def find_sorted(xs: list[int], target: int) -> int:` 可配规格注释：“要求 `xs` 按从小到大排好（前置）；若 `target` 在 `xs` 中返回任意匹配下标否则 `-1`，且**绝不修改 `xs`**（后置与无副作用保证）。”
+      - card:
+          title: 行为等价性（Behavioral Equivalence）的陷阱
+          body: |
+            很多学生以为“两段代码返回值一模一样就等价”——错！
+          reveal:
+            - title: 为什么只看返回值常常被坑？
+              body: |
+                假设旧规格承诺“返回列表里的最小值，且**绝不改动原输入列表**”；新代码为了贪图写着方便，先对输入调用了就地 `xs.sort()` 排序再取 `xs[0]`——虽然**返回值同样是最小值**，却偷偷打乱了调用方原本保存在外面的 `xs` 顺序！
+            - title: TypeScript/类型签名为何无法写全所有规格？
+              body: |
+                类型签名能锁死 `xs: number[]`，但像“`xs` 不能为空”“金额必须 `>= 0`”“绝不就地修改输入”这类取值与别名约束，类型系统表达有限，必须靠规格文档、前置断言与测试守住！
+            - title: 什么叫“更强的规格”能兼容替代旧实现？
+              body: |
+                只要新实现**要求比以前更宽松**（例如原本只收正整数 `> 0`，新版顺便支持 `>= 0`）**且保证比以前更严谨**（对正整数输出完全满足原本所有承诺且绝不多出非法副作用），所有老调用方无需改一行都能安全无缝升级！
+      - item:
+          id: specs-parts-match
+          type: match
+          prompt: |
+            把排序/查找函数规格说明中的每一句话归入对应规格部位。
+          pairs:
+            - ["调用时要求 `items` 必须已经按升序排好", "前置条件（Precondition）"]
+            - ["若存在目标值，返回它首次出现的整数位置，否则返回 -1", "后置条件（Postcondition）"]
+            - ["函数会直接就地倒转传入列表 `items` 内部的元素顺序", "可见副作用（可变参数约定）"]
+          explain: |
+            写清前置、后置与是否改参数，队友调用时才不用翻遍你的源码才能安心。
+      - item:
+          id: behavior-equiv-trap
+          type: choice
+          prompt: |
+            函数 A 的规格承诺：“返回列表中最大元素，且保持原列表元素顺序不被修改”。某人用函数 B 替换它：B 在内部调用了就地 `nums.sort()`，然后返回 `nums[-1]`。两者在行为上等价吗？
+          options:
+            - text: 不等价！B 违反了“不能修改原列表顺序”的副作用约定，调用者后面再用原列表时会发现顺序已被打乱
+              correct: true
+            - text: 等价！只要最后 `return` 出来的数字是一样的就行，原列表变乱无所谓
+              why: 调用者完全可能还在别处依赖原列表原有顺序，副作用是规格契约不可分割的一半
+            - text: 不等价，因为函数 B 少用了几行 for 循环
+              why: 只要可观察返回值与可见状态变化全部符合原规格，内部换更快写法完全允许；错的是偷偷破环了副作用约定
+          explain: |
+            比较两段实现是否能无缝互换，看的是“可观察行为整体（返回值 + 副作用 + 异常契约）”，而不只是最后一行 `return`。
+      - item:
+          id: spec-weaker-pre
+          type: choice
+          prompt: |
+            原规格要求“只允许传入正整数”；如果新版本放宽条件允许传入“所有整数包括 0”（而正整数的返回完全不变），旧调用方全都能继续放心用吗？
+          options:
+            - text: 可以！前提条件放宽得更包容（更强兼容性），以前守老规矩的调用方照样全部合法
+              correct: true
+            - text: 不行，规格一旦写完连多支持 0 都必须先打破旧代码
+              why: 前置条件越宽松（兼容更多合法输入）、后置保证越严格，就越安全兼容旧调用方
+            - text: 会让正整数输入全部报错
+              why: 对原本正整数输入的约定并未缩小或削弱
+          explain: |
+            “前置条件变宽、后置保证变严”是安全演化函数规格升级而不弄坏老代码的基本规则。
+
+  - id: testing
+    chapter: 性能剖析与工程化抽象
+    title: 测试先行、输入分区、边界值与回归测试
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            公司满减规则：“订单金额**满 500 分及以上**减 50 分”。一个粗心程序员误写成了 `if amount > 500:`（漏写了等号）。测试组只拿了 `200` 和 `900` 两个数字测了一遍全通过，这个致命 bug 能抓出来吗？
+          options:
+            - text: 抓不出来！200 和 900 都离临界线太远，必须重点测 `499`、`500`、`501` 紧贴边界的值
+              correct: true
+            - text: 肯定抓得出来，只要测过大于 0 和小于 1000 就涵盖了全宇宙所有数字
+              why: 200 和 900 在 `>` 和 `>=` 下表现一模一样，根本测不出边界差一的毛病
+            - text: 随便找 100 个全是 800 以上的数字就够了
+              why: 100 个同分区内部点依然测不出 500 分界线上的判断错误
+          explain: |
+            不能靠随手乱填几个数字测代码！系统化挑对少量却最能踩雷的测试用例，就是 **输入空间分区与边界覆盖**。
+      - card:
+          title: 测试先行与输入分区策略
+          body: |
+            - **测试先行（Test-first）**：先写规格再写自动单元测，还没写实现就先把“正确应该返回啥”钉死；
+            - **输入分区（Partitioning）**：把无数可能的输入分成有限几个等价行为类（例如：`负数非法输入`、`0..499 不减`、`>= 500 满减`），每类挑代表 + **贴着边界的值（`-1, 0, 499, 500, 501`）**，用最少几个用例把常见比较符错全捞出来！
+          reveal:
+            - title: 为什么挑 3 个好边界胜过随机 1 万次？
+              body: |
+                分区边界是程序员写错 `>` 与 `>=`、少算 `0` 或 `-1` 的高发地带。覆盖每一类再加紧贴分界线两侧的数，命中率远高于瞎挑。如果再补上空值、负数异常输入（例如 `-1` 和 `0`）以及极大值测一遍，基本就能把所有隐藏比较缺陷一网打尽！
+      - card:
+          title: 黑盒测试、白盒测试与回归测试
+          body: |
+            - **黑盒测试（Black-box）**：不看源码里面怎么写，**只按公开规格和分区境界**出题测试（换实现依然通用）；
+            - **白盒/玻璃盒测试（Glass-box）**：打开源码检查有没有哪条 `if/else` 分支或异常路径从未被走过，补充用例去覆盖它；
+            - **自动化回归测试（Regression）**：每修好一个真 bug，立刻把它缩成一条**最小自动测试用例**永久锁进测试集——保证日后谁重构代码也不可能再犯同一个错！
+          reveal:
+            - title: 实例对比：黑盒挑边界 vs 白盒补全部分支
+              body: |
+                黑盒只知道规则“满 500 减 50”，选 `499, 500, 501` 验证门槛；打开源码做白盒检查时发现第 10 行还藏了个 `if is_vip and amount == 0:` 特殊分支黑盒没写全，立刻再加一条 VIP 空购物车用例确保每条分支都跑过！
+      - item:
+          id: boundary-choice
+          type: choice
+          prompt: |
+            规则约定：“积分满 500（含 500）赠送优惠券”。以下哪组 3 个测试用例最容易抓出程序员把 `>=` 误写成 `>` 的边界 bug？
+          options:
+            - text: '499、500、501'
+              correct: true
+            - text: '100、200、300'
+              why: 这三个数全都低于 500，无论写 `>` 还是 `>=` 结果全都一样
+            - text: '700、800、900'
+              why: 这三个数全都远超 500，一样查不出刚好 500 那一点的差异
+          explain: |
+            紧贴分界值及其左右各偏 1 单位，是测试整数阈值条件最犀利的手术刀。
+      - item:
+          id: testing-types-match
+          type: match
+          prompt: |
+            把工程测试中的核心方法配给它们的出发点或目的。
+          pairs:
+            - ["黑盒测试", "不依赖内部代码结构，只按规格输入分区与边界出测试"]
+            - ["白盒（玻璃盒）测试", "检查源码里的每个条件分支与特殊路径，补齐未走到的情况"]
+            - ["自动化回归测试", "把修过的 bug 最小复现永久存进自动测试，防以后改动再弄坏"]
+            - ["输入空间分区", "把无限输入划分成有限个代表类，避免盲目挑重复无效样本"]
+          explain: |
+            先黑盒覆盖规格，再白盒查漏分支，修 bug 必补回归用例。
+      - item:
+          id: regression-why
+          type: choice
+          prompt: |
+            线上发现一个算税率在闰年 2 月 29 日出错的 bug 并改好了。如果只手工试了一次看到对了就提交结束，没加自动测试用例，最大的隐患是？
+          options:
+            - text: 下次别人重构这块代码时完全不知道当年踩过 2 月 29 日的坑，很可能把同样 bug 改回来
+              correct: true
+            - text: 闰年数字如果不存单元测试会自动变成平年
+              why: 隐患在于人工记忆靠不住、日后重构会静默回归同一个缺陷
+            - text: 自动测试运行会让以前正确的税率全部失效
+              why: 好的回归测试正是用来守住以前已经证明正确的行为的
+          explain: |
+            每一条自动回归测试，都是团队花真金白银故障换来的永久护栏。
+      - item:
+          id: test-first-advantage
+          type: choice
+          prompt: |
+            按 MIT 6.102 提倡的“测试先行（Test-First）”习惯，正式写函数体之前先写好规格和几条单元断言测试用例，最大的好处是？
+          options:
+            - text: 在动手写复杂逻辑前就逼自己先想透空列表、零、边界和报错等所有契约角落，写完一运行就能立刻验收
+              correct: true
+            - text: 让函数彻底不用写任何代码就能凭空运行
+              why: 测试先行依然要随后写实现，好处在于提前定死规格和快速反馈验证
+            - text: 能自动删掉全部业务需求
+              why: 它是用来把需求规格落成可自动检验的边界样例
+          explain: |
+            先想清“什么才叫写对了”，再去写实现，往往比写完再凑测试省一半返工。
+
+  - id: abstraction
+    chapter: 性能剖析与工程化抽象
+    title: 抽象数据类型设计、操作分类与表示独立性
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你设计了一个 `Playlist`（播放列表）类型，里面暂时用 Python `list` 存歌名，却把内部列表本身直接通过 `.get_raw_list()` 暴露给了界面代码直接读。半年后你想为了去重和高速查找把内部存储换成一个字典，结果界面代码全部报错崩溃！问题根源出在哪里？
+          options:
+            - text: 让外部依赖了具体的内部列表存储细节，违反了“表示独立性”！外部本来只应看到公开操作
+              correct: true
+            - text: 因为播放列表绝对不准更换任何存储结构
+              why: 内部数据结构随时需要随数据规模和需求替换升级，错在把内部容器漏出去了
+            - text: 因为 Python 字典不能放歌名字符串
+              why: 字典和集合完全可以存歌名，根源在于没有守住抽象边界
+          explain: |
+            **抽象数据类型（ADT）**的灵魂是：**只让外界知道“你能对我做什么操作”，完全隐藏“我肚子里拿什么存”**！
+      - card:
+          title: ADT 操作的四大分类
+          body: |
+            设计任何**抽象数据类型（ADT）**时，先把它的公开操作清晰分成四类：
+            1. **创建器（Creator）**：从无到有造出这个类型的新值（如 `Set()`、`from_items(xs)`）；
+            2. **查询器（Observer）**：读取关于值的属性信息（如 `.size()`、`.contains(x)`）；
+            3. **派生器（Producer）**：从已有同类对象算出一个新同类对象、不改旧值（如 `s1.union(s2)`）；
+            4. **修改器（Mutator）**：仅对可变类型，直接修改当前对象内部状态（如 `.add(x)`；**不可变类型没有修改器！**）。
+          reveal:
+            - title: 动手分类“不可变日期类型 Date”的几个常用操作
+              body: |
+                - `Date(2026, 11, 18)` → **创建器**；
+                - `date.month()` / `date.is_weekend()` → **查询器**；
+                - `date.plus_days(7)` 返回下周的新 `Date` 对象而不改原来那天 → **派生器**（因为 `Date` 不可变，完全没有修改器！）。
+      - card:
+          title: 守住“表示独立性”（Representation Independence）
+          body: |
+            **表示独立性**的意思是：只要公开操作行为规格不变，你**随时可以把内部实现从“未排序列表”悄悄换成“有序元组”或“字典”**，而所有调用方一行代码也不用改！
+            ```python
+            class TagBag:
+                def __init__(self):
+                    self._tags = []       # 内部具体存储细节（私有约定，不对外保证）
+                def add(self, tag):
+                    if tag not in self._tags:
+                        self._tags.append(tag)
+                def as_tuple(self):       # 返回不可变元组副本，防止外界绕过 add 直接篡改！
+                    return tuple(self._tags)
+            ```
+          reveal:
+            - title: 零基础速通 Python 里的 `class` / `__init__` / `self`
+              body: |
+                还没学面向对象？只需要懂三点就能看懂上面的 ADT 写法：`class TagBag:` 把“私有存储数据”和“允许外界调用的函数”打包成模板；每次写 `TagBag()` 新建对象时，系统自动运行 `__init__(self)` 初始化字段；而 `self` 就代表“当前正在被操作的这个对象自己”。
+            - title: 如果明天把 `self._tags` 从 `list` 换成 `set`（集合）会怎样？
+              body: |
+                只要 `add(tag)` 和 `as_tuple()` 两个公开方法名字和外部承诺不变，哪怕把里面 `self._tags = []` 彻底换成 `self._tags = set()`，外面的业务代码不需要改任何一行，这就是抽象隔出的自由空间！
+      - item:
+          id: adt-ops-match
+          type: match
+          prompt: |
+            为不可变与可变集合 `BookList` 的各个公开操作选出准确的 ADT 操作类别。
+          pairs:
+            - ["`BookList.empty()` 创建一个新的空书单", "创建器（Creator）"]
+            - ["`books.count()` 返回书单里当前有几本书", "查询器（Observer）"]
+            - ["`books.with_added(b)` 不改原书单，返回一个多加了一本的新书单", "派生器（Producer）"]
+            - ["`books.append_book(b)` 直接把书插进当前可变书单对象里", "修改器（Mutator）"]
+          explain: |
+            把创建、只读查询、纯派生新值与原地修改分清，就一眼能看出一个类型到底算“不可变类型”还是“可变类型”。
+      - item:
+          id: rep-independence-why
+          type: choice
+          prompt: |
+            关于**表示独立性（Representation Independence）**，以下说法哪一项正确？
+          options:
+            - text: 只要外部只调用公开操作、不依赖内部用了列表还是字典来存，就能在不破坏调用方的前提下自由升级内部存储
+              correct: true
+            - text: 调用方可以直接访问并修改内部私有列表 `_tags`，只要大家口头说好尽量不乱改就行
+              why: 只要内部容器的直接访问权限或引用暴露出去了，就谈不上真正的表示独立性
+            - text: 一旦用某一种结构写完了第一版，未来就永远不准换另一种结构
+              why: 可以随时换内部表示，这正是抽象屏蔽细节的最大收益
+          explain: |
+            对外接口是稳定承诺，对内表示是可替换的私有工程自由空间。
+      - item:
+          id: immutable-no-mutator
+          type: choice
+          prompt: |
+            你想设计一个完全**不可变（Immutable）**的 `Money` 金额抽象类型，给调用方使用的公开操作中**绝对不应该**包含哪一类操作？
+          options:
+            - text: 直接在原 `Money` 对象身上改掉金额数字并返回 `None` 的修改器（Mutator）
+              correct: true
+            - text: 返回两个 `Money` 相加后生成的一个全新 `Money` 对象的派生器（Producer）
+              why: 返回全新对象、不改旧对象，正是不可变类型加减操作的标准写法
+            - text: 查询当前金额数字和币种的只读查询器（Observer）
+              why: 只读查询不改动状态，所有不可变对象都需要查询器
+          explain: |
+            不可变对象的算术或组合操作全部做成“派生新值”，旧对象创建后永远保持恒定。
+
+  - id: representation
+    chapter: 性能剖析与工程化抽象
+    title: 表示不变量（RI）、抽象函数（AF）与防表示泄露
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你打算用一个简单的 Python `list` 内部实现“无重复元素的集合 `UniqueSet`”。从实现角度看，`["a", "a"]` 在 Python 列表里语法上完全合法，但在你的“无重复集合”设计里能允许它出现吗？
+          options:
+            - text: 不允许！我们必须在内部约定“列表里不能有任何重复元素”，每次创建和增删后都保证守住这条内部规矩
+              correct: true
+            - text: 允许！反正调用方如果撞上两个 `"a"` 就让他自己数两遍呗
+              why: 让重复元素留在内部会立刻破坏外部“无重复集合”的抽象契约
+            - text: 允许列表里自己变成小数
+              why: 我们得先写清究竟哪些内部状态值才算合法表示
+          explain: |
+            划定哪些内部值合法的那道规矩，叫**表示不变量（RI）**；说明这些内部值对应什么外部概念，叫**抽象函数（AF）**！
+      - card:
+          title: 表示不变量（RI）vs 抽象函数（AF）
+          body: |
+            把一个抽象类型的内部秘密彻底写成文档，核心就这两句话：
+            - **表示不变量（Rep Invariant, RI）**：哪些内部存储状态算**合法**？（例如：`self._items` 列表中的任意两项互不相等，不允许出现重复元素）。**所有创建和修改操作结束时都必须保持 RI 成立！**
+            - **抽象函数（Abstraction Function, AF）**：一个合法的内部数据代表哪一个外部抽象值？（例如：列表 `self._items` 代表数学集合 `{x for x in self._items}`——所以内部列表 `["a", "b"]` 和 `["b", "a"]` 顺序列虽然不同，**通过 AF 都映射到同一个抽象集合 `{"a", "b"}`**！）。
+          reveal:
+            - title: 为什么在源码类头顶写两行 AF/RI 注释那么值？
+              body: |
+                半年后另一位同事接手这个类想性能优化，只要看一眼类注释里的 `# RI: items 无重复` 和 `# AF: 代表数学集合`，立刻就明白能不能把列表改成集合、以及每次改写结束必须守住什么条件，绝不会无意中打破设计契约！
+      - card:
+          title: 良性副作用与严防“表示泄露”
+          body: |
+            - **严防表示泄露（Rep Exposure）**：如果构造函数直接保存了外界传入的列表 `self._items = raw_list` 不复制，或者 `items()` 直接 `return self._items`，外部调用方拿到那份列表引用后就能悄悄往里面 `.append("a")` 插入重复值——**无需经过你的类方法就直接炸穿你的 RI**！防法：**输入防卫性复制并校验、输出返回不可变元组或浅副本**！
+            - **良性副作用（Benevolent Side-Effects）**：对于不可变类型，内部可以在不影响对外表现和抽象值（AF 不变、RI 依然成立）的前提下，悄悄缓存计算结果或重排内部查找顺序以加速，外界完全察觉不到改变！
+          reveal:
+            - title: 在类里加上一句 `_check_rep()` 随时自检不变量
+              body: |
+                实际项目常在关键类里写一个私有辅助方法：`def _check_rep(self): assert len(self._items) == len(set(self._items))`，每次创建和修改结束就调一遍——一旦谁不小心漏防了表示泄露或破坏了 RI，测试瞬间就能抓现行！
+      - item:
+          id: af-order-choice
+          type: choice
+          prompt: |
+            用列表内部保存一个**无序抽象集合**时，内部列表 `["apple", "banana"]` 和 `["banana", "apple"]` 内部字节序不同。它们代表同一个外部集合吗？
+          options:
+            - text: 代表同一个！抽象函数 AF 把不同内部排列都解释成同一抽象集合 `{"apple", "banana"}`（多对一映射）
+              correct: true
+            - text: 绝不代表同一个，只要列表第 0 个位置不一样集合就完全不相等
+              why: 抽象集合本身不看排列次序，AF 正是把多个内部等价表示映射到同一个抽象值
+            - text: 两个内部排列全都不合法，因为 RI 禁止字母 b 出现在字母 a 前面
+              why: 只有刻意约定必须排序时 RI 才要求升序；一般无序列表 RI 只禁止重复元素
+          explain: |
+            同一个抽象对象往往有多种合法内部排列（AF 是从“合法内部空间”到“抽象值空间”的多对一函数）。
+      - item:
+          id: rep-exposure-fix
+          type: choice
+          prompt: |
+            看这两行构造函数代码：
+            `def __init__(self, initial_list): self._data = initial_list`（假设类保证 `self._data` 始终无重复）。如果外部这样用：`xs = ["a"]; s = MySet(xs); xs.append("a")`，结果破坏了内部“无重复”约束！该怎么修？
+          options:
+            - text: 构造时复制一份新列表并利用 `list(dict.fromkeys(initial_list))` 按原序去重，切断与外部列表的共享别名
+              correct: true
+            - text: 只在变量名前面加单下划线 `_data`，Python 运行时就会自动禁止外部持有的原列表引用 `xs` 被修改
+              why: 单下划线只是命名约定，无法阻止调用方继续修改自己手里的列表别名 `xs`，防卫性复制才能彻底堵死漏洞
+            - text: 让 `__init__` 把传入变量强行改成整数 0
+              why: 需要保留初始元素，只是不能共享外部可变列表本身
+          explain: |
+            传进来要复制、传出去要复制（或给只读不可变表示）——这就是抵御表示泄露的两扇防盗门。
+      - item:
+          id: ri-af-match
+          type: match
+          prompt: |
+            把与内部表示规范相关的概念匹配到各自的作用。
+          pairs:
+            - ["表示不变量（RI）", "规定哪些内部数据组合是合法允许存在的"]
+            - ["抽象函数（AF）", "解释合法的内部数据对应哪个外部抽象概念值"]
+            - ["表示泄露（Rep Exposure）", "外部绕过公开方法直接篡改了对象内部私有可变容器"]
+            - ["良性副作用（Benevolent Side-Effect）", "对外表现完全不可变的前提下，内部偷偷缓存结果加速查询"]
+          explain: |
+            写对 RI 和 AF 再堵死表示泄露，你写的模块就几乎不可能因为脏状态在深夜莫名其妙崩掉。
+      - item:
+          id: benevolent-side-effect-choice
+          type: choice
+          prompt: |
+            某不可变有理数类型 `Fraction(num, den)` 为了下次读取更快，在调用 `.as_string()` 时把计算好的字符串悄悄缓存在私有字段 `_cached_str` 里，外界观测不到任何变化，且抽象值和 RI 保持不变。这属于什么？
+          options:
+            - text: 良性副作用（Benevolent Side-Effect）：内部状态虽有一点悄悄变化，但完全保持外部抽象值与不变式恒定
+              correct: true
+            - text: 严重表示泄露：因为调用方能通过它把内部数据改坏
+              why: '`_cached_str` 藏在内部且对外只输出不可变字符串，调用方既看不出变化也改不坏任何内部状态'
+            - text: 这让有理数在数学上的分子分母值随机改变了一百次
+              why: 抽象值保持一成不变，变的只是内部加速缓存
+          explain: |
+            只要守住“外部一切操作观测的抽象值完全不变”，内部缓存属于合法且常用的良性优化。
+
+  - id: debugging
+    chapter: 性能剖析与工程化抽象
+    title: 防患未然与科学调试法：复现、二分缩小与对照实验
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            用户反馈一个上千行的数据批处理脚本偶尔会算错结果。现在有两条路：A 同学凭感觉同时改了五处看起来可疑的代码再试试看；B 同学先设法用最小 3 行输入稳定复现出这个错误，再顺着查。哪条路能更快找到真因？
+          options:
+            - text: B 同学！先稳定复现并把输入缩成最小失败样例，然后用对半缩小法做对照实验定位第一处偏离预期的地方
+              correct: true
+            - text: A 同学！一下子同时乱改五处总有一处会瞎猫撞死耗子
+              why: 同时改动五处哪怕表面好了也不知道哪改对哪改坏，甚至可能引入更隐蔽的新 bug
+            - text: 根本不要看复现，直接把整套 1000 行代码删了明天重写
+              why: 盲目推倒重写往往把旧隐蔽边界错重新写一遍
+          explain: |
+            调试不是靠第六感碰运气，而是一步步做可检验的**科学实验**！
+      - card:
+          title: 两层主动防御
+          body: |
+            在写调试技巧前，先让大多数 bug 压根生不出来（或一露头就原地炸响）：
+            - **第一道防线：让不合法状态无法存在**——利用静态类型、枚举、不可变对象和良好封装，从源头上消灭拼写错、空状态乱传；
+            - **第二道防线：Fail Fast，让错误离事发地越近越好**——在函数一进来就检查输入约束并用 `assert` 断言内部 RI/不变量！早报错比把脏数据偷偷传过十层之后才莫名其妙崩溃好查一百倍！
+          reveal:
+            - title: 常见 bug 博物馆：新手最常踩的三个隐蔽大坑
+              body: |
+                1. **可变的默认参数**（如 `def f(xs=[]): xs.append(1)` 导致每次调用共用同一个列表）；
+                2. **差一边界错**（`<` 写成 `<=` 或少算最后一个元素）；
+                3. **静默吞掉异常**（`except: pass` 把真错误压下去，导致后面全算歪）！
+      - card:
+          title: 科学调试法四步走
+          body: |
+            万一 bug 真出现了，别同时乱改多个地方，像物理学家做实验一样走四步：
+          reveal:
+            - title: 第 1–2 步：留下可重现样例 → 对半缩小问题范围
+              body: |
+                1. **先记下精确的失败输入和运行环境**，确保每次跑必定稳定重现；
+                2. 用对半排查法不断砍掉一半无辜输入/代码步骤，把上千行数据缩成几行就会出错的**最小用例**，定位**“数据从哪一行开始第一次偏离预期”**！
+            - title: 第 3–4 步：提出互斥假设并做实验 → 写回归测试
+              body: |
+                3. **做有区分力的实验**（只改一个条件，若结果为 X 说明假设甲对、为 Y 说明假设乙对）；
+                4. 修完后重跑最小复现用例确认通过，并将它放进永久自动测试集！
+            - title: 1000 行大输入怎么 10 步内砍缩成最小样例？
+              body: |
+                把 1000 行错误文件劈成前 500 行和后 500 行分别喂给程序：若前 500 行就能稳定复现错，就彻底扔掉后 500 行，再把前 500 砍成 250……照此对半砍十次左右就能把上千行故障缩到只剩两三行精简复现用例！
+      - item:
+          id: debug-order
+          type: order
+          prompt: |
+            把一次高效科学调试的标准操作顺序排出来。
+          steps:
+            - 留下能够稳定复现故障的输入条件和运行环境
+            - 不断缩小输入规模并定位状态首次偏离预期的位置
+            - 提出明确假设，每次只变一个因素做对照实验验证真因
+            - 确认原因并修复后，把该最小失败情境写进自动回归测试
+          explain: |
+            稳定复现 → 砍半缩范围 → 控变量验证假设 → 固化回归，这是专业工程师排错的肌肉记忆。
+      - item:
+          id: print-heisenbug
+          type: choice
+          prompt: |
+            有一个多线程程序本来每隔一次就会报错，你在怀疑的地方插了两句 `print("here!")` 日志后，连跑了 10 次突然都没报错！能说明“bug 已经因为加日志消失了”吗？
+          options:
+            - text: 不能！加打印日志改变了线程运行的时间节奏（观察者效应），掩盖了原来的交错时机而不是修好了问题
+              correct: true
+            - text: 能！两句 print 会自动改写多线程业务逻辑修复竞态
+              why: print 只增加一点点屏幕输出耗时，稍换一台快电脑或删掉日志故障立刻死灰复燃
+            - text: 说明 Python 只有在看日志的时候才认真做乘法
+              why: 算术与线程安全不会因打印语句改变逻辑，改变的只是各线程碰撞时刻
+          explain: |
+            一观察就躲起来的并发或时序 bug（俗称“海森堡 bug”）最不能靠猜，必须用同步或确定性重现验证。
+      - item:
+          id: fail-fast-choice
+          type: choice
+          prompt: |
+            下面哪一种风格更体现了“第二道防线：让缺陷尽早在发源地被发现”？
+          options:
+            - text: 在函数入口与私有方法里对前置条件与内部不变量写清晰校验/断言，违例时立刻原地报错提示错因
+              correct: true
+            - text: 输入明明是错的也默默返回 `0`，指望调用它十步之后的报表页面自己去报错
+              why: 把错误静默往后推十步，等到崩溃时早已面目全非、不知罪魁祸首在哪
+            - text: 在 catch 块里写一句 `pass` 吞掉所有报错什么都不记
+              why: 静默吞掉全部异常会彻底掩盖真相
+          explain: |
+            尽早显式失败（Fail Fast）直接把问题按在案发现场，是最省调试时间的习惯。
+      - item:
+          id: debug-first-defense-match
+          type: match
+          prompt: |
+            把典型的 bug 预防手段配对到各自层次。
+          pairs:
+            - ["用不可变对象与静态类型", "第一道防线：让很多非法状态在语法阶段压根构造不出来"]
+            - ["在入口处校验前提并用 assert check_ri()", "第二道防线：一旦违例立刻原地炸出提示，防止脏状态蔓延"]
+            - ["把输入缩成 3 行稳定触发失败的样例", "把偶发模糊问题变成随时可测可比的科学实验对象"]
+          explain: |
+            防大于治，先堵住非法状态入口，再配合早期断言和可复现样例。
+
+  - id: profile
+    chapter: 性能剖析与工程化抽象
+    title: 性能剖析入门与 gprof 编译测量
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你的程序跑一趟要花 20 秒太慢了。没测过之前，工程师觉得：“肯定是那段看起来写得最复杂、有 80 行的解析函数拖慢的，赶紧重写它！”如果花了两天重写完发现程序还是 19.9 秒，最可能的原因是？
+          options:
+            - text: 人肉凭直觉猜热点几乎总是错的！真正占掉 19 秒的代码很可能藏在另一个只有 5 行却被调了一百万次的小函数里
+              correct: true
+            - text: 因为重写过后的代码只要行数多一定会永远花同样时间
+              why: 运行时间看的是执行频次和瓶颈运算，不是源码看起来有多复杂或行数多
+            - text: 因为电脑故意把时钟调慢了
+              why: 性能剖析就是要用真实测量数据替换人的错误直觉
+          explain: |
+            优化的铁律：**先测量，再优化！** 在动刀改代码前，先把每一分真实耗时和调用分布摸清。
+      - card:
+          title: gprof 工作三步曲与背后两大原理
+          body: |
+            **性能剖析（profiling）**就是跑真实输入测量各函数花费的分布。GNU **`gprof`** 是经典的 C 程序剖析工具，工作过程分三步，背后结合了两种采集手段：
+            1. **带标记编译**：用 `gcc -O0 -g -pg -no-pie example.c -o example` 编译——`-pg` 告诉**编译器**在每个函数入口自动插上一段小计数代码（**插桩**）；
+            2. **跑真实代表性输入**：运行 `./example` 正常退出后，当前目录自动吐出一个叫 `gmon.out` 的数据文件；
+            3. **看剖析报告**：运行 `gprof ./example gmon.out` 把报告打印出来！
+          reveal:
+            - title: 精确计数靠“插桩”，耗时靠“定时采样”
+              body: |
+                - **调用次数**是插桩在函数入口逐次精准累加的（**100% 精确**）；
+                - **耗时占比**则是系统按固定频率（比如每 10 毫秒）抽样看“此刻程序停在哪个函数里”统计出来的（所以太短的运行可能采不到足够样本）。
+            - title: '`-O0 -g -pg` 三个编译标志各管什么？'
+              body: |
+                `-O0` 保留清晰未内联的函数边界、`-g` 带上源码行号符号信息供剖析器识别行、`-pg` 插入调用统计与记录；同时记录优化选项很重要，因为编译优化级别会剧烈改变函数是否内联展开！
+      - card:
+          title: 用可复现的小程序看清实际工作量
+          body: |
+            下例故意在 `main` 中调用 `work(1000)` 两次，既可验证总和结果，也能用 `gprof` 验证插桩精确记下 `work` 被调用了 **2** 次（真实运行环境已用 `gcc -pg` 与 `gprof` 实测确认）：
+            ```c
+            #include <stdio.h>
+
+            static unsigned work(unsigned n) {
+                unsigned sum = 0;
+                for (unsigned i = 1; i <= n; ++i) sum += i;
+                return sum;
+            }
+
+            int main(void) {
+                printf("%u\n", work(1000) + work(1000));
+                return 0;
+            }
+            ```
+          reveal:
+            - title: 剖析时同时核对结果与次数有什么用？
+              body: |
+                优化前后先把 `1001000` 这个正确输出锁死作为断言：哪怕你用新算法改得飞快，一旦输出变了就立刻打回；确认正确后，再结合调用次数（`2` 次）和样本分布判断到底省了真工作量还是只因测试太短产生误差！
+      - item:
+          id: c-work-sum-num
+          type: number
+          prompt: |
+            已知 C 函数定义为：
+            ```c
+            static unsigned work(unsigned n) {
+                unsigned sum = 0;
+                for (unsigned i = 1; i <= n; ++i) sum += i;
+                return sum;
+            }
+            ```
+            `work(1000)` 用等差求和算出是 `500500`，如果 `main` 计算并打印 `work(1000) + work(1000)`，屏幕打印的整数是多少？
+          answer: 1001000
+          hint: '`500500 + 500500 = 1001000`。'
+          explain: |
+            函数输出 `1001000`，同时 `gprof` 插桩精确记下 `work` 被调用了 `2` 次。
+      - item:
+          id: gmon-stale-trap
+          type: choice
+          prompt: |
+            你改写了 `example.c` 里两个函数并重新用 `gcc -pg` 编译出了新版 `./example`。懒得重跑 `./example`，可以直接拿昨天旧版留下的 `gmon.out` 喂给 `gprof ./example gmon.out` 看新版剖析吗？
+          options:
+            - text: 不行！旧 `gmon.out` 对应的是旧版机器代码布局和旧工作量，必须重新运行新版程序生成对应的数据文件
+              correct: true
+            - text: 可以，只要函数名大致还在就能神奇对应出新版真实耗时
+              why: '`gmon.out` 记录的是旧编译产物的函数符号位置偏移和旧次调用记录，混用会导致张冠李戴甚至解读失败'
+            - text: 不需要运行程序，只对着源码干看就能生成 `gmon.out`
+              why: 动态性能剖析数据必须在编译产物程序实际跑完退出时才会写出
+          explain: |
+            确保“编译好的程序 + 测试输入 + `gmon.out`”三者来自同一次对应运行，是剖析数据可信的前提。
+      - item:
+          id: gprof-how-works-match
+          type: match
+          prompt: |
+            把 `gprof` 编译、采集和读数机制与各自职责配对。
+          pairs:
+            - ["编译时加上 `-pg` 参数", "在函数入口自动插入统计被调用次数的计数代码"]
+            - ["运行程序并正常退出后写出 `gmon.out`", "保存本次运行的调用次数与采样耗时记录"]
+            - ["定时抽查当下停留在哪个函数", "用统计采样估算各函数的耗时分布"]
+            - ["重新编译优化前后用相同大小输入测试", "在同一把公平标尺下验证优化是否真的生效"]
+          explain: |
+            精确的调用次数来自插桩计数，估算的时间占比来自定时采样。
+
+  - id: profile-reading
+    chapter: 性能剖析与工程化抽象
+    title: 读懂平面表、调用图、逐行剖析与采样误差
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你拿到一份剖析报告，发现入口函数 `run_all` 的“包含子函数的累计耗时”占了 `98%`，而它自己只占 `0.2%`，真正被它调用的 `parse_line` 自己占了 `91%`。现在为了提速，该优先重构优化哪个函数？
+          options:
+            - text: 重点优化自己耗时占 91% 的 `parse_line`，优化 `run_all` 自己的几行几乎救不回来！
+              correct: true
+            - text: 一门心思只改 `run_all` 里剩下的那 0.2%，绝不碰 `parse_line`
+              why: run_all 自己基本不花时间，98% 都是替下游打工算进去的总账
+            - text: 因为总百分比加起来能超过 100%，说明工具必定坏掉了直接删掉它
+              why: 上层包含下层的累计耗时本来就和底层自身耗时存在包含关系
+          explain: |
+            分清**自身时间（Self time）**和**累计时间（Cumulative / 子调用归因）**，才不会盯着发号施令的总控函数瞎忙活！
+      - card:
+          title: 平面表（Flat Profile）vs 调用图（Call Graph）
+          body: |
+            `gprof` 报告核心有两张表，回答两种完全不同的问题：
+            - **平面表（Flat Profile）**：不讲谁调谁，直接按**自身花费时间**排榜——一眼揪出哪几个核心函数真正在吃 CPU、被调用了多少次；
+            - **调用图（Call Graph）**：画出上下游家谱——看看某个热点函数**究竟是谁在疯狂调用它**（哪怕它本身写得挺快，但被一个无心循环反复调了一百万次！）；
+            - **逐行剖析（Line-by-line）**：配合编译调试信息 `-g`，定位到单个大函数内部哪几行循环消耗最高。
+          reveal:
+            - title: 看懂一份迷你平面表与调用图的读法
+              body: |
+                假如平面表显示 `parse_line: self 9.1s (calls: 50000)`，再顺着调用图往上一行找父节点，发现 `98%` 的调用都来自 `check_duplicate_row` 里的一个双重循环——既不用瞎猜，又能立刻想到优化外层循环消除重复调用！
+            - title: 为什么上层函数的“包含子调用总时间”常常接近 100%？
+              body: |
+                因为像 `main` 或 `run_all` 这类总控入口负责把任务拆下去调用别人，所以它的累计时间会把所有下游函数花的秒数全部算在自己头上；而**平面表看 `self seconds` 自身时间**才能找出真正埋头苦算的热点函数，避免把时间全浪费在改几行总控胶水代码上！
+      - card:
+          title: 采样误差陷阱：为什么函数调用了几千次时间却显示 0.00 秒？
+          body: |
+            很多初学者跑完小测试一看表：“我的 `hash_key` 函数被调了一万次，时间却是 `0.00 s`，说明它完全零开销吧！”——大错特错！
+          reveal:
+            - title: 定时采样分辨率与统计噪声
+              body: |
+                因为时间靠定时采样（比如每 `10 ms` 才抽看一次）测出来：如果整个测试只跑了 `2 ms`，采样器可能刚好**一次都没撞见**，显示 `0.00 s` 只是“太短没抽够样本”！要想把数字测准，应该拿**更大、能持续运行几秒以上的代表性重复工作量**来剖析！
+            - title: 优化验证必须满足的“同标尺对比”条件
+              body: |
+                要声称“新写法快了两倍”，必须保持**完全相同的输入规模、同一台机器与相同的编译器优化选项（如 `-O2`）**，并且每次对比都要先断言输出业务结果完全一致，避免不小心把功能算错当成优化提速！
+      - item:
+          id: profile-table-match
+          type: match
+          prompt: |
+            遇到不同性能排查问题时，该优先翻剖析报告里的哪一部分？
+          pairs:
+            - ["想直接找出哪一个函数自身代码最吃 CPU 时间", "平面表（Flat Profile）"]
+            - ["想查清热点函数到底是被哪个上层函数反复狂调的", "调用图（Call Graph）"]
+            - ["想把开销落到某长函数内部具体的某几源码行", "带源码调试信息的逐行剖析"]
+          explain: |
+            平面表找“自身贵的函数”，调用图找“谁在乱调它”，逐行剖找“函数里哪一行慢”。
+      - item:
+          id: zero-sec-trap
+          type: choice
+          prompt: |
+            剖析报告显示：函数 `work` 的插桩调用次数为 `500` 次，但采样耗时显示 `0.00` 秒。以下解释最严谨的是？
+          options:
+            - text: 本次总运行时间极短，短于定时采样间隔或样本太少造成采样误差，不代表该函数零开销，应加大代表性工作重复次数重测
+              correct: true
+            - text: 证明计算机执行这个函数真不需要任何物理时间和电力
+              why: 任何计算操作都有成本，0.00 只是受制于测量精度和短运行样本不足
+            - text: 因为插桩把函数代码全删光了
+              why: 插桩保留了完整工作并精确记下了 500 次调用
+          explain: |
+            短运行下的采样耗时噪声极高，永远不要把 `0.00` 显示精度误当成真实零耗时。
+      - item:
+          id: call-graph-loop-fix
+          type: choice
+          prompt: |
+            调用图显示：每次渲染页面时，只有 3 行的小函数 `parse_config` 虽然自身每次只要 0.1 ms，但被外层 `render_row` 在 2000 行的表格循环里每行都重新调用一遍（一共白白解析了 2000 遍相同配置）！最直接的加速改法是？
+          options:
+            - text: 在进入表格循环前只调用一次 `parse_config` 并把结果复用传进去，立刻省掉 1999 次无谓调用
+              correct: true
+            - text: 拼命优化那 3 行让单次耗时从 0.1 ms 变 0.08 ms，照样每页调 2000 遍
+              why: 调用图告诉你的最大红利不是微调那 0.1 ms，而是砍掉被外层误触发的 1999 次重复调用
+            - text: 删掉页面所有表格行让页面变成空白
+              why: 业务需求仍要正常渲染 2000 行表格
+          explain: |
+            很多性能奇迹不是“把函数本身改更快”，而是从调用图里发现“这个函数根本不该被循环叫一万遍”。
+      - item:
+          id: self-vs-cum-choice
+          type: choice
+          prompt: |
+            分析一份 `gprof` 剖析表时，函数 `pipeline_main()` 的累计总时间占全程序的 `95%`，但它自身耗时（Self time）却只占 `0.3%`，而它调用的子函数 `parse_csv()` 自己占了 `88%`。说明瓶颈究竟在哪？
+          options:
+            - text: 真正耗时的大户是 `parse_csv()` 本身，`pipeline_main()` 只是负责把工作派给它而已
+              correct: true
+            - text: 必须只重构 `pipeline_main()` 里那 `0.3%` 的几行代码，完全不用管 `parse_csv()`
+              why: 自己只占 0.3% 哪怕删光也只省 0.3%；必须盯着自身消耗或被调频次异常高的子调用看
+            - text: 证明两个函数都没有运行过
+              why: 88% 与 95% 清楚展示热计算全集中在下游的 `parse_csv` 内部
+          explain: |
+            先看平面表找自身最贵的热点函数，再用调用图看清楚是谁触发了这些调用。
+
+  - id: complexity
+    chapter: 性能剖析与工程化抽象
+    title: 对比查找耗时：list vs set 与 lru_cache 消去指数重复
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            你手头有一百万个已注册用户名，现在要写一个高并发检查逻辑：反复判断新用户名是否在已注册名单里（不在乎顺序）。用普通 Python `list` 放进去再用 `x in names` 查找，和换成集合 `set` 再查，速度差距会有多大？
+          options:
+            - text: 差几个数量级！list 每次都要从头挨个比对（最多扫完 100 万项），set 靠内部哈希直接定位几乎瞬间完成
+              correct: true
+            - text: 完全一模一样快，因为 Python 的 `in` 在任何容器里都是同一个速度
+              why: 不同容器底层存储结构不同，`in` 的内部查找代价天差地别
+            - text: '`list` 一定比 `set` 快一百万倍'
+              why: 检查不存在的元素时，list 必须扫遍整个一百万长度列表才能死心
+          explain: |
+            这一课用 `timeit` 实测同一工作量下容器选型的惊人差异，以及如何用**缓存**把指数级递归压成线性！
+      - card:
+          title: 用 timeit 实测 10⁶ 规模 `list` vs `set` 查找
+          body: |
+            测量性能选型时必须遵循**相同输入、单独测查询**原则：
+            - **`x in list`**：线性顺序逐个扫描比对，查找成本随长度 $n$ 成正比增长（记作 $O(n)$），规模 `10⁶` 最坏要比较百万次；
+            - **`x in set`**：先用**哈希**（根据元素值算出一个整数门牌号，直接跳到对应桶位）定位，无论十万还是百万数据平均只需常数几步就能确定在不在（记作平均 $O(1)$），比 `list` 快上万倍！
+            - **必须分开记账的代价**：把一百万长度的 `list` 转成 `set` 本身需要 $O(n)$ 建表时间和更多内存——如果只查 1 次，现转不如直接扫 `list`；如果要反复查十万次，**预先建一次 `set` 再查**完胜！
+          reveal:
+            - title: 用 Python 标准库 timeit 看清对比写法
+              body: |
+                ```python
+                from timeit import repeat
+                items = list(range(1_000_000))
+                members = set(items)
+                # 分开建结构后只测相同查询 key = 999_999 的多次最快耗时：
+                t_list = min(repeat(lambda: 999_999 in items, number=5, repeat=3))
+                t_set = min(repeat(lambda: 999_999 in members, number=5, repeat=3))
+                print(t_set < t_list)
+                ```
+            - title: 算一笔量级账：查 10 万次时，建一次 `set` 值不值？
+              body: |
+                对 100 万个元素而言：`list` 找不在名单里的值需要比较 $10^6$ 次，查十万轮就是 $10^{11}$ 次级别比较；如果先花一次 $O(n)$（约百万级操作）建成 `set`，后面十万次查询每次只需常数几步，总工作量瞬间从“千亿级”砸回“百万级”！
+      - card:
+          title: 用 `functools.lru_cache` 把指数递归压成 $O(n)$
+          body: |
+            朴素递归算斐波那契数 `fib(n) = fib(n-1) + fib(n-2)` 时，`fib(3)`、`fib(2)` 会被重复算成千上万遍（时间呈指数爆炸！）。加上标准库装饰器 `@lru_cache(maxsize=None)` 后，相同输入只真正算一次、结果记在表里直接查，时间复杂度骤降到线性 $O(n)$！
+            ```python
+            from functools import lru_cache
+
+            @lru_cache(maxsize=None)
+            def fib(n):
+                return n if n < 2 else fib(n - 1) + fib(n - 2)
+
+            print(fib(10), fib.cache_info().misses)
+            ```
+          reveal:
+            - title: 缓存并不是免费午餐：用空间换时间、注意栈深度与键要求
+              body: |
+                加上 `@lru_cache` 后，缓存表要占 $O(n)$ 额外内存空间，且首次往下计算 `fib(n)` 的深递归**函数调用深度依然存在**；同时函数参数必须不可变可哈希（例如整数、字符串，不能传普通 `list`）。
+            - title: 为什么 `maxsize=None` 时也要注意参数能不能放进字典？
+              body: |
+                `@lru_cache` 内部本质就是拿参数元组当作字典键查结果：整数、字符串、只读元组都能算哈希；一旦传进可变 `list` 就会立刻抛出 `TypeError: unhashable type: 'list'`——记得把可变化序列先转成 `tuple` 再传！
+      - item:
+          id: fib-cache-misses-num
+          type: number
+          prompt: |
+            对空缓存状态的 `@lru_cache(maxsize=None)` 递归函数 `fib(n)`（`n < 2` 返回 `n`，否则返回 `fib(n - 1) + fib(n - 2)`）首次调用 `fib(10)` 时，一共有多少个**不同整数参数 `n`**（包含 `0` 和 `10`）发生缓存未命中而真正进入函数体计算？
+          answer: 11
+          hint: 从 `0` 到 `10`（包含两端 `0` 和 `10`）共有几个不同整数？
+          explain: |
+            `0, 1, 2, ..., 10` 每个参数各自只真正算 1 次并存入缓存，共 `11` 次未命中（`fib(10) = 55`）。
+      - item:
+          id: set-convert-trap
+          type: choice
+          prompt: |
+            有一份长度 100 万的静态用户名单列表 `names`。如果你只写了一个函数 `def has_user(names, target): return target in set(names)` 并在外层每次查询都重新调用一遍，耗时反而没有加速甚至更慢！漏算了什么代价？
+          options:
+            - text: 每次调用都在重新把一百万条数据从头建立一遍 `set`（$O(n)$ 建表开销），把好不容易省下的查询时间全赔进建表里了
+              correct: true
+            - text: 因为 Python 的 `set` 查找在任何时候都比 `list` 慢十倍
+              why: '`set` 本身查询平均 $O(1)$ 极快，错在把“建一次 `set`”反复放进了每次查询里面'
+            - text: 因为 `target in set(names)` 会把 `names` 里面的字母全删掉
+              why: 转换只读原列表内容创建集合，问题出在重复建表的巨额成本
+          explain: |
+            只建一次表复用查询，才是空间换时间的正确姿势；只查一次时没必要花 $O(n)$ 先转成 `set`。
+      - item:
+          id: cache-tradeoff-match
+          type: match
+          prompt: |
+            把不同容器操作或缓存手段与它们的时间/空间特征连起来。
+          pairs:
+            - ["在长度 n 的 Python list 里用 x in xs 检查存在性", "最坏逐项扫过，线性成本 O(n)"]
+            - ["在已建好的长度 n 的 Python set 里用 x in s 查找", "哈希定位，平均常数级成本 O(1)"]
+            - ["朴素双路递归计算 fib(n)（无缓存）", "大量重复计算同子问题，时间呈指数增长"]
+            - ["@lru_cache 记忆化递归 fib(n)", "时间降为 O(n)，但需额外 O(n) 缓存空间且受参数可哈希与递归深度约束"]
+          explain: |
+            结合数据结构特征、建表成本和空间代价一起测与算，才算真正掌握了性能优化基本功。
+      - item:
+          id: fib-lru-value-num
+          type: number
+          prompt: |
+            对于斐波那契数列规则 `fib(0)=0, fib(1)=1, fib(n)=fib(n-1)+fib(n-2)`，使用 `@lru_cache(maxsize=None)` 记下中间值避免指数爆炸后，快速算出 `fib(8)` 等于多少？
+          answer: 21
+          hint: 依次写出前几项：`0, 1, 1, 2, 3, 5, 8, 13, 21`。
+          explain: |
+            `fib(0)=0, fib(1)=1, fib(2)=1, fib(3)=2, fib(4)=3, fib(5)=5, fib(6)=8, fib(7)=13, fib(8)=21`，每个小问题借助缓存只需算一次。
+
+boss:
+  items:
+    - id: boss-cleanup-c4
+      type: choice
+      prompt: |
+        执行 `with open("log.txt", "a") as f, lock:` 时，写入刚完成半行突然抛出 `RuntimeError` 异常退出。关于两个资源的收尾，哪项描述准确？
+      options:
+        - text: 即使中途抛出异常，离开 `with` 时依然会按先调 `lock.__exit__` 解锁、再调 `f.__exit__` 关闭文件的反序释放两项资源
+          correct: true
+        - text: 因为发生了未完成退出，所以锁一直不会释放、文件也永远不会关闭
+          why: with 的存在意义正是保证无论正常还是报错退出都会执行所有已进入管理器的 __exit__
+        - text: 只会关闭文件，而锁必须在函数外部等明天自动超时失效
+          why: lock.__exit__ 同文件一样在退出作用域时立刻自动释放
+        - text: 如果不想泄漏只能改回用 100 层嵌套 if 判断
+          why: 上下文管理器和 RAII 正是为了替代繁琐易错的手动清理分支
+      explain: |
+        把资源获取与清理绑进 `with`（Python）或 RAII 析构（C++），从机制上消灭异常漏放。
+    - id: boss-rust-ownership
+      type: choice
+      prompt: |
+        看这段 Rust 代码：`let a = String::from("ok"); let b = a;`。为什么紧接着再写 `println!("{}", a);` 连编译都不会通过？
+      options:
+        - text: 因为动态字符串只有一个所有者，`let b = a` 已把所有权移动给了 `b`，编译器阻止对已移走值的失效访问
+          correct: true
+        - text: 因为 `String` 和整数 `i32` 一样默认实现了隐式按位复制（`Copy`），但 Rust 规定复制后的原变量不能传给 `println!`
+          why: 堆分配的 `String` 并未实现 `Copy`，`let b = a` 发生的是所有权移动（Move）而非按位复制，移动后原变量 `a` 立即失效
+        - text: 因为 `println!("{}" , a)` 会再次夺走 `a` 的所有权，只有改成 `println!("{}", &a)` 才能在不克隆的情况下同时保留 `a` 和 `b`
+          why: 在 `let b = a;` 那一行所有权就已经移走给了 `b`，此时 `a` 已经失效，后面就算写 `&a` 也借用不到已移走的值（除非把前面改成 `let b = &a;` 或 `a.clone()`）
+        - text: 因为 Rust 不允许把同一个字符串内容先后绑定给两个不同的 `let` 局部变量，哪怕显式调用 `a.clone()` 也会编译失败
+          why: 只要显式调用 `let b = a.clone();` 深拷贝堆数据，或者用 `let b = &a;` 不可变借用，`a` 和 `b` 都能合法访问
+      explain: |
+        需要保留两份独立持有时应显式 `.clone()`，只想只读查看不转移时用 `&a` 借用即可。
+    - id: boss-generics-narrowing
+      type: choice
+      prompt: |
+        某 TypeScript 泛型函数声明返回值要么是成功字典 `{ ok: true, items: T[] }`、要么是失败字典 `{ ok: false, msg: string }`（`|` 表示二选一分支）。调用者想安全取出 `items` 列表的长度而不触发静态检查报错，正确写法是？
+      options:
+        - text: 先检查分支标记 `if (res.ok)` 把类型收窄到成功分支后，再去访问 `res.items.length`
+          correct: true
+        - text: 不写任何条件判断直接硬读 `res.items.length`
+          why: 在确认 `res.ok === true` 之前，对象也有可能是失败分支（没有 items 属性）
+        - text: 先判断 `if (typeof res === "object")`，通过后就能直接安全读取 `res.items.length`
+          why: 成功分支和失败分支的 `typeof` 全都是 `"object"`，只查 `"object"` 无法区分哪一分支，必须检查判别字段 `res.ok`
+        - text: 把函数返回类型里的泛型 `T[]` 改成 `any[]`，这样即使处于失败分支 `res.items.length` 也不会在运行期报错
+          why: '改成 `any` 只会关掉编译期保护，当运行期返回 `{ ok: false, msg: "err" }` 时 `res.items` 仍是 `undefined`，读 `.length` 会当场崩溃！'
+      explain: |
+        可辨别分支标记 + 条件收窄让编译器和你自己都能确定每个分支一定有该字段。
+    - id: boss-gil-race-c4
+      type: choice
+      prompt: |
+        两个 Python 线程各自对共享全局变量 `counter` 执行 100 万次 `counter += 1`，最终结果竟然经常只有 `130` 万左右而不是 `200` 万！解释这个现象及正确修法时，哪一项准确？
+      options:
+        - text: '`counter += 1` 在底层分成“读取、加 1、写回”多步字节码，GIL 会在步骤之间切换线程造成丢失更新；需把整个 `counter += 1` 放进同一把 `with lock:` 里保护'
+          correct: true
+        - text: GIL 会永远锁住一整段 for 循环一百万次不让另一个线程插队，因此只可能是加法本身算错了
+          why: GIL 只串行执行单个字节码，会在多步复合操作中间切换线程
+        - text: 每个线程在自己函数内部各自新建一把独立的 `threading.Lock()` 包住 `counter += 1` 就能防止丢失更新
+          why: 两个线程如果各锁各的私有锁，彼此之间完全不互斥，必须共用同一把锁对象才能保护同一个共享变量
+        - text: 想要算准只要把 `with lock:` 加在 `print(counter)` 外面就行
+          why: 真正冲突交错的是写循环体内的 `counter += 1`，打印最后加锁早已来不及
+      explain: |
+        复合读-改-写操作跨越多个字节码步骤，必须用互斥锁把整段操作包成一个不可分割区间。
+    - id: boss-asyncio-vs-cpu-c4
+      type: choice
+      prompt: |
+        有 3 个彼此独立的任务，每个都跑 1 秒：场景 X 是“等 1 秒网络 I/O 返回”，场景 Y 是“纯粹在 CPU 里算 1 秒数学循环”。分别用 `asyncio` 并发、Python 多线程与多进程处理时，下面哪一项结论完全正确？
+      options:
+        - text: 场景 X（等 I/O）用 `asyncio` 和多线程都大约 1 秒完成（均能重叠 I/O 等待）；场景 Y（纯 CPU）想跑成约 1 秒必须用多进程绕开单循环与 GIL
+          correct: true
+        - text: 不管是 I/O 等待还是纯 CPU 密集计算，只要给函数头加上 `async` 就能在 1 秒内用完所有 CPU 核心
+          why: '`async` 本质仍是单线程协作切换，碰到不交出控制权的纯 CPU 计算不会加速'
+        - text: 场景 X 中 Python 多线程需要整整 3 秒，因为等网络时绝对不会放开 GIL
+          why: Python 线程在进行阻塞 I/O 等待时会主动释放 GIL，因此多线程跑 I/O 一样可以并发约 1 秒完成
+        - text: 多进程比顺序跑更慢，因为 3 个独立核同时算反而会变成 9 秒
+          why: 各自独立的纯 CPU 任务分给多个进程在多核上可真正并行缩短总耗时
+      explain: |
+        I/O 等待靠异步事件循环或线程；真想吃多核跑纯计算靠多进程池。
+    - id: boss-deadlock-order
+      type: choice
+      prompt: |
+        线程 1 按“先锁 A、再锁 B”执行，线程 2 按“先锁 B、再锁 A”执行。这样写最容易引发哪种典型故障，怎么根治？
+      options:
+        - text: 双方各自死攥住一把锁并苦等对方那把导致死锁；根治办法是规定所有线程一律按统一顺序（如先 A 后 B）拿锁
+          correct: true
+        - text: 只要在先锁 A、再锁 B 的外层再套第三把局部锁，就能在不改变加锁顺序的前提下消除死锁
+          why: 如果第三把锁不是全线程共享的同一把外层互斥锁，各自相反顺序拿 A、B 依然会形成循环等待死锁
+        - text: 只会导致两次操作偶然漏算一次余额，但两个线程一定能正常返回绝不会卡死
+          why: 一旦两人各自拿到第一把锁并互等第二把，线程将永久阻塞卡死无法返回
+        - text: 把普通互斥锁换成可重入锁（`RLock`），就能让线程 1 和线程 2 直接穿过对方持有的锁而不死锁
+          why: 可重入锁只允许“同一个线程”重复进入自己已持有的锁，不同线程按相反顺序互等 A 和 B 照样死锁！
+      explain: |
+        全局统一的加锁次序能彻底破坏互相等待的闭环条件。
+    - id: boss-ri-rep-exposure
+      type: choice
+      prompt: |
+        一个集合类内部用 `self._items`（普通 list）存元素，并维持 RI：“`self._items` 里绝无重复元素”。下面哪个方法设计会捅出**表示泄露（Rep Exposure）**漏洞？
+      options:
+        - text: '公开方法 `get_items()` 直接写了 `return self._items` 把内部可变列表引用交了出去'
+          correct: true
+        - text: '公开方法 `get_items()` 返回 `tuple(self._items)` 不可变元组副本'
+          why: 元组不可变，外部调用方拿去后无法对它 append 破坏内部状态
+        - text: '构造函数里先执行 `self._items = list(dict.fromkeys(raw_input))` 复制并去重'
+          why: 构造时做防卫性复制并建好 RI，恰好是在堵死外部输入别名泄露
+        - text: '提供只读查询 `def contains(self, x): return x in self._items`'
+          why: 只返回布尔值，根本没有泄漏任何内部可变容器引用
+      explain: |
+        绝对不要把私有可变容器的直接引用当参数保存或直接 `return` 交到外界手里！
+    - id: boss-spec-mutating
+      type: choice
+      prompt: |
+        旧函数 `lowest_score(scores)` 的规格写明：“返回列表中的最低分，且**不改动传入的 `scores` 列表**”。若有人偷懒改成先在原地执行 `scores.sort()` 再 `return scores[0]`，错在哪里？
+      options:
+        - text: 虽然后置返回值没变，但偷偷产生未约定好的可变副作用打乱了调用方原本的列表顺序，不符合行为等价性
+          correct: true
+        - text: 没有错！只要 `return` 出的最低分整数正确，函数想怎么打乱参数都可以
+          why: 调用者完全可能在后续步骤依赖原来的 scores 顺序（例如和学生姓名列表按位置对应！）
+        - text: 因为 Python 列表参数是按值深拷贝传入的，`scores.sort()` 改动不会影响函数外部，只是比 `min(scores)` 慢
+          why: Python 传入的是同一个列表对象的引用，原地调用 `scores.sort()` 会直接把调用方手里的原列表顺序彻底改乱！
+        - text: 因为 `scores.sort()` 默认按从大到小降序排列，`scores[0]` 返回的是最高分而不是最低分
+          why: '`sort()` 默认是升序排列，`scores[0]` 确实是最低分，真正的错误是违背规格在原地修改了调用方的输入列表'
+      explain: |
+        一个函数对参数是“只读不改”还是“就地重排”，必须写进规格并由代码严格遵守。
+    - id: boss-gprof-reading
+      type: choice
+      prompt: |
+        在 `gprof` 报告中，为什么刚运行了 1 毫秒的极短测试里，一个明明确实被调用了 300 次的小函数显示耗时为 `0.00 s`？该怎么得出有说服力的剖析对比？
+      options:
+        - text: 耗时靠定时采样估计，1 毫秒总跑时长太短没撞上足够样本；应拿足够大（跑几秒级）的同一代表性输入在相同编译选项下重测
+          correct: true
+        - text: 因为显示 `0.00 s` 就证明该函数已被编译器完全内联消除，哪怕把输入放大一万倍它的耗时也必定保持 `0.00 s`
+          why: 报告里仍记录了 300 次调用说明并未内联消除，只是因为 1 毫秒运行期比采样时钟间隔还短，一放大输入就会测出真实耗时
+        - text: 因为 `gprof` 的调用次数和耗时都是按随机抽样估算的，300 次调用本身也是不准确的随机数
+          why: 调用次数来自 `-pg` 插桩精确计数（100% 准确），唯有耗时部分是定时采样估算的
+        - text: 直接把旧程序的 `gmon.out` 拷过来凑数就能得到新版本毫秒精度
+          why: 不能拿旧构建的数据文件分析新程序
+      explain: |
+        记住 `gprof` 的两套测量原理（插桩精确计次 + 采样统计耗时），就不会在短运行报告上被 `0.00` 欺骗。
+    - id: boss-complexity-c4
+      type: choice
+      prompt: |
+        针对一百万长度列表里高频判断 `x in items`，以及指数爆炸的双路递归 `fib(n)`，以下优化组合在“收益和额外代价”两方面都讲对的是？
+      options:
+        - text: 把只建一次的 `set` 用于成员检查（将每次查找从线性 $O(n)$ 降为平均常数 $O(1)$，但需额外 $O(n)$ 建表时间与内存）；对 `fib` 加 `@lru_cache`（降到线性 $O(n)$，但仍有 $O(n)$ 缓存空间和调用栈深度）
+          correct: true
+        - text: 不管只查 1 次还是 100 万次，永远在每次查找内部现写 `set(items)` 再查最省事且零额外开销
+          why: 每次临时转 `set` 本身就是 $O(n)$，在高频外循环内部建表反而慢成灾难
+        - text: 加上 `@lru_cache` 后 `fib(n)` 连首次计算时的栈空间和缓存内存也全部变成常数 $O(1)$
+          why: 缓存必须存下每个已计算 `n` 的结果占 $O(n)$ 空间，首次计算深递归的调用栈深度依然是 $O(n)$
+        - text: 把 `items` 先排序再用 `x in items` 顺序查找，在 Python 里就会自动变成 $O(\log n)$ 二分查找
+          why: Python 列表上的 `in` 运算符总是从左到右线性顺序扫描 $O(n)$，不会因为列表排过序就自动改走二分查找！
+      explain: |
+        祝贺通关《高级程序设计》！你已经打通了资源所有权、类型抽象、并发异步协同与测量剖析定位的全套实战内功！

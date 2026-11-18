@@ -1,0 +1,3205 @@
+skill: H.3.2
+version: 2
+authors: [main-agent]
+brief:
+  why: |
+    单片机上一个大循环管不过来的时候，就要靠实时操作系统把工作拆成几个任务，按优先级和时限轮流运行；更复杂的板子跑嵌入式 Linux，要靠一级接一级的引导程序把内核装进内存，再靠设备树和驱动认出硬件。这一关走两条线：单片机上的 FreeRTOS（任务、队列、锁、优先级反转），和嵌入式 Linux（启动链、设备树、内核模块、字符设备驱动、中断的上下半部、PREEMPT_RT），最后讲内存、调试、功耗和看门狗这些让设备长年稳定运行的办法。只假设你学过单片机和数据结构这两关。
+  outcomes:
+    - 说出单片机从复位到 main 之前启动代码做的事，看懂 nm 输出里变量落在 .data、.bss 还是 .rodata；排出嵌入式 Linux 从片内 ROM 到 init 的启动链，读懂 U-Boot 的 bootcmd 和 bootargs
+    - 读懂设备树节点（compatible、reg、interrupts、pinctrl），说出驱动和设备怎样配对、probe 什么时候被调用；写出最小的内核模块，说出字符设备驱动的结构和 copy_to_user 的用法
+    - 用 FreeRTOS 写出严格周期的采样任务和用队列收数据的通信任务，说出优先级该怎么排；用利用率上界和响应时间分析判断一组周期任务来不来得及
+    - 画出优先级反转的时间线，说出优先级继承怎样缓解它；说出中断为什么要分上半部和下半部，PREEMPT_RT 把什么改成了线程
+    - 区分 kmalloc、vmalloc 和按页分配，说出实时程序为什么要锁住内存、不在循环里 malloc；用看门狗、栈溢出检测、校验和 A/B 分区提高可靠性
+terms:
+  - term: 向量
+    def: '嵌入式里指中断向量：一个异常或中断处理函数的入口地址；按编号排成的表叫向量表，Cortex-M 向量表的第 0 项是栈顶地址'
+  - term: 异常
+    def: '在 Cortex-M 里，复位、中断和 HardFault 等故障统称异常，每种都有一个处理函数，地址放在向量表里'
+  - term: 全局变量
+    def: 'C 里写在所有函数外面的变量，整个程序运行期间一直存在；带初值的放进 .data，初值为 0 或没写初值的放进 .bss'
+  - term: 链接脚本
+    def: '告诉链接器各段放在 Flash 和 RAM 哪里的文件，还定义 _sdata、_ebss 这类边界符号给启动代码用'
+  - term: SPL
+    def: 'U-Boot 的精简版第一级引导程序，小到能放进片内 SRAM，负责设置好 DRAM，再加载完整的 U-Boot'
+  - term: 设备树
+    def: '描述一块板子上有哪些硬件、接在哪里的数据（源文件 .dts，编译成 .dtb），由引导程序交给内核'
+  - term: 根文件系统
+    def: '内核挂载到 / 的那个文件系统，里面有 init、各种程序、库和配置文件'
+  - term: 进程
+    def: '正在运行的程序，有自己的编号、内存和打开的文件；Linux 启动的第一个进程是 1 号的 init'
+  - term: 环境变量
+    def: 'U-Boot 里以“名字 = 文本”保存的设置，如 bootcmd、bootargs；setenv 改内存里的，saveenv 写回存储器'
+  - term: 通用发行版启动
+    def: 'distro boot：U-Boot 在各存储设备上找 extlinux.conf 或 boot.scr，按里面的内容启动，让一个发行版镜像能在多种板子上启动'
+  - term: 内核态
+    def: 'CPU 的特权模式：内核在这里运行，能执行所有指令、访问所有硬件'
+  - term: 用户态
+    def: 'CPU 的受限模式：普通程序在这里运行，碰不到硬件寄存器和别的程序的内存，要靠系统调用请内核代办'
+  - term: 设备驱动
+    def: '内核里懂某种设备细节的那段代码，把设备的寄存器操作藏在 read、write 这类通用接口后面'
+  - term: 引脚复用
+    def: 'pin muxing：一个芯片引脚可以切成 GPIO、串口、I²C 等几种功能之一；Linux 用 pinctrl 子系统按设备树设置'
+  - term: 内核模块
+    def: '可以在系统运行时加载进内核、用完再卸载的一段内核代码，文件扩展名是 .ko'
+  - term: 模块
+    def: '本关里是内核模块的简称：系统运行时可以加载进内核、用完再卸载的一段内核代码，文件扩展名 .ko'
+  - term: 设备模型
+    def: 'Linux 管理驱动的统一框架：总线、设备、驱动三种对象，总线负责把设备和驱动配对'
+  - term: 绑定
+    def: '总线发现某个设备和某个驱动匹配后，把设备交给这个驱动并调用它的 probe'
+  - term: 平台设备
+    def: '芯片内部那些硬件上没法探测的外设，挂在虚拟的 platform 总线上，通常由设备树创建'
+  - term: 主设备号
+    def: '设备号的前一半，一般对应一个驱动；ls -l 设备文件时显示在逗号前'
+  - term: 次设备号
+    def: '设备号的后一半，区分同一个驱动管的第几个设备；ls -l 设备文件时显示在逗号后'
+  - term: 字符设备
+    def: '按字节流读写的设备，如串口；ls -l 时第一个字母是 c，驱动用 file_operations 提供 read、write 等函数'
+  - term: 实时系统
+    def: '必须在规定时限内给出结果的系统：结果对但晚了也算错，所以看最坏情况而不是平均速度'
+  - term: 截止时间
+    def: 'deadline：一件工作必须完成的时限'
+  - term: 抖动
+    def: 'jitter：同一件事每次花的时间或每次发生的间隔的波动'
+  - term: 实时操作系统
+    def: 'RTOS：为满足时限设计的小型操作系统，选谁运行的规则可预测，关键操作的耗时有上界，如 FreeRTOS'
+  - term: 任务
+    def: 'RTOS 里一件独立的工作：一个通常永不返回的函数，有自己的栈和优先级'
+  - term: 调度
+    def: '决定下一个让哪个任务（或线程）在 CPU 上运行'
+  - term: 抢占
+    def: '更高优先级的任务一就绪，就打断正在运行的低优先级任务，换它运行'
+  - term: 时间片
+    def: '优先级相同的任务轮流运行时，每次连续运行的时间；FreeRTOS 里是两次节拍中断之间的时间'
+  - term: 上下文切换
+    def: '保存当前任务的寄存器，装回另一个任务上次保存的，让 CPU 改跑另一个任务'
+  - term: 线程
+    def: '进程里的一条执行流：有自己的寄存器和栈，和同一进程的其他线程共用内存'
+  - term: 最坏执行时间
+    def: 'WCET：一个任务运行一次最多要花的时间，做可调度性分析时用它'
+  - term: 利用率
+    def: '一个周期任务占用 CPU 的比例，等于最坏执行时间除以周期；所有任务相加超过 1 就一定来不及'
+  - term: 响应时间
+    def: '实时分析里指一个任务从被释放（这一次到来）到完成的时间；最坏响应时间不超过截止时间才算来得及'
+  - term: 信号量
+    def: '一个计数加两个操作：give 加 1，take 减 1、减不下去就阻塞等待；常用来在任务之间传“发生了”'
+  - term: 进程间通信
+    def: 'IPC：不同进程之间交换数据的办法，如管道、POSIX 消息队列、共享内存'
+  - term: 竞态条件
+    def: '结果取决于几个任务执行的先后时机，比如两个任务同时加 1，丢掉了一次'
+  - term: 临界区
+    def: '访问共享数据、不能被几个任务同时执行的那段代码'
+  - term: 互斥锁
+    def: 'mutex：同一时刻只能被一个任务持有的锁，拿不到就睡眠等待；谁加锁谁解锁'
+  - term: 自旋锁
+    def: '拿不到时原地循环反复检查、不睡眠的锁，用于很短的临界区和中断里'
+  - term: 死锁
+    def: '几个任务各拿着一部分锁，又互相等对方手里的，谁也没法继续'
+  - term: 优先级反转
+    def: '高优先级任务等低优先级任务手里的锁，低优先级任务又被中优先级任务抢占，结果高优先级任务被不相干的任务拖住'
+  - term: 优先级继承
+    def: '高优先级任务因一把锁被挡住时，临时把持锁任务的优先级提到同样高，让它尽快放锁'
+  - term: 上半部
+    def: '中断处理函数本身：只做必须马上做的事，如应答硬件、取出数据、安排后续工作'
+  - term: 下半部
+    def: '中断里推迟到稍后做的那部分工作，用 softirq、tasklet、工作队列或线程化中断执行'
+  - term: 内存管理单元
+    def: 'MMU：CPU 里按页表把虚拟地址翻译成物理地址、并检查访问权限的硬件'
+  - term: 虚拟地址
+    def: '程序和内核代码里用的地址，要经 MMU 按页表翻译成物理地址才能访问内存'
+  - term: 物理地址
+    def: '内存条（或外设寄存器）在总线上真正的地址'
+  - term: 页表
+    def: '记录每个虚拟页映射到哪个页框的表；每个进程一张，MMU 按它翻译地址'
+  - term: 页框
+    def: '物理内存按页大小切出的一格，可以放任何一个虚拟页'
+  - term: 缺页
+    def: 'page fault：访问的页还没有页框或已被换出，CPU 停下来交给内核处理，处理完再继续'
+  - term: 看门狗
+    def: 'watchdog：独立计时的硬件计数器，软件要定期把它重新装满（喂狗），卡死不喂时它数到 0 就复位芯片'
+lessons:
+  # ---------------------------------------------------------------- 启动链
+  - id: boot-mcu
+    chapter: 启动链
+    title: 复位以后、main 之前
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: |
+            单片机程序里有两个全局变量：`int threshold = 42;` 和 `int counter;`。程序烧在 Flash 里，上电时 RAM 里是不确定的值。可是 `main` 一开始读到的 threshold 就是 42，counter 就是 0。猜一猜：这是谁做的？
+          options:
+            - text: 一段在 main 之前运行的启动代码：把初值从 Flash 复制到 RAM，再把其余全局变量清零
+              correct: true
+            - text: 编译器在编译时直接把 42 写进了板子的 RAM
+              why: 编译时板子还没上电，编译器只能把 42 放进要烧进 Flash 的文件里；上电后得有代码把它搬到 RAM
+            - text: RAM 上电时自动全是 0，42 是 main 第一行赋的值
+              why: SRAM 上电后的内容不保证是 0；而且 main 里并没有给 threshold 赋值的语句
+          explain: 单片机那一关讲过，启动代码会做这件事。这一课看它具体怎么知道从哪搬到哪、清多少，以及你写的每个变量到底落在哪一段。
+      - card:
+          title: 复位以后发生什么
+          body: |
+            Cortex-M 芯片复位后，硬件先读**向量表（vector table）**的头两项：第 0 项是栈顶地址，装进栈指针；第 1 项是复位处理函数 `Reset_Handler` 的地址，CPU 从那里开始执行。后面各项是其他**异常（exception）**的处理函数地址：Cortex-M 把复位、中断和 HardFault 这类故障统称为异常。
+
+            ST 给 STM32F407 写的 GCC 启动文件 `startup_stm32f407xx.s` 里，`Reset_Handler` 按这个顺序做事：
+
+            | 顺序 | 代码 | 做什么 |
+            |---|---|---|
+            | 1 | `bl SystemInit` | 设置时钟 |
+            | 2 | 一个复制循环 | 把 `.data` 的初值从 Flash 复制到 RAM |
+            | 3 | 一个清零循环 | 把 `.bss` 全部写 0 |
+            | 4 | `bl __libc_init_array` | 调用 C++ 全局对象的构造函数 |
+            | 5 | `bl main` | 进入 main |
+      - item:
+          id: vector-entries
+          type: choice
+          prompt: Cortex-M 芯片复位时，硬件从向量表第 0 项读到的是什么？
+          options:
+            - text: 栈顶地址，装进栈指针
+              correct: true
+            - text: Reset_Handler 的地址
+              why: 那是第 1 项；CPU 从它开始执行代码，但先要把栈指针设好
+            - text: main 函数的地址
+              why: 硬件不认识 main；main 是启动代码在最后调用的
+            - text: 第一个外部中断的处理函数地址
+              why: 外部中断的处理函数排在向量表后面，不在第 0 项
+          explain: 先有栈，C 代码才能调用函数、放局部变量，所以硬件在执行第一条指令之前就把栈指针设好了。
+      - card:
+          title: 启动代码怎么知道搬多少
+          body: |
+            写在所有函数外面的变量叫**全局变量（global variable）**，整个程序运行期间一直存在。启动代码不知道你写了哪些全局变量。链接器把带初值的排在一起，组成 `.data` 段；把初值为 0 或没写初值的排在一起，组成 `.bss` 段。然后由**链接脚本（linker script）**给出几个符号，告诉启动代码这两段的边界：
+
+            | 符号 | 含义 |
+            |---|---|
+            | `_sidata` | `.data` 的初值在 Flash 里的起始地址 |
+            | `_sdata`、`_edata` | `.data` 在 RAM 里的起点和终点 |
+            | `_sbss`、`_ebss` | `.bss` 在 RAM 里的起点和终点 |
+
+            启动代码就做两件事：从 `_sidata` 起复制 `_edata - _sdata` 个字节到 `_sdata`；把 `_sbss` 到 `_ebss` 之间清零。
+      - card:
+          title: 例题：从符号地址算出要搬多少
+          body: |
+            链接器可以顺带输出一份 map 文件，列出每一段、每个符号最后被放在哪个地址。一次编译后，map 文件里这几个符号的值是：`_sidata = 0x08001A40`，`_sdata = 0x20000000`，`_edata = 0x20000018`，`_sbss = 0x20000018`，`_ebss = 0x20000238`。启动代码要复制多少字节、清零多少字节？
+          reveal:
+            - title: 第 1 步：算出 .data 有多长
+              body: |
+                `0x20000018 - 0x20000000 = 0x18`，也就是 24 字节。这 24 字节的初值放在 Flash 里从 `0x08001A40` 开始的地方，启动代码把它们复制到 RAM 的 `0x20000000`。
+            - title: 第 2 步：算出 .bss 有多长
+              body: |
+                `0x20000238 - 0x20000018 = 0x220`，也就是 2 × 256 + 2 × 16 = 544 字节，全部写 0。
+            - title: 第 3 步：算出进 main 时已经占了多少 RAM
+              body: |
+                24 + 544 = 568 字节，从 `0x20000000` 开始连续排放。堆和栈只能用这之后的 RAM。
+      - item:
+          id: bss-bytes
+          type: number
+          prompt: |
+            map 文件里：`_sbss = 0x20000040`，`_ebss = 0x20000440`。启动代码要清零多少字节？
+          answer: 1024
+          unit: 字节
+          hint: 0x400 换成十进制是多少？
+          explain: '`0x20000440 - 0x20000040 = 0x400 = 4 × 256 = 1024` 字节。'
+      - item:
+          id: startup-total
+          type: number
+          prompt: |
+            map 文件里：`_sdata = 0x20000000`，`_edata = 0x20000040`，`_sbss = 0x20000040`，`_ebss = 0x20000440`。启动代码复制加清零，一共要往 RAM 写多少字节？
+          answer: 1088
+          unit: 字节
+          hint: 先分别算 .data 和 .bss 的长度。
+          explain: '`.data` 是 `0x40 = 64` 字节，`.bss` 是 `0x400 = 1024` 字节，合计 1088 字节。'
+      - card:
+          title: 你的变量落在哪一段
+          body: |
+            下面这个文件在电脑上用 gcc 编译成目标文件，再用 `nm -S` 列出每个符号的段和大小。动手之前，先想一想 `zero_init` 会落在哪里。
+
+            ```c
+            #include <stdint.h>
+            int threshold = 42;
+            int counter;
+            int zero_init = 0;
+            const int table[4] = {1, 2, 3, 4};
+            uint8_t cfg[4] = {1, 2, 3, 4};
+            static uint8_t rx_buf[512];
+            int main(void) { return threshold + counter + zero_init + table[1] + cfg[0] + rx_buf[0]; }
+            ```
+      - item:
+          id: zero-init-predict
+          type: choice
+          prompt: '全局变量 `int zero_init = 0;` 写了初值 0。GCC 默认把它放进哪一段？'
+          options:
+            - text: .bss，和没写初值的变量放在一起
+              correct: true
+            - text: .data，因为它写了初值
+              why: 初值是 0 的变量不用在 Flash 里存一份 0，启动时清零就行；GCC 默认把它放进 .bss，省下 Flash
+            - text: .rodata，因为它的值是常数
+              why: 它没有 const，程序可以改它，必须放在可写的段里
+          explain: GCC 手册说，只要目标平台有 BSS 段，GCC 默认就把初值为 0 的变量放进 BSS（`-fzero-initialized-in-bss` 默认打开），单片机用的 arm-none-eabi-gcc 也一样。
+      - card:
+          title: nm 的实际输出
+          body: |
+            WSL 里 gcc 15.2 的实际输出：
+
+            ```
+            0000000000000004 0000000000000004 D cfg
+            0000000000000000 0000000000000004 B counter
+            0000000000000000 000000000000003f T main
+            0000000000000020 0000000000000200 b rx_buf
+            0000000000000000 0000000000000010 R table
+            0000000000000000 0000000000000004 D threshold
+            0000000000000004 0000000000000004 B zero_init
+            ```
+
+            第一列是段内偏移，第二列是大小（十六进制），第三列是段：D 是 `.data`，B 是 `.bss`，R 是只读的 `.rodata`，T 是代码 `.text`；小写字母表示只在本文件可见的 static 符号。`size -A` 显示 `.data` 8 字节、`.bss` 544 字节、`.rodata` 16 字节。
+      - item:
+          id: const-table
+          type: choice
+          prompt: '单片机程序里有 `const int table[4] = {1, 2, 3, 4};`。上电后，启动代码要把它复制到 RAM 吗？'
+          options:
+            - text: 不用，它在 .rodata 里，留在 Flash 中，CPU 直接从 Flash 读
+              correct: true
+            - text: 要，所有全局变量都要搬进 RAM
+              why: 只有可写的 .data 才需要搬；只读的数据 CPU 可以直接从 Flash 读
+            - text: 要把它清零
+              why: 它有确定的初值，清零会毁掉它；而且它在 Flash 里，启动代码也没法随便写
+          explain: 在单片机上给查表数据加 const，就能把它留在 Flash，省下 RAM。
+      - item:
+          id: bss-align
+          type: choice
+          prompt: |
+            一个目标文件的 .bss 里有三个变量：counter（4 字节，nm 显示偏移 0）、zero_init（4 字节，偏移 4）和 static 的 rx_buf（512 字节，偏移 0x20）。三者加起来 520 字节，可 `size -A` 显示 .bss 是 544 字节。多出来的 24 字节最可能是什么？
+          options:
+            - text: rx_buf 被对齐到 0x20（32 的倍数）开始，zero_init 之后空了 24 字节
+              correct: true
+            - text: .bss 里还存着这几个变量的初值
+              why: .bss 不存初值，启动时直接清零；这正是它省 Flash 的原因
+            - text: main 的代码也算在 .bss 里
+              why: main 的段字母是 T，在 .text 里
+          explain: zero_init 在偏移 4，占到 8；rx_buf 从 0x20 = 32 开始，中间空了 24 字节；32 + 512 = 544。编译器为了访问效率会按一定边界对齐数组。
+  - id: boot-linux
+    chapter: 启动链
+    title: 嵌入式 Linux 的启动链
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一块跑 Linux 的板子，内核文件有好几 MB，放在 SD 卡上。芯片上电时，片内只有几十到几百 KB 的 SRAM，外面的大内存 DRAM 还不能用。猜一猜：内核是怎样进到内存里的？
+          options:
+            - text: 分几级接力：芯片里固化的一小段代码先读入一个小程序，它把 DRAM 设置好，再读入更大的引导程序，最后由引导程序读入内核
+              correct: true
+            - text: CPU 直接从 SD 卡上一条一条读内核的指令执行
+              why: SD 卡不能像内存那样按地址直接取指令，内核必须先复制进内存
+            - text: 上电时 DRAM 已经能用了，芯片一次把整个内核复制进去
+              why: DRAM 要先由软件配置好内存控制器才能用，这件事本身就得由一段先运行的代码来做
+          explain: 每一级都比上一级大、能做的事更多，这一串接力叫启动链。
+      - card:
+          title: 第一棒和第二棒
+          body: |
+            芯片出厂时固化了一段 **ROM 代码（ROM code）**，上电先运行它。它很小，只会从芯片支持的几种启动介质（比如 SD 卡、eMMC、SPI Flash）读入下一段程序，放进片内 SRAM 运行。
+
+            SRAM 放不下完整的引导程序，所以下一段是一个精简版，U-Boot 叫它 **SPL**。U-Boot 文档的说法是：SPL 设置好 SDRAM（一种 DRAM），再加载完整的 U-Boot。SRAM 更小的芯片还会在前面加一级 TPL，专门用来加载 SPL。
+      - item:
+          id: why-spl
+          type: choice
+          prompt: 为什么在 ROM 代码和完整的 U-Boot 之间还要有一个 SPL？
+          options:
+            - text: 片内 SRAM 太小放不下完整的 U-Boot，DRAM 又还没设置好，需要一个装得进 SRAM、又会设置 DRAM 的小程序
+              correct: true
+            - text: SPL 是 Linux 内核的一部分，负责加载驱动
+              why: SPL 在内核开始运行之前就结束了，和驱动无关
+            - text: SPL 用来把 SD 卡格式化
+              why: SPL 只读入下一级程序，不改写存储介质
+          explain: 每一级只解决眼前的限制：ROM 代码只会读介质，SPL 解决 DRAM，完整的 U-Boot 才有文件系统、网络、命令行这些功能。
+      - card:
+          title: 第三棒：U-Boot 把内核交出去
+          body: |
+            完整的 U-Boot 在 DRAM 里运行。它把内核镜像和**设备树（device tree）**文件读进内存，把设备树的地址交给内核，再跳到内核的入口。设备树是一份描述这块板子上有哪些硬件、接在哪里的数据。
+
+            地址怎么交：Linux 内核文档规定，32 位 ARM 上放在寄存器 r2 里，64 位 ARM 上放在 x0 里。
+      - item:
+          id: dtb-reg
+          type: choice
+          prompt: 64 位 ARM 板子上，U-Boot 跳到 Linux 内核时，用什么告诉内核设备树在内存的哪里？
+          options:
+            - text: 把设备树在内存中的地址放在寄存器 x0 里
+              correct: true
+            - text: 把设备树的地址写进 bootargs
+              why: bootargs 是内核命令行文本；设备树地址按内核的启动约定放在寄存器里
+            - text: 内核自己在 SD 卡上找 .dtb 文件
+              why: 内核刚开始运行时还没有存储驱动和文件系统，只能靠引导程序事先读好、交过来
+          explain: 内核文档 arch/arm64/booting 规定进入内核时 x0 里是设备树在内存中的地址；32 位 ARM 用 r2。
+      - card:
+          title: 最后几棒：内核、根文件系统、init
+          body: |
+            内核初始化硬件、按设备树加载驱动，然后按启动参数 `root=` 挂载**根文件系统（root filesystem）**：也就是 `/` 目录所在的那个分区，里面有所有程序和配置。
+
+            接着内核运行第一个程序 `/sbin/init`（可以用参数 `init=` 换成别的）。正在运行的程序在 Linux 里叫**进程（process）**，每个进程有一个编号；init 是 1 号进程，系统里的服务和用户程序都由它直接或间接启动。
+      - item:
+          id: boot-order
+          type: order
+          prompt: 把一块 ARM 板子从上电到 init 运行的启动链排好。
+          steps:
+            - 片内 ROM 代码从启动介质读入 SPL
+            - SPL 设置好 DRAM，加载完整的 U-Boot
+            - U-Boot 把内核和设备树读进内存，跳到内核
+            - 内核初始化硬件，按设备树加载驱动
+            - 内核按 root= 挂载根文件系统
+            - 内核运行 /sbin/init，成为 1 号进程
+          explain: 每一棒都为下一棒准备好它需要的东西：SPL 准备 DRAM，U-Boot 准备内核和设备树，内核准备驱动和文件系统，init 再启动其余的一切。
+      - item:
+          id: no-init
+          type: choice
+          prompt: |
+            一块板子启动时，串口最后一行是 `Kernel panic - not syncing: No working init found.`。问题最可能出在哪里？
+          options:
+            - text: 内核已经在运行，但在根文件系统里找不到能运行的 init，比如 root= 指错了分区、init 文件缺失或是给别的架构编译的
+              correct: true
+            - text: ROM 代码没找到 SPL
+              why: 那样连 U-Boot 和内核的打印都不会出现；能打出 Kernel panic 说明内核已经在运行
+            - text: U-Boot 没能把内核读进内存
+              why: 打出这行的正是内核自己，说明内核已经被读进内存并开始执行
+            - text: 设备树里的串口写错了
+              why: 串口要是不能用，你就看不到这行打印了
+          explain: 读启动日志时，先看最后一条打印来自哪一棒，问题通常出在它和下一棒的交接处。这条信息说明内核已经跑到最后一步，交不出去的是 init。
+      - card:
+          title: 64 位 ARM 和 x86 有什么不同
+          body: |
+            64 位 ARM 芯片常在中间加入 **TF-A（Trusted Firmware-A）**，把启动分成几段：BL1 是 ROM 里的可信代码，BL2 是可信引导固件，BL31 是一直留在最高特权级 EL3 运行的固件，BL33 是 U-Boot 这类普通引导程序。U-Boot 文档写着：SPL 可以先启动 BL31，再由它把完整的 U-Boot 作为 BL33 启动。
+
+            x86 电脑没有 SPL 这一级：UEFI 固件从 EFI 系统分区（ESP）加载 `.efi` 程序，比如 GRUB 或内核自带的 EFI stub；更早的 BIOS 从硬盘第一个扇区读入引导程序。
+      - item:
+          id: boot-match
+          type: match
+          prompt: 把每个阶段和它做的事配对。
+          pairs:
+            - [ROM 代码, 从启动介质读入下一段程序，放进片内 SRAM]
+            - [SPL, 设置好 DRAM，再加载完整的 U-Boot]
+            - [BL31, 留在 EL3 一直运行的可信固件]
+            - [U-Boot, 把内核和设备树读进内存并跳过去]
+            - [init, 1 号进程，启动系统里其余的服务和程序]
+          explain: TF-A 的 BL31 和其他几段不同：它不是用完就退出的，内核运行时它还在 EL3 待命。
+  - id: u-boot
+    chapter: 启动链
+    title: U-Boot：命令、环境变量和脚本
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你在 U-Boot 的命令行里用 setenv 改了一项设置，重启板子后发现改动没了。猜一猜为什么？
+          options:
+            - text: setenv 只改了内存里的那一份，还要用 saveenv 写回存储器
+              correct: true
+            - text: U-Boot 每次启动都会恢复出厂设置
+              why: 用 saveenv 保存过的设置，重启后还在
+            - text: 要重新编译 U-Boot 才能改设置
+              why: 这些设置之所以做成可以在命令行里改的变量，就是为了不用重新编译
+          explain: U-Boot 启动时把存储器里的设置读进内存，setenv 改的是内存里的副本，saveenv 才写回去。
+      - card:
+          title: 配置、编译、写进板子
+          body: |
+            U-Boot 和内核一样先配置再编译：`make <板子名>_defconfig` 选好这块板子的默认配置，再用交叉编译器（在电脑上运行、编出给 ARM 板子用的程序的编译器）`make`。编出来的 SPL 和 U-Boot 要写到 ROM 代码会去找的位置，比如 SD 卡开头某个固定偏移，具体在哪看芯片手册。
+
+            U-Boot 启动后会倒数几秒（变量 `bootdelay`）。这期间按任意键进入它的命令行；不按，就执行变量 `bootcmd` 里的命令，启动系统。
+      - card:
+          title: 环境变量
+          body: |
+            U-Boot 的设置都放在**环境变量（environment variable）**里，每个变量是一个名字和一段文本：
+
+            | 命令或变量 | 作用 |
+            |---|---|
+            | `printenv` | 显示所有环境变量 |
+            | `setenv 名字 值` | 修改（只改内存里的那一份） |
+            | `saveenv` | 把环境变量写回持久存储 |
+            | `bootcmd` | 倒数结束、没人按键时自动执行的命令 |
+            | `bootargs` | 启动操作系统时传给它的命令行 |
+      - item:
+          id: set-bootargs
+          type: choice
+          prompt: |
+            想让板子以后每次启动，传给内核的命令行都是 `console=ttyS0,115200 root=/dev/mmcblk0p2 rootwait`。在 U-Boot 命令行里应该执行什么？
+          options:
+            - text: 先 setenv bootargs 设成这段文字，再 saveenv
+              correct: true
+            - text: 先 setenv bootcmd 设成这段文字，再 saveenv
+              why: bootcmd 是 U-Boot 自己要执行的命令；传给内核的命令行是 bootargs
+            - text: 只执行 setenv bootargs 设成这段文字
+              why: 不 saveenv，重启后就丢了
+            - text: 执行 printenv bootargs
+              why: printenv 只显示，不修改
+          explain: bootcmd 决定 U-Boot 做什么，bootargs 决定内核拿到什么；两个都要 saveenv 才能保留。
+      - card:
+          title: 例题：读懂一条 bootcmd
+          body: |
+            一块 64 位 ARM 板子的两个环境变量是：
+
+            ```
+            bootargs=console=ttyS0,115200 root=/dev/mmcblk0p2 rootwait
+            bootcmd=load mmc 0:1 ${kernel_addr_r} Image; load mmc 0:1 ${fdt_addr_r} board.dtb; booti ${kernel_addr_r} - ${fdt_addr_r}
+            ```
+
+            倒数结束后会发生什么？
+          reveal:
+            - title: 第 1 步：读入内核
+              body: |
+                `load mmc 0:1 ${kernel_addr_r} Image`：从 0 号 MMC 设备（SD 卡或 eMMC）的第 1 个分区读文件 `Image`，放到变量 `kernel_addr_r` 给出的内存地址。`${...}` 是取变量的值。
+            - title: 第 2 步：读入设备树
+              body: |
+                同样把 `board.dtb` 读到 `fdt_addr_r` 给出的地址。
+            - title: 第 3 步：启动内核
+              body: |
+                `booti` 用来启动 64 位 ARM 的 Image 格式内核。三个参数依次是内核地址、initramfs 地址、设备树地址。initramfs 是可选的、启动初期放在内存里的小文件系统，`-` 表示不用它。
+            - title: 第 4 步：看内核拿到什么
+              body: |
+                内核的命令行就是 bootargs：控制台用串口 ttyS0，波特率 115200；根文件系统是 mmcblk0 的第 2 个分区；`rootwait` 让内核等存储设备准备好再挂载，SD 卡这类设备要稍等一会儿才会出现。
+      - item:
+          id: bootz
+          type: choice
+          prompt: 一块 32 位 ARM 板子，内核文件是 zImage 格式。bootcmd 里启动内核的那条命令应该用哪个？
+          options:
+            - text: bootz
+              correct: true
+            - text: booti
+              why: booti 启动的是 64 位 ARM 的 Image 格式
+            - text: bootm
+              why: bootm 启动的是 FIT 或旧的 uImage 格式镜像
+            - text: tftpboot
+              why: tftpboot 通过网络用 TFTP 把文件下载到内存，启动 zImage 还是要用 bootz
+          explain: 'U-Boot 按内核镜像的格式分了几个启动命令：zImage 用 bootz，arm64 的 Image 用 booti，FIT 和 uImage 用 bootm。'
+      - card:
+          title: 脚本和通用发行版启动
+          body: |
+            一长串命令可以写成**脚本**：先写成文本文件，用 `mkimage` 打包成 `boot.scr`，U-Boot 用 `source` 命令执行它。这样换启动方式只要换 SD 卡上的一个文件，不用改环境变量。
+
+            Debian、Fedora 这样的发行版希望同一个系统镜像能在很多板子上启动，于是 U-Boot 有了**通用发行版启动（distro boot）**：依次在各个存储设备上找 `/extlinux/extlinux.conf`，再找 `/boot/extlinux/extlinux.conf`，按里面写的内核、设备树和命令行启动；也可以用 `boot.scr`。新版 U-Boot 的 standard boot 是它的推广版本。
+      - item:
+          id: distro-path
+          type: text
+          prompt: 用 distro boot 启动时，U-Boot 在一个分区上最先找的配置文件，完整路径是什么？
+          answers: ["/extlinux/extlinux.conf"]
+          hint: 目录名和文件名用的是同一个词。
+          explain: 先找分区根目录下的 /extlinux/extlinux.conf，找不到再找 /boot/extlinux/extlinux.conf。发行版只要按这个约定放好文件，不用知道板子的 bootcmd 怎么写。
+      - item:
+          id: uboot-cmds
+          type: match
+          prompt: 把 U-Boot 的命令和它的作用配对。
+          pairs:
+            - [printenv, 显示环境变量]
+            - [saveenv, 把环境变量写进持久存储]
+            - [load, 从文件系统把文件读进内存]
+            - [booti, 启动 64 位 ARM 的 Image 格式内核]
+            - [tftpboot, 通过网络用 TFTP 下载文件到内存]
+          explain: 开发时常用 tftpboot 从电脑上直接下载新编的内核，省去每次拔插 SD 卡。
+  # ---------------------------------------------------------------- 驱动
+  - id: hw-access
+    chapter: 驱动
+    title: 在 Linux 上访问硬件
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 在单片机上，你往 GPIO 寄存器的地址写一个值就能点亮 LED。在跑 Linux 的板子上，一个普通的 C 程序直接往那个地址写，会怎样？
+          options:
+            - text: 不行：普通程序被限制在自己的一块内存里，碰不到硬件寄存器，要请内核代办
+              correct: true
+            - text: 和单片机一样，LED 直接亮
+              why: Linux 把普通程序和硬件隔开，程序不能随便读写硬件寄存器
+            - text: 板子会烧坏
+              why: 不会烧坏；最常见的结果是这个程序因为访问了不允许的地址被内核结束
+          explain: Linux 上同时跑着很多程序，要是谁都能直接改硬件，一个出错的程序就能把整个系统搞乱。所以碰硬件这件事统一交给内核。
+      - card:
+          title: 用户态和内核态
+          body: |
+            跑 Linux 的 CPU 有两种运行模式。内核运行在**内核态（kernel mode）**，能执行所有指令、访问所有硬件；普通程序运行在**用户态（user mode）**，碰不到硬件寄存器，也碰不到别的程序的内存。程序想读写设备，就发**系统调用**请内核代办。
+
+            内核里懂某种设备的细节、替程序和这个设备打交道的那段代码，叫**设备驱动（device driver）**。
+      - card:
+          title: 设备就是文件：/dev 和 /sys
+          body: |
+            Linux 把大多数设备做成文件。`/dev` 下的设备文件用 open、read、write 操作：`/dev/ttyS0` 是一个串口，`/dev/mmcblk0` 是一张 SD 卡。
+
+            `/sys`（叫 sysfs）里是内核导出的设备信息和设置，每项一个小文件。比如往 `/sys/class/leds/<名字>/brightness` 写 1 点亮这个 LED，写 0 熄灭；最大亮度写在同目录的 `max_brightness` 里。
+
+            网络接口是例外：`eth0`、`wlan0` 在 `/dev` 下没有文件，程序用套接字访问网络。
+      - item:
+          id: sysfs-led
+          type: choice
+          prompt: '在板子的 shell 里执行 `echo 1 > /sys/class/leds/led0/brightness`，发生了什么？'
+          options:
+            - text: 内核里的 LED 驱动收到请求，把 led0 点亮
+              correct: true
+            - text: 在存储卡上新建了一个叫 brightness 的文件
+              why: /sys 里的文件不在存储卡上，是内核按需生成的；写它等于调用驱动
+            - text: echo 绕过内核直接改了 GPIO 寄存器
+              why: echo 是用户态程序，碰不到寄存器；写 sysfs 文件要经过内核和 LED 驱动
+          explain: sysfs 的文件看起来像普通文件，背后是驱动的代码。读它时驱动报告状态，写它时驱动去操作硬件。
+      - card:
+          title: 常见设备在用户空间是什么样子
+          body: |
+            | 设备 | 用户空间的接口 | 例子 |
+            |---|---|---|
+            | 存储 | 块设备文件，挂载后按文件读写 | `/dev/mmcblk0p1` |
+            | 网络 | 套接字，接口不在 /dev 下 | `eth0`、`wlan0` |
+            | GPIO | 字符设备 `/dev/gpiochipN`，配 libgpiod 库和 gpioget、gpioset 等工具 | 旧的 `/sys/class/gpio` 已被内核文档标为过时 |
+            | LED | `/sys/class/leds/` | `brightness`、`trigger` |
+            | 声卡 | ALSA | `/dev/snd/` 下的文件 |
+            | 显示 | DRM | `/dev/dri/card0` |
+            | 摄像头 | V4L2 | `/dev/video0` |
+
+            同一类设备用同一套接口，换一块板子、换一颗芯片，应用程序不用改。
+      - item:
+          id: uapi-match
+          type: match
+          prompt: 把设备和它在 Linux 用户空间的接口配对。
+          pairs:
+            - [USB 摄像头, /dev/video0（V4L2）]
+            - [声卡, /dev/snd/ 下的文件（ALSA）]
+            - [显示屏, /dev/dri/card0（DRM）]
+            - [一组 GPIO 引脚, /dev/gpiochip0（GPIO 字符设备）]
+          explain: 记住几个子系统的名字（V4L2、ALSA、DRM、GPIO 字符设备），查资料时就知道该搜什么。
+      - card:
+          title: 总线：能自己报到的，和不能的
+          body: |
+            外设通过总线接到 CPU。USB 和 PCI 设备接上后会报告自己的厂商号和产品号，内核据此认出设备、挑选驱动。
+
+            I²C 和 SPI 做不到：一颗 I²C 温度传感器只是两根线上的一个地址，比如 0x48，内核没法问它“你是谁”。只能事先有人告诉内核：这条总线的 0x48 上有一颗某型号的芯片。在 ARM 板子上，这份说明就是设备树。
+      - item:
+          id: probe-usb
+          type: choice
+          prompt: 下面哪种设备接上以后，内核能自己认出它是什么，不需要设备树来描述？
+          options:
+            - text: USB 摄像头
+              correct: true
+            - text: I²C 温度传感器
+              why: I²C 设备不会报告自己的型号，必须事先在设备树里写明
+            - text: SPI 显示屏
+              why: SPI 总线同样没有让设备报告身份的机制
+            - text: 接在一个 GPIO 引脚上的按键
+              why: 引脚上接了什么，内核无从得知，只能由设备树说明
+          explain: USB、PCI 能枚举；I²C、SPI、GPIO 上接的东西，以及芯片内部的外设，都要靠设备树描述。
+      - card:
+          title: 用驱动，还是直接访问
+          body: |
+            访问硬件有两条路。一条是用内核驱动：设备出现在 `/dev` 或 `/sys` 里，程序用标准接口，比如读温度驱动导出的 sysfs 文件。另一条是在用户态直接操作总线：内核提供通用的 `/dev/i2c-N` 和 `/dev/spidevB.C`，程序自己按芯片手册收发字节。
+
+            直接访问适合快速试验和简单的芯片。正式产品更常用驱动：驱动能处理中断和电源管理，还能让多个程序安全地共用一个设备。
+      - item:
+          id: quick-i2c
+          type: choice
+          prompt: 你要在一块板子上快速试一颗新的 I²C 传感器，读出它的 0 号寄存器，看看接线对不对。最省事的办法是？
+          options:
+            - text: 在用户态程序里通过 /dev/i2c-1 直接读
+              correct: true
+            - text: 先写一个完整的内核驱动
+              why: 能行，但只为确认接线，写驱动太费事
+            - text: 往 /sys/class/leds 里写值
+              why: 那是 LED 的接口，和这颗传感器无关
+          explain: 先用通用的用户态接口确认硬件没问题，再决定要不要写正式驱动。
+      - item:
+          id: why-driver
+          type: choice
+          prompt: 一个产品里，传感器的数据要同时给三个程序用，而且传感器有一根数据就绪的中断线。为什么这时更适合写内核驱动，而不是让每个程序自己去读 /dev/i2c-1？
+          options:
+            - text: 驱动能响应中断，并统一管理对总线的访问，几个程序不会互相打断对方的读写
+              correct: true
+            - text: 用户态程序不能读 I²C
+              why: 通过 /dev/i2c-N 可以读；问题在于中断和多个程序共用
+            - text: 驱动的代码一定比用户态程序跑得快
+              why: 速度不是主要原因，关键是中断处理和统一管理
+          explain: 用户态程序拿不到硬件中断；三个程序各自读写同一颗芯片，还可能把一次多字节的读写交错打乱。
+  - id: device-tree
+    chapter: 驱动
+    title: 设备树：告诉内核板子上有什么
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同一个内核要在两块板子上运行：A 板的温度传感器接在 I²C1 的 0x48，B 板的接在 I²C2 的 0x49。猜一猜怎样做最好？
+          options:
+            - text: 内核不变，每块板子配一份描述硬件的数据文件，启动时交给内核
+              correct: true
+            - text: 为每块板子改内核源码，各编一个内核
+              why: 那样每块板子都要维护一份专门的内核，板子一多就管不过来
+            - text: 让内核把每条 I²C 总线的所有地址都试一遍
+              why: 往不知道是什么的地址乱发数据，可能让别的芯片误动作；而且 I²C 也问不出芯片的型号
+          explain: 把“板子上有什么”从代码里挪到数据里，这份数据就是设备树。
+      - card:
+          title: 设备树长什么样
+          body: |
+            设备树源文件（`.dts`）是一棵节点树：每个节点描述一个设备，节点里写“属性 = 值”。它用工具 dtc 编译成二进制的 `.dtb`，由引导程序交给内核。
+
+            ```dts
+            &i2c1 {
+                status = "okay";
+                clock-frequency = <100000>;
+
+                temp@48 {
+                    compatible = "ti,tmp102";
+                    reg = <0x48>;
+                };
+            };
+            ```
+
+            `&i2c1` 引用芯片的 `.dtsi` 文件里已经写好、带着标签 `i2c1:` 的那个 I²C 控制器节点。这里把它打开、设成 100 kHz，并在下面加一个子节点：0x48 上有一颗 TI 的 TMP102 温度传感器。
+      - card:
+          title: 最常用的几个属性
+          body: |
+            | 属性 | 意思 |
+            |---|---|
+            | `compatible` | 设备是什么，写成“厂商,型号”，可以从具体到通用列几个；内核用它挑驱动 |
+            | `reg` | 在父总线上的地址：I²C 设备就是它的 7 位地址，内存映射的设备是“起始地址 长度” |
+            | `interrupts` | 用哪个中断，和 `interrupt-parent` 一起看 |
+            | `status` | `"okay"` 启用，`"disabled"` 不启用；不写就当作 `"okay"` |
+            | `#address-cells`、`#size-cells` | 写在父节点里，规定子节点的 `reg` 里地址和长度各占几个 32 位数 |
+
+            同一个属性名在不同父节点下含义可以不同，所以读 `reg` 要先看它挂在哪条总线下面。
+      - item:
+          id: reg-meaning
+          type: choice
+          prompt: |
+            设备树里，I²C 控制器节点 `&i2c1` 下面有一个子节点 `temp@48`，里面写着 `reg = <0x48>;`。这个 0x48 是什么？
+          options:
+            - text: 这颗芯片在 I²C 总线上的地址
+              correct: true
+            - text: 这颗芯片寄存器所在的内存地址
+              why: reg 的含义由父总线决定；父节点是 I²C 控制器，所以它是 I²C 从机地址
+            - text: 它用的中断号
+              why: 中断写在 interrupts 属性里
+            - text: 它有 0x48 个寄存器
+              why: reg 描述的是地址，不是寄存器个数
+          explain: 节点名里 @ 后面的部分通常就写成 reg 的第一个值，所以 temp@48 一看就知道地址是 0x48。
+      - card:
+          title: 例题：读一个内存映射设备的节点
+          body: |
+            下面摘自 i.MX6ULL 芯片的 `imx6ul.dtsi`（为看得清楚，省略了时钟、DMA 等属性）：
+
+            ```dts
+            uart1: serial@2020000 {
+                compatible = "fsl,imx6ul-uart", "fsl,imx6q-uart";
+                reg = <0x02020000 0x4000>;
+                interrupts = <GIC_SPI 26 IRQ_TYPE_LEVEL_HIGH>;
+                status = "disabled";
+            };
+            ```
+
+            它的父节点写着 `#address-cells = <1>;` 和 `#size-cells = <1>;`。这个串口的寄存器在哪、占多大？内核会用哪个驱动？
+          reveal:
+            - title: 第 1 步：看父节点规定的格式
+              body: |
+                地址占 1 个数，长度占 1 个数，所以 `reg` 里先是起始地址，再是长度。
+            - title: 第 2 步：读 reg
+              body: |
+                寄存器从 `0x02020000` 开始，长 `0x4000` = 4 × 4096 = 16384 字节，也就是 16 KB。驱动会把这一段映射进内核，再读写里面的寄存器。
+            - title: 第 3 步：看 compatible
+              body: |
+                先写最具体的 `"fsl,imx6ul-uart"`，再写较通用的 `"fsl,imx6q-uart"`。内核里只要有驱动认识其中任何一个，就能配上；i.MX 的串口驱动 `imx.c` 认识 `"fsl,imx6q-uart"`。
+            - title: 第 4 步：看 status
+              body: |
+                是 `"disabled"`：芯片的 `.dtsi` 先把外设都关着，板子的 `.dts` 用到哪个再打开哪个，写成 `&uart1 { status = "okay"; };`，`uart1` 就是节点名前面的标签。
+            - title: 第 5 步：看 interrupts
+              body: |
+                `GIC_SPI 26` 是中断控制器 GIC 上的 26 号共享外设中断（这里的 SPI 是 Shared Peripheral Interrupt 的缩写，不是 SPI 总线），`IRQ_TYPE_LEVEL_HIGH` 表示高电平触发。
+      - item:
+          id: reg-size
+          type: number
+          prompt: |
+            一个设备节点的父节点规定 `#address-cells = <1>;`、`#size-cells = <1>;`，节点里写着 `reg = <0x40013000 0x400>;`。这个设备的寄存器区一共多少字节？
+          answer: 1024
+          unit: 字节
+          hint: 第二个数是长度。
+          explain: 第一个数 0x40013000 是起始地址，第二个数 0x400 是长度，0x400 = 4 × 256 = 1024 字节。
+      - item:
+          id: enable-node
+          type: choice
+          prompt: 芯片的 .dtsi 里 uart3 节点写着 status = "disabled"。你的板子要用 uart3，最合适的改法是？
+          options:
+            - text: 在板子自己的 .dts 里写 &uart3 { status = "okay"; };
+              correct: true
+            - text: 直接改芯片厂商提供的 .dtsi，把 disabled 改成 okay
+              why: 能用，但这个 .dtsi 是所有用这颗芯片的板子共用的，改了会影响别的板子
+            - text: 删掉 uart3 节点里的 compatible
+              why: 没有 compatible 内核就不知道用哪个驱动，设备更起不来
+          explain: 芯片的 .dtsi 描述芯片，板子的 .dts 描述这块板子用了芯片的哪些部分。用 &标签 引用并只改需要的属性。
+      - card:
+          title: 引脚复用和 pinctrl
+          body: |
+            芯片的一个引脚常常能当好几种用：GPIO、串口发送、I²C 数据线……同一时刻只能选一种，这叫**引脚复用（pin muxing）**。Linux 用 pinctrl 子系统统一管理：芯片的 pinctrl 驱动知道每个引脚能切成哪些功能，设备树里写好每个设备要用哪些引脚、切成什么。
+
+            ```dts
+            &i2c1 {
+                pinctrl-names = "default";
+                pinctrl-0 = <&pinctrl_i2c1>;
+                status = "okay";
+            };
+            ```
+
+            `pinctrl-0` 指向一组引脚设置，`pinctrl-names` 给它起名 `"default"`。内核在调用驱动的 probe 之前，先把 default 这组设置写进硬件。
+      - item:
+          id: pinmux-debug
+          type: choice
+          prompt: 板子上 UART2 一个字节也发不出来。用示波器看，TX 引脚一直是 GPIO 的固定电平。设备树里最该先检查 uart2 节点的哪一项？
+          options:
+            - text: pinctrl-0 指向的引脚设置，有没有把这个引脚切成 UART2 的 TX
+              correct: true
+            - text: compatible
+              why: compatible 错了驱动根本不会接手；这里驱动可能在工作，只是引脚没有接到 UART 上
+            - text: reg
+              why: reg 是寄存器地址，和引脚功能无关
+            - text: '#size-cells'
+              why: 那是父节点规定 reg 格式的属性，和引脚无关
+          explain: 外设本身正常、引脚却没切到它，信号就出不来。这是新板子上最常见的问题之一。
+      - card:
+          title: 拿到新芯片，怎样找驱动
+          body: |
+            1. 在内核源码的 `Documentation/devicetree/bindings/` 里搜芯片型号。绑定文档写着该用什么 compatible、要写哪些属性。
+            2. 在 `drivers/` 里搜这个 compatible 字符串，找到驱动的源文件，再看它在 Kconfig 里对应哪个配置项，确认你的内核编进了它。
+            3. 在板子上看 `/sys/bus/i2c/devices/`、`/sys/bus/platform/drivers/` 这类目录，确认设备有没有出现、配上了哪个驱动。
+      - item:
+          id: find-driver
+          type: choice
+          prompt: 你在设备树里写了 compatible = "ti,tmp102"，想知道内核里哪个驱动会接手它。最直接的办法是？
+          options:
+            - text: 在内核源码的 drivers/ 目录里搜字符串 "ti,tmp102"
+              correct: true
+            - text: 在板子的 /dev 下找叫 tmp102 的文件
+              why: 不是每个驱动都在 /dev 建文件；温度传感器驱动一般出现在 /sys/class/hwmon 下
+            - text: 在源码里搜 0x48
+              why: 0x48 是这块板子上的地址，换一块板子可能就变了；驱动是按 compatible 认设备的
+          explain: compatible 字符串是驱动和设备树之间的约定，驱动源码里一定写着它。
+  - id: kernel-module
+    chapter: 驱动
+    title: 内核模块
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你写了一个驱动，想在板子上试试。猜一猜：必须把它编进内核、重新烧写、重启板子吗？
+          options:
+            - text: 不用：可以编成一个单独的文件，在系统运行时加载进内核，不要了再卸掉
+              correct: true
+            - text: 必须重编内核并重启
+              why: 驱动也可以编进内核，但 Linux 支持在运行时加载和卸载
+            - text: 驱动只能写成普通程序在用户态运行
+              why: Linux 的驱动大多在内核里运行
+          explain: 这种运行时加载的内核代码叫内核模块，开发驱动时几乎都先写成模块。
+      - card:
+          title: 内核模块
+          body: |
+            驱动可以直接编进内核镜像，也可以编成**内核模块（kernel module）**，下面简称**模块**：一个 `.ko` 文件，在系统运行时加载进内核，和内核的其他部分一样运行在内核态，用完还能卸载。
+
+            开发时用模块最方便：改了代码，卸掉旧的、加载新的就能再试，不用重启。发行版的内核也把大多数驱动编成模块，只加载这台机器用得到的那些。
+      - card:
+          title: 最小的模块
+          body: |
+            ```c
+            #include <linux/init.h>
+            #include <linux/module.h>
+
+            static int __init hello_init(void)
+            {
+                pr_info("hello: loaded\n");
+                return 0;
+            }
+
+            static void __exit hello_exit(void)
+            {
+                pr_info("hello: unloaded\n");
+            }
+
+            module_init(hello_init);
+            module_exit(hello_exit);
+            MODULE_LICENSE("GPL");
+            ```
+
+            `__init`、`__exit` 标出只在加载、卸载时用的函数。`module_init` 指定加载时调用的函数，返回 0 表示成功，返回负的错误码则加载失败；`module_exit` 指定卸载时调用的函数。`MODULE_LICENSE` 记录许可证。`pr_info` 把一行字写进内核日志。
+      - item:
+          id: dmesg-predict
+          type: choice
+          prompt: |
+            下面这个模块先加载、再卸载一次。之后在 shell 里看内核日志，最后两条和它有关的是什么？
+          code: |
+            static int __init hello_init(void) { pr_info("hello: loaded\n"); return 0; }
+            static void __exit hello_exit(void) { pr_info("hello: unloaded\n"); }
+            module_init(hello_init);
+            module_exit(hello_exit);
+            MODULE_LICENSE("GPL");
+          lang: c
+          options:
+            - text: 先 hello loaded，后 hello unloaded，用 dmesg 看到
+              correct: true
+            - text: 只有 hello loaded
+              why: 卸载时调用 module_exit 指定的函数，它也打印了一行
+            - text: 两行都打印在执行 insmod 的终端上
+              why: 内核代码没有终端可写；pr_info 写进内核日志，要用 dmesg 看
+          explain: 内核日志是内核里的一块环形缓冲区，dmesg 把它读出来。真实的输出前面还会带上时间戳。
+      - card:
+          title: 加载、卸载、查看
+          body: |
+            | 命令 | 作用 |
+            |---|---|
+            | `insmod hello.ko` | 把这个文件加载进内核，不管它依赖谁 |
+            | `modprobe hello` | 按名字加载，先自动加载它依赖的模块 |
+            | `rmmod hello` 或 `modprobe -r hello` | 卸载 |
+            | `lsmod` | 列出已加载的模块 |
+            | `dmesg` | 看内核日志 |
+            | `modinfo hello.ko` | 看模块的许可证、作者、参数和依赖 |
+      - card:
+          title: 依赖和导出符号
+          body: |
+            模块之间可以互相调用。模块 A 写 `EXPORT_SYMBOL(foo);` 把函数 foo 导出，模块 B 才能用它，于是 B 依赖 A。用 `EXPORT_SYMBOL_GPL` 导出的函数，只有写明 GPL 兼容许可证的模块能用，这就是 `MODULE_LICENSE` 要写清楚的原因之一。
+
+            `depmod` 扫描 `/lib/modules/<内核版本>/` 下的所有模块，把依赖关系写进 `modules.dep`；`modprobe` 按它先加载 A，再加载 B。
+      - item:
+          id: unknown-symbol
+          type: choice
+          prompt: 模块 B 用到了模块 A 导出的函数，两个模块都已装在 /lib/modules 下并运行过 depmod。你执行 insmod B.ko 失败，dmesg 里提示 Unknown symbol。最合适的做法是？
+          options:
+            - text: 改用 modprobe B，它会先加载 A
+              correct: true
+            - text: 重启板子再 insmod B.ko
+              why: 重启后 A 仍然没有加载，结果一样
+            - text: 把 B.ko 改个名字再加载
+              why: 文件名不是问题，问题是 B 要用的函数还不在内核里
+          explain: insmod 只加载你给的那一个文件；modprobe 查 modules.dep，把依赖按顺序加载好。
+      - card:
+          title: 在内核里写代码要注意什么
+          body: |
+            - 不能用 C 语言的标准函数库：没有 printf、malloc，内核有自己的 pr_info、kmalloc。
+            - 默认不用浮点数，内核文档建议先用定点数。
+            - 内核栈很小：大多数 32 位架构约 3 到 6 KB，64 位约 14 KB。不要在栈上放大数组，不要深递归。
+            - 没有内存保护：一个野指针可能让整个系统崩溃，而不只是结束一个进程。
+      - item:
+          id: big-local
+          type: choice
+          prompt: 下面哪一行最不该出现在内核模块的某个函数里？
+          options:
+            - text: 'char buf[65536];  作为函数的局部变量'
+              correct: true
+            - text: 'pr_info("value %d\n", v);'
+              why: pr_info 就是内核里用来打印的函数
+            - text: 'p = kmalloc(256, GFP_KERNEL);  在允许睡眠的地方'
+              why: 这是内核里分配内存的正常写法
+            - text: 'return -ENOMEM;'
+              why: 返回负的错误码是内核函数报告失败的标准做法
+          explain: 64 KB 的局部数组放在栈上，远远超过只有几 KB 到十几 KB 的内核栈，会踩坏别的内存。大缓冲要用 kmalloc 之类从堆上分配。
+      - card:
+          title: 把驱动加进内核源码树
+          body: |
+            驱动写好、要合进内核源码时：
+
+            1. 源文件放进 `drivers/` 下合适的目录；
+            2. 在那个目录的 Kconfig 里加一个 `config HELLO` 条目，让 `make menuconfig` 打开的配置菜单里能选它：`y` 编进内核，`m` 编成模块，`n` 不要；
+            3. 在那个目录的 Makefile 里加一行 `obj-$(CONFIG_HELLO) += hello.o`。
+
+            开发时也常在源码树外编译：Makefile 里写 `obj-m += hello.o`，再执行 `make -C <内核源码目录> M=$PWD modules`。
+      - item:
+          id: kconfig-match
+          type: match
+          prompt: Makefile 里写着 obj-$(CONFIG_HELLO) += hello.o。把 menuconfig 里 HELLO 的选项和结果配对。
+          pairs:
+            - [y, hello 被编进内核镜像，开机就在]
+            - [m, 编成 hello.ko，运行时加载]
+            - [n, 不编译 hello]
+          explain: 选 y 时这一行变成 obj-y，选 m 时变成 obj-m；内核的构建系统对 obj-y 和 obj-m 里的文件分别处理。
+  - id: device-model
+    chapter: 驱动
+    title: 设备模型：驱动和设备怎样配对
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 内核里有 TMP102 温度传感器的驱动，设备树里也写了一个 compatible = "ti,tmp102" 的节点。猜一猜：驱动里准备这个设备的那个函数，是谁、在什么时候调用的？
+          options:
+            - text: 内核发现设备和驱动对上了，就调用驱动的那个函数，把这个设备交给它
+              correct: true
+            - text: 驱动加载时自己去扫描所有 I²C 地址
+              why: I²C 设备问不出型号，驱动也不该乱扫；设备的存在由设备树告诉内核
+            - text: 用户手动运行一个程序去调用它
+              why: 配对和调用都由内核自动完成，不需要用户程序参与
+          explain: 这个函数叫 probe。驱动只管“给我一个设备，我把它准备好”，设备在哪、有几个，由内核来配。
+      - card:
+          title: 总线、设备、驱动
+          body: |
+            内核用一套统一的**设备模型（device model）**管理驱动。它有三种对象：总线（USB、PCI、I²C、SPI、platform……）、挂在总线上的设备、能驱动某类设备的驱动。
+
+            设备和驱动各自向总线登记，总线负责配对。内核文档的说法是：找到匹配后，把设备的驱动设成这个驱动，并调用驱动的 probe。这一步叫**绑定（binding）**。设备被移除或驱动卸载时，调用 remove。
+      - card:
+          title: 平台设备
+          body: |
+            芯片内部的外设，比如串口控制器、I²C 控制器、定时器，挂在芯片内部的总线上，硬件上没法探测。Linux 把它们叫**平台设备（platform device）**，挂在一条虚拟的 platform 总线上。启动时内核读设备树，为每个启用的节点创建设备；平台驱动登记时带一张 compatible 表，总线拿节点的 compatible 去对。
+
+            ```c
+            static const struct of_device_id hello_of_match[] = {
+                { .compatible = "acme,hello" },
+                { }
+            };
+            MODULE_DEVICE_TABLE(of, hello_of_match);   /* 导出这张表，让系统能按设备自动加载这个模块 */
+
+            static struct platform_driver hello_driver = {
+                .probe  = hello_probe,
+                .remove = hello_remove,
+                .driver = {
+                    .name = "hello",
+                    .of_match_table = hello_of_match,
+                },
+            };
+            module_platform_driver(hello_driver);
+            ```
+      - item:
+          id: compat-list
+          type: choice
+          prompt: 设备树节点写着 compatible = "acme,hello-v2", "acme,hello";，驱动的 of_match_table 里只有 "acme,hello"。它们能配上吗？
+          options:
+            - text: 能：节点列出的任何一个 compatible 和驱动表里的对上就行
+              correct: true
+            - text: 不能：必须和第一个完全一样
+              why: compatible 是从具体到通用的一串字符串，后面的通用值正是为了让老驱动也能接手新设备
+            - text: 不能：节点只能写一个 compatible
+              why: 设备树规范允许写一串字符串
+          explain: 新版芯片常写成“新型号, 老型号”。老驱动能先把它当老型号用起来，以后再有专门支持新型号的驱动。
+      - card:
+          title: 例题：probe 里做什么
+          body: |
+            一个平台驱动的 probe 一般按这个顺序准备资源。`devm_` 开头的函数申请的资源由内核记账，驱动和设备解绑时自动释放。
+          reveal:
+            - title: 第 1 步：拿到寄存器
+              body: |
+                `devm_platform_ioremap_resource(pdev, 0)` 取设备树 `reg` 里的第一段地址，映射成内核能访问的地址。
+            - title: 第 2 步：拿到中断
+              body: |
+                `platform_get_irq(pdev, 0)` 取 `interrupts` 里的第一个中断，再用 `devm_request_irq` 登记中断处理函数。
+            - title: 第 3 步：打开时钟和电源
+              body: |
+                用时钟框架和稳压器框架打开这个外设要的时钟和电压。在此之前读写它的寄存器可能没有反应。
+            - title: 第 4 步：向用户空间登记接口
+              body: |
+                比如注册一个字符设备，或者 hwmon、input 这类子系统的设备，让程序能用上它。
+      - item:
+          id: devm-free
+          type: choice
+          prompt: 平台驱动的 probe 里，devm_request_irq 成功了，可后面一步失败，probe 返回了错误码。这个中断要不要在出错路径里手动释放？
+          options:
+            - text: 不用：devm_ 申请的资源在 probe 失败或解绑时由内核自动释放
+              correct: true
+            - text: 要，否则这个中断会一直登记着
+              why: 用普通的 request_irq 才需要手动 free_irq；devm_ 版本正是为了省掉这件事
+            - text: 要，并且必须重启才能再次加载驱动
+              why: 释放由内核完成，不需要重启
+          explain: 资源一多，出错路径里按相反顺序逐个释放很容易漏掉一个。devm_ 让内核替你记账。
+      - card:
+          title: 在 /sys 里看设备模型
+          body: |
+            设备模型全部导出在 `/sys` 里：
+
+            | 目录 | 内容 |
+            |---|---|
+            | `/sys/bus/i2c/devices/` | I²C 总线上的设备，名字是“总线号-四位十六进制地址”，比如 `1-0048` |
+            | `/sys/bus/i2c/drivers/` | 登记了的 I²C 驱动；每个驱动的目录里，有以它绑定的设备命名的一项，比如 `1-0048` |
+            | `/sys/class/` | 按功能分类：leds、net、hwmon…… |
+            | `/sys/devices/` | 所有设备按真实的连接关系组成的树 |
+
+            驱动还可以给自己的设备加属性文件。比如加一个 `rate`，读它返回当前采样率，写它就修改采样率。
+      - item:
+          id: sysfs-bound
+          type: choice
+          prompt: 你想确认 tmp102 驱动有没有接手 1 号 I²C 总线上地址 0x48 的那颗芯片。看哪里最直接？
+          options:
+            - text: /sys/bus/i2c/drivers/tmp102/ 下有没有 1-0048 这一项
+              correct: true
+            - text: lsmod 里有没有 tmp102
+              why: lsmod 只说明模块加载了，不说明它绑定了哪个设备
+            - text: /dev 下有没有 tmp102 文件
+              why: 这个驱动不在 /dev 下建文件
+          explain: 驱动目录里以设备命名的那一项就代表绑定关系：有它，说明 probe 成功了。
+      - item:
+          id: model-match
+          type: match
+          prompt: 把平台驱动里的东西和它的作用配对。
+          pairs:
+            - [probe, 设备和驱动配上时调用，准备好这个设备]
+            - [remove, 设备被移除或驱动卸载时调用]
+            - [of_match_table, 驱动认识的那些 compatible]
+            - [devm_ 开头的函数, 申请的资源在解绑时自动释放]
+          explain: 一个驱动可以同时管好几个同样的设备：每配上一个，probe 就被调用一次。
+  - id: char-driver
+    chapter: 驱动
+    title: 字符设备驱动
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 程序执行 read(fd, buf, 4) 读设备文件 /dev/hello。猜一猜：内核怎么知道该调用哪个驱动的哪个函数？
+          options:
+            - text: 设备文件带着一对编号，内核按编号找到登记它的驱动，调用这个驱动为 read 准备的函数
+              correct: true
+            - text: 按文件名 hello 找名字一样的驱动
+              why: 设备文件可以随便起名；内核认的是文件里记着的编号
+            - text: 内核把请求发给所有驱动，谁认就谁处理
+              why: 那样太慢也不可靠；内核按编号直接找到唯一的那个驱动
+          explain: 这对编号叫设备号。驱动登记时说“这些编号归我”，以后对这些设备文件的操作就都交给它。
+      - card:
+          title: 设备号
+          body: |
+            ```
+            crw-rw---- 1 root dialout 4, 64 Nov 18 09:00 /dev/ttyS0
+            ```
+
+            `ls -l` 一个设备文件时，大小那一栏显示两个数：前一个是**主设备号（major）**，一般对应一个驱动；后一个是**次设备号（minor）**，区分这个驱动管的第几个设备。内核文档 devices.txt 规定 `/dev/ttyS0` 是字符设备 4 号的第 64 个。
+
+            开头的 c 表示**字符设备（character device）**，像串口这样按字节流读写；b 表示块设备，按块读写，比如 SD 卡。
+      - item:
+          id: devno-read
+          type: choice
+          prompt: 'ls -l 显示：`crw-rw---- 1 root dialout 4, 65 ... /dev/ttyS1`。下面哪句对？'
+          options:
+            - text: 字符设备，主设备号 4，次设备号 65
+              correct: true
+            - text: 块设备，主设备号 4，次设备号 65
+              why: 开头的 c 表示字符设备，块设备是 b
+            - text: 字符设备，主设备号 65，次设备号 4
+              why: 前一个是主设备号，后一个是次设备号
+          explain: ttyS0 和 ttyS1 主设备号相同，由同一个驱动管；次设备号 64、65 区分是哪一个串口。
+      - card:
+          title: 驱动这边要做的三件事
+          body: |
+            ```c
+            static dev_t devno;
+            static struct cdev hello_cdev;
+
+            static const struct file_operations hello_fops = {
+                .owner   = THIS_MODULE,
+                .open    = hello_open,
+                .release = hello_release,
+                .read    = hello_read,
+                .write   = hello_write,
+            };
+
+            /* 在模块的 init 或驱动的 probe 里： */
+            alloc_chrdev_region(&devno, 0, 1, "hello");  /* 1. 申请设备号 */
+            cdev_init(&hello_cdev, &hello_fops);         /* 2. 把操作表挂到 cdev 上 */
+            cdev_add(&hello_cdev, devno, 1);             /* 3. 向内核登记 */
+            ```
+
+            程序 open、read、write、close 这个设备文件时，内核分别调用表里的 open、read、write、release。还可以加 `unlocked_ioctl`（设备特有的命令）和 `poll`（让程序用 select、poll 等数据）。
+      - item:
+          id: fops-match
+          type: match
+          prompt: 把程序里的调用和驱动 file_operations 里被调用的函数配对。
+          pairs:
+            - ['open("/dev/hello", O_RDONLY)', .open]
+            - ['read(fd, buf, 4)', .read]
+            - [close(fd), .release]
+            - ['ioctl(fd, HELLO_RESET)', .unlocked_ioctl]
+          explain: 设备文件最后一次关闭时调用 release，所以名字不叫 close。
+      - card:
+          title: read 怎么写：copy_to_user
+          body: |
+            程序传进来的 `buf` 是用户空间的地址，驱动不能直接对它解引用：它可能无效，也可能根本不属于这个程序。要用 `copy_to_user` 把数据复制过去（写操作用 `copy_from_user`）。看内核源码，这两个函数返回没能复制的字节数，0 表示全部成功。
+
+            ```c
+            static ssize_t hello_read(struct file *f, char __user *buf,
+                                      size_t count, loff_t *off)
+            {
+                static const char msg[] = "hi\n";
+                size_t len = sizeof(msg) - 1;   /* 3 个字节，不算结尾的 '\0' */
+
+                if (*off >= len)
+                    return 0;                   /* 读到结尾 */
+                if (count > len - *off)
+                    count = len - *off;
+                if (copy_to_user(buf, msg + *off, count))
+                    return -EFAULT;
+                *off += count;
+                return count;                   /* 这次读到了几个字节 */
+            }
+            ```
+      - card:
+          title: 例题：cat 读这个设备
+          body: |
+            `cat /dev/hello` 会一直调用 read，直到返回 0。假设 cat 每次请求 4096 字节，一步步看上面那个 hello_read 怎么回应。
+          reveal:
+            - title: 第 1 次 read
+              body: |
+                `*off` 是 0，消息还剩 3 字节，`count` 从 4096 被截成 3。复制成功，`*off` 变成 3，返回 3。cat 打印出 hi 和换行。
+            - title: 第 2 次 read
+              body: |
+                `*off` 是 3，已经到结尾，返回 0。
+            - title: 第 3 步：cat 结束
+              body: |
+                read 返回 0 表示文件结束，cat 退出。如果驱动永远不返回 0，cat 就会一直读下去。
+      - item:
+          id: read-twice
+          type: number
+          prompt: |
+            程序打开 /dev/hello 后，连续调用两次 read(fd, buf, 2)。驱动的 read 函数如下，第二次 read 返回几？
+          code: |
+            static ssize_t hello_read(struct file *f, char __user *buf,
+                                      size_t count, loff_t *off)
+            {
+                static const char msg[] = "hi\n";
+                size_t len = sizeof(msg) - 1;
+
+                if (*off >= len)
+                    return 0;
+                if (count > len - *off)
+                    count = len - *off;
+                if (copy_to_user(buf, msg + *off, count))
+                    return -EFAULT;
+                *off += count;
+                return count;
+            }
+          lang: c
+          answer: 1
+          hint: 第一次 read 之后 *off 是多少？还剩几个字节？
+          explain: 第一次读 2 字节，*off 变成 2；第二次请求 2 字节，但只剩 3 − 2 = 1 字节，count 被截成 1，返回 1。第三次就会返回 0。
+      - item:
+          id: copy-ret
+          type: choice
+          prompt: 驱动的 read 里，copy_to_user(buf, data, 8) 返回了 2。这是什么意思，驱动该怎么做？
+          options:
+            - text: 有 2 个字节没复制成功，用户的 buf 有问题，驱动应该返回 -EFAULT
+              correct: true
+            - text: 成功复制了 2 个字节，返回 2
+              why: copy_to_user 返回的是没复制的字节数，不是复制了多少
+            - text: 复制全部成功，2 是错误码以外的普通状态
+              why: 全部成功时返回 0
+          explain: 返回值不为 0 就说明用户给的地址有问题，标准做法是返回 -EFAULT，程序那边的 read 会得到 −1 和 errno EFAULT。
+  # ---------------------------------------------------------------- 实时调度
+  - id: realtime
+    chapter: 实时调度
+    title: 什么叫“实时”
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两套控制器：A 平均 1 ms 就能响应，但偶尔要 50 ms；B 每次都要 5 ms，从来没超过 6 ms。控制汽车安全气囊，应该选哪个？
+          options:
+            - text: B，因为它最慢也不超过 6 ms
+              correct: true
+            - text: A，因为它平均更快
+              why: 气囊必须在规定时间内点火，偶尔一次 50 ms 就可能来不及；平均快没有用
+            - text: 两个都行
+              why: 偶尔 50 ms 的那个，在最要紧的那一次可能就是 50 ms
+          explain: 这一课的核心：实时系统看的是最坏情况能不能按时，而不是平均有多快。
+      - card:
+          title: 实时，是按时，不是快
+          body: |
+            **实时系统（real-time system）**要在规定的时限内给出结果，这个时限叫**截止时间（deadline）**。结果对了，但晚了，也算错。所以评价实时系统要看最坏情况：最慢要多久，而不是平均多快。
+
+            同一件事每次花的时间总有波动，比如一个任务每 10 ms 唤醒，实际间隔在 9.8 到 10.4 ms 之间变化。这种波动叫**抖动（jitter）**。
+      - card:
+          title: 硬实时和软实时
+          body: |
+            Liu 和 Layland 1973 年的经典论文这样区分：在时限内完成必须有保证的，叫硬实时；完成得快慢只要在统计上大致可以接受的，叫软实时。
+
+            | | 例子 | 错过截止时间 |
+            |---|---|---|
+            | 硬实时 | 安全气囊、心脏起搏器、发动机喷油 | 后果严重，不允许 |
+            | 软实时 | 视频播放、网络电话 | 偶尔掉一帧、卡一下，体验变差 |
+      - item:
+          id: hard-multi
+          type: choice
+          multi: true
+          prompt: 下面哪些属于硬实时的要求？（多选）
+          options:
+            - text: 安全气囊在碰撞后规定时间内点火
+              correct: true
+            - text: 心脏起搏器按时发出脉冲
+              correct: true
+            - text: 视频播放器每秒显示 30 帧
+              why: 偶尔掉一帧只是画面不顺，属于软实时
+            - text: 网页在 3 秒内加载完
+              why: 晚一点只是体验差，不会造成严重后果
+          explain: 判断标准是错过一次的后果：会伤人、毁坏设备的是硬实时。
+      - item:
+          id: jitter-name
+          type: choice
+          prompt: 一个任务设定每 10 ms 唤醒一次，测出来实际间隔在 9.8 ms 到 10.4 ms 之间变化。这种变化叫什么？
+          options:
+            - text: 抖动
+              correct: true
+            - text: 截止时间
+              why: 截止时间是必须完成的时限，不是间隔的波动
+            - text: 吞吐量
+              why: 吞吐量是单位时间完成多少工作，和间隔的波动无关
+          explain: 抖动越小，周期越稳。控制回路、音频采样都对抖动很敏感。
+      - card:
+          title: 例题：一个大循环为什么不够
+          body: |
+            单片机上一个大循环依次做三件事：读传感器 0.2 ms，刷新显示屏 30 ms，处理串口命令最多 5 ms。传感器要求每 10 ms 读一次。
+          reveal:
+            - title: 第 1 步：算最坏的一圈
+              body: |
+                三件事都做满：0.2 + 30 + 5 = 35.2 ms 才回到读传感器。
+            - title: 第 2 步：和要求比较
+              body: |
+                要求每 10 ms 一次，实际最坏 35.2 ms 一次，差得很远。
+            - title: 第 3 步：想办法
+              body: |
+                可以把刷屏拆成小块、每圈只刷一点，或者在定时器中断里读传感器……都能做，但每加一件事，代码就更难排。实时操作系统的做法是把三件事写成三个独立的任务，读传感器的最重要：它的时间一到，刷屏的任务就被打断，先让它运行。
+      - item:
+          id: loop-worst
+          type: number
+          prompt: 一个大循环依次做三件事：读传感器 0.5 ms，刷新显示屏 12 ms，处理串口命令最多 3 ms。最坏情况下，两次读传感器之间隔多少毫秒？
+          answer: 15.5
+          unit: ms
+          explain: 最坏的一圈三件事都做满：0.5 + 12 + 3 = 15.5 ms。
+      - card:
+          title: 实时操作系统
+          body: |
+            **实时操作系统（RTOS, real-time operating system）**是为了满足时限而设计的操作系统。FreeRTOS 官方的说法是：它被设计得小而且确定。确定是指：总是让最重要的、可以运行的任务先跑，关键操作花多长时间有上界。
+
+            | RTOS | 一句话 |
+            |---|---|
+            | FreeRTOS | MIT 许可，单片机上用得最多的之一 |
+            | Zephyr | Linux 基金会的项目，Apache 2.0 许可 |
+            | Eclipse ThreadX | 原 Azure RTOS ThreadX，现在归 Eclipse 基金会，MIT 许可 |
+            | NuttX | Apache 项目，强调遵循 POSIX 标准 |
+            | RTEMS | 开源，用于航天、医疗等 |
+            | VxWorks | Wind River 的商业 RTOS，火星探路者号用的就是它 |
+            | QNX | 微内核结构，常见于汽车 |
+      - item:
+          id: rtos-key
+          type: choice
+          prompt: 和一般的操作系统相比，实时操作系统最重要的特点是什么？
+          options:
+            - text: 选谁运行的规则可以预测，关键操作花的时间有上界
+              correct: true
+            - text: 平均运行速度最快
+              why: RTOS 追求的是最坏情况可预测，不是平均最快
+            - text: 功能最多，自带图形界面
+              why: 大多数 RTOS 恰恰很小，只提供任务、同步、定时这些核心功能
+          explain: 能不能按时，取决于最坏情况。RTOS 的设计都围绕“最坏情况有上界”展开。
+  - id: tasks
+    chapter: 实时调度
+    title: 任务、优先级和抢占
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: RTOS 里有两个任务：采样任务的优先级是 3，显示任务是 1，此刻两个都可以运行。只有一个 CPU 核心。猜一猜现在谁在运行？
+          options:
+            - text: 采样任务（优先级 3）
+              correct: true
+            - text: 两个轮流，各用一半时间
+              why: FreeRTOS 默认只有优先级相同的任务才轮流；优先级不同时，高的一直运行
+            - text: 先创建的那个
+              why: 创建的先后不影响谁运行，看的是优先级
+          explain: 固定优先级的 RTOS 里，规则只有一条：可以运行的任务中，优先级最高的那个运行。
+      - card:
+          title: 任务和它的状态
+          body: |
+            RTOS 里每件独立的工作写成一个**任务（task）**：一个通常永不返回的函数，有自己的栈。FreeRTOS 文档列出任务的四种状态：
+
+            | 状态 | 意思 |
+            |---|---|
+            | 运行（Running） | 正在 CPU 上执行 |
+            | 就绪（Ready） | 可以运行，但有优先级更高或相同的任务正在运行 |
+            | 阻塞（Blocked） | 在等一个时间点或一个事件，比如等队列里来数据；等到之前不会被选中 |
+            | 挂起（Suspended） | 被明确暂停，只有显式恢复才会回来 |
+      - card:
+          title: 谁来运行
+          body: |
+            决定下一个让谁运行，叫**调度（scheduling）**。FreeRTOS 默认用固定优先级的抢占式调度：每个任务有一个优先级数字，0 最低（没有别的事可做时运行的空闲任务就是 0），越大越优先；任何时刻都运行就绪任务里优先级最高的那个。
+
+            高优先级任务一就绪，立刻打断正在运行的低优先级任务，这叫**抢占（preemption）**。
+      - item:
+          id: preempt-now
+          type: choice
+          prompt: FreeRTOS 默认配置下，优先级 2 的任务 A 正在运行，优先级 5 的任务 B 一直在等的队列里来了数据。接下来会怎样？
+          options:
+            - text: B 立刻变成就绪，抢占 A 开始运行
+              correct: true
+            - text: A 先把这一小段运行时间用完，再换 B
+              why: 抢占不用等；只有优先级相同的任务之间才轮流分时间
+            - text: 等 A 的函数执行完才轮到 B
+              why: 任务函数一般永不返回；B 一就绪就抢占 A
+          explain: 高优先级任务从阻塞变成就绪的那一刻，调度器就把 CPU 交给它，A 回到就绪状态等着。
+      - card:
+          title: 节拍和时间片
+          body: |
+            RTOS 用一个定时器每隔固定时间（常见 1 ms）发一次中断，叫节拍（tick）；Cortex-M 上的 FreeRTOS 用 SysTick 定时器产生它。
+
+            优先级相同的就绪任务轮流运行，每次一个**时间片（time slice）**，FreeRTOS 里就是两次节拍之间的时间。
+      - item:
+          id: time-slice
+          type: choice
+          prompt: FreeRTOS 默认配置下，节拍是 1 ms。两个优先级都是 2 的任务 A、B 一直处于可以运行的状态，没有更高优先级的任务。它们怎样运行？
+          options:
+            - text: 每个节拍轮换一次：A 跑 1 ms，B 跑 1 ms，A 再跑 1 ms……
+              correct: true
+            - text: A 一直运行，B 永远等着
+              why: FreeRTOS 默认对优先级相同的就绪任务按时间片轮流，B 也能分到时间
+            - text: A 和 B 在同一个核上真正同时运行
+              why: 一个核同一时刻只执行一个任务，看起来同时，其实是在快速轮流
+          explain: 时间片只在优先级相同的任务之间起作用；优先级不同时，高的那个一直运行，直到它阻塞。
+      - card:
+          title: 上下文切换
+          body: |
+            从 A 换到 B，要把 A 的寄存器（包括程序计数器和栈指针）保存起来，再把 B 上次保存的装回去，这叫**上下文切换（context switch）**。Cortex-M 上的 FreeRTOS 把真正的切换放在 PendSV 异常里做。
+
+            切换本身要花时间，所以任务不是越多越好；一件事能放进现有任务里做，就不必为它单开一个。
+      - card:
+          title: 例题：排一段时间线
+          body: |
+            三个任务，节拍 1 ms：
+
+            | 任务 | 优先级 | 何时就绪 | 要运行多久 |
+            |---|---|---|---|
+            | H | 3 | 2 ms | 2 ms |
+            | M | 2 | 0 ms | 3 ms |
+            | L | 1 | 0 ms | 4 ms |
+
+            每个任务什么时候完成？
+          reveal:
+            - title: 第 1 步：0 到 2 ms
+              body: |
+                就绪的有 M 和 L，M 优先级高，M 运行 2 ms，还剩 1 ms。
+            - title: 第 2 步：2 到 4 ms
+              body: |
+                H 就绪，抢占 M，运行 2 ms，在 4 ms 完成。
+            - title: 第 3 步：4 到 5 ms
+              body: |
+                M 是就绪任务里最高的，跑完剩下的 1 ms，在 5 ms 完成。
+            - title: 第 4 步：5 到 9 ms
+              body: |
+                只剩 L，运行 4 ms，在 9 ms 完成。L 虽然 0 ms 就就绪了，却最后一个完成。
+      - item:
+          id: timeline-l
+          type: number
+          prompt: |
+            固定优先级抢占式调度，单核。H：优先级 3，1 ms 时就绪，运行 1 ms。M：优先级 2，0 ms 时就绪，运行 3 ms。L：优先级 1，0 ms 时就绪，运行 4 ms。L 在第几毫秒完成？
+          answer: 8
+          unit: ms
+          hint: 先排 M 和 H，最后才轮到 L。
+          explain: 0–1 M，1–2 H 抢占并完成，2–4 M 跑完剩下 2 ms，4–8 L。L 在 8 ms 完成。
+      - item:
+          id: timeline-m
+          type: number
+          prompt: |
+            固定优先级抢占式调度，单核。H：优先级 3，1 ms 时就绪，运行 1 ms。M：优先级 2，0 ms 时就绪，运行 3 ms。L：优先级 1，0 ms 时就绪，运行 4 ms。M 在第几毫秒完成？
+          answer: 4
+          unit: ms
+          explain: M 在 0–1 运行，被 H 抢占 1 ms，再在 2–4 跑完，4 ms 完成。
+      - card:
+          title: Linux 内核里的任务和睡眠
+          body: |
+            Linux 内核把进程和线程都当作任务来调度。一个进程里可以有好几条执行流，每条叫一个**线程（thread）**：有自己的寄存器和栈，和同一进程的其他线程共用内存。
+
+            任务要等事件时，比如驱动的 read 还没有数据，就在一个等待队列上睡下，调度器去运行别人；中断处理函数拿到数据后唤醒等待队列，任务重新就绪：
+
+            ```c
+            wait_event_interruptible(dev->wq, dev->ready);  /* read 里：没数据就睡 */
+            dev->ready = 1;                                 /* 中断里：数据到了 */
+            wake_up_interruptible(&dev->wq);
+            ```
+      - item:
+          id: sleep-not-spin
+          type: choice
+          prompt: 驱动的 read 函数发现设备还没有数据。正确的做法是？
+          options:
+            - text: 让任务在等待队列上睡眠，数据到了由中断处理函数唤醒
+              correct: true
+            - text: 在 read 里写一个空循环，不停检查数据有没有到
+              why: 空循环白白占着 CPU，别的任务也没法运行；单核上可能永远等不到
+            - text: 直接返回 0
+              why: read 返回 0 表示文件结束，程序会以为设备再也没有数据了
+          explain: 内核文档提醒：改了等待条件之后一定要调用 wake_up，否则睡着的任务不会醒来重新检查条件。
+  - id: periodic
+    chapter: 实时调度
+    title: 周期任务：FreeRTOS 和 POSIX 的写法
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个任务的循环是：读传感器（耗时 2 ms），然后调用 vTaskDelay 睡 10 ms。猜一猜：它多久采一次样？
+          options:
+            - text: 大约每 12 ms 一次
+              correct: true
+            - text: 正好每 10 ms 一次
+              why: vTaskDelay 从调用的那一刻开始算 10 ms，读传感器的 2 ms 要另外加上
+            - text: 每 8 ms 一次
+              why: 读传感器的时间不会从睡眠里扣掉，只会加上去
+          explain: 这种“越跑越慢”的漂移，是写周期任务时最常见的错误。
+      - card:
+          title: 创建任务
+          body: |
+            ```c
+            void sample_task(void *arg);
+
+            /* 在 main 里，启动调度器之前 */
+            xTaskCreate(sample_task,   /* 任务函数 */
+                        "sample",      /* 名字，调试时用 */
+                        256,           /* 栈深度，单位是字，不是字节 */
+                        NULL,          /* 传给任务函数的参数 */
+                        3,             /* 优先级 */
+                        NULL);         /* 不需要任务句柄 */
+            vTaskStartScheduler();     /* 开始调度，正常情况下不再返回 */
+            ```
+
+            栈深度的单位是“字”：FreeRTOS 文档特地写明 not bytes。在 32 位的 Cortex-M 上一个字 4 字节，256 就是 1024 字节。优先级取 0 到 `configMAX_PRIORITIES - 1`。
+      - item:
+          id: stack-bytes
+          type: number
+          prompt: 在 32 位 Cortex-M 上调用 xTaskCreate，栈深度参数写 512。FreeRTOS 给这个任务分配多少字节的栈？
+          answer: 2048
+          unit: 字节
+          explain: 栈深度的单位是字，32 位处理器上一个字 4 字节：512 × 4 = 2048 字节。要是把 512 当成字节数去估算 RAM，实际用掉的是估算的 4 倍。
+      - card:
+          title: vTaskDelay 和 vTaskDelayUntil
+          body: |
+            `vTaskDelay(n)` 从调用的那一刻起睡 n 个节拍，循环体本身的耗时会累加进周期。要严格的周期，用 `vTaskDelayUntil`：它记住上次该醒的时刻，每次在那上面加一个周期，循环体花 2 ms 还是 3 ms 都不影响下一次醒来的时刻。
+
+            ```c
+            void sample_task(void *arg)
+            {
+                TickType_t last = xTaskGetTickCount();
+                for (;;) {
+                    int16_t v = read_sensor();
+                    process(v);
+                    vTaskDelayUntil(&last, pdMS_TO_TICKS(10));
+                }
+            }
+            ```
+
+            `pdMS_TO_TICKS(10)` 把 10 ms 换成节拍数：节拍频率 `configTICK_RATE_HZ` 是 1000 时，就是 10 个节拍。
+      - item:
+          id: ticks-250
+          type: number
+          prompt: |
+            FreeRTOS 里 pdMS_TO_TICKS(ms) 的计算是 ms × configTICK_RATE_HZ ÷ 1000，用整数除法（小数部分直接舍去）。configTICK_RATE_HZ 设成 250 时，pdMS_TO_TICKS(10) 等于几个节拍？
+          answer: 2
+          unit: 个节拍
+          hint: 10 × 250 ÷ 1000 等于多少？小数部分怎么处理？
+          explain: 10 × 250 = 2500，2500 ÷ 1000 = 2.5，整数除法舍去小数得 2。2 个节拍只有 8 ms，比想要的 10 ms 短。节拍频率低时，毫秒数要是节拍周期（这里是 4 ms）的整数倍，才换算得准。
+      - card:
+          title: 例题：漂移有多大
+          body: |
+            循环体每次耗时 2 ms。比较 `vTaskDelay(pdMS_TO_TICKS(10))` 和 `vTaskDelayUntil(&last, pdMS_TO_TICKS(10))`：从 0 时刻开始，在 1 秒（0 到 1000 ms，不含 1000）里各采几次样？
+          reveal:
+            - title: 第 1 步：vTaskDelay
+              body: |
+                每圈是 2 ms 的工作加 10 ms 的睡眠，周期 12 ms。采样时刻是 0、12、24、……、996，共 996 ÷ 12 + 1 = 84 次。
+            - title: 第 2 步：vTaskDelayUntil
+              body: |
+                每 10 ms 一次：0、10、……、990，共 100 次。
+            - title: 第 3 步：比较
+              body: |
+                1 秒里少了 16 次，而且差距越积越大：一分钟后，用 vTaskDelay 的那个只采了 5000 次，另一个是 6000 次。
+      - item:
+          id: drift-count
+          type: number
+          prompt: 一个任务的循环体每次耗时 3 ms，然后调用 vTaskDelay 睡 20 ms。第一次采样在 0 ms，在 0 到 1000 ms（不含 1000）之间一共采几次样？
+          answer: 44
+          unit: 次
+          hint: 周期是多少？最后一次采样在哪个时刻？
+          explain: 周期是 3 + 20 = 23 ms。23 × 43 = 989 < 1000，23 × 44 = 1012 超过了，所以采样时刻是 0、23、……、989，共 44 次。
+      - card:
+          title: 如果这一圈超时了
+          body: |
+            vTaskDelayUntil 只保证“不早于”下一个时刻醒来。如果某一圈花的时间超过了周期，下一个醒来时刻已经过去，任务不会再睡，立即继续下一圈。
+
+            新版 FreeRTOS 的 `xTaskDelayUntil` 在这种情况下返回 `pdFALSE`，表示这次没有真的延时。可以据此统计超时次数，发现周期定得太紧。
+      - item:
+          id: delayuntil-false
+          type: choice
+          prompt: 周期任务里调用 xTaskDelayUntil(&last, pdMS_TO_TICKS(10))，它返回了 pdFALSE。这说明什么？
+          options:
+            - text: 这一圈超过了 10 ms，下一个醒来时刻已经过去，任务没睡就继续了
+              correct: true
+            - text: 队列满了
+              why: xTaskDelayUntil 和队列无关
+            - text: 调度器还没启动
+              why: 调度器没启动时任务根本不会运行，也就调用不到这里
+          explain: 偶尔一次可以统计下来观察；经常出现就说明循环体太慢，或者被高优先级任务挤占得太多。
+      - card:
+          title: Linux 上同样的写法
+          body: |
+            Linux 的实时线程用 POSIX 的 `clock_nanosleep` 加 `TIMER_ABSTIME`，按绝对时间睡到下一个时刻。man 手册的说法是：用绝对时间可以避免定时器漂移。
+
+            ```c
+            struct timespec next;
+            clock_gettime(CLOCK_MONOTONIC, &next);
+            for (;;) {
+                do_sample();
+                next.tv_nsec += 10 * 1000000;        /* 下一个时刻：加 10 ms */
+                if (next.tv_nsec >= 1000000000) {
+                    next.tv_nsec -= 1000000000;
+                    next.tv_sec++;
+                }
+                clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next, NULL);
+            }
+            ```
+
+            `CLOCK_MONOTONIC` 是只会往前走的时钟，不受有人改系统时间的影响。
+      - item:
+          id: abs-time
+          type: choice
+          prompt: 上面这种周期循环，下一个时刻是在上一次的目标时刻上加 10 ms，而不是醒来后重新读一次时钟再加 10 ms。为什么？
+          options:
+            - text: 在目标时刻上累加，循环体的耗时和唤醒的延迟都不会累积进周期
+              correct: true
+            - text: 读时钟非常慢
+              why: 读时钟很快；问题在于醒来后再读，会把这次的耗时和延迟都算进下一个周期
+            - text: 两种写法效果一样
+              why: 醒来后再读时钟再加 10 ms，每圈都会往后漂一点，和 vTaskDelay 的问题一样
+          explain: 这和 vTaskDelayUntil 是同一个道理：目标时刻只由起点和周期决定，与每一圈实际花了多久无关。
+  - id: schedulability
+    chapter: 实时调度
+    title: 优先级怎么排、来不来得及
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个周期任务：A 每 10 ms 来一次，每次运行 2 ms；B 每 50 ms 来一次，每次运行 20 ms。给谁更高的优先级，更容易让两个都按时完成？
+          options:
+            - text: A，周期短的那个
+              correct: true
+            - text: B，每次运行时间长的那个
+              why: B 优先的话，A 可能要等 B 跑完 20 ms，A 的 10 ms 期限就错过了
+            - text: 怎么排都一样
+              why: 排法不同，A 等待的时间完全不同
+          explain: 下面会看到，这条直觉有一个名字和一个证明。
+      - card:
+          title: 利用率
+          body: |
+            一个周期任务每 T 毫秒来一次，每次最多运行 C 毫秒。C 叫它的**最坏执行时间（WCET, worst-case execution time）**。它占用 CPU 的比例是 C/T，叫**利用率（utilization）**。所有任务加起来：
+
+            $$U = \sum_i \frac{C_i}{T_i}$$
+
+            U 超过 1，CPU 无论如何也忙不过来，怎么排都来不及。
+      - item:
+          id: util-sum
+          type: number
+          prompt: 三个周期任务，(C, T) 分别是 (1 ms, 4 ms)、(2 ms, 10 ms)、(3 ms, 20 ms)。总利用率 U 是多少？（写小数）
+          answer: 0.6
+          explain: 1/4 + 2/10 + 3/20 = 0.25 + 0.2 + 0.15 = 0.6。
+      - card:
+          title: 周期越短，优先级越高
+          body: |
+            给周期任务排固定优先级，有一条经典规则：周期越短，优先级越高，叫 RM（rate monotonic）。Liu 和 Layland 1973 年证明：对互相独立、截止时间等于周期的周期任务，只要有某种固定优先级排法能按时完成，RM 也能。
+
+            他们还给出一个上界：n 个任务的总利用率不超过 $n(2^{1/n} - 1)$，按 RM 排就一定来得及。
+
+            | 任务数 n | 上界 |
+            |---|---|
+            | 1 | 1.000 |
+            | 2 | 0.828 |
+            | 3 | 0.780 |
+            | 很多 | 趋近 ln 2 ≈ 0.693 |
+      - item:
+          id: bound-pass
+          type: choice
+          prompt: 三个互相独立、截止时间等于周期的周期任务，总利用率 0.75，按 RM 排优先级。能得出什么结论？
+          options:
+            - text: 一定来得及，因为 0.75 不超过 3 个任务的上界 0.780
+              correct: true
+            - text: 一定来不及，因为 0.75 大于 0.693
+              why: 0.693 是任务很多时上界趋近的值；3 个任务的上界是 0.780
+            - text: 不能下结论，要另外算
+              why: 利用率在上界之内时，Liu–Layland 定理直接保证来得及
+          explain: 上界是一个充分条件：在它之内一定行。
+      - item:
+          id: bound-unknown
+          type: choice
+          prompt: 三个互相独立、截止时间等于周期的周期任务，总利用率 0.85，按 RM 排优先级。能得出什么结论？
+          options:
+            - text: 利用率上界判断不了，要用别的方法逐个算
+              correct: true
+            - text: 一定来不及，因为超过了 0.780
+              why: 上界只是充分条件；超过它不等于来不及
+            - text: 一定来得及，因为没有超过 1
+              why: U ≤ 1 是必要条件，不能保证固定优先级排法一定来得及
+          explain: 超过上界时，要逐个任务算出它最坏要多久才完成，再和截止时间比。
+      - card:
+          title: 响应时间分析
+          body: |
+            任务从被释放（这一次来了）到完成，最长要多久？这叫它的最坏**响应时间（response time）**。任务 i 的响应时间 R 满足：
+
+            $$R_i = C_i + \sum_{j \in hp(i)} \left\lceil \frac{R_i}{T_j} \right\rceil C_j$$
+
+            hp(i) 是比 i 优先级高的任务，⌈x⌉ 表示向上取整：不小于 x 的最小整数，比如 ⌈2.1⌉ = 3，⌈2⌉ = 2。右边是“自己运行的时间”，加上“在这段时间里高优先级任务来了几次、每次占多久”。从 $R = C_i$ 开始，把结果代回右边反复算，直到不再变化；R 不超过截止时间，就来得及。
+      - card:
+          title: 例题：逐个任务算
+          body: |
+            三个任务按 RM 排优先级（周期越短越高），截止时间等于周期：
+
+            | 任务 | C | T |
+            |---|---|---|
+            | τ1 | 1 ms | 4 ms |
+            | τ2 | 2 ms | 6 ms |
+            | τ3 | 3 ms | 12 ms |
+          reveal:
+            - title: 第 1 步：先看利用率上界
+              body: |
+                U = 1/4 + 2/6 + 3/12 ≈ 0.833，超过 3 个任务的 0.780，上界判断不了。
+            - title: 第 2 步：τ1 和 τ2
+              body: |
+                τ1 优先级最高，R1 = 1 ≤ 4。τ2：从 2 开始，2 + ⌈2/4⌉×1 = 3，再算 2 + ⌈3/4⌉×1 = 3，不变，R2 = 3 ≤ 6。
+            - title: 第 3 步：τ3
+              body: |
+                从 3 开始：3 + ⌈3/4⌉×1 + ⌈3/6⌉×2 = 6；代入 6 得 3 + 2 + 2 = 7；代入 7 得 3 + 2 + 4 = 9；代入 9 得 3 + 3 + 4 = 10；代入 10 还是 3 + 3 + 4 = 10，不变，R3 = 10。
+            - title: 第 4 步：下结论
+              body: |
+                R3 = 10 ≤ 12，三个任务全部来得及。利用率超过了上界，却仍然可以调度。
+      - item:
+          id: rta-r3
+          type: number
+          prompt: |
+            三个任务按 RM 排优先级，截止时间等于周期：τ1 (C=1, T=4)，τ2 (C=2, T=6)，τ3 (C=4, T=12)，单位 ms。已知 R1 = 1，R2 = 3。用响应时间分析算 τ3 的最坏响应时间 R3。
+          answer: 11
+          unit: ms
+          hint: 从 R = 4 开始，每次算 4 + ⌈R/4⌉×1 + ⌈R/6⌉×2。
+          explain: 4 → 4+1+2 = 7 → 4+2+4 = 10 → 4+3+4 = 11 → 4+3+4 = 11，不再变化，R3 = 11 ≤ 12，来得及。
+      - item:
+          id: rta-tight
+          type: choice
+          prompt: |
+            三个任务按 RM 排优先级，截止时间等于周期：τ1 (C=1, T=4)，τ2 (C=2, T=6)，τ3 (C=5, T=12)，单位 ms。总利用率正好是 1。τ3 来得及吗？
+          options:
+            - text: 刚好来得及：R3 算出来是 12，等于截止时间
+              correct: true
+            - text: 来不及，利用率到 1 的固定优先级任务一定会超时
+              why: 要逐个算：5 → 9 → 12 → 12，R3 = 12 不超过 12
+            - text: 来得及，而且还有很多余量
+              why: R3 正好等于 12，没有任何余量，τ3 只要多跑一点点就会超时
+          explain: 5 + ⌈5/4⌉ + 2⌈5/6⌉ = 9；5 + ⌈9/4⌉ + 2⌈9/6⌉ = 12；5 + ⌈12/4⌉ + 2⌈12/6⌉ = 12。真实系统里还有上下文切换、中断等开销，这样零余量的设计是很危险的。
+      - card:
+          title: 回到采样和通信
+          body: |
+            采样任务每 10 ms 一次，时间要求严格；通信任务只要把数据发出去，晚一点没关系，中间用队列缓冲。按 RM，采样周期短，优先级高；按重要性，也是采样高。所以采样任务给高优先级（比如 3），通信任务低一些（比如 2）。
+
+            另一种做法是按截止时间动态排：谁的截止时间最近谁先跑，叫 EDF。Liu 和 Layland 证明，单处理器上只要 U ≤ 1，EDF 就一定来得及。Linux 的 SCHED_DEADLINE 就基于它。
+      - item:
+          id: comm-high
+          type: choice
+          prompt: 一个系统里，采样任务每 10 ms 采一次，通信任务偶尔一次发送要 30 ms。如果把通信任务的优先级设得比采样任务高，会出什么问题？
+          options:
+            - text: 通信任务发送的那 30 ms 里，采样任务一直等着，会错过两三次采样时刻
+              correct: true
+            - text: 没问题，优先级只影响谁先创建
+              why: 优先级决定谁运行；高优先级的通信任务运行时，采样任务只能等
+            - text: 通信任务会被采样任务抢占
+              why: 通信任务优先级更高，采样任务抢占不了它
+          explain: 时间要求严格的任务要排在高处；能容忍延迟的工作放低，用队列把两边隔开。
+  - id: queues
+    chapter: 实时调度
+    title: 任务之间传数据：队列和信号量
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 采样任务每 10 ms 产生一个数，通信任务偶尔要花 200 ms 才发完一批。猜一猜：用一个全局变量把数从采样任务传给通信任务，会怎样？
+          options:
+            - text: 通信任务忙的时候，新数据会覆盖还没发出去的旧数据
+              correct: true
+            - text: 没问题，通信任务回来后会一个个发出去
+              why: 一个变量只能存一个数，200 ms 里来的 20 个数会互相覆盖
+            - text: 采样任务会自动等通信任务取走数据
+              why: 全局变量不会让任何任务等待
+          explain: 要的是一个能排队存好几个数、空了能让接收方等着的东西：队列。
+      - card:
+          title: 队列
+          body: |
+            FreeRTOS 的队列是任务之间传数据的标准方式。创建时定好能放几个元素、每个元素多少字节。文档写明：数据是复制进队列的，不是只存一个指针，所以放进去以后，原来的变量可以随便改。
+
+            ```c
+            QueueHandle_t q = xQueueCreate(32, sizeof(int16_t)); /* 32 个元素，每个 2 字节 */
+            xQueueSend(q, &v, 0);                  /* 满了就立即返回 errQUEUE_FULL */
+            xQueueReceive(q, &v, portMAX_DELAY);   /* 空的就一直阻塞等 */
+            ```
+
+            最后一个参数是愿意等多少个节拍：0 表示不等；`portMAX_DELAY` 表示一直等（要求 `INCLUDE_vTaskSuspend` 为 1）。成功都返回 `pdPASS`。
+      - item:
+          id: queue-full
+          type: choice
+          prompt: 采样任务调用 xQueueSend(q, &v, 0)，这时队列正好满了。会怎样？
+          options:
+            - text: 立即返回 errQUEUE_FULL，这个数据没有放进去
+              correct: true
+            - text: 一直阻塞，等到有空位
+              why: 那是等待时间写 portMAX_DELAY 时的行为；写 0 表示不等
+            - text: 覆盖队列里最旧的那个数据
+              why: 覆盖要用 xQueueOverwrite，而且它只用于长度为 1 的队列
+          explain: 等待时间写 0，调用就绝不阻塞，适合不能耽误的高优先级任务。
+      - card:
+          title: 采样不等，通信一直等
+          body: |
+            采样任务优先级高、要准时：队列满了还去等，就会错过下一次采样，宁可丢掉这个数，记一个丢失计数。通信任务没事做时就该睡着，所以用 `portMAX_DELAY` 一直等，数据一到就被唤醒。
+
+            ```c
+            static QueueHandle_t q;
+            static uint32_t dropped;
+
+            void sample_task(void *arg)
+            {
+                TickType_t last = xTaskGetTickCount();
+                for (;;) {
+                    int16_t v = read_sensor();
+                    if (xQueueSend(q, &v, 0) != pdPASS)
+                        dropped++;                      /* 满了：丢掉并计数 */
+                    vTaskDelayUntil(&last, pdMS_TO_TICKS(10));
+                }
+            }
+
+            void comm_task(void *arg)
+            {
+                int16_t v;
+                for (;;) {
+                    if (xQueueReceive(q, &v, portMAX_DELAY) == pdPASS)
+                        send_packet(&v, sizeof v);
+                }
+            }
+            ```
+
+            main 里：`q = xQueueCreate(32, sizeof(int16_t));`，用 xTaskCreate 创建两个任务，采样优先级 3、通信优先级 2，再 `vTaskStartScheduler();`。
+      - card:
+          title: 例题：队列要多长
+          body: |
+            采样任务每 10 ms 放一个数。通信任务平时取得很快，但偶尔会卡住 200 ms（比如等无线芯片）。卡住之前队列是空的。队列至少要多长才不丢数据？
+          reveal:
+            - title: 第 1 步：卡住期间来了多少个
+              body: |
+                200 ÷ 10 = 20 个数，这期间一个也取不走。
+            - title: 第 2 步：定长度
+              body: |
+                队列至少要放得下 20 个。实际常取大一些（比如 32），给偶尔更长的卡顿留余量。
+            - title: 第 3 步：算内存
+              body: |
+                32 个 int16_t 的数据区是 32 × 2 = 64 字节，另外还有队列自己的控制结构。
+      - item:
+          id: queue-len
+          type: number
+          prompt: 采样任务每 5 ms 往队列放一个数。通信任务最长会卡住 120 ms，卡住之前队列是空的。队列长度至少是多少，才不会丢数据？
+          answer: 24
+          unit: 个
+          explain: 卡住的 120 ms 里来了 120 ÷ 5 = 24 个数，队列至少要放得下 24 个。
+      - item:
+          id: queue-bytes
+          type: number
+          prompt: xQueueCreate(24, sizeof(int32_t)) 创建的队列，用来存数据的区域有多少字节？（int32_t 是 4 字节，不算控制结构）
+          answer: 96
+          unit: 字节
+          explain: 24 个元素 × 每个 4 字节 = 96 字节。
+      - card:
+          title: 只通知、不传数据：信号量和任务通知
+          body: |
+            有时任务之间不传数据，只传“发生了”，比如按键中断发生后叫醒处理任务。这用**信号量（semaphore）**：一个计数，give 加 1，take 减 1，减不下去就阻塞等着。只记“有没有”的叫二值信号量，能累计次数的叫计数信号量。
+
+            FreeRTOS 还有更轻的直接任务通知。官方文档说，用它唤醒任务比通过信号量这类中间对象快 45%，也更省内存。
+      - item:
+          id: notify-choice
+          type: choice
+          prompt: 按键中断发生时，只需要告诉处理任务“按过一次”，不传别的数据。FreeRTOS 里用什么最合适？
+          options:
+            - text: 二值信号量，或者直接任务通知
+              correct: true
+            - text: 一个长度 1000 的队列
+              why: 能用，但白白占内存；这里没有数据要传
+            - text: 一个全局变量，处理任务用空循环反复检查
+              why: 空循环一直占着 CPU，比它低的任务都没法运行
+          explain: 没有数据要传时，用最轻的通知手段：处理任务平时阻塞在 take 上，不占 CPU。
+      - card:
+          title: 在中断服务程序里发数据
+          body: |
+            中断服务程序不能阻塞，所以 FreeRTOS 规定不能在里面调用普通的 `xQueueSend`，要用带 `FromISR` 的版本，并在退出前检查要不要切换任务：
+
+            ```c
+            void UART_IRQHandler(void)
+            {
+                BaseType_t woken = pdFALSE;
+                uint8_t c = UART->DR;
+                xQueueSendFromISR(rx_q, &c, &woken);
+                portYIELD_FROM_ISR(woken);   /* 唤醒了更高优先级的任务，就在退出中断时切过去 */
+            }
+            ```
+
+            还有一条规矩：只有优先级不高于 `configMAX_SYSCALL_INTERRUPT_PRIORITY` 的中断才能调用 FromISR 函数。Cortex-M 上数值越小优先级越高，所以这些中断的优先级数值要大于或等于它。
+      - item:
+          id: isr-send
+          type: choice
+          prompt: 有人在串口中断服务程序里写了 xQueueSend(q, &c, portMAX_DELAY)。问题在哪？
+          options:
+            - text: 中断服务程序里不能阻塞，也不能调用普通版本的 API，要用 xQueueSendFromISR
+              correct: true
+            - text: 没问题，中断里也可以等
+              why: FreeRTOS 文档写明 xQueueSend 不能在中断服务程序里调用；中断里阻塞会卡住整个系统
+            - text: 只要把 portMAX_DELAY 改成 0 就完全没问题了
+              why: 不等待也不行，普通版本的 API 本身就不能在中断里用
+          explain: FromISR 版本不会阻塞，并通过 woken 告诉你是否唤醒了更高优先级的任务。
+      - card:
+          title: Linux 上：进程间通信和信号
+          body: |
+            Linux 上不同进程之间交换数据，叫**进程间通信（IPC）**。实时程序常用 POSIX 消息队列：`mq_open` 打开，`mq_send` 发送，`mq_receive` 接收。man 手册写着：消息按优先级从高到低排队，同优先级先来的在前；队列满时 `mq_send` 默认阻塞。
+
+            另一种通知是**信号（signal）**：只带一个编号的异步通知，比如 Ctrl+C 发出 SIGINT。实时线程常先把信号屏蔽，再在固定的地方用 `sigwait` 等它，而不是让它在任意时刻打断代码。
+      - item:
+          id: mq-order
+          type: choice
+          prompt: 一个 POSIX 消息队列里，依次用 mq_send 发了三条消息：优先级 1 的 a、优先级 5 的 b、优先级 1 的 c。然后 mq_receive 三次，收到的顺序是？
+          options:
+            - text: b、a、c
+              correct: true
+            - text: a、b、c
+              why: POSIX 消息队列按优先级排队，不是单纯先来先到
+            - text: b、c、a
+              why: 同优先级的消息按发送的先后排，a 比 c 先发
+            - text: c、b、a
+              why: 既不是后进先出，也不是按优先级从低到高
+          explain: 优先级 5 的 b 排在最前；a 和 c 同为优先级 1，先发的 a 在前。WSL 里用 gcc 编译运行实测就是 b、a、c。
+  - id: locks
+    chapter: 实时调度
+    title: 共享数据和锁
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个任务都执行 count = count + 1; 各 1000 次，count 一开始是 0，两个任务可能随时被对方抢占。猜一猜最后 count 是多少？
+          options:
+            - text: 可能小于 2000
+              correct: true
+            - text: 一定是 2000
+              why: 一句 C 会变成读、加、写三步，中间可能被切走
+            - text: 一定是 1000
+              why: 只有每一次加法都恰好撞上才会这样，通常结果在 1000 到 2000 之间
+          explain: 单片机那一关讲过中断和主循环共享变量的问题；任务之间互相抢占，也是同一回事。
+      - card:
+          title: 竞态条件
+          body: |
+            `count = count + 1` 在 CPU 上是三步：读进寄存器、加 1、写回。任务 A 读完还没写回就被抢占，任务 B 也读到同一个旧值，两次加 1 只留下一次。
+
+            结果取决于切换的时机，这叫**竞态条件（race condition）**。访问共享数据、不能被几个任务同时执行的那段代码，叫**临界区（critical section）**。下面这个实验里你来当调度器，决定每一步让哪个线程执行。
+          sim:
+            name: threads
+            params:
+              shared: { x: 0 }
+              threads:
+                - { name: T1, locals: { t: 0 }, steps: ["t = x", "t = t + 1", "x = t"] }
+                - { name: T2, locals: { t: 0 }, steps: ["t = x", "t = t + 1", "x = t"] }
+      - item:
+          id: race-sim
+          type: sim
+          sim: threads
+          params:
+            shared: { x: 0 }
+            threads:
+              - { name: T1, locals: { t: 0 }, steps: ["t = x", "t = t + 1", "x = t"] }
+              - { name: T2, locals: { t: 0 }, steps: ["t = x", "t = t + 1", "x = t"] }
+          goal: { final: { x: 1 } }
+          solution: [0, 1, 0, 0, 1, 1]
+          prompt: 安排两个线程的执行顺序，让两次加 1 之后 x 只等于 1。
+          hint: 两个线程都要在对方写回之前读到 x。
+          explain: 两个线程都先读到 0，各自算出 1，谁后写回结果都是 1。
+      - card:
+          title: 几种保护办法
+          body: |
+            | 办法 | 怎么做 | 适合 |
+            |---|---|---|
+            | 原子操作 | 一条不可分割的指令完成读、改、写，比如 Linux 内核的 `atomic_inc` | 单个整数的计数 |
+            | 关中断、停调度 | FreeRTOS 的 `taskENTER_CRITICAL` 屏蔽中断，`vTaskSuspendAll` 只停调度 | 极短的临界区 |
+            | **互斥锁（mutex）** | 进临界区前加锁，出来解锁；锁被占时，等它的任务睡眠 | 较长、可能睡眠的临界区 |
+            | **自旋锁（spinlock）** | 锁被占时原地循环检查，不睡眠 | 多核上很短的临界区，或中断里 |
+
+            信号量也能当锁用，但它没有“谁持有”的概念；互斥锁规定谁加锁谁解锁。
+      - item:
+          id: irq-lock
+          type: choice
+          prompt: Linux 驱动里，中断处理函数和 read 函数共享一个计数器。能不能用 mutex 保护它？
+          options:
+            - text: 不能：mutex 拿不到时会睡眠，中断处理函数里不允许睡眠，应该用自旋锁
+              correct: true
+            - text: 能，mutex 在哪里都能用
+              why: 内核文档写明睡眠锁只能在可抢占的任务上下文里获取，中断处理函数不是
+            - text: 不用保护，中断处理函数不会和 read 同时运行
+              why: 中断可以在 read 执行到一半时发生，多核上还可能真的同时运行
+          explain: 能睡眠的锁只能在能睡眠的地方用。中断里只能用不睡眠的自旋锁或原子操作。
+      - card:
+          title: 加了锁之后
+          body: |
+            两个线程都用同一把锁 m 把三步包起来。你可以试着在 T1 持锁时切到 T2：T2 的 `lock m` 会卡住，直到 T1 解锁。
+          sim:
+            name: threads
+            params:
+              shared: { x: 0 }
+              locks: [m]
+              threads:
+                - { name: T1, locals: { t: 0 }, steps: ["lock m", "t = x", "t = t + 1", "x = t", "unlock m"] }
+                - { name: T2, locals: { t: 0 }, steps: ["lock m", "t = x", "t = t + 1", "x = t", "unlock m"] }
+      - card:
+          title: 死锁
+          body: |
+            两个任务各拿着一把锁，又都在等对方手里那把，就谁也走不动了，这叫**死锁（deadlock）**。最常见的是 AB-BA：任务 1 先锁 a 再锁 b，任务 2 先锁 b 再锁 a。
+
+            避免的办法是规定全局的加锁顺序：所有代码要同时拿 a 和 b 时，一律先 a 后 b。
+          sim:
+            name: threads
+            params:
+              shared: { x: 0 }
+              locks: [a, b]
+              threads:
+                - { name: T1, steps: ["lock a", "lock b", "x = 1", "unlock b", "unlock a"] }
+                - { name: T2, steps: ["lock b", "lock a", "x = 2", "unlock a", "unlock b"] }
+      - item:
+          id: deadlock-sim
+          type: sim
+          sim: threads
+          params:
+            shared: { x: 0 }
+            locks: [a, b]
+            threads:
+              - { name: T1, steps: ["lock a", "lock b", "x = 1", "unlock b", "unlock a"] }
+              - { name: T2, steps: ["lock b", "lock a", "x = 2", "unlock a", "unlock b"] }
+          goal: { deadlock: true }
+          solution: [0, 1]
+          prompt: T1 先锁 a 再锁 b，T2 先锁 b 再锁 a。安排执行顺序，让两个线程卡死。
+          hint: 让每个线程都先拿到自己的第一把锁。
+          explain: T1 拿到 a，T2 拿到 b；接下来 T1 等 b，T2 等 a，谁也走不动。把 T2 改成也先锁 a，这种情况就不会出现。
+      - card:
+          title: 用 lockdep 提前发现死锁
+          body: |
+            死锁可能一年才碰上一次。Linux 内核有一个锁的验证器 lockdep（打开 `CONFIG_PROVE_LOCKING`）：它在运行时记下每次加锁的先后关系，只要某处出现过“先 a 后 b”、另一处出现过“先 b 后 a”，即使这次没有真的卡住，也会报告可能的死锁。
+
+            其他常见的锁问题：忘了解锁；拿着自旋锁时调用了会睡眠的函数；同一把不可重入的锁加了两次。
+      - item:
+          id: lockdep-report
+          type: choice
+          prompt: lockdep 报告了一个 AB-BA 的加锁顺序问题，可是你测试了很多次，系统从来没卡住过。该怎么办？
+          options:
+            - text: 改代码，统一加锁顺序
+              correct: true
+            - text: 不用管，测试时没出现就说明不会发生
+              why: 死锁要两边的时机恰好对上才发生，测试没碰上不代表现场不会碰上
+            - text: 关掉 lockdep
+              why: 关掉只是看不到报告，问题还在
+          explain: lockdep 的价值就在于不必等真的卡死，只要两种顺序都出现过就能发现。
+  - id: priority-inversion
+    chapter: 实时调度
+    title: 优先级反转和优先级继承
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 高优先级任务 H 要用一把锁，可这把锁在低优先级任务 L 手里。这时一个和锁毫无关系的中优先级任务 M 变成就绪。猜一猜：现在谁在运行？
+          options:
+            - text: M
+              correct: true
+            - text: H
+              why: H 在等锁，处于阻塞状态，没法运行
+            - text: L
+              why: L 本来可以运行，但 M 的优先级比 L 高，抢占了它
+          explain: 奇怪的事发生了：最高优先级的 H 在等，运行的却是不相干的 M。
+      - card:
+          title: 优先级反转
+          body: |
+            上面这种情况里，H 在等 L 放锁，L 却被 M 抢占，于是 H 实际上在等 M：高优先级任务被一个和它毫不相干的中优先级任务拖住，M 跑多久，H 就多等多久。这叫**优先级反转（priority inversion）**。
+
+            只有 H 和 L 时，H 最多等 L 跑完临界区，时间有上界。M 的出现让这个上界消失了。
+      - card:
+          title: 例题：画出时间线
+          body: |
+            H 优先级 3，M 优先级 2，L 优先级 1，单核。
+
+            - 0 ms：L 就绪，立即加锁，它的临界区要运行 3 ms，解锁后就结束；
+            - 1 ms：H 就绪，要先拿这把锁，拿到后运行 1 ms；
+            - 2 ms：M 就绪，运行 5 ms，不用锁。
+
+            H 什么时候完成？
+          reveal:
+            - title: 0 到 1 ms
+              body: |
+                只有 L，它加锁运行了 1 ms，临界区还剩 2 ms。
+            - title: 1 到 2 ms
+              body: |
+                H 就绪，抢占 L，去拿锁，锁被 L 占着，H 阻塞。L 继续，临界区还剩 1 ms。
+            - title: 2 到 7 ms
+              body: |
+                M 就绪，比 L 高，抢占 L，运行 5 ms。H 还在等。
+            - title: 7 到 9 ms
+              body: |
+                L 跑完剩下的 1 ms，在 8 ms 解锁；H 立即拿到锁，运行 1 ms，在 9 ms 完成。H 从就绪到完成用了 8 ms，其中 5 ms 是在等 M。
+      - item:
+          id: inversion-long
+          type: number
+          prompt: |
+            单核，固定优先级抢占。L（优先级 1）在 0 ms 就绪并立即加锁，临界区运行 3 ms 后解锁结束。H（优先级 3）在 1 ms 就绪，要先拿这把锁，拿到后运行 1 ms。M（优先级 2）在 2 ms 就绪，运行 10 ms，不用锁。没有优先级继承。H 从就绪到完成用了多少 ms？
+          answer: 13
+          unit: ms
+          hint: 先排出 L 在哪几段时间里运行。
+          explain: 0–1 L，1–2 L（H 阻塞），2–12 M，12–13 L 解锁，13–14 H。H 在 1 ms 就绪、14 ms 完成，用了 13 ms。M 跑得越久，H 等得越久。
+      - card:
+          title: 优先级继承
+          body: |
+            **优先级继承（priority inheritance）**：高优先级任务因为一把锁被挡住时，临时把持锁的任务提到和它一样高。L 被提到 3，M 就抢占不了它；L 跑完临界区、放锁，优先级恢复原样，H 马上拿到锁。
+
+            FreeRTOS 的互斥锁带这个机制，二值信号量没有。FreeRTOS 文档也提醒：优先级继承治不好优先级反转，只是在一些情况下把影响减到最小。最好的办法仍然是让临界区尽量短。
+      - item:
+          id: inheritance-time
+          type: number
+          prompt: |
+            单核，固定优先级抢占。L（优先级 1）在 0 ms 就绪并立即加锁，临界区运行 3 ms 后解锁结束。H（优先级 3）在 1 ms 就绪，要先拿这把锁，拿到后运行 1 ms。M（优先级 2）在 2 ms 就绪，运行 5 ms，不用锁。这把锁带优先级继承。H 从就绪到完成用了多少 ms？
+          answer: 3
+          unit: ms
+          hint: H 被挡住的那一刻，L 的优先级变成多少？M 还抢得了它吗？
+          explain: 1 ms 时 H 阻塞，L 被提到 3。1–3 L 跑完剩下的 2 ms，M 在 2 ms 就绪也抢不了；3 ms L 解锁，H 拿到锁，3–4 运行，4 ms 完成，用了 3 ms。
+      - card:
+          title: 火星探路者号
+          body: |
+            1997 年 7 月 4 日着陆的火星探路者号，在火星上多次整机复位。负责飞行软件的 Glenn Reeves 后来写道，原因正是优先级反转：VxWorks 上，一个低优先级的气象任务占着一个互斥信号量，要用它的高优先级任务 bc_dist 被挡住，几个中优先级任务又在运行；最高优先级的 bc_sched 发现 bc_dist 没按时完成，飞行器随即复位了计算机。
+
+            工程师在地面复现了问题，把那个信号量创建时的选项改成打开优先级继承，从地球上传了修改。
+      - item:
+          id: pathfinder-fix
+          type: choice
+          prompt: 1997 年火星探路者号反复复位，按 Glenn Reeves 的记录，最后是怎样修好的？
+          options:
+            - text: 把那个互斥信号量创建时的选项改成打开优先级继承，从地球上传
+              correct: true
+            - text: 关掉检测超时的那个机制
+              why: 复位只是症状；关掉检测，高优先级任务照样被拖住，只是没人发现
+            - text: 换了一颗更快的处理器
+              why: 探测器已经在火星上了，硬件换不了；问题也不在速度
+          explain: 这个例子常被用来说明：实时系统的锁不能只考虑“对不对”，还要考虑它会不会让高优先级任务等上没有上界的时间。
+      - card:
+          title: Linux 上打开优先级继承
+          body: |
+            POSIX 线程的互斥锁默认不带继承，要在属性里打开：
+
+            ```c
+            pthread_mutexattr_t attr;
+            pthread_mutex_t lock;
+
+            pthread_mutexattr_init(&attr);
+            pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_INHERIT);
+            pthread_mutex_init(&lock, &attr);
+            ```
+
+            在 WSL 里用 gcc 实测：属性默认的协议是 `PTHREAD_PRIO_NONE`，设置后读回来是 `PTHREAD_PRIO_INHERIT`。另一种做法是优先级天花板 `PTHREAD_PRIO_PROTECT`：给锁定一个上限优先级，谁拿到锁就直接升到它。
+      - item:
+          id: freertos-pi
+          type: choice
+          prompt: FreeRTOS 里，用下面哪种对象保护高、低优先级任务共用的资源，能用上优先级继承？
+          options:
+            - text: xSemaphoreCreateMutex 创建的互斥锁
+              correct: true
+            - text: xSemaphoreCreateBinary 创建的二值信号量
+              why: FreeRTOS 的源码注释写明二值信号量不使用优先级继承
+            - text: xSemaphoreCreateCounting 创建的计数信号量
+              why: 计数信号量也没有优先级继承
+          explain: FreeRTOS 文档的原话是：互斥锁就是带优先级继承机制的二值信号量。保护资源用互斥锁，只做通知才用信号量。
+  - id: linux-rt
+    chapter: 实时调度
+    title: 让 Linux 满足实时要求
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 普通的 Linux 内核里，一个进程正在执行一个很慢的系统调用（代码正在内核里跑）。这时一个更高优先级的实时线程被唤醒了。猜一猜：它能立刻开始运行吗？
+          options:
+            - text: 要看内核怎么配置：有的配置下，得等这段内核代码走到允许切换的地方
+              correct: true
+            - text: 一定能立刻运行
+              why: 不是所有配置下内核代码都能被打断
+            - text: 一定要等系统调用完全结束
+              why: 打开内核抢占的配置下，大部分内核代码随时可以被打断
+          explain: 内核代码能不能被打断，是 Linux 能不能做实时的关键，也是 PREEMPT_RT 主要在改的东西。
+      - card:
+          title: 两条路
+          body: |
+            让 Linux 满足实时要求有两条路。一条是双内核：在 Linux 旁边并排放一个优先级更高的小实时内核，实时任务跑在它上面。Xenomai 的官方文档就这样描述自己：和 Linux 并排运行的双内核系统。
+
+            另一条是改 Linux 本身，让内核几乎处处可以被抢占，这就是 **PREEMPT_RT**。它在主线（Linus Torvalds 维护的官方内核）之外维护了很多年，一部分一部分地合进主线；Linux 新闻网站 LWN 的报道写着，2024 年 11 月发布的 Linux 6.12 合进了最后几部分。
+      - card:
+          title: 抢占模式
+          body: |
+            内核配置里的抢占模式（菜单文字摘自内核源码 `kernel/Kconfig.preempt`）：
+
+            | 选项 | 菜单里的名字 | 内核代码能不能被抢占 |
+            |---|---|---|
+            | `PREEMPT_NONE` | No Forced Preemption (Server) | 只在少数地方切换，比如系统调用返回时 |
+            | `PREEMPT_VOLUNTARY` | Voluntary Kernel Preemption (Desktop) | 再加上内核代码里显式标出的切换点 |
+            | `PREEMPT` | Preemptible Kernel (Low-Latency Desktop) | 除了持锁、关中断的地方，随时可以 |
+            | `PREEMPT_RT` | Fully Preemptible Kernel (Real-Time) | 连大部分持自旋锁的代码和中断处理也能被抢占 |
+
+            新内核还有第五种 `PREEMPT_LAZY`，由调度器决定何时抢占。在一台 WSL2 电脑上实测 `zcat /proc/config.gz | grep PREEMPT`：`CONFIG_PREEMPT_NONE=y`，没有打开 `PREEMPT_RT`。
+      - item:
+          id: preempt-model
+          type: choice
+          prompt: 哪一种抢占模式下，大部分持有 spinlock_t 的内核代码也可以被更高优先级的任务抢占？
+          options:
+            - text: PREEMPT_RT
+              correct: true
+            - text: PREEMPT
+              why: 普通的 PREEMPT 下，持自旋锁的代码会关闭抢占
+            - text: PREEMPT_VOLUNTARY
+              why: 只在显式标出的切换点让出，持锁时更不会被抢占
+            - text: PREEMPT_NONE
+              why: 这是抢占最少的一种
+          explain: 让持锁的代码也能被抢占，是 PREEMPT_RT 和其他几种模式最大的区别。
+      - card:
+          title: PREEMPT_RT 改了什么
+          body: |
+            内核文档总结了 PREEMPT_RT 的两条核心改动：
+
+            1. 把 `spinlock_t` 这类锁换成可抢占、支持优先级继承的 rtmutex。持锁的代码也能被更高优先级的任务抢占；真正必须自旋的少数地方改用 `raw_spinlock_t`。
+            2. 中断强制线程化：硬件中断来时，第一级处理函数只负责唤醒对应的内核线程，真正的处理在线程里做。这个线程有自己的优先级，可以被抢占。
+      - item:
+          id: rt-spinlock
+          type: choice
+          prompt: 在打开 PREEMPT_RT 的内核里，一段持有 spinlock_t 的驱动代码正在运行，一个更高优先级的实时线程被唤醒。会怎样？
+          options:
+            - text: 驱动代码可以被抢占，因为 spinlock_t 已经变成会睡眠、带优先级继承的 rtmutex
+              correct: true
+            - text: 驱动代码一定先跑完临界区，因为持自旋锁时不能被抢占
+              why: 那是非 RT 内核的规矩；PREEMPT_RT 正是改掉了这一点
+            - text: 内核报错，因为 PREEMPT_RT 不允许用 spinlock_t
+              why: 驱动照常使用 spinlock_t，只是它在 RT 内核里的实现换了
+          explain: 驱动代码不用改，锁的语义变了。少数真的不能睡眠的地方，内核用 raw_spinlock_t。
+      - card:
+          title: 调度策略
+          body: |
+            Linux 给实时任务的调度策略。在 WSL 里实测 `chrt -m`：SCHED_FIFO 和 SCHED_RR 的优先级范围都是 1/99，SCHED_DEADLINE 是 0/0。
+
+            | 策略 | 规则 |
+            |---|---|
+            | `SCHED_FIFO` | 优先级 1 到 99，越大越高；同优先级先到先跑，不主动让出就一直跑 |
+            | `SCHED_RR` | 同上，但同优先级之间按时间片轮转；实测这台机器 `/proc/sys/kernel/sched_rr_timeslice_ms` 是 100 |
+            | `SCHED_DEADLINE` | 不用优先级，给每个任务 runtime、deadline、period 三个参数，按截止时间早晚调度 |
+            | `SCHED_OTHER` | 普通任务的默认策略，实时任务一就绪就抢占它们 |
+
+            命令行用 chrt：`chrt -f 80 ./sampler` 以 SCHED_FIFO 优先级 80 运行一个程序。
+      - item:
+          id: fifo-same
+          type: choice
+          prompt: 两个线程都是 SCHED_FIFO、优先级 50。A 正在运行，而且一直不睡眠；B 已经就绪。B 什么时候能运行？
+          options:
+            - text: 要等 A 阻塞、主动让出，或者被更高优先级的任务抢占
+              correct: true
+            - text: 100 ms 以后
+              why: 按时间片轮转是 SCHED_RR 的规则，SCHED_FIFO 没有时间片
+            - text: 立刻
+              why: 同优先级的 SCHED_FIFO 线程不会抢占正在运行的那一个
+          explain: 一个死循环的 SCHED_FIFO 线程能把同优先级和更低优先级的线程全部饿死，所以实时线程一定要有阻塞的地方。
+      - item:
+          id: deadline-bw
+          type: number
+          prompt: 一个 SCHED_DEADLINE 任务设置 runtime = 2 ms，period = 10 ms。它预留了 CPU 的多大比例？（写小数）
+          answer: 0.2
+          explain: 每 10 ms 保证给它 2 ms，2 ÷ 10 = 0.2。内核接受新的 SCHED_DEADLINE 任务前，会检查所有这类任务的比例加起来没有超过上限。
+      - card:
+          title: 用 pthread 创建实时线程
+          body: |
+            ```c
+            pthread_attr_t a;
+            struct sched_param sp = { .sched_priority = 80 };
+
+            pthread_attr_init(&a);
+            pthread_attr_setinheritsched(&a, PTHREAD_EXPLICIT_SCHED);
+            pthread_attr_setschedpolicy(&a, SCHED_FIFO);
+            pthread_attr_setschedparam(&a, &sp);
+            int err = pthread_create(&tid, &a, sampler, NULL);
+            ```
+
+            man 手册说明：只有设成 `PTHREAD_EXPLICIT_SCHED`，新线程才采用属性里的调度设置，否则沿用创建者的。设实时策略还需要权限；在 WSL 里用普通用户实测，`pthread_create` 返回 `EPERM`（值为 1）。
+      - item:
+          id: inheritsched
+          type: choice
+          prompt: 创建实时线程时，属性里设了 SCHED_FIFO 和优先级 80，却忘了调用 pthread_attr_setinheritsched(&a, PTHREAD_EXPLICIT_SCHED)。结果会怎样？
+          options:
+            - text: 新线程沿用创建者的调度设置（通常是 SCHED_OTHER），设的 FIFO 和 80 都不生效
+              correct: true
+            - text: 一切正常，线程以 SCHED_FIFO 80 运行
+              why: 默认是继承创建者的设置，属性里的策略和优先级会被忽略
+            - text: pthread_create 一定报错
+              why: 不会报错，这正是它容易被忽略的原因
+          explain: 写完实时线程，最好用 chrt -p 或 ps 看一眼它实际的调度策略和优先级。
+  # ---------------------------------------------------------------- 中断
+  - id: irq-halves
+    chapter: 中断
+    title: 驱动里的中断：上半部和下半部
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 网卡每收到一个包就发一次中断。如果中断处理函数里把包解析完、交给上层、再写一条日志，要花 1 ms。猜一猜问题出在哪？
+          options:
+            - text: 这 1 ms 里同一个中断（往往还有别的中断）被挡住，其他任务也被推迟，包一多就会丢包、系统变卡
+              correct: true
+            - text: 没问题，中断处理函数做多少事都行
+              why: 中断处理函数运行时，它打断的任务和被挡住的中断都在等
+            - text: 问题是 CPU 会过热
+              why: 时间长短和发热无关，问题在于别的工作被推迟
+          explain: 单片机那一关讲过中断服务程序要快进快出。Linux 驱动把这条原则做成了固定的结构。
+      - card:
+          title: 登记中断处理函数
+          body: |
+            ```c
+            static irqreturn_t hello_irq(int irq, void *dev_id)
+            {
+                struct hello_dev *d = dev_id;
+                u32 st = readl(d->base + STATUS);   /* readl：读一个 32 位寄存器 */
+
+                if (!(st & IRQ_PENDING))
+                    return IRQ_NONE;          /* 不是我的设备发的 */
+                writel(st, d->base + STATUS); /* 应答硬件，清掉中断标志 */
+                return IRQ_HANDLED;
+            }
+
+            /* 在 probe 里： */
+            ret = devm_request_irq(&pdev->dev, irq, hello_irq, IRQF_SHARED, "hello", d);
+            ```
+
+            处理函数返回 `IRQ_HANDLED` 表示处理了。同一根中断线可以被几个设备共用（`IRQF_SHARED`），内核会挨个调用它们的处理函数；发现不是自己的设备，就返回 `IRQ_NONE`。
+      - item:
+          id: irq-none
+          type: choice
+          prompt: 两个设备共用一根中断线。中断来了，你的处理函数读状态寄存器，发现自己的设备并没有请求中断。应该怎么做？
+          options:
+            - text: 什么也不动，返回 IRQ_NONE
+              correct: true
+            - text: 返回 IRQ_HANDLED
+              why: 那等于谎称处理了；没人认领的中断内核会统计，用来发现出故障一直乱发中断的设备
+            - text: 关掉这根中断线
+              why: 另一个设备还在用它，关掉以后那个设备也收不到中断了
+          explain: 共享中断线上，每个处理函数只认领自己设备的中断。
+      - card:
+          title: 中断上下文的规矩
+          body: |
+            中断处理函数运行在中断上下文：它打断了某个任务，但自己不属于任何任务，没法“睡下等一会儿”。所以它不能睡眠：不能拿 mutex，不能用 `GFP_KERNEL` 分配内存，不能调用 `copy_to_user` 这类可能睡眠的函数。
+
+            它还会推迟其他中断和任务，所以必须很快。
+      - card:
+          title: 拆成两半
+          body: |
+            于是把工作拆开。**上半部**就是中断处理函数，只做必须马上做的：应答硬件、把数据从设备取出来放进缓冲区、安排后续工作。**下半部**稍后在限制更少的环境里做耗时的部分。
+
+            | 下半部 | 说明 | 能否睡眠 |
+            |---|---|---|
+            | softirq | 内核固定的几类，网络收发就用它 | 不能 |
+            | tasklet | 建在 softirq 之上，由驱动自己提供处理函数；内核源码已把它的接口标为过时，建议改用线程化中断 | 不能 |
+            | 工作队列（workqueue） | 把工作交给内核线程执行 | 能 |
+            | 线程化中断 | 处理函数在专门的内核线程里运行 | 能 |
+      - item:
+          id: halves-match
+          type: match
+          prompt: 把每件工作和最适合做它的地方配对。
+          pairs:
+            - [应答硬件、清中断标志、把数据取出放进缓冲区, 上半部（中断处理函数）]
+            - [解析数据，中间可能要等别的设备, 工作队列或线程化中断]
+            - [内核网络收发包的处理, softirq]
+          explain: 上半部越短越好；需要睡眠的工作只能放进有线程的下半部。
+      - card:
+          title: 线程化中断
+          body: |
+            ```c
+            static irqreturn_t quick(int irq, void *d)
+            {
+                /* 上半部：应答硬件 */
+                return IRQ_WAKE_THREAD;     /* 叫醒线程做剩下的 */
+            }
+
+            static irqreturn_t slow(int irq, void *d)
+            {
+                /* 在内核线程里运行，可以睡眠，比如通过 I²C 读传感器 */
+                return IRQ_HANDLED;
+            }
+
+            devm_request_threaded_irq(dev, irq, quick, slow, IRQF_ONESHOT, "hello", d);
+            ```
+
+            I²C、SPI 上的芯片，读一次寄存器就要等总线传完，必须睡眠，所以这类驱动常用线程化中断。`IRQF_ONESHOT` 让这根中断线在线程跑完之前一直屏蔽，免得芯片还没被读、中断就反复进来。打开 PREEMPT_RT 的内核，会把普通 `request_irq` 登记的处理函数也强制放进线程里运行。
+      - item:
+          id: i2c-touch
+          type: choice
+          prompt: 一颗 I²C 接口的触摸屏芯片，有触摸时拉低中断线，驱动要通过 I²C 读出触摸坐标。驱动该怎么写？
+          options:
+            - text: 用线程化中断，在线程函数里通过 I²C 读坐标
+              correct: true
+            - text: 在上半部里直接通过 I²C 读坐标
+              why: I²C 传输要等总线，可能睡眠，中断上下文不允许
+            - text: 不用中断，开一个线程每 1 ms 读一次 I²C
+              why: 能用，但没有触摸时也一直在读，浪费总线和电；有中断线就该用
+          explain: 线程化中断是“上半部几乎什么都不做、下半部可以睡眠”的标准写法。
+      - card:
+          title: 写驱动的几个好习惯
+          body: |
+            - 中断处理函数只做最少的事，其余交给线程化中断或工作队列；
+            - 关中断、持自旋锁的时间越短越好，不在里面做耗时的循环；
+            - 进程这边的代码和中断处理函数共享数据时，用 `spin_lock_irqsave` 加锁，它会同时关掉本 CPU 的中断；
+            - 资源尽量用 `devm_` 函数申请，出错和卸载时不会漏放。
+
+            FreeRTOS 上的思路一样：中断服务程序里只用 FromISR 函数发一个通知或放一个数据，真正的处理交给任务。
+      - item:
+          id: irqsave
+          type: choice
+          prompt: 驱动里，进程上下文的代码和中断处理函数共享一个链表。进程这边加锁应该用哪个？
+          options:
+            - text: spin_lock_irqsave
+              correct: true
+            - text: spin_lock
+              why: 只用 spin_lock 时，中断可能在同一个 CPU 上打断持锁的代码，处理函数再去拿同一把锁，就在原地永远转下去
+            - text: mutex_lock
+              why: 中断处理函数那边不能用会睡眠的锁，两边必须用同一把自旋锁
+          explain: 内核文档写着 _irqsave 会保存并关闭本地中断的状态。持锁期间本 CPU 的中断进不来，就不会自己等自己。
+  - id: rt-latency
+    chapter: 中断
+    title: 延迟从哪里来
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个实时线程每 1 ms 唤醒一次。测了 100 万次：平均晚了 8 μs，最慢的一次晚了 2 ms。对实时系统来说，哪个数更重要？
+          options:
+            - text: 最慢的 2 ms
+              correct: true
+            - text: 平均的 8 μs
+              why: 实时系统要保证每一次都按时，偶尔一次晚 2 ms 就可能错过截止时间
+            - text: 两个都不重要，看唤醒了多少次
+              why: 次数只说明测得够不够久，能不能按时要看最坏的那一次
+          explain: 实时系统的延迟测试，最终报告里最重要的是最大值。
+      - card:
+          title: 怎样测延迟
+          body: |
+            常用工具是 rt-tests 里的 cyclictest：它让高优先级的测量线程按固定周期睡眠、醒来，把实际醒来时间和预定时间比较，统计最小、平均、最大延迟。
+
+            要在系统有负载的时候测，而且测得足够久，因为最坏情况往往很少出现。只在空闲的系统上测几分钟，得到的最大值通常偏小。
+      - card:
+          title: 例题：从样本算抖动
+          body: |
+            一个线程每 1000 μs 唤醒一次，记下 6 次实际醒来比预定时间晚了多少（μs）：12、9、15、11、140、10。
+          reveal:
+            - title: 第 1 步：最小和最大
+              body: |
+                最小 9 μs，最大 140 μs。
+            - title: 第 2 步：平均
+              body: |
+                (12 + 9 + 15 + 11 + 140 + 10) ÷ 6 = 197 ÷ 6 ≈ 32.8 μs。只因为一次 140，平均就被拉高；去掉它，其余 5 次平均只有 11.4 μs。
+            - title: 第 3 步：抖动和结论
+              body: |
+                用“最大减最小”衡量抖动：140 − 9 = 131 μs。要不要担心，看截止时间：要求晚不超过 100 μs，这 6 次里就已经有一次超了。
+      - item:
+          id: jitter-range
+          type: number
+          prompt: 一个周期线程记下 6 次唤醒延迟（μs）：20、25、18、22、95、21。用“最大减最小”算抖动，是多少 μs？
+          answer: 77
+          unit: μs
+          explain: 最大 95，最小 18，95 − 18 = 77 μs。
+      - card:
+          title: 硬件和固件带来的延迟
+          body: |
+            | 来源 | 为什么延迟 | 常见对策 |
+            |---|---|---|
+            | 深度空闲状态 | CPU 空闲时进入省电状态，醒来要时间；每个状态的退出延迟（微秒）写在 `/sys/devices/system/cpu/cpu0/cpuidle/stateN/latency` | 限制能进入的最深状态 |
+            | 动态调频 | 频率降下来时，同样的代码跑得慢 | 实时系统固定频率，比如用 performance 调速器 |
+            | 固件 | 内核文档写着：固件可以临时接管系统提供服务，这期间内核实际上被打断了 | 选硬件，调 BIOS 设置，用内核的硬件延迟检测器测 |
+            | DMA | 外设通过 DMA 读写内存，和 CPU 抢内存和缓存 | 在真实负载下测量 |
+      - item:
+          id: idle-worse
+          type: choice
+          prompt: 一台工控机上，cyclictest 在系统空闲时测出的最大延迟，反而比满负载时还大。最可能的原因是？
+          options:
+            - text: 空闲时 CPU 进入了深度空闲状态，从里面醒来要更久
+              correct: true
+            - text: 空闲时内核会降低实时线程的优先级
+              why: 内核不会因为空闲就改实时线程的优先级
+            - text: cyclictest 只在满负载时才准
+              why: 工具本身没问题，测到的就是真实的唤醒延迟
+          explain: 负载高时 CPU 一直忙，没机会进深度空闲状态；空闲时反而要从最深的状态醒来。
+      - card:
+          title: 把 CPU 留给实时任务
+          body: |
+            多核系统里，可以把实时任务和干扰分开：
+
+            - `taskset` 把进程绑定到指定的 CPU；
+            - 写 `/proc/irq/<中断号>/smp_affinity`（位掩码）或 `smp_affinity_list`（CPU 编号，如 `0-2`），把中断引到别的核；
+            - 启动参数 `isolcpus=` 让调度器不往这些核上放普通任务。
+
+            常见的布局：CPU 3 专门跑实时线程，所有中断和普通任务放在 CPU 0 到 2。
+      - item:
+          id: affinity-mask
+          type: number
+          prompt: 要让某个中断只在 CPU 0、1、2 上处理，写进 smp_affinity 的位掩码是多少？（第 0 位代表 CPU 0，用十进制回答）
+          answer: 7
+          hint: 第 0、1、2 位都置 1，二进制是多少？
+          explain: 二进制 0111，等于 1 + 2 + 4 = 7，写进文件时用十六进制，也是 7。
+      - item:
+          id: isolcpus-next
+          type: choice
+          prompt: 启动参数加了 isolcpus=3 之后，要让实时线程真的在 CPU 3 上运行，还要做什么？
+          options:
+            - text: 用 taskset 或 pthread_setaffinity_np 把这个线程绑定到 CPU 3
+              correct: true
+            - text: 什么都不用做，实时线程会自动去 CPU 3
+              why: 隔离只是让调度器不再自动往 CPU 3 放任务，不会主动把谁搬过去
+            - text: 把 CPU 3 的频率调到最低
+              why: 降频只会让它更慢，和把线程放过去无关
+          explain: 隔离出来的核是空的，要显式地把实时线程放上去。
+  # ---------------------------------------------------------------- 资源
+  - id: kernel-memory
+    chapter: 资源
+    title: Linux 内核里的内存
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 在同一块 Linux 板子上同时运行两个程序，它们各自打印同一个全局变量的地址，结果都是 0x4010。猜一猜：它们用的是同一块内存吗？
+          options:
+            - text: 不是，每个程序看到的地址都要先经过翻译，同一个数字对应的是不同的内存
+              correct: true
+            - text: 是，地址一样就是同一块内存
+              why: 程序看到的地址只是它自己的编号，要翻译以后才知道在内存条的哪里
+            - text: 不可能出现，两个程序的地址一定不同
+              why: 完全可能一样；每个程序都有自己从 0 开始编号的一套地址
+          explain: 这个翻译是硬件做的，这一课讲它和内核分配内存的几种办法。
+      - card:
+          title: 虚拟地址和物理地址
+          body: |
+            跑 Linux 的 CPU 里有一个**内存管理单元（MMU, memory management unit）**。程序和内核用的都是**虚拟地址（virtual address）**，MMU 按**页表（page table）**把它翻译成内存条上的**物理地址（physical address）**。
+
+            内存按页管理，常见的一页是 4096 字节（WSL 里 `getconf PAGESIZE` 实测 4096）。每个进程有自己的页表，所以同一个虚拟地址在不同进程里指向不同的地方；页表里没有映射的地址，一访问就出错。
+      - card:
+          title: 例题：翻译一个地址
+          body: |
+            物理内存也按页切成一格一格，每一格叫一个**页框（page frame）**。页大小 4096 字节，某进程的页表是：虚拟页 0 → 页框 5，虚拟页 1 没有映射，虚拟页 2 → 页框 7。虚拟地址 9029 对应哪个物理地址？
+          reveal:
+            - title: 第 1 步：拆出页号和页内偏移
+              body: |
+                9029 ÷ 4096 = 2 余 837：虚拟页 2，页内偏移 837。
+            - title: 第 2 步：查页表
+              body: |
+                虚拟页 2 映射到页框 7。
+            - title: 第 3 步：拼出物理地址
+              body: |
+                7 × 4096 + 837 = 28672 + 837 = 29509。页内偏移原样保留，只换页号。
+      - item:
+          id: paging-sim
+          type: sim
+          sim: paging
+          params: { pageSize: 4096, vaddr: 5000, table: [3, 6, null] }
+          goal: {}
+          solution: { vpn: 1, offset: 904, paddr: 25480 }
+          prompt: 页大小 4096 字节，页表是：虚拟页 0 → 页框 3，虚拟页 1 → 页框 6，虚拟页 2 没有映射。把虚拟地址 5000 翻译成物理地址。
+          hint: 先算 5000 ÷ 4096 的商和余数。
+          explain: 5000 = 1 × 4096 + 904，虚拟页 1、偏移 904；页框 6，物理地址 6 × 4096 + 904 = 25480。
+      - card:
+          title: 内核空间和用户空间
+          body: |
+            每个进程的虚拟地址分成两部分：一部分给这个进程自己，叫用户空间；另一部分给内核，叫内核空间。所有进程共用同一份内核映射，但用户态的代码碰不了它。
+
+            所以驱动拿到的 `buf` 是用户空间的地址，要用 `copy_to_user` 访问。还有一点：外设做 DMA 时不走 CPU 的页表，驱动要用内核的 DMA 映射接口拿到设备能用的地址，不能把一个虚拟地址直接交给外设。
+      - card:
+          title: 内核怎样管理物理内存
+          body: |
+            内核按页框管理物理内存，最底层是伙伴分配器：每次分配 2 的若干次方个连续的页框，`order` 阶就是 2^order 个页；释放时，把相邻的两块“伙伴”合并成更大的一块，免得内存越分越碎。
+
+            内核里大量的小对象只有几十、几百字节，每次给一整页太浪费，所以上面还有一层 slab 分配器：把页切成同样大小的小格，反复使用。`kmalloc` 就建在它上面。
+      - item:
+          id: slab-why
+          type: choice
+          prompt: 内核已经有能分配整页的伙伴分配器，为什么还要 slab 这一层？
+          options:
+            - text: 内核里大量对象只有几十、几百字节，每次给 4096 字节的整页太浪费，slab 把页切成小格反复用
+              correct: true
+            - text: 伙伴分配器只能给用户程序用
+              why: 伙伴分配器就是内核自己的页分配器
+            - text: slab 能分配比物理内存更大的空间
+              why: 没有哪种分配器能凭空变出物理内存
+          explain: 先按页要内存，再在页里按对象大小切分，是内核里很常见的两层结构。
+      - card:
+          title: 三种分配方式
+          body: |
+            | 函数 | 得到什么 | 用在哪 |
+            |---|---|---|
+            | `kmalloc(size, flags)` | 物理上连续的一小块 | 最常用；单块大小有上限 `KMALLOC_MAX_SIZE` |
+            | `alloc_pages(flags, order)` | 2^order 个连续的页框 | 需要整页、大块连续内存时 |
+            | `vmalloc(size)` | 只保证虚拟地址连续，物理上可以零散 | 很大、只给 CPU 用的缓冲 |
+
+            `flags` 里的 `GFP_KERNEL` 可能为了腾出内存而睡眠，只能在允许睡眠的地方用；中断处理函数里要用 `GFP_ATOMIC`，它不睡眠，但内存紧张时更容易失败。
+      - item:
+          id: gfp-atomic
+          type: choice
+          prompt: 中断处理函数里要临时分配 64 字节。应该怎么写？
+          options:
+            - text: kmalloc(64, GFP_ATOMIC)，并检查返回值是不是 NULL
+              correct: true
+            - text: kmalloc(64, GFP_KERNEL)
+              why: GFP_KERNEL 可能睡眠，中断处理函数里不允许
+            - text: vmalloc(64)
+              why: vmalloc 可能睡眠，不能在中断里用；为 64 字节专门建一段映射也很浪费
+          explain: GFP_ATOMIC 不会睡眠，但更容易失败，所以一定要处理返回 NULL 的情况。更好的做法是在 probe 里提前分配好。
+      - item:
+          id: page-order
+          type: number
+          prompt: 驱动需要一块 20 KB 的物理连续缓冲区，页大小 4 KB，用 alloc_pages(GFP_KERNEL, order) 分配。order 最小取几？
+          answer: 3
+          hint: 20 KB 是 5 页；2 的几次方才不小于 5？
+          explain: 20 ÷ 4 = 5 页。2² = 4 不够，2³ = 8 够，所以 order = 3，实际拿到 32 KB，多出的 12 KB 浪费了。大小不是 2 的幂时，kmalloc 或 vmalloc 往往更合适。
+      - item:
+          id: dma-vmalloc
+          type: choice
+          prompt: 一个简单的 DMA 控制器只能往一段地址连续的物理内存里写数据。驱动给它准备的 1 MB 缓冲区，为什么不能用 vmalloc 分配？
+          options:
+            - text: vmalloc 只保证虚拟地址连续，物理上可能分散在很多页框里，而这个 DMA 控制器只认连续的物理内存
+              correct: true
+            - text: vmalloc 分配不了 1 MB
+              why: vmalloc 正适合分配大块，问题不在大小
+            - text: vmalloc 的内存只能读不能写
+              why: vmalloc 的内存可读可写，问题在于物理上不连续
+          explain: 给这类外设用的缓冲，要用内核的 DMA 分配接口或物理连续的分配方式。
+  - id: rt-memory
+    chapter: 资源
+    title: 实时程序和单片机的内存
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个实时线程在循环里每次 malloc 一块内存，用完 free。大多数时候只要 1 μs，偶尔却要好几毫秒。猜一猜为什么？
+          options:
+            - text: 分配器偶尔要做很多额外的事，比如找合适的空闲块、向内核要新内存，耗时没有上界
+              correct: true
+            - text: malloc 每次都一样快，是测量出了问题
+              why: malloc 的耗时取决于堆当时的状态，确实会偶尔变慢
+            - text: free 会让 CPU 降频
+              why: free 和 CPU 频率无关
+          explain: 实时循环要求每一步的耗时都有上界，而通用的 malloc 不保证这一点。
+      - card:
+          title: 缺页和锁住内存
+          body: |
+            Linux 上分配内存时，往往只先分配虚拟地址；程序第一次访问某一页时，内核才真正给它一个页框。这次访问叫**缺页（page fault）**，要停下来交给内核处理。内存紧张时，页还可能被换出到磁盘，下次访问又要缺页。
+
+            实时程序启动时调用 `mlockall(MCL_CURRENT | MCL_FUTURE)`，把现在和将来映射的页都锁在内存里。man 手册还提醒：进入时间关键的代码之前，要预留并预先访问够用的栈，免得函数调用时触发缺页。
+      - item:
+          id: prefault-stack
+          type: choice
+          prompt: 实时程序已经调用了 mlockall(MCL_CURRENT | MCL_FUTURE)，为什么启动时还要先把栈和缓冲区都访问一遍？
+          options:
+            - text: 让所有缺页都在开始干活之前发生，进入实时循环后就不会再因为第一次访问某一页而停下
+              correct: true
+            - text: 为了检查内存条有没有坏
+              why: 预先访问是为了提前把页分配好，不是为了检测硬件
+            - text: mlockall 只有访问过的内存才算数
+              why: MCL_FUTURE 也锁将来的映射；但页框要到第一次访问时才真正分配，所以要提前碰一下
+          explain: 锁住保证页不会被换出，预先访问保证页已经在内存里，两件事缺一不可。
+      - card:
+          title: 实时循环里的规矩
+          body: |
+            - 不在循环里 malloc、free：启动时一次分配好，或者用固定大小的内存池；
+            - 不做可能缺页的事：第一次访问一个大数组、加载新的库；
+            - 不调用可能长时间阻塞的系统调用。
+
+            Linux 基金会的实时 Linux 文档写着：实时线程在关键路径上应避免动态分配和释放内存，要在进入之前分配好。内核驱动里也一样：时间关键的路径上不分配内存，在 probe 里提前分配好。
+      - card:
+          title: FreeRTOS 的五种堆
+          body: |
+            | 实现 | 特点 |
+            |---|---|
+            | heap_1 | 只分配，不能释放；适合启动时建好所有任务和队列、以后不再删除的系统 |
+            | heap_2 | 能释放，但不合并相邻的空闲块，会产生碎片；官方已视为过时，建议改用 heap_4 |
+            | heap_3 | 包装 C 库的 malloc 和 free，加上线程安全 |
+            | heap_4 | 首次适配，释放时合并相邻的空闲块，最常用 |
+            | heap_5 | 和 heap_4 一样，但能跨几块不相连的内存，比如片内 RAM 加外部 RAM |
+
+            很多安全相关的产品干脆不用动态分配：打开 `configSUPPORT_STATIC_ALLOCATION`，用 `xTaskCreateStatic` 这类函数，任务的栈和控制块都由你静态提供。
+      - item:
+          id: heap-match
+          type: match
+          prompt: 把 FreeRTOS 的堆实现和它的特点配对。
+          pairs:
+            - [heap_1, 只分配，不能释放]
+            - [heap_3, 包装 C 库的 malloc 和 free]
+            - [heap_4, 释放时合并相邻的空闲块]
+            - [heap_5, 能跨几块不相连的内存]
+          explain: 先问自己“运行中要不要释放内存”，不需要就用 heap_1 或静态分配，最省心。
+      - card:
+          title: 例题：碎片
+          body: |
+            一个 1000 字节的堆，像 heap_2 那样释放时不合并（忽略每块的管理开销）。依次分配 A 300、B 300、C 300，还剩 100；然后释放 A 和 B。现在申请 500 字节，能成功吗？
+          reveal:
+            - title: 第 1 步：数空闲空间
+              body: |
+                A 留下的 300、B 留下的 300、末尾的 100，一共 700 字节空闲。
+            - title: 第 2 步：找最大的一块
+              body: |
+                不合并时，最大的连续空闲块只有 300，申请 500 失败。空闲总量够，却没有一块够大，这就是碎片。
+            - title: 第 3 步：换成会合并的 heap_4
+              body: |
+                A 和 B 相邻，释放时合并成 600 的一块，申请 500 成功。
+      - item:
+          id: frag-largest
+          type: number
+          prompt: 一个 1200 字节的堆，用会合并相邻空闲块的 heap_4（忽略管理开销）。依次分配 A 400、B 200、C 400，末尾还剩 200；然后释放 A 和 C。现在最大的连续空闲块有多少字节？
+          answer: 600
+          unit: 字节
+          hint: A 和 C 中间隔着谁？C 后面挨着什么？
+          explain: A 释放后是开头的 400，被 B 隔开；C 的 400 和末尾的 200 相邻，合并成 600。最大的一块是 600。
+      - card:
+          title: 栈要多大才够
+          body: |
+            每个任务的栈都要事先定好大小。小了会溢出，悄悄踩坏别的内存；大了浪费 RAM。
+
+            FreeRTOS 创建任务时把整个栈填满 `0xA5`。`uxTaskGetStackHighWaterMark` 返回这个任务运行以来栈剩余空间的最小值，单位是字，这个值叫栈的高水位。让系统在最坏的情况下跑一阵子再看它：剩得太多可以减小，接近 0 就危险了。
+      - item:
+          id: stack-used
+          type: number
+          prompt: 在 32 位 MCU 上，一个任务的栈深度是 256 字。系统跑了一阵子，uxTaskGetStackHighWaterMark 返回 40。这个任务最多用过多少字节的栈？
+          answer: 864
+          unit: 字节
+          explain: 最少还剩 40 字，所以最多用过 256 − 40 = 216 字，216 × 4 = 864 字节。
+  - id: debugging
+    chapter: 资源
+    title: 驱动调试
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你想知道驱动有没有走到某个分支，可是内核里没有 printf。猜一猜怎么办？
+          options:
+            - text: 用 pr_info 这类函数把信息写进内核日志，再用 dmesg 看
+              correct: true
+            - text: 驱动里没法调试，只能靠猜
+              why: 内核有一整套调试手段，打印只是最简单的一种
+            - text: 在驱动里调用 printf，输出会出现在终端上
+              why: 内核代码不能用 C 语言的标准函数库，也没有终端可写
+          explain: 这一课从最简单的打印讲起，再到查看内部状态、读崩溃信息、单步调试和卡死时的急救。
+      - card:
+          title: 打印
+          body: |
+            | 级别 | 宏 | 简写 |
+            |---|---|---|
+            | 0 | `KERN_EMERG` | `pr_emerg` |
+            | 3 | `KERN_ERR` | `pr_err` |
+            | 4 | `KERN_WARNING` | `pr_warn` |
+            | 6 | `KERN_INFO` | `pr_info` |
+            | 7 | `KERN_DEBUG` | `pr_debug` |
+
+            数字越小越严重。所有消息都进内核日志，用 `dmesg` 看；控制台上只显示比设定级别更重要的那些。`pr_debug` 默认不输出，内核打开动态调试后，可以通过 `/proc/dynamic_debug/control` 按文件、按函数打开。驱动里更推荐 `dev_info`、`dev_err`，它们会自动带上设备名。
+      - item:
+          id: err-level
+          type: number
+          prompt: 内核的 pr_err 打出的消息是第几级？（KERN_EMERG 是 0 级）
+          answer: 3
+          explain: pr_err 对应 KERN_ERR，是 3 级。0 到 7 级里数字越小越严重。
+      - card:
+          title: debugfs
+          body: |
+            想随时看驱动内部的状态，比如计数器、寄存器的值，可以用 debugfs：一个专门给调试用的虚拟文件系统，一般挂在 `/sys/kernel/debug`。驱动用 `debugfs_create_dir`、`debugfs_create_u32` 几行代码就能导出一个变量，在 shell 里 cat 查看。
+
+            内核文档的说法是：sysfs 有“一个文件一个值”这类严格的规矩，debugfs 没有任何规矩。它也不算稳定的接口，正式功能不要依赖它。
+      - item:
+          id: sysfs-or-debugfs
+          type: choice
+          prompt: 驱动要给用户程序提供一个“采样率”设置，产品发布后会一直用。应该放在 sysfs 还是 debugfs？
+          options:
+            - text: sysfs，它是给正式功能用的稳定接口
+              correct: true
+            - text: debugfs，因为写起来更省事
+              why: debugfs 不是稳定接口，有的系统根本不挂载它，正式功能不能依赖它
+            - text: 两个都行，没有区别
+              why: 两者的定位不同：sysfs 给正式功能，debugfs 只供调试
+          explain: debugfs 适合开发时随手导出内部变量；要长期给程序用的设置，按 sysfs 的规矩做。
+      - card:
+          title: 例题：读一段 Oops
+          body: |
+            驱动解引用了一个空指针，内核在 64 位 ARM 上打出这样一段 Oops（节选）：
+
+            ```
+            Unable to handle kernel NULL pointer dereference at virtual address 0000000000000008
+            pc : hello_read+0x24/0x90 [hello]
+            lr : vfs_read+0xa0/0x2c0
+            Call trace:
+             hello_read+0x24/0x90 [hello]
+             vfs_read+0xa0/0x2c0
+             ksys_read+0x6c/0x100
+            ```
+
+            怎样从这里找到出错的那一行？
+          reveal:
+            - title: 第 1 步：看第一行
+              body: |
+                访问的地址是 0x8，很可能是通过一个空指针访问了结构体里偏移 8 的成员。
+            - title: 第 2 步：看 pc
+              body: |
+                出错的指令在 hello 模块的 hello_read 函数里，离函数开头 0x24 字节，这个函数一共 0x90 字节长。
+            - title: 第 3 步：看调用链
+              body: |
+                从下往上读：程序调用 read，经过 ksys_read、vfs_read，进到驱动的 hello_read。
+            - title: 第 4 步：定位到源码行
+              body: |
+                用带调试信息编译的模块，在 gdb 里执行 `list *(hello_read+0x24)`，就能把这个偏移换成源文件的行号。
+      - item:
+          id: oops-offset
+          type: choice
+          prompt: Oops 的第一行是 Unable to handle kernel NULL pointer dereference at virtual address 0000000000000010。最可能的原因是什么？
+          options:
+            - text: 通过一个空指针访问了结构体里偏移 0x10 的成员
+              correct: true
+            - text: 内存条的 0x10 号单元坏了
+              why: 这里的地址是虚拟地址，0x10 离 0 很近，几乎总是空指针加上成员偏移
+            - text: 驱动访问了第 16 号设备
+              why: 地址和设备编号无关
+          explain: 指针是 NULL（0），访问 p->member 时实际地址就是成员的偏移，所以一个很小的地址几乎都指向空指针。
+      - card:
+          title: kgdb
+          body: |
+            难查的问题可以用 kgdb：内核配置里打开它，启动参数加上 `kgdboc=ttyS0,115200`，内核就能通过一个串口和另一台电脑上的 gdb 对话。之后可以像调试普通程序一样设断点、单步执行、查看变量。
+
+            代价是要两台机器、一根串口线，而且停在断点时整个系统都停住了。所以一般先用打印和 debugfs，实在不行再上 kgdb。
+      - card:
+          title: Magic SysRq
+          body: |
+            系统卡住、连 shell 都不响应时，Magic SysRq 还能让内核执行一些紧急命令：通过串口发送 break 再跟一个字母，或者在还能用 shell 时写 `/proc/sysrq-trigger`。
+
+            | 字母 | 作用 |
+            |---|---|
+            | t | 打印所有任务的状态和调用栈，看谁卡在哪里 |
+            | s | 把所有已挂载的文件系统同步到存储 |
+            | u | 把所有文件系统重新挂载成只读 |
+            | b | 立即重启，不同步、不卸载磁盘 |
+      - item:
+          id: sysrq-t
+          type: choice
+          prompt: 板子卡死了，但串口还能收发。你想看看哪个任务卡在了哪里，应该发 SysRq 的哪个字母？
+          options:
+            - text: t
+              correct: true
+            - text: b
+              why: b 立即重启，现场就没了，什么也查不到
+            - text: u
+              why: u 把文件系统改成只读，不显示任务的状态
+            - text: s
+              why: s 只同步文件系统
+          explain: 先用 t 留下现场，再用 s、u、b 依次同步、只读挂载、重启，可以减少文件系统损坏。
+  - id: power
+    chapter: 资源
+    title: 电源管理
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个电池供电的传感器每秒醒来 10 ms 干活，其余时间睡眠。干活时电流 20 mA，睡眠时 10 μA。猜一猜平均电流更接近哪个？
+          options:
+            - text: 约 0.2 mA
+              correct: true
+            - text: 约 10 mA
+              why: 干活时间只占 1%，平均值远低于干活时的电流
+            - text: 约 20 mA
+              why: 那是干活时的电流，只持续 1% 的时间
+          explain: 平均电流按时间加权：20 mA × 1% + 0.01 mA × 99% ≈ 0.21 mA。
+      - card:
+          title: 内核的电源管理一览
+          body: |
+            | 功能 | 做什么 | 内核框架 |
+            |---|---|---|
+            | 时钟 | 外设不用时关掉它的时钟 | 通用时钟框架 clk |
+            | 稳压器 | 打开、关闭、调节外设的供电电压 | regulator |
+            | 动态调频 | 负载低时降低 CPU 的频率和电压 | cpufreq 和它的调速器 |
+            | 空闲省电 | CPU 没事做时进入省电的空闲状态 | cpuidle |
+            | 运行时电源管理 | 单个设备空闲时自动关掉，用到时再打开 | runtime PM |
+            | 挂起和恢复 | 整个系统睡眠，按键或定时器唤醒 | 系统睡眠 |
+
+            驱动要做的，是在这些框架里报告自己什么时候忙、什么时候闲，并在挂起、恢复时保存和恢复设备的状态。
+      - item:
+          id: pm-match
+          type: match
+          prompt: 把要做的事和内核里负责它的框架配对。
+          pairs:
+            - [负载低时降低 CPU 频率, cpufreq]
+            - [CPU 没事做时进入省电状态, cpuidle]
+            - [打开或关闭外设的供电电压, regulator]
+            - [某个设备空闲时自动关掉, runtime PM]
+          explain: 这几个框架各管一层，驱动通常只直接用到 clk、regulator 和 runtime PM。
+      - card:
+          title: 驱动要配合什么
+          body: |
+            系统挂起前，内核调用驱动的 suspend 回调：保存设备状态，关掉它；恢复时调用 resume，重新初始化。
+
+            用运行时电源管理时，驱动在要用设备之前调用 `pm_runtime_get_sync` 让它上电，用完调用 `pm_runtime_put`。使用计数归零后，内核调用驱动的 runtime_suspend 回调把设备关掉。get 和 put 必须成对。
+      - item:
+          id: pm-leak
+          type: choice
+          prompt: 驱动在一条出错返回的路径上调用了 pm_runtime_get_sync，却忘了 pm_runtime_put。会怎样？
+          options:
+            - text: 使用计数永远不会归零，设备一直上电，省不了电
+              correct: true
+            - text: 设备马上断电，后面的访问会出错
+              why: 正好相反：多了一次 get，计数降不到 0，设备不会被关掉
+            - text: 没有影响，内核会自动补上 put
+              why: 内核不知道你什么时候用完，必须由驱动自己调用 put
+          explain: 和锁、内存一样，电源的引用计数在每条出错路径上都要成对处理。
+      - card:
+          title: 例题：平均电流和电池寿命
+          body: |
+            一个传感器节点每 1 秒为一个周期：干活 10 ms，电流 20 mA；其余 990 ms 睡眠，电流 10 μA。电池 1000 mAh，忽略自放电。能用多久？
+          reveal:
+            - title: 第 1 步：按时间加权求平均电流
+              body: |
+                20 × 0.01 + 0.010 × 0.99 = 0.2 + 0.0099 = 0.2099 mA。
+            - title: 第 2 步：算寿命
+              body: |
+                1000 ÷ 0.2099 ≈ 4764 小时，约 198.5 天。
+            - title: 第 3 步：看哪部分最费电
+              body: |
+                睡眠只贡献 0.0099 mA，不到 5%。想再省电，先缩短干活的时间或降低干活的电流。
+      - item:
+          id: avg-current
+          type: number
+          prompt: 一个传感器节点每 1 秒干活 5 ms，电流 20 mA；其余时间睡眠，电流 10 μA。平均电流是多少 mA？（保留 3 位小数）
+          answer: 0.11
+          tolerance: 0.001
+          unit: mA
+          explain: 20 × 0.005 + 0.010 × 0.995 = 0.1 + 0.00995 = 0.10995 ≈ 0.110 mA。
+      - card:
+          title: 省电和实时的矛盾
+          body: |
+            降频和深度空闲状态能省电，却会增加延迟：频率低了代码跑得慢，空闲状态越深醒来越慢。
+
+            实时系统常见的做法：固定 CPU 频率；限制 CPU 能进入的最深空闲状态，只允许退出延迟比时限短的那几种；或者只在不跑实时任务的核上省电。
+      - item:
+          id: idle-limit
+          type: choice
+          prompt: 一个设备要求中断来了 50 μs 内必须开始处理。某块板子上，CPU 最深的空闲状态退出延迟是 300 μs。该怎么办？
+          options:
+            - text: 禁止 CPU 进入退出延迟超过 50 μs 的空闲状态
+              correct: true
+            - text: 不用管，空闲状态只影响功耗
+              why: 从 300 μs 退出延迟的状态醒来，单是醒来就超过了 50 μs 的要求
+            - text: 把 CPU 频率调到最低来省电
+              why: 降频只会让处理更慢，和要求背道而驰
+          explain: 省电的状态要按实时要求挑着用：退出延迟比时限还长的，就不能让 CPU 进去。
+  # ---------------------------------------------------------------- 可靠性与硬件软件协同
+  - id: watchdog
+    chapter: 可靠性与硬件软件协同
+    title: 看门狗和栈溢出检测
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一台设备装在野外，软件偶尔会卡死，又没有人能去按复位键。猜一猜：怎样让它自己恢复？
+          options:
+            - text: 用一个独立计时的硬件计数器：软件正常时定期把它重新装满，软件卡死不再装了，它数到 0 就复位芯片
+              correct: true
+            - text: 让主程序每隔一会儿检查一下自己有没有卡死
+              why: 主程序已经卡死了，就没法再执行“检查自己”的代码
+            - text: 用更快的 CPU，就不会卡死
+              why: 卡死多半来自软件错误或干扰，和 CPU 速度无关
+          explain: 卡死的软件救不了自己，必须靠一个不依赖它的硬件来兜底。
+      - card:
+          title: 看门狗
+          body: |
+            **看门狗（watchdog）**是一个独立计时的硬件计数器：启动后一直往下数，数到 0 就复位芯片。软件正常运行时定期把它重新装满，俗称喂狗；软件卡死、跑飞了，不再喂，它就把系统复位。
+
+            STM32 的独立看门狗（IWDG）用内部的低速振荡器 LSI 计时，标称 32 kHz。ST 的驱动注释写着：它因此在主时钟出故障时也照样工作；而且一旦启动就关不掉，只有复位能让它停下。
+      - card:
+          title: 例题：算看门狗的超时时间
+          body: |
+            IWDG 先把 LSI 分频（可选 4、8、16、32、64、128、256），再从 12 位的重装值 RLR（0 到 4095）往下数。LSI 按 32 kHz 算，分频选 64，RLR 写 999，多久不喂狗就会复位？
+          reveal:
+            - title: 第 1 步：算计数频率
+              body: |
+                32000 ÷ 64 = 500 Hz，每数一下要 2 ms。
+            - title: 第 2 步：算一共数几下
+              body: |
+                从 999 数到 0 再到复位，一共 999 + 1 = 1000 下，1000 × 2 ms = 2000 ms，也就是 2 秒。
+            - title: 第 3 步：核对范围
+              body: |
+                按同样的算法，分频 4、RLR 0 时是 1 × 4 ÷ 32000 s = 125 μs；分频 256、RLR 4095 时是 4096 × 256 ÷ 32000 = 32.768 s。ST 驱动注释写的范围是约 125 μs 到约 32.7 s，和这个算法对得上。LSI 是 RC 振荡器，实际频率有偏差（看芯片数据手册），喂狗间隔要留足余量，比如每 500 ms 喂一次。
+      - item:
+          id: wdt-timeout
+          type: number
+          prompt: STM32 的 IWDG，LSI 按 32 kHz 算，分频选 32，重装值 RLR 写 4095。多少毫秒不喂狗就会复位？
+          answer: 4096
+          unit: ms
+          hint: 先算每数一下多久，再算一共数几下。
+          explain: 32000 ÷ 32 = 1000 Hz，每下 1 ms；从 4095 数完一共 4096 下，所以是 4096 ms。
+      - item:
+          id: wdt-lsi
+          type: choice
+          prompt: STM32 的独立看门狗为什么用片内单独的低速振荡器 LSI 计时，而不用系统主时钟？
+          options:
+            - text: 主时钟出了故障时，看门狗照样能数完并复位芯片
+              correct: true
+            - text: LSI 比主时钟精确得多
+              why: LSI 是 RC 振荡器，精度并不高；用它是为了独立，不是为了精确
+            - text: 主时钟太快，计数器装不下
+              why: 加大分频就能解决；关键是不依赖可能出故障的主时钟
+          explain: 看门狗的价值在于独立：它依赖的东西越少，越能在别的部分出问题时兜底。
+      - card:
+          title: 在哪里喂狗
+          body: |
+            最省事的写法是在一个定时器中断里喂狗。但这样只要中断还在跑，即使主程序或某个任务已经卡死，狗照样被喂着，看门狗就白装了。
+
+            多任务系统里常这样做：每个重要的任务定期在自己的标志位上“打卡”；一个监视任务检查所有任务都打过卡，才去喂狗。有一个没打卡就不喂，让看门狗复位。
+      - item:
+          id: wdt-isr
+          type: choice
+          prompt: 有人把喂狗放进了 1 ms 的定时器中断里。这样做的问题是什么？
+          options:
+            - text: 某个任务卡死时，定时器中断仍在照常喂狗，看门狗起不到作用
+              correct: true
+            - text: 1 ms 喂一次太频繁，会把看门狗喂坏
+              why: 喂得勤不会损坏看门狗；问题在于喂狗的地方不能反映程序是否正常
+            - text: 中断里不允许写看门狗的寄存器
+              why: 写寄存器本身没问题，问题出在逻辑上
+          explain: 喂狗这件事要证明“程序真的在正常工作”，所以要由所有关键任务都正常这件事来决定。
+      - card:
+          title: 栈溢出检测
+          body: |
+            栈溢出是嵌入式系统里最隐蔽的故障之一：它不给出任何错误提示，只是悄悄改坏旁边的内存。FreeRTOS 的 `configCHECK_FOR_STACK_OVERFLOW`：设成 1，在切换任务时检查栈指针有没有越界；设成 2，再检查栈末尾 16 个字节的已知填充值有没有被改写。发现溢出就调用你写的 `vApplicationStackOverflowHook`，可以在里面记下是哪个任务，然后复位。
+
+            带 MPU 的 Cortex-M3、M4 一般有 8 个保护区域。用 FreeRTOS-MPU 可以限制任务只能访问自己的栈等区域；Arm 的手册写着，违反 MPU 的访问会触发 MemManage 故障。
+      - item:
+          id: overflow-m2
+          type: choice
+          prompt: FreeRTOS 的栈溢出检查，方法 2 比方法 1 多做了什么？
+          options:
+            - text: 检查栈末尾 16 个字节的已知填充值有没有被改写
+              correct: true
+            - text: 在每条指令执行后检查栈指针
+              why: 那样太慢了；两种方法都只在切换任务时检查
+            - text: 用 MPU 硬件拦住越界访问
+              why: 那是 FreeRTOS-MPU 的做法，不是这个配置项
+          explain: 栈指针此刻没越界，不代表刚才没越过；方法 2 检查末尾的填充值，能发现“曾经越过界又退回来”的情况。
+  - id: recovery
+    chapter: 可靠性与硬件软件协同
+    title: 安全升级、数据校验和故障记录
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 给野外的设备远程升级固件，写到一半突然断电。猜一猜：怎样设计才不会让设备变成砖头？
+          options:
+            - text: 保留旧固件，新固件写进另一块区域，确认它能正常启动后才切换过去
+              correct: true
+            - text: 写得快一点，断电的概率就小了
+              why: 再快也有可能断电，可靠的设计要保证任何时刻断电都能恢复
+            - text: 先擦掉旧固件腾出空间，再写新的
+              why: 擦掉之后、写完之前断电，设备上就没有能运行的固件了
+          explain: 可靠升级的原则：任何时刻断电，设备上都至少有一份能启动的固件。
+      - card:
+          title: A/B 分区
+          body: |
+            A/B 更新把固件存两份：当前从 A 运行，新固件写进 B，写完并校验通过，才告诉引导程序下次从 B 启动。新固件起不来，或者没有确认自己正常，就回到 A。
+
+            单片机上常用 MCUboot：新镜像先以“测试”方式换上运行；文档写着，除非这次交换被设为永久，下次启动时会换回原来的镜像。应用自检通过后调用 `boot_set_confirmed()` 确认，才算转正。嵌入式 Linux 有 RAUC、SWUpdate 这类工具；Android 的 A/B 更新叫无缝更新。
+      - item:
+          id: ab-order
+          type: order
+          prompt: 把一次 A/B 固件更新的步骤排好。
+          steps:
+            - 在 A 上运行时，把新固件下载写进 B
+            - 校验 B 的完整性和签名
+            - 设置下次从 B 以测试方式启动
+            - 重启，从 B 启动并自检
+            - 自检通过就确认 B，否则下次启动回到 A
+          explain: 每一步出问题，设备都还有 A 可以用；只有 B 证明自己能正常工作，才会取代 A。
+      - item:
+          id: unconfirmed
+          type: choice
+          prompt: 用 MCUboot 做 A/B 更新，新固件以测试方式启动后一直卡死，没能调用 boot_set_confirmed()，看门狗把芯片复位了。接下来会怎样？
+          options:
+            - text: MCUboot 发现新镜像没被确认，把原来的镜像换回来启动
+              correct: true
+            - text: 继续尝试启动新固件，直到它成功
+              why: 测试启动只有一次机会，没确认就回退，这正是为了防止变砖
+            - text: 设备停在引导程序里，等人来处理
+              why: 回退是自动的，不需要人
+          explain: 看门狗和“测试后确认”配合：新固件卡死，看门狗复位，引导程序回退，设备自己回到能用的旧版本。
+      - card:
+          title: 校验和冗余
+          body: |
+            Flash 里的配置和数据可能因为写到一半断电、位翻转而损坏。常见做法是给每块数据加一个 CRC 校验值，读出时重新计算、比较。Koopman 的研究写着，常用的这几类 CRC 都能检出长度不超过 CRC 位数的突发错误，比如 CRC-32 能检出连续 32 位以内的错。
+
+            关键数据存两份。写入时先写备份、再写主份；读出时 CRC 不对的那份，用另一份恢复。
+      - card:
+          title: 例题：两份配置怎样扛住断电
+          body: |
+            配置存两份 A、B，各带 CRC，放在 Flash 的两个不同扇区。更新时先写 B 再写 A。分析任何时刻断电的结果。
+          reveal:
+            - title: 写 B 的过程中断电
+              body: |
+                B 写了一半，CRC 对不上；A 还是旧的、完好的。上电后用 A，再把 A 复制回 B。
+            - title: 写 A 的过程中断电
+              body: |
+                A 写了一半，CRC 对不上；B 已经是新的、完好的。上电后用 B，再把 B 复制回 A。
+            - title: 结论
+              body: |
+                任何时刻都至少有一份 CRC 正确的配置。两份放在不同扇区，是因为 Flash 按扇区擦除：放在同一个扇区里，一次擦除两份就都没了。
+      - item:
+          id: crc-pick
+          type: choice
+          prompt: 配置存两份 A、B，各带 CRC。上电时发现 A 的 CRC 不对，B 的对。应该怎么做？
+          options:
+            - text: 用 B，并用 B 重新写好 A
+              correct: true
+            - text: 用 A，CRC 偶尔出错可以忽略
+              why: CRC 不对说明 A 的内容很可能坏了，用它可能让设备出错
+            - text: 两份都丢掉，恢复出厂设置
+              why: B 是好的，没必要丢掉用户的配置
+          explain: 冗余的意义就是坏一份还能用另一份，并且尽快把坏的那份修好，恢复成两份都可用。
+      - card:
+          title: 记录故障，事后能查
+          body: |
+            复位能让设备恢复，却不告诉你原因。芯片一般有复位原因的标志位，比如 STM32 的 HAL 能分别读出上电复位、复位引脚、软件复位、独立看门狗复位、窗口看门狗复位这几种。
+
+            可靠的设备会在启动时读出复位原因，连同出事前记下的线索（哪个任务没打卡、栈溢出钩子记下的任务名、出错时的寄存器）一起存进一块掉电不丢的日志区，下次联网时上报。
+      - item:
+          id: wdt-log
+          type: choice
+          prompt: 设备每隔几天复位一次，日志显示复位原因都是独立看门狗。下一步最该做什么？
+          options:
+            - text: 查看门狗复位前记下的信息，找出是哪个任务没有按时打卡
+              correct: true
+            - text: 把看门狗超时改成 1 小时
+              why: 这只是让复位来得更晚，卡死的问题还在
+            - text: 关掉看门狗
+              why: 关掉后设备卡死就再也恢复不了
+          explain: 看门狗复位是症状，要找的是哪段代码让任务停止了打卡。
+      - card:
+          title: 硬件和软件一起设计
+          body: |
+            可靠性要硬件和软件一起考虑：
+
+            - 传感器、执行器的驱动做成独立的构件，上层只调用“读温度”“设转速”这类接口，换芯片只改驱动；
+            - 关键外设上电后先自检，读一读芯片的身份寄存器，确认它真的在；
+            - 外接的电机、继电器要考虑软件跑飞或复位时处在什么状态：比如复位期间引脚是输入，电机驱动的使能脚就要接下拉电阻，保证这时电机是停的。
+      - item:
+          id: safe-pin
+          type: choice
+          prompt: 某款单片机复位期间和复位后，引脚都是没有上下拉的输入状态。电机驱动芯片的使能脚高电平时电机转动。使能脚应该怎么接，才能保证复位期间电机不乱转？
+          options:
+            - text: 接一个下拉电阻到地
+              correct: true
+            - text: 接一个上拉电阻到电源
+              why: 复位期间引脚不驱动，上拉会把使能脚拉高，电机反而转起来
+            - text: 什么都不接，悬空
+              why: 悬空的输入电平不确定，可能被干扰成高电平，电机会时转时停
+          explain: 软件还没接管引脚时，由硬件上的电阻决定安全状态。这就是硬件和软件一起设计的一个小例子。
+boss:
+  items:
+    - id: boss-chain
+      type: order
+      prompt: 把一块 ARM 板子从上电到 init 运行的启动链排好。
+      steps:
+        - 片内 ROM 代码从启动介质读入 SPL
+        - SPL 设置好 DRAM，加载完整的 U-Boot
+        - U-Boot 把内核和设备树读进内存
+        - 内核初始化，按设备树配对驱动
+        - 内核挂载根文件系统
+        - 运行 init，成为 1 号进程
+      explain: ROM 代码只会读介质，SPL 解决 DRAM，U-Boot 准备内核和设备树，内核准备驱动和文件系统，init 启动其余一切。
+    - id: boss-bss
+      type: number
+      prompt: 单片机的 map 文件里，_sbss = 0x20000080，_ebss = 0x20000280。启动代码要清零多少字节？
+      answer: 512
+      unit: 字节
+      explain: 0x20000280 − 0x20000080 = 0x200 = 512 字节。
+    - id: boss-copy
+      type: choice
+      prompt: 字符设备驱动的 read 函数里，copy_to_user(buf, data, n) 的返回值不是 0。驱动该怎么做？
+      options:
+        - text: 返回 -EFAULT：返回值是没能复制的字节数，说明用户给的地址有问题
+          correct: true
+        - text: 把返回值原样返回给程序，表示读到了这么多字节
+          why: 返回值是没复制的字节数，不是复制了多少
+        - text: 忽略它，返回 n
+          why: 数据没有完整复制到用户的缓冲区，却报告成功，程序会读到错误的数据
+        - text: 改用 memcpy 直接复制到 buf
+          why: 驱动不能直接对用户空间的地址解引用，必须用 copy_to_user
+      explain: 内核源码里 copy_to_user 全部成功返回 0，否则返回剩下没复制的字节数。
+    - id: boss-probe
+      type: choice
+      prompt: 设备树里有一个启用的节点，compatible = "acme,adc-v2", "acme,adc"，pinctrl-0 指向它的引脚设置；内核里有一个 of_match_table 含 "acme,adc" 的平台驱动。下面哪句对？
+      options:
+        - text: 驱动能配上这个节点；内核先把 default 引脚设置写进硬件，再调用驱动的 probe
+          correct: true
+        - text: 配不上，compatible 必须和第一个字符串完全一致
+          why: 节点列出的任何一个 compatible 和驱动表对上都行
+        - text: 能配上，但 probe 要等用户程序打开设备文件时才调用
+          why: 绑定发生在设备和驱动配对的时候，和用户程序无关
+        - text: 能配上，但驱动必须在 probe 里自己设置引脚复用
+          why: 设备核心在 probe 之前已经调用 pinctrl_bind_pins 应用了 default 设置
+      explain: 节点 compatible 里的任意一项对上就能配对；pinctrl 的 default 状态由内核在 probe 前设好。
+    - id: boss-rta
+      type: number
+      prompt: 三个任务按 RM 排优先级，截止时间等于周期：τ1 (C=1, T=5)，τ2 (C=2, T=8)，τ3 (C=5, T=20)，单位 ms。用响应时间分析算 τ3 的最坏响应时间。
+      answer: 12
+      unit: ms
+      explain: 从 5 开始反复代入 5 + ⌈R/5⌉×1 + ⌈R/8⌉×2：5 → 8 → 9 → 11 → 12 → 12，R3 = 12 ≤ 20，来得及。
+    - id: boss-inversion
+      type: number
+      prompt: 单核，固定优先级抢占，锁没有优先级继承。L（优先级 1）在 0 ms 就绪并立即加锁，临界区运行 4 ms 后解锁结束。H（优先级 3）在 1 ms 就绪，要先拿这把锁，拿到后运行 2 ms。M（优先级 2）在 2 ms 就绪，运行 6 ms，不用锁。H 从就绪到完成用了多少 ms？
+      answer: 11
+      unit: ms
+      explain: 0–2 L（1 ms 时 H 被锁挡住），2–8 M，8–10 L 跑完临界区并解锁，10–12 H。H 在 1 ms 就绪、12 ms 完成，用了 11 ms；有优先级继承时只要 5 ms。
+    - id: boss-queue
+      type: choice
+      prompt: FreeRTOS 里，高优先级的采样任务用 xQueueSend(q, &v, 0) 往队列里放数据。队列满了时会怎样？为什么这样写？
+      options:
+        - text: 立即返回 errQUEUE_FULL；采样任务不能因为等队列而错过下一次采样，宁可丢掉这个数并计数
+          correct: true
+        - text: 一直阻塞到有空位，保证一个数据都不丢
+          why: 等待时间写 0 就是不等；为了不丢数据而阻塞，会让采样错过时刻
+        - text: 覆盖最旧的数据
+          why: 覆盖要用 xQueueOverwrite，只用于长度为 1 的队列
+        - text: 自动把队列扩大一倍
+          why: FreeRTOS 的队列长度在创建时就固定了
+      explain: 生产者不等、消费者一直等，是周期采样加异步发送的常见组合。
+    - id: boss-irq
+      type: choice
+      prompt: 一颗 SPI 接口的传感器，数据准备好时拉低中断线，驱动要通过 SPI 把数据读出来。Linux 驱动应该怎样处理这个中断？
+      options:
+        - text: 用 request_threaded_irq：上半部只返回 IRQ_WAKE_THREAD，在线程函数里做 SPI 读取
+          correct: true
+        - text: 在中断处理函数里直接做 SPI 读取
+          why: SPI 传输要等待，可能睡眠，中断上下文不允许睡眠
+        - text: 在中断处理函数里用 mutex 保护 SPI 总线再读取
+          why: mutex 拿不到会睡眠，同样不能在中断处理函数里用
+        - text: 在中断处理函数里调用 kmalloc(size, GFP_KERNEL) 分配缓冲再读
+          why: GFP_KERNEL 可能睡眠，而且 SPI 读取本身也不能在上半部做
+      explain: 总线上的芯片几乎都用线程化中断：上半部什么都不做，线程里可以睡眠。
+    - id: boss-order
+      type: number
+      prompt: 驱动要用 alloc_pages 分配一块 40 KB 的物理连续缓冲区，页大小 4 KB。order 最小取几？
+      answer: 4
+      explain: 40 ÷ 4 = 10 页，2³ = 8 不够，2⁴ = 16 够，所以 order = 4。
+    - id: boss-wdt
+      type: number
+      prompt: STM32 的 IWDG，LSI 按 32 kHz 算，分频选 128，重装值 RLR 写 2499。多少秒不喂狗就会复位？
+      answer: 10
+      unit: 秒
+      explain: 32000 ÷ 128 = 250 Hz，每下 4 ms；一共数 2499 + 1 = 2500 下，2500 × 4 ms = 10000 ms = 10 秒。
+    - id: boss-ab
+      type: choice
+      prompt: 一台设备用 A/B 分区升级：新固件写进 B，以测试方式启动，自检通过才确认。新固件启动后卡死，没能确认，看门狗把芯片复位了。接下来会怎样？
+      options:
+        - text: 引导程序发现 B 没被确认，回到 A 启动，设备恢复到旧版本
+          correct: true
+        - text: 引导程序继续启动 B，直到它成功
+          why: 测试启动只给一次机会，没确认就回退，否则设备会一直卡在坏固件上
+        - text: 设备变砖，只能返厂
+          why: A 一直完好地留着，回退是自动的
+        - text: 引导程序把 A 也擦掉，等待重新下载
+          why: A 是唯一能用的固件，引导程序不会动它
+      explain: 看门狗负责发现卡死，测试后确认负责决定回退，两者合起来，升级出任何问题设备都能回到旧版本。

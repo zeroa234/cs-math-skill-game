@@ -1813,7 +1813,7 @@ lessons:
       - card:
           title: 单周期 RISC-V 的控制信号
           body: |
-            Patterson 和 Hennessy 的教材里，单周期 RISC-V 用这几个控制信号（原技能树的练习也用这套名字）：
+            Patterson 和 Hennessy 的教材里，单周期 RISC-V 用这几个控制信号：
 
             | 信号 | 为 1 时 |
             |---|---|

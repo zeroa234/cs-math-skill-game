@@ -74,16 +74,16 @@ lessons:
               why: 宽表合法建得出来，灾难全出在“把两三个独立事物的事实重复绑在同一行”导致的一致性撕裂
             - text: 因为 Python 字典绝对不准保存学生专业名称
               why: 问题出在数据结构设计冗余耦合，不在编程语言语法限制
-          explain: 要想把事实清晰地分门别类只存一次，就需要从 **数据建模**（第 1 节）起步，先把真实世界理顺再建表。
+          explain: 要想把事实清晰地分门别类只存一次，就需要从 **数据建模**起步，先把真实世界理顺再建表。
       - card:
-          title: 数据建模的三步阶梯：概念 → 逻辑 → 物理（1）
+          title: 数据建模的三步阶梯：概念 → 逻辑 → 物理
           body: |
             把一团模糊的业务需求变成稳固好用的数据库表，专业团队走三步阶梯：
             1. **概念设计**：忘掉 SQL 和表格列类型，先站在业务视角看清有哪些独立事物（如学生、课程）以及它们之间如何联系；
             2. **逻辑设计**：把概念图翻成带有**主键**、**外键**与约束规则的关系模式骨架；
             3. **物理设计**：落进具体数据库产品（SQLite/PostgreSQL）挑选具体类型与物理存算优化（物理调优衔接后继 `D.1.2`）。
       - card:
-          title: 概念里的两个最小积木：实体与属性（1）
+          title: 概念里的两个最小积木：实体与属性
           body: |
             开始梳理业务前先拎清两个基础概念：
             - **实体（Entity）**：现实里需要长期追踪、能彼此明确区分的独立对象（如每名“学生”、每门“课程”）；
@@ -100,9 +100,9 @@ lessons:
             - [删除异常, 某位同学把仅剩的 1 门选修课退选并删掉该行后，连带把这位学生本人的档案记录都抹得一干二净]
           explain: 插入、更新、删除三大异常全都源自同一个根：没有把独立实体和它们之间的关联拆开单独存放。
       - card:
-          title: 例题：给综合练习的选课场景（Student / Course / Enroll）先做概念拆分
+          title: 例题：给选课场景（Student / Course / Enroll）先做概念拆分
           body: |
-            假设要做一个高校选课系统：需要记录学生（学号、姓名、专业）、课程（课号、课程名、学分），以及哪位学生选了哪门课并取得了多少分。刚起步应该怎样按第 1 节做三阶段建模？
+            假设要做一个高校选课系统：需要记录学生（学号、姓名、专业）、课程（课号、课程名、学分），以及哪位学生选了哪门课并取得了多少分。刚起步应该怎样按“概念、逻辑、物理”三阶段建模？
           reveal:
             - title: 第 1 步：识别“实体”与附着在“联系”上的属性
               body: “学生”和“课程”是各自独立存在的**实体**；而 `成绩 (grade)` 既不属于学生自己固定不变（选十门课有十个分数），也不属于课程自己（一百人选有百个分数）——成绩精确属于“某学生选修某门课”这条联系本身！
@@ -144,7 +144,7 @@ lessons:
 
   - id: entities
     chapter: 实体关系
-    title: ER 模型、基数与可选/强制参与约束（综合练习 1）
+    title: ER 模型、基数与可选/强制参与约束
     minutes: 13
     flow:
       - guess:
@@ -158,16 +158,16 @@ lessons:
               why: '`1:N` 可以直接在多的一方挂一列归属编号，而 `M:N` 必须单独拆出一张中间关联表——画错连线基数，建出来的表结构全盘崩溃！'
             - text: 把所有关系连线规定全都不准超过两个对象出现
               why: ER 模型正靠基数和连接性（Cardinality & Connectivity）精准刻画 1:1、1:N 和 M:N 三类关联形态
-          explain: 看清 **实体-联系模型（ER Model）** 的基数与参与度，你就掌握了从业务故事翻译出正确表结构的语言（3、4.9–4.12、5 节）。
+          explain: 看清 **实体-联系模型（ER Model）** 的基数与参与度，你就掌握了从业务故事翻译出正确表结构的语言。
       - card:
-          title: 关系类型与基数三兄弟：1:1、1:N、M:N（4.9–4.10）
+          title: 关系类型与基数三兄弟：1:1、1:N、M:N
           body: |
             在 ER 建模（第 3、5 章）里，用 **基数（Cardinality）** 与连接性精准回答“一头的一个实体，最多对应另一头几个实体？”：
             - **`1:1`（一对一）**：一名公民最多对应一本当前有效护照；
             - **`1:N`（一对多）**：一个部门拥有多名员工，每名员工只属于一个部门；
-            - **`M:N`（多对多）**：如综合练习 1 的“学生选课”——一名学生可选多门课，一门课同时也有多名学生选！
+            - **`M:N`（多对多）**：如“学生选课”——一名学生可选多门课，一门课同时也有多名学生选！
       - card:
-          title: 最小基数：可选（Optional `0..`）vs 强制（Mandatory `1..`）（4.11–4.12）
+          title: 最小基数：可选（Optional `0..`）vs 强制（Mandatory `1..`）
           body: |
             光看“最多几个（1 还是 N）”不够，还要看“最少允许几个（0 还是 1）”：
             - **可选参与（Optional，`0..1` 或 `0..N`）**：比如一个刚报到还没选课的学生（像验证样本里的学生 `S3`），他在 `Enroll` 选课里出现次数允许是 `0`！或一门刚新建的课程暂无任何学生选；
@@ -183,9 +183,9 @@ lessons:
             - [一名新生刚入学暂未选课（在选课关联中允许 0 条记录）, 可选参与（Optional `0..N`）]
           explain: 先分清最大基数（1:1 / 1:N / M:N），再看最小基数是否允许 `0`（可选 vs 强制），ER 图的骨架就立起来了！
       - card:
-          title: 例题：完整画出并解释综合练习第 (1) 题 Student / Course / Enroll 的 ER 语义
+          title: 例题：完整画出并解释 Student / Course / Enroll 的 ER 语义
           body: |
-            对照综合练习第 (1) 题与验证样本（`Student` 有 S1..S4，`Course` 有 C1..C3，`Enroll` 有选课和成绩）：怎么用精确 ER 语言描述它们的关系与可选/强制规则？
+            用一份样本数据（`Student` 有 S1..S4，`Course` 有 C1..C3，`Enroll` 有选课和成绩）：怎么用精确 ER 语言描述它们的关系与可选/强制规则？
           reveal:
             - title: 第 1 步：看清学生与课程之间的“多对多（M:N）”直接联系
               body: 一名学生可以选多门课程（`S1` 选了 C1、C2、C3 共三门）；一门课程也可以被多名学生选修（`C1 Databases` 被 `S1` 和 `S2` 同时选修）。因此学生与课程之间在概念上是一个带有 `grade` 成绩属性的 **M:N（多对多）** 联系！
@@ -230,30 +230,30 @@ lessons:
 
   - id: mapping
     chapter: 实体关系
-    title: 关系模型核心术语与 ER 到关系模式映射（综合练习 1）
+    title: 关系模型核心术语与 ER 到关系模式映射
     minutes: 13
     flow:
       - guess:
           id: guess
           type: choice
-          prompt: ER 图画出框和连线给团队确认好业务以后，下一步就要真正转换成数据库引擎能识别的二维表格模式了。在关系模型（2.1–2.7 节）的正式数学与工程语言里，表格里的“一列”、“一行”、“列的总数”以及“每一行绝不完全重复”，各自有什么严谨讲究？
+          prompt: ER 图画出框和连线给团队确认好业务以后，下一步就要真正转换成数据库引擎能识别的二维表格模式了。在关系模型的正式数学与工程语言里，表格里的“一列”、“一行”、“列的总数”以及“每一行绝不完全重复”，各自有什么严谨讲究？
           options:
             - text: “表”即**关系**，“一列”对应**属性**与允许**域**，“一行”是一个**元组（记录）**，“列数”称作**元数（Degree）**，并且合法关系里行没有先后顺序也不准两行全同
               correct: true
             - text: 数据库里的表格要求必须按首字母从小到大永久固定第一行到最后一行，改了行顺序就不算同一张表
-              why: 在严格的关系模型定义里（2.7 节），关系表体是一个**集合**——行与行之间的物理排放上下顺序没有任何逻辑意义
+              why: 在严格的关系模型定义里，关系表体是一个**集合**——行与行之间的物理排放上下顺序没有任何逻辑意义
             - text: 可以往同一列里同时放一条整数、一张大表格和三个并排字符串列表
               why: 关系表每个格子只取来自该列**域**里的不可再分单一值（原子值），同列共享同一域定义
-          explain: 学完第 2.1–2.7 节的关系模型基本词汇，再把 ER 图稳稳映射成标清**主键**与**外键**的关系模式骨架（综合练习第 1 题）。
+          explain: 学完关系模型的基本词汇，再把 ER 图稳稳映射成标清**主键**与**外键**的关系模式骨架。
       - card:
-          title: 关系模型七件词汇与表的五大性质（2.1–2.7）
+          title: 关系模型七件词汇与表的五大性质
           body: |
             把直观“Excel 表格”翻译成严谨的**关系**模型语言：
             - **表（Table）** ↔ **关系（Relation）**；**列（Column）** ↔ 属性，每列受固定**域（Domain）**数据类型与范围制约；
             - **行（Record）** ↔ Python 里常见的不可变多列组合值 **元组（Tuple）**；列的总个数叫关系的**元数（Degree）**；
-            - **表的核心性质（2.7）**：表名不重、同一张表列名不重、**行的顺序无关、列的顺序无语义、同一表里绝不允许出现两行完全一样的重复元组**（由主键保证）。
+            - **表的核心性质**：表名不重、同一张表列名不重、**行的顺序无关、列的顺序无语义、同一表里绝不允许出现两行完全一样的重复元组**（由主键保证）。
       - card:
-          title: ER 映射三步规则：强实体 + 一对多 + 多对多关联表（综合练习 1）
+          title: ER 映射三步规则：强实体 + 一对多 + 多对多关联表
           body: |
             把 ER 图机械精准翻成关系表只需三条规则：
             1. 每个强实体变成一张表，实体所有单值属性作列，挑出唯一标识作**主键**（例如 `Student(sid, name, major)` 主键为 `sid`，`Course(cid, title, credits)` 主键为 `cid`）；
@@ -262,7 +262,7 @@ lessons:
       - item:
           id: q-table-terms-match
           type: match
-          prompt: 把第 2.1–2.7 节关系模型专业术语与对应结构特征配对。
+          prompt: 把关系模型的专业术语与对应结构特征配对。
           pairs:
             - ["**关系（Relation） / 表**", 按同一组列结构排列、无序且行行互异的数据集合]
             - ["**域（Domain）**", 限定某列所有行允许取值的数据类型和合法范围集合]
@@ -270,7 +270,7 @@ lessons:
             - ["**元数（Degree）**", "一张表里定义出来的列（属性）总数，例如 `Enroll(sid, cid, grade)` 元数为 3"]
           explain: 熟悉“关系、元组、域、元数、主键、外键”这套标准词表，后续看任意数据库课本和教材（如 CMU 15-445 与王珊教材）都能无缝衔接。
       - card:
-          title: 例题：验证综合练习第 (1) 题映射出的三表骨架及各键分工
+          title: 例题：验证选课 ER 图映射出的三表骨架及各键分工
           body: |
             对照 `Student(sid, name, major)`、`Course(cid, title, credits)` 与 `Enroll(sid, cid, grade)`，如果只写成单列主键会出什么事故？用两步检验：
           reveal:
@@ -293,7 +293,7 @@ lessons:
       - item:
           id: q-table-properties
           type: choice
-          prompt: 根据关系模型中表的基本性质（2.7 节），以下哪项陈述是**错误**的？
+          prompt: 根据关系模型中表的基本性质，以下哪项陈述是**错误**的？
           options:
             - text: 数据库在没有写 `ORDER BY` 排序子句时，也依然保证表中行记录永远按插入时间严格排序且具有隐含的“第 1 行语义”
               correct: true
@@ -324,7 +324,7 @@ lessons:
       - guess:
           id: guess
           type: choice
-          prompt: '你在 SQL 里写 `SELECT name FROM Student`，表里刚好有 `S1: Mei` 和 `S4: Mei` 两位重名同学，结果 SQL 返回了两行 `Mei`。但在严格数学定义（CMU 15-445 第 1 讲）的 **关系代数** 里写同样的一步“取出名字列”，结果到底会输出几行 `Mei`？'
+          prompt: '你在 SQL 里写 `SELECT name FROM Student`，表里刚好有 `S1: Mei` 和 `S4: Mei` 两位重名同学，结果 SQL 返回了两行 `Mei`。但在严格数学定义的 **关系代数** 里写同样的一步“取出名字列”，结果到底会输出几行 `Mei`？'
           options:
             - text: 只输出 **1 行** `Mei`！因为纯粹关系代数是建立在“无重复元素的数学集合（Set）”上，而现实 SQL 引擎为省去去重开销默认按“允许重复的多重集（Bag）”运行
               correct: true
@@ -332,15 +332,15 @@ lessons:
               why: 数学集合里元素完全可以是字符串元组，核心差异在于“集合自动去重 vs SQL Bag 保留重复行”
             - text: 会无限输出一万行 `Mei`
               why: 严格关系代数按列筛选后必须消除重复元组保证输出依然是个合法的集合关系
-          explain: 理解“**数学关系是去重集合（Set），真实 SQL 表结果默认是不去重的多重集（Bag）**”，是打通关系代数（第 10 节）和实际 SQL 之间最重要的一步！
+          explain: 理解“**数学关系是去重集合（Set），真实 SQL 表结果默认是不去重的多重集（Bag）**”，是打通关系代数和实际 SQL 之间最重要的一步！
       - card:
-          title: 关系代数是什么：闭式封闭运算与表达式树（10）
+          title: 关系代数是什么：闭式封闭运算与表达式树
           body: |
             如果说 Python 函数操纵数字和列表，那么**关系代数（Relational Algebra）**就是一套**输入是关系（表），输出结果依然是一张新关系（表）**的数学运算语言！
 
             正因为输入输出永远同为“关系”，算子可以像搭乐高一样层层套娃组合（比如先把两张表连接起来，再过滤行，最后挑出两列），构成了所有现代关系型数据库查询优化器（衔接后继 `D.1.2`）改写等价计划的数学基石！
       - card:
-          title: 集合（Set）与多重集（Bag）：何时等价、何时多出 `DISTINCT`（10）
+          title: 集合（Set）与多重集（Bag）：何时等价、何时多出 `DISTINCT`
           body: |
             真实数据库里两者差异直接体现在是否去重（可在真实 SQLite 上一试便知）：
             - 当我们在关系代数写“把选了 Databases 的学生名字取出来”，因为关系是**集合**，即便两位同学都叫 `Mei`，结果集合也自动去重只留 `("Lin",), ("Mei",)` 这两行；
@@ -373,10 +373,10 @@ lessons:
           options:
             - text: 允许把一个查询的输出无缝直接喂给下一个算子作输入，从而自由嵌套复合查询、封装复用逻辑，并让优化器利用代数等价律自动改写提速
               correct: true
-            - text: 允许在写完一张表之后立刻把电脑机箱锁上永远不准再查它
-              why: 封闭性（Closure）是数学概念，指“运算输出类型依然落在原集合（关系）类型内部”
-            - text: 保证表里的每一行最后都会自动变空
-              why: 封闭性保障输出仍是完整的规范二维关系，才能层层组合搭建任意复杂表达式树
+            - text: 表示任何关系算子每次最多只能返回单行单列的一个标量数字，不能返回多行多列
+              why: 封闭性（Closure）指运算输出依然是一张包含任意行与列的二维关系表，而非只返回一个单值
+            - text: 表示一旦对某张表执行了筛选运算，原表里不满足条件的行就会从磁盘上被永久删除
+              why: 关系代数算子是纯查询表达式，只产生新的结果关系，绝不会原地删除底层基表里的数据
           explain: 正如整数加减乘还产生整数才能写出任意四则长算式，关系算子输入输出皆关系，才撑起了整门 SQL 与查询优化理论！
       - item:
           id: q-sql-to-ra-concept
@@ -385,10 +385,10 @@ lessons:
           options:
             - text: 先按条件水平挑出满足条件的行（筛选行），再垂直留下指定列并去重（提取列）
               correct: true
-            - text: 先把所有行全部彻底删除，再强行新建一万列空列
-              why: 行级条件筛选靠行过滤算子，列级截取靠选列算子
-            - text: 把两张毫无关联的表格随机互相改名
-              why: 查询按“条件行筛选 → 指定列保留”流水组合推进
+            - text: 先垂直裁掉 `major` 列只留 `name` 列，之后再在已经没有 `major` 列的结果上按 `major` 筛选行
+              why: 如果先把 `major` 列裁掉了，后面的行筛选算子就找不到 `major` 属性可比对了；应当先按 `major` 筛选行再提取 `name` 列
+            - text: 把学生表和它自己做笛卡尔积相乘，让行数变成原来的平方倍
+              why: 单表按条件过滤并保留指定列只需组合行筛选与列提取，不需要做笛卡尔积
           explain: 注意区分初学者常混的一对词：**SQL 里的 `SELECT` 子句挑的是列，其实是关系代数里的“列提取（π）”；而 SQL 里的 `WHERE` 挑的是行，才是关系代数里的“行筛选（σ）”**！
       - item:
           id: q-bag-vs-set-order
@@ -419,15 +419,15 @@ lessons:
               why: 这是中英文翻译历史留下的最大名字反直觉坑！记住：$\sigma$ 是行过滤器（`WHERE`），$\pi$（Projection 开头字母 P 对应列表挑列）才是 `SELECT` 挑列
             - text: 两者都不对应，关系代数只用来删文件
               why: $\sigma$ 和 $\pi$ 正是数据库查询里筛选行和裁切列的两把基本剪刀
-          explain: 彻底记死这对“名字交叉陷阱”：**$\sigma_{\text{条件}}$ 筛行（对应 `WHERE`），$\pi_{\text{列名}}$ 选列（对应 `SELECT DISTINCT`）**（第 10 节）！
+          explain: 彻底记死这对“名字交叉陷阱”：**$\sigma_{\text{条件}}$ 筛行（对应 `WHERE`），$\pi_{\text{列名}}$ 选列（对应 `SELECT DISTINCT`）**！
       - card:
-          title: 两个一元单表算子：选择 $\sigma$ 与投影 $\pi$（10）
+          title: 两个一元单表算子：选择 $\sigma$ 与投影 $\pi$
           body: |
             只对单张关系表 R 动手的两把单表剪刀：
             - **选择**（$\sigma_{\text{谓词}}(R)$，Selection，对应 `WHERE`）：逐行检验谓词条件（支持 `=`、`<`、`AND`、`OR` 等），条件为真才保留整行；**列数不变，只减行数**。
             - **投影**（$\pi_{\text{列清单}}(R)$，Projection，对应 `SELECT DISTINCT`）：只留列表指明的列，扔掉多余列，同时按集合语义去重；**行数可能变少，只留选定列**。
       - card:
-          title: 连接家族：笛卡尔积 $\times$、自然连接 $\bowtie$ 与等值连接 $\bowtie_{\theta}$（10）
+          title: 连接家族：笛卡尔积 $\times$、自然连接 $\bowtie$ 与等值连接 $\bowtie_{\theta}$
           body: |
             把分散在多张表里的关联信息重新拼起来靠**连接**：
             - **笛卡尔积 $R \times S$**：左表每行配右表每行（列相加，行相乘 `|R|×|S|`），结果巨大常需立刻搭配选择条件过滤；
@@ -444,9 +444,9 @@ lessons:
             - ["$\\text{Student} \\times \\text{Course}$", 笛卡尔积：不做匹配过滤，把每位学生和每门课强行穷举全配对一遍]
           explain: 掌握 $\sigma$（筛行）、$\pi$（挑列）、$\bowtie$（按公共条件拼表），90% 的关系查询都能写成一清二白的代数式。
       - card:
-          title: 例题：手写并验证综合练习第 (3) 题的关系代数表达式！
+          title: 例题：手写并验证一条关系代数表达式
           body: |
-            综合练习第 (3) 题要求：用**关系代数**精准写出“选修了课程标题为 `Databases` 的学生姓名”。对比三表 `Student(sid, name, major)`、`Enroll(sid, cid, grade)`、`Course(cid, title, credits)` 逐步组装：
+            题目：用**关系代数**精准写出“选修了课程标题为 `Databases` 的学生姓名”。对比三表 `Student(sid, name, major)`、`Enroll(sid, cid, grade)`、`Course(cid, title, credits)` 逐步组装：
           reveal:
             - title: 第 1 步：先筛选课程表，再用自然连接一路接上选课与学生信息
               body: 先用选择 $\sigma_{\text{title}='Databases'}(\text{Course})$ 精准锁定只有 `C1`（`Databases`）那一行课；接着与 $\text{Enroll}$ 做自然连接 $\bowtie$ 按同名列 `cid` 找出所有选了 `C1` 的选课行；再继续 $\bowtie \text{Student}$ 按同名列 `sid` 接回学生姓名行！
@@ -455,7 +455,7 @@ lessons:
       - item:
           id: q-ra-ex3-check
           type: choice
-          prompt: 对照综合练习第 (3) 题：用关系代数表达“选修了标题为 `Databases` 的课程的学生姓名”，下列哪一条表达式最精准且合乎关系代数先后逻辑？
+          prompt: 用关系代数表达“选修了标题为 `Databases` 的课程的学生姓名”，下列哪一条表达式最精准且合乎关系代数先后逻辑？
           options:
             - text: "$\\pi_{\\text{name}}(\\text{Student} \\bowtie \\text{Enroll} \\bowtie \\sigma_{\\text{title='Databases'}}(\\text{Course}))$"
               correct: true
@@ -499,9 +499,9 @@ lessons:
               why: 并（∪）、交（∩）、差（−）是同构集合行合并/剔除运算，两张输入表的结构（元数和对应列域）必须彼此对齐兼容
             - text: 因为关系代数严格禁止任何超过两行的表格做集合运算
               why: 只要结构并相容，几百万行照样能做并/交/差运算
-          explain: 除了过滤挑列与拼列，关系代数还有全套集合算子——它们对实现“差集找零选课同学”等查询同样重要（第 10 节）。
+          explain: 除了过滤挑列与拼列，关系代数还有全套集合算子——它们对实现“差集找零选课同学”等查询同样重要。
       - card:
-          title: 集合算子与并相容要求：∪、−、∩（10）
+          title: 集合算子与并相容要求：∪、−、∩
           body: |
             关系作为元组集合，天然支持三项经典二元集合算子（**前提条件：两表元数相同且对应位置列的域兼容，即“并相容”**）：
             - **并 $R \cup S$**：出现在 R 或出现在 S 的全部行（合并去重）；
@@ -529,9 +529,9 @@ lessons:
               why: 只要两表列数一致且对应位置列域兼容，各自可以存任意合法实际元组行
           explain: 记死并相容口诀：**列数相等 + 按位列域兼容**，与各自有多少行毫无关系！
       - card:
-          title: 例题：用“集合差 $R - S$”一秒解决综合练习 2(d) 的“零选课学生”问题！
+          title: 例题：用“集合差 $R - S$”找出“一门课都没选的学生”
           body: |
-            综合练习第 (2)(d) 问要求找出“一门课都没选的学生”（验证样本中正是学号为 `S3` 的 `Jia`）。在关系代数里只用投影与集合差两步怎么表达？
+            要找出“一门课都没选的学生”（样本数据中正是学号为 `S3` 的 `Jia`）。在关系代数里只用投影与集合差两步怎么表达？
           reveal:
             - title: 第 1 步：抽出“全部注册学生集合”与“至少选了一门课的学生集合”
               body: 先用投影 $\pi_{\text{sid}}(\text{Student})$ 得出全校全部学生学号集合 `{S1, S2, S3, S4}`；再用投影 $\pi_{\text{sid}}(\text{Enroll})$ 得出在选课表里哪怕只出现过一次的学生学号集合 `{S1, S2, S4}`。注意两边都是单一的 `sid` 文本列，100% 并相容！
@@ -591,18 +591,18 @@ lessons:
               why: 网页文字提醒与多端各自零散检查总会有漏网脚本直接连库写入，唯有在数据库引擎层锁死约束才一视同仁万无一失
             - text: 允许先把 `grade=120` 和 `sid=NULL` 存进去，年底再雇人一条条手工用计算器删除
               why: 一旦脏数据混进生产库，全校平均分计算、前端展现和财务对账已经全面污染
-          explain: 这正是第 4.1、4.2、4.7、4.8 节强调的核心原则——**让数据库本身成为全业务共享数据的不可逾越铁栅栏**！
+          explain: 这是完整性约束的核心原则：**让数据库本身成为全业务共享数据的不可逾越铁栅栏**！
       - card:
-          title: 域完整性（4.1）与实体完整性（4.2）
+          title: 域完整性与实体完整性
           body: |
             数据库守好数据清白的头两把锁：
-            - **域完整性（Domain Integrity，4.1）**：限定每一列允许存进来的值类型、非空与合法数值范围（如 `credits INTEGER NOT NULL CHECK (credits > 0)` 拒收 `0`、负数与 `NULL`；成绩 `CHECK (grade IS NULL OR (grade BETWEEN 0 AND 100))` 既允许未出分时暂空，又拦住 `120` 错分！）；
-            - **实体完整性（Entity Integrity，4.2）**：要求每张表的**主键**必须**非空（`NOT NULL`）且唯一不重复**——没有身份编号的幽灵行，或者学号一模一样的两位同学，绝不准入表！
+            - **域完整性（Domain Integrity）**：限定每一列允许存进来的值类型、非空与合法数值范围（如 `credits INTEGER NOT NULL CHECK (credits > 0)` 拒收 `0`、负数与 `NULL`；成绩 `CHECK (grade IS NULL OR (grade BETWEEN 0 AND 100))` 既允许未出分时暂空，又拦住 `120` 错分！）；
+            - **实体完整性（Entity Integrity）**：要求每张表的**主键**必须**非空（`NOT NULL`）且唯一不重复**——没有身份编号的幽灵行，或者学号一模一样的两位同学，绝不准入表！
       - card:
-          title: 企业级约束与业务规则（4.7–4.8）
+          title: 企业级约束与业务规则
           body: |
-            除单列数据类型外，真实公司还有复杂的多列甚至跨表**企业级约束 / 业务规则（Business Rules，4.7–4.8）**：
-            - 例如“每位学生同一学期所选总学分不得超过 24 分”、“订单折后金额不能为负，且已发货订单不能再直接删改明细”（`D.1.1.verify` 里后面也会见到已发货约束思路）；
+            除单列数据类型外，真实公司还有复杂的多列甚至跨表**企业级约束 / 业务规则（Business Rules）**：
+            - 例如“每位学生同一学期所选总学分不得超过 24 分”、“订单折后金额不能为负，且已发货订单不能再直接删改明细”；
             - 能用列/表级 `CHECK`、`UNIQUE` 和外键静态声明表达的规则直接写入 `CREATE TABLE` 声明中由引擎极速自动检验；涉及跨多行聚合条件的规则再通过触发器或受控事务逻辑把关。
       - item:
           id: q-integrity-types-match
@@ -613,7 +613,7 @@ lessons:
             - ["`INSERT INTO Course VALUES ('C9', 'Bad', 0)`（课程学分为 0）", "域完整性（`CHECK (credits > 0)` 域范围限制）"]
             - ["`INSERT INTO Enroll VALUES ('S2', 'C2', 120)`（成绩超出 0–100 区间）", "域完整性（`CHECK (grade BETWEEN 0 AND 100)` 范围约束）"]
             - ["`INSERT INTO Enroll VALUES ('S1', 'C1', 90)`（同一人重复插入已有选课主键 `(S1, C1)`）", "实体完整性（复合主键 `(sid, cid)` 唯一性拒绝重复）"]
-          explain: 验证脚本把这四条超范围写入一跑全部直接抛出 `IntegrityError` 拦截——有约束护航的数据库根本不给脏数据进门的机会！
+          explain: 在真实 SQLite 里把这四条超范围写入跑一遍，全部抛出 `IntegrityError` 被拦下：有约束的数据库根本不让脏数据进门。
       - card:
           title: 例题：为什么允许 `Enroll.grade` 为 `NULL`，却绝不能让 `Course.credits` 为 `NULL`？
           body: |
@@ -657,7 +657,7 @@ lessons:
             - text: 普通 `UNIQUE` 列允许任意插入上千行一模一样的整数 `42`
               why: "`UNIQUE` 对非空取值照样严格禁止重复，差异重点在于每表只能有一组主导主键、且主键绝对不允许 `NULL`"
             - text: 主键允许在表里放 10 行完全空白的 `NULL` 主键值
-              why: 实体完整性（4.2 节）硬性禁止主键任何一列取 `NULL`，例如 `Student(NULL, ...)` 必抛错误拒收
+              why: 实体完整性硬性禁止主键任何一列取 `NULL`，例如 `Student(NULL, ...)` 必抛错误拒收
           explain: 邮箱或身份证号等备用唯一号常用 `UNIQUE`（可按需配 `NOT NULL`），但主识别键永远是唯一的主角 **`PRIMARY KEY`**！
 
   - id: references
@@ -676,16 +676,16 @@ lessons:
               why: 参照动作只影响当前被删主记录（S1）关联的对应外键子记录，但默认严防产生指向无效学号的孤儿引用
             - text: 删除学生档案不会对 `Enroll` 的学号引用造成任何影响
               why: 一旦 `Student` 没了 `'S1'`，`Enroll` 里 `sid='S1'` 的行就成了指向虚无的悬空引用，之后关联统计姓名时就会悄无声息丢失
-          explain: 如何处理父记录删除或更新时的子表反应，是 **跨表外键规则**（4.3、4.6 节 & 综合练习第 5 题）的必修内容。
+          explain: 如何处理父记录删除或更新时的子表反应，是 **跨表外键规则**的必修内容。
       - card:
-          title: 外键动作三选一：RESTRICT vs CASCADE vs SET NULL（4.3、4.6）
+          title: 外键动作三选一：RESTRICT vs CASCADE vs SET NULL
           body: |
             建立 **参照完整性（Referential Integrity）** 约束 `REFERENCES Student(sid) ON DELETE ...` 时有三种常用动作规则：
             1. **`RESTRICT` / `NO ACTION`（最稳默认）**：只要子表里还有任何行引用这个学生，直接拒绝删除报 `IntegrityError`！强迫业务方先明确清查处理选课/财务记录；
-            2. **`ON DELETE CASCADE`（级联删除）**：一旦删掉主表这名学生，数据库引擎自动连同子表里引用她的全部 `Enroll` 行一并删光（4.6 节）；
+            2. **`ON DELETE CASCADE`（级联删除）**：一旦删掉主表这名学生，数据库引擎自动连同子表里引用她的全部 `Enroll` 行一并删光；
             3. **`ON DELETE SET NULL`**：主表行被删后，把子表里对应的外键列置为 `NULL` 保留历史子记录（前提是该外键列非 `PRIMARY KEY` 且允许为空）。
       - card:
-          title: 什么时候绝不能用 `ON DELETE CASCADE`？（综合练习 5 考点）
+          title: 什么时候绝不能用 `ON DELETE CASCADE`？
           body: |
             `ON DELETE CASCADE` 写起来很省事，却是一把高危双刃剑！
             - **适用场景**：强存续周期依附且无独立保留意义的纯附属碎片（比如“文章下的临时草稿缓存附件”或“删会话同步清其内部临时标签”）；
@@ -693,12 +693,12 @@ lessons:
       - item:
           id: q-cascade-risk
           type: choice
-          prompt: 对照综合练习第 (5) 题：在外键约束里写出 `ON DELETE CASCADE` 的精确行为是什么，什么业务场景下**绝不应该**使用它？
+          prompt: 在外键约束里写出 `ON DELETE CASCADE` 的精确行为是什么，什么业务场景下**绝不应该**使用它？
           options:
             - text: 删除主表父行时会自动级联抹掉子表所有参照它的子行；在需要长期留存审计、成绩、财务账单等历史数据，或子表归属非常重要不可误删的场景下绝不该用（应改用 `RESTRICT` 或逻辑软删除）
               correct: true
-            - text: "`ON DELETE CASCADE` 会把删掉的那名学生自动升为校长"
-              why: CASCADE 的英文原意是“瀑布级联传递”，指删除动作从父表瀑布般自动传递清理到全部子孙引用行
+            - text: 删除主表父行时，子表所有参照它的子行会自动把外键列改为指向表里的第一行记录
+              why: CASCADE 的行为是把引用该父行的子表记录一并级联删除，而不是随机改指其他主表记录
             - text: 只要在成绩表用上 `ON DELETE CASCADE`，就能防止任何历史交易或成绩被删掉
               why: 恰恰相反！`ON DELETE CASCADE` 会让一次看似只删主表 1 行的操作默默连锁清空几百几千条子表历史记录，极其危险
           explain: 一句话记牢：`RESTRICT` 是安全防误删锁，`CASCADE` 是全套连坐清空——珍贵业务档案（订单/发票/学籍成绩）请守住 `RESTRICT`！
@@ -742,7 +742,7 @@ lessons:
       - guess:
           id: guess
           type: choice
-          prompt: 你在教材（4.4–4.5 节）里学完用 Microsoft Access 的鼠标关系窗口和 SQL Server T-SQL 语法建外键，结果换到 Python 里的 SQLite 或 PostgreSQL 上照搬运行，却有几句建表细节报了语法错误！为什么标准 SQL 之外总要注意方言差？
+          prompt: 你在教材里学完用 Microsoft Access 的鼠标关系窗口和 SQL Server T-SQL 语法建外键，结果换到 Python 里的 SQLite 或 PostgreSQL 上照搬运行，却有几句建表细节报了语法错误！为什么标准 SQL 之外总要注意方言差？
           options:
             - text: 关系核心思想和标准 DDL 框架各家相通，但各家数据库产品在开启开关（如 `PRAGMA`）、严格类型检查（`STRICT`）、自增列关键字与触发器语法上各有方言差异
               correct: true
@@ -750,19 +750,19 @@ lessons:
               why: PostgreSQL、MySQL InnoDB、SQLite 和 SQL Server 全都全面支持完整主键、外键与 `CHECK` 完整性约束，只是小处关键字写法略有差异
             - text: 因为只要换一种数据库就必须重新发明一套完全相反的数学规则
               why: 域/实体/参照完整性的核心理念 100% 通用，区别只落在各引擎具体建表语法和默认开关设置上
-          explain: 覆盖 4.4–4.5、4.7 节的跨工具对比：看透“背后统一的关系完整性原则”与“表层不同产品方言写法”之分。
+          explain: 跨工具对比的要点：看透“背后统一的关系完整性原则”与“表层不同产品方言写法”之分。
       - card:
-          title: SQLite vs PostgreSQL vs SQL Server 核心差异速览（4.4–4.5）
+          title: SQLite vs PostgreSQL vs SQL Server 核心差异速览
           body: |
             哪怕 SQL 标准统一，真实工程用这几款数据库时常要注意四点区别：
             1. **外键开启状态**：PostgreSQL / SQL Server 默认永远强制外键检查；而 SQLite 默认关闭，需 `PRAGMA foreign_keys = ON;`；
             2. **严格类型执行**：PostgreSQL 默认强类型拦截字符串硬塞入整型列；SQLite 传统默认松散（类型亲和性），在表末尾显式加上 **`STRICT`** 关键字（SQLite 3.37+）才像标准引擎一样严格拒收类型错配！
       - card:
-          title: 跨数据库的可移植建模：把规则尽量落回标准约束（4.4–4.5、4.7）
+          title: 跨数据库的可移植建模：把规则尽量落回标准约束
           body: |
-            从桌面 GUI 工具（如 Access，4.4 节）和特定厂商方言（如 T-SQL，4.5 节）抽身看通用工程准则：
+            从桌面 GUI 工具（如 Access）和特定厂商方言（如 T-SQL）抽身看通用工程准则：
             - **标准 SQL 优先**：主键 `PRIMARY KEY`、`NOT NULL`、`UNIQUE`、`CHECK (...)` 以及标准 `FOREIGN KEY ... REFERENCES ... ON DELETE ...` 在各主流数据库均通用（尽量少写重度依赖某家厂商私有触发器的复杂企业级规则，除非确实必须跨表校验）；
-            - **用自动化校验测试护航**：就像验证脚本用真实数据库测试约束一样，每次迁库也用用例实测所有边界拒收！
+            - **用自动化校验测试护航**：像用真实数据库测试约束那样，每次迁库也用用例实测所有边界拒收！
       - item:
           id: q-sqlite-strict
           type: choice
@@ -776,14 +776,14 @@ lessons:
               why: 建表加上 `STRICT` 让插入与更新遵守严谨域类型约束，查询依然正常执行
           explain: 用 SQLite 做快速本地验证或单机原型时，同时配齐 `PRAGMA foreign_keys = ON;` + `STRICT` 建表，就能在轻量环境里享受到服务器级严谨约束！
       - card:
-          title: 例题：把一段只能在某方言跑的“伪标准”建表改写成通用稳健版（4.4–4.7）
+          title: 例题：把一段只能在某方言跑的“伪标准”建表改写成通用稳健版
           body: |
-            一位同事原本只习惯在桌面端 GUI 点选框建立一对多连线（4.4 节），或复制了特定引擎私有自增关键字到脚本里。迁进通用后端时分两步统一整理：
+            一位同事原本只习惯在桌面端 GUI 点选框建立一对多连线，或复制了特定引擎私有自增关键字到脚本里。迁进通用后端时分两步统一整理：
           reveal:
             - title: 第 1 步：把鼠标操作全固化成版本库里可读的标准 SQL `CREATE TABLE` 文本
               body: 像 Access 关系图那样仅靠图形勾选留下的外键无法进入文本代码评审；把所有表、主键、外键与 `CHECK` 写进纯文本标准 DDL 迁移文件里，无论以后迁移到 SQLite 还是 PostgreSQL（`D.1.4` 常用引擎），每一条规则都清清楚楚可测试、可追溯。
             - title: 第 2 步：显式声明约束名与引擎必要开关，并用自动化边界用例压实检验
-              body: 对复杂企业级规则（4.7 节），优先使用标准 `CHECK` 或 `UNIQUE` 组合索引，实在需引擎级触发器时单独封装适配；并把“插入 `NULL` 主键 / 超范围分数 / 悬空外键均应报错”写成自动化验证函数，换数据库后一行命令立刻确认全部约束如期拦住！
+              body: 对复杂企业级规则，优先使用标准 `CHECK` 或 `UNIQUE` 组合索引，实在需引擎级触发器时单独封装适配；并把“插入 `NULL` 主键 / 超范围分数 / 悬空外键均应报错”写成自动化验证函数，换数据库后一行命令立刻确认全部约束如期拦住！
       - item:
           id: q-dialect-portable
           type: choice
@@ -791,19 +791,19 @@ lessons:
           options:
             - text: 尽量采用各引擎一致支持的标准 SQL DDL 约束（`PRIMARY KEY`、`NOT NULL`、`UNIQUE`、`CHECK`、`REFERENCES`），本地 SQLite 打开 `STRICT` 和 `PRAGMA foreign_keys = ON;` 并在 CI 中直接针对真实目标引擎跑一套约束测试
               correct: true
-            - text: 本地完全跳过建表约束随便写松散字段，上线前祈祷数据库自己猜对业务规则
-              why: 越是不加约束放任脏数据进入，迁移至严格生产引擎（如 PostgreSQL）时越容易全面炸裂
-            - text: 把 Access 鼠标截图作为数据库迁移脚本放进版本库
-              why: 自动化数据库迁移必须依赖可版本控制的文本 DDL 语句与真实测试验证
+            - text: 本地 SQLite 保持默认关闭外键与松散类型，只在 Python 应用层写 `if` 判断代替数据库 `DDL` 约束
+              why: 越是不在数据库层加约束放任脏数据进入，迁移至严格生产引擎（如 PostgreSQL）时越容易因类型或外键违例报错
+            - text: 大量使用某单一数据库独有的专有触发器语法与非标准类型，完全不跑目标引擎集成测试
+              why: 深度绑定单一厂商私有方言且不在目标引擎实测，是跨库迁移上线报错的主要根源
           explain: 标准 SQL 约束核心 + 清楚方言小开关差异 + 双边自动化边界验证 = 跨引擎零惊喜迁移！
       - item:
           id: q-access-tsql-contrast
           type: match
-          prompt: 把课程 4.4–4.7 节提及的不同约束落地方式与它们的工程特点连线。
+          prompt: 把不同的约束落地方式与它们的工程特点连线。
           pairs:
-            - [图形化界面连线设外键（如 Access，4.4 节）, 上手直观适合小规模桌面建模，但缺少纯文本差异追踪与自动化评审能力]
+            - [图形化界面连线设外键（如 Access）, 上手直观适合小规模桌面建模，但缺少纯文本差异追踪与自动化评审能力]
             - [标准文本 DDL 声明（`PRIMARY KEY` / `REFERENCES` / `CHECK`）, 可纳入 Git 评审与跨引擎复现，是现代后端建表的基准方式]
-            - [企业级跨表业务规则（4.7 节）, 无法靠单行列级 `CHECK` 表达的复杂全局限制（如选课总学分上限），需借助事务或触发器守门]
+            - [企业级跨表业务规则, 无法靠单行列级 `CHECK` 表达的复杂全局限制（如选课总学分上限），需借助事务或触发器守门]
             - ["SQLite `STRICT` + `PRAGMA foreign_keys = ON`", 让轻量嵌入式引擎补齐严格列数据类型检验和默认被关掉的外键引用检查]
           explain: 不管图形工具、嵌入式 SQLite 还是大型服务器端数据库，本质都是在做同一件事：守住域、实体、参照和业务规则！
 
@@ -824,9 +824,9 @@ lessons:
               why: 单引号是 SQL 字符串界定符，手拼字符串导致用户输入里的引号变成了更改 SQL 结构的语法命令！
             - text: 只要在 Python 变量名里加上 `safe_` 前缀就能防住所有引号冲突
               why: 变量命名对拼接后的最终 SQL 字符串毫无作用，唯有使用数据库驱动原生参数化绑定才治本
-          explain: 在学写正规 SQL 建表（第 8 节 DDL）的同时，从第一条查询就养成“**参数绑定防注入 + 最小对象权限**”的工业习惯，这也是后续数据库运维与安全专项（`D.1.4`、`S.3.1`）的基础！
+          explain: 在学写正规 SQL 建表（DDL）的同时，从第一条查询就养成“**参数绑定防注入 + 最小对象权限**”的习惯，这也是以后学数据库运维和 Web 安全的基础。
       - card:
-          title: 规范建表（DDL）与四要素拆解（8）
+          title: 规范建表（DDL）与四要素拆解
           body: |
             使用 **SQL 数据定义语言（DDL）** 创建三张选课表：
             ```sql
@@ -902,7 +902,7 @@ lessons:
 
   - id: joins
     chapter: 查询与数据建模
-    title: SQL 多表关联（JOIN / LEFT JOIN）与去重查询（综合练习 2a）
+    title: SQL 多表关联（JOIN / LEFT JOIN）与去重查询
     minutes: 13
     flow:
       - guess:
@@ -916,9 +916,9 @@ lessons:
               why: 内连接严格只输出满足 `ON` 等值配对成功的行，没有选课行配对时 `S3` 直接被内连接筛掉
             - text: 要看没选课的学生必须先把 `Student` 表删掉重算
               why: 外连接（`LEFT JOIN`）正是专为“完整保留主表行、哪怕关联明细表一条对应记录也没有”而设计的！
-          explain: 拆表之后怎样把分散的数据高效安全地“拼回来”且不错漏零记录主体，就看各种 `JOIN` 与 `DISTINCT`（第 9 节 DML & 综合练习 2a）。
+          explain: 拆表之后怎样把分散的数据高效安全地“拼回来”且不错漏零记录主体，就看各种 `JOIN` 与 `DISTINCT`。
       - card:
-          title: '`INNER JOIN` 与三表串联实战（综合练习 2a）'
+          title: '`INNER JOIN` 与三表串联实战'
           body: |
             求“选了 `Databases` 的学生姓名”，顺着外键把 `Student` → `Enroll` → `Course` 三张表连起来：
             ```sql
@@ -999,7 +999,7 @@ lessons:
 
   - id: groups
     chapter: 查询与数据建模
-    title: 分组聚合（GROUP BY / HAVING）与忽略 NULL 的统计规则（综合练习 2b/2c）
+    title: 分组聚合（GROUP BY / HAVING）与忽略 NULL 的统计规则
     minutes: 13
     flow:
       - guess:
@@ -1013,9 +1013,9 @@ lessons:
               why: 正是因为把 `NULL` 当作“未知/未出分”而不是 `0`，才不会把刚开课没打分的同学平均分瞬间腰斩！
             - text: 会直接崩溃报错“不能对含 NULL 列求平均”
               why: SQL 标准明确规定列级聚合忽略 `NULL` 参与，如果那一组全组全是 `NULL`（如只有 `NULL` 的 `S4`），`AVG(grade)` 会合理地返回 `NULL`
-          explain: 掌握 `GROUP BY`、`WHERE vs HAVING` 先后分工以及聚合对 `NULL` 的精准规则，就能稳稳拿下综合练习 2(b) 和 2(c)（第 9 节）。
+          explain: 掌握 `GROUP BY`、`WHERE vs HAVING` 先后分工以及聚合对 `NULL` 的精准规则，分组统计类的查询就能写对。
       - card:
-          title: '`GROUP BY` 计数与 `WHERE` vs `HAVING` 分水岭（综合练习 2b/2c）'
+          title: '`GROUP BY` 计数与 `WHERE` vs `HAVING` 分水岭'
           body: |
             记清楚一条极好用的 SQL 执行逻辑管线顺序：**先 `FROM/JOIN` 拼行 → 再 `WHERE` 按单行删行 → 再 `GROUP BY` 分桶 → 再算聚合函数与 `HAVING` 按桶整组筛选 → 最后 `SELECT` 与 `ORDER BY`**：
             - **统计每个专业人数（练习 2b）**：`SELECT major, COUNT(*) FROM Student GROUP BY major;` → `[("CS", 2), ("Math", 2)]`；
@@ -1030,7 +1030,7 @@ lessons:
       - item:
           id: q-where-vs-having
           type: choice
-          prompt: 要查出“平均成绩严格大于 85 分的学号与平均分”（综合练习 2c），一位同学顺手写成了 `SELECT sid, AVG(grade) FROM Enroll WHERE AVG(grade) > 85 GROUP BY sid;`。数据库直接报错拒绝运行！原因与正确改法是什么？
+          prompt: 要查出“平均成绩严格大于 85 分的学号与平均分”，一位同学顺手写成了 `SELECT sid, AVG(grade) FROM Enroll WHERE AVG(grade) > 85 GROUP BY sid;`。数据库直接报错拒绝运行！原因与正确改法是什么？
           options:
             - text: "`WHERE` 在分组之前逐行过滤，此时根本还没按学生分桶也没算出 `AVG(grade)`；必须改成放在 `GROUP BY sid` 之后的 `HAVING AVG(grade) > 85`"
               correct: true
@@ -1073,13 +1073,13 @@ lessons:
 
   - id: subqueries
     chapter: 查询与数据建模
-    title: 子查询 NOT EXISTS、三值 NULL 陷阱与动态视图（综合练习 2d）
+    title: 子查询 NOT EXISTS、三值 NULL 陷阱与动态视图
     minutes: 14
     flow:
       - guess:
           id: guess
           type: choice
-          prompt: 找出“一门课都没选的学生”（综合练习 2d），一位同学写了看似天衣无缝的句子：`SELECT name FROM Student WHERE sid NOT IN (SELECT sid FROM Enroll);`。碰巧如果将来某条脏记录里塞进哪怕 **1 个 `NULL`**（比如查“不在有分课程里：`70 NOT IN (SELECT grade FROM Enroll)`”——而 `Enroll.grade` 里正好有一行未出分是 `NULL`！），这句 `NOT IN` 会返回什么惊悚结果？
+          prompt: 找出“一门课都没选的学生”，一位同学写了看似天衣无缝的句子：`SELECT name FROM Student WHERE sid NOT IN (SELECT sid FROM Enroll);`。碰巧如果将来某条脏记录里塞进哪怕 **1 个 `NULL`**（比如查“不在有分课程里：`70 NOT IN (SELECT grade FROM Enroll)`”——而 `Enroll.grade` 里正好有一行未出分是 `NULL`！），这句 `NOT IN` 会返回什么惊悚结果？
           options:
             - text: '**整句永远什么都查不出来（返回空集 `[]`）！**因为展开成了 `70 != 96 AND 70 != NULL`，任何数与 `NULL` 比较都得 `UNKNOWN`，一遇到 `AND UNKNOWN` 整条判断永远变不成 `TRUE`！'
               correct: true
@@ -1087,15 +1087,15 @@ lessons:
               why: 错！`IN (...)` 在子查询全是真和 `NULL` 并存时遇真得真，但 **`NOT IN (...)` 一旦子查询结果集里包含哪怕唯一一个 `NULL`，就永远无法成立返回空集**，这是整个 SQL 界最著名的坑之一！
             - text: SQL 会自动把 `NULL` 变成数字 `99999` 再去比较
               why: '`NULL` 表示未知值，不能随随便便假装成任何数字，只能老老实实得出三值逻辑 `UNKNOWN`'
-          explain: 看穿 **SQL 三值逻辑（TRUE / FALSE / UNKNOWN）** 与 **`NOT IN` 遇 `NULL` 全灭** 后，你就能彻底明白为什么综合练习 2d 标准答案强烈推荐使用 **`NOT EXISTS`**（第 9 节 & 验证实验实测）。
+          explain: 看穿 **SQL 三值逻辑（TRUE / FALSE / UNKNOWN）** 与 **`NOT IN` 遇 `NULL` 全灭** 后，你就能明白为什么“找没选课的学生”这类查询推荐用 **`NOT EXISTS`**。
       - card:
-          title: 三值逻辑与 `IS NULL` vs `= NULL`（D.1.1.verify 实测）
+          title: 三值逻辑与 `IS NULL` vs `= NULL`（SQLite 实测）
           body: |
             SQL 中的 **NULL** 代表缺失或未知标记，判断条件则有三种真值：`TRUE`、`FALSE` 和 **`UNKNOWN`**（只要表达式碰上 `NULL` 几乎必得 `UNKNOWN`！）：
             - 验证实测：`SELECT COUNT(*) FROM Enroll WHERE grade = NULL` 算出来永远是 **`0`**（哪怕表里明明有两行 `grade` 为空！）——因为每行算 `NULL = NULL` 全都得 `UNKNOWN`，`WHERE` 只放行 `TRUE`；
             - **唯一正解**：判空只能用专用谓词 **`WHERE grade IS NULL`**（测得 **`2`**）和 **`IS NOT NULL`**！
       - card:
-          title: '`NOT EXISTS` 找零关联行 + 动态视图 `VIEW`（第 9 节）'
+          title: '`NOT EXISTS` 找零关联行 + 动态视图 `VIEW`'
           body: |
             - **查“一门课都没选的学生”（练习 2d）**（使用相关 **子查询**）：
               `SELECT sid, name FROM Student s WHERE NOT EXISTS (SELECT 1 FROM Enroll e WHERE e.sid = s.sid);`
@@ -1125,7 +1125,7 @@ lessons:
       - item:
           id: q-not-exists-ex2d
           type: choice
-          prompt: 要求严格按照综合练习第 (2)(d) 问编写最健壮、不受 `NULL` 影响的 SQL 查询，找出 `Student` 中一门课都没有选修的同学学号与姓名，以下哪条写法最规范？
+          prompt: 要编写最健壮、不受 `NULL` 影响的 SQL 查询，找出 `Student` 中一门课都没有选修的同学学号与姓名，以下哪条写法最规范？
           options:
             - text: "`SELECT s.sid, s.name FROM Student s WHERE NOT EXISTS (SELECT 1 FROM Enroll e WHERE e.sid = s.sid);`"
               correct: true
@@ -1148,7 +1148,7 @@ lessons:
   # ======================================================================== 规范化
   - id: dependencies
     chapter: 规范化
-    title: 函数依赖、Armstrong 公理与属性闭包候选键算法（综合练习 4）
+    title: 函数依赖、Armstrong 公理与属性闭包候选键算法
     minutes: 14
     flow:
       - guess:
@@ -1162,18 +1162,18 @@ lessons:
               why: 候选键只看属性决定关系（能否推出所有列且最小不可再减），和列名长短毫无关系
             - text: 只要每列名称全都起成不一样的名字就没任何属性依赖了
               why: 属性之间的决定规律是由业务世界固有不变规律决定的（例如同一门课号 `cid` 对应唯一确定的课程标题 `title`），跟列名起啥无关
-          explain: 这就是第 6.1–6.8 节讲解的形式化工具：属性决定律 + Armstrong 推理规则 + 属性闭包求解算法（用于解决综合练习第 4 题第一问）。
+          explain: 这一课的形式化工具是：属性决定律 + Armstrong 推理规则 + 属性闭包求解算法，用它们可以求出一张表的候选键。
       - card:
-          title: 函数依赖 $X \to Y$ 与 Armstrong 三条基本公理（6.1–6.7）
+          title: 函数依赖 $X \to Y$ 与 Armstrong 三条基本公理
           body: |
-            **函数依赖**记作 **`X → Y`**（读作 X 函数决定 Y）：表里任意两行，只要 `X` 相同，`Y` 就必相同。**Armstrong 三公理**与三条常用推论让依赖推理完备自洽（6.2–6.7 节）：
+            **函数依赖**记作 **`X → Y`**（读作 X 函数决定 Y）：表里任意两行，只要 `X` 相同，`Y` 就必相同。**Armstrong 三公理**与三条常用推论让依赖推理完备自洽：
             - **自反律**：若 $Y \subseteq X$，则 $X \to Y$ 必成立（如 `(S, C) → S`）；
             - **增广律**：若 $X \to Y$，则两边同加属性 $XZ \to YZ$ 仍成立；
             - **传递律**：若 $X \to Y$ 且 $Y \to Z$，则 $X \to Z$ 成立（合并与分解推论同理支持把左边相同的右侧合拆）。
       - card:
-          title: 不动点求闭包 $X^+$ 与候选键判别（综合练习 4）
+          title: 不动点求闭包 $X^+$ 与候选键判别
           body: |
-            怎么机械算出给定属性集 `X` 的**闭包 $X^+$**？写一个不动点循环（6.8 节）：
+            怎么机械算出给定属性集 `X` 的**闭包 $X^+$**？写一个不动点循环：
             1. 令初始结果集合 `res = set(X)`；
             2. 遍历每条函数依赖 `L → R`：只要 `L ⊆ res`，就把 `R` 全部并入 `res`；
             3. 反复循环直到一轮扫完 `res` 再也不增加为止，最后所得 `res` 就是 **`X⁺`**！
@@ -1181,7 +1181,7 @@ lessons:
       - item:
           id: q-closure-sncgt
           type: choice
-          prompt: 设关系 `R(S, N, C, T, G)`（代表综合练习第 4 题的 `(sid, name, cid, title, grade)`），已知函数依赖集合 `F = { S → N, C → T, SC → G }`。请问 `{S}⁺`、`{C}⁺` 和 `{S, C}⁺` 分别是什么，全表的**候选键**是谁？
+          prompt: 设关系 `R(S, N, C, T, G)`（代表选课宽表的 `(sid, name, cid, title, grade)`），已知函数依赖集合 `F = { S → N, C → T, SC → G }`。请问 `{S}⁺`、`{C}⁺` 和 `{S, C}⁺` 分别是什么，全表的**候选键**是谁？
           options:
             - text: "`{S}⁺ = {S, N}`，`{C}⁺ = {C, T}`，`{S, C}⁺ = {S, N, C, T, G}`（推满全部 5 列且缺 S 缺 C 都不行），因此唯一候选键是 `(sid, cid)` 即 `SC`"
               correct: true
@@ -1193,12 +1193,12 @@ lessons:
       - card:
           title: 例题：验证传递推演 equivalence 与“多组属性分别成候选键”的情形
           body: |
-            验证脚本里验了两条极有代表性的推理案例：其一 `F1 = {A → B, B → C}` 与 `F2 = {A → B, B → C, A → C}` 闭包含义完全等价吗？其二若遇到课程教师安排表 `(S, C, T)` 满足 `F = { T → C, SC → T }`，怎么找出它的**全部**候选键？
+            看两条很有代表性的推理案例：其一 `F1 = {A → B, B → C}` 与 `F2 = {A → B, B → C, A → C}` 闭包含义完全等价吗？其二若遇到课程教师安排表 `(S, C, T)` 满足 `F = { T → C, SC → T }`，怎么找出它的**全部**候选键？
           reveal:
             - title: 第 1 步：由传递律知 `A → C` 属冗余推论，两依赖集 100% 等价
               body: 面对 `F1 = {A → B, B → C}` 算 `{A}⁺`：先收 `A`，触发 `A → B` 收进 `B`，再触发 `B → C` 收进 `C` 得 `{A, B, C}`——这已经隐含了 `A → C`！所以加上 `A → C` 后对所有子集求出的闭包结果一模一样，在化简依赖求最小覆盖时反而应该去掉冗余衍生规则。
             - title: 第 2 步：在 `{ T → C, SC → T }` 中找出不止一个候选键：`SC` 和 `ST`！
-              body: 用闭包扫描检查长度从小到大的组合：单属性 `{S}⁺={S}`、`{C}⁺={C}`、`{T}⁺={T,C}` 都推不全；两属性中 **`{S, C}⁺ = {S, C, T}`**（由 `SC→T` 得全表）且 **`{S, T}⁺ = {S, T, C}`**（由 `T→C` 得全表）！因此关系 `(S, C, T)` 竟同时拥有 `{S, C}` 和 `{S, T}` 两个各自最小的双列候选键（下节马上用它分清 3NF 和 BCNF）！
+              body: 用闭包扫描检查长度从小到大的组合：单属性 `{S}⁺={S}`、`{C}⁺={C}`、`{T}⁺={T,C}` 都推不全；两属性中 **`{S, C}⁺ = {S, C, T}`**（由 `SC→T` 得全表）且 **`{S, T}⁺ = {S, T, C}`**（由 `T→C` 得全表）！因此关系 `(S, C, T)` 竟同时拥有 `{S, C}` 和 `{S, T}` 两个各自最小的双列候选键（用它可以分清 3NF 和 BCNF）。
       - item:
           id: q-armstrong-axioms-match
           type: match
@@ -1224,13 +1224,13 @@ lessons:
 
   - id: bcnf
     chapter: 规范化
-    title: 1NF/2NF/3NF/BCNF 分解与无损/依赖保持权衡（综合练习 4）
+    title: 1NF/2NF/3NF/BCNF 分解与无损/依赖保持权衡
     minutes: 15
     flow:
       - guess:
           id: guess
           type: choice
-          prompt: 有了上节找出的唯一候选键 `SC = (sid, cid)`，看大宽表 `R(S, N, C, T, G)` 和函数依赖 `{ S → N, C → T, SC → G }`。为什么说这张表连 **第二范式（2NF）** 都没达到，最高只停留在 **第一范式（1NF）**（综合练习 4）？
+          prompt: 已知唯一候选键是 `SC = (sid, cid)`，看大宽表 `R(S, N, C, T, G)` 和函数依赖 `{ S → N, C → T, SC → G }`。为什么说这张表连 **第二范式（2NF）** 都没达到，最高只停留在 **第一范式（1NF）**？
           options:
             - text: 因为表里 `N`（姓名）只依赖复合候选键 `SC` 的一部分 `S`，`T`（课名）也只依赖另一部分 `C`——存在“非主属性对候选键的**部分函数依赖**”，只算 1NF！必须拆成三张表才升到 **BCNF**
               correct: true
@@ -1238,24 +1238,24 @@ lessons:
               why: 范式只检验“每个属性函数依赖的左手边是不是严谨正牌的超键”，跟字段是整数还是文本完全无关
             - text: 这张大表已经完美达到最高级 BCNF 了，根本不用拆
               why: 只要 `S → N` 还能把同一个学生的姓名抄十遍，更新和插入异常就依然存在，远远算不上干净
-          explain: 沿着 1NF → 2NF → 3NF → BCNF 阶梯逐层消除不良依赖，同时看清什么时候鱼和熊掌不可兼得（第 7.1–7.8 节 & 综合练习第 4 题）。
+          explain: 沿着 1NF → 2NF → 3NF → BCNF 阶梯逐层消除不良依赖，同时看清什么时候鱼和熊掌不可兼得。
       - card:
-          title: 四阶范式阶梯一句话判别法（7.1–7.6）
+          title: 四阶范式阶梯一句话判别法
           body: |
             所谓 **范式** 就是表结构按依赖干净度递增的等级。假设表里每个格子都存不可拆的单一原子值（满足 **1NF**），接下来盯紧每条非平凡函数依赖 **`L → R`**（$R \notin L$）：
             - **2NF**：消除“非主属性对**部分**候选键的依赖”（不能靠半个复合主键决定非主列，如 `S → N`、`C → T` 违背 2NF！）；
             - **3NF**：每条 $L \to R$ 必须满足 **`L` 是超键，或者 `R` 本身就是某个候选键里的一员（主属性）**（消除非主属性间的传递依赖）；
             - **BCNF（Boyce-Codd 范式）**：最铁血干净——每条非平凡 $L \to R$ 的决定方 **`L` 必须直接是整张表的超键**！
       - card:
-          title: 好分解的两把尺：无损连接 vs 依赖保持（7.7–7.8）
+          title: 好分解的两把尺：无损连接 vs 依赖保持
           body: |
             把坏大表按违规依赖拆开时，必须守住一条绝不可破的红线与一条尽量保住的愿望：
             - **红线**：必须保证 **无损连接**（Lossless Join）！分解后两张表至少留有公共列能当其中一表的超键（$R_1 \cap R_2 \to R_1$ 或 $R_2$），否则重新自然连接会生出一堆假幽灵行！
-            - **目标**：尽量满足 **依赖保持**（Dependency Preserving）——对经典 `(S, N, C, T, G)` 拆出 `Student(S, N)`、`Course(C, T)`、`Enroll(S, C, G)`，**三表全部 100% 达 BCNF，且同时做到无损 + 全部依赖直接局部可检**（综合练习 4 标准分解！）。
+            - **目标**：尽量满足 **依赖保持**（Dependency Preserving）——对经典 `(S, N, C, T, G)` 拆出 `Student(S, N)`、`Course(C, T)`、`Enroll(S, C, G)`，**三表全部 100% 达 BCNF，且同时做到无损 + 全部依赖直接局部可检**。
       - item:
           id: q-snctg-normalization
           type: choice
-          prompt: 对照综合练习第 (4) 题：`R(sid, name, cid, title, grade)` 满足 `sid → name`、`cid → title`、`(sid, cid) → grade`。下列关于它当前所处最高范式及合规分解后的陈述，哪一项完全准确？
+          prompt: '`R(sid, name, cid, title, grade)` 满足 `sid → name`、`cid → title`、`(sid, cid) → grade`。下列关于它当前所处最高范式及合规分解后的陈述，哪一项完全准确？'
           options:
             - text: 唯一候选键是 `(sid, cid)`；因存在 `sid → name` 和 `cid → title` 部分依赖，原表最高仅满足 **1NF**；拆成 `Student(sid, name)`、`Course(cid, title)`、`Enroll(sid, cid, grade)` 后全达 **BCNF**，且既无损连接又保持全部依赖
               correct: true
@@ -1265,14 +1265,14 @@ lessons:
               why: '`(sid, cid) → grade` 的左手 `(sid, cid)` 恰恰正是 `Enroll` 的唯一超键兼主键，保留在 `Enroll` 里本身就已完美满足 BCNF！'
           explain: 这是最标准也最漂亮的规范化典范：从 1NF 大宽表一口气干净拆成三张完美符合 **BCNF + 无损 + 依赖保持** 的生产表！
       - card:
-          title: 例题：当 BCNF 与“依赖保持”撞车不可兼得时，会发生什么反直觉怪事？（7.8 节实测）
+          title: 例题：当 BCNF 与“依赖保持”撞车不可兼得时，会发生什么反直觉怪事？（SQLite 实测）
           body: |
-            还记得上节有两个候选键 `{SC, ST}` 的 `(Student, Course, Teacher)` 表及依赖 `{ T → C, SC → T }` 吗？看看“满足 3NF 却不满足 BCNF”时拆分它会遇到什么两难（验证实验实测）：
+            看一张有两个候选键 `{SC, ST}` 的 `(Student, Course, Teacher)` 表，依赖为 `{ T → C, SC → T }`。看看“满足 3NF 却不满足 BCNF”时拆分它会遇到什么两难（验证实验实测）：
           reveal:
             - title: 第 1 步：原表本身已是 3NF（却不达 BCNF），但存在教师-课程冗余
               body: 检查 `T → C`：`T` 不是超键（违反 BCNF！），但右手 `C` 是候选键 `SC` 里的主属性，因此网开一面放过它，原表恰好达 **3NF**。问题在哪？每次写一条选课都得重复记“吴老师教 DB”，改名或新开课同样麻烦！
             - title: 第 2 步：若强行拆到 BCNF 得 `TC(T, C)` 与 `ST(S, T)`，会丢失对 `SC → T` 的本地检验！
-              body: 拆成 `TC`（T 作主键）和 `ST`（`(S, T)` 作主键）后两表都达到 **BCNF** 且无损连接（公共列 `T` 是 `TC` 的主键！）；但是依赖 **`SC → T` 跨越了两张表被撕裂丢失（未保持依赖！）**——就像验证脚本插入 `'Wu'→'DB', 'Li'→'DB'` 与 `('S1','Wu'), ('S1','Li')` 时各自合法通过了单表主键校验，连接起来却发现学生 `S1` 居然跟两位不同老师同时选了同一门课 `'DB'`！每次插行都要做一次表连接核查才拦得住（故工程上有时按需要选折中保留 3NF）。
+              body: 拆成 `TC`（T 作主键）和 `ST`（`(S, T)` 作主键）后两表都达到 **BCNF** 且无损连接（公共列 `T` 是 `TC` 的主键！）；但是依赖 **`SC → T` 跨越了两张表被撕裂丢失（未保持依赖！）**——实测插入 `'Wu'→'DB', 'Li'→'DB'` 与 `('S1','Wu'), ('S1','Li')` 时各自合法通过了单表主键校验，连接起来却发现学生 `S1` 居然跟两位不同老师同时选了同一门课 `'DB'`！每次插行都要做一次表连接核查才拦得住（故工程上有时按需要选折中保留 3NF）。
       - item:
           id: q-3nf-vs-bcnf-tradeoff
           type: choice
@@ -1348,7 +1348,7 @@ boss:
       explain: SQL 三值逻辑几乎囊括了一半生产隐藏 BUG 的源头——记住 `IS NULL`、`AVG` 忽略空、`NOT EXISTS` 防空和必配 `NOT NULL`。
     - id: boss-sql-groups-having
       type: choice
-      prompt: 写一条 SQL 查出“平均成绩严格大于 `85` 分的学生学号及平均分”（同综合练习 2c，要求忽略尚未出分的 `NULL` 科目），以下哪句书写符合 SQL 执行管线规则且结果精确？
+      prompt: 写一条 SQL 查出“平均成绩严格大于 `85` 分的学生学号及平均分”（要求忽略尚未出分的 `NULL` 科目），以下哪句书写符合 SQL 执行管线规则且结果精确？
       options:
         - text: "`SELECT sid, AVG(grade) AS avg_g FROM Enroll GROUP BY sid HAVING AVG(grade) > 85;`（在验证样本里准确算出 `[('S1', 90.0)]`）"
           correct: true

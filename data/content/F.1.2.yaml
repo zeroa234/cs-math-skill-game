@@ -150,7 +150,7 @@ lessons:
       - card:
           title: 运行时间由两样东西决定
           body: |
-            一个程序要跑多久，原书（algs4 的 1.4 节）说由两样东西决定：**每条语句做一次要多久**，乘上**它被执行了几次**，再全部加起来。
+            一个程序要跑多久，《算法》（Sedgewick 和 Wayne）说由两样东西决定：**每条语句做一次要多久**，乘上**它被执行了几次**，再全部加起来。
 
             前一样取决于机器，后一样只取决于程序和输入。分析算法时，我们挑一种最有代表性的基本操作，只数它做了几次。这个约定叫**代价模型（cost model）**，比如“数组被读写的次数”或“比较的次数”。
       - item:
@@ -2142,7 +2142,7 @@ lessons:
             边界 $L[0][j] = L[i][0] = 0$。最后两个字母相同，就一起用上；不同，就至少有一个用不上，去掉它试两边。
       - card:
           title: 例题：ABCBDAB 和 BDCABA
-          body: 这是原技能树的综合练习 (2)。
+          body: 求这两个串的最长公共子序列长度。
           reveal:
             - title: 填表
               body: 按关系式填 8 × 7 的表（含边界）。右下角 $L[7][6] = 4$。
@@ -2805,7 +2805,7 @@ lessons:
           type: number
           prompt: 有向图的边和长度：s→a 4、s→b 1、b→a 2、a→c 1、b→c 5、c→t 3、a→t 6。从 s 到 t 最短多长？
           answer: 7
-          explain: s→b→a→c→t：$1 + 2 + 1 + 3 = 7$。这是原技能树的综合练习 (5)。
+          explain: s→b→a→c→t：$1 + 2 + 1 + 3 = 7$。
       - card:
           title: 松弛
           body: |
@@ -2817,7 +2817,7 @@ lessons:
           body: |
             边长都不为负时：每次从还没确定的点里，取 dist 最小的那个，它的距离就确定了；再松弛它的所有出边。用优先队列取最小，$O(m \log n)$。
 
-            点“让算法走一步”，看综合练习 (5) 那张图上每一步确定的是谁。
+            点“让算法走一步”，看下面这张图上每一步确定的是谁。
           sim:
             name: graph
             params:
@@ -3341,7 +3341,7 @@ lessons:
           answer: 2
           explain: ABACABA 的 π 是 3（ABA）；下一个字母 B 和 s[3] = C 对不上，跳到 π[2] = 1，s[1] = B 对上了，于是 1 + 1 = 2（结尾 AB 和开头 AB）。
       - card:
-          title: 例题：综合练习 (6) 的 π
+          title: 例题：ABABCABAB 的 π
           body: 模式 P = ABABCABAB，一步步算 π。
           reveal:
             - title: 前五个
@@ -3378,7 +3378,7 @@ lessons:
 
             文本的位置只往前走，从不倒回。algs4：总共最多访问 $M + N$ 个字母，$O(M + N)$。
       - card:
-          title: 例题：综合练习 (6)
+          title: 例题：用 KMP 找 ABABCABAB
           body: 在 T = ABABDABABCABABCABAB 里找 P = ABABCABAB（π = 0 0 1 2 0 1 2 3 4），位置从 0 数。
           reveal:
             - title: 开头
@@ -3669,7 +3669,7 @@ boss:
       explain: 重 3 和重 4 的两件正好 7，价值 $4 + 5 = 9$。其他：5 + 1 是 8，5 一件是 7。
     - id: b-doubling
       type: number
-      prompt: 原技能树的综合练习 (4)：动态数组开始容量 1，每次满了就把容量翻倍并复制全部元素。从空开始 append 1000 次，一共复制了多少个元素？
+      prompt: 动态数组开始容量 1，每次满了就把容量翻倍并复制全部元素。从空开始 append 1000 次，一共复制了多少个元素？
       answer: 1023
       explain: 容量为 1、2、4、……、512 时各满一次，复制 $1 + 2 + \dots + 512 = 1023$ 个，小于 $2 \times 1000$。加上 1000 次写入，总代价小于 $3n$，摊还每次 $O(1)$。
     - id: b-scc
@@ -3679,7 +3679,7 @@ boss:
       explain: '{a, b, c} 互相能到，{d, e} 互相能到；从 d、e 回不到 a、b、c。共 2 个。'
     - id: b-dijkstra
       type: text
-      prompt: 原技能树的综合练习 (5)：边 s→a 4、s→b 1、b→a 2、a→c 1、b→c 5、c→t 3、a→t 6。用 Dijkstra 从 s 出发，写出顶点确定距离（出队）的顺序。（用空格隔开）
+      prompt: 边 s→a 4、s→b 1、b→a 2、a→c 1、b→c 5、c→t 3、a→t 6。用 Dijkstra 从 s 出发，写出顶点确定距离（出队）的顺序。（用空格隔开）
       answers:
         - s b a c t
       explain: s 0；b 1；a 经 b 是 3；c 经 a 是 4；t 经 c 是 7。边长不能为负：Dijkstra 依赖“出队时距离已经最终确定”，负边可能让之后的路更短。

@@ -2441,7 +2441,7 @@ lessons:
               why: 那是普通局部变量；malloc 来的内存不跟着函数走
             - text: C 会自动发现没人用了，替你还
               why: C 没有这种自动回收，Python 才有
-          explain: malloc 来的内存要你亲手 free。这给了你自由，也带来了这一课和下一课的那些错误。
+          explain: malloc 来的内存要你亲手 free。这给了你自由，也带来了一类常见的内存错误。
       - card:
           title: malloc：在堆上要一块内存
           body: |
