@@ -1,0 +1,2997 @@
+skill: M.1.4.1
+version: 2
+authors: [main-agent]
+brief:
+  why: 现实里的量很少只取决于一个数：山的海拔取决于两个坐标，神经网络的误差取决于上百万个参数。这一关把一元的导数推广到多个变量：偏导数、全微分和切平面、方向导数和梯度、隐函数和反函数定理、雅可比矩阵和矩阵形式的链式法则、海森矩阵，最后用二阶近似判断极值，并接上梯度下降、拉格朗日乘数法和牛顿法。假设你学过一元微分学；线性代数里的向量、点积、矩阵、行列式和特征值会用到，课里会提醒怎么用。
+  outcomes:
+    - 求多元函数的偏导数和高阶偏导数，知道混合偏导数什么时候相等，检验一个函数是不是偏微分方程的解
+    - 写出切平面和线性近似，用全微分估算函数值和测量误差，说清可微、偏导数存在、连续之间的关系
+    - 求任意方向的方向导数，用梯度找最速上升方向、等值线和曲面的切平面
+    - 用隐函数求导公式求斜率和偏导数，说出隐函数定理、反函数定理的条件和结论
+    - 写出向量映射的雅可比矩阵，算雅可比行列式并解释成面积放大倍数
+    - 用树状图和矩阵相乘两种写法用链式法则，处理极坐标换元
+    - 写出海森矩阵和二阶泰勒近似，用判别式 D 给临界点分类，求闭区域上的最值和带约束的最值
+    - 说出梯度下降和牛顿法每一步在做什么，判断学习率太大和海森矩阵不正定时会出什么问题
+terms:
+  - term: 变量
+    def: '式子里可以取不同值的字母，如 f(x, y) 里的 x、y'
+  - term: 多元函数
+    def: '输入不止一个数的函数，如 z = f(x, y)；两个输入的函数的图像是一张曲面'
+  - term: 偏导数
+    def: '固定其他变量、只让一个变量变时的导数，如 f_x = ∂f/∂x；算法是把其他变量当常数'
+  - term: 下标
+    def: '写在字母右下角的小字，如 f_xy 里的 xy；偏导数的下标从左往右是求导的先后'
+  - term: 二阶偏导数
+    def: '偏导数再求一次偏导数，如 f_xx、f_xy；下标从左往右是求导的先后'
+  - term: 混合偏导数
+    def: '对不同变量先后求的二阶偏导数 f_xy、f_yx；二者都连续时相等'
+  - term: Clairaut 定理
+    def: 'f_xy 和 f_yx 在包含某点的开圆盘上都连续，那么它们在那里相等'
+  - term: 微分方程
+    def: '含有未知函数和它的导数的方程，如 y′ = 2y'
+  - term: 偏微分方程
+    def: '未知函数有多个自变量、方程里含它的偏导数的微分方程，如热方程 u_t = c²u_xx'
+  - term: 热方程
+    def: 'u_t = c²u_xx：描述温度随位置和时间的变化，温度曲线向下弯处在降温'
+  - term: 拉普拉斯方程
+    def: 'u_xx + u_yy = 0：稳定状态（不随时间变）的温度分布满足它'
+  - term: 波动方程
+    def: 'u_tt = c²u_xx：描述琴弦振动这类以速度 c 传播的波'
+  - term: 切平面
+    def: '过曲面上一点、包含曲面上过该点所有曲线的切线的平面；z = f(a, b) + f_x(a, b)(x − a) + f_y(a, b)(y − b)'
+  - term: 线性近似
+    def: '用切线或切平面的高度代替函数值，如 f(x, y) ≈ f(a, b) + f_x(a, b)(x − a) + f_y(a, b)(y − b)'
+  - term: 可微
+    def: '在一点附近，切平面的误差除以到该点的距离趋于 0；一元时就是可导'
+  - term: 全微分
+    def: 'dz = f_x dx + f_y dy：切平面上的升高量，是函数增量 Δz 里只含一次项的部分'
+  - term: 方向导数
+    def: '沿单位向量 u 方向的变化率 D_u f；可微时等于 f_x u₁ + f_y u₂，即 ∇f·u'
+  - term: 隐函数定理
+    def: 'F 有连续偏导数、F(a, b) = 0、F_y(a, b) ≠ 0 时，F = 0 在 (a, b) 附近可写成 y = g(x)，且 g′ = −F_x/F_y'
+  - term: 反函数定理
+    def: '变换有连续偏导数、在一点的雅可比行列式不为 0 时，它在该点附近可以倒回去，反变换的雅可比矩阵是原来的逆矩阵'
+  - term: 标量场
+    def: '给空间里每个点一个数的函数，如每点的温度'
+  - term: 梯度
+    def: '偏导数构成的向量 ∇f = (f_x, f_y, …)，指向函数增加最快的方向，长度是最大变化率'
+  - term: 最速上升方向
+    def: '函数增加最快的方向，就是梯度的方向；负梯度方向下降最快'
+  - term: 等值线
+    def: '满足 f(x, y) = c 的点，通常组成一条或几条曲线，如等高线；梯度垂直于它'
+  - term: 微分
+    def: '函数在一点把增量 h 变成 ∇f·h 的线性映射；一元时就是 dy = f′(x)dx'
+  - term: 学习率
+    def: '梯度下降每一步 x − η∇f 里的正数 η，决定一步迈多大'
+  - term: 梯度下降
+    def: '反复令 x ← x − η∇f(x)，沿负梯度一步步走向函数较小处的方法'
+  - term: 雅可比矩阵
+    def: '向量映射所有偏导数排成的矩阵，第 i 行第 j 列是 ∂F_i/∂x_j；它是映射在一点的导数'
+  - term: 平面变换
+    def: '把 uv 平面上的点变到 xy 平面上的映射 x = g(u, v)、y = h(u, v)'
+  - term: 一对一
+    def: '不同的点总是变到不同的点，没有两个点变到同一处'
+  - term: 雅可比行列式
+    def: '2×2（或 3×3）雅可比矩阵的行列式；它的绝对值是这点附近面积（体积）的放大倍数'
+  - term: 中间变量
+    def: '链式法则里夹在中间的变量：z 依赖 x、y，x、y 又依赖 t，x、y 就是中间变量'
+  - term: 海森矩阵
+    def: '所有二阶偏导数排成的矩阵 H，第 i 行第 j 列是先对 x_i 再对 x_j 求的偏导数；二阶偏导数连续时对称'
+  - term: 二次型
+    def: '对称矩阵 H 给出的函数 h ↦ hᵀHh，2×2 时 hᵀHh = a h₁² + 2b h₁h₂ + c h₂²'
+  - term: 负定
+    def: '对所有非零向量 h 都有 hᵀHh < 0；对称矩阵负定等价于特征值全为负'
+  - term: 不定
+    def: '有的方向 hᵀHh > 0、有的方向 < 0；对称矩阵不定等价于特征值有正有负'
+  - term: 半正定
+    def: '对所有向量 h 都有 hᵀHh ≥ 0，记作 H ⪰ 0；对称矩阵半正定等价于特征值都 ≥ 0'
+  - term: 凸函数
+    def: '图像上任意两点的连线都不在图像下方的函数；二阶偏导数连续时等价于海森矩阵处处半正定'
+  - term: 严格凸
+    def: '图像上任意两点的连线，除了两个端点都严格在图像上方；海森矩阵处处正定就严格凸，反过来不一定'
+  - term: 二阶泰勒近似
+    def: 'f(a + h) ≈ f(a) + ∇f(a)·h + ½hᵀH(a)h：切平面再加上用海森矩阵描述的弯曲'
+  - term: 临界点
+    def: '两个偏导数都为 0，或至少一个不存在的点；局部极值只可能出现在临界点'
+  - term: 鞍点
+    def: '多元函数梯度为 0、却不是局部极值的点，如 x² − y² 的原点'
+  - term: 闭集
+    def: '包含自己全部边界点的区域，如 x² + y² ≤ 1'
+  - term: 有界
+    def: '能被一个有限大的圆盘（或球）装下'
+  - term: 拉格朗日乘数
+    def: '求约束 g = 0 下 f 的最值时，方程 ∇f = λ∇g 里的数 λ'
+  - term: 无约束极小化
+    def: '在整个空间里找让 f(x) 最小的 x，没有额外的条件限制'
+  - term: 牛顿法
+    def: '每步跳到当前二次近似的最低点：一元 x − f′/f″，多元 x − H⁻¹∇f'
+assumes: [向量, 点积, 单位向量, 矩阵, 行列式, 逆矩阵, 可逆, 转置, 对称矩阵, 特征值, 特征向量, 正定矩阵, 线性变换]
+lessons:
+  - id: two-var-functions
+    chapter: 偏导数
+    title: 两个输入的函数，先只动一个
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你站在山坡上，脚下的海拔取决于你在东西方向和南北方向的位置。只往正东走一小步，海拔变化的快慢跟什么有关？
+          options:
+            - text: 只跟东西方向的坡度有关，南北位置这时不变
+              correct: true
+            - text: 跟东西、南北两个方向的坡度都有关
+              why: 你只往东走，南北位置没动，所以只看东西方向的坡度
+            - text: 跟哪个方向都无关，海拔只取决于山有多高
+              why: 坡度决定了走一步升高多少；同一座山，陡的地方升得快
+          explain: 只动一个方向时，另一个方向的位置不变，变化快慢只看这个方向的坡度。这一课要讲的就是这个：别的方向先不动，只看一个方向。
+      - card:
+          title: 有两个输入的函数
+          body: |
+            到现在为止，函数只有一个输入：$y = f(x)$。很多量取决于不止一个数：长方形的面积取决于长和宽，山坡的海拔取决于东西和南北两个坐标。
+
+            输入不止一个的函数叫**多元函数（multivariable function）**。两个输入的写成 $z = f(x, y)$，可以取不同值的字母 $x$、$y$ 叫**变量（variable）**。例如
+
+            $$f(x, y) = x^2 + 3xy$$
+
+            代入 $x = 1$、$y = 2$：$f(1, 2) = 1 + 6 = 7$。画图要三根轴：$x$、$y$ 轴铺在地面上，$z$ 轴竖直向上。在地面位置 $(x, y)$ 的正上方、高度 $z = f(x, y)$ 处画一个点，所有这样的点合在一起是空间里的一张曲面，像一片山坡。
+      - item:
+          id: eval-two-var
+          type: number
+          prompt: '$f(x, y) = x^2 + 3xy$。$f(2, -1)$ 是多少？'
+          answer: -2
+          hint: 把 x = 2、y = −1 同时代进去。
+          explain: 4 + 3·2·(−1) = 4 − 6 = −2。
+      - card:
+          title: 先固定一个输入
+          body: |
+            把 $y$ 固定在 2，$f(x, y) = x^2 + 3xy$ 就变成只有一个输入的函数：
+
+            $$f(x, 2) = x^2 + 6x$$
+
+            它的导数是 $2x + 6$，在 $x = 1$ 处等于 8。意思是：站在点 $(1, 2)$，只让 $x$ 增加一点，$f$ 大约以每单位 8 的速度上升。
+
+            这一步你已经会了：固定一个变量，剩下的就是一元函数求导。
+      - card:
+          title: 偏导数
+          body: |
+            固定 $y = b$，只让 $x$ 变，在 $x = a$ 处求导，结果叫 $f$ 对 $x$ 的**偏导数（partial derivative）**：
+
+            $$f_x(a, b) = \lim_{h \to 0} \frac{f(a + h,\, b) - f(a, b)}{h}$$
+
+            也写作 $\dfrac{\partial f}{\partial x}$。$\partial$ 是弯着写的 d，读作“偏”，提醒你还有别的变量被固定住了。对 $y$ 的偏导数 $f_y$ 同理：固定 $x$，只让 $y$ 变。
+
+            算的时候只有一条规则：**把其他变量当成常数**，照一元的求导法则做。
+      - item:
+          id: fx-rule
+          type: choice
+          prompt: '$f(x, y) = x^2 + 3xy$。$f_x$ 是什么？'
+          options:
+            - text: $2x + 3y$
+              correct: true
+            - text: $2x$
+              why: 3xy 里含有 x，对 x 求导时它不会消失；把 3y 当常数，3y·x 的导数是 3y
+            - text: $2x + 3$
+              why: 3xy 对 x 的导数是常数 3y，不是 3；y 被固定成常数，但它还在
+            - text: $2x + 3x$
+              why: 对 x 求偏导时 y 是常数，3xy 的导数是 3y，不会出现 3x
+          explain: 把 y 看成常数：x² 的导数是 2x，3y·x 的导数是 3y，合起来 2x + 3y。
+      - item:
+          id: fy-value
+          type: number
+          prompt: '$f(x, y) = x^2 + 3xy$。$f_y(1, 2)$ 是多少？'
+          answer: 3
+          hint: 这回固定的是 x。x² 里没有 y，它对 y 的导数是多少？
+          explain: 把 x 当常数：x² 对 y 的导数是 0，3x·y 对 y 的导数是 3x。f_y = 3x，在 x = 1 处是 3（和 y 取多少无关）。
+      - card:
+          title: 例题：偏导数的两种算法
+          body: '$f(x, y) = x^2 + 3xy$，在点 $(1, 2)$。先用定义里的差商近似，再用法则精确算，看两者对不对得上。'
+          reveal:
+            - title: 第 1 步：用很小的 h 算差商
+              body: |
+                取 $h = 0.1$：$f(1.1, 2) = 1.21 + 6.6 = 7.81$，$f(1, 2) = 7$。
+
+                $$\frac{f(1.1, 2) - f(1, 2)}{0.1} = \frac{0.81}{0.1} = 8.1$$
+            - title: 第 2 步：用法则求出精确值
+              body: '$f_x = 2x + 3y$，代入 $(1, 2)$：$2 + 6 = 8$。'
+            - title: 第 3 步：比较
+              body: 差商 8.1 已经很接近 8；$h$ 再小，差商会更接近 8。偏导数就是这个差商在 $h \to 0$ 时的极限。
+      - item:
+          id: diff-quotient
+          type: number
+          prompt: '$f(x, y) = x^2 + 3xy$。取 $h = 0.01$，差商 $\dfrac{f(1 + h, 2) - f(1, 2)}{h}$ 等于多少？'
+          answer: 8.01
+          tolerance: 0.0001
+          hint: f(1.01, 2) = 1.0201 + 3·1.01·2。
+          explain: f(1.01, 2) = 1.0201 + 6.06 = 7.0801，减去 7 再除以 0.01 得 8.01。比 h = 0.1 时的 8.1 更接近 f_x(1, 2) = 8。
+      - card:
+          title: 偏导数在图上是什么
+          body: |
+            曲面 $z = f(x, y)$ 被竖直的平面 $y = b$ 切开，切口是一条曲线 $z = f(x, b)$。$f_x(a, b)$ 就是这条曲线在 $x = a$ 处切线的斜率：沿着正 $x$ 方向走，曲面有多陡。$f_y$ 是用平面 $x = a$ 切出的曲线的斜率。
+
+            例如 $z = 4 - x^2 - y^2$ 是一个倒扣的碗。在 $(1, 1)$ 处 $f_x = -2x = -2$：往正 $x$ 方向走，每走一单位大约下降 2。
+      - item:
+          id: slope-meaning
+          type: choice
+          prompt: '曲面 $z = 4 - x^2 - y^2$。站在 $(1, 1)$ 上方的曲面上，往正 $y$ 方向走一小步，会怎样？'
+          options:
+            - text: 下降，大约每单位降 2
+              correct: true
+            - text: 上升，大约每单位升 2
+              why: f_y = −2y，在 y = 1 处是 −2，负号表示下降
+            - text: 高度不变，因为只有 x 在变
+              why: 往 y 方向走，变的是 y，x 不变；f_y 不为 0，高度会变
+          explain: f_y = −2y，在 (1, 1) 处等于 −2，所以往正 y 方向走，每单位大约下降 2。
+      - item:
+          id: area-rate
+          type: number
+          prompt: '长方形面积 $A(w, h) = wh$。当 $w = 5$、$h = 3$ 时，$\dfrac{\partial A}{\partial w}$ 是多少？'
+          answer: 3
+          explain: 把 h 当常数，A = h·w 对 w 的导数是 h = 3。意思是：高固定在 3，宽每增加 1，面积增加 3。
+  - id: partial-rules
+    chapter: 偏导数
+    title: 求导法则照用，变量再多也一样
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: '$f(x, y) = \sin(xy)$。猜猜 $\dfrac{\partial f}{\partial x}$ 是什么？'
+          options:
+            - text: $y\cos(xy)$
+              correct: true
+            - text: $\cos(xy)$
+              why: 里层 xy 对 x 的导数是 y，链式法则要乘上它
+            - text: $x\cos(xy)$
+              why: 乘上的应该是里层对 x 的导数 y；x 是里层对 y 求导时才出现的
+          explain: 把 y 当常数，sin(xy) 是复合函数：外层 sin u，里层 u = xy。外层导数 cos(xy) 乘里层对 x 的导数 y。
+      - card:
+          title: 一元的法则全都能用
+          body: |
+            求偏导时其他变量只是常数，所以和、积、商的法则和链式法则照样用。几个例子：
+
+            $$\frac{\partial}{\partial x} e^{xy} = y\,e^{xy}, \qquad \frac{\partial}{\partial y} e^{xy} = x\,e^{xy}$$
+
+            $$\frac{\partial}{\partial y}\,\frac{x}{y} = x \cdot \left(-\frac{1}{y^2}\right) = -\frac{x}{y^2}$$
+
+            第二个式子里 $x$ 是常数系数，所以只对 $1/y$ 求导。
+      - item:
+          id: exp-chain
+          type: number
+          prompt: '$f(x, y) = e^{x^2 y}$。$f_x(1, 1)$ 是多少？（保留 3 位小数）'
+          answer: 5.43656
+          tolerance: 0.001
+          hint: 里层 x²y 对 x 的导数是多少？
+          explain: f_x = e^(x²y)·2xy。在 (1, 1)：e·2 ≈ 5.437。
+      - item:
+          id: quotient-y
+          type: choice
+          prompt: '$g(x, y) = \dfrac{x}{x + y}$。$g_y$ 是什么？'
+          options:
+            - text: $-\dfrac{x}{(x + y)^2}$
+              correct: true
+            - text: $\dfrac{y}{(x + y)^2}$
+              why: 这是 g 对 x 的偏导数，对 y 求时分子 x 是常数
+            - text: $\dfrac{1}{x + y}$
+              why: 分子是常数 x，要对分母 1/(x + y) 求导，得到 −1/(x + y)²
+          explain: x 是常数，(x + y)⁻¹ 对 y 的导数是 −(x + y)⁻²，乘上 x 得 −x/(x + y)²。
+      - card:
+          title: 三个及更多变量
+          body: |
+            $f(x, y, z)$ 有三个偏导数 $f_x$、$f_y$、$f_z$。对谁求，就把另外两个都当常数。$n$ 个变量就有 $n$ 个偏导数，规则不变。
+
+            例如 $f(x, y, z) = x^2 y + y z^3$：
+
+            $$f_x = 2xy, \quad f_y = x^2 + z^3, \quad f_z = 3yz^2$$
+
+            在点 $(1, 2, 1)$：$f_x = 4$，$f_y = 2$，$f_z = 6$。
+      - card:
+          title: 例题：带对数的三元函数
+          body: '$g(x, y, z) = \ln(x^2 + yz)$，求三个偏导数在 $(1, 2, 3)$ 的值。'
+          reveal:
+            - title: 第 1 步：认出外层和里层
+              body: 外层是 $\ln u$，导数 $1/u$；里层是 $u = x^2 + yz$。每个偏导数都是 $\dfrac{1}{x^2 + yz}$ 乘里层对那个变量的偏导数。
+            - title: 第 2 步：分别求里层的偏导数
+              body: '$u_x = 2x$，$u_y = z$（$x^2$ 是常数，$yz$ 对 $y$ 求导得 $z$），$u_z = y$。'
+            - title: 第 3 步：代入点 (1, 2, 3)
+              body: |
+                里层 $u = 1 + 6 = 7$。
+
+                $$g_x = \frac{2}{7}, \quad g_y = \frac{3}{7}, \quad g_z = \frac{2}{7}$$
+      - item:
+          id: three-var-half
+          type: number
+          prompt: '$f(x, y, z) = xyz + z^2$。$f_z(1, 2, 3)$ 是多少？'
+          answer: 8
+          hint: 把 x、y 当常数：xyz 对 z 的导数是 xy。
+          explain: f_z = xy + 2z = 2 + 6 = 8。
+      - item:
+          id: match-partials
+          type: match
+          prompt: 把每个函数和它对 y 的偏导数配对。
+          pairs:
+            - ['$x^3 y^2$', '$2x^3 y$']
+            - ['$x \sin y$', '$x \cos y$']
+            - ['$e^{x + 2y}$', '$2e^{x + 2y}$']
+            - ['$\ln(xy)$（x, y > 0）', '$1/y$']
+          explain: 对 y 求导时 x 都是常数。ln(xy) = ln x + ln y，ln x 是常数，只剩 (ln y)′ = 1/y。
+      - card:
+          title: 偏导数的单位和含义
+          body: |
+            偏导数是变化率，所以带单位：“输出的单位 ÷ 那个输入的单位”。
+
+            一摩尔理想气体的压强 $P(T, V) = 0.0821\,T/V$（$P$ 单位是大气压，$T$ 是开尔文温度，$V$ 是升）。$\partial P/\partial V$ 的单位是“大气压每升”：温度不变时，体积每增加 1 升，压强大约变多少。它是负的，因为体积变大、压强变小。
+      - item:
+          id: gas-dv
+          type: number
+          prompt: '$P(T, V) = 0.0821\,T/V$。在 $T = 300$、$V = 10$ 处，$\dfrac{\partial P}{\partial V}$ 是多少（大气压每升，保留 4 位小数）？'
+          answer: -0.2463
+          tolerance: 0.0001
+          hint: 把 T 当常数，1/V 对 V 的导数是 −1/V²。
+          explain: ∂P/∂V = −0.0821·T/V² = −0.0821·300/100 = −0.2463。温度固定在 300 K 时，体积每多 1 升，压强大约降 0.246 个大气压。
+      - item:
+          id: gas-dt
+          type: number
+          prompt: '$P(T, V) = 0.0821\,T/V$。在 $T = 300$、$V = 10$ 处，$\dfrac{\partial P}{\partial T}$ 是多少（大气压每开尔文）？'
+          answer: 0.00821
+          tolerance: 0.000001
+          explain: 把 V 当常数，P = (0.0821/V)·T 对 T 的导数是 0.0821/V = 0.00821。体积不变时，温度每升 1 K，压强大约升 0.0082 个大气压。
+  - id: mixed-partials
+    chapter: 偏导数
+    title: 二阶偏导数，先 x 后 y 和先 y 后 x
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: '$f(x, y) = x^3 y^2$。先对 $x$ 求偏导再对 $y$ 求，和先对 $y$ 再对 $x$ 求，结果会怎样？'
+          options:
+            - text: 一样
+              correct: true
+            - text: 不一样，顺序反过来结果就不同
+              why: 对这个函数算一下：两种顺序都得 6x²y
+            - text: 无法比较，因为两次求导的变量不同
+              why: 两种顺序最后得到的都是 x、y 的函数，可以直接比较
+          explain: 两种顺序都得 6x²y。对常见的函数顺序无所谓，这一课会讲为什么，以及什么时候会出例外。
+      - card:
+          title: 二阶偏导数有四个
+          body: |
+            $f_x$、$f_y$ 本身还是 $x, y$ 的函数，可以再求偏导，得到**二阶偏导数（second-order partial derivative）**：
+
+            $$f_{xx} = (f_x)_x, \quad f_{xy} = (f_x)_y, \quad f_{yx} = (f_y)_x, \quad f_{yy} = (f_y)_y$$
+
+            写在右下角的小字母叫**下标（subscript）**，从左往右读就是求导的先后：$f_{xy}$ 是先对 $x$、再对 $y$。对不同变量求出来的 $f_{xy}$、$f_{yx}$ 叫**混合偏导数（mixed partial derivative）**。
+
+            还有一种分式写法 $\dfrac{\partial^2 f}{\partial x\,\partial y}$。不同教材对它的先后顺序约定相反，所以这一关一律用下标写法。
+      - card:
+          title: 一个完整的例子
+          body: |
+            $f(x, y) = x^3 y^2 - 2xy$：
+
+            $$f_x = 3x^2 y^2 - 2y, \qquad f_y = 2x^3 y - 2x$$
+
+            再各求一次：
+
+            $$f_{xx} = 6xy^2, \quad f_{xy} = 6x^2 y - 2, \quad f_{yx} = 6x^2 y - 2, \quad f_{yy} = 2x^3$$
+
+            两个混合偏导数相等。
+      - item:
+          id: fxx-value
+          type: number
+          prompt: '$f(x, y) = x^3 y^2 - 2xy$。$f_{xx}(1, 2)$ 是多少？'
+          answer: 24
+          hint: 先求 f_x，再把它对 x 求一次。
+          explain: f_x = 3x²y² − 2y，f_xx = 6xy²，在 (1, 2) 处是 6·1·4 = 24。
+      - item:
+          id: order-reading
+          type: choice
+          prompt: 下标写法 $f_{yx}$ 表示什么？
+          options:
+            - text: 先对 y 求偏导，再对 x 求
+              correct: true
+            - text: 先对 x 求偏导，再对 y 求
+              why: 下标从左往右读：y 在前，先对 y 求
+            - text: 对 x 和 y 同时求导
+              why: 求导是一次一个变量地做，下标的顺序就是做的顺序
+          explain: f_yx = (f_y)_x，先求 f_y，再对 x 求偏导。
+      - card:
+          title: Clairaut 定理
+          body: |
+            **Clairaut 定理（Clairaut's theorem）**：$f$ 定义在包含点 $(a, b)$ 的一个开圆盘上（开圆盘就是不含边界的圆盘：到圆心的距离小于半径的那些点），如果 $f_{xy}$ 和 $f_{yx}$ 在这个圆盘上都连续，那么它们在圆盘上处处相等。
+
+            多项式、$e^x$、$\sin$、$\cos$ 以及它们加减乘除、复合得到的函数，在定义域里各阶偏导数都连续，所以混合偏导数可以按顺手的顺序算。更高阶也一样，比如 $f_{xxy} = f_{xyx} = f_{yxx}$。
+      - item:
+          id: clairaut-use
+          type: number
+          prompt: '已知某个多项式 $f$ 的 $f_{xy} = 6x^2 y - 2$。不用再算，$f_{yx}(1, 1)$ 是多少？'
+          answer: 4
+          explain: 多项式的二阶偏导数处处连续，由 Clairaut 定理 f_yx = f_xy = 6x²y − 2，在 (1, 1) 是 6 − 2 = 4。
+      - card:
+          title: 定理的条件不是摆设
+          body: |
+            条件不满足时，两个混合偏导数真的可以不相等。经典的例子：
+
+            $$f(x, y) = \frac{xy(x^2 - y^2)}{x^2 + y^2}, \qquad f(0, 0) = 0$$
+
+            用定义一步步算可以得到 $f_{xy}(0, 0) = -1$，$f_{yx}(0, 0) = 1$。原因是它的混合偏导数在原点不连续，Clairaut 定理的条件不成立。
+
+            平时遇到的函数很少这样，但这说明“顺序可交换”是有前提的结论。
+      - item:
+          id: clairaut-condition
+          type: choice
+          prompt: 某个函数在原点处 $f_{xy}(0, 0) \ne f_{yx}(0, 0)$。由此能得出什么？
+          options:
+            - text: $f_{xy}$ 和 $f_{yx}$ 不可能都在原点附近连续
+              correct: true
+            - text: 计算一定出错了，混合偏导数永远相等
+              why: 只有在定理的条件下才相等；上一张卡的函数就是反例
+            - text: 这个函数在原点没有定义
+              why: 那个反例在原点有定义（规定 f(0, 0) = 0），一阶偏导数也存在
+          explain: 如果两者在原点附近的开圆盘上都连续，Clairaut 定理会保证它们相等。现在不相等，说明这个条件不成立。
+      - card:
+          title: 例题：带指数的混合偏导数
+          body: '$f(x, y) = x^2 y + e^{xy}$，求 $f_{xy}$，再代入 $(1, 0)$。'
+          reveal:
+            - title: 第 1 步：先对 x 求偏导
+              body: '$f_x = 2xy + y\,e^{xy}$（第二项用链式法则，里层 $xy$ 对 $x$ 的导数是 $y$）。'
+            - title: 第 2 步：把 f_x 对 y 求偏导
+              body: |
+                $2xy$ 对 $y$ 的导数是 $2x$。$y\,e^{xy}$ 是乘积，用乘积法则：$1 \cdot e^{xy} + y \cdot x e^{xy}$。
+
+                $$f_{xy} = 2x + e^{xy} + xy\,e^{xy}$$
+            - title: 第 3 步：代入 (1, 0)
+              body: '$2 + e^0 + 0 = 3$。'
+      - item:
+          id: fxy-exp
+          type: number
+          prompt: '$f(x, y) = x^2 y + e^{xy}$。$f_{xy}(1, 1)$ 是多少？（保留 3 位小数）'
+          answer: 7.43656
+          tolerance: 0.001
+          hint: 先对 x 求偏导，再把结果对 y 求；y·e^(xy) 这一项要用乘积法则。
+          explain: 2 + e + e = 2 + 2e ≈ 7.437。
+      - item:
+          id: third-order
+          type: number
+          prompt: '$f(x, y) = x^4 y^3$。$f_{xxy}(1, 1)$ 是多少？'
+          answer: 36
+          explain: f_x = 4x³y³，f_xx = 12x²y³，f_xxy = 36x²y²，在 (1, 1) 是 36。
+  - id: pde-check
+    chapter: 偏导数
+    title: 偏微分方程：检查一个解对不对
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一根金属棒，中间热、两头凉，放着不管。过一会儿，中间最热的那一点会怎样？
+          options:
+            - text: 变凉，热量往两边流
+              correct: true
+            - text: 更热，热量往最热的地方聚
+              why: 热量从热处流向冷处，最热的点会把热量分给两边
+            - text: 不变，因为没有加热也没有冷却
+              why: 棒内部的温度差会让热量流动，最热点的温度会下降
+          explain: 热量从热处流向冷处。这一课的热方程把这件事写成了偏导数之间的关系。
+      - card:
+          title: 微分方程
+          body: |
+            含有未知函数和它的导数的方程叫**微分方程（differential equation）**。例如 $y' = 2y$：要找的是一个函数，它的导数处处等于它自身的 2 倍。
+
+            $y = e^{2x}$ 是一个解：$y' = 2e^{2x} = 2y$。检查一个函数是不是解，只要把它和它的导数代进方程，看两边是否恒等。
+      - item:
+          id: ode-k
+          type: number
+          prompt: '$y = e^{kx}$ 满足微分方程 $y'' = 5y$。$k$ 是多少？'
+          answer: 5
+          explain: y′ = k·e^(kx) = k·y，要等于 5y，所以 k = 5。
+      - card:
+          title: 偏微分方程
+          body: |
+            未知函数有不止一个自变量、方程里出现它的偏导数，这样的方程叫**偏微分方程（partial differential equation，PDE）**。
+
+            一维**热方程（heat equation）**描述一根棒上温度 $u(x, t)$ 随位置 $x$ 和时间 $t$ 的变化：
+
+            $$u_t = c^2\, u_{xx}$$
+
+            $c^2$ 是正常数（热扩散率）。在温度曲线向下弯的地方（$u_{xx} < 0$，比如最热点），$u_t < 0$：温度在降。这就是开头那个问题的答案。
+      - item:
+          id: heat-alpha
+          type: number
+          prompt: '$u(x, t) = e^{-18t}\sin(3x)$ 满足热方程 $u_t = c^2 u_{xx}$。$c^2$ 是多少？'
+          answer: 2
+          hint: 分别算 u_t 和 u_xx，它们都是 e^(−18t)sin(3x) 的倍数。
+          explain: u_t = −18·e^(−18t)sin 3x，u_xx = −9·e^(−18t)sin 3x。−18 = c²·(−9)，c² = 2。
+      - card:
+          title: 拉普拉斯方程
+          body: |
+            一块平板上的温度 $u(x, y, t)$ 满足平面上的热方程 $u_t = c^2(u_{xx} + u_{yy})$。温度不再随时间变化以后（稳定状态），$u_t = 0$，于是得到**拉普拉斯方程（Laplace's equation）**：
+
+            $$u_{xx} + u_{yy} = 0$$
+
+            检查几个函数：$u = x^2 - y^2$：$u_{xx} = 2$，$u_{yy} = -2$，和是 0，是解。$u = x^2 + y^2$：$2 + 2 = 4 \ne 0$，不是解。$u = e^x \sin y$：$u_{xx} = e^x \sin y$，$u_{yy} = -e^x \sin y$，是解。
+      - item:
+          id: laplace-which
+          type: choice
+          multi: true
+          prompt: 哪些函数满足拉普拉斯方程 $u_{xx} + u_{yy} = 0$？（多选）
+          options:
+            - text: $u = xy$
+              correct: true
+            - text: $u = x^3 - 3xy^2$
+              correct: true
+            - text: $u = e^x \cos y$
+              correct: true
+            - text: $u = x^2 + y^2$
+              why: u_xx + u_yy = 2 + 2 = 4，不等于 0
+            - text: $u = x^3$
+              why: u_xx = 6x，u_yy = 0，和是 6x，只在 x = 0 时为 0，不是处处为 0
+          explain: xy 的两个二阶偏导数都是 0；x³ − 3xy² 是 6x + (−6x) = 0；e^x cos y 是 e^x cos y − e^x cos y = 0。要处处等于 0 才算解。
+      - card:
+          title: 波动方程
+          body: |
+            琴弦的振动位移 $u(x, t)$ 满足**波动方程（wave equation）**：
+
+            $$u_{tt} = c^2\, u_{xx}$$
+
+            $c$ 是波传播的速度。例如 $u = \sin(x - 2t)$ 是一个向右传播的波：$u_{tt} = -4\sin(x - 2t)$，$u_{xx} = -\sin(x - 2t)$，所以 $u_{tt} = 4\,u_{xx}$，$c^2 = 4$。
+
+            热方程里是对时间的一阶偏导数，波动方程里是二阶，这是两者最显眼的区别。
+      - item:
+          id: wave-c2
+          type: number
+          prompt: '$u(x, t) = \cos(2x + 6t)$ 满足波动方程 $u_{tt} = c^2 u_{xx}$。$c^2$ 是多少？'
+          answer: 9
+          explain: u_tt = −36cos(2x + 6t)，u_xx = −4cos(2x + 6t)，−36 = c²·(−4)，c² = 9。
+      - card:
+          title: 例题：检验 ln(x² + y²)
+          body: '证明 $u = \ln(x^2 + y^2)$ 在 $(x, y) \ne (0, 0)$ 处满足拉普拉斯方程。'
+          reveal:
+            - title: 第 1 步：求一阶偏导数
+              body: '$u_x = \dfrac{2x}{x^2 + y^2}$，$u_y = \dfrac{2y}{x^2 + y^2}$。'
+            - title: 第 2 步：用商法则求 u_xx
+              body: |
+                $$u_{xx} = \frac{2(x^2 + y^2) - 2x \cdot 2x}{(x^2 + y^2)^2} = \frac{2(y^2 - x^2)}{(x^2 + y^2)^2}$$
+
+                $u_{yy}$ 把 $x$、$y$ 对调：$\dfrac{2(x^2 - y^2)}{(x^2 + y^2)^2}$。
+            - title: 第 3 步：相加
+              body: 两个分子 $2(y^2 - x^2)$ 和 $2(x^2 - y^2)$ 相加是 0，所以 $u_{xx} + u_{yy} = 0$。在原点 $u$ 没有定义，所以要把原点除外。
+      - item:
+          id: uxx-ln
+          type: number
+          prompt: '$u = \ln(x^2 + y^2)$。$u_{xx}(1, 0)$ 是多少？'
+          answer: -2
+          explain: u_xx = 2(y² − x²)/(x² + y²)²，在 (1, 0) 是 2·(0 − 1)/1 = −2。（此时 u_yy = 2，两者相加为 0。）
+      - item:
+          id: heat-2d
+          type: choice
+          prompt: '平面上的热方程是 $u_t = c^2(u_{xx} + u_{yy})$。温度分布已经不随时间变化时，$u$ 满足什么？'
+          options:
+            - text: 拉普拉斯方程 $u_{xx} + u_{yy} = 0$
+              correct: true
+            - text: $u_{xx} = 0$ 且 $u_{yy} = 0$
+              why: 只需要两者之和为 0；比如 x² − y² 的 u_xx = 2、u_yy = −2，和为 0
+            - text: 波动方程
+              why: 波动方程含 u_tt；不随时间变化时所有对 t 的偏导数都是 0
+          explain: 不随时间变化就是 u_t = 0。c² ≠ 0，所以 u_xx + u_yy = 0，正是拉普拉斯方程。
+  - id: tangent-plane
+    chapter: 全微分
+    title: 切平面：曲面放大后的样子
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一元的光滑曲线放大到最后像一条直线。把一张光滑曲面（比如一个碗面）在某点附近不停放大，最后像什么？
+          options:
+            - text: 一块平面
+              correct: true
+            - text: 一条直线
+              why: 曲面是二维的，放大后还是二维的，像一块平板
+            - text: 还是一个碗
+              why: 放大的是越来越小的一片，弯曲越来越不明显
+          explain: 光滑曲面的一小片几乎是平的。这块“放大后看到的平面”，这一课会给它起名字、写出方程。
+      - card:
+          title: 两条切线定出一块平面
+          body: |
+            回忆一元的切线：$y = f(a) + f'(a)(x - a)$。
+
+            在曲面 $z = f(x, y)$ 上取点 $P = (a, b, f(a, b))$。用平面 $y = b$ 切曲面，得到一条曲线，它在 $P$ 的切线斜率是 $f_x(a, b)$；用平面 $x = a$ 切，切线斜率是 $f_y(a, b)$。
+
+            这两条切线都过 $P$、方向不同，正好确定一块平面。过曲面上一点、包含曲面上所有过该点曲线的切线的平面，叫这一点的**切平面（tangent plane）**。
+      - card:
+          title: 切平面的方程
+          body: |
+            多项式、$e^x$、$\sin$ 这类函数经过加减乘除和复合得到的光滑曲面，切平面是
+
+            $$z = f(a, b) + f_x(a, b)\,(x - a) + f_y(a, b)\,(y - b)$$
+
+            和切线方程一个样子：起点高度，加上“沿 $x$ 的斜率 × $x$ 方向走的距离”，再加上“沿 $y$ 的斜率 × $y$ 方向走的距离”。
+
+            例：$z = x^2 + y^2$ 在 $(1, 2)$：$f = 5$，$f_x = 2x = 2$，$f_y = 2y = 4$。切平面 $z = 5 + 2(x - 1) + 4(y - 2)$，整理成 $z = 2x + 4y - 5$。
+      - item:
+          id: plane-const
+          type: number
+          prompt: '$z = x^2 + y^2$ 在点 $(2, 1)$ 的切平面写成 $z = 4x + 2y + c$。$c$ 是多少？'
+          answer: -5
+          hint: 切平面要经过 (2, 1, f(2, 1))。
+          explain: f(2, 1) = 5，f_x = 4，f_y = 2。z = 5 + 4(x − 2) + 2(y − 1) = 4x + 2y − 5。
+      - card:
+          title: 例题：一般函数的切平面
+          body: '求 $f(x, y) = x^2 y - y^3$ 在 $(2, 1)$ 的切平面。'
+          reveal:
+            - title: 第 1 步：算出点的高度
+              body: '$f(2, 1) = 4 - 1 = 3$。'
+            - title: 第 2 步：算两个偏导数在这一点的值
+              body: '$f_x = 2xy$，在 $(2, 1)$ 是 4；$f_y = x^2 - 3y^2$，在 $(2, 1)$ 是 $4 - 3 = 1$。'
+            - title: 第 3 步：代入切平面公式
+              body: '$z = 3 + 4(x - 2) + 1 \cdot (y - 1)$，整理得 $z = 4x + y - 6$。'
+      - item:
+          id: plane-exp
+          type: choice
+          prompt: '$f(x, y) = e^x \cos y$ 在 $(0, 0)$ 的切平面是哪个？'
+          options:
+            - text: $z = 1 + x$
+              correct: true
+            - text: $z = x$
+              why: 漏了起点高度 f(0, 0) = e⁰cos 0 = 1
+            - text: $z = 1 + x - y$
+              why: f_y = −e^x sin y，在 (0, 0) 是 −sin 0 = 0，y 的系数是 0
+          explain: f(0, 0) = 1，f_x = e^x cos y 在原点是 1，f_y = −e^x sin y 在原点是 0。z = 1 + x。
+      - item:
+          id: plane-read
+          type: number
+          prompt: '某个函数 $f$ 在 $(1, 4)$ 的切平面是 $z = 3 + 2(x - 1) - (y - 4)$。$f_y(1, 4)$ 是多少？'
+          answer: -1
+          explain: 切平面里 (y − b) 的系数就是 f_y(a, b)，这里是 −1。同样能读出 f(1, 4) = 3，f_x(1, 4) = 2。
+      - card:
+          title: 有尖的地方没有切平面
+          body: |
+            圆锥面 $z = \sqrt{x^2 + y^2}$ 在原点是个尖。沿 $x$ 轴看，截面是 $z = |x|$，在 0 处没有导数，所以 $f_x(0, 0)$ 不存在，切平面无从谈起。
+
+            偏导数都存在也还不够：比如 $f(x, y) = \dfrac{xy}{\sqrt{x^2 + y^2}}$（原点处规定为 0）在原点两个偏导数都是 0，可是沿对角线方向的截面有个尖，过原点的那些切线不在同一块平面上。所以用公式之前，要先确认曲面在这点是光滑的。
+      - item:
+          id: cone-tip
+          type: choice
+          prompt: 为什么圆锥面 $z = \sqrt{x^2 + y^2}$ 在原点没有切平面？
+          options:
+            - text: 沿 x 轴的截面是 z = |x|，它在 0 处没有导数
+              correct: true
+            - text: 因为 f(0, 0) = 0，平面过原点就不算切平面
+              why: 切平面可以过原点，比如 z = x² + y² 在原点的切平面就是 z = 0
+            - text: 因为圆锥面上没有直线
+              why: 圆锥面上有很多直线（母线）；问题出在原点的尖上
+          explain: z = |x| 在 0 处左右斜率是 −1 和 1，导数不存在，f_x(0, 0) 不存在。
+  - id: linear-approx
+    chapter: 全微分
+    title: 用切平面估算函数值
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: '已知 $f(1, 2) = 5$，$f_x(1, 2) = 2$，$f_y(1, 2) = 4$。$f(1.1, 2.1)$ 大约是多少？'
+          options:
+            - text: '5.6'
+              correct: true
+            - text: '5.2'
+              why: 只算了 x 方向的变化 2·0.1，y 也变了 0.1，还要加 4·0.1
+            - text: '11'
+              why: 把两个斜率 2 和 4 直接加到 5 上了；斜率要乘上走的距离 0.1
+          explain: x 多了 0.1，带来约 2·0.1 = 0.2；y 多了 0.1，带来约 4·0.1 = 0.4。合起来 5 + 0.6 = 5.6。
+      - card:
+          title: 线性近似
+          body: |
+            在 $(a, b)$ 附近，用切平面的高度代替曲面的高度：
+
+            $$f(x, y) \approx L(x, y) = f(a, b) + f_x(a, b)(x - a) + f_y(a, b)(y - b)$$
+
+            这叫 $f$ 在 $(a, b)$ 的**线性近似（linear approximation）**。$L$ 只含一次项，好算；离 $(a, b)$ 越近，近似越准。一元的 $f(x) \approx f(a) + f'(a)(x - a)$ 是它的特例。
+      - item:
+          id: approx-x2y
+          type: number
+          prompt: '$f(x, y) = x^2 y$。用 $(2, 3)$ 处的线性近似估算 $f(2.01, 2.98)$。'
+          answer: 12.04
+          tolerance: 0.0001
+          hint: 先算 f(2, 3)、f_x(2, 3)、f_y(2, 3)。
+          explain: f(2, 3) = 12，f_x = 2xy = 12，f_y = x² = 4。L = 12 + 12·0.01 + 4·(−0.02) = 12 + 0.12 − 0.08 = 12.04。真实值 2.01²·2.98 = 12.039498。
+      - card:
+          title: 例题：估算 1.02² + 1.97²
+          body: '用 $f(x, y) = x^2 + y^2$ 在 $(1, 2)$ 的线性近似估算 $1.02^2 + 1.97^2$，再和精确值比。'
+          reveal:
+            - title: 第 1 步：选一个好算的基点
+              body: 离 $(1.02, 1.97)$ 最近、又好算的点是 $(1, 2)$：$f(1, 2) = 5$。
+            - title: 第 2 步：算偏导数和走的距离
+              body: '$f_x = 2x = 2$，$f_y = 2y = 4$。$x - 1 = 0.02$，$y - 2 = -0.03$。'
+            - title: 第 3 步：代入 L
+              body: '$L = 5 + 2(0.02) + 4(-0.03) = 5 + 0.04 - 0.12 = 4.92$。'
+            - title: 第 4 步：和精确值比较
+              body: 精确值 $1.0404 + 3.8809 = 4.9213$，误差约 0.0013。
+      - item:
+          id: approx-sqrt
+          type: number
+          prompt: '$f(x, y) = \sqrt{x^2 + y^2}$，$f(3, 4) = 5$，$f_x(3, 4) = 0.6$，$f_y(3, 4) = 0.8$。用线性近似估算 $\sqrt{3.06^2 + 3.92^2}$。'
+          answer: 4.972
+          tolerance: 0.0001
+          explain: L = 5 + 0.6·0.06 + 0.8·(−0.08) = 5 + 0.036 − 0.064 = 4.972。真实值约 4.97293。
+      - card:
+          title: 偏导数从哪来：x/r 和 y/r
+          body: |
+            上一题的 $f_x = 0.6$ 是这样来的：$f = (x^2 + y^2)^{1/2}$，链式法则
+
+            $$f_x = \frac{1}{2}(x^2 + y^2)^{-1/2} \cdot 2x = \frac{x}{\sqrt{x^2 + y^2}}$$
+
+            在 $(3, 4)$ 是 $3/5$。同理 $f_y = 4/5$。$\sqrt{x^2 + y^2}$ 是点到原点的距离，它沿 $x$ 方向的变化率就是 $x$ 除以距离。
+      - item:
+          id: approx-ostax
+          type: number
+          prompt: '$f(x, y) = \sqrt{41 - 4x^2 - y^2}$。已知 $f(2, 3) = 4$，$f_x(2, 3) = -2$，$f_y(2, 3) = -0.75$。估算 $f(2.1, 2.9)$。'
+          answer: 3.875
+          tolerance: 0.0001
+          explain: L = 4 + (−2)(0.1) + (−0.75)(−0.1) = 4 − 0.2 + 0.075 = 3.875。真实值 √14.95 ≈ 3.8665，相对误差约 0.2%。
+      - item:
+          id: approx-cylinder
+          type: number
+          prompt: '圆柱体积 $V(r, h) = \pi r^2 h$。在 $r = 2$、$h = 5$ 处用线性近似估算 $V(2.05, 4.9)$。（保留 2 位小数）'
+          answer: 64.7168
+          tolerance: 0.01
+          hint: V_r = 2πrh，V_h = πr²。
+          explain: V(2, 5) = 20π，V_r = 2π·2·5 = 20π，V_h = 4π。L = 20π + 20π·0.05 + 4π·(−0.1) = 20π + π − 0.4π = 20.6π ≈ 64.72。真实值 π·2.05²·4.9 ≈ 64.69。
+      - item:
+          id: approx-where
+          type: choice
+          prompt: 用 $(1, 2)$ 处的线性近似估算 $f(x, y) = x^2 + y^2$，下面哪个点的估算误差最小？
+          options:
+            - text: $(1.01, 2.01)$
+              correct: true
+            - text: $(1.5, 2.5)$
+              why: 离基点越远，曲面偏离切平面越多；这个点比 (1.01, 2.01) 远得多
+            - text: $(3, 4)$
+              why: 离基点很远，切平面和曲面差得多：L(3, 4) = 17，真值是 25
+          explain: 线性近似在基点附近才准。这个函数的误差正好是 (x − 1)² + (y − 2)²：(1.01, 2.01) 只差 0.0002，(1.5, 2.5) 差 0.5，(3, 4) 差 8。
+  - id: differentiability
+    chapter: 全微分
+    title: 可微：偏导数存在还不够
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个函数在某点两个偏导数都存在。它的切平面一定能在这点附近贴住曲面吗？
+          options:
+            - text: 不一定
+              correct: true
+            - text: 一定，偏导数存在就有切平面
+              why: 偏导数只看了 x、y 两个方向，曲面在斜方向上可能有尖或者断开
+            - text: 一定不能
+              why: 多数常见函数（比如多项式）都能贴住；只是偏导数存在这个条件本身不够
+          explain: 偏导数只检查了两个方向。这一课给出“贴得住”的准确说法：可微。
+      - card:
+          title: 一元的可微，回顾
+          body: |
+            一元函数在 $a$ 可微，意思是 $f(a + h) = f(a) + A h + (\text{误差})$，而误差比 $h$ 小得快：误差 $/ h \to 0$。这时 $A = f'(a)$。
+
+            “误差比走的距离小得快”是关键：切线不只是在 $a$ 处和曲线相交，而是越靠近 $a$ 贴得越紧。
+      - card:
+          title: 二元的可微
+          body: |
+            $f(x, y)$ 在 $(a, b)$ **可微（differentiable）**，是指在 $(a, b)$ 附近
+
+            $$f(x, y) = f(a, b) + f_x(a, b)(x - a) + f_y(a, b)(y - b) + E(x, y)$$
+
+            其中误差 $E$ 除以到 $(a, b)$ 的距离以后趋于 0：
+
+            $$\lim_{(x, y) \to (a, b)} \frac{E(x, y)}{\sqrt{(x - a)^2 + (y - b)^2}} = 0$$
+
+            也就是说，不管从哪个方向靠近 $(a, b)$，切平面的误差都比走的距离小得快。可微时才说切平面、线性近似。
+      - item:
+          id: error-term
+          type: number
+          prompt: '$f(x, y) = 2x^2 - 4y$ 在 $(2, -3)$。切平面是 $z = 20 + 8(x - 2) - 4(y + 3)$。误差 $E = f - z$ 在点 $(2.1, -3)$ 处是多少？'
+          answer: 0.02
+          tolerance: 0.000001
+          hint: 先化简：E(x, y) = 2(x − 2)²。
+          explain: f(2.1, −3) = 2·4.41 + 12 = 20.82，切平面在那里是 20 + 0.8 = 20.8，E = 0.02。一般地 E = 2(x − 2)²，它除以距离后 ≤ 2·距离 → 0，所以 f 在 (2, −3) 可微。
+      - card:
+          title: 偏导数存在却不可微
+          body: |
+            看 $f(x, y) = \dfrac{xy}{\sqrt{x^2 + y^2}}$，规定 $f(0, 0) = 0$。
+
+            在 $x$ 轴上 $y = 0$，$f = 0$；在 $y$ 轴上 $f$ 也是 0。所以 $f_x(0, 0) = f_y(0, 0) = 0$，按公式“切平面”是 $z = 0$。
+
+            可是沿对角线 $y = x$：$f(x, x) = \dfrac{x^2}{\sqrt{2}\,|x|} = \dfrac{|x|}{\sqrt{2}}$，有个尖。往这个方向走距离 $d$，误差 $E = f - 0$ 正好是 $d/2$，误差除以距离一直是 $1/2$，不趋于 0。所以 $f$ 在原点不可微。
+      - item:
+          id: diag-ratio
+          type: number
+          prompt: '$f(x, y) = \dfrac{xy}{\sqrt{x^2 + y^2}}$（$f(0, 0) = 0$）在原点两个偏导数都是 0，候选的切平面是 $z = 0$。在点 $(0.01, 0.01)$，误差 $E = f - 0$ 除以到原点的距离，等于多少？'
+          answer: 0.5
+          tolerance: 0.000001
+          explain: f(0.01, 0.01) = 0.0001/(0.01√2) = 0.01/√2；距离也是 0.01√2。相除得 (0.01/√2)/(0.01√2) = 1/2。点再靠近原点，比值还是 1/2，不趋于 0。
+      - item:
+          id: diag-partial
+          type: choice
+          prompt: 同一个函数 $f(x, y) = \dfrac{xy}{\sqrt{x^2 + y^2}}$（$f(0, 0) = 0$），$f_x(0, 0)$ 是多少？
+          options:
+            - text: '0'
+              correct: true
+            - text: 不存在
+              why: 用定义算：f(h, 0) = 0，差商 [f(h, 0) − f(0, 0)]/h = 0，极限是 0，存在
+            - text: $1/\sqrt{2}$
+              why: 这是沿直线 y = x 走时 f 对 x 的斜率（f(x, x) = |x|/√2）；偏导数只看 x 轴上的值
+          explain: 在 x 轴上 f 恒为 0，差商恒为 0，所以 f_x(0, 0) = 0。偏导数存在，函数却不可微。
+      - card:
+          title: 两条好用的定理
+          body: |
+            二元函数在 $(a, b)$ 连续，意思和一元一样：$(x, y)$ 从任何方向靠近 $(a, b)$，$f(x, y)$ 都趋于 $f(a, b)$。
+
+            **可微一定连续**：$f$ 在 $(a, b)$ 可微，那么它在 $(a, b)$ 连续。反过来不对：上面那个函数在原点连续，却不可微。
+
+            **偏导数连续就可微**：如果 $f$、$f_x$、$f_y$ 在 $(a, b)$ 附近都存在，而且 $f_x$、$f_y$ 在 $(a, b)$ 连续，那么 $f$ 在 $(a, b)$ 可微。多项式、$e^x$、$\sin$ 这类函数经过加减乘除和复合得到的函数，偏导数在定义域里连续，所以都可微。
+
+            平时判断可微，就用第二条。
+      - item:
+          id: implication
+          type: choice
+          prompt: 下面哪一条推理是对的？
+          options:
+            - text: 偏导数在点附近存在且在该点连续 ⇒ 可微 ⇒ 连续
+              correct: true
+            - text: 偏导数存在 ⇒ 可微
+              why: xy/√(x² + y²) 在原点偏导数都存在，却不可微
+            - text: 连续 ⇒ 可微
+              why: 同一个函数在原点连续却不可微；圆锥面 √(x² + y²) 在原点也是连续不可微
+          explain: 两条定理连起来：偏导数连续 ⇒ 可微 ⇒ 连续。反方向都不成立。
+      - card:
+          title: 三个变量的可微
+          body: |
+            $f(x, y, z)$ 在 $P = (a, b, c)$ 可微，定义方式一样：
+
+            $$f = f(P) + f_x(P)(x - a) + f_y(P)(y - b) + f_z(P)(z - c) + E$$
+
+            $E$ 除以到 $P$ 的距离 $\sqrt{(x - a)^2 + (y - b)^2 + (z - c)^2}$ 后趋于 0。同样，可微一定连续；一阶偏导数连续就可微。线性近似也多出一项 $f_z(P)(z - c)$。
+      - item:
+          id: three-var-approx
+          type: number
+          prompt: '$f(x, y, z) = xyz$。用 $(1, 2, 3)$ 处的线性近似估算 $f(1.1, 2, 2.9)$。'
+          answer: 6.4
+          tolerance: 0.000001
+          hint: f_x = yz，f_y = xz，f_z = xy。
+          explain: f(1, 2, 3) = 6，f_x = 6，f_y = 3，f_z = 2。L = 6 + 6·0.1 + 3·0 + 2·(−0.1) = 6.4。真实值 1.1·2·2.9 = 6.38。
+      - item:
+          id: poly-diff
+          type: choice
+          prompt: '$f(x, y) = x^3 - 2xy + y^4$ 在哪些点可微？'
+          options:
+            - text: 平面上每一点
+              correct: true
+            - text: 只有偏导数为 0 的点
+              why: 可微和偏导数是不是 0 无关，只要求切平面贴得住
+            - text: 需要逐点用定义检查，无法一下判断
+              why: f_x = 3x² − 2y，f_y = −2x + 4y³ 都是多项式，处处连续，直接用“偏导数连续就可微”
+          explain: 两个偏导数都是多项式，处处连续，所以 f 处处可微。
+  - id: total-differential
+    chapter: 全微分
+    title: 全微分：变化量的线性部分
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一块长方形板，量得长 10 cm、宽 5 cm，两个数都可能差 0.1 cm。算出来的面积大约最多会差多少？
+          options:
+            - text: 约 1.5 cm²
+              correct: true
+            - text: 约 0.01 cm²
+              why: 这只是 0.1 × 0.1，是两个误差相乘的小量；主要部分是 5·0.1 + 10·0.1
+            - text: 约 0.2 cm²
+              why: 把两个误差 0.1 加起来了；长的误差要乘上宽，宽的误差要乘上长
+          explain: 长多 0.1，面积多约 5·0.1 = 0.5；宽多 0.1，面积多约 10·0.1 = 1。合起来约 1.5 cm²。这一课把这种算法写成公式。
+      - card:
+          title: 全微分
+          body: |
+            从 $(x, y)$ 走到 $(x + \Delta x, y + \Delta y)$，$z = f(x, y)$ 的真实变化是 $\Delta z = f(x + \Delta x, y + \Delta y) - f(x, y)$。
+
+            $f$ 可微时，把 $dx = \Delta x$、$dy = \Delta y$ 代入
+
+            $$dz = f_x\,dx + f_y\,dy$$
+
+            得到的 $dz$ 叫 $z$ 的**全微分（total differential）**。它是切平面上的升高量，也是 $\Delta z$ 里只含一次项的那一部分：$\Delta z \approx dz$。全微分写成 $dz$，不写成 $\partial z$。
+      - item:
+          id: dz-basic
+          type: number
+          prompt: '$z = x^2 + y^2$ 在 $(1, 2)$，$dx = 0.02$，$dy = -0.03$。$dz$ 是多少？'
+          answer: -0.08
+          tolerance: 0.000001
+          explain: dz = 2x·dx + 2y·dy = 2·0.02 + 4·(−0.03) = 0.04 − 0.12 = −0.08。
+      - card:
+          title: 例题：Δz 和 dz 差多少
+          body: '$z = x^2 y$，从 $(2, 3)$ 走到 $(2.1, 2.9)$。分别算 $dz$ 和真实的 $\Delta z$。'
+          reveal:
+            - title: 第 1 步：算偏导数
+              body: '$z_x = 2xy = 12$，$z_y = x^2 = 4$。'
+            - title: 第 2 步：算 dz
+              body: '$dz = 12(0.1) + 4(-0.1) = 0.8$。'
+            - title: 第 3 步：算真实的 Δz
+              body: '$f(2.1, 2.9) = 4.41 \times 2.9 = 12.789$，$\Delta z = 12.789 - 12 = 0.789$。'
+            - title: 第 4 步：比较
+              body: 两者只差 0.011。差出来的部分来自 $x^2 y$ 里的二次和三次项，走的步子越小，这部分缩得越快。
+      - item:
+          id: delta-vs-d
+          type: number
+          prompt: '$f(x, y) = 3x^2 - 2xy + y^2$，从 $(2, -3)$ 出发，$\Delta x = 0.1$，$\Delta y = -0.05$。$dz$ 是多少？'
+          answer: 2.3
+          tolerance: 0.000001
+          hint: f_x = 6x − 2y，f_y = −2x + 2y，先代入 (2, −3)。
+          explain: f_x(2, −3) = 12 + 6 = 18，f_y(2, −3) = −4 − 6 = −10。dz = 18·0.1 + (−10)·(−0.05) = 1.8 + 0.5 = 2.3。真实的 Δz = 2.3425。
+      - card:
+          title: 用全微分估计误差
+          body: |
+            测量有误差时，全微分告诉你误差传到结果上大约有多大。如果 $|dx| \le \delta_x$、$|dy| \le \delta_y$，那么
+
+            $$|dz| \le |f_x|\,\delta_x + |f_y|\,\delta_y$$
+
+            取绝对值，是因为最坏的情况是两个误差朝同一个方向推。开头的长方形：$A = xy$，$|dA| \le 5 \times 0.1 + 10 \times 0.1 = 1.5$。
+      - item:
+          id: cylinder-error
+          type: number
+          prompt: '圆柱 $V = \pi r^2 h$，量得 $r = 2$、$h = 5$（单位 cm），半径误差最多 0.05、高度误差最多 0.1。用全微分估计体积误差最多约多少 cm³？（保留 2 位小数）'
+          answer: 4.39823
+          tolerance: 0.01
+          explain: 体积误差 |dV| ≤ 2πrh·0.05 + πr²·0.1 = 2π·10·0.05 + 4π·0.1 = π + 0.4π = 1.4π ≈ 4.40。
+      - item:
+          id: relative-error
+          type: number
+          prompt: '长方形面积 $A = xy$。长和宽各有 1% 的相对误差（$|dx/x| \le 0.01$，$|dy/y| \le 0.01$）。面积的相对误差 $|dA/A|$ 最多约是百分之几？（填数字，如 3 表示 3%）'
+          answer: 2
+          hint: dA = y dx + x dy，两边除以 A = xy。
+          explain: dA/A = dx/x + dy/y，最坏是 1% + 1% = 2%。乘积的相对误差约等于各因子相对误差之和。
+      - item:
+          id: dw-three
+          type: choice
+          prompt: '$w = xyz$ 的全微分 $dw$ 是什么？'
+          options:
+            - text: $yz\,dx + xz\,dy + xy\,dz$
+              correct: true
+            - text: $dx\,dy\,dz$
+              why: 全微分是各个偏导数乘各自的增量再相加，不是把增量相乘
+            - text: $xyz\,(dx + dy + dz)$
+              why: 每一项的系数是对应的偏导数：w_x = yz，不是 xyz
+          explain: 三元函数的全微分 dw = w_x dx + w_y dy + w_z dz，这里 w_x = yz，w_y = xz，w_z = xy。
+  - id: directional
+    chapter: 方向导数
+    title: 往任意方向走，坡有多陡
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 山坡上某点，往正东走坡度是 3（每走 1 米升 3 米），往正北走坡度是 4。往东北方向（正东和正北的正中间）走，坡度大约是多少？
+          options:
+            - text: 约 4.95
+              correct: true
+            - text: '7'
+              why: 往东北走 1 米，东西方向只挪了约 0.707 米，南北方向也只挪了约 0.707 米，不是各走 1 米
+            - text: '3.5'
+              why: 不是两个坡度的平均；要按各方向挪动的距离加权：3·0.707 + 4·0.707
+          explain: 往东北走 1 米，向东、向北各挪 1/√2 ≈ 0.707 米。升高约 3·0.707 + 4·0.707 = 7/√2 ≈ 4.95。
+      - card:
+          title: 用单位向量表示方向
+          body: |
+            平面上的一个方向，用一个长度为 1 的向量（单位向量）表示。和正 $x$ 轴成角 $\theta$（逆时针量）的方向是
+
+            $$\mathbf{u} = (\cos\theta,\ \sin\theta)$$
+
+            $\theta = 0$ 是正东（正 $x$ 方向），$\theta = \pi/2$ 是正北，$\theta = \pi/4$ 是东北，$\mathbf{u} = (1/\sqrt{2},\ 1/\sqrt{2})$。
+
+            用长度为 1 的向量，是为了让“沿 $\mathbf{u}$ 走 $h$”正好等于走了距离 $h$。
+      - card:
+          title: 方向导数
+          body: |
+            从 $(a, b)$ 沿单位向量 $\mathbf{u} = (u_1, u_2)$ 走距离 $h$，到达 $(a + h u_1,\ b + h u_2)$。函数沿这个方向的变化率叫**方向导数（directional derivative）**：
+
+            $$D_{\mathbf{u}} f(a, b) = \lim_{h \to 0} \frac{f(a + h u_1,\ b + h u_2) - f(a, b)}{h}$$
+
+            $\mathbf{u} = (1, 0)$ 时它就是 $f_x$，$\mathbf{u} = (0, 1)$ 时就是 $f_y$。偏导数是方向导数的两个特例。
+      - item:
+          id: dir-special
+          type: choice
+          prompt: 方向 $\mathbf{u} = (0, -1)$（正南）的方向导数等于什么？
+          options:
+            - text: $-f_y$
+              correct: true
+            - text: $f_y$
+              why: f_y 是往正北（y 增加）的变化率，往正南走正好相反
+            - text: 0，因为 x 没变
+              why: x 没变，可 y 在减小，f 一般会变
+          explain: 往正南走就是 y 减小。代入定义：[f(a, b − h) − f(a, b)]/h → −f_y(a, b)。
+      - card:
+          title: 怎么算：两个偏导数加权
+          body: |
+            $f$ 可微时，沿 $\mathbf{u}$ 走距离 $h$，$dx = h u_1$，$dy = h u_2$。由全微分
+
+            $$f(a + h u_1, b + h u_2) - f(a, b) \approx f_x\, h u_1 + f_y\, h u_2$$
+
+            除以 $h$ 再让 $h \to 0$：
+
+            $$D_{\mathbf{u}} f = f_x\, u_1 + f_y\, u_2 = f_x \cos\theta + f_y \sin\theta$$
+
+            开头的山坡：$3 \cdot \frac{1}{\sqrt{2}} + 4 \cdot \frac{1}{\sqrt{2}} = \frac{7}{\sqrt{2}} \approx 4.95$。
+      - item:
+          id: dir-angle
+          type: number
+          prompt: '某点 $f_x = 3$，$f_y = 4$。沿 $\theta = \pi/3$（和正 x 轴成 60°）的方向导数是多少？（保留 3 位小数）'
+          answer: 4.96410
+          tolerance: 0.001
+          hint: cos 60° = 0.5，sin 60° = √3/2。
+          explain: 3·0.5 + 4·(√3/2) = 1.5 + 2√3 ≈ 4.964。
+      - card:
+          title: 例题：方向用一般向量给出
+          body: '$f(x, y) = x^2 + xy$，在 $(1, 2)$ 处，沿向量 $\mathbf{v} = (3, 4)$ 的方向求方向导数。'
+          reveal:
+            - title: 第 1 步：把方向化成单位向量
+              body: '$\mathbf{v}$ 的长度是 $\sqrt{9 + 16} = 5$，$\mathbf{u} = \mathbf{v}/5 = (0.6,\ 0.8)$。这一步不能省。'
+            - title: 第 2 步：算两个偏导数
+              body: '$f_x = 2x + y = 4$，$f_y = x = 1$。'
+            - title: 第 3 步：加权相加
+              body: '$D_{\mathbf{u}} f = 4 \times 0.6 + 1 \times 0.8 = 3.2$。'
+      - item:
+          id: dir-normalize
+          type: choice
+          prompt: '$f(x, y) = x^2 + xy$ 在 $(1, 2)$ 处 $f_x = 4$，$f_y = 1$。求沿向量 $(3, 4)$ 方向的方向导数，有人算成 $4 \times 3 + 1 \times 4 = 16$。错在哪？'
+          options:
+            - text: 没把 (3, 4) 化成单位向量，结果被放大了 5 倍
+              correct: true
+            - text: 偏导数算错了
+              why: f_x = 4、f_y = 1 是对的；问题出在方向向量的长度上
+            - text: 应该相减，不是相加
+              why: 公式就是 f_x u₁ + f_y u₂；负号来自分量本身的正负
+          explain: 方向导数要求方向是单位向量。(3, 4) 的长度是 5，直接用它会把结果乘上 5：16 = 5 × 3.2。
+      - item:
+          id: dir-zero
+          type: number
+          prompt: '$f(x, y) = x^2 + y^2$，在 $(1, 1)$ 处沿向量 $(1, -1)$ 的方向导数是多少？'
+          answer: 0
+          explain: u = (1, −1)/√2。f_x = 2，f_y = 2，D = (2 − 2)/√2 = 0。沿这个方向走，暂时不升也不降：你正沿着以原点为圆心的圆走，那上面 f 处处相等。
+      - item:
+          id: dir-temp
+          type: number
+          prompt: '平面上温度 $T(x, y) = 100 - x^2 - 2y^2$。在 $(3, 1)$ 处往正西（方向 $(-1, 0)$）走，温度沿这个方向的变化率是多少？'
+          answer: 6
+          explain: T_x = −2x = −6，T_y = −4y = −4。u = (−1, 0)，D = (−6)(−1) + (−4)(0) = 6：往西走，每单位距离温度约升 6 度。
+      - item:
+          id: dir-limit
+          type: number
+          prompt: '$f(x, y) = x^2 - xy + 3y^2$，方向 $\mathbf{u} = (0.6, 0.8)$。在 $(-1, 2)$ 处的方向导数是多少？'
+          answer: 8
+          hint: f_x = 2x − y，f_y = −x + 6y。
+          explain: f_x(−1, 2) = −2 − 2 = −4，f_y(−1, 2) = 1 + 12 = 13。D = −4·0.6 + 13·0.8 = −2.4 + 10.4 = 8。
+  - id: directional-3d
+    chapter: 方向导数
+    title: 三个变量的方向导数
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 房间里每一点都有一个温度 T(x, y, z)。要说清楚“往某个方向走，温度变化多快”，方向需要几个数来描述？
+          options:
+            - text: 三个数（一个空间里的单位向量）
+              correct: true
+            - text: 一个角度就够了
+              why: 平面上一个角度就够；空间里还要说往上还是往下，一个角度不够
+            - text: 两个数
+              why: 两个角度确实能定出空间方向，但用三个分量的单位向量更方便计算
+          explain: 空间里的方向用三个分量的单位向量 u = (u₁, u₂, u₃) 表示，满足 u₁² + u₂² + u₃² = 1。
+      - card:
+          title: 空间里的方向导数
+          body: |
+            $w = f(x, y, z)$，方向是单位向量 $\mathbf{u} = (u_1, u_2, u_3)$：
+
+            $$D_{\mathbf{u}} f = \lim_{h \to 0} \frac{f(x + h u_1,\ y + h u_2,\ z + h u_3) - f(x, y, z)}{h}$$
+
+            $f$ 可微时，理由和平面情形一样：
+
+            $$D_{\mathbf{u}} f = f_x u_1 + f_y u_2 + f_z u_3$$
+
+            三个分量也叫方向余弦：$u_1 = \cos\alpha$ 里的 $\alpha$ 是方向和正 $x$ 轴的夹角，$\beta$、$\gamma$ 对应 $y$、$z$ 轴。
+      - item:
+          id: dir3-unit
+          type: number
+          prompt: 向量 $\mathbf{v} = (1, 2, 2)$ 化成单位向量后，第一个分量是多少？（填分数，或保留 3 位小数）
+          answer: 0.333333
+          tolerance: 0.001
+          explain: 长度 √(1 + 4 + 4) = 3，u = (1/3, 2/3, 2/3)，第一个分量是 1/3。
+      - card:
+          title: 例题：沿 (1, 2, 2) 的方向导数
+          body: '$f(x, y, z) = x^2 y + y z^3$，在 $(1, 2, 1)$ 处沿 $\mathbf{v} = (1, 2, 2)$ 的方向求方向导数。'
+          reveal:
+            - title: 第 1 步：化成单位向量
+              body: '$|\mathbf{v}| = 3$，$\mathbf{u} = (1/3,\ 2/3,\ 2/3)$。'
+            - title: 第 2 步：三个偏导数在点上的值
+              body: '$f_x = 2xy = 4$，$f_y = x^2 + z^3 = 2$，$f_z = 3yz^2 = 6$。'
+            - title: 第 3 步：加权相加
+              body: '$D_{\mathbf{u}} f = 4 \cdot \frac{1}{3} + 2 \cdot \frac{2}{3} + 6 \cdot \frac{2}{3} = \frac{4 + 4 + 12}{3} = \frac{20}{3} \approx 6.67$。'
+      - item:
+          id: dir3-half
+          type: number
+          prompt: '$f(x, y, z) = x^2 y + y z^3$。在 $(1, 2, 1)$ 处沿 $\mathbf{v} = (2, -1, 2)$ 的方向导数是多少？'
+          answer: 6
+          hint: 先算 f_x、f_y、f_z 在这一点的值；v 的长度是 3。
+          explain: u = (2/3, −1/3, 2/3)。D = (4·2 + 2·(−1) + 6·2)/3 = (8 − 2 + 12)/3 = 6。
+      - item:
+          id: dir3-ostax
+          type: number
+          prompt: '$f(x, y, z) = 5x^2 - 2xy + y^2 - 4yz + z^2 + 3xz$，在 $(1, -2, 3)$ 处沿 $\mathbf{v} = (-1, 2, 2)$ 的方向导数是多少？（填分数，或保留 2 位小数）'
+          answer: -8.333333
+          tolerance: 0.01
+          hint: f_x = 10x − 2y + 3z，f_y = −2x + 2y − 4z，f_z = 3x − 4y + 2z。
+          explain: 在 (1, −2, 3)：f_x = 10 + 4 + 9 = 23，f_y = −2 − 4 − 12 = −18，f_z = 3 + 8 + 6 = 17。u = (−1, 2, 2)/3。D = (−23 − 36 + 34)/3 = −25/3 ≈ −8.33。
+      - card:
+          title: 正负号说明了什么
+          body: |
+            方向导数是正的，沿这个方向走函数在增加；是负的，在减少；是 0，这个方向上暂时不升不降。
+
+            把方向反过来（$\mathbf{u}$ 换成 $-\mathbf{u}$），方向导数变号：$D_{-\mathbf{u}} f = -D_{\mathbf{u}} f$。因为三个分量都变了号，加权和也就变了号。
+      - item:
+          id: dir3-reverse
+          type: number
+          prompt: '某点沿 $\mathbf{u}$ 的方向导数是 $20/3$。沿 $-\mathbf{u}$ 的方向导数是多少？（保留 3 位小数）'
+          answer: -6.666667
+          tolerance: 0.001
+          explain: 反过来走，变化率变号：−20/3 ≈ −6.667。
+      - item:
+          id: dir3-flat
+          type: choice
+          prompt: '$f(x, y, z) = x + y + z$。沿下面哪个方向走，$f$ 暂时不变？'
+          options:
+            - text: (1, −1, 0)/√2
+              correct: true
+            - text: (1, 1, 1)/√3
+              why: D = (1 + 1 + 1)/√3 = √3 > 0，f 在增加
+            - text: (0, 0, 1)
+              why: D = f_z = 1，f 在增加
+          explain: 三个偏导数都是 1，D = u₁ + u₂ + u₃。(1, −1, 0)/√2 的分量和是 0。
+  - id: implicit-diff
+    chapter: 隐函数与逆函数定理
+    title: 隐函数求导：两个偏导数就够
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 圆 $x^2 + y^2 = 25$ 上的点 $(3, 4)$ 在右上方。猜猜那里的切线斜率大约是多少？
+          options:
+            - text: 约 −0.75
+              correct: true
+            - text: 约 +0.75
+              why: 圆的右上部分往右走是往下的，斜率为负
+            - text: 约 −1.33
+              why: 这是 −4/3，把 x、y 弄反了；切线垂直于半径 (3, 4)，斜率是 −3/4
+          explain: 两边对 x 求导：2x + 2y·y′ = 0，y′ = −x/y = −3/4。这一课用偏导数把这一步变成一个公式。
+      - card:
+          title: 曲线 F(x, y) = 0
+          body: |
+            很多曲线是用一个方程给出的，比如圆 $x^2 + y^2 - 25 = 0$。把左边记成 $F(x, y)$，曲线就是 $F(x, y) = 0$ 的所有点。
+
+            沿着曲线走，$F$ 的值一直是 0，不会变。所以沿曲线走一小步，$F$ 的全微分是 0：
+
+            $$dF = F_x\,dx + F_y\,dy = 0$$
+      - card:
+          title: 隐函数求导公式
+          body: |
+            从 $F_x\,dx + F_y\,dy = 0$ 解出 $dy/dx$（要求 $F_y \ne 0$）：
+
+            $$\frac{dy}{dx} = -\frac{F_x}{F_y}$$
+
+            圆：$F_x = 2x$，$F_y = 2y$，$dy/dx = -x/y$，在 $(3, 4)$ 是 $-3/4$，和开头算的一样。
+
+            好处是不用每次对整个方程逐项用链式法则，只要算两个偏导数。注意分子分母别弄反，还有前面的负号。
+      - item:
+          id: implicit-sign
+          type: choice
+          prompt: '曲线 $F(x, y) = x^2 + 3y^2 + 4y - 4 = 0$ 上，$dy/dx$ 是什么？'
+          options:
+            - text: $-\dfrac{x}{3y + 2}$
+              correct: true
+            - text: $\dfrac{x}{3y + 2}$
+              why: 漏了公式前面的负号
+            - text: $-\dfrac{3y + 2}{x}$
+              why: 分子分母弄反了：分子是 F_x，分母是 F_y
+          explain: F_x = 2x，F_y = 6y + 4。dy/dx = −2x/(6y + 4) = −x/(3y + 2)。
+      - card:
+          title: 例题：笛卡尔叶形线
+          body: '曲线 $x^3 + y^3 = 6xy$ 过点 $(3, 3)$。求这点的切线斜率。'
+          reveal:
+            - title: 第 1 步：移项写成 F = 0
+              body: '$F(x, y) = x^3 + y^3 - 6xy$。'
+            - title: 第 2 步：求两个偏导数
+              body: '$F_x = 3x^2 - 6y$，$F_y = 3y^2 - 6x$。'
+            - title: 第 3 步：代入点，检查分母不为 0
+              body: '在 $(3, 3)$：$F_x = 27 - 18 = 9$，$F_y = 27 - 18 = 9 \ne 0$。'
+            - title: 第 4 步：用公式
+              body: '$dy/dx = -9/9 = -1$。'
+      - item:
+          id: implicit-ellipse
+          type: number
+          prompt: '曲线 $x^2 + xy + y^2 = 7$ 在点 $(1, 2)$ 处的切线斜率是多少？'
+          answer: -0.8
+          tolerance: 0.0001
+          hint: F = x² + xy + y² − 7，先算 F_x 和 F_y 在 (1, 2) 的值。
+          explain: F_x = 2x + y = 4，F_y = x + 2y = 5。dy/dx = −4/5 = −0.8。
+      - card:
+          title: 三个变量：曲面 F(x, y, z) = 0
+          body: |
+            $F(x, y, z) = 0$ 给出一张曲面，在一点附近可以看成 $z = z(x, y)$。求 $\partial z/\partial x$ 时 $y$ 固定，$dy = 0$，全微分只剩 $F_x\,dx + F_z\,dz = 0$：
+
+            $$\frac{\partial z}{\partial x} = -\frac{F_x}{F_z}, \qquad \frac{\partial z}{\partial y} = -\frac{F_y}{F_z}$$
+
+            要求 $F_z \ne 0$。例如球面 $x^2 + y^2 + z^2 = 3$ 在 $(1, 1, 1)$：$\partial z/\partial x = -2x/2z = -1$，$\partial z/\partial y = -1$。
+      - item:
+          id: implicit-3d
+          type: number
+          prompt: '曲面 $x^2 + 2y^2 + 3z^2 = 6$ 在点 $(1, 1, 1)$ 附近确定了 $z = z(x, y)$。$\dfrac{\partial z}{\partial y}$ 在这点是多少？（保留 3 位小数）'
+          answer: -0.666667
+          tolerance: 0.001
+          explain: F_y = 4y = 4，F_z = 6z = 6。∂z/∂y = −4/6 = −2/3 ≈ −0.667。
+      - item:
+          id: implicit-3d-x
+          type: number
+          prompt: '曲面 $xyz + z^2 = 3$ 过点 $(1, 2, 1)$，在附近确定了 $z = z(x, y)$。$\dfrac{\partial z}{\partial x}$ 在这点是多少？'
+          answer: -0.5
+          tolerance: 0.0001
+          hint: F = xyz + z² − 3，F_x = yz，F_z = xy + 2z。
+          explain: F_x = yz = 2，F_z = xy + 2z = 2 + 2 = 4。∂z/∂x = −2/4 = −0.5。
+      - item:
+          id: implicit-vertical
+          type: choice
+          prompt: '圆 $x^2 + y^2 = 25$ 上，公式 $dy/dx = -F_x/F_y$ 在点 $(5, 0)$ 为什么用不了？'
+          options:
+            - text: 这点 F_y = 2y = 0，切线是竖直的，斜率不存在
+              correct: true
+            - text: 这点不在圆上
+              why: 5² + 0² = 25，在圆上
+            - text: 因为 F_x = 0
+              why: F_x = 2x = 10，不为 0；出问题的是分母 F_y
+          explain: 公式要求 F_y ≠ 0。在 (5, 0) 处 F_y = 0，圆的切线是竖直线 x = 5。
+  - id: implicit-theorem
+    chapter: 隐函数与逆函数定理
+    title: 隐函数定理：什么时候真能解出 y
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 单位圆 $x^2 + y^2 = 1$。在点 $(1, 0)$ 附近，能不能把圆上的点写成 $y = g(x)$（每个 x 只对应一个 y）？
+          options:
+            - text: 不能
+              correct: true
+            - text: 能，$y = \sqrt{1 - x^2}$
+              why: 这只是上半圆；(1, 0) 附近还有下半圆的点，同一个 x 对应一正一负两个 y
+            - text: 能，$y = 0$
+              why: 圆上 (1, 0) 附近的其他点 y 都不是 0
+          explain: 在 (1, 0) 附近，x 稍小于 1 时圆上有两个点 (x, ±√(1 − x²))，一个 x 对两个 y，写不成 y = g(x)。
+      - card:
+          title: 先看线性的情况
+          body: |
+            方程 $3x + 2y = 6$ 能不能解出 $y$？能：$y = 3 - 1.5x$，因为 $y$ 的系数 $2 \ne 0$。如果是 $3x + 0 \cdot y = 6$，就解不出 $y$。
+
+            一般的 $F(x, y) = 0$ 在点 $(a, b)$ 附近，由全微分 $F \approx F_x\,\Delta x + F_y\,\Delta y$，像一个线性方程，$\Delta y$ 的系数是 $F_y$。$F_y \ne 0$ 时这个线性方程能解出 $\Delta y$。下面的定理说：此时原来的方程在点附近也能解出 $y$。
+      - card:
+          title: 隐函数定理
+          body: |
+            **隐函数定理（implicit function theorem）**：设 $F(x, y)$ 在 $(a, b)$ 附近有连续的偏导数，$F(a, b) = 0$，而且 $F_y(a, b) \ne 0$。那么在 $(a, b)$ 附近：
+
+            1. 满足 $F(x, y) = 0$ 的点恰好组成一个函数的图像 $y = g(x)$，$g(a) = b$；
+            2. $g$ 有连续导数，$g'(x) = -F_x / F_y$。
+
+            它保证了上一课的公式有意义：那里默认 $y$ 是 $x$ 的可导函数，定理说明 $F_y \ne 0$ 时确实如此。结论只在点的附近成立。
+      - item:
+          id: ift-points
+          type: choice
+          multi: true
+          prompt: 单位圆 $x^2 + y^2 = 1$ 上，下面哪些点满足隐函数定理的条件，能保证附近可以写成 $y = g(x)$？（多选）
+          options:
+            - text: $(0, 1)$
+              correct: true
+            - text: $(0.6, -0.8)$
+              correct: true
+            - text: $(-0.6, 0.8)$
+              correct: true
+            - text: $(1, 0)$
+              why: F_y = 2y = 0，条件不满足；这里切线竖直，确实写不成 y = g(x)
+            - text: $(-1, 0)$
+              why: F_y = 0，和 (1, 0) 一样
+          explain: F_y = 2y，只有 y = 0 的两点 (±1, 0) 不满足条件。其他点附近都能写成上半圆或下半圆的函数。
+      - card:
+          title: 条件是充分的，不是必要的
+          body: |
+            $F_y \ne 0$ 足以保证能解出 $y$，但 $F_y = 0$ 时也可能能解。
+
+            看 $F(x, y) = y^3 - x$。在原点 $F_y = 3y^2 = 0$，定理用不上。可是 $y^3 = x$ 有唯一的实数解 $y = \sqrt[3]{x}$，整条曲线都是函数图像。只是这个函数在 0 处导数不存在（切线竖直），所以公式 $-F_x/F_y$ 在那里也不能用。
+      - item:
+          id: ift-cube
+          type: choice
+          prompt: 关于 $F(x, y) = y^3 - x$ 在原点，哪句话对？
+          options:
+            - text: 定理的条件不满足，但曲线在原点附近仍可写成 y = g(x)
+              correct: true
+            - text: 条件不满足，所以一定写不成 y = g(x)
+              why: 定理只说条件满足时一定能，没说不满足时一定不能；y = ∛x 就是函数
+            - text: 条件满足，所以能写成 y = g(x) 且 g′(0) = 0
+              why: F_y(0, 0) = 0，条件不满足；而且 ∛x 在 0 处的导数不存在
+          explain: 隐函数定理是充分条件。F_y = 0 时要另外分析：这里 y = ∛x 是函数，但在 0 处不可导。
+      - card:
+          title: 三个变量，两个方程
+          body: |
+            定理还有多个方程的版本。比如两个方程 $F(x, y, z) = 0$、$G(x, y, z) = 0$，想在一点附近解出 $y = y(x)$、$z = z(x)$。把对 $y, z$ 的偏导数排成矩阵
+
+            $$\begin{pmatrix} F_y & F_z \\ G_y & G_z \end{pmatrix}$$
+
+            条件是它在这点的行列式不为 0（矩阵可逆），作用和一个方程时的 $F_y \ne 0$ 一样：线性化以后，关于 $\Delta y, \Delta z$ 的两个方程能唯一解出。
+      - item:
+          id: ift-two-eq
+          type: number
+          prompt: '球面 $x^2 + y^2 + z^2 = 3$ 和平面 $z = 1$ 在 $(1, 1, 1)$ 相交。取 $F = x^2 + y^2 + z^2 - 3$，$G = z - 1$。矩阵 $\begin{pmatrix} F_y & F_z \\ G_y & G_z \end{pmatrix}$ 在这点的行列式是多少？'
+          answer: 2
+          explain: F_y = 2y = 2，F_z = 2z = 2，G_y = 0，G_z = 1。行列式 2·1 − 2·0 = 2 ≠ 0，所以交线在这点附近可以写成 y = y(x)、z = z(x)：它是平面 z = 1 上的圆 x² + y² = 2。
+      - item:
+          id: ift-tangent-plane
+          type: choice
+          prompt: '球面 $x^2 + y^2 + z^2 = 3$ 和平面 $x + y + z = 3$ 在 $(1, 1, 1)$。矩阵 $\begin{pmatrix} F_y & F_z \\ G_y & G_z \end{pmatrix} = \begin{pmatrix} 2 & 2 \\ 1 & 1 \end{pmatrix}$。能用定理吗？'
+          options:
+            - text: 不能，行列式是 0
+              correct: true
+            - text: 能，因为矩阵里每个数都不为 0
+              why: 看的是行列式，2·1 − 2·1 = 0
+            - text: 能，因为 (1, 1, 1) 在两个曲面上
+              why: 点在两个曲面上只是 F = G = 0；定理还要求行列式不为 0
+          explain: 行列式 2 − 2 = 0，条件不满足。事实上这个平面和球面只在 (1, 1, 1) 这一点相切，根本没有交出一条曲线。
+  - id: inverse-theorem
+    chapter: 隐函数与逆函数定理
+    title: 反函数定理：变换能不能倒回去
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: '$f(x) = x^2$。在 $x = 1$ 附近，能不能从 $y = x^2$ 反解出唯一的 $x$？在 $x = 0$ 附近呢？'
+          options:
+            - text: 1 附近能，0 附近不能
+              correct: true
+            - text: 两处都能
+              why: 0 附近，y = 0.01 对应 x = 0.1 和 x = −0.1 两个值，反解不唯一
+            - text: 两处都不能
+              why: 1 附近 x 都是正数，x = √y 是唯一的
+          explain: 1 附近 f′(1) = 2 ≠ 0，f 在那一小段上单调，可以反解 x = √y；0 附近 f′(0) = 0，左右两边折回来，一个 y 对两个 x。
+      - card:
+          title: 一元的情形，回顾
+          body: |
+            一元函数 $f$ 的导数连续，且 $f'(a) \ne 0$，那么在 $a$ 附近 $f$ 有反函数，而且
+
+            $$(f^{-1})'(f(a)) = \frac{1}{f'(a)}$$
+
+            道理是：$f$ 在 $a$ 附近近似为直线 $f(a) + f'(a)(x - a)$，斜率不为 0 的直线可以倒过来。
+      - card:
+          title: 平面到平面的变换
+          body: |
+            现在看两个输入、两个输出：$u = u(x, y)$，$v = v(x, y)$。想知道能不能从 $(u, v)$ 反解出 $(x, y)$。
+
+            在一点附近用全微分线性化：
+
+            $$du = u_x\,dx + u_y\,dy, \qquad dv = v_x\,dx + v_y\,dy$$
+
+            这是关于 $dx, dy$ 的两元一次方程组，系数矩阵是 $\begin{pmatrix} u_x & u_y \\ v_x & v_y \end{pmatrix}$。它的行列式 $u_x v_y - u_y v_x \ne 0$ 时，方程组有唯一解：小的 $(du, dv)$ 对应唯一的小 $(dx, dy)$。
+      - item:
+          id: inv-det
+          type: number
+          prompt: '变换 $u = x^2 - y^2$，$v = 2xy$。在 $(1, 1)$ 处，行列式 $u_x v_y - u_y v_x$ 是多少？'
+          answer: 8
+          hint: u_x = 2x，u_y = −2y，v_x = 2y，v_y = 2x。
+          explain: 一般地 u_x v_y − u_y v_x = 2x·2x − (−2y)(2y) = 4x² + 4y²，在 (1, 1) 是 8。
+      - card:
+          title: 反函数定理
+          body: |
+            记号：$x_u$ 表示 $\partial x / \partial u$，下标照旧是对谁求偏导。
+
+            **反函数定理（inverse function theorem）**：变换 $u = u(x, y)$、$v = v(x, y)$ 在点 $p$ 附近有连续的偏导数，并且 $p$ 处的行列式 $u_x v_y - u_y v_x \ne 0$。那么在 $p$ 附近 $F$ 有反变换，反变换也有连续的偏导数，它的偏导数矩阵是原来矩阵的逆矩阵：
+
+            $$\begin{pmatrix} x_u & x_v \\ y_u & y_v \end{pmatrix} = \begin{pmatrix} u_x & u_y \\ v_x & v_y \end{pmatrix}^{-1}$$
+
+            一元的 $1/f'(a)$ 变成了矩阵的逆。结论同样只在点附近成立。
+      - item:
+          id: inv-fail
+          type: choice
+          prompt: 变换 $u = x^2 - y^2$，$v = 2xy$（行列式 $4x^2 + 4y^2$）。反函数定理在哪个点用不上？
+          options:
+            - text: (0, 0)
+              correct: true
+            - text: (1, 0)
+              why: 行列式是 4 ≠ 0，定理可用
+            - text: 所有 x = y 的点
+              why: 例如 (1, 1) 处行列式是 8 ≠ 0
+          explain: 4x² + 4y² 只在原点为 0。原点附近这个变换确实没法倒回去：(x, y) 和 (−x, −y) 总是变到同一个点。
+      - card:
+          title: 只在附近能倒回去
+          body: |
+            极坐标变换 $x = r\cos\theta$，$y = r\sin\theta$。它的行列式是
+
+            $$x_r y_\theta - x_\theta y_r = \cos\theta \cdot r\cos\theta - (-r\sin\theta)\sin\theta = r$$
+
+            $r > 0$ 时处处不为 0，所以在每一点附近都能倒回去。可是从整体看倒不回去：$(r, \theta)$ 和 $(r, \theta + 2\pi)$ 是两个不同的输入，却变到同一个点。反函数定理只保证局部，不保证整体。
+      - item:
+          id: inv-polar-det
+          type: number
+          prompt: 极坐标变换 $x = r\cos\theta$，$y = r\sin\theta$ 在 $r = 2$、$\theta = \pi/6$ 处的行列式 $x_r y_\theta - x_\theta y_r$ 是多少？
+          answer: 2
+          explain: 行列式恒等于 r，和 θ 无关，这里是 2。
+      - card:
+          title: 例题：不解出反函数，直接求它的偏导数
+          body: '变换 $u = x + y$，$v = xy$。在 $(x, y) = (2, 1)$ 处（对应 $u = 3$、$v = 2$），求反变换的偏导数 $x_u$ 和 $x_v$。'
+          reveal:
+            - title: 第 1 步：写出偏导数矩阵
+              body: '$\begin{pmatrix} u_x & u_y \\ v_x & v_y \end{pmatrix} = \begin{pmatrix} 1 & 1 \\ y & x \end{pmatrix} = \begin{pmatrix} 1 & 1 \\ 1 & 2 \end{pmatrix}$，行列式 $2 - 1 = 1 \ne 0$。'
+            - title: 第 2 步：求逆矩阵
+              body: '2×2 矩阵 $\begin{pmatrix} a & b \\ c & d \end{pmatrix}$ 的逆是 $\frac{1}{ad - bc}\begin{pmatrix} d & -b \\ -c & a \end{pmatrix}$，这里是 $\begin{pmatrix} 2 & -1 \\ -1 & 1 \end{pmatrix}$。'
+            - title: 第 3 步：读出答案
+              body: 第一行是 $(x_u, x_v) = (2, -1)$，第二行是 $(y_u, y_v) = (-1, 1)$。
+            - title: 第 4 步：用显式解核对
+              body: '$x, y$ 是 $t^2 - ut + v = 0$ 的两个根，$x = \frac{u + \sqrt{u^2 - 4v}}{2}$。对 $u$ 求偏导：$\frac{1}{2}\left(1 + \frac{u}{\sqrt{u^2 - 4v}}\right)$，代入 $u = 3, v = 2$ 得 $\frac{1}{2}(1 + 3) = 2$，对上了。'
+      - item:
+          id: inv-yu
+          type: number
+          prompt: '变换 $u = x + y$，$v = xy$。在 $(x, y) = (3, 1)$ 处，反变换的偏导数 $y_v$ 是多少？'
+          answer: 0.5
+          tolerance: 0.0001
+          hint: 矩阵是 [[1, 1], [y, x]] = [[1, 1], [1, 3]]，先算行列式。
+          explain: 行列式 3 − 1 = 2。逆矩阵是 (1/2)[[3, −1], [−1, 1]]，第二行是 (y_u, y_v) = (−1/2, 1/2)，所以 y_v = 0.5。核对：y 是较小的根 (u − √(u² − 4v))/2，对 v 求偏导得 1/√(u² − 4v) = 1/√(16 − 12) = 1/2。
+  - id: gradient
+    chapter: 标量场梯度
+    title: 梯度：把偏导数装进一个向量
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: '方向导数 $D_{\mathbf{u}} f = f_x u_1 + f_y u_2$。这个式子的样子像向量的哪种运算？'
+          options:
+            - text: 点积：(f_x, f_y) 和 (u₁, u₂) 对应分量相乘再相加
+              correct: true
+            - text: 向量加法
+              why: 加法的结果还是一个向量；这里的结果是一个数
+            - text: 数乘
+              why: 数乘是一个数乘一个向量；这里两边都是向量，乘完相加得到一个数
+          explain: f_x u₁ + f_y u₂ 正是向量 (f_x, f_y) 与 u 的点积。把 (f_x, f_y) 起个名字，就是梯度。
+      - card:
+          title: 梯度
+          body: |
+            给每个点一个数的函数 $f(x, y)$ 也叫**标量场（scalar field）**，比如平面上每点的温度。它的**梯度（gradient）**是由偏导数构成的向量：
+
+            $$\nabla f(x, y) = \big(f_x(x, y),\ f_y(x, y)\big)$$
+
+            $\nabla$ 读作“nabla”，$\nabla f$ 读作“梯度 f”，也写作 $\operatorname{grad} f$。三个变量时 $\nabla f = (f_x, f_y, f_z)$。
+
+            例：$f = x^2 - xy + 3y^2$，$\nabla f = (2x - y,\ -x + 6y)$。
+      - item:
+          id: grad-value
+          type: choice
+          prompt: '$f(x, y) = x^2 y + y^3$。$\nabla f(1, 2)$ 是什么？'
+          options:
+            - text: (4, 13)
+              correct: true
+            - text: (4, 12)
+              why: f_y = x² + 3y²，在 (1, 2) 是 1 + 12 = 13，漏了 x² 那一项
+            - text: (2, 13)
+              why: f_x = 2xy，在 (1, 2) 是 4，不是 2
+          explain: f_x = 2xy = 4，f_y = x² + 3y² = 1 + 12 = 13。
+      - card:
+          title: 方向导数就是点积
+          body: |
+            $f$ 可微时，前面学过的方向导数公式可以写得很短：
+
+            $$D_{\mathbf{u}} f = \nabla f \cdot \mathbf{u}$$
+
+            三个变量也一样。以后求任意方向的变化率，先求梯度，再和单位向量点积。
+      - item:
+          id: grad-dot
+          type: number
+          prompt: '$f(x, y) = x^2 y + y^3$，在 $(1, 2)$ 处沿单位向量 $\mathbf{u} = (0.6, -0.8)$ 的方向导数是多少？'
+          answer: -8
+          tolerance: 0.000001
+          explain: ∇f(1, 2) = (4, 13)。点积 4·0.6 + 13·(−0.8) = 2.4 − 10.4 = −8。
+      - card:
+          title: 例题：三元函数的梯度
+          body: '$f(x, y, z) = e^{-2z}\sin(2x)\cos(2y)$，求 $\nabla f$，再求它在 $(0, 0, 0)$ 的值。'
+          reveal:
+            - title: 第 1 步：对 x 求偏导
+              body: '$f_x = 2e^{-2z}\cos(2x)\cos(2y)$。'
+            - title: 第 2 步：对 y、z 求偏导
+              body: '$f_y = -2e^{-2z}\sin(2x)\sin(2y)$，$f_z = -2e^{-2z}\sin(2x)\cos(2y)$。'
+            - title: 第 3 步：代入原点
+              body: '$\sin 0 = 0$，$\cos 0 = 1$，$e^0 = 1$，所以 $\nabla f(0, 0, 0) = (2, 0, 0)$。'
+      - item:
+          id: grad-3d-half
+          type: number
+          prompt: '$f(x, y, z) = 5x^2 - 2xy + y^2 - 4yz + z^2 + 3xz$。$\nabla f(1, 1, 1)$ 的第三个分量 $f_z$ 是多少？'
+          answer: 1
+          hint: 对 z 求偏导，含 z 的项只有 −4yz、z²、3xz。
+          explain: f_z = −4y + 2z + 3x，在 (1, 1, 1) 是 −4 + 2 + 3 = 1。
+      - card:
+          title: 梯度为零的点
+          body: |
+            如果 $f$ 在 $(a, b)$ 可微，而且 $\nabla f(a, b) = (0, 0)$，那么任何单位向量和它的点积都是 0：往哪个方向走，变化率都是 0，曲面在这一点的切平面是水平的。
+
+            “可微”不能省：$xy/\sqrt{x^2 + y^2}$（原点处为 0）在原点梯度也是 $(0, 0)$，沿对角线的斜率却不是 0，那里根本没有切平面。
+
+            这样的点可能是山顶、谷底，也可能是像马鞍中间那样“一个方向上升、另一个方向下降”的点。只看梯度分不出是哪一种，要再看二阶偏导数。
+      - item:
+          id: grad-zero
+          type: number
+          prompt: '$f(x, y) = x^2 + xy + y^2 - 3x$。使 $\nabla f = (0, 0)$ 的点的 $x$ 坐标是多少？'
+          answer: 2
+          hint: 解 2x + y − 3 = 0 和 x + 2y = 0。
+          explain: 由第二个方程 x = −2y，代入第一个：−4y + y = 3，y = −1，x = 2。
+      - item:
+          id: grad-units
+          type: choice
+          prompt: '温度 $T(x, y)$ 的单位是 °C，$x, y$ 的单位是米。$\nabla T$ 的分量是什么单位？'
+          options:
+            - text: °C/米
+              correct: true
+            - text: °C
+              why: 梯度的分量是偏导数，是变化率，要除以长度
+            - text: 米
+              why: 梯度不是位置，是“每走一米温度变多少”
+          explain: 每个分量都是偏导数，单位是“输出单位 ÷ 输入单位”。
+  - id: gradient-level
+    chapter: 标量场梯度
+    title: 梯度指向最陡的上坡，并且垂直于等高线
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 地图上的等高线把海拔相同的点连起来。站在山坡上想最快地往上爬，你应该朝哪个方向走？
+          options:
+            - text: 垂直于脚下的等高线，朝高处
+              correct: true
+            - text: 沿着等高线走
+              why: 沿等高线走海拔不变，一点都没升高
+            - text: 正北
+              why: 最陡的方向取决于山的形状，不一定是正北
+          explain: 沿等高线走高度不变；垂直于等高线朝上走升得最快。梯度正指向这个方向。
+      - card:
+          title: 哪个方向升得最快
+          body: |
+            点积可以写成 $\nabla f \cdot \mathbf{u} = |\nabla f|\,|\mathbf{u}| \cos\varphi = |\nabla f| \cos\varphi$，$\varphi$ 是 $\mathbf{u}$ 和梯度的夹角（$\mathbf{u}$ 的长度是 1）。所以当 $\nabla f \ne \mathbf{0}$：
+
+            - $\varphi = 0$（$\mathbf{u}$ 和梯度同向）时方向导数最大，等于 $|\nabla f|$；
+            - $\varphi = \pi$（反向）时最小，等于 $-|\nabla f|$；
+            - $\varphi = \pi/2$（垂直）时为 0。
+
+            梯度方向是**最速上升方向（direction of steepest ascent）**，它的长度就是最大变化率。
+      - item:
+          id: steepest-rate
+          type: number
+          prompt: '$f(x, y, z) = x^2 y + y z^3$，在 $(1, 2, 1)$ 处最大的方向导数是多少？（保留 3 位小数）'
+          answer: 7.48331
+          tolerance: 0.001
+          hint: 先求梯度 (f_x, f_y, f_z)，再求它的长度。
+          explain: ∇f = (2xy, x² + z³, 3yz²) = (4, 2, 6)。长度 √(16 + 4 + 36) = √56 = 2√14 ≈ 7.483，方向是 (4, 2, 6)/√56。
+      - item:
+          id: steepest-down
+          type: choice
+          prompt: '$f(x, y) = 3x^2 - 4xy + 2y^2$，$\nabla f(-2, 3) = (-24, 20)$。从这点出发，沿哪个方向 f 减小得最快？'
+          options:
+            - text: (24, −20) 的方向
+              correct: true
+            - text: (−24, 20) 的方向
+              why: 这是梯度方向，f 增加得最快
+            - text: (20, 24) 的方向
+              why: 这个方向和梯度垂直（点积 −480 + 480 = 0），f 暂时不变
+          explain: 下降最快的方向是负梯度 −∇f = (24, −20)，那里的方向导数是 −|∇f| = −√976 = −4√61 ≈ −31.2。
+      - card:
+          title: 等值线
+          body: |
+            满足 $f(x, y) = c$ 的点通常组成一条或几条曲线，叫 $f$ 的**等值线（level curve）**，地图上的等高线就是海拔函数的等值线（也有特殊情况：$x^2 + y^2 = -1$ 一个点都没有）。三个变量时 $f(x, y, z) = c$ 通常是一张曲面，叫等值面。
+
+            沿等值线走，$f$ 不变，方向导数是 0。由上一张卡，方向导数为 0 的方向和梯度垂直。所以：如果 $f$ 有连续的偏导数，且 $\nabla f(a, b) \ne \mathbf{0}$，那么梯度垂直于过这点的等值线。
+      - item:
+          id: level-tangent
+          type: choice
+          prompt: '$\nabla f(-2, 1) = (-9, 18)$。过 $(-2, 1)$ 的等值线，在这点的切线方向是哪个？'
+          options:
+            - text: (18, 9)
+              correct: true
+            - text: (−9, 18)
+              why: 这是梯度本身，它垂直于等值线
+            - text: (9, 18)
+              why: 和梯度的点积 −81 + 324 ≠ 0，不垂直
+          explain: 切线方向要和梯度垂直：(18, 9)·(−9, 18) = −162 + 162 = 0。把两个分量对调、再给其中一个变号，就得到一个垂直的向量。
+      - card:
+          title: 曲面的切平面，用梯度写
+          body: |
+            空间曲面常写成等值面 $F(x, y, z) = c$。由同样的道理，只要 $F$ 有连续的偏导数且 $\nabla F(P) \ne \mathbf{0}$，$\nabla F(P)$ 就垂直于曲面在 $P$ 的所有切线方向，所以过 $P = (a, b, c_0)$ 的切平面是
+
+            $$F_x(P)(x - a) + F_y(P)(y - b) + F_z(P)(z - c_0) = 0$$
+
+            例：球面 $x^2 + y^2 + z^2 = 3$ 在 $(1, 1, 1)$，$\nabla F = (2, 2, 2)$，切平面 $2(x - 1) + 2(y - 1) + 2(z - 1) = 0$，即 $x + y + z = 3$。
+      - item:
+          id: level-plane
+          type: number
+          prompt: '曲面 $x^2 + 2y^2 + 3z^2 = 6$ 在 $(1, 1, 1)$ 的切平面写成 $x + 2y + 3z = d$。$d$ 是多少？'
+          answer: 6
+          explain: ∇F = (2x, 4y, 6z) = (2, 4, 6)。切平面 2(x − 1) + 4(y − 1) + 6(z − 1) = 0，除以 2 得 x + 2y + 3z = 6。
+      - item:
+          id: level-circle
+          type: choice
+          prompt: '$f(x, y) = x^2 + y^2$ 的等值线是以原点为圆心的圆。在点 $(3, 4)$，梯度指向哪里？'
+          options:
+            - text: 沿半径背离圆心，方向 (3, 4)
+              correct: true
+            - text: 沿圆的切线方向
+              why: 梯度垂直于等值线，等值线就是这个圆，所以梯度垂直于切线
+            - text: 指向圆心
+              why: 指向圆心是 f 减小的方向；梯度指向 f 增大的方向
+          explain: ∇f = (2x, 2y) = (6, 8)，和 (3, 4) 同向，沿半径向外，正好垂直于圆。
+  - id: differential-linear-map
+    chapter: 标量场梯度
+    title: 微分是一个线性映射，梯度下降沿着它走
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 训练神经网络，要把误差 L 调到尽量小。L 取决于上百万个可以调整的数，每一步应该把这些数往哪边挪？
+          options:
+            - text: 往梯度的反方向挪一小步
+              correct: true
+            - text: 往梯度方向挪一小步
+              why: 梯度方向是 L 增加最快的方向，误差会变大
+            - text: 一个数一个数地试
+              why: 上百万个数一个个试太慢；梯度一次就给出了所有数该怎么挪
+          explain: 负梯度是下降最快的方向。这一课先把“可微”换成更一般的说法，再看沿负梯度走的方法。
+      - card:
+          title: 把增量写成一个向量
+          body: |
+            用向量写点：$\mathbf{a} = (a_1, \dots, a_n)$，增量 $\mathbf{h} = (h_1, \dots, h_n)$。$f$ 在 $\mathbf{a}$ 可微的定义可以统一写成
+
+            $$f(\mathbf{a} + \mathbf{h}) = f(\mathbf{a}) + \nabla f(\mathbf{a}) \cdot \mathbf{h} + E(\mathbf{h}), \qquad \frac{E(\mathbf{h})}{|\mathbf{h}|} \to 0$$
+
+            $|\mathbf{h}|$ 是向量 $\mathbf{h}$ 的长度，也就是走出的距离。
+
+            二元时 $\nabla f \cdot \mathbf{h} = f_x h_1 + f_y h_2$，正是前面的全微分。$n$ 个变量也是同一句话。
+      - card:
+          title: 微分是线性映射
+          body: |
+            把 $\mathbf{h} \mapsto \nabla f(\mathbf{a}) \cdot \mathbf{h}$ 看成一个函数：输入增量 $\mathbf{h}$，输出 $f$ 的近似变化。它是线性的：$\mathbf{h}$ 加倍，输出加倍；两个增量相加，输出也相加。
+
+            这个线性映射叫 $f$ 在 $\mathbf{a}$ 的**微分（differential）**，记作 $df_{\mathbf{a}}$。严格的分析课就是这样定义可微的：存在一个线性映射，让误差比 $|\mathbf{h}|$ 小得快。梯度就是把这个线性映射写成坐标（一串数）的结果：它的 $n$ 个分量就是 $df_{\mathbf{a}}$ 作用在 $(1, 0, \dots)$、$(0, 1, \dots)$ 等方向上的值。
+      - item:
+          id: linear-map
+          type: number
+          prompt: '某点处 $\nabla f = (2, -1, 3)$。微分 $df$ 作用在增量 $\mathbf{h} = (0.1, 0.2, -0.1)$ 上，值是多少？'
+          answer: -0.3
+          tolerance: 0.000001
+          explain: df(h) = 2·0.1 + (−1)·0.2 + 3·(−0.1) = 0.2 − 0.2 − 0.3 = −0.3。
+      - item:
+          id: linear-scale
+          type: number
+          prompt: '某点处 $f$ 的微分作用在增量 $\mathbf{h}$ 上得 $df(\mathbf{h}) = -0.3$。$df(2\mathbf{h})$ 是多少？'
+          answer: -0.6
+          tolerance: 0.000001
+          explain: df 是线性映射，输入加倍，输出加倍：−0.6。（真实的变化 f(a + 2h) − f(a) 只是约等于它。）
+      - card:
+          title: 梯度下降
+          body: |
+            想让 $f$ 变小，就往负梯度方向走一小步：
+
+            $$\mathbf{x}_{\text{新}} = \mathbf{x} - \eta\, \nabla f(\mathbf{x})$$
+
+            $\eta$ 是一个正的小数，叫**学习率（learning rate）**，控制每步迈多大。反复这样走，叫**梯度下降（gradient descent）**。
+
+            由微分，这一步让 $f$ 大约变化 $\nabla f \cdot (-\eta \nabla f) = -\eta\,|\nabla f|^2 \le 0$。步子小时 $f$ 一定下降；步子太大，线性近似不准了，可能越走越高。
+      - card:
+          title: 演示：在一个狭长的碗里下山
+          body: |
+            $f(x, y) = x^2 + 10y^2$，从 $(2.5, 1.5)$ 出发。$y$ 方向比 $x$ 方向陡 10 倍。
+
+            先用学习率 0.05 走几十步。再把学习率调到 0.1：$y$ 在 $\pm 1.5$ 之间来回跳，不再靠近 0；再大一点，就越跳越远，发散了。
+          sim:
+            name: descent
+            params:
+              mode: 2d
+              f: x^2 + 10y^2
+              vars: [x, 'y']
+              x0: [2.5, 1.5]
+              lr: 0.05
+      - item:
+          id: gd-step
+          type: number
+          prompt: '$f(x, y) = x^2 + 10y^2$，从 $(2.5, 1.5)$ 出发，学习率 $\eta = 0.05$。走一步以后 $y$ 坐标是多少？'
+          answer: 0
+          tolerance: 0.000001
+          hint: ∇f = (2x, 20y)，新 y = y − η·20y。
+          explain: 新 y = 1.5 − 0.05·20·1.5 = 1.5 − 1.5 = 0。η = 0.05 时 y 方向一步就到底；x 方向每步只乘 1 − 0.1 = 0.9，要走很多步。
+      - item:
+          id: gd-diverge
+          type: number
+          prompt: '$f(x, y) = x^2 + 10y^2$ 做梯度下降，只看 $y$：每步 $y_{\text{新}} = y - \eta \cdot 20y = (1 - 20\eta)\,y$。学习率至少大到多少时，$y$ 不再收敛到 0？（填临界值）'
+          answer: 0.1
+          tolerance: 0.000001
+          explain: 要 |1 − 20η| < 1，即 0 < η < 0.1。η = 0.1 时 y 在 ±1.5 之间来回跳；更大就越跳越远。最陡的方向限制了学习率。
+      - item:
+          id: gd-sim
+          type: sim
+          sim: descent
+          prompt: '$f(x, y) = x^2 + 10y^2$，从 $(2.5, 1.5)$ 出发。调学习率和步数，走到最低点 $(0, 0)$ 附近（距离 0.01 以内），最多 40 步。'
+          params:
+            mode: 2d
+            f: x^2 + 10y^2
+            vars: [x, 'y']
+            x0: [2.5, 1.5]
+            lr: 0.05
+          goal: { target: [0, 0], tol: 0.01, maxSteps: 40 }
+          solution: { lr: 0.09, steps: 40 }
+          explain: x 每步乘 1 − 2η，y 每步乘 1 − 20η。η = 0.05 时 x 每步只乘 0.9，40 步后还剩约 0.037，不够；η 接近 0.1 时 y 的倍数接近 −1，来回跳得几乎不衰减（η = 0.099 时 40 步后 y 还有约 0.67）。η = 0.09 时 x 乘 0.82、y 乘 −0.8，40 步后都已小于 0.001。
+  - id: vector-maps
+    chapter: 向量映射导数（雅可比矩阵）
+    title: 输出也是向量时，导数是一个矩阵
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 一个映射有 3 个输入、2 个输出（比如输入一个点的 x, y, z，输出它的两个读数）。一共有多少个“某个输出对某个输入”的偏导数？
+          answer: 6
+          explain: 每个输出对每个输入各有一个偏导数：2 × 3 = 6 个。它们排成一个 2 行 3 列的表，这一课会给它起名字。
+      - card:
+          title: 向量值的映射
+          body: |
+            输入 $n$ 个数、输出 $m$ 个数的函数写成 $\mathbf{F}: \mathbb{R}^n \to \mathbb{R}^m$（$\mathbb{R}^n$ 表示 $n$ 个实数排成的向量，$\mathbb{R}^1$ 就是一个数），$\mathbf{F}(\mathbf{x}) = (F_1(\mathbf{x}), \dots, F_m(\mathbf{x}))$，每个 $F_i$ 是一个普通的多元函数。
+
+            例子：$\mathbf{F}(x, y) = (x^2 y,\ 5x + \sin y)$ 把平面上的点映到平面上的点；极坐标 $(r, \theta) \mapsto (r\cos\theta, r\sin\theta)$ 也是；神经网络的一层把一个向量变成另一个向量，也是这样的映射。
+      - card:
+          title: 雅可比矩阵
+          body: |
+            把所有偏导数排成 $m$ 行 $n$ 列：第 $i$ 行第 $j$ 列放 $\partial F_i / \partial x_j$。这个矩阵叫 $\mathbf{F}$ 的**雅可比矩阵（Jacobian matrix）**，记作 $D\mathbf{F}$ 或 $J$：
+
+            $$J = \begin{pmatrix} \frac{\partial F_1}{\partial x_1} & \cdots & \frac{\partial F_1}{\partial x_n} \\ \vdots & & \vdots \\ \frac{\partial F_m}{\partial x_1} & \cdots & \frac{\partial F_m}{\partial x_n} \end{pmatrix}$$
+
+            行对应输出，列对应输入。第 $i$ 行就是 $F_i$ 的梯度。$m = 1$ 时它只有一行，就是梯度本身。
+      - item:
+          id: jac-entry
+          type: choice
+          prompt: '$\mathbf{F}(x, y) = (x^2 y,\ 5x + \sin y)$。雅可比矩阵是哪个？'
+          options:
+            - text: '$\begin{pmatrix} 2xy & x^2 \\ 5 & \cos y \end{pmatrix}$'
+              correct: true
+            - text: '$\begin{pmatrix} 2xy & 5 \\ x^2 & \cos y \end{pmatrix}$'
+              why: 行和列排反了：每一行对应一个输出，第一行应该是 x²y 的梯度 (2xy, x²)
+            - text: '$\begin{pmatrix} 2xy & x^2 \\ 5 & \sin y \end{pmatrix}$'
+              why: sin y 对 y 的导数是 cos y
+          explain: 第一行是 F₁ = x²y 对 x、y 的偏导数 (2xy, x²)；第二行是 F₂ = 5x + sin y 的 (5, cos y)。
+      - item:
+          id: jac-shape
+          type: text
+          prompt: '$\mathbf{F}: \mathbb{R}^3 \to \mathbb{R}^2$ 的雅可比矩阵是几行几列？（按“行×列”填，如 4x5）'
+          answers: ['2x3', '2×3', '2*3', '2 x 3', '2 × 3', '2行3列', '2行×3列', '2行x3列']
+          explain: 行数等于输出个数 2，列数等于输入个数 3。
+      - card:
+          title: 雅可比矩阵就是导数
+          body: |
+            一元时 $f(a + h) \approx f(a) + f'(a)h$。向量映射同样可以线性近似，只是“乘导数”变成“乘矩阵”：
+
+            $$\mathbf{F}(\mathbf{a} + \mathbf{h}) \approx \mathbf{F}(\mathbf{a}) + J(\mathbf{a})\,\mathbf{h}$$
+
+            $\mathbf{F}$ 在 $\mathbf{a}$ 可微，就是误差除以 $|\mathbf{h}|$ 趋于 0。所以雅可比矩阵代表的线性变换就是 $\mathbf{F}$ 在这一点的微分：在一小块地方，弯曲的映射看起来像这个线性变换。
+      - item:
+          id: jac-approx
+          type: number
+          prompt: '$\mathbf{F}(x, y) = (x^2 y,\ 5x + \sin y)$，$\mathbf{F}(1, 0) = (0, 5)$。用 $J(1, 0)$ 线性近似 $\mathbf{F}(1.1, 0.2)$ 的第一个分量。'
+          answer: 0.2
+          tolerance: 0.000001
+          hint: J(1, 0) 的第一行是 (2xy, x²) = (0, 1)。
+          explain: 第一个分量 ≈ 0 + 0·0.1 + 1·0.2 = 0.2。真实值 1.1²·0.2 = 0.242。
+      - card:
+          title: 演示：一点附近的线性变换
+          body: |
+            映射 $\mathbf{F}(x, y) = (x + y^2,\ 2x - y)$ 在 $(1, 1)$ 的雅可比矩阵是
+
+            $$J = \begin{pmatrix} 1 & 2y \\ 2 & -1 \end{pmatrix} = \begin{pmatrix} 1 & 2 \\ 2 & -1 \end{pmatrix}$$
+
+            下面画的是这个矩阵代表的线性变换：网格变成平行四边形网格，单位正方形变成平行四边形。$\mathbf{F}$ 在 $(1, 1)$ 附近把一个很小的正方形变成的形状，就和它同样形状、只是缩小了。
+          sim:
+            name: matrix2d
+            params: { start: [[1, 2], [2, -1]] }
+      - item:
+          id: jac-sim
+          type: sim
+          sim: matrix2d
+          prompt: '映射 $\mathbf{F}(x, y) = (xy,\ x - y^2)$。把矩阵调成它在点 $(2, 1)$ 的雅可比矩阵。'
+          params: { start: [[1, 0], [0, 1]] }
+          goal: { matrix: [[1, 2], [1, -2]] }
+          solution: [[1, 2], [1, -2]]
+          explain: 第一行是 xy 的梯度 (y, x) = (1, 2)；第二行是 x − y² 的梯度 (1, −2y) = (1, −2)。
+      - item:
+          id: jac-3x2
+          type: number
+          prompt: '$\mathbf{F}(x, y, z) = (xyz,\ x + 2z)$。雅可比矩阵第 1 行第 3 列的那一项在 $(1, 2, 3)$ 处是多少？'
+          answer: 2
+          explain: 第 1 行第 3 列是 ∂F₁/∂z = ∂(xyz)/∂z = xy，在 (1, 2, 3) 是 2。
+  - id: planar-transform
+    chapter: 向量映射导数（雅可比矩阵）
+    title: 平面变换：换一套坐标看同一块地
+    minutes: 12
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 极坐标里 $0 \le r \le 1$、$0 \le \theta \le \pi/2$ 是一个长方形。用 $x = r\cos\theta$、$y = r\sin\theta$ 变到 xy 平面上，它变成什么形状？
+          options:
+            - text: 四分之一个圆盘
+              correct: true
+            - text: 还是长方形
+              why: θ 是角度，r 是到原点的距离，r ≤ 1 的点落在单位圆里，形状变了
+            - text: 一条线段
+              why: 只有 r 固定（或 θ 固定）时才得到曲线或线段；这里两个都在变
+          explain: r 从 0 到 1、θ 从 0 到 90°，扫出第一象限里的四分之一单位圆盘。
+      - card:
+          title: 平面变换
+          body: |
+            一个**平面变换（planar transformation）** $T$ 把 $uv$ 平面上的区域 $G$ 映到 $xy$ 平面上：
+
+            $$x = g(u, v), \qquad y = h(u, v)$$
+
+            $G$ 的像 $R = T(G)$ 是所有 $T(u, v)$ 组成的区域。一般假设 $g, h$ 有连续的一阶偏导数。
+
+            为什么要换坐标：有的区域在 $xy$ 里形状别扭，在 $uv$ 里却是长方形，比如圆盘在极坐标里就是 $0 \le r \le 1$、$0 \le \theta \le 2\pi$。
+      - item:
+          id: transform-image
+          type: choice
+          prompt: '变换 $x = 2u$，$y = v$ 把 $uv$ 平面上的单位正方形 $0 \le u \le 1$，$0 \le v \le 1$ 变成什么？'
+          options:
+            - text: 宽 2、高 1 的长方形
+              correct: true
+            - text: 宽 1、高 2 的长方形
+              why: 被放大的是 x 方向：x = 2u，u 从 0 到 1 时 x 从 0 到 2
+            - text: 单位正方形
+              why: x 方向被拉长了 2 倍
+          explain: x 从 0 到 2，y 从 0 到 1。面积从 1 变成 2。
+      - card:
+          title: 一对一
+          body: |
+            如果没有两个不同的点 $(u_1, v_1) \ne (u_2, v_2)$ 被变到同一个点，就说 $T$ 是**一对一的（one-to-one）**。
+
+            检查方法：假设 $T(u_1, v_1) = T(u_2, v_2)$，看能不能推出 $(u_1, v_1) = (u_2, v_2)$。
+
+            例：$x = u + v$，$y = u - v$。若 $u_1 + v_1 = u_2 + v_2$ 且 $u_1 - v_1 = u_2 - v_2$，两式相加得 $u_1 = u_2$，再得 $v_1 = v_2$。所以它是一对一的。
+      - item:
+          id: one-to-one
+          type: choice
+          prompt: 下面哪个变换在整个 uv 平面上不是一对一的？
+          options:
+            - text: $x = u^2,\ y = v$
+              correct: true
+            - text: $x = 3u,\ y = u + v$
+              why: 由 x 得 u = x/3，再由 y 得 v = y − u，每个 (x, y) 只对应一个 (u, v)
+            - text: $x = u + 1,\ y = v - 2$
+              why: 这是平移，可以唯一倒回去：u = x − 1，v = y + 2
+          explain: x = u² 时 (1, 0) 和 (−1, 0) 都变到 (1, 0)，不是一对一的。限制在 u ≥ 0 上它就是一对一的。
+      - card:
+          title: 网格线变成了什么
+          body: |
+            看变换做了什么，一个好办法是看 $uv$ 平面上的网格线变成了什么。
+
+            极坐标变换下：$r = $ 常数的竖线变成以原点为圆心的圆；$\theta = $ 常数的横线变成从原点出发的射线。长方形网格变成了“圆环 × 射线”的网格。网格的小格子在离原点远的地方更大；大多少，后面能算出来。
+      - item:
+          id: grid-line
+          type: choice
+          prompt: '变换 $x = u + v$，$y = u - v$ 下，$uv$ 平面上的直线 $v = 0$ 变成什么？'
+          options:
+            - text: 直线 y = x
+              correct: true
+            - text: 直线 y = −x
+              why: v = 0 时 x = u、y = u，所以 y = x；直线 u = 0 才变成 y = −x
+            - text: x 轴
+              why: v = 0 时 y = u，一般不是 0
+          explain: v = 0 时 x = u，y = u，所有点都满足 y = x。
+      - item:
+          id: polar-point
+          type: number
+          prompt: '极坐标变换下，点 $(r, \theta) = (2, \pi/3)$ 变到 $xy$ 平面上，$y$ 坐标是多少？（保留 3 位小数）'
+          answer: 1.73205
+          tolerance: 0.001
+          explain: y = r sin θ = 2·(√3/2) = √3 ≈ 1.732。
+      - item:
+          id: inverse-transform
+          type: number
+          prompt: '变换 $x = u + v$，$y = u - v$。$xy$ 平面上的点 $(5, 1)$ 来自哪个 $(u, v)$？填 $u$。'
+          answer: 3
+          explain: u + v = 5，u − v = 1，相加 2u = 6，u = 3，v = 2。反变换是 u = (x + y)/2，v = (x − y)/2。
+  - id: jacobian-det
+    chapter: 向量映射导数（雅可比矩阵）
+    title: 雅可比行列式：面积放大了几倍
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 线性变换 $\begin{pmatrix} 2 & 0 \\ 0 & 3 \end{pmatrix}$ 把单位正方形变成多大面积的图形？
+          options:
+            - text: '6'
+              correct: true
+            - text: '5'
+              why: 把 2 和 3 相加了；长度各放大 2 倍和 3 倍，面积放大 2 × 3 倍
+            - text: '1'
+              why: 正方形被拉伸了，面积会变
+          explain: 变成 2 × 3 的长方形，面积 6，正好是矩阵的行列式。
+      - card:
+          title: 小格子变成小平行四边形
+          body: |
+            一个弯曲的变换 $T$ 在一点附近近似为它的雅可比矩阵代表的线性变换。线性变换把正方形变成平行四边形，面积乘以行列式的绝对值。
+
+            所以 $uv$ 平面上边长 $\Delta u$、$\Delta v$ 的小长方形，被 $T$ 变成近似的小平行四边形，面积约为
+
+            $$|\det J| \,\Delta u\, \Delta v$$
+      - card:
+          title: 雅可比行列式
+          body: |
+            变换 $x = g(u, v)$、$y = h(u, v)$ 的雅可比矩阵的行列式叫**雅可比行列式（Jacobian determinant）**，也常直接叫“雅可比”：
+
+            $$\frac{\partial(x, y)}{\partial(u, v)} = \det \begin{pmatrix} x_u & x_v \\ y_u & y_v \end{pmatrix} = x_u y_v - x_v y_u$$
+
+            它的绝对值是这一点附近的面积放大倍数。它不为 0，由反函数定理，变换在附近可以倒回去。
+
+            极坐标：$x_r = \cos\theta$，$x_\theta = -r\sin\theta$，$y_r = \sin\theta$，$y_\theta = r\cos\theta$，行列式 $= r\cos^2\theta + r\sin^2\theta = r$。
+      - item:
+          id: jdet-poly
+          type: number
+          prompt: '变换 $x = u^2 - v^2$，$y = 2uv$。在 $(u, v) = (1, 2)$ 处，雅可比行列式是多少？'
+          answer: 20
+          hint: x_u = 2u，x_v = −2v，y_u = 2v，y_v = 2u。
+          explain: 行列式 = 2u·2u − (−2v)(2v) = 4u² + 4v² = 4 + 16 = 20。
+      - item:
+          id: jdet-polar-meaning
+          type: choice
+          prompt: 极坐标的雅可比行列式是 $r$。这说明了什么？
+          options:
+            - text: 同样大小的 Δr × Δθ 小格子，离原点越远，变到 xy 平面上面积越大
+              correct: true
+            - text: 变换在每一点都把面积缩小
+              why: r > 1 时面积放大，r < 1 时才缩小
+            - text: 变换在原点附近可以倒回去
+              why: r = 0 时行列式为 0，原点附近恰恰倒不回去（所有 θ 都变到原点）
+          explain: 小格子的面积约为 r Δr Δθ：同一个角度范围，外圈的扇环比内圈大。
+      - card:
+          title: 例题：线性变换的雅可比
+          body: '$x = u + v$，$y = u - v$。求雅可比行列式，并说明 $uv$ 平面上面积为 1 的正方形变成多大。'
+          reveal:
+            - title: 第 1 步：求四个偏导数
+              body: '$x_u = 1$，$x_v = 1$，$y_u = 1$，$y_v = -1$。'
+            - title: 第 2 步：算行列式
+              body: '$1 \cdot (-1) - 1 \cdot 1 = -2$。'
+            - title: 第 3 步：取绝对值读面积倍数
+              body: 面积放大倍数是 $|-2| = 2$，所以面积 1 的正方形变成面积 2 的正方形（转了 45° 并放大）。负号表示方向翻了过来（像照镜子），面积要取绝对值。
+      - item:
+          id: jdet-linear
+          type: number
+          prompt: '$x = 3u + v$，$y = u + 2v$。$uv$ 平面上面积为 4 的区域，变到 $xy$ 平面上面积是多少？'
+          answer: 20
+          explain: 雅可比行列式 = 3·2 − 1·1 = 5。线性变换处处放大 5 倍，面积 4 变成 20。
+      - card:
+          title: 三维的雅可比
+          body: |
+            空间里的变换 $(u, v, w) \mapsto (x, y, z)$，雅可比矩阵是 3×3，它的行列式的绝对值是小体积的放大倍数。
+
+            柱坐标 $(r, \theta, z)$：$x = r\cos\theta$，$y = r\sin\theta$，$z = z$，雅可比行列式是 $r$。
+
+            球坐标 $(\rho, \varphi, \theta)$：$x = \rho\sin\varphi\cos\theta$，$y = \rho\sin\varphi\sin\theta$，$z = \rho\cos\varphi$（$\varphi$ 是和正 $z$ 轴的夹角），雅可比行列式是 $\rho^2 \sin\varphi$。
+
+            以后用积分算面积、体积时换坐标，每一小块面积（体积）都要乘上这个放大倍数 $|J|$。
+      - item:
+          id: jdet-sphere
+          type: number
+          prompt: '球坐标在 $\rho = 2$、$\varphi = \pi/2$（赤道上）处，小体积的放大倍数是多少？'
+          answer: 4
+          explain: ρ² sin φ = 4·sin(π/2) = 4。
+      - item:
+          id: jdet-cyl
+          type: choice
+          prompt: 柱坐标的雅可比行列式为什么和极坐标一样都是 $r$？
+          options:
+            - text: z 方向原样不动，只有 x、y 按极坐标在变
+              correct: true
+            - text: 因为柱坐标没有角度
+              why: 柱坐标有角度 θ；它就是极坐标加上一个不变的 z
+            - text: 巧合
+              why: 3×3 矩阵的第三行第三列是 ∂z/∂z = 1，其余和 z 有关的项是 0，按第三行展开就剩极坐标的 2×2 行列式
+          explain: 雅可比矩阵按 z 那一行展开，只剩极坐标的 2×2 行列式 r 乘 1。
+  - id: chain-one
+    chapter: 链式法则与坐标变换
+    title: 沿一条路走，函数怎么变
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: '你沿着单位圆 $x = \cos t$、$y = \sin t$ 走，记录 $z = x^2 + y^2$。$z$ 随时间 $t$ 的变化率 $dz/dt$ 是多少？'
+          options:
+            - text: '0'
+              correct: true
+            - text: '2'
+              why: 圆上每一点都有 x² + y² = 1，z 一直是 1，不会变
+            - text: 和 t 有关，有时正有时负
+              why: z 恒等于 1，变化率处处是 0
+          explain: 单位圆上 x² + y² = 1，z 恒为 1，变化率是 0。这一课的公式会给出同样的结果。
+      - card:
+          title: 中间变量
+          body: |
+            $z = f(x, y)$，而 $x, y$ 又随时间 $t$ 变：$x = x(t)$，$y = y(t)$。那么 $z$ 最终是 $t$ 的一元函数。$x, y$ 叫**中间变量（intermediate variable）**。
+
+            $t$ 变一点点 $dt$，$x$ 变 $dx = x'(t)\,dt$，$y$ 变 $dy = y'(t)\,dt$。由全微分 $dz = f_x\,dx + f_y\,dy$，代入再除以 $dt$：
+
+            $$\frac{dz}{dt} = \frac{\partial z}{\partial x}\frac{dx}{dt} + \frac{\partial z}{\partial y}\frac{dy}{dt}$$
+
+            条件是 $f$ 可微，$x(t)$、$y(t)$ 可导。
+      - card:
+          title: 树状图
+          body: |
+            画一棵树帮你不漏项：最上面是 $z$，往下分出它直接依赖的 $x$、$y$，每个再往下连到 $t$。每条边上写对应的导数（$\partial z/\partial x$、$dx/dt$……）。
+
+            从 $z$ 到 $t$ 的每一条路径，把边上的导数乘起来；所有路径的乘积加起来，就是 $dz/dt$。这里有两条路径（经过 $x$ 和经过 $y$），所以有两项。
+      - item:
+          id: chain-circle
+          type: choice
+          prompt: '用链式法则算：$z = x^2 + y^2$，$x = \cos t$，$y = \sin t$。$dz/dt$ 等于什么？'
+          options:
+            - text: $2x(-\sin t) + 2y\cos t = 0$
+              correct: true
+            - text: $2x + 2y$
+              why: 还要乘上 dx/dt 和 dy/dt
+            - text: $-\sin t + \cos t$
+              why: 漏了 ∂z/∂x = 2x 和 ∂z/∂y = 2y
+          explain: 2x·(−sin t) + 2y·cos t = −2cos t sin t + 2sin t cos t = 0，和直觉一致。
+      - item:
+          id: chain-power
+          type: number
+          prompt: '$z = xy$，$x = t^2$，$y = t^3$。用链式法则求 $t = 1$ 时的 $dz/dt$。'
+          answer: 5
+          hint: ∂z/∂x = y，∂z/∂y = x，dx/dt = 2t，dy/dt = 3t²。
+          explain: dz/dt = y·2t + x·3t² = t³·2t + t²·3t² = 5t⁴，t = 1 时是 5。直接代入 z = t⁵ 求导也是 5t⁴。
+      - card:
+          title: 例题：带根号的复合
+          body: '$z = \sqrt{x^2 - y^2}$，$x = e^{2t}$，$y = e^{-t}$。求 $t > 0$ 时 $dz/dt$ 的公式（$t > 0$ 时 $x > y$，根号里是正数）。'
+          reveal:
+            - title: 第 1 步：外层的两个偏导数
+              body: '$\frac{\partial z}{\partial x} = \frac{x}{\sqrt{x^2 - y^2}}$，$\frac{\partial z}{\partial y} = \frac{-y}{\sqrt{x^2 - y^2}}$。'
+            - title: 第 2 步：里层的导数
+              body: '$\frac{dx}{dt} = 2e^{2t}$，$\frac{dy}{dt} = -e^{-t}$。'
+            - title: 第 3 步：按两条路径相乘相加
+              body: '$\frac{dz}{dt} = \frac{x \cdot 2e^{2t} + (-y)(-e^{-t})}{\sqrt{x^2 - y^2}} = \frac{2x e^{2t} + y e^{-t}}{\sqrt{x^2 - y^2}}$。再把 $x = e^{2t}$、$y = e^{-t}$ 代进去：$\frac{dz}{dt} = \frac{2e^{4t} + e^{-2t}}{\sqrt{e^{4t} - e^{-2t}}}$。'
+      - item:
+          id: chain-sqrt
+          type: number
+          prompt: '同一个 $z = \sqrt{x^2 - y^2}$，$x = e^{2t}$，$y = e^{-t}$。$t = 1$ 时 $dz/dt$ 是多少？（保留 3 位小数）'
+          answer: 14.8148
+          tolerance: 0.001
+          hint: 代入 x = e²，y = e⁻¹。
+          explain: x = e² ≈ 7.389，y = e⁻¹ ≈ 0.368。分子 2·e²·e² + e⁻¹·e⁻¹ = 2e⁴ + e⁻² ≈ 109.33，分母 √(e⁴ − e⁻²) ≈ 7.380，相除约 14.815。
+      - item:
+          id: chain-ostax
+          type: choice
+          prompt: '$z = 4x^2 + 3y^2$，$x = \sin t$，$y = \cos t$。$dz/dt$ 化简后是什么？'
+          options:
+            - text: $2\sin t\cos t$
+              correct: true
+            - text: $14\sin t\cos t$
+              why: 第二项是 6y·(−sin t) = −6cos t sin t，要减去，不是加上
+            - text: '0'
+              why: 4x² + 3y² 在这条路上不是常数（4sin²t + 3cos²t = 3 + sin²t）
+          explain: 8x·cos t + 6y·(−sin t) = 8sin t cos t − 6cos t sin t = 2sin t cos t。直接代入 z = 3 + sin²t 求导也得 2sin t cos t。
+      - item:
+          id: chain-temp
+          type: number
+          prompt: '一只蚂蚁在温度为 $T(x, y) = x^2 y$ 的铁板上爬，$t$ 秒时位于 $x = 1 + t$，$y = 2 - t$。$t = 0$ 时它感到的温度变化率 $dT/dt$ 是多少？'
+          answer: 3
+          explain: T_x = 2xy = 4，T_y = x² = 1（在 (1, 2)），x′ = 1，y′ = −1。dT/dt = 4·1 + 1·(−1) = 3。
+  - id: chain-two
+    chapter: 链式法则与坐标变换
+    title: 两个自变量，和更一般的链式法则
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: '$z = f(x, y)$，而 $x = g(u, v)$，$y = h(u, v)$。从 $z$ 到 $u$ 一共有几条路径（画树状图数一数）？'
+          answer: 2
+          explain: z 经过 x 到 u 一条，经过 y 到 u 一条，共两条。所以 ∂z/∂u 有两项。
+      - card:
+          title: 两个自变量的链式法则
+          body: |
+            $z = f(x, y)$，$x = g(u, v)$，$y = h(u, v)$，都可微。$z$ 最终是 $u, v$ 的函数。求 $\partial z/\partial u$ 时 $v$ 固定，和一元的情形一样按路径相加：
+
+            $$\frac{\partial z}{\partial u} = \frac{\partial z}{\partial x}\frac{\partial x}{\partial u} + \frac{\partial z}{\partial y}\frac{\partial y}{\partial u}, \qquad \frac{\partial z}{\partial v} = \frac{\partial z}{\partial x}\frac{\partial x}{\partial v} + \frac{\partial z}{\partial y}\frac{\partial y}{\partial v}$$
+
+            左边是偏导数，因为 $z$ 最终有两个自变量。
+      - item:
+          id: chain2-ostax
+          type: choice
+          prompt: '$z = 3x^2 - 2xy + y^2$，$x = 3u + 2v$，$y = 4u - v$。$\partial z/\partial u$ 用 $u, v$ 表示是什么？'
+          options:
+            - text: $38u + 18v$
+              correct: true
+            - text: $6x - 2y$
+              why: 这只是 ∂z/∂x，还要乘 ∂x/∂u = 3，再加上经过 y 的那一项
+            - text: $18u + 34v$
+              why: 这是 ∂z/∂v
+          explain: ∂z/∂u = (6x − 2y)·3 + (−2x + 2y)·4 = 10x + 2y = 10(3u + 2v) + 2(4u − v) = 38u + 18v。
+      - card:
+          title: 例题：直角坐标换成极坐标
+          body: '$f(x, y)$ 可微，$x = r\cos\theta$，$y = r\sin\theta$。用 $f_x$、$f_y$ 表示 $\partial f/\partial r$ 和 $\partial f/\partial \theta$。'
+          reveal:
+            - title: 第 1 步：里层的偏导数
+              body: '$x_r = \cos\theta$，$y_r = \sin\theta$，$x_\theta = -r\sin\theta$，$y_\theta = r\cos\theta$。'
+            - title: 第 2 步：对 r
+              body: '$\frac{\partial f}{\partial r} = f_x\cos\theta + f_y\sin\theta$。这正是沿径向单位向量 $(\cos\theta, \sin\theta)$ 的方向导数。'
+            - title: 第 3 步：对 θ
+              body: '$\frac{\partial f}{\partial \theta} = -f_x\, r\sin\theta + f_y\, r\cos\theta$。'
+      - item:
+          id: polar-ftheta
+          type: number
+          prompt: '$f(x, y) = x^2 + 3y$。在 $r = 2$、$\theta = 0$ 处（即点 $(2, 0)$），$\partial f/\partial \theta$ 是多少？'
+          answer: 6
+          hint: f_x = 2x = 4，f_y = 3，sin 0 = 0，cos 0 = 1。
+          explain: ∂f/∂θ = −f_x·r sin θ + f_y·r cos θ = −4·0 + 3·2·1 = 6。绕原点转，点往上移，3y 那一项在增加。
+      - card:
+          title: 一般形式的链式法则
+          body: |
+            $w = f(x_1, \dots, x_m)$，每个 $x_i$ 又是 $t_1, \dots, t_n$ 的可微函数。那么
+
+            $$\frac{\partial w}{\partial t_j} = \sum_{i=1}^{m} \frac{\partial w}{\partial x_i}\frac{\partial x_i}{\partial t_j}$$
+
+            一句话：经过每一个中间变量的路径各贡献一项，全部加起来。前面两个公式都是它的特例。
+      - item:
+          id: chain-general
+          type: number
+          prompt: '$w = 3x^2 - 2xy + 4z^2$，$x = e^u\sin v$，$y = e^u\cos v$，$z = e^u$。在 $u = 0$、$v = 0$ 处 $\partial w/\partial u$ 是多少？'
+          answer: 8
+          hint: u = v = 0 时 x = 0，y = 1，z = 1；x_u = x，y_u = y，z_u = z。
+          explain: w_x = 6x − 2y = −2，w_y = −2x = 0，w_z = 8z = 8；x_u = 0，y_u = 1，z_u = 1。∂w/∂u = (−2)·0 + 0·1 + 8·1 = 8。
+      - item:
+          id: chain-count
+          type: number
+          prompt: '$w = f(x, y, z)$，$x, y, z$ 各是 $s, t$ 的函数。$\partial w/\partial s$ 的链式法则展开有几项？'
+          answer: 3
+          explain: 中间变量有 x、y、z 三个，从 w 到 s 有三条路径，所以三项。
+      - item:
+          id: chain-wrong
+          type: choice
+          prompt: '有人写：$z = f(x, y)$，$x = u + v$，$y = uv$，所以 $\dfrac{\partial z}{\partial u} = \dfrac{\partial z}{\partial x} \cdot 1$。错在哪？'
+          options:
+            - text: 漏了经过 y 的那一项 (∂z/∂y)·v
+              correct: true
+            - text: ∂x/∂u 应该是 v 而不是 1
+              why: x = u + v 对 u 的偏导数就是 1；v 是 y 对 u 的偏导数
+            - text: 没有错
+              why: y = uv 也随 u 变，必须加上经过 y 的路径
+          explain: 正确的是 ∂z/∂u = z_x·1 + z_y·v。只要中间变量依赖 u，就有一条路径。
+  - id: chain-matrix
+    chapter: 链式法则与坐标变换
+    title: 链式法则的矩阵形式：雅可比矩阵相乘
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 先做线性变换 A，再做线性变换 B，合起来的变换对应哪个矩阵？
+          options:
+            - text: BA（后做的写在左边）
+              correct: true
+            - text: AB
+              why: 作用在向量 x 上是 B(Ax) = (BA)x，先做的 A 紧挨着 x
+            - text: A + B
+              why: 两个变换接连做是矩阵相乘，不是相加
+          explain: B(Ax) = (BA)x。复合映射的导数也是这样相乘，这一课把链式法则写成这个样子。
+      - card:
+          title: 复合映射的导数
+          body: |
+            $\mathbf{g}: \mathbb{R}^n \to \mathbb{R}^m$，$\mathbf{h}: \mathbb{R}^m \to \mathbb{R}^p$，复合 $\mathbf{h} \circ \mathbf{g}$ 是先做 $\mathbf{g}$ 再做 $\mathbf{h}$。两者都可微时：
+
+            $$D(\mathbf{h} \circ \mathbf{g})(\mathbf{u}) = D\mathbf{h}(\mathbf{g}(\mathbf{u}))\; D\mathbf{g}(\mathbf{u})$$
+
+            左边是 $p \times n$ 的矩阵，右边是 $p \times m$ 乘 $m \times n$。道理：每个映射在一点附近像它的雅可比矩阵代表的线性变换，两个线性变换接连做就是矩阵相乘。注意 $D\mathbf{h}$ 要在 $\mathbf{g}(\mathbf{u})$ 这一点取值。
+      - item:
+          id: chain-shape
+          type: text
+          prompt: '$\mathbf{g}: \mathbb{R}^2 \to \mathbb{R}^3$，$\mathbf{h}: \mathbb{R}^3 \to \mathbb{R}^1$。$D(\mathbf{h} \circ \mathbf{g})$ 是几行几列？（按“行×列”填，如 4x5）'
+          answers: ['1x2', '1×2', '1*2', '1 x 2', '1 × 2', '1行2列', '1行×2列', '1行x2列']
+          explain: Dh 是 1×3，Dg 是 3×2，相乘得 1×2：一个输出、两个输入，就是复合函数的梯度。
+      - card:
+          title: 和前面的公式是一回事
+          body: |
+            $z = f(x, y)$，$(x, y) = \mathbf{g}(u, v)$。$Df = (f_x\ \ f_y)$ 是 1×2，$D\mathbf{g}$ 是 2×2：
+
+            $$\begin{pmatrix} z_u & z_v \end{pmatrix} = \begin{pmatrix} f_x & f_y \end{pmatrix} \begin{pmatrix} x_u & x_v \\ y_u & y_v \end{pmatrix}$$
+
+            把矩阵乘开，第一个分量就是 $z_u = f_x x_u + f_y y_u$，和树状图得到的公式一模一样。矩阵写法的好处是层数再多也只是一串矩阵相乘。
+      - card:
+          title: 例题：用矩阵形式求偏导数
+          body: '$\mathbf{g}(u, v) = (u + v,\ uv)$，$h(x, y) = x^2 + y^2$。用 $D(h \circ \mathbf{g}) = Dh \cdot D\mathbf{g}$ 求 $\partial(h \circ \mathbf{g})/\partial u$ 和 $\partial/\partial v$。'
+          reveal:
+            - title: 第 1 步：两个雅可比矩阵
+              body: '$Dh = (2x\ \ 2y)$，$D\mathbf{g} = \begin{pmatrix} 1 & 1 \\ v & u \end{pmatrix}$。'
+            - title: 第 2 步：相乘
+              body: '$(2x\ \ 2y)\begin{pmatrix} 1 & 1 \\ v & u \end{pmatrix} = (2x + 2yv,\ \ 2x + 2yu)$。'
+            - title: 第 3 步：把 x, y 换成 u, v
+              body: '$x = u + v$，$y = uv$：$\partial/\partial u = 2(u + v) + 2uv^2$，$\partial/\partial v = 2(u + v) + 2u^2 v$。'
+            - title: 第 4 步：直接代入核对
+              body: '$h(\mathbf{g}(u, v)) = (u + v)^2 + u^2 v^2$，对 $u$ 求偏导得 $2(u + v) + 2uv^2$，对上了。'
+      - item:
+          id: chain-matrix-num
+          type: number
+          prompt: '$h(x, y) = x^2 + y^2$，$x = u + v$，$y = uv$，于是 $h(\mathbf{g}(u, v)) = (u + v)^2 + u^2 v^2$。在 $(u, v) = (1, 2)$ 处，$\partial(h \circ \mathbf{g})/\partial u$ 是多少？'
+          answer: 14
+          explain: 2(u + v) + 2uv² = 2·3 + 2·1·4 = 6 + 8 = 14。
+      - item:
+          id: chain-matrix-v
+          type: number
+          prompt: '$h(x, y) = x^2 + y^2$，$x = u + v$，$y = uv$，于是 $h(\mathbf{g}(u, v)) = (u + v)^2 + u^2 v^2$。在 $(u, v) = (1, 2)$ 处，$\partial(h \circ \mathbf{g})/\partial v$ 是多少？'
+          answer: 10
+          explain: 2(u + v) + 2u²v = 6 + 4 = 10。
+      - card:
+          title: 一层层乘下去：反向传播的样子
+          body: |
+            神经网络是很多层映射的复合：$\mathbf{x} \to \mathbf{a}_1 \to \mathbf{a}_2 \to \cdots \to L$，最后的 $L$ 是一个数（误差）。由链式法则
+
+            $$DL(\mathbf{x}) = DL(\mathbf{a}_k) \cdots D\mathbf{a}_2(\mathbf{a}_1)\; D\mathbf{a}_1(\mathbf{x})$$
+
+            最左边是一行（$L$ 只有一个输出）。从左往右算，每一步都是“一行 × 一个矩阵 = 一行”，算起来很省。训练神经网络用的反向传播，就是按这个顺序计算这一串乘积。
+      - item:
+          id: chain-backprop
+          type: choice
+          prompt: '$L = f(\mathbf{a})$，$\mathbf{a} = \mathbf{g}(\mathbf{x})$，$\mathbf{x}$ 有 3 个分量，$\mathbf{a}$ 有 2 个分量。已知 $\nabla f(\mathbf{a}) = (1, -1)$，$D\mathbf{g}(\mathbf{x}) = \begin{pmatrix} 2 & 0 & 1 \\ 1 & 3 & 0 \end{pmatrix}$。$\nabla L(\mathbf{x})$ 是什么？'
+          options:
+            - text: (1, −3, 1)
+              correct: true
+            - text: (3, 3, 1)
+              why: 把 ∇f 的第二个分量当成 +1 了；(1, −1) 乘矩阵是第一行减第二行
+            - text: (2, −3)
+              why: 结果应有 3 个分量，对应 x 的 3 个输入
+          explain: (1, −1) 乘以这个 2×3 矩阵 = 第一行 − 第二行 = (2 − 1, 0 − 3, 1 − 0) = (1, −3, 1)。
+  - id: hessian
+    chapter: 二阶偏导矩阵（海森矩阵）
+    title: 海森矩阵：所有二阶偏导数排成一张表
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 一个函数有 3 个自变量。它一共有多少个二阶偏导数（f_xx、f_xy、……都算，顺序不同算不同的）？
+          answer: 9
+          explain: 第一次求导有 3 种选择，第二次也有 3 种，共 3 × 3 = 9 个。它们正好排成一个 3×3 的矩阵。
+      - card:
+          title: 海森矩阵
+          body: |
+            $f(x, y)$ 的四个二阶偏导数排成一个 2×2 矩阵，叫 $f$ 的**海森矩阵（Hessian matrix）**，记作 $H$ 或 $\nabla^2 f$：
+
+            $$H = \begin{pmatrix} f_{xx} & f_{xy} \\ f_{yx} & f_{yy} \end{pmatrix}$$
+
+            $n$ 个变量时是 $n \times n$ 矩阵，第 $i$ 行第 $j$ 列是先对 $x_i$、再对 $x_j$ 求的二阶偏导数。由 Clairaut 定理，二阶偏导数连续时 $f_{xy} = f_{yx}$，海森矩阵是对称矩阵。
+      - item:
+          id: hess-basic
+          type: choice
+          prompt: '$f(x, y) = x^3 - 3x + y^2 - 2y$ 的海森矩阵是什么？'
+          options:
+            - text: '$\begin{pmatrix} 6x & 0 \\ 0 & 2 \end{pmatrix}$'
+              correct: true
+            - text: '$\begin{pmatrix} 3x^2 - 3 & 0 \\ 0 & 2y - 2 \end{pmatrix}$'
+              why: 这是一阶偏导数，要再求一次
+            - text: '$\begin{pmatrix} 6x & 2 \\ 2 & 0 \end{pmatrix}$'
+              why: f_yy = 2 放在右下角；x 和 y 没有乘在一起的项，f_xy = 0
+          explain: f_x = 3x² − 3，f_y = 2y − 2。f_xx = 6x，f_yy = 2，f_xy = f_yx = 0。
+      - card:
+          title: 例题：带交叉项的海森矩阵
+          body: '$f(x, y) = x^2 + 2xy + y^3$，求海森矩阵在 $(1, 2)$ 的值。'
+          reveal:
+            - title: 第 1 步：一阶偏导数
+              body: '$f_x = 2x + 2y$，$f_y = 2x + 3y^2$。'
+            - title: 第 2 步：二阶偏导数
+              body: '$f_{xx} = 2$，$f_{xy} = 2$，$f_{yx} = 2$，$f_{yy} = 6y$。'
+            - title: 第 3 步：代入 (1, 2)
+              body: '$H(1, 2) = \begin{pmatrix} 2 & 2 \\ 2 & 12 \end{pmatrix}$，对称。'
+      - item:
+          id: hess-entry
+          type: number
+          prompt: '$f(x, y) = x^2 y + e^{xy}$。海森矩阵右上角的  $f_{xy}$ 在 $(0, 1)$ 处是多少？'
+          answer: 1
+          hint: 先求 f_x = 2xy + y·e^(xy)，再用乘积法则把它对 y 求一次。
+          explain: 代入 x = 0、y = 1：0 + e⁰ + 0 = 1。
+      - card:
+          title: 海森矩阵是梯度的雅可比矩阵
+          body: |
+            梯度 $\nabla f = (f_x, f_y)$ 本身是一个从 $\mathbb{R}^2$ 到 $\mathbb{R}^2$ 的映射。它的雅可比矩阵，第一行是 $f_x$ 的梯度 $(f_{xx}, f_{xy})$，第二行是 $f_y$ 的梯度 $(f_{yx}, f_{yy})$，正好是海森矩阵。
+
+            所以海森矩阵描述的是：走一小步 $\mathbf{h}$，梯度大约变化 $H\mathbf{h}$。梯度描述坡度，海森矩阵描述坡度怎么变，也就是曲面怎么弯。
+      - item:
+          id: hess-grad-change
+          type: number
+          prompt: '$f(x, y) = x^2 + 2xy + y^3$ 在 $(1, 2)$：$\nabla f = (6, 14)$，$H = \begin{pmatrix} 2 & 2 \\ 2 & 12 \end{pmatrix}$。走到 $(1.1, 2)$，梯度的第二个分量大约变成多少？'
+          answer: 14.2
+          tolerance: 0.000001
+          explain: 梯度变化 ≈ H·(0.1, 0) = (0.2, 0.2)，第二个分量约 14 + 0.2 = 14.2。精确值 f_y(1.1, 2) = 2.2 + 12 = 14.2（f_y 对 x 是一次的，所以这里正好相等）。
+      - item:
+          id: hess-3var
+          type: number
+          prompt: '$f(x, y, z) = xyz + x^2$。海森矩阵第 2 行第 3 列的  $f_{yz}$ 在 $(1, 2, 3)$ 处是多少？'
+          answer: 1
+          explain: f_y = xz，再对 z 求偏导得 x，在 (1, 2, 3) 是 1。
+      - item:
+          id: hess-symmetric
+          type: choice
+          prompt: 某个函数的二阶偏导数都连续，有人算出它的海森矩阵是 $\begin{pmatrix} 2 & 3 \\ 1 & 4 \end{pmatrix}$。你的判断？
+          options:
+            - text: 算错了，这时海森矩阵一定对称
+              correct: true
+            - text: 可能是对的
+              why: 二阶偏导数连续时由 Clairaut 定理 f_xy = f_yx，右上和左下必须相等
+            - text: 对的，海森矩阵本来就不对称
+              why: 只有在混合偏导数不连续的特殊点才可能不对称
+          explain: 右上角 3 和左下角 1 分别是 f_xy 和 f_yx，连续时它们必须相等。
+  - id: hessian-definite
+    chapter: 二阶偏导矩阵（海森矩阵）
+    title: 碗、倒碗和马鞍：海森矩阵的正负
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: '$z = x^2 - y^2$ 在原点附近长什么样？'
+          options:
+            - text: 马鞍：沿 x 方向往上弯，沿 y 方向往下弯
+              correct: true
+            - text: 碗，开口朝上
+              why: 沿 y 轴看 z = −y²，是往下弯的
+            - text: 一块平面
+              why: 原点的切平面是平的，但曲面本身在两个方向上弯曲
+          explain: 沿 x 轴 z = x² 开口向上，沿 y 轴 z = −y² 开口向下，像马鞍。
+      - card:
+          title: 二次型
+          body: |
+            对称矩阵 $H$ 给出一个函数：输入向量 $\mathbf{h} = (h_1, h_2)$，输出数 $\mathbf{h}^\mathsf{T} H \mathbf{h}$。这个函数叫 $H$ 的**二次型（quadratic form）**。对 $H = \begin{pmatrix} a & b \\ b & c \end{pmatrix}$：
+
+            $$\mathbf{h}^\mathsf{T} H \mathbf{h} = a h_1^2 + 2b\, h_1 h_2 + c\, h_2^2$$
+
+            直观上：海森矩阵的二次型在 $\mathbf{h}$ 处的值为正，曲面沿 $\mathbf{h}$ 方向往上弯；为负，往下弯。准确的关系是二阶泰勒近似，后面会用公式写出来。
+      - item:
+          id: qform
+          type: number
+          prompt: '$H = \begin{pmatrix} 2 & 1 \\ 1 & 2 \end{pmatrix}$，$\mathbf{h} = (1, -1)$。$\mathbf{h}^\mathsf{T} H \mathbf{h}$ 是多少？'
+          answer: 2
+          explain: 2·1² + 2·1·(1)(−1) + 2·(−1)² = 2 − 2 + 2 = 2。
+      - card:
+          title: 正定、负定、不定
+          body: |
+            对所有非零的 $\mathbf{h}$：
+
+            - 都有 $\mathbf{h}^\mathsf{T} H \mathbf{h} > 0$：$H$ 正定，曲面像开口朝上的碗；
+            - 都有 $< 0$：$H$ **负定（negative definite）**，像倒扣的碗；
+            - 有的方向 $> 0$、有的方向 $< 0$：$H$ **不定（indefinite）**，像马鞍；
+            - 都有 $\ge 0$：$H$ **半正定（positive semidefinite）**，记作 $H \succeq 0$。
+
+            对称矩阵的特征值都是实数：全正 ⇔ 正定，全负 ⇔ 负定，有正有负 ⇔ 不定，全都 $\ge 0$ ⇔ 半正定。
+      - item:
+          id: definite-eig
+          type: choice
+          prompt: 某个海森矩阵的特征值是 3 和 −1。它是哪一类？
+          options:
+            - text: 不定
+              correct: true
+            - text: 正定
+              why: 正定要求特征值全为正，−1 不是
+            - text: 半正定
+              why: 半正定要求特征值都 ≥ 0
+          explain: 一正一负是不定：沿特征值 3 的特征向量方向往上弯，沿 −1 的方向往下弯，曲面像马鞍。
+      - card:
+          title: 2×2 的快速判别
+          body: |
+            对称矩阵 $\begin{pmatrix} a & b \\ b & c \end{pmatrix}$ 的两个特征值之积等于行列式 $ac - b^2$，之和等于 $a + c$。所以：
+
+            - $ac - b^2 > 0$ 且 $a > 0$：两个特征值同号且和为正，正定；
+            - $ac - b^2 > 0$ 且 $a < 0$：负定；
+            - $ac - b^2 < 0$：两个特征值异号，不定；
+            - $ac - b^2 = 0$：有一个特征值是 0，只能说是半定（或者全是 0），要另外看。
+
+            更多变量时要看所有左上角子矩阵的行列式，这里不展开。
+      - item:
+          id: definite-quick
+          type: choice
+          prompt: '$\begin{pmatrix} 2 & 3 \\ 3 & 4 \end{pmatrix}$ 是哪一类？'
+          options:
+            - text: 不定
+              correct: true
+            - text: 正定，因为对角线都是正的
+              why: 对角线为正不够：行列式 2·4 − 9 = −1 < 0，特征值一正一负
+            - text: 负定
+              why: 负定需要左上角为负且行列式为正，这里两条都不满足
+          explain: 行列式 8 − 9 = −1 < 0，特征值异号，不定。沿 (1, −1) 方向二次型是 2 − 6 + 4 = 0，沿 (1, −0.7) 方向已是负的。
+      - item:
+          id: definite-det
+          type: number
+          prompt: '$f(x, y) = x^2 + xy + y^2$。它的海森矩阵的行列式是多少？'
+          answer: 3
+          explain: H = [[2, 1], [1, 2]]，行列式 4 − 1 = 3 > 0，左上角 2 > 0，所以处处正定。
+      - card:
+          title: 凸函数和二阶条件
+          body: |
+            如果函数图像上任意两点的连线都不在图像下方，就说 $f$ 是**凸函数（convex function）**，像一个碗。凸函数的好处是：局部的最低点就是全局的最低点。
+
+            二阶条件：$f$ 在一个凸的开区域（不含边界、任意两点的连线都在区域里）上有连续的二阶偏导数，那么 $f$ 是凸函数，当且仅当海森矩阵在每一点都半正定。如果海森矩阵处处正定，$f$ **严格凸（strictly convex）**：两点的连线除了两个端点，都严格在图像上方。
+
+            反过来不成立：$f(x) = x^4$ 严格凸，但 $f''(0) = 0$，在 0 处不是正定。
+      - item:
+          id: convex-check
+          type: choice
+          multi: true
+          prompt: 下面哪些函数在整个平面上是凸函数？（多选）
+          options:
+            - text: $x^2 + xy + y^2$
+              correct: true
+            - text: $x^2 + y^2 + 3x - 5y$
+              correct: true
+            - text: $x^2 - y^2$
+              why: 海森矩阵 [[2, 0], [0, −2]] 不定，不是半正定
+            - text: $xy$
+              why: 海森矩阵 [[0, 1], [1, 0]] 行列式 −1 < 0，不定
+          explain: 前两个的海森矩阵分别是 [[2, 1], [1, 2]] 和 [[2, 0], [0, 2]]，处处正定（一次项不影响海森矩阵），所以凸。
+      - item:
+          id: convex-x4
+          type: choice
+          prompt: '$f(x, y) = x^4 + y^4$ 在原点的海森矩阵是零矩阵。它是凸函数吗？'
+          options:
+            - text: 是，海森矩阵 [[12x², 0], [0, 12y²]] 处处半正定
+              correct: true
+            - text: 不是，因为原点的海森矩阵不是正定的
+              why: 二阶条件只要求处处半正定；零矩阵是半正定的
+            - text: 无法判断
+              why: 求出整个海森矩阵就能判断：对角元 12x²、12y² 都 ≥ 0
+          explain: 处处半正定，所以凸（其实是严格凸）。正定只是严格凸的充分条件，不是必要条件。
+  - id: taylor-2d
+    chapter: 二阶近似与极值判别
+    title: 二阶近似：用一个二次曲面贴住函数
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一元函数的二次近似是 $f(a) + f'(a)h + \frac{1}{2}f''(a)h^2$。到了两个变量，$\frac{1}{2}f''(a)h^2$ 这一项会变成什么？
+          options:
+            - text: 用海森矩阵写的二次型的一半
+              correct: true
+            - text: 两个二阶导数 f_xx、f_yy 各乘 h² 的一半，交叉项不要
+              why: 斜着走时 x、y 同时变，f_xy 那项会贡献 h₁h₂ 的项，不能丢
+            - text: 和一元的一样，不用改
+              why: 现在 h 是一个向量 (h₁, h₂)，h² 要换成适合向量的写法
+          explain: ½f″(a)h² 变成 ½hᵀHh，也就是 ½(f_xx h₁² + 2f_xy h₁h₂ + f_yy h₂²)。
+      - card:
+          title: 二阶泰勒近似
+          body: |
+            $f$ 在 $\mathbf{a}$ 附近二阶偏导数连续，走一小步 $\mathbf{h}$：
+
+            $$f(\mathbf{a} + \mathbf{h}) \approx f(\mathbf{a}) + \nabla f(\mathbf{a}) \cdot \mathbf{h} + \frac{1}{2}\,\mathbf{h}^\mathsf{T} H(\mathbf{a})\, \mathbf{h}$$
+
+            这叫 $f$ 在 $\mathbf{a}$ 的**二阶泰勒近似（second-order Taylor approximation）**。前两项就是切平面；第三项把弯曲补上，所以比线性近似准。误差比 $|\mathbf{h}|^2$ 小得快。
+      - card:
+          title: 两个变量时展开写
+          body: |
+            $\mathbf{h} = (h_1, h_2)$ 时：
+
+            $$f(a + h_1, b + h_2) \approx f + f_x h_1 + f_y h_2 + \frac{1}{2}\left(f_{xx} h_1^2 + 2 f_{xy} h_1 h_2 + f_{yy} h_2^2\right)$$
+
+            所有偏导数都在 $(a, b)$ 取值。交叉项的系数是 2，因为 $f_{xy}$ 和 $f_{yx}$ 各贡献一次。
+      - item:
+          id: taylor-coef
+          type: choice
+          prompt: '$f(x, y) = e^x \cos y$ 在原点的二阶近似是什么？（原点处 $f = 1$，$\nabla f = (1, 0)$，$H = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix}$）'
+          options:
+            - text: $1 + x + \frac{1}{2}(x^2 - y^2)$
+              correct: true
+            - text: $1 + x + x^2 - y^2$
+              why: 二次型前面要乘 ½
+            - text: $1 + x + \frac{1}{2}(x^2 + y^2)$
+              why: f_yy = −e^x cos y，在原点是 −1，y² 前面是负号
+          explain: 1 + (1·x + 0·y) + ½(1·x² + 0 + (−1)·y²) = 1 + x + (x² − y²)/2。
+      - item:
+          id: taylor-value
+          type: number
+          prompt: '$e^x\cos y$ 在原点的二阶近似是 $1 + x + \frac{1}{2}(x^2 - y^2)$。用它估算 $e^{0.1}\cos 0.2$。'
+          answer: 1.085
+          tolerance: 0.000001
+          explain: 1 + 0.1 + (0.01 − 0.04)/2 = 1.1 − 0.015 = 1.085。真实值约 1.083141；只用切平面 1 + x 得 1.1，差得多。
+      - card:
+          title: 例题：展开 x² + 2xy + y³
+          body: '写出 $f(x, y) = x^2 + 2xy + y^3$ 在 $(1, 2)$ 的二阶泰勒近似。'
+          reveal:
+            - title: 第 1 步：函数值和梯度
+              body: '$f(1, 2) = 1 + 4 + 8 = 13$。$f_x = 2x + 2y = 6$，$f_y = 2x + 3y^2 = 14$。'
+            - title: 第 2 步：海森矩阵
+              body: '$f_{xx} = 2$，$f_{xy} = 2$，$f_{yy} = 6y = 12$。'
+            - title: 第 3 步：代入公式
+              body: '记 $h_1 = x - 1$，$h_2 = y - 2$：$13 + 6h_1 + 14h_2 + \frac{1}{2}(2h_1^2 + 4h_1 h_2 + 12h_2^2) = 13 + 6h_1 + 14h_2 + h_1^2 + 2h_1 h_2 + 6h_2^2$。'
+      - item:
+          id: taylor-mml
+          type: number
+          prompt: '$f(x, y) = x^2 + 2xy + y^3$ 在 $(1, 2)$ 的二阶近似是 $13 + 6h_1 + 14h_2 + h_1^2 + 2h_1h_2 + 6h_2^2$（$h_1 = x - 1$，$h_2 = y - 2$）。用它估算 $f(1.1, 2.1)$。'
+          answer: 15.09
+          tolerance: 0.000001
+          explain: h₁ = h₂ = 0.1：13 + 0.6 + 1.4 + 0.01 + 0.02 + 0.06 = 15.09。真实值 f(1.1, 2.1) = 1.21 + 4.62 + 9.261 = 15.091，差的 0.001 来自 y³ 的三次项。
+      - item:
+          id: taylor-flat
+          type: choice
+          prompt: '在一个梯度为零的点 $\mathbf{a}$，二阶近似变成 $f(\mathbf{a}) + \frac{1}{2}\mathbf{h}^\mathsf{T} H \mathbf{h}$。如果 $H$ 正定，$f$ 在 $\mathbf{a}$ 附近怎样？'
+          options:
+            - text: 往任何方向走一小步都比 f(a) 大，a 是局部最低点
+              correct: true
+            - text: 往任何方向走都比 f(a) 小
+              why: 正定时二次型对非零 h 都是正的，f 变大
+            - text: 有的方向变大，有的方向变小
+              why: 那是 H 不定的情形
+          explain: 梯度为零时一次项消失，函数的变化由二次型决定。正定 ⇒ 处处为正 ⇒ 局部最小。两个变量时，正定可以用 D = f_xx f_yy − f_xy² > 0 且 f_xx > 0 来判断。
+  - id: critical-points
+    chapter: 二阶近似与极值判别
+    title: 临界点与二阶导数判别法
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一座山的山顶处，切平面是什么样的？
+          options:
+            - text: 水平的
+              correct: true
+            - text: 往上倾斜的
+              why: 如果切平面倾斜，沿上坡方向走一小步还会更高，这里就不是山顶
+            - text: 不存在
+              why: 光滑的山顶有切平面；只有尖顶才没有
+          explain: 光滑的山顶处往哪个方向都不再上升，切平面水平，也就是两个偏导数都是 0。
+      - card:
+          title: 临界点
+          body: |
+            $f(x, y)$ 定义在一个开集上（开集：不含边界的区域，比如 $x^2 + y^2 < 1$）。满足下面两条之一的点 $(a, b)$ 叫 $f$ 的**临界点（critical point）**：
+
+            1. $f_x(a, b) = f_y(a, b) = 0$；
+            2. $f_x(a, b)$ 或 $f_y(a, b)$ 不存在。
+
+            **费马定理的二元版本**：如果 $f$ 在 $(a, b)$ 取局部极值，而且两个偏导数在那里都存在，那么它们都为 0。所以局部极值只可能出现在临界点上，找极值先找临界点。
+      - item:
+          id: crit-find
+          type: number
+          prompt: '$f(x, y) = x^3 - 3x + y^2 - 2y$ 有两个临界点，它们的 $y$ 坐标相同。这个 $y$ 坐标是多少？'
+          answer: 1
+          hint: 解 f_x = 3x² − 3 = 0 和 f_y = 2y − 2 = 0。
+          explain: f_y = 0 给出 y = 1；f_x = 0 给出 x = ±1。两个临界点是 (1, 1) 和 (−1, 1)。
+      - card:
+          title: 鞍点
+          body: |
+            临界点不一定是极值点。$z = x^2 - y^2$ 在原点两个偏导数都是 0，可是沿 $x$ 方向原点是最低点、沿 $y$ 方向是最高点。
+
+            多个变量时，梯度为 0、却不是局部极值的点叫**鞍点（saddle point）**。一元函数也有类似的情况：$x^3$ 在 0 处导数为 0，却不是极值，只是一元时不叫鞍点。
+      - card:
+          title: 二阶导数判别法
+          body: |
+            设 $f$ 的一阶、二阶偏导数在 $(a, b)$ 附近连续，$f_x(a, b) = f_y(a, b) = 0$。记
+
+            $$D = f_{xx} f_{yy} - (f_{xy})^2$$
+
+            也就是海森矩阵的行列式（在 $(a, b)$ 取值）。
+
+            - $D > 0$ 且 $f_{xx} > 0$：局部最小点（海森矩阵正定）；
+            - $D > 0$ 且 $f_{xx} < 0$：局部最大点（负定）；
+            - $D < 0$：鞍点（不定）；
+            - $D = 0$：判别不了。
+      - item:
+          id: crit-classify
+          type: match
+          prompt: '$f(x, y) = x^3 - 3x + y^2 - 2y$，海森矩阵 $\begin{pmatrix} 6x & 0 \\ 0 & 2 \end{pmatrix}$。把临界点和结论配对。'
+          pairs:
+            - ['(1, 1)', '局部最小点，D = 12 > 0，f_xx = 6 > 0']
+            - ['(−1, 1)', '鞍点，D = −12 < 0']
+          explain: 在 (1, 1) H = [[6, 0], [0, 2]] 正定；在 (−1, 1) H = [[−6, 0], [0, 2]] 不定。
+      - item:
+          id: crit-minval
+          type: number
+          prompt: '同一个 $f(x, y) = x^3 - 3x + y^2 - 2y$。它在局部最小点处的函数值是多少？'
+          answer: -3
+          explain: 局部最小点是 (1, 1)：f = 1 − 3 + 1 − 2 = −3。（鞍点 (−1, 1) 处的值是 −1 + 3 + 1 − 2 = 1。）
+      - card:
+          title: 例题：一步步做完整的判别
+          body: '$g(x, y) = \frac{1}{3}x^3 + y^2 + 2xy - 6x - 3y + 4$，求临界点并分类。'
+          reveal:
+            - title: 第 1 步：令两个偏导数为 0
+              body: '$g_x = x^2 + 2y - 6 = 0$，$g_y = 2y + 2x - 3 = 0$。'
+            - title: 第 2 步：解方程组
+              body: '由第二式 $2y = 3 - 2x$，代入第一式：$x^2 - 2x - 3 = 0$，$x = 3$ 或 $x = -1$。对应 $y = -1.5$ 和 $y = 2.5$。'
+            - title: 第 3 步：求 D
+              body: '$g_{xx} = 2x$，$g_{xy} = 2$，$g_{yy} = 2$。$D = 2x \cdot 2 - 4 = 4x - 4$。'
+            - title: 第 4 步：逐点判断
+              body: '$(-1, 2.5)$：$D = -8 < 0$，鞍点。$(3, -1.5)$：$D = 8 > 0$ 且 $g_{xx} = 6 > 0$，局部最小。'
+      - item:
+          id: crit-half
+          type: number
+          prompt: '$f(x, y) = x^2 + xy + y^2 - 3x$。它唯一的临界点处的函数值是多少？（先判断是不是最小值）'
+          answer: -3
+          hint: 先解 2x + y − 3 = 0 和 x + 2y = 0 得到临界点，再看海森矩阵。
+          explain: 由 x + 2y = 0 得 x = −2y，代入 2x + y = 3 得 y = −1、x = 2。海森矩阵 [[2, 1], [1, 2]]，D = 4 − 1 = 3 > 0，f_xx = 2 > 0，是局部最小点（函数是凸的，所以也是全局最小点）。f(2, −1) = 4 − 2 + 1 − 6 = −3。
+      - item:
+          id: crit-d0
+          type: choice
+          prompt: '$f = x^4 + y^4$ 和 $g = x^4 - y^4$ 在原点都有 $D = 0$。它们在原点分别是什么？'
+          options:
+            - text: f 是最小值，g 是鞍点
+              correct: true
+            - text: 都是鞍点，因为 D = 0
+              why: D = 0 时判别法不给结论，要另外看；f 在原点是 0，别处都 > 0，是最小
+            - text: 都是最小值
+              why: g 沿 y 轴是 −y⁴ < 0，比原点低，不是最小
+          explain: 这两个例子 D 都是 0，结论却不同，说明 D = 0 时判别法确实判断不了，要直接看函数。
+  - id: absolute-extrema
+    chapter: 二阶近似与极值判别
+    title: 闭区域上的最大值和最小值
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一块正方形铁板上温度各处不同。最热的点一定在铁板内部吗？
+          options:
+            - text: 不一定，可能在边上或角上
+              correct: true
+            - text: 一定在内部
+              why: 比如一边贴着火炉，最热的点就在那条边上
+            - text: 一定在角上
+              why: 也可能在内部的一个热点，或者某条边的中间
+          explain: 最高温度可能在内部（那里是临界点），也可能在边界上。所以内部和边界都要查。
+      - card:
+          title: 最值定理
+          body: |
+            区域 $D$ 包含它的边界，叫**闭集（closed set）**；能被一个有限大的圆盘装下，叫**有界（bounded）**。
+
+            **最值定理**（二元情形）：$f$ 在闭且有界的区域 $D$ 上连续，那么 $f$ 在 $D$ 上一定取到最大值和最小值。
+
+            如果 $f$ 还可微，最值点要么是 $D$ 内部的临界点，要么在边界上。内部的最值点处偏导数存在且是局部极值，由费马定理必然是临界点。
+      - item:
+          id: evt-cond
+          type: choice
+          prompt: '$f(x, y) = x + y$ 在区域 $x^2 + y^2 < 1$（不含边界的开圆盘）上有没有最大值？'
+          options:
+            - text: 没有，越靠近边界越大，但取不到
+              correct: true
+            - text: 有，在 (1/√2, 1/√2)
+              why: 那个点在圆周上，不属于这个开圆盘
+            - text: 有，在原点
+              why: 原点处 f = 0，旁边 (0.1, 0.1) 处更大
+          explain: 区域不是闭的，最值定理用不上。f 在圆周上能达到 √2，但圆周不在区域里，区域里的值都小于 √2 又可以任意接近它。
+      - card:
+          title: 找最值的四步
+          body: |
+            $f$ 在闭有界区域 $D$ 上连续、可微：
+
+            1. 求 $D$ 内部的临界点；
+            2. 算出这些点的函数值；
+            3. 求 $f$ 在边界上的最大值和最小值（把边界分段，每段化成一元函数）；
+            4. 第 2、3 步得到的所有值里，最大的是最大值，最小的是最小值。
+
+            注意第 1 步不需要判断是极大还是极小，第 4 步直接比较大小就行。
+      - card:
+          title: 例题：正方形上的最值
+          body: '$f(x, y) = x^2 + y^2 - 2x - 4y$，区域 $0 \le x \le 3$，$0 \le y \le 3$。'
+          reveal:
+            - title: 第 1、2 步：内部的临界点
+              body: '$f_x = 2x - 2 = 0$，$f_y = 2y - 4 = 0$，得 $(1, 2)$，在区域内。$f(1, 2) = 1 + 4 - 2 - 8 = -5$。'
+            - title: 第 3 步：四条边
+              body: |
+                下边 $y = 0$：$x^2 - 2x$，$x \in [0, 3]$，最小 $-1$（$x = 1$），最大 $3$（$x = 3$）。
+                上边 $y = 3$：$x^2 - 2x - 3$，最小 $-4$，最大 $0$。
+                左边 $x = 0$：$y^2 - 4y$，最小 $-4$（$y = 2$），最大 $0$。
+                右边 $x = 3$：$3 + y^2 - 4y$，最小 $-1$，最大 $3$。
+            - title: 第 4 步：比较
+              body: 所有值里最小的是内部的 $-5$，最大的是边界上的 $3$（在角 $(3, 0)$）。
+      - item:
+          id: abs-max
+          type: number
+          prompt: '$f(x, y) = x^2 + y^2 - 2x - 4y$ 在 $0 \le x \le 3$、$0 \le y \le 4$ 上的最大值是多少？（区域和上面例题的正方形相比，把 $y$ 的上界从 3 改成 4）'
+          answer: 3
+          hint: 内部临界点还是 (1, 2)；边 y = 4 上是 x² − 2x，左右两边 y 的范围变成 0 到 4。
+          explain: 角上的值：(0, 0) = 0，(3, 0) = 3，(0, 4) = 0，(3, 4) = 9 + 16 − 6 − 16 = 3。各边内部和内部临界点的值都更小，最大值是 3，在 (3, 0) 和 (3, 4) 两处取到。
+      - item:
+          id: abs-ostax
+          type: number
+          prompt: '$f(x, y) = x^2 - 2xy + 4y^2 - 4x - 2y + 24$，区域 $0 \le x \le 4$，$0 \le y \le 2$。内部唯一的临界点处 $f$ 的值是多少？'
+          answer: 17
+          hint: 解 2x − 2y − 4 = 0 和 −2x + 8y − 2 = 0。
+          explain: 两式相加 6y − 6 = 0，y = 1，x = 3。f(3, 1) = 9 − 6 + 4 − 12 − 2 + 24 = 17。比较边界后，17 正是最小值，最大值是角 (0, 2) 处的 36。
+      - item:
+          id: abs-circle
+          type: number
+          prompt: '$g(x, y) = x^2 + y^2 + 4x - 6y$ 在圆盘 $x^2 + y^2 \le 16$ 上的最小值是多少？'
+          answer: -13
+          explain: 内部临界点 (−2, 3)，(−2)² + 3² = 13 ≤ 16，在圆盘里，g = 4 + 9 − 8 − 18 = −13。边界上 g = 16 + 4x − 6y。4x − 6y 是 (4, −6) 和 (x, y) 的点积，最小是两者长度之积取负：−√52·4 ≈ −28.84，所以边界上 g ≥ −12.84，比 −13 大，最小值是 −13。
+  - id: lagrange
+    chapter: 二阶近似与极值判别
+    title: 拉格朗日乘数法：带条件的最值
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: number
+          prompt: 两个正数之和是 10，它们的乘积最大是多少？
+          answer: 25
+          explain: 两数都是 5 时乘积最大，是 25。这一课的方法能处理条件更复杂、没法直接代入化成一个变量的情形。
+      - card:
+          title: 在一条曲线上找最值
+          body: |
+            要在约束 $g(x, y) = 0$ 规定的曲线上，找目标函数 $f(x, y)$ 的最大值或最小值。
+
+            画出 $f$ 的等值线。沿约束曲线走，如果在某点穿过了一条等值线，就还能继续变大或变小；最值点处，约束曲线和那条等值线**相切**。
+
+            相切的两条曲线在切点有同一条法线。$\nabla f$ 垂直于 $f$ 的等值线，$\nabla g$ 垂直于约束曲线，所以两个梯度平行。
+      - card:
+          title: 拉格朗日乘数法
+          body: |
+            设 $f, g$ 在包含曲线 $g = 0$ 的开集上有连续偏导数，$f$ 限制在曲线上在 $(a, b)$ 取局部极值，并且 $\nabla g(a, b) \ne \mathbf{0}$。那么有一个数 $\lambda$ 使
+
+            $$\nabla f(a, b) = \lambda\, \nabla g(a, b)$$
+
+            $\lambda$ 叫**拉格朗日乘数（Lagrange multiplier）**。解题时解方程组 $\nabla f = \lambda \nabla g$、$g = 0$，把解出的点代入 $f$ 比大小：最大的是最大值，最小的是最小值。变量再多也一样，$\nabla f$、$\nabla g$ 各有 $n$ 个分量，方程组只是多几个方程。
+      - item:
+          id: lag-system
+          type: choice
+          prompt: '在 $x + y = 10$ 上求 $f = xy$ 的最值。取 $g = x + y - 10$，方程组 $\nabla f = \lambda \nabla g$ 是什么？'
+          options:
+            - text: y = λ，x = λ
+              correct: true
+            - text: x = λ，y = λ，再加上 xy = 10
+              why: 约束是 x + y = 10，不是 xy = 10
+            - text: y = λx，x = λy
+              why: ∇g = (1, 1)，右边是 (λ, λ)，不是 λ 乘 x、y
+          explain: ∇f = (y, x)，∇g = (1, 1)。所以 y = λ、x = λ，即 x = y，代入约束得 x = y = 5，f = 25。
+      - card:
+          title: 例题：圆上的最大值
+          body: '在圆 $x^2 + y^2 = 2$ 上求 $f(x, y) = x + y$ 的最大值和最小值。'
+          reveal:
+            - title: 第 1 步：写出两个梯度
+              body: '$g = x^2 + y^2 - 2$。$\nabla f = (1, 1)$，$\nabla g = (2x, 2y)$，圆上 $\nabla g \ne \mathbf{0}$。'
+            - title: 第 2 步：列方程组
+              body: '$1 = 2\lambda x$，$1 = 2\lambda y$，$x^2 + y^2 = 2$。'
+            - title: 第 3 步：解
+              body: '前两式说明 $\lambda \ne 0$ 且 $x = y = \frac{1}{2\lambda}$。代入约束 $2x^2 = 2$，$x = \pm 1$。候选点 $(1, 1)$ 和 $(-1, -1)$。'
+            - title: 第 4 步：比较
+              body: '$f(1, 1) = 2$ 是最大值，$f(-1, -1) = -2$ 是最小值。圆是闭有界的，最值一定存在，所以就是这两个。'
+      - item:
+          id: lag-ostax
+          type: number
+          prompt: '在直线 $x + 2y = 7$ 上求 $f(x, y) = x^2 + 4y^2 - 2x + 8y$ 的最小值。'
+          answer: 27
+          hint: 方程组 2x − 2 = λ，8y + 8 = 2λ，x + 2y = 7。
+          explain: 由前两式 8y + 8 = 2(2x − 2)，即 x = 2y + 3。代入约束 4y + 3 = 7，y = 1，x = 5。f(5, 1) = 25 + 4 − 10 + 8 = 27。和直线上别的点比（如 (7, 0) 处 35），27 是最小值。
+      - item:
+          id: lag-3d
+          type: number
+          prompt: '在平面 $x + y + z = 1$ 上求 $f = x^2 + y^2 + z^2$ 的最小值。（可以填分数）'
+          answer: 0.333333
+          tolerance: 0.0001
+          explain: ∇f = (2x, 2y, 2z) = λ(1, 1, 1)，所以 x = y = z，代入约束得 1/3。f = 3·(1/9) = 1/3。三个变量时方法一样，只是多一个方程。
+      - card:
+          title: 两个约束
+          body: |
+            约束有两个 $g = 0$、$h = 0$ 时，用两个乘数：
+
+            $$\nabla f = \lambda_1 \nabla g + \lambda_2 \nabla h, \qquad g = 0, \quad h = 0$$
+
+            三个变量、两个约束，加上两个乘数，一共 5 个未知数、5 个方程。
+
+            条件 $\nabla g \ne \mathbf{0}$（两个约束时要求 $\nabla g$、$\nabla h$ 不平行）不能少：不满足的点可能是最值点，却解不出来，要单独检查。
+      - item:
+          id: lag-grad-zero
+          type: choice
+          prompt: 用拉格朗日乘数法时，为什么要单独检查约束曲线上 $\nabla g = \mathbf{0}$ 的点？
+          options:
+            - text: 定理在那些点不保证 ∇f = λ∇g，最值点可能在那里却不满足方程组
+              correct: true
+            - text: 那些点一定是最大值
+              why: 它们只是方程组可能漏掉的候选点，是不是最值要比较
+            - text: 那些点不在约束曲线上
+              why: 它们在曲线上（g = 0），只是 ∇g 在那里为零
+          explain: 定理的条件包括 ∇g ≠ 0。条件不满足的点，结论可能不成立，所以要把它们也加进候选点。
+  - id: newton
+    chapter: 二阶近似与极值判别
+    title: 无约束极小化与牛顿法
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 梯度下降只用一阶导数（坡度）。如果还知道二阶导数（坡度变化多快），能不能走得更聪明？
+          options:
+            - text: 能，可以估计谷底在哪，直接跳过去
+              correct: true
+            - text: 不能，坡度已经包含全部信息
+              why: 坡度只说往哪边走，不说还要走多远；弯曲程度能告诉你谷底大概多远
+            - text: 能，但只适用于一元函数
+              why: 多元时用海森矩阵，同样可以
+          explain: 用二阶近似把函数看成一个碗，碗底在哪可以直接算出来。这一课就讲这个方法。
+      - card:
+          title: 无约束极小化
+          body: |
+            **无约束极小化（unconstrained minimization）**：在整个空间里找 $\mathbf{x}$ 让 $f(\mathbf{x})$ 最小。
+
+            $f$ 可微时，最小点处 $\nabla f = \mathbf{0}$。如果 $f$ 还是凸函数，反过来也成立：$\nabla f(\mathbf{x}^*) = \mathbf{0}$ 的点就是全局最小点。所以对凸函数，极小化等于解方程 $\nabla f = \mathbf{0}$。
+
+            方程一般解不出公式解，只能一步步逼近：从一个猜测出发，每步走到更好的点。梯度下降是一种走法，这一课讲另一种。
+      - card:
+          title: 一元的牛顿法
+          body: |
+            在当前点 $x$ 用二次近似 $f(x + h) \approx f(x) + f'(x)h + \frac{1}{2}f''(x)h^2$。$f''(x) > 0$ 时它是开口朝上的抛物线，对 $h$ 求导令其为 0，最低点在 $h = -f'(x)/f''(x)$。于是
+
+            $$x_{\text{新}} = x - \frac{f'(x)}{f''(x)}$$
+
+            这就是**牛顿法（Newton's method）**：每一步跳到当前二次近似的最低点。
+      - item:
+          id: newton-1d
+          type: number
+          prompt: '用牛顿法极小化 $f(x) = e^x - 2x$，从 $x_0 = 0$ 出发。走一步后 $x_1$ 是多少？'
+          answer: 1
+          hint: f′(x) = e^x − 2，f″(x) = e^x。
+          explain: f′(0) = −1，f″(0) = 1，x₁ = 0 − (−1)/1 = 1。
+      - item:
+          id: newton-1d-2
+          type: number
+          prompt: '接着上题，从 $x_1 = 1$ 再走一步，$x_2$ 是多少？（保留 4 位小数；真正的最小点是 $\ln 2 \approx 0.6931$）'
+          answer: 0.735759
+          tolerance: 0.0001
+          review: false
+          explain: x₂ = 1 − (e − 2)/e = 2/e ≈ 0.7358。再走一步约 0.6940，第四步约 0.6931：越接近，每步正确的位数大约翻一倍。
+      - card:
+          title: 多元的牛顿法
+          body: |
+            用二阶泰勒近似 $f(\mathbf{x} + \mathbf{h}) \approx f + \nabla f \cdot \mathbf{h} + \frac{1}{2}\mathbf{h}^\mathsf{T} H \mathbf{h}$。$H$ 正定时这是一个碗，碗底满足 $\nabla f + H\mathbf{h} = \mathbf{0}$，所以牛顿步是
+
+            $$\mathbf{h} = -H^{-1}\nabla f$$
+
+            它用海森矩阵把梯度“校正”了：在陡的方向少走、平的方向多走。如果 $f$ 本身就是二次函数，二阶近似没有误差，牛顿法一步就到最小点。
+      - card:
+          title: 例题：一步到底
+          body: '$f(x, y) = x^2 + xy + y^2 - 3x$，从 $(0, 0)$ 出发走一步牛顿法。'
+          reveal:
+            - title: 第 1 步：梯度和海森矩阵
+              body: '$\nabla f = (2x + y - 3,\ x + 2y)$，在原点是 $(-3, 0)$。$H = \begin{pmatrix} 2 & 1 \\ 1 & 2 \end{pmatrix}$。'
+            - title: 第 2 步：求逆矩阵
+              body: '$H^{-1} = \frac{1}{3}\begin{pmatrix} 2 & -1 \\ -1 & 2 \end{pmatrix}$。'
+            - title: 第 3 步：牛顿步
+              body: '$\mathbf{h} = -H^{-1}(-3, 0) = \frac{1}{3}(6, -3) = (2, -1)$，新点 $(2, -1)$。'
+            - title: 第 4 步：核对
+              body: 前面求过它唯一的临界点就是 $(2, -1)$，而且是最小点。二次函数一步就到。
+      - item:
+          id: newton-2d
+          type: number
+          prompt: '$f(x, y) = x^2 + 4y^2$，从 $(2, 1)$ 出发走一步牛顿法，新点的 $y$ 坐标是多少？'
+          answer: 0
+          tolerance: 0.000001
+          explain: ∇f = (2x, 8y) = (4, 8)，H = [[2, 0], [0, 8]]，H⁻¹∇f = (2, 1)，新点 (2, 1) − (2, 1) = (0, 0)。二次函数一步到最小点。
+      - item:
+          id: newton-vs-gd
+          type: number
+          prompt: '同一个 $f(x, y) = x^2 + 4y^2$ 从 $(2, 1)$ 出发，改用梯度下降、学习率 $\eta = 0.1$ 走一步。新点的 $x$ 坐标是多少？'
+          answer: 1.6
+          tolerance: 0.000001
+          explain: 新点 = (2, 1) − 0.1·(4, 8) = (1.6, 0.2)。梯度下降一步只走了一段，还要走很多步；牛顿法一步到 (0, 0)。
+      - card:
+          title: 什么时候要小心
+          body: |
+            牛顿法每步要算海森矩阵并解一个线性方程组，变量很多时代价大。
+
+            还有，只有 $H$ 正定时，二次近似才是开口朝上的碗，牛顿步才是下降方向。在鞍点附近 $H$ 不定，牛顿步可能朝鞍点甚至往上走。实际使用时常配合“步长缩短”：先试整步，函数没有下降够就把步长减半，直到下降为止。
+
+            记 $\lambda^2 = \nabla f^\mathsf{T} H^{-1} \nabla f$（$\lambda$ 叫牛顿减量）。$\lambda^2 / 2$ 估计了还能下降多少，常用来决定什么时候停。
+      - item:
+          id: newton-saddle
+          type: choice
+          prompt: '$f(x, y) = x^2 - y^2$，从 $(1, 1)$ 出发走一步牛顿法，会走到哪里？'
+          options:
+            - text: (0, 0)，正好是鞍点，不是最小点
+              correct: true
+            - text: 一个更低的点
+              why: 牛顿步 −H⁻¹∇f 跳到二次近似的临界点；这里二次近似就是 f 本身，它的临界点是鞍点
+            - text: 不动
+              why: 梯度 (2, −2) 不为零，会移动
+          explain: H = [[2, 0], [0, −2]] 不定。h = −H⁻¹(2, −2) = −(1, 1)，新点 (0, 0)。f(0, 0) = 0，和出发点 f(1, 1) = 0 一样高，而 f 沿 y 方向可以无限小，没有最小值。H 不正定时牛顿法会被吸到鞍点。
+      - item:
+          id: newton-decrement
+          type: number
+          prompt: '$f(x, y) = x^2 + 4y^2$ 在 $(2, 1)$：$\nabla f = (4, 8)$，$H^{-1}\nabla f = (2, 1)$。$\lambda^2 = \nabla f \cdot (H^{-1}\nabla f)$，$\lambda^2 / 2$ 是多少？'
+          answer: 8
+          explain: λ² = 4·2 + 8·1 = 16，一半是 8。f(2, 1) = 4 + 4 = 8，最小值是 0，差正好是 8：对二次函数 λ²/2 恰好等于剩下的下降量。
+boss:
+  items:
+    - id: b-fxy
+      type: number
+      prompt: '$f(x, y) = x^2 y + e^{xy}$。$f_{xy}(1, 2)$ 是多少？（保留 2 位小数）'
+      answer: 24.1672
+      tolerance: 0.01
+      explain: f_x = 2xy + y·e^(xy)，f_xy = 2x + e^(xy) + xy·e^(xy)。在 (1, 2)：2 + e² + 2e² = 2 + 3e² ≈ 24.17。
+    - id: b-dz
+      type: number
+      prompt: '用 $z = x^2 + y^2$ 在 $(1, 2)$ 的全微分估算 $1.03^2 + 1.96^2$。'
+      answer: 4.9
+      tolerance: 0.000001
+      explain: dz = 2·0.03 + 4·(−0.04) = 0.06 − 0.16 = −0.1，估算 5 − 0.1 = 4.9。精确值 1.0609 + 3.8416 = 4.9025。
+    - id: b-grad-max
+      type: number
+      prompt: '$f(x, y, z) = x^2 y + y z^3$ 在 $(1, 1, 2)$ 处最大的方向导数是多少？（保留 3 位小数）'
+      answer: 15.1327
+      tolerance: 0.001
+      explain: ∇f = (2xy, x² + z³, 3yz²) = (2, 9, 12)。最大方向导数是梯度的长度 √(4 + 81 + 144) = √229 ≈ 15.133。
+    - id: b-gd
+      type: number
+      prompt: '$f(x, y) = 3x^2 + y^2$，用梯度下降，从 $(1, 2)$ 出发、学习率 $\eta = 0.1$ 走一步。新点的 $x$ 坐标是多少？'
+      answer: 0.4
+      tolerance: 0.000001
+      explain: ∇f = (6x, 2y) = (6, 4)。新点 = (1, 2) − 0.1·(6, 4) = (0.4, 1.6)。
+    - id: b-dir
+      type: number
+      prompt: '$f(x, y) = x^2 - xy + 3y^2$，在 $(2, 1)$ 处沿向量 $(4, -3)$ 方向的方向导数是多少？'
+      answer: 0
+      tolerance: 0.000001
+      explain: f_x = 2x − y = 3，f_y = −x + 6y = 4。u = (0.8, −0.6)，D = 2.4 − 2.4 = 0。
+    - id: b-implicit
+      type: number
+      prompt: '方程 $x^2 + y^2 + z^2 = 9$ 在点 $(1, 2, 2)$ 附近确定了 $z = z(x, y)$。$\dfrac{\partial z}{\partial y}$ 在这点是多少？'
+      answer: -1
+      tolerance: 0.000001
+      explain: ∂z/∂y = −F_y/F_z = −2y/2z = −2/2 = −1。
+    - id: b-inverse
+      type: number
+      prompt: '变换 $u = x + y$，$v = xy$。在 $(x, y) = (3, 1)$ 处，反变换的偏导数 $x_v$ 是多少？'
+      answer: -0.5
+      tolerance: 0.000001
+      explain: 矩阵 [[1, 1], [y, x]] = [[1, 1], [1, 3]]，行列式 2，逆矩阵 (1/2)[[3, −1], [−1, 1]]，第一行 (x_u, x_v) = (1.5, −0.5)，所以 x_v = −0.5。
+    - id: b-jac
+      type: number
+      prompt: '变换 $x = u^2 - v^2$，$y = 2uv$ 在 $(u, v) = (2, 1)$ 附近，面积大约放大几倍？'
+      answer: 20
+      tolerance: 0.000001
+      explain: 雅可比行列式 4u² + 4v² = 16 + 4 = 20。
+    - id: b-chain
+      type: number
+      prompt: '$h(x, y) = x^2 + y^2$，$x = u + v$，$y = uv$。在 $(u, v) = (2, 1)$ 处 $\dfrac{\partial h}{\partial v}$ 是多少？'
+      answer: 14
+      tolerance: 0.000001
+      explain: ∂h/∂v = 2x·1 + 2y·u = 2(u + v) + 2u²v = 6 + 8 = 14。
+    - id: b-hess
+      type: choice
+      prompt: '$f(x, y) = x^3 - 3x + y^2 - 2y$ 的临界点 $(-1, 1)$ 是什么点？'
+      options:
+        - text: 鞍点
+          correct: true
+        - text: 局部最大点
+          why: f_yy = 2 > 0，沿 y 方向往上弯，不可能是最大点；D = −12 < 0
+        - text: 局部最小点
+          why: f_xx = 6x = −6 < 0，沿 x 方向往下弯；D = (−6)(2) − 0 = −12 < 0
+        - text: 判别不了
+          why: D = −12 ≠ 0，判别法给出了结论
+      explain: H = [[−6, 0], [0, 2]]，D = −12 < 0，不定，是鞍点。
+    - id: b-minval
+      type: number
+      prompt: '$f(x, y) = x^3 - 3x + y^2 - 2y$ 在局部最小点处的函数值是多少？'
+      answer: -3
+      tolerance: 0.000001
+      explain: 局部最小点是 (1, 1)（D = 12 > 0，f_xx = 6 > 0），f(1, 1) = 1 − 3 + 1 − 2 = −3。
+    - id: b-lagrange
+      type: number
+      prompt: '在圆 $x^2 + y^2 = 8$ 上，$f(x, y) = x + y$ 的最大值是多少？'
+      answer: 4
+      tolerance: 0.000001
+      explain: ∇f = λ∇g 给出 x = y，代入 2x² = 8，x = ±2。f(2, 2) = 4 是最大值。
+    - id: b-newton
+      type: number
+      prompt: '$f(x, y) = 2x^2 + y^2 - 4x$，从 $(0, 3)$ 出发走一步牛顿法，新点的 $x$ 坐标是多少？'
+      answer: 1
+      tolerance: 0.000001
+      explain: ∇f = (4x − 4, 2y) = (−4, 6)，H = [[4, 0], [0, 2]]，H⁻¹∇f = (−1, 3)，新点 (0, 3) − (−1, 3) = (1, 0)，正是最小点。

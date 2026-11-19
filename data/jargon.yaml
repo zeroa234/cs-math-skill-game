@@ -33,6 +33,25 @@ terms:
   - 反常积分
   - 雅可比矩阵
   - 海森矩阵
+  # multivariable differentiation (added with M.1.4.1, 2026-11-19). Not listed: 梯度 and 学习率 (P.2.3 and
+  # D.3.1 use them in passing), 不定 (matches 不定积分), 微分 (single-variable sense is M.1.2's)
+  - 偏导数
+  - 混合偏导数
+  - 偏微分方程
+  - 全微分
+  - 切平面
+  - 方向导数
+  - 等值线
+  - 隐函数定理
+  - 反函数定理
+  - 雅可比行列式
+  - 二次型
+  - 半正定
+  - 凸函数
+  - 鞍点
+  - 拉格朗日乘数
+  - 牛顿法
+  - 梯度下降
   - 中心极限定理
   - 抽样分布
   - 设计矩阵
