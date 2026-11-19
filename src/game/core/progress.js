@@ -6,14 +6,14 @@
 //   skills:  { [skillId]: { lit?: iso, boss?: {at, graded, auto, testOut} } },
 //   lessons: { [skillId/lessonId]: { done: iso, stars, best, attempts } },
 //   cards:   { [skillId/lessonId/itemId]: storedFsrsCard },
-//   settings: { route?, sourceLang: "zh"|"en"|"both", reduceMotion?, sound, introSeen? } }
+//   settings: { route?, sourceLang: "zh"|"en"|"both", font?: "pixel"|"mixed"|"sans", reduceMotion?, sound, introSeen? } }
 //   route is a curated route id (data/routes.yaml) or "goal:<skill id>" for a goal the player picked.
 
 export const VERSION = 3;
 const KEY = "cs-math-skill-game/progress";
 
 export function emptyProgress(now = new Date()) {
-  return { v: VERSION, createdAt: now.toISOString(), xp: 0, days: {}, achievements: {}, skills: {}, lessons: {}, cards: {}, settings: { sourceLang: "zh", sound: true } };
+  return { v: VERSION, createdAt: now.toISOString(), xp: 0, days: {}, achievements: {}, skills: {}, lessons: {}, cards: {}, settings: { sourceLang: "zh", sound: true, font: "pixel" } };
 }
 
 // Upgrades older saves; unknown future versions are refused rather than silently mangled.

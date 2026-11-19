@@ -5,7 +5,7 @@ import { href } from "../app/router.js";
 import { answerReview } from "../app/actions.js";
 import { toast } from "./common.jsx";
 import { Sprite } from "./cast.jsx";
-import { ItemStep } from "./StepPlayer.jsx";
+import { ItemStep, FontToggle } from "./StepPlayer.jsx";
 import { Icon } from "./icons.jsx";
 
 const SESSION = 12;
@@ -54,6 +54,7 @@ function ReviewRound({ again }) {
       <header class="player-head">
         <a class="close" href={href()} aria-label="退出复习"><Icon name="close" /></a>
         <div class="ptitle"><span class="small muted">复习 · {found.skill.name}</span><b>{found.lesson.title}</b></div>
+        <div class="player-actions"><FontToggle /></div>
         <div class="pbar" role="progressbar" aria-label="复习进度" aria-valuenow={Math.round((i / session.length) * 100)} aria-valuemin="0" aria-valuemax="100"><div style={{ width: `${(i / session.length) * 100}%` }} /></div>
       </header>
       <div class="player-stage">

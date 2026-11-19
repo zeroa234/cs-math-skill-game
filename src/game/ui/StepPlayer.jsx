@@ -8,6 +8,8 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { checkItem } from "../core/check.js";
 import { play } from "../app/sound.js";
+import { useProgress } from "../app/state.js";
+import { cycleFont, fontMeta, fontOf, nextFont } from "../app/font.js";
 import { ItemInput, initialValue, isAnswerable, SimDemo } from "./items.jsx";
 import { Md } from "./md.jsx";
 import { Sprite } from "./cast.jsx";
@@ -15,6 +17,24 @@ import { Icon } from "./icons.jsx";
 
 const PRAISE = ["答对了！", "太棒了！", "漂亮！", "完全正确！"];
 const pickOne = (list, seed) => list[Math.abs([...seed].reduce((h, c) => h * 31 + c.charCodeAt(0), 7)) % list.length];
+
+export function FontToggle() {
+  const p = useProgress();
+  const cur = fontMeta(fontOf(p));
+  const nxt = nextFont(cur.id);
+  const label = `字体：${cur.short}`;
+  return (
+    <button
+      type="button"
+      class="btn small ghost font-btn"
+      aria-label={`${label}（点一下切换为${nxt.name}）`}
+      title={`当前：${cur.name}（点一下切换为${nxt.name}）`}
+      onClick={() => { play("select"); cycleFont(); }}
+    >
+      {label}
+    </button>
+  );
+}
 
 export function StepPlayer({ kicker, title, closeHref, flow, coach = "blue", itemLabel = "练习", leaveText = "这一课的进度不会保存。", onFinish }) {
   const steps = useMemo(() => flow.map((s, i) => ({ ...s, key: (s.item?.id || "card") + "-" + i })), [flow]);
@@ -61,7 +81,10 @@ export function StepPlayer({ kicker, title, closeHref, flow, coach = "blue", ite
           <>
             <button type="button" class="close" aria-label="退出" onClick={() => (pos === 0 ? (location.hash = closeHref) : setLeaving(true))}><Icon name="close" /></button>
             <div class="ptitle"><span class="small muted">{kicker}</span><b>{title}</b></div>
-            <span class="pcount" aria-label={`第 ${pos + 1} 步，共 ${total} 步`}>{pos + 1} / {total}</span>
+            <div class="player-actions">
+              <FontToggle />
+              <span class="pcount" aria-label={`第 ${pos + 1} 步，共 ${total} 步`}>{pos + 1} / {total}</span>
+            </div>
           </>
         )}
         <div class="pbar" role="progressbar" aria-label="进度" aria-valuenow={Math.round(progress * 100)} aria-valuemin="0" aria-valuemax="100"><div style={{ width: `${progress * 100}%` }} /></div>

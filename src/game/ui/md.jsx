@@ -60,7 +60,7 @@ if (typeof document !== "undefined" && typeof MutationObserver !== "undefined") 
   };
   const later = () => { if (!queued) { queued = true; requestAnimationFrame(markAll); } };
   const resized = () => { refit = true; later(); };
-  new MutationObserver(later).observe(document.documentElement, { childList: true, subtree: true });
+  new MutationObserver((ms) => { if (ms.some((m) => m.type === "attributes")) refit = true; later(); }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-font"] });
   window.addEventListener("resize", resized);
   document.fonts?.ready.then(resized);
   document.addEventListener("scroll", (e) => { if (e.target instanceof Element && e.target.matches(SCROLLERS)) markScroller(e.target); }, { capture: true, passive: true });

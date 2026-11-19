@@ -2,6 +2,7 @@
 import { render } from "preact";
 import { App } from "./ui/App.jsx";
 import { initNative } from "./app/native.js";
+import "./app/font.js";
 
 initNative();
 

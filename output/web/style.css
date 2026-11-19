@@ -44,9 +44,11 @@
   --axis: #b3a88f;
   --grid: #e6dcc6;
     --shadow: none;
-  --font: "Fusion Pixel", system-ui, "Microsoft YaHei", "PingFang SC", sans-serif;
+  --font-sys: system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", sans-serif;
+  --mono-sys: ui-monospace, "Cascadia Mono", "Consolas", "SFMono-Regular", Menlo, Monaco, monospace;
+  --font: "Fusion Pixel", var(--font-sys);
   --px: var(--font);
-  --mono: "Fusion Pixel Mono", "Fusion Pixel", ui-monospace, Consolas, monospace;
+  --mono: "Fusion Pixel Mono", "Fusion Pixel", var(--mono-sys);
   --fs-s: 12px; --fs: 18px; --fs-l: 24px; --fs-xl: 36px; --fs-xxl: 48px;
   --p: 3px; /* one UI pixel: frame width and corner notch */
   --rim: #8c7a55; /* frame outline, 3:1 on --bg and --panel */
@@ -324,6 +326,9 @@ a.stat-chip:hover { text-decoration: none; background: rgba(255, 255, 255, 0.24)
 .player-head .close:hover { background: var(--panel-2); text-decoration: none; }
 .ptitle { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
 .ptitle b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.player-actions { display: flex; align-items: center; gap: 0.5rem; }
+.font-btn { min-height: 36px; padding: 0.15rem 0.55rem; font-size: var(--fs-s); white-space: nowrap; }
+.font-btn:active:not(:disabled, [aria-disabled="true"]) { margin-bottom: 0; }
 .pcount { color: var(--ink-2); white-space: nowrap; }
 .pbar { grid-column: 1 / -1; background: var(--panel-2); overflow: hidden; border: var(--p) solid var(--rim); }
 .pbar > div { height: 100%; background: var(--good); transition: width 0.35s; box-shadow: inset 0 -5px 0 color-mix(in srgb, var(--good-edge) 55%, transparent), inset 0 3px 0 rgba(255, 255, 255, 0.35); }
@@ -399,6 +404,8 @@ a.stat-chip:hover { text-decoration: none; background: rgba(255, 255, 255, 0.24)
 .legend .badge { margin-right: 0.2rem; }
 .select { display: inline-flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; max-width: 100%; margin: 0.3rem 1rem 0.3rem 0; }
 .select select { font: inherit; padding: 0.3rem 0.5rem; border: 1px solid var(--line); background: var(--panel); color: var(--ink); max-width: 100%; min-width: 0; }
+.font-settings { margin: 0.2rem 0 0.4rem; }
+.font-settings > .small { display: block; }
 .music-settings { margin: 0.2rem 0 0.4rem 1.6rem; }
 .music-settings > .small { display: block; }
 /* 音乐来源 / 角色来源: two small summaries one under the other need 24px targets (WCAG 2.5.8) */
@@ -735,3 +742,18 @@ h4 { font-size: var(--fs); color: var(--accent-strong); }
 .matrix-in .bracket { font-size: var(--fs-xxl); line-height: 1; color: var(--muted); }
 .mgrid { display: grid; grid-template-columns: 80px 80px; gap: 0.4rem; }
 .mgrid input { width: 80px; text-align: center; }
+
+/* readable font alternatives (Settings -> 界面字体, or the lesson header toggle) */
+:root[data-font="mixed"] { --font: var(--font-sys); --px: "Fusion Pixel", var(--font-sys); --mono: var(--mono-sys); --fs-s: 14px; }
+:root[data-font="mixed"] body { font-synthesis: auto; -webkit-font-smoothing: auto; }
+:root[data-font="mixed"] b, :root[data-font="mixed"] strong { font-weight: 600; }
+:root[data-font="mixed"] :is(h1, h2, .px, .brand, .btn.big, .continue .unit-icon, .route-card h3, .lv, .step-kind, .answer-bar .verdict > b, .reward .v, .dialog .name),
+:root[data-font="mixed"] :is(h1, h2, .px, .brand, .btn.big, .continue .unit-icon, .route-card h3, .lv, .step-kind, .answer-bar .verdict > b, .reward .v, .dialog .name) :is(b, strong) { font-weight: 400; font-synthesis: none; -webkit-font-smoothing: none; }
+:root[data-font="mixed"] .step-kind, :root[data-font="mixed"] .plot .tick, :root[data-font="mixed"] .plot .ptlabel { font-size: 12px; }
+
+:root[data-font="sans"] { --font: var(--font-sys); --px: var(--font-sys); --mono: var(--mono-sys); --fs-s: 14px; }
+:root[data-font="sans"] body { font-synthesis: auto; -webkit-font-smoothing: auto; }
+:root[data-font="sans"] b, :root[data-font="sans"] strong { font-weight: 600; }
+:root[data-font="sans"] :is(h1, h2, .px) { letter-spacing: normal; font-weight: 700; }
+:root[data-font="sans"] :is(.brand, .btn.big, .continue .unit-icon, .route-card h3, .lv, .reward .v, .dialog .name) { font-weight: 600; }
+:root[data-font="sans"] .plot .tick, :root[data-font="sans"] .plot .ptlabel { font-size: 12px; }

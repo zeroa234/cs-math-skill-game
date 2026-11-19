@@ -5,6 +5,7 @@ import { levelOf, streak } from "../core/progress.js";
 import { mastery } from "../core/rules.js";
 import { ACHIEVEMENTS } from "../app/actions.js";
 import { STYLES, PACKS, DEFAULT_VOLUME } from "../app/music.js";
+import { FONTS, fontMeta, fontOf } from "../app/font.js";
 import { VERSION, RELEASES_PAGE, checkUpdate } from "../app/update.js";
 import { Bar, toast } from "./common.jsx";
 import { Icon } from "./icons.jsx";
@@ -46,6 +47,10 @@ export function Profile() {
       <section class="card">
         <h2>设置</h2>
         {g.tree.meta.edition !== "toy" && <label class="select">“去哪深入”显示 <select value={p.settings.sourceLang} onChange={(e) => set("sourceLang", e.currentTarget.value)}><option value="zh">中文资料优先</option><option value="en">英文资料优先</option><option value="both">中英文都显示</option></select></label>}
+        <div class="font-settings">
+          <label class="select">界面字体 <select value={fontOf(p)} onChange={(e) => set("font", e.currentTarget.value)}>{FONTS.map((f) => <option value={f.id}>{f.name}</option>)}</select></label>
+          <span class="small muted">{fontMeta(fontOf(p)).desc}</span>
+        </div>
         <label class="check"><input type="checkbox" checked={!!p.settings.reduceMotion} onChange={(e) => set("reduceMotion", e.currentTarget.checked)} /> 减少动画（角色不动、不放彩带、开场文字直接显示）</label>
         <label class="check"><input type="checkbox" checked={p.settings.sound !== false} onChange={(e) => set("sound", e.currentTarget.checked)} /> 声音（音效和音乐一起开关；顶栏右边的喇叭按钮也能切换）</label>
         <label class="check"><input type="checkbox" checked={p.settings.music !== false} disabled={p.settings.sound === false} onChange={(e) => set("music", e.currentTarget.checked)} /> 背景音乐</label>

@@ -498,6 +498,36 @@ await session("map-touch", { ...PHONE, touch: true }, async (p) => {
   if (!(await p.evaluate(() => location.hash)).startsWith("#/skill/")) errors.push("[map-touch] a second tap on the selected card did not open it");
 });
 
+await session("font", DESK, async (p, shot) => {
+  await p.click(".intro .skip");
+  await p.goto(url + "#/me");
+  await p.waitForSelector(".font-settings select");
+  const fonts = () => p.evaluate(() => ({
+    attr: document.documentElement.dataset.font || null,
+    body: getComputedStyle(document.body).fontFamily,
+    h1: getComputedStyle(document.querySelector("h1")).fontFamily,
+  }));
+  let f = await fonts();
+  if (f.attr !== null || !f.body.includes("Fusion Pixel")) errors.push(`[font] expected default pixel font, got ${JSON.stringify(f)}`);
+  await p.selectOption(".font-settings select", "mixed");
+  f = await fonts();
+  if (f.attr !== "mixed" || f.body.includes("Fusion Pixel") || !f.h1.includes("Fusion Pixel")) errors.push(`[font] mixed mode did not separate heading and body fonts: ${JSON.stringify(f)}`);
+  await p.selectOption(".font-settings select", "sans");
+  f = await fonts();
+  if (f.attr !== "sans" || f.body.includes("Fusion Pixel") || f.h1.includes("Fusion Pixel")) errors.push(`[font] sans mode still uses pixel font: ${JSON.stringify(f)}`);
+  await p.reload();
+  await p.waitForSelector(".font-settings select");
+  if ((await p.$eval(".font-settings select", (el) => el.value)) !== "sans" || (await fonts()).attr !== "sans") errors.push("[font] font choice did not persist across reload");
+  await p.goto(url + "#/lesson/P.1.1/first-program");
+  await p.waitForSelector(".player .font-btn");
+  if ((await p.locator(".font-btn").innerText()).trim() !== "字体：清晰") errors.push("[font] lesson toggle did not reflect current sans mode");
+  await p.click(".font-btn");
+  if ((await p.evaluate(() => document.documentElement.dataset.font || null)) !== null || (await p.locator(".font-btn").innerText()).trim() !== "字体：像素") errors.push("[font] clicking lesson toggle from sans did not cycle to pixel");
+  await p.click(".font-btn");
+  if ((await p.evaluate(() => document.documentElement.dataset.font || null)) !== "mixed" || (await p.locator(".font-btn").innerText()).trim() !== "字体：混排") errors.push("[font] clicking lesson toggle from pixel did not cycle to mixed");
+  await shot("lesson-mixed");
+});
+
 await browser.close();
 if (errors.length) { console.log("ERRORS:\n" + [...new Set(errors)].join("\n")); process.exit(1); }
 console.log(`ok — screenshots in ${path.relative(ROOT, out)}`);

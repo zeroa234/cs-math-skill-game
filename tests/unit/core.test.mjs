@@ -7,6 +7,7 @@ import { goalRouteText } from "../../src/game/core/route-text.js";
 import { skillState, satisfied, starsFor, mastery, shouldLight, playableChapters } from "../../src/game/core/rules.js";
 import { checkItem, parseNumber, normalizeText } from "../../src/game/core/check.js";
 import { createStore, memoryStorage, emptyProgress, migrate, streak, levelOf, addXp, dayKey, VERSION } from "../../src/game/core/progress.js";
+import { FONTS, fontMeta, fontOf, nextFont } from "../../src/game/core/font.js";
 import { newCard, reviewCard, isDue, gradeFor } from "../../src/game/core/review.js";
 import { sectionKey } from "../../scripts/lib/sections.mjs";
 import { normalizeLesson, leanLesson, firstTryShare, lessonSims } from "../../src/game/core/lesson.js";
@@ -338,4 +339,19 @@ test("update check: version order, and what GitHub's answer means", async () => 
   await assert.rejects(checkUpdate(reply(404, {})), /还没有发布过版本/);
   await assert.rejects(checkUpdate(reply(403, {})), /403/);
   await assert.rejects(checkUpdate(async () => { throw new TypeError("Failed to fetch"); }), /连不上 GitHub/);
+});
+
+test("font preference defaults, cycles and survives save migration", () => {
+  assert.deepEqual(FONTS.map((f) => f.id), ["pixel", "mixed", "sans"]);
+  assert.equal(fontOf(emptyProgress()), "pixel");
+  assert.equal(fontOf({ settings: {} }), "pixel");
+  assert.equal(fontOf({ settings: { font: "unknown" } }), "pixel");
+  assert.equal(fontOf({ settings: { font: "mixed" } }), "mixed");
+  assert.equal(fontOf({ settings: { font: "sans" } }), "sans");
+  assert.equal(fontMeta("unknown").id, "pixel");
+  assert.equal(nextFont("pixel").id, "mixed");
+  assert.equal(nextFont("mixed").id, "sans");
+  assert.equal(nextFont("sans").id, "pixel");
+  assert.equal(migrate({ v: 2 }).settings.font, "pixel");
+  assert.equal(migrate({ v: 2, settings: { font: "sans" } }).settings.font, "sans");
 });
