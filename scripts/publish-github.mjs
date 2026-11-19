@@ -16,9 +16,9 @@ import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { ROOT, launchEdge } from "./lib/edge.mjs";
 import { notPublic } from "./lib/not-public.mjs";
+import { githubEnv } from "./lib/github-id.mjs";
 
 const REMOTE = "https://github.com/zeroa234/cs-math-skill-game.git";
-const ID = { name: "zeroa234", email: "208007470+zeroa234@users.noreply.github.com" }; // as on zeroa234/cs-math-skill-tree
 const PRIVATE = ["assets/cast/not-public.txt", "scripts/cast/extract-sprites.py", "scripts/promo/qc-voice.py"];
 const EXCLUDE = [...PRIVATE, "output/web", "output/apk", "output/windows"];
 const PROMO = ["data/promo", "scripts/promo", "src/promo", "docs/promo-video-v2.md"];
@@ -97,8 +97,7 @@ if (leakCount) throw new Error(`the snapshot contains ${leakCount} files with pr
   if (shown !== 2 || failed.length) throw new Error(`the published game does not show its mentors (portraits shown: ${shown}; failed: ${failed.join(", ")})`);
 }
 if (git("status", "--porcelain")) {
-  const env = { ...process.env, GIT_AUTHOR_NAME: ID.name, GIT_AUTHOR_EMAIL: ID.email, GIT_COMMITTER_NAME: ID.name, GIT_COMMITTER_EMAIL: ID.email };
-  run("git", ["-C", DIR, "commit", "-q", "-m", `v${version}`, "-m", `Snapshot of the author's workspace at ${head}.`], { env });
+  run("git", ["-C", DIR, "commit", "-q", "-m", `v${version}`, "-m", `Snapshot of the author's workspace at ${head}.`], { env: githubEnv() });
 }
 console.log(`${DIR}: commit ${git("rev-parse", "--short", "HEAD")} (v${version}), ${files.length} files checked`);
 if (process.argv.includes("--push")) { git("push", "-u", "origin", "main"); console.log("pushed to", REMOTE); }

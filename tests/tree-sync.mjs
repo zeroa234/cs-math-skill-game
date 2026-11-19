@@ -5,11 +5,12 @@ import path from "node:path";
 import vm from "node:vm";
 import { emptyProgress } from "../src/game/core/progress.js";
 import { ROOT as root, GAME_URL, launchEdge } from "../scripts/lib/edge.mjs";
+import { treeDir } from "../scripts/lib/tree-dir.mjs";
 
 const read = p => JSON.parse(fs.readFileSync(path.join(root, p), "utf8"));
-const tree = read("../cs-math-skill-tree/output/skilltree.json");
+const tree = read(path.relative(root, path.join(treeDir(root), "output/skilltree.json")));
 const game = read("src/gen/tree.json");
-const sourceMaps = read("../cs-math-skill-tree/output/outlines.json");
+const sourceMaps = read(path.relative(root, path.join(treeDir(root), "output/outlines.json")));
 const sandbox = { window: {} };
 vm.runInNewContext(fs.readFileSync(path.join(root, "src/web/outlines.js"), "utf8"), sandbox);
 const gameMaps = sandbox.window.__OUTLINES__;

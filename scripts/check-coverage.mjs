@@ -6,9 +6,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadPack } from "./lib/packs.mjs";
 import { coverageIssues, readCoverageTable } from "./lib/coverage.mjs";
+import { treeDir } from "./lib/tree-dir.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const outlines = JSON.parse(fs.readFileSync(path.join(ROOT, "../cs-math-skill-tree/output/outlines.json"), "utf8"));
+const outlines = JSON.parse(fs.readFileSync(path.join(treeDir(ROOT), "output/outlines.json"), "utf8"));
 const dir = path.join(ROOT, "data/content");
 const packs = Object.fromEntries(fs.readdirSync(dir).filter((f) => f.endsWith(".yaml")).map((f) => { const p = loadPack(path.join(dir, f)); return [p.skill, p]; }));
 const ids = process.argv.slice(2).length ? process.argv.slice(2) : Object.values(packs).map((p) => p.skill);

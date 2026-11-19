@@ -20,8 +20,12 @@ const validateSchema = ajv.compile(JSON.parse(fs.readFileSync(path.join(ROOT, "d
 
 export function runPyTrace(code, stdin = "") {
   // -X utf8: -I ignores PYTHONIOENCODING, and traced code with Chinese text fails on Windows without UTF-8 mode
-  const r = spawnSync("python", ["-I", "-X", "utf8", path.join(ROOT, "scripts/lib/pytrace.py")], { input: JSON.stringify({ code, stdin }), encoding: "utf8", env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
-  if (r.status !== 0) throw new Error(`pytrace failed: ${r.stderr}`);
+  const args = ["-I", "-X", "utf8", path.join(ROOT, "scripts/lib/pytrace.py")];
+  const opts = { input: JSON.stringify({ code, stdin }), encoding: "utf8", env: { ...process.env, PYTHONIOENCODING: "utf-8" } };
+  const primary = process.platform === "win32" ? "python" : "python3";
+  let r = spawnSync(primary, args, opts);
+  if (r.error && r.error.code === "ENOENT") r = spawnSync(primary === "python" ? "python3" : "python", args, opts);
+  if (r.status !== 0) throw new Error(`pytrace failed: ${r.stderr || r.error?.message}`);
   return JSON.parse(r.stdout);
 }
 

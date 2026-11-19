@@ -18,10 +18,11 @@ import { leanLesson, normalizeLesson } from "../src/game/core/lesson.js";
 import { resolveTerms } from "./lib/beginner.mjs";
 import { coverageIssues, readCoverageTable } from "./lib/coverage.mjs";
 import { sectionKey, cmpKey } from "./lib/sections.mjs";
+import { treeDir } from "./lib/tree-dir.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const argTree = process.argv.indexOf("--tree");
-const TREE = path.resolve(argTree > 0 ? process.argv[argTree + 1] : path.join(ROOT, "../cs-math-skill-tree"));
+const TREE = path.resolve(argTree > 0 ? process.argv[argTree + 1] : treeDir(ROOT));
 const EXCLUDED_DOMAINS = new Set(["X"]);
 // --skip-invalid-packs: while content is being written, leave failing packs out instead of failing.
 const SKIP_INVALID = process.argv.includes("--skip-invalid-packs");
