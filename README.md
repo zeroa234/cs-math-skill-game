@@ -12,6 +12,7 @@
 <p align="center">
   <a href="https://github.com/zeroa234/cs-math-skill-game/releases/latest"><b>下载安卓 App</b></a> ·
   <a href="https://zeroa234.github.io/cs-math-skill-game/"><b>在线玩（网页版）</b></a> ·
+  <a href="https://www.bilibili.com/video/BV1vqypzHE56/"><b>看介绍视频（B 站）</b></a> ·
   <a href="https://github.com/zeroa234/cs-math-skill-tree"><b>背后的技能树</b></a> ·
   <a href="#玩起来是什么样">玩起来是什么样</a> ·
   <a href="#从源码运行">从源码运行</a>
