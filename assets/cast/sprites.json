@@ -1,222 +1,296 @@
 {
+ "unit": 3,
+ "pixelated": true,
  "packs": {
   "blue": {
    "idle": {
     "file": "sprites/blue/idle.webp",
-    "w": 43,
-    "h": 71,
-    "frames": 96,
-    "fps": 12,
+    "w": 162,
+    "h": 243,
+    "frames": 24,
+    "fps": 10,
     "loop": true,
     "foot": [
-     23,
-     71
-    ]
-   },
-   "walk": {
-    "file": "sprites/blue/walk.webp",
-    "w": 44,
-    "h": 72,
-    "frames": 14,
-    "fps": 12,
-    "loop": true,
-    "foot": [
-     24,
-     72
+     72,
+     243
     ]
    },
    "wave": {
     "file": "sprites/blue/wave.webp",
-    "w": 48,
-    "h": 78,
-    "frames": 44,
-    "fps": 12,
+    "w": 153,
+    "h": 243,
+    "frames": 16,
+    "fps": 10,
     "loop": false,
     "foot": [
-     24,
-     78
+     75,
+     243
     ]
    },
-   "dance": {
-    "file": "sprites/blue/dance.webp",
-    "w": 53,
-    "h": 71,
-    "frames": 130,
-    "fps": 12,
-    "loop": false,
+   "walk": {
+    "file": "sprites/blue/walk.webp",
+    "w": 177,
+    "h": 246,
+    "frames": 12,
+    "fps": 10,
+    "loop": true,
     "foot": [
-     23,
-     71
+     123,
+     246
     ]
    },
    "jump_start": {
     "file": "sprites/blue/jump_start.webp",
-    "w": 53,
-    "h": 73,
-    "frames": 9,
+    "w": 180,
+    "h": 234,
+    "frames": 6,
     "fps": 12,
     "loop": false,
     "foot": [
-     26,
-     71
+     129,
+     234
     ]
    },
    "jump_air": {
     "file": "sprites/blue/jump_air.webp",
-    "w": 50,
-    "h": 67,
-    "frames": 28,
-    "fps": 12,
+    "w": 192,
+    "h": 246,
+    "frames": 8,
+    "fps": 10,
     "loop": true,
     "foot": [
-     23,
-     66
+     129,
+     261
     ]
    },
    "jump_land": {
     "file": "sprites/blue/jump_land.webp",
-    "w": 64,
-    "h": 71,
-    "frames": 15,
+    "w": 183,
+    "h": 258,
+    "frames": 8,
     "fps": 12,
     "loop": false,
     "foot": [
-     23,
-     71
+     126,
+     258
     ]
    },
    "coy": {
     "file": "sprites/blue/coy.webp",
-    "w": 43,
-    "h": 72,
-    "frames": 62,
-    "fps": 12,
+    "w": 165,
+    "h": 240,
+    "frames": 16,
+    "fps": 8,
     "loop": true,
     "foot": [
-     24,
-     72
+     75,
+     240
     ]
    },
    "sit": {
     "file": "sprites/blue/sit.webp",
-    "w": 51,
-    "h": 52,
-    "frames": 49,
-    "fps": 12,
+    "w": 195,
+    "h": 213,
+    "frames": 12,
+    "fps": 8,
     "loop": true,
     "foot": [
-     23,
-     58
+     120,
+     213
+    ]
+   },
+   "dance": {
+    "file": "sprites/blue/dance.webp",
+    "w": 195,
+    "h": 255,
+    "frames": 20,
+    "fps": 10,
+    "loop": false,
+    "foot": [
+     129,
+     255
+    ]
+   },
+   "think": {
+    "file": "sprites/blue/think.webp",
+    "w": 174,
+    "h": 237,
+    "frames": 14,
+    "fps": 8,
+    "loop": true,
+    "foot": [
+     123,
+     237
+    ]
+   },
+   "read": {
+    "file": "sprites/blue/read.webp",
+    "w": 189,
+    "h": 243,
+    "frames": 14,
+    "fps": 8,
+    "loop": true,
+    "foot": [
+     126,
+     243
+    ]
+   },
+   "cheer": {
+    "file": "sprites/blue/cheer.webp",
+    "w": 195,
+    "h": 252,
+    "frames": 16,
+    "fps": 10,
+    "loop": false,
+    "foot": [
+     126,
+     252
     ]
    }
   },
   "black": {
    "idle": {
     "file": "sprites/black/idle.webp",
-    "w": 38,
-    "h": 71,
-    "frames": 73,
-    "fps": 12,
+    "w": 156,
+    "h": 243,
+    "frames": 24,
+    "fps": 10,
     "loop": true,
     "foot": [
-     20,
-     71
-    ]
-   },
-   "walk": {
-    "file": "sprites/black/walk.webp",
-    "w": 43,
-    "h": 72,
-    "frames": 14,
-    "fps": 12,
-    "loop": true,
-    "foot": [
-     24,
-     72
+     75,
+     243
     ]
    },
    "wave": {
     "file": "sprites/black/wave.webp",
-    "w": 45,
-    "h": 78,
-    "frames": 44,
-    "fps": 12,
+    "w": 153,
+    "h": 246,
+    "frames": 16,
+    "fps": 10,
     "loop": false,
     "foot": [
-     21,
-     78
+     81,
+     246
     ]
    },
-   "cast": {
-    "file": "sprites/black/cast.webp",
-    "w": 57,
-    "h": 75,
-    "frames": 36,
-    "fps": 12,
-    "loop": false,
+   "walk": {
+    "file": "sprites/black/walk.webp",
+    "w": 177,
+    "h": 246,
+    "frames": 12,
+    "fps": 10,
+    "loop": true,
     "foot": [
-     22,
-     76
+     126,
+     246
     ]
    },
    "jump_start": {
     "file": "sprites/black/jump_start.webp",
-    "w": 52,
-    "h": 73,
-    "frames": 9,
+    "w": 183,
+    "h": 231,
+    "frames": 6,
     "fps": 12,
     "loop": false,
     "foot": [
-     25,
-     71
+     135,
+     231
     ]
    },
    "jump_air": {
     "file": "sprites/black/jump_air.webp",
-    "w": 48,
-    "h": 67,
-    "frames": 28,
-    "fps": 12,
+    "w": 192,
+    "h": 243,
+    "frames": 8,
+    "fps": 10,
     "loop": true,
     "foot": [
-     20,
-     66
+     129,
+     258
     ]
    },
    "jump_land": {
     "file": "sprites/black/jump_land.webp",
-    "w": 55,
-    "h": 71,
-    "frames": 15,
+    "w": 183,
+    "h": 255,
+    "frames": 8,
     "fps": 12,
     "loop": false,
     "foot": [
-     20,
-     71
+     126,
+     255
     ]
    },
    "coy": {
     "file": "sprites/black/coy.webp",
-    "w": 41,
-    "h": 72,
-    "frames": 62,
-    "fps": 12,
+    "w": 165,
+    "h": 243,
+    "frames": 16,
+    "fps": 8,
     "loop": true,
     "foot": [
-     23,
-     72
+     78,
+     243
     ]
    },
    "sit": {
     "file": "sprites/black/sit.webp",
-    "w": 45,
-    "h": 53,
-    "frames": 49,
-    "fps": 12,
+    "w": 180,
+    "h": 216,
+    "frames": 12,
+    "fps": 8,
     "loop": true,
     "foot": [
-     20,
-     57
+     114,
+     216
+    ]
+   },
+   "cast": {
+    "file": "sprites/black/cast.webp",
+    "w": 198,
+    "h": 252,
+    "frames": 20,
+    "fps": 10,
+    "loop": false,
+    "foot": [
+     126,
+     252
+    ]
+   },
+   "think": {
+    "file": "sprites/black/think.webp",
+    "w": 174,
+    "h": 234,
+    "frames": 14,
+    "fps": 8,
+    "loop": true,
+    "foot": [
+     126,
+     234
+    ]
+   },
+   "read": {
+    "file": "sprites/black/read.webp",
+    "w": 186,
+    "h": 243,
+    "frames": 14,
+    "fps": 8,
+    "loop": true,
+    "foot": [
+     123,
+     243
+    ]
+   },
+   "cheer": {
+    "file": "sprites/black/cheer.webp",
+    "w": 177,
+    "h": 249,
+    "frames": 16,
+    "fps": 10,
+    "loop": false,
+    "foot": [
+     123,
+     249
     ]
    }
   }

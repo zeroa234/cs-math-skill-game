@@ -95,10 +95,10 @@ SimView = {
 | review.js | `newCard`、`reviewCard(card, {correct, firstTry, usedHint})`、`isDue`、`recall` | ts-fsrs 封装；Good / Hard / Again 的映射见 `gradeFor` |
 | check.js | `checkItem(item, response)` | 各题型判题；`registerSimChecker` 由组件注册 |
 
-存档（v3；v1 读档时去掉 `known` 和 `boss.self`；v2 读档时去掉 `selfChapters`、“自学者”成就和没有判分的 `lit/boss`，保留互动课结果、复习卡、经验和学习天数。导入旧存档也走同一迁移）：
+存档（v4；v1 读档时去掉 `known` 和 `boss.self`；v2 读档时去掉 `selfChapters`、“自学者”成就和没有判分的 `lit/boss`；v3 读档时清掉 2.0.0 遗留的 AI 远征 5 个已重写技能（M.6.2、M.6.2.2、A.2.1、A.2.3、A.4.1）的旧 `skills`、`lessons`、`cards` 进度，保留互动课结果、复习卡、经验、学习天数和其余技能。导入旧存档也走同一迁移）：
 
 ```ts
-{ v: 3, createdAt, xp, days: { "YYYY-MM-DD": xp }, achievements: { id: iso },
+{ v: 4, createdAt, xp, days: { "YYYY-MM-DD": xp }, achievements: { id: iso },
   skills:  { [id]: { lit?, boss?: { at, graded, auto, testOut } } },
   lessons: { ["skill/lesson"]: { done, stars, best, attempts } },
   cards:   { ["skill/lesson/item"]: FSRS card },

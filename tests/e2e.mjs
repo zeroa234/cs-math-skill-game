@@ -64,7 +64,7 @@ for (const [name, viewport, scheme] of [["self-study", DESK, "light"], ["self-st
     await p.setInputFiles('input[type="file"]', { name: "old-save.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ app: "cs-math-skill-game", progress: old })) });
     await p.waitForFunction(() => {
       const s = JSON.parse(localStorage.getItem("cs-math-skill-game/progress"));
-      return s.v === 3 && s.xp === 123;
+      return s.v === 4 && s.xp === 123;
     });
     const saved = await p.evaluate(() => localStorage.getItem("cs-math-skill-game/progress"));
     const state = JSON.parse(saved);

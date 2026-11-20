@@ -22,6 +22,7 @@ function ReviewRound({ again }) {
   const [session] = useState(() => dueCards(store.get()).slice(0, SESSION));
   const [i, setI] = useState(0);
   const [right, setRight] = useState(0);
+  const [mood, setMood] = useState({ action: "read", say: "还记得吗？", cue: 0 });
   if (!session.length) {
     const upcoming = Object.values(p.cards).map((c) => new Date(c.dueAt)).sort((a, b) => a - b)[0];
     return (
@@ -58,14 +59,23 @@ function ReviewRound({ again }) {
         <div class="pbar" role="progressbar" aria-label="复习进度" aria-valuenow={Math.round((i / session.length) * 100)} aria-valuemin="0" aria-valuemax="100"><div style={{ width: `${(i / session.length) * 100}%` }} /></div>
       </header>
       <div class="player-stage">
-      <aside class="coach" aria-hidden="true"><div class="say">还记得吗？</div><Sprite who="black" action="idle" scale={2} /></aside>
+      <aside class="coach" aria-hidden="true"><div class="say">{mood.say}</div><Sprite who="black" action={mood.action} cue={mood.cue} scale={2} /></aside>
       <main class="player-body">
-        <ItemStep key={key} item={found.item} label="复习" verdicts={{ right: "记得！", wrong: "忘了一点", again: false }} onDone={async (r, usedHint) => {
-          const out = await answerReview(store, key, { correct: r.correct, firstTry: true, usedHint });
-          if (r.correct) setRight(right + 1);
-          for (const a of out?.achievements || []) toast({ title: "成就：" + a.name, body: a.desc });
-          setI(i + 1);
-        }} />
+        <ItemStep
+          key={key}
+          item={found.item}
+          label="复习"
+          verdicts={{ right: "记得！", wrong: "忘了一点", again: false }}
+          onHint={() => setMood({ action: "think", say: "回忆一下～", cue: Math.random() })}
+          onResult={(r) => setMood(r.correct ? { action: ["cheer", "idle"], say: "记得真牢！", cue: Math.random() } : { action: ["coy", "idle"], say: "再巩固一下～", cue: Math.random() })}
+          onDone={async (r, usedHint) => {
+            const out = await answerReview(store, key, { correct: r.correct, firstTry: true, usedHint });
+            if (r.correct) setRight(right + 1);
+            for (const a of out?.achievements || []) toast({ title: "成就：" + a.name, body: a.desc });
+            setMood({ action: "read", say: "还记得吗？", cue: Math.random() });
+            setI(i + 1);
+          }}
+        />
       </main>
       </div>
     </div>

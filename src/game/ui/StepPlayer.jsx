@@ -5,7 +5,7 @@
 // flow: [{ kind: "guess" | "item", item } | { kind: "card", card }] (see core/lesson.js).
 // A wrong graded item is explained right away and comes back once at the end; nothing is taken away.
 // onFinish(results) gets { [itemId]: { item, correct, firstTry, usedHint } } for graded items.
-import { useEffect, useMemo, useState } from "preact/hooks";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { checkItem } from "../core/check.js";
 import { play } from "../app/sound.js";
 import { useProgress } from "../app/state.js";
@@ -41,31 +41,46 @@ export function StepPlayer({ kicker, title, closeHref, flow, coach = "blue", ite
   const [pos, setPos] = useState(0);
   const [retries, setRetries] = useState([]);
   const [results, setResults] = useState({});
-  const [mood, setMood] = useState({ action: "idle", say: "一起来吧！", cue: 0 });
   const [leaving, setLeaving] = useState(false);
   const total = steps.length + retries.length;
   const cur = pos < steps.length ? steps[pos] : { kind: "item", item: retries[pos - steps.length], retry: true, key: "retry-" + pos };
+  const [mood, setMood] = useState(() => (
+    steps[0]?.kind === "card"
+      ? { action: "read", say: "来看看讲解～", cue: 0 }
+      : { action: ["wave", "idle"], say: "一起来吧！", cue: 0 }
+  ));
   const progress = Math.min(1, pos / total);
   const cardCount = steps.filter((s) => s.kind === "card").length;
   const cardIndex = steps.slice(0, pos).filter((s) => s.kind === "card").length;
+
+  const firstPos = useRef(true);
+  useEffect(() => {
+    if (firstPos.current) { firstPos.current = false; return; }
+    if (cur.kind === "card") setMood({ action: "read", say: "来看看讲解～", cue: Math.random() });
+    else if (cur.kind === "guess") setMood({ action: "think", say: "先猜一猜～", cue: Math.random() });
+    else setMood({ action: "idle", say: cur.retry ? "再来一次！" : "下一题！", cue: Math.random() });
+  }, [pos]);
 
   const advance = (nextRetries = retries, nextResults = results) => {
     if (pos + 1 >= steps.length + nextRetries.length) onFinish(nextResults);
     else setPos(pos + 1);
   };
   const react = (result, guess, key) => {
-    if (result.correct) setMood({ action: ["jump_start", "jump_land", "idle"], say: guess ? "猜对了！" : pickOne(PRAISE, key), cue: Math.random() });
-    else setMood({ action: ["coy", "idle"], say: guess ? "没关系，看完讲解就懂了" : "差一点点，看看解析～", cue: Math.random() });
+    if (result.correct) {
+      const act = pos % 2 === 0 ? ["jump_start", "jump_air", "jump_land", "idle"] : ["cheer", "idle"];
+      setMood({ action: act, say: guess ? "猜对了！" : pickOne(PRAISE, key), cue: Math.random() });
+    } else {
+      setMood({ action: ["coy", "idle"], say: guess ? "没关系，看完讲解就懂了" : "差一点点，看看解析～", cue: Math.random() });
+    }
   };
   const onItemDone = (step, result, usedHint) => {
-    if (step.kind === "guess") { setMood({ action: "idle", say: "来看看讲解", cue: Math.random() }); return advance(); }
+    if (step.kind === "guess") return advance();
     const id = step.item.id;
     const prev = results[id];
     const next = { ...results, [id]: { item: step.item, correct: result.correct, firstTry: step.retry ? prev.firstTry : result.correct, usedHint: usedHint || prev?.usedHint || false } };
     setResults(next);
     const nextRetries = !result.correct && !step.retry ? [...retries, step.item] : retries;
     setRetries(nextRetries);
-    setMood({ action: "idle", say: "下一题！", cue: Math.random() });
     advance(nextRetries, next);
   };
 
@@ -97,7 +112,7 @@ export function StepPlayer({ kicker, title, closeHref, flow, coach = "blue", ite
         <main class="player-body">
           {cur.kind === "card"
             ? <CardStep key={cur.key} card={cur.card} index={cardIndex} count={cardCount} onNext={() => { play("page"); advance(); }} onBack={pos > 0 && steps[pos - 1].kind === "card" ? () => setPos(pos - 1) : null} />
-            : <ItemStep key={cur.key} item={cur.item} label={cur.kind === "guess" ? "先猜一猜（不计分）" : cur.retry ? "再来一次" : itemLabel} guess={cur.kind === "guess"} retry={cur.retry} onResult={(r) => react(r, cur.kind === "guess", cur.item.id)} onDone={(r, h) => onItemDone(cur, r, h)} />}
+            : <ItemStep key={cur.key} item={cur.item} label={cur.kind === "guess" ? "先猜一猜（不计分）" : cur.retry ? "再来一次" : itemLabel} guess={cur.kind === "guess"} retry={cur.retry} onHint={() => setMood({ action: "think", say: "想想看提示～", cue: Math.random() })} onResult={(r) => react(r, cur.kind === "guess", cur.item.id)} onDone={(r, h) => onItemDone(cur, r, h)} />}
         </main>
       </div>
     </div>
@@ -137,7 +152,7 @@ function CardStep({ card, index, count, onNext, onBack }) {
   );
 }
 
-export function ItemStep({ item, label, guess, retry, onDone, onResult, verdicts }) {
+export function ItemStep({ item, label, guess, retry, onDone, onResult, onHint, verdicts }) {
   const [value, setValue] = useState(() => initialValue(item));
   const [result, setResult] = useState(null);
   const [hint, setHint] = useState(false);
@@ -157,13 +172,14 @@ export function ItemStep({ item, label, guess, retry, onDone, onResult, verdicts
   const v = verdicts || { right: guess ? "猜对了！" : "答对了！", wrong: guess ? "没关系，看完讲解就明白了" : retry ? "这次也没对，看一下解析" : "还差一点" };
   return (
     <>
-      <article class={"lcard qcard" + (result ? (result.correct ? " is-good" : " is-bad") : "")} data-item={item.id}>
+      <article class={"lcard qcard" + (guess ? " is-guess" : "") + (result ? (result.correct ? " is-good" : " is-bad") : "")} data-item={item.id}>
         {label && <div class="step-kind">{label}</div>}
         <ItemInput item={item} value={value} setValue={set} locked={!!result} result={result} />
-        {item.hint && !result && (hint ? <p class="hint"><Icon name="bulb" /> <Md text={item.hint} inline /></p> : <button type="button" class="btn ghost small" onClick={() => { play("tap"); setHint(true); }}>提示</button>)}
+        {item.hint && !result && (hint ? <p class="hint"><Icon name="bulb" /> <Md text={item.hint} inline /></p> : <button type="button" class="btn ghost small" onClick={() => { play("tap"); setHint(true); onHint?.(); }}>提示</button>)}
       </article>
       <div class={"answer-bar" + (result ? (result.correct ? " is-good slide" : " is-bad slide") : "")}>
         <div class="inner">
+          {result && (result.correct || !guess) && <Burst good={result.correct} />}
           <div class="verdict" role="status">
             {result && <>
               <b><Icon name={result.correct ? "check" : "close"} /> {result.correct ? v.right : v.wrong}</b>
@@ -175,6 +191,18 @@ export function ItemStep({ item, label, guess, retry, onDone, onResult, verdicts
         </div>
       </div>
     </>
+  );
+}
+
+// Answer feedback that phones see too (they hide the mentor): a stamp lands on the top edge of the
+// answer bar, and on a right answer pixel sparks fly out of it. Pure CSS (style.css "answer feedback"); reduced motion
+// leaves the stamp still and the sparks hidden.
+function Burst({ good }) {
+  return (
+    <div class={"burst " + (good ? "good" : "bad")} aria-hidden="true">
+      {good && Array.from({ length: 8 }, (_, i) => <i style={{ "--a": `${i * 45 + 22}deg` }} />)}
+      <span class="stamp"><Icon name={good ? "check" : "close"} /></span>
+    </div>
   );
 }
 

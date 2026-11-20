@@ -1,7 +1,7 @@
 // Player progress: one plain JSON object, versioned, with a storage adapter interface so the game
 // never touches localStorage directly (tests use the memory adapter).
 //
-// Shape (v3):
+// Shape (v4):
 // { v, createdAt, xp, days: {YYYY-MM-DD: xp}, achievements: {id: iso},
 //   skills:  { [skillId]: { lit?: iso, boss?: {at, graded, auto, testOut} } },
 //   lessons: { [skillId/lessonId]: { done: iso, stars, best, attempts } },
@@ -9,7 +9,7 @@
 //   settings: { route?, sourceLang: "zh"|"en"|"both", font?: "pixel"|"mixed"|"sans", reduceMotion?, sound, introSeen? } }
 //   route is a curated route id (data/routes.yaml) or "goal:<skill id>" for a goal the player picked.
 
-export const VERSION = 3;
+export const VERSION = 4;
 const KEY = "cs-math-skill-game/progress";
 
 export function emptyProgress(now = new Date()) {
@@ -38,6 +38,20 @@ export function migrate(p) {
       delete s.selfChapters;
     }
     delete out.achievements["self-study"];
+  }
+  // v3 → v4: clear old 2.0.0 progress on the 5 AI-route skills rewritten to v2 standards
+  // while keeping global XP, streaks, achievements and all other skills.
+  if ((p.v || 1) < 4) {
+    const rewritten = ["M.6.2", "M.6.2.2", "A.2.1", "A.2.3", "A.4.1"];
+    out.skills = structuredClone(out.skills);
+    out.lessons = structuredClone(out.lessons);
+    out.cards = structuredClone(out.cards);
+    for (const id of rewritten) {
+      delete out.skills[id];
+      const prefix = `${id}/`;
+      for (const k of Object.keys(out.lessons)) if (k.startsWith(prefix)) delete out.lessons[k];
+      for (const k of Object.keys(out.cards)) if (k.startsWith(prefix)) delete out.cards[k];
+    }
   }
   return out;
 }

@@ -86,6 +86,7 @@ function BossResult({ skill, boss, phase, testOut, retry }) {
       toast({ title: `点亮：${skill.name}`, body: `经验 +${out.xp}` });
       if (!store.get().settings.reduceMotion) confetti({ particleCount: 140, spread: 90, origin: { y: 0.6 }, disableForReducedMotion: true });
     }
+    return () => confetti.reset(); // see LessonPlayer: never let it fall over the next page
   }, []);
   // Newly open skills: the current route's stops first, then the rest (a root skill opens many).
   const opened = skill.unlocks.filter((u) => stateOf(store.get(), u).status === "open");

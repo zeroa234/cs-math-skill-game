@@ -1,7 +1,7 @@
-// The two mentors: pixel sprites (animation strips from scripts/cast/extract-sprites.py) and painted
-// portraits. Everything about who they are lives here and in assets/cast/, so the cast can be swapped
-// without touching the screens that use it.
-import { useEffect, useRef, useState } from "preact/hooks";
+// The two mentors: high-res pixelized Q-chibi sprites (animation strips from scripts/cast/build-chibi-sprites.py)
+// and painted portraits. Everything about who they are lives here and in assets/cast/, so the cast can be
+// swapped without touching the screens that use it.
+import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import meta from "../../../assets/cast/sprites.json";
 import { store } from "../app/state.js";
 
@@ -17,7 +17,21 @@ export const CAST = {
 export const HAS_CAST = Object.keys(meta.packs).length > 0;
 if (!HAS_CAST && typeof document !== "undefined") document.documentElement.classList.add("no-cast");
 
+const UNIT = meta.unit || 1;
 const reduced = () => store.get().settings.reduceMotion || matchMedia("(prefers-reduced-motion: reduce)").matches;
+const preloaded = new Set();
+function preloadPack(who) {
+  if (typeof Image === "undefined" || preloaded.has(who) || !meta.packs[who]) return;
+  preloaded.add(who);
+  for (const a of Object.values(meta.packs[who])) {
+    const img = new Image();
+    img.src = `assets/cast/${a.file}`;
+    img.decode?.().catch(() => {});
+  }
+}
+if (HAS_CAST) {
+  for (const who of Object.keys(meta.packs)) preloadPack(who);
+}
 
 // Every action of a character is drawn on one stage so the feet stay on the same spot when the action
 // changes: the stage is as wide as the widest pose on either side of the foot and as tall as the
@@ -35,33 +49,46 @@ export function Sprite(props) {
 }
 function CastSprite({ who, action = "idle", then = "idle", scale = 2, flip = false, cue = 0, class: cls = "", label }) {
   const seq = Array.isArray(action) ? action : [action, then];
-  const [i, setI] = useState(0);
+  const seqKey = `${who}|${seq.join(",")}|${cue}`;
+  const [step, setStep] = useState({ key: seqKey, i: 0 });
+  const i = step.key === seqKey ? step.i : 0;
   const el = useRef(null);
-  useEffect(() => { setI(0); }, [seq.join(), cue]);
+  useEffect(() => { preloadPack(who); }, [who]);
+  useEffect(() => {
+    if (step.key !== seqKey) setStep({ key: seqKey, i: 0 });
+  }, [seqKey]);
   const cur = seq[Math.min(i, seq.length - 1)];
   const last = i >= seq.length - 1 || (!Array.isArray(action) && (meta.packs[who][cur]?.loop || cur === then));
   const a = meta.packs[who][cur] || meta.packs[who].idle;
-  useEffect(() => {
+  const s = scale / UNIT;
+  useLayoutEffect(() => {
     const node = el.current;
     if (!node) return;
-    const total = a.w * a.frames * scale;
+    if (reduced() || a.frames <= 1) { node.style.backgroundPositionX = "0px"; return; }
+    const fw = a.w * s;
     const duration = (a.frames / a.fps) * 1000;
-    if (reduced()) { node.style.backgroundPositionX = "0px"; return; }
-    const anim = node.animate([{ backgroundPositionX: "0px" }, { backgroundPositionX: `-${total}px` }], { duration, iterations: last && a.loop ? Infinity : 1, easing: `steps(${a.frames})`, fill: "forwards" });
-    const t = last ? null : setTimeout(() => setI((n) => n + 1), duration);
-    return () => { anim.cancel(); clearTimeout(t); };
-  }, [a, scale, i, last]);
+    const frames = [];
+    for (let k = 0; k < a.frames; k++) frames.push({ backgroundPositionX: `${-k * fw}px`, offset: k / a.frames, easing: "steps(1, end)" });
+    frames.push({ backgroundPositionX: `${-(a.frames - 1) * fw}px`, offset: 1 });
+    const anim = node.animate(frames, { duration, iterations: last && a.loop ? Infinity : 1, fill: "forwards" });
+    let alive = true;
+    const advance = () => { if (alive) setStep({ key: seqKey, i: i + 1 }); };
+    if (!last) anim.onfinish = advance;
+    const t = last ? null : setTimeout(advance, duration + 20);
+    return () => { alive = false; anim.onfinish = null; anim.cancel(); clearTimeout(t); };
+  }, [a, s, i, last, seqKey]);
   const st = stages[who];
   return (
-    <div class={"sprite " + cls} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : "true"} style={{ width: st.w * scale + "px", height: st.h * scale + "px" }}>
+    <div class={"sprite " + cls} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : "true"} style={{ width: st.w * s + "px", height: st.h * s + "px" }}>
       <div
+        key={`${seqKey}-${i}-${a.file}`}
         ref={el}
         class="sprite-frame"
         style={{
-          width: a.w * scale + "px", height: a.h * scale + "px",
-          left: (st.w / 2 - a.foot[0]) * scale + "px", top: (st.h - a.foot[1]) * scale + "px",
-          backgroundImage: `url(assets/cast/${a.file})`, backgroundSize: `${a.w * a.frames * scale}px ${a.h * scale}px`,
-          transform: flip ? "scaleX(-1)" : undefined, transformOrigin: `${a.foot[0] * scale}px 0`,
+          width: a.w * s + "px", height: a.h * s + "px",
+          left: (st.w / 2 - a.foot[0]) * s + "px", top: (st.h - a.foot[1]) * s + "px",
+          backgroundImage: `url(assets/cast/${a.file})`, backgroundSize: `${a.w * a.frames * s}px ${a.h * s}px`,
+          transform: flip ? "scaleX(-1)" : undefined, transformOrigin: `${a.foot[0] * s}px 0`,
         }}
       />
     </div>

@@ -63,8 +63,8 @@ export function PickGoal() {
         <div class="routes mine">{ownRoutes.map((r) => <RouteCard r={r} p={p} wide />)}</div>
       </section>
       <section style={{ marginTop: "2rem" }}>
-        <h2>推荐远征 <DevTag /></h2>
-        <p class="small muted">按 2025 年开发者调查里人数较多的工作方向挑选，每条路线要学的技能对照了这个方向公开的学习路线图（依据见每条的“关于这条路线”）。要等路线上每一站的课都按零基础和覆盖面两条标准写好，才开放。</p>
+        <h2>推荐远征{recommendedRoutes.some((r) => !playable(r)) && <> <DevTag /></>}</h2>
+        <p class="small muted">按 2025 年开发者调查里人数较多的工作方向挑选，每条路线要学的技能对照了这个方向公开的学习路线图（依据见每条的“关于这条路线”）。{recommendedRoutes.some((r) => !playable(r)) && "要等路线上每一站的课都按零基础和覆盖面两条标准写好，才开放。"}</p>
         <div class="routes">{recommendedRoutes.map((r) => <RouteCard r={r} p={p} />)}</div>
       </section>
       <section style={{ marginTop: "2rem" }}>
@@ -132,7 +132,7 @@ function GoalPicker({ p }) {
             </>
           ) : (
             <div class="center">
-              <Sprite who="black" action="idle" scale={2} />
+              <Sprite who="black" action="think" scale={2} />
               <p class="small muted">从左边选一个技能，看看要走哪些站。</p>
             </div>
           )}

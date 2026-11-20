@@ -25,6 +25,9 @@ export const LAB = [
   ] },
   { group: "概率与机器学习", items: [
     { name: "sampler", title: "大数定律", try: "抽得越多，频率越接近理论概率吗？", params: { dist: "twoDice" } },
+    { name: "kmeans", title: "k-means 聚类", try: "一步步看中心怎样移到三团点的中间。", params: { dataset: "blobs3", k: 3 } },
+    { name: "neuron", title: "一个神经元", try: "调出 AND；再试试 XOR——为什么怎么调都差一个点？", params: { gate: "xor" } },
+    { name: "mlp", title: "小小神经网络", try: "隐藏层为 0 时只能画直线；加到 4–6 个 tanh 神经元再训练。", params: { dataset: "circle", hidden: 0, epochs: 400, lr: 1 } },
   ] },
   { group: "计算机组成", items: [
     { name: "bits", title: "位与补码", try: "拨出 −1、−128、127；看同一串位按有符号/无符号读的差别。", params: { bits: 8, signed: true, start: 0 } },
@@ -47,14 +50,6 @@ export const LAB = [
     { name: "threads", title: "你来当调度器", try: "两个线程各把 x 加 1。你能让最后 x 等于 1 吗？", params: RACE },
     { name: "replace", title: "页面置换", try: "Belady 找到的引用串，FIFO、3 个页框：缺页 9 次。同一串给 4 个页框，FIFO 反而缺页 10 次。", params: { frames: 3, refs: [1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5], policy: "FIFO" } },
   ] },
-];
-// Entries whose lessons were archived on 2026-11-08 (archive/template-2026-11-08: A.2.1, A.2.3).
-// The sims stay in the game; put the entries back under LAB in "概率与机器学习" when rewritten lessons
-// use them again. (2D descent went back with M.1.4.1; sampler went back with M.6.1.)
-export const WAITING = [
-  { name: "neuron", title: "一个神经元", try: "调出 AND；再试试 XOR——为什么怎么调都差一个点？", params: { gate: "xor" } },
-  { name: "mlp", title: "小小神经网络", try: "隐藏层为 0 时只能画直线；加到 4–6 个 tanh 神经元再训练。", params: { dataset: "circle", hidden: 0, epochs: 400, lr: 1 } },
-  { name: "kmeans", title: "k-means 聚类", try: "一步步看中心怎样移到三团点的中间。", params: { dataset: "blobs3", k: 3 } },
 ];
 const ENTRIES = LAB.flatMap((g) => g.items.map((it) => ({ ...it, group: g.group, key: simKey(it.name, it.params) })));
 

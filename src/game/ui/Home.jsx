@@ -50,7 +50,7 @@ export function Home() {
           </div>
         </div>
         <div class="mentors" aria-hidden="true">
-          <Sprite who="black" action="idle" scale={2} />
+          <Sprite who="black" action="read" scale={2} />
           <Sprite who="blue" action="wave" then="idle" scale={2} flip />
         </div>
       </section>

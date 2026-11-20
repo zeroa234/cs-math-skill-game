@@ -66,7 +66,7 @@ export function Profile() {
         </details>
         {HAS_CAST && <details class="credits small">
           <summary>角色来源</summary>
-          <p class="muted">两位导师{CAST.blue.name}和{CAST.black.name}是鲸鱼娘，角色设计作者 ZipZipPipe，采用 <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener">CC BY-NC 4.0</a>（署名-非商业性使用）。游戏里的改动：姐姐的立绘去掉了背景；妹妹是在原设计上衍生的黑色女仆版；两人的像素小人是照设定重做的方块小人，眼睛放大了一些，长裙改成了短裙。</p>
+          <p class="muted">两位导师{CAST.blue.name}和{CAST.black.name}是鲸鱼娘，角色设计作者 ZipZipPipe，采用 <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener">CC BY-NC 4.0</a>（署名-非商业性使用）。游戏里的改动：姐姐的立绘去掉了背景；妹妹是在原设计上衍生的黑色女仆版；两人的 Q 版像素精灵是照立绘重绘的高清像素版。</p>
         </details>}
       </section>
       <section class="card">

@@ -355,3 +355,38 @@ test("font preference defaults, cycles and survives save migration", () => {
   assert.equal(migrate({ v: 2 }).settings.font, "pixel");
   assert.equal(migrate({ v: 2, settings: { font: "sans" } }).settings.font, "sans");
 });
+
+test("v3 import clears rewritten AI route skills while keeping XP, streaks, achievements and other skills", () => {
+  const at = "2026-11-07T00:00:00.000Z";
+  const p = emptyProgress(new Date(at));
+  p.v = 3;
+  p.xp = 450;
+  p.days["2026-11-07"] = 450;
+  p.achievements["first-skill"] = at;
+  for (const id of ["M.6.2", "M.6.2.2", "A.2.1", "A.2.3", "A.4.1"]) {
+    p.skills[id] = { lit: at, boss: { at, graded: true, auto: 1 } };
+    p.lessons[`${id}/old-lesson`] = { done: at, stars: 3, best: 1, attempts: 1 };
+    p.cards[`${id}/old-lesson/old-item`] = { reps: 3, stability: 40 };
+  }
+  p.skills["C.1.1"] = { lit: at, boss: { at, graded: true, auto: 1 } };
+  p.lessons["C.1.1/real-lesson"] = { done: at, stars: 3, best: 1, attempts: 1 };
+  p.cards["C.1.1/real-lesson/real-item"] = { reps: 2, stability: 12 };
+
+  const store = createStore(memoryStorage());
+  store.importJson(JSON.stringify({ app: "cs-math-skill-game", progress: p }));
+  const got = store.get();
+  assert.equal(got.v, VERSION);
+  assert.equal(p.v, 3, "migration leaves source save object untouched");
+  assert.equal(p.skills["M.6.2"].lit, at, "migration leaves source skills untouched");
+  assert.equal(got.xp, 450);
+  assert.deepEqual(got.days, { "2026-11-07": 450 });
+  assert.equal(got.achievements["first-skill"], at);
+  for (const id of ["M.6.2", "M.6.2.2", "A.2.1", "A.2.3", "A.4.1"]) {
+    assert.equal(got.skills[id], undefined);
+    assert.equal(got.lessons[`${id}/old-lesson`], undefined);
+    assert.equal(got.cards[`${id}/old-lesson/old-item`], undefined);
+  }
+  assert.deepEqual(got.skills["C.1.1"], p.skills["C.1.1"]);
+  assert.deepEqual(got.lessons["C.1.1/real-lesson"], p.lessons["C.1.1/real-lesson"]);
+  assert.deepEqual(got.cards["C.1.1/real-lesson/real-item"], p.cards["C.1.1/real-lesson/real-item"]);
+});

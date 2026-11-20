@@ -42,7 +42,9 @@ function Celebration({ skill, lesson, chapter, summary }) {
     play("fanfare");
     const ts = Array.from({ length: summary.stars }, (_, i) => setTimeout(() => play("star"), 650 + i * 380));
     if (summary.stars >= 2 && !store.get().settings.reduceMotion) ts.push(setTimeout(() => confetti({ particleCount: 110, spread: 75, origin: { y: 0.65 }, disableForReducedMotion: true }), 650 + summary.stars * 380));
-    return () => ts.forEach(clearTimeout);
+    // Leaving early ("下一课" while it still falls) must also clear the confetti canvas: it sits fixed on
+    // top of every page (z-index 100) and otherwise keeps falling, or hangs, over the next lesson.
+    return () => { ts.forEach(clearTimeout); confetti.reset(); };
   }, []);
   return (
     <div class="celebrate pixel-bg" style={{ backgroundImage: `url(${artFor(route)})` }}>

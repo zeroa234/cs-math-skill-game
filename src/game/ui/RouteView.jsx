@@ -132,7 +132,7 @@ function Level({ dx, sid, st, p, c, k, boss, cur, who }) {
         </div>
       )}
       <a class={cls} href={open ? to : undefined} role="link" aria-disabled={!open} aria-label={name} title={name} onClick={onClick} tabIndex={0}>{icon}</a>
-      {cur && <div class={"mascot " + (dx >= 0 ? "left" : "right")}><Sprite who={who} action="idle" scale={2} flip={dx < 0} /></div>}
+      {cur && <div class={"mascot " + (dx >= 0 ? "left" : "right")}><Sprite who={who} action="wave" then="idle" scale={2} flip={dx < 0} /></div>}
       {lesson && done && <span class="lv-stars" aria-hidden="true">{[0, 1, 2].map((i) => <Icon name="star" class={i < stars ? "on" : "off"} />)}</span>}
       {!cur && <span class="lv-label" aria-hidden="true">{title.length > 12 ? title.slice(0, 11) + "…" : title}</span>}
     </li>
