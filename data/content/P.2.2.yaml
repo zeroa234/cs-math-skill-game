@@ -99,7 +99,7 @@ terms:
   - term: 作用域
     def: '一个名字在哪些代码里能用；和生命周期是两回事'
   - term: 内存泄漏
-    def: 'malloc 来的内存没 free，指向它的指针又丢了，再也还不回去'
+    def: '动态申请的内存不再使用却未释放，导致持续占用无法回收（如 C 中 malloc 后忘记 free）'
   - term: 悬垂指针
     def: '指向已经收回的内存的指针（函数已返回、或已 free），再用它是未定义行为'
   - term: 符号表
@@ -137,7 +137,7 @@ terms:
   - term: 返回地址
     def: 'call 压到栈上的“回来以后接着执行哪条指令”的地址，ret 时弹出'
   - term: 链表
-    def: '每个节点存着下一个节点地址的结构，节点各自 malloc，可以不挨着'
+    def: '每个节点存有数据和下一个节点地址的结构，节点在内存中可以不连续存放'
   - term: 分配器
     def: 'malloc 和 free 背后的代码：把堆切成块交出去、收回来，并在块头里记账'
 
@@ -1269,13 +1269,13 @@ lessons:
 
             最后 a、b 各是多少？
           reveal:
-            - title: 第 1 步
+            - title: 第 1 步：让指针 p 指向 a
               body: "`int *p = &a;`：p 指向 a。"
-            - title: 第 2 步
+            - title: 第 2 步：通过 *p 修改 a 的值
               body: "`*p = 10;`：把 10 放进 p 指向的变量，a 变成 10。"
-            - title: 第 3 步
+            - title: 第 3 步：改指针本身，让 p 指向 b
               body: "`p = &b;`：前面没有 *，改的是 p 自己：p 现在指向 b。a 不受影响，还是 10。"
-            - title: 第 4 步
+            - title: 第 4 步：通过 *p 修改 b 的值
               body: "`*p = 20;`：p 指向 b，b 变成 20。最后 a = 10，b = 20。"
       - item:
           id: retarget
@@ -1417,13 +1417,13 @@ lessons:
 
             两行分别显示什么？
           reveal:
-            - title: 第 1 步
+            - title: 第 1 步：指针指向数组首元素
               body: p = a，p 指向 a[0]，也就是 5。
-            - title: 第 2 步
+            - title: 第 2 步：前移两格读 a[2]
               body: p = p + 2，p 指向 a[2]。*p 是 4，第一行显示 4。
-            - title: 第 3 步
+            - title: 第 3 步：后退一格读 a[1]
               body: p = p - 1，p 指向 a[1]，*p 是 1。
-            - title: 第 4 步
+            - title: 第 4 步：偏移加 2 读 a[3] 并求和
               body: p + 2 指向 a[3]，*(p + 2) 是 2。1 + 2 = 3，第二行显示 3。
       - item:
           id: ptr-walk
@@ -2128,13 +2128,13 @@ lessons:
 
             一步步看栈上有哪些栈帧。
           reveal:
-            - title: 第 1 步
+            - title: 第 1 步：进入 main，压入首个栈帧
               body: main 开始。栈上只有 main 的栈帧，里面有 a。
-            - title: 第 2 步
+            - title: 第 2 步：main 调用 f，压入 f 的栈帧
               body: main 调用 f。f 的栈帧压在上面，里面有 b。
-            - title: 第 3 步
+            - title: 第 3 步：f 调用 g，栈上达到三层
               body: f 调用 g。g 的栈帧再压上去，里面有 c。这时一共 3 个栈帧。
-            - title: 第 4 步
+            - title: 第 4 步：逐层返回，依次回收栈帧
               body: g 结束，它的栈帧收回，c 没了，回到 f。f 再结束，回到 main，只剩 main 的栈帧。
       - item:
           id: frames-in-g
@@ -2321,7 +2321,7 @@ lessons:
           type: choice
           prompt: 用 Ubuntu 上默认设置的 gcc 编译上面的 greet，传进一个很长的名字。最可能看到什么？
           options:
-            - text: '*** stack smashing detected ***: terminated'
+            - text: '* stack smashing detected *: terminated'
               correct: true
             - text: 名字被自动截到 15 个字符
               why: strcpy 不会截断，C 也不检查边界；是 gcc 加的哨兵检查发现了覆盖
@@ -2485,13 +2485,13 @@ lessons:
             }
             ```
           reveal:
-            - title: 第 1 步
+            - title: 第 1 步：在堆上申请 4 个 int 的空间
               body: make_squares(4) 在堆上要了 4 个 int，一共 16 个字节。
-            - title: 第 2 步
+            - title: 第 2 步：把平方数写入堆内存
               body: 循环写入 0、1、4、9。
-            - title: 第 3 步
+            - title: 第 3 步：函数返回后，栈帧回收但堆块保留
               body: return a 时，make_squares 的栈帧收回了（a 这个指针变量没了），但堆上那 16 个字节还在，地址交给了 main 里的 s。
-            - title: 第 4 步
+            - title: 第 4 步：读取结果并释放堆内存
               body: s[3] 是 9，显示 9。用完 free(s)，把内存还回去。
       - item:
           id: squares-sum

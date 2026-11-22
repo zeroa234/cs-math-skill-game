@@ -71,12 +71,36 @@ function copyStatic() {
   fs.copyFileSync(path.join(ROOT, "assets/app-icon/icon-only.png"), path.join(OUT, "assets/icon.png"));
 }
 
+// Bilibili's machine review read 2.3.0's "正相反，共享" as the word below: it ignores the punctuation and
+// spaces between characters. So the check keeps only Chinese characters (it can also join the ends of two
+// neighbouring strings; read the printed context before rewording). The first word is the one the review
+// flagged; the rest are a few common political terms checked the same way so a release does not go to manual
+// review. A light check, not a full list: add a word whenever the review flags one. Innocent text can hit
+// too (两台独立, 无法轮询); reword it anyway, since only 反共 was confirmed and the review may flag the rest.
+const TOY_FLAGGED = ["反共", "反党", "反华", "共匪", "台独", "藏独", "疆独", "港独", "法轮"];
+function checkToyWords() {
+  // esbuild writes non-ASCII text as \uXXXX escapes; decode them first
+  const text = fs.readFileSync(path.join(OUT, "app.js"), "utf8").replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+  const chars = [...text.matchAll(/\p{Script=Han}/gu)];
+  const han = chars.map((m) => m[0]).join("");
+  const hits = [];
+  for (const word of TOY_FLAGGED) for (let i = han.indexOf(word); i >= 0; i = han.indexOf(word, i + 1)) {
+    const at = chars[i].index;
+    hits.push(`${word}: …${text.slice(Math.max(0, at - 30), chars[i + word.length - 1].index + 31)}…`);
+  }
+  if (hits.length) {
+    console.error(`the Toy build reads as words Bilibili's review flags (punctuation ignored); reword these lines in data/content:\n${hits.join("\n")}`);
+    process.exit(1);
+  }
+}
+
 if (process.argv.includes("--watch")) {
   const ctx = await esbuild.context({ ...options, plugins: [...options.plugins, { name: "static", setup: (b) => b.onEnd(copyStatic) }] });
   await ctx.watch();
 } else {
   await esbuild.build(options);
   copyStatic();
+  if (TOY) checkToyWords();
   const size = (f) => (fs.statSync(path.join(OUT, f)).size / 1024).toFixed(0) + " KB";
   console.log(`${path.relative(ROOT, OUT).split(path.sep).join("/")}: app.js ${size("app.js")}${TOY ? "" : ", outlines.js " + size("outlines.js")}${CAST ? "" : ", without the cast"}`);
 }

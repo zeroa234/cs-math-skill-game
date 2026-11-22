@@ -134,6 +134,10 @@ await session("home", DESK, async (p, shot) => {
   await p.goto(url + "#/map");
   await p.waitForSelector(".mcard");
   await shot("6-map");
+  // The map opens at a readable zoom on its top rows, so a card further down (C.2.1 since the tree grew
+  // to CE/EE) can start outside the view: fit everything first so the card is on screen.
+  await p.getByRole("button", { name: "看全部" }).click();
+  await p.waitForTimeout(300);
   // The wheel zooms about the pointer: the map point under the cursor stays under the cursor.
   {
     const card = p.locator('.mcard[href="#/skill/C.2.1"]');

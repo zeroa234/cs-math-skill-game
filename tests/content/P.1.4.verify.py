@@ -24,6 +24,7 @@ def extract_blocks(text: str, lang: str) -> list[str]:
     i = 0
     fence_open = re.compile(rf"^(\s*)```{re.escape(lang)}\s*$")
     fence_close = re.compile(r"^\s*```\s*$")
+    lang_field = re.compile(rf"^(\s*)lang:\s*{re.escape(lang)}\s*$")
     while i < len(lines):
         m = fence_open.match(lines[i])
         if m:
@@ -37,6 +38,31 @@ def extract_blocks(text: str, lang: str) -> list[str]:
                 body.append(line)
                 i += 1
             blocks.append("\n".join(body))
+            i += 1
+            continue
+        ml = lang_field.match(lines[i])
+        if ml and i + 1 < len(lines) and re.match(rf"^{re.escape(ml.group(1))}code:\s*\|[-+]?\s*$", lines[i + 1]):
+            base_indent = len(ml.group(1))
+            i += 2
+            body = []
+            block_indent: int | None = None
+            while i < len(lines):
+                line = lines[i]
+                if line.strip() == "":
+                    body.append("")
+                    i += 1
+                    continue
+                cur_indent = len(line) - len(line.lstrip(" "))
+                if cur_indent <= base_indent:
+                    break
+                if block_indent is None:
+                    block_indent = cur_indent
+                body.append(line[block_indent:] if len(line) >= block_indent else line.lstrip(" "))
+                i += 1
+            while body and body[-1] == "":
+                body.pop()
+            blocks.append("\n".join(body))
+            continue
         i += 1
     return blocks
 

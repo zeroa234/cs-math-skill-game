@@ -4344,9 +4344,9 @@ boss:
     - id: boss-shared
       type: choice
       multi: true
-      prompt: |
-        两个对等线程都运行下面的 work 函数。哪些变量是共享变量（同一份被不止一个线程用到）？
-        ```c
+      prompt: 两个对等线程都运行下面的 work 函数。哪些变量是共享变量（同一份被不止一个线程用到）？
+      lang: c
+      code: |
         int total = 0;
         void *work(void *vargp) {
             int local = 1;
@@ -4357,7 +4357,6 @@ boss:
             total += local;
             return NULL;
         }
-        ```
       options:
         - text: total
           correct: true

@@ -106,7 +106,7 @@ export function SkillView({ id }) {
           <h3>{toy ? "后续技能" : "课程证据"}</h3>
           {!toy && <ul class="evidence-list">
             {skill.courses.map((c) => <li><a href={c.url} target="_blank" rel="noopener">{c.school} · {c.course}</a><blockquote class="small">{c.prereq}</blockquote>{c.content && <div class="small muted">课程内容：{c.content}</div>}</li>)}
-            {(skill.kth || []).map((k) => <li><a href={k.url} target="_blank" rel="noopener">KTH · {k.code} {k.name}（{k.credits} 学分）</a><blockquote class="small">{k.quote}</blockquote><div class="small muted">{k.fit}。{k.needs.length ? "先修与技能树一致：" + k.needs.map((n) => `${n.courses} → ${g.byId.get(n.skill).name}${n.inClosure ? " ✓" : " ✗"}`).join("；") : ""}{k.note ? " " + k.note : ""}（{k.fetched} 读取）</div></li>)}
+            {(skill.kth || []).map((k) => <li><a href={k.url} target="_blank" rel="noopener">KTH · {k.code} {k.name}（{k.credits} 学分）</a><blockquote class="small">{k.quote}</blockquote><div class="small muted">{k.fit}。{k.needs.length ? <>先修与技能树一致：{k.needs.map((n, i) => <>{i ? "；" : ""}{n.courses} → {g.byId.get(n.skill).name} {n.inClosure ? <Icon name="check" label="一致" /> : <Icon name="close" label="缺失" />}</>)}</> : ""}{k.note ? " " + k.note : ""}（{k.fetched} 读取）</div></li>)}
           </ul>}
           {skill.unlocks.length > 0
             ? <>{!toy && <h4>后续技能</h4>}<p>{skill.unlocks.map((u) => <SkillLink id={u} />)}</p></>

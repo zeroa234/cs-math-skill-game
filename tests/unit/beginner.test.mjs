@@ -95,3 +95,18 @@ test("look-up links: first use in questions, not in the defining lesson's cards,
   assert.equal(r2.flow[1].item.options[0].text, "变量", "no links inside option buttons");
   assert.equal(r2.flow[1].item.options[0].why, "变量");
 });
+
+test("B11: catches prose exclamations, hype words, card skill IDs, cross-chapter refs, forbidden options, and choice bold leaks", () => {
+  assert.deepEqual(rules({}, [lesson([{ card: { body: "这一步非常快！" } }, { item: q("a") }, { item: q("b") }])]), ["B11"]);
+  assert.deepEqual(rules({}, [lesson([{ card: { body: "代码里 `x != 0` 和 $5! = 120$ 没问题。" } }, { item: q("a") }, { item: q("b") }])]), [], "code != and math factorial are allowed");
+  assert.deepEqual(rules({}, [lesson([{ card: { body: "结果竟然直接通过了。" } }, { item: q("a") }, { item: q("b") }])]), ["B11"]);
+  assert.deepEqual(rules({}, [lesson([{ card: { body: "在 C.3.2 里我们学过网络协议。" } }, { item: q("a") }, { item: q("b") }])]), ["B11"]);
+  assert.deepEqual(rules({}, [lesson([{ card: { body: "记得上一章讲过的规则。" } }, { item: q("a") }, { item: q("b") }])]), ["B11"]);
+  const badChoice = { id: "c1", type: "choice", prompt: "选哪个？", options: [{ text: "**正确答案**", correct: true }, { text: "干扰项", why: "不对。" }], explain: "选第一个。" };
+  assert.deepEqual(rules({}, [lesson([{ card: { body: "说明。" } }, { item: badChoice }, { item: q("b") }])]), ["B11"]);
+  const forbidChoice = { id: "c2", type: "choice", prompt: "选哪个？", options: [{ text: "方案甲", correct: true }, { text: "以上都不对", why: "不对。" }], explain: "选甲。" };
+  assert.deepEqual(rules({}, [lesson([{ card: { body: "说明。" } }, { item: forbidChoice }, { item: q("b") }])]), ["B11"]);
+  const badGuess = { type: "choice", prompt: "猜一猜？", options: [{ text: "**泄露术语**", correct: true }, { text: "另一个", why: "不对。" }], explain: "因为这样。" };
+  assert.deepEqual(rules({}, [lesson([{ guess: badGuess }, { card: { body: "说明。" } }, { item: q("a") }, { item: q("b") }])]), ["B11"]);
+});
+

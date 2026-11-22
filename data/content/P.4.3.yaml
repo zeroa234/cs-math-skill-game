@@ -611,7 +611,7 @@ lessons:
       - card:
           title: 什么时候画、画到多细
           body: |
-            Cornell CS 5150 提醒新手：别为了画满全部 14 种 UML 图而画图！按“草图（沟通）→ 蓝图（规格）→ 可执行代码”选最省力的程度：
+            Cornell CS 5150 提醒新手：别为了画满全部 14 种 UML 图而画图。按“草图（沟通）→ 蓝图（规格）→ 可执行代码”选最省力的程度：
             - 和队友对齐职责：白板上画 10 分钟类图和关键场景时序图就够了。
             - 复杂状态流转（比如支付状态机）：必须画出完整状态机图防止漏掉非法转换。
             - 简单 getter/setter 和一目了然的小工具函数：直接写代码比画图更快更准。
@@ -807,7 +807,7 @@ lessons:
                 5. 若支付成功：`Payment --> OrderService: ok` → `OrderService -> Inventory: commit(reservation)` → `OrderService --> OrderController: orderId`。
             - title: 第 3 步：失败补偿分支 `[else charge fails]` 与代码模拟
               body: |
-                若支付失败：`Payment --> OrderService: fail` → `OrderService -> Inventory: release(reservation)`（把刚才预留的库存还回去！）→ `OrderService --> OrderController: error`。下面模拟一下状态：
+                若支付失败：`Payment --> OrderService: fail` → `OrderService -> Inventory: release(reservation)`（把刚才预留的库存还回去）→ `OrderService --> OrderController: error`。下面模拟一下状态：
                 ```python
                 class Inventory:
                     def __init__(self, stock):
@@ -930,7 +930,7 @@ lessons:
                 - `(Created, "pay") -> Paid`
                 - `(Created, "cancel") -> Cancelled`
                 - `(Paid, "ship") -> Shipped`
-                其余任何组合（如 `(Shipped, "cancel")`）全部报错拒绝！
+                其余任何组合（如 `(Shipped, "cancel")`）全部报错拒绝。
             - title: 第 2 步：在 Python 里用字典查表实现并运行
               body: |
                 ```python
@@ -1108,7 +1108,7 @@ lessons:
           body: |
             以前是：`ReportGenerator`（高层业务）→ 直接依赖 `sqlite3`（底层细节）。一旦换成 PostgreSQL 或想测纯列表假数据，业务类就得改。
 
-            **依赖倒置（Dependency Inversion）**把箭头反过来：高层定义自己需要的抽象接口（例如 `SalesRepository`），让 `ReportGenerator` 和 `SqliteSalesRepository` **都去依赖这个抽象接口**！
+            **依赖倒置（Dependency Inversion）**把箭头反过来：高层定义自己需要的抽象接口（例如 `SalesRepository`），让 `ReportGenerator` 和 `SqliteSalesRepository` **都去依赖这个抽象接口**。
       - card:
           title: 例题：用依赖注入给 ReportGenerator 换上假仓库
           body: |
@@ -1119,7 +1119,7 @@ lessons:
                 Python 的 `Protocol` 相当于“结构化接口”：不用写 `implements`，只要类里实现了同名方法就算满足契约（空方法体用 `...` 占位，`list[Sale]` 表示元素为 `Sale` 的列表）。业务层只需一句 `all_sales() -> list[Sale]`，完全不提 SQLite。
             - title: 第 2 步：生产实现 vs 测试用的纯数据假仓库 FakeRepo
               body: |
-                `@dataclass` 自动帮 `Sale` 生成 `__init__`。生产环境传 `SqliteSalesRepository("prod.db")`；单元测试传 `FakeRepo([Sale(3), Sale(4)])`，不用建库文件就能毫秒跑完！
+                `@dataclass` 自动帮 `Sale` 生成 `__init__`。生产环境传 `SqliteSalesRepository("prod.db")`；单元测试传 `FakeRepo([Sale(3), Sale(4)])`，不用建库文件就能毫秒跑完。
             - title: 第 3 步：可运行的 Python 测试代码
               body: |
                 ```python
@@ -1317,7 +1317,7 @@ lessons:
             在把查库、算总价、拼 HTML/CSV 塞在一起的 `ReportGenerator` 里，至少有三个团队会来改它：
             1. DBA 换数据库表结构时要改它；
             2. 财务改汇总规则时要改它；
-            3. 产品加新导出格式时还要改它！三条变化线搅在一起，改一处容易撞坏另一处。
+            3. 产品加新导出格式时还要改它。三条变化线搅在一起，改一处容易撞坏另一处。
       - card:
           title: 开闭原则 OCP：扩展开放，修改关闭
           body: |
@@ -1332,7 +1332,7 @@ lessons:
                 - 违背 **DIP**：直接写死 `sqlite3.connect(...)`，业务层死死绑在具体数据库上。
             - title: 第 2 步：把“变化的部分”抽成 Formatter 接口
               body: |
-                把格式化逻辑抽成 `Formatter` 接口，每新增 `PdfFormatter` 只需新建一个类，老的 `ReportGenerator` 一行不动！
+                把格式化逻辑抽成 `Formatter` 接口，每新增 `PdfFormatter` 只需新建一个类，老的 `ReportGenerator` 一行不动。
       - item:
           id: srp-change-reason
           type: choice
@@ -1396,7 +1396,7 @@ lessons:
           id: guess
           type: choice
           prompt: |
-            数学上正方形是一种特殊的矩形。有人让 `Square` 类继承 `Rectangle`，并在 `Square.set_width(w)` 里偷偷把高也一起改成 `w`（否则就不是正方形了）。结果一段接收 `Rectangle` 的测试代码调用 `r.set_width(5); r.set_height(4); assert r.area() == 20`，传进 `Square` 后居然失败了！为什么？
+            数学上正方形是一种特殊的矩形。有人让 `Square` 类继承 `Rectangle`，并在 `Square.set_width(w)` 里偷偷把高也一起改成 `w`（否则就不是正方形了）。结果一段接收 `Rectangle` 的测试代码调用 `r.set_width(5); r.set_height(4); assert r.area() == 20`，传进 `Square` 后居然失败了。为什么？
           options:
             - text: 子类偷偷改掉了父类“改宽不影响高”的行为约定，导致无法安全替换父类
               correct: true
@@ -1405,7 +1405,7 @@ lessons:
             - text: 因为数学上正方形不是矩形
               why: 数学集合概念和程序里的可替换行为契约不是一回事，程序里必须看行为契约能不能兼容
           explain: |
-            这个著名的“正方形-矩形悖论”说明：**不能只靠现实名词感觉“A 是一种 B”就用继承**！子类的行为必须遵守父类定下的契约。
+            这个著名的“正方形-矩形悖论”说明：**不能只靠现实名词感觉“A 是一种 B”就用继承**。子类的行为必须遵守父类定下的契约。
       - card:
           title: 里氏替换原则 LSP：子类不能破坏父类承诺
           body: |
@@ -1444,7 +1444,7 @@ lessons:
           reveal:
             - title: 第 1 步：胖接口的麻烦
               body: |
-                一台只有打印功能的廉价打印机去实现 `SmartMachine` 时，被迫写出空实现或抛异常的 `scan()` 和 `fax()`——顺带还常触发违背 LSP！
+                一台只有打印功能的廉价打印机去实现 `SmartMachine` 时，被迫写出空实现或抛异常的 `scan()` 和 `fax()`——顺带还常触发违背 LSP。
             - title: 第 2 步：拆成小接口按需组合
               body: |
                 `SimplePrinter` 只实现 `Printer`；多功能一体机同时实现 `Printer` 和 `Scanner`；需要打印的模块也只依赖 `Printer`，不会因为 `Fax` 接口改签名而被迫跟着重新编译或修改。
@@ -1600,7 +1600,7 @@ lessons:
       - card:
           title: 抽象工厂 Abstract Factory 与可运行示例
           body: |
-            **抽象工厂（Abstract Factory）**比工厂方法更进一步：它一次提供**一整族**创建方法（例如 `create_button()` + `create_checkbox()`），确保拿出来的组件同属一套风格（Mac 风格或 Win 风格），绝不会混搭错！
+            **抽象工厂（Abstract Factory）**比工厂方法更进一步：它一次提供**一整族**创建方法（例如 `create_button()` + `create_checkbox()`），确保拿出来的组件同属一套风格（Mac 风格或 Win 风格），绝不会混搭错。
 
             ```python
             class MacButton:
@@ -1695,11 +1695,11 @@ lessons:
           title: 建造者 Builder与原型 Prototype
           body: |
             - **建造者（Builder）**：把复杂对象的构造过程拆成链式或分步方法（如 `.timeout(5).retry(3).header(...)`），最后调 `.build()` 统一校验并生成不可变成品，避免构造函数“参数爆炸”。
-            - **原型模式（Prototype）**：当新建一个对象初始化成本很高，或者只和已有模板差一个字段时，直接调用对象自带的 `clone()` 拷贝自己再微调，调用方甚至不用知道它的具体子类！
+            - **原型模式（Prototype）**：当新建一个对象初始化成本很高，或者只和已有模板差一个字段时，直接调用对象自带的 `clone()` 拷贝自己再微调，调用方甚至不用知道它的具体子类。
       - card:
           title: 单例 Singleton 的用处与测试陷阱
           body: |
-            **单例模式（Singleton）**保证某类全局最多只有一个实例（例如共享硬件驱动句柄），并提供全局访问点。但它本质上就是披着面向对象外衣的全局变量，会导致测试用例之间互相串改状态、也难用依赖注入替换！多数时候，**只建一个实例并通过依赖注入传入**比硬写全局单例更好测。
+            **单例模式（Singleton）**保证某类全局最多只有一个实例（例如共享硬件驱动句柄），并提供全局访问点。但它本质上就是披着面向对象外衣的全局变量，会导致测试用例之间互相串改状态、也难用依赖注入替换。多数时候，**只建一个实例并通过依赖注入传入**比硬写全局单例更好测。
 
             ```python
             class RequestBuilder:
@@ -1790,9 +1790,9 @@ lessons:
       - card:
           title: 桥接模式 Bridge：把两个独立维度拆开用组合连接
           body: |
-            如果有 3 种遥控器（基础、触屏、语音）× 4 种设备（电视、空调、音响、风扇），全靠继承要写 `3 × 4 = 12` 个子类！
+            如果有 3 种遥控器（基础、触屏、语音）× 4 种设备（电视、空调、音响、风扇），全靠继承要写 `3 × 4 = 12` 个子类。
 
-            **桥接模式（Bridge）**把“遥控器层次”和“设备实现层次”彻底拆成两棵小树，在 `Remote` 里放一个 `self.device` 引用，用**组合**架一座桥连起来——只需 `3 + 4 = 7` 个类就能任意配对！
+            **桥接模式（Bridge）**把“遥控器层次”和“设备实现层次”彻底拆成两棵小树，在 `Remote` 里放一个 `self.device` 引用，用**组合**架一座桥连起来——只需 `3 + 4 = 7` 个类就能任意配对。
           reveal:
             - title: 第 1 步：为什么叫“桥”？
               body: |
@@ -1903,7 +1903,7 @@ lessons:
           body: |
             **组合模式（Composite）**让“单个叶子对象”（如 `File`）和“装了一堆子节点的容器”（如 `Folder`）实现**同一个组件接口**（如 `size()`）。
 
-            `File.size()` 直接返回自身大小；`Folder.size()` 只需累加所有子节点的 `child.size()`——不管子节点是文件还是更深的子文件夹，调用方完全不用区分！
+            `File.size()` 直接返回自身大小；`Folder.size()` 只需累加所有子节点的 `child.size()`——不管子节点是文件还是更深的子文件夹，调用方完全不用区分。
 
             ```python
             class File:
@@ -1928,10 +1928,10 @@ lessons:
       - card:
           title: 享元模式 Flyweight：抽出共有状态省空间
           body: |
-            游戏森林里有 10 万棵树：每棵树的坐标 `(x, y)` 不同，但同一树种的 3D 网格和贴图纹理（几兆字节）一模一样！如果每棵树都各自拷贝一份贴图，电脑早卡爆了。
+            游戏森林里有 10 万棵树：每棵树的坐标 `(x, y)` 不同，但同一树种的 3D 网格和贴图纹理（几兆字节）一模一样。如果每棵树都各自拷贝一份贴图，电脑早卡爆了。
 
             **享元模式（Flyweight）**把状态拆成两半：
-            - **内部状态（可共享、不可变）**：树种名称、网格、贴图——全森林只需存几份享元对象复用！
+            - **内部状态（可共享、不可变）**：树种名称、网格、贴图——全森林只需存几份享元对象复用。
             - **外部状态（随实例变化）**：每棵树自己的 `(x, y)` 坐标——传给享元的渲染方法即可。
       - item:
           id: flyweight-state-match
@@ -2027,7 +2027,7 @@ lessons:
                 ```
             - title: 第 3 步：同时注入 repo 和 formatter，新增 PDF 只需改哪里？
               body: |
-                若把之前的仓库注入和这里的格式策略合在一起，写成 `ReportGenerator(repo, formatter)`，只需新建实现 `format(total)` 的 `PdfFormatter` 类并在组装处传入；`ReportGenerator`、`HtmlFormatter`、`CsvFormatter` 一行都不用改！
+                若把之前的仓库注入和这里的格式策略合在一起，写成 `ReportGenerator(repo, formatter)`，只需新建实现 `format(total)` 的 `PdfFormatter` 类并在组装处传入；`ReportGenerator`、`HtmlFormatter`、`CsvFormatter` 一行都不用改。
       - item:
           id: strategy-pdf-change
           type: choice
@@ -2214,7 +2214,7 @@ lessons:
       - card:
           title: 命令模式 Command与责任链 Chain of Responsibility
           body: |
-            - **命令模式（Command）**：把一次请求封成包含 `execute()` 和 `undo()` 的小对象。把执行过的命令压进一个栈，就能轻松实现排队、重做和 Ctrl+Z 撤销！
+            - **命令模式（Command）**：把一次请求封成包含 `execute()` 和 `undo()` 的小对象。把执行过的命令压进一个栈，就能轻松实现排队、重做和 Ctrl+Z 撤销。
             - **责任链（Chain of Responsibility）**：把多个处理器连成一串，每个处理器看自己能不能接：能处理就消化掉，处理不了（或顺带检查完）再传给 `next_handler`，发请求的调用方不用知道到底由链上谁接了这单。
 
             ```python
@@ -2402,7 +2402,7 @@ lessons:
             - ["在不破坏对象私有封装的前提下保存并还原历史快照", "备忘录模式（Memento）"]
             - ["把用户操作封装成带 execute/undo 的动作对象", "命令模式（Command）"]
           explain: |
-            三者常一起出现：命令模式需要撤销某步复杂操作时，甚至可以顺便向目标对象要一个备忘录快照！
+            三者常一起出现：命令模式需要撤销某步复杂操作时，甚至可以顺便向目标对象要一个备忘录快照。
 
   - id: behavioral-iterator-mediator-visitor
     chapter: 模式与重构
@@ -2622,7 +2622,7 @@ lessons:
           body: |
             - **简化条件表达式**：用**卫语句（Guard Clause）**提前 `return` 消除多层嵌套 `if`；把反复按类型码分支的 `if/elif` 变成**用多态取代条件表达式**。
             - **简化方法调用**：把太长的参数列表合并成**参数对象**；如果函数既改状态又返回值让人迷惑，把它**拆成查询和修改两个独立方法**。
-            - **处理继承与泛化**：两个兄弟类有重复方法就**上移方法**到父类；如果继承把无关方法硬塞给了子类，就改用**以委托取代继承**！
+            - **处理继承与泛化**：两个兄弟类有重复方法就**上移方法**到父类；如果继承把无关方法硬塞给了子类，就改用**以委托取代继承**。
           reveal:
             - title: 第 1 步：先把复杂逻辑装进小函数
               body: |
@@ -2827,4 +2827,4 @@ boss:
         - text: 只要画出类图就永远不再随需求变化调整职责分配
           why: 设计要在验证和演化中不断修正，而不是画完就冻结一切反思
       explain: |
-        实体/值对象/聚合/限界上下文守住模型清晰，设计理由留住决策上下文。祝贺通关《软件设计与面向对象分析设计》！
+        实体/值对象/聚合/限界上下文守住模型清晰，设计理由留住决策上下文。祝贺通关《软件设计与面向对象分析设计》。

@@ -24,6 +24,9 @@
 //     order or a match of n, 0 for typed answers and sims) is at most GUESS_LIMIT.
 //  B10 a term's look-up definition is a sentence of its own: it does not start with punctuation or 是
 //     (definitions cut out of a card's sentence read "，忙等直到锁可用" in the look-up box).
+//  B11 calm tone & fair choices (docs/collaboration.md & docs/content-authoring.md): no full-width
+//     exclamation marks or hype words in prose, no internal skill IDs or cross-chapter refs in cards,
+//     no "all/none of the above" options, and no bold-only answer giveaways in choices or guesses.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -76,6 +79,11 @@ export function guessPassChance(items) {
 }
 const SKIPPED = ["显然", "易知", "易得", "不难看出", "不难发现", "同理可得", "众所周知", "简单地说就是"];
 const SELF = ["自评", "你掌握得怎么样", "全做对了", "我已经会了", "如实评价"];
+const HYPE = /竟然|神奇|惊人|简直|奇迹|超简单|太棒了|神仙|鬼打墙|惊艳|震撼|不可思议|宛如魔法|天方夜谭|外星人|全宇宙|祈祷/;
+const SKILL_ID_REF = /\b[ACDFHMPSV]\.\d+\.\d+(?:\.\d+)?\b/;
+const CROSS_CHAPTER_REF = /上一章|下一章|前一章|后一章|上一节|前一节|后一节|上节课|下节课|前面那章|后面那章/;
+const FORBIDDEN_OPT = /以上都对|以上都不对|以上皆|两者都不对应|两者都对|两者都不对|全都不对|全都正确|都不正确|全部正确/;
+const hasBold = (t) => /\*\*[^*]+\*\*/.test(String(t || "").replace(/`[^`\n]*`/g, " ").replace(/\$[^$\n]*\$/g, " "));
 
 // Prose only: code blocks, inline code, math and look-up links' definitions are not scanned.
 export const prose = (t) => String(t || "")
@@ -107,6 +115,29 @@ export function beginnerIssues(pack, lessons, { inherited = new Set(), coreChapt
     }
     for (const p of SKIPPED) if (t.includes(p)) out.push(`B5 ${where}: "${p}" skips a step for a beginner — write the step out`);
     for (const p of SELF) if (String(text || "").includes(p)) out.push(`B6 ${where}: self-assessment ("${p}") is not allowed`);
+    if (t.includes("！")) out.push(`B11 ${where}: prose uses "！" — use declarative sentences without exclamation marks`);
+    const hm = t.match(HYPE);
+    if (hm) out.push(`B11 ${where}: hype/exaggerated wording ("${hm[0]}") — keep a calm, factual tone`);
+  };
+  const checkCardRefs = (text, where) => {
+    const t = prose(text);
+    const sm = t.match(SKILL_ID_REF);
+    if (sm) out.push(`B11 ${where}: card exposes internal skill ID "${sm[0]}" — refer to the topic by name instead`);
+    const cm = t.match(CROSS_CHAPTER_REF);
+    if (cm) out.push(`B11 ${where}: card uses cross-chapter reference "${cm[0]}" — chapters may reorder`);
+  };
+  const checkChoice = (it, where, isGuess = false) => {
+    if (!it?.options) return;
+    for (const o of it.options) {
+      const fm = prose(o.text).match(FORBIDDEN_OPT);
+      if (fm) out.push(`B11 ${where}: forbidden option wording ("${fm[0]}")`);
+      if (isGuess && hasBold(o.text)) out.push(`B11 ${where}: bold highlight inside guess option spoils the term/answer`);
+    }
+    if (!isGuess && !it.multi) {
+      const cb = it.options.filter((o) => o.correct && hasBold(o.text)).length;
+      const wb = it.options.filter((o) => !o.correct && hasBold(o.text)).length;
+      if (cb > 0 && wb === 0) out.push(`B11 ${where}: only the correct choice option uses **bold** highlight — remove bold from options`);
+    }
   };
   // here: terms the current lesson defines. A lesson may show the keyword it is teaching before the card
   // that names the idea (the opening guess predicts it, PRIMM; "if：条件成立才做" comes before 分支); what
@@ -133,7 +164,7 @@ export function beginnerIssues(pack, lessons, { inherited = new Set(), coreChapt
         const c = s.card;
         const texts = [c.body, ...(c.reveal || []).flatMap((r) => [r.title, r.body])];
         for (const d of texts.flatMap(definedIn)) for (const w of JARGON) if (d.startsWith(w) && !known.has(w)) { known.add(w); definedSomewhere.add(w); }
-        for (const t of [c.title, ...texts]) use(t, where);
+        for (const t of [c.title, ...texts]) { use(t, where); checkCardRefs(t, where); }
         useCode(cardCode(c), where, lessonTeaches);
         const chars = [...tableless(prose(c.body)).replace(/[\s*#>\-|]/g, "")].length;
         if (chars > CARD_CHARS) out.push(`B3 ${where}: card "${c.title || ""}" has ${chars} characters of prose (limit ${CARD_CHARS}) — split it into two cards with a question between`);
@@ -142,12 +173,13 @@ export function beginnerIssues(pack, lessons, { inherited = new Set(), coreChapt
       } else {
         cardsInRow = 0;
         for (const t of itemTexts(s.item)) use(t, where);
+        checkChoice(s.item, where, s.kind === "guess");
         useCode(itemCode(s.item), where, lessonTeaches);
         if (s.kind === "item" && s.item.type === "sim" && !demoSeen) out.push(`B4 ${where}: graded sim "${s.item.id}" comes before any demo or worked example in this lesson`);
       }
     });
   }
-  for (const it of pack.boss?.items || []) { for (const t of itemTexts(it)) use(t, `boss/${it.id}`); useCode(itemCode(it), `boss/${it.id}`); }
+  for (const it of pack.boss?.items || []) { for (const t of itemTexts(it)) use(t, `boss/${it.id}`); checkChoice(it, `boss/${it.id}`, false); useCode(itemCode(it), `boss/${it.id}`); }
   for (const w of definedSomewhere) if (!listed.has(w)) out.push(`B1 terms: "${w}" is defined in a card but missing from terms (the look-up button needs it)`);
   const bolded = lessons.flatMap((l) => l.flow.filter((s) => s.card).flatMap((s) => [s.card.body, ...(s.card.reveal || []).map((r) => r.body)].flatMap(definedIn)));
   for (const t of pack.terms || []) if (!bolded.some((d) => d.startsWith(t.term))) out.push(`B1 terms: "${t.term}" is never defined as **${t.term}** in a card`);

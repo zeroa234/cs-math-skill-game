@@ -1,6 +1,6 @@
 // 营地 (home): one big "continue" for the campaign you are on, today's numbers, reviews that are due,
 // and what else is open. Choosing or changing a campaign happens on 选远征 (#/pick).
-import { g, packs, store, useProgress, routeNext, dueCards, stateOf, activeRoute } from "../app/state.js";
+import { g, packs, store, useProgress, routeNext, dueCards, stateOf, activeRoute, customGoalsOpen } from "../app/state.js";
 import { href } from "../app/router.js";
 import { levelOf, streak } from "../core/progress.js";
 import { nextUp } from "../core/rules.js";
@@ -60,7 +60,7 @@ export function Home() {
           <div class="unit-icon" aria-hidden="true">{st ? act.no : <Icon name="sparkle" size={36} />}</div>
           <div>
             <div class="small muted">{active.name}{st ? ` · 第 ${active.stops.indexOf(st.skill.id) + 1} 站` : ""}</div>
-            {st ? <><h2>{st.skill.name}</h2><div>{act.label}</div></> : <><h2>这条远征完成了！</h2><div>去换一条远征，或者自己定一个新目标。</div></>}
+            {st ? <><h2>{st.skill.name}</h2><div>{act.label}</div></> : <><h2>这条远征完成了！</h2><div>{customGoalsOpen ? "去换一条远征，或者自己定一个新目标。" : "去换一条远征继续探索。"}</div></>}
             <Bar value={lit / active.stops.length} label="远征进度" />
             <div class="small muted">已点亮 {lit} / {active.stops.length} 站</div>
             <div class="row">

@@ -4,7 +4,9 @@
 import { g } from "./state.js";
 
 const BG = "assets/bg/";
-const LANE_ART = { M1: "lane-math", M2: "lane-math", M3: "lane-math", F: "lane-f", P: "lane-p", C: "lane-c", D: "lane-d", A: "lane-a", S: "lane-s", H: "lane-h", V: "lane-v", I: "lane-i" };
+// N (physics) and E (electronic & electrical engineering) joined the tree on 2026-11-22 and have no picture of
+// their own yet: they borrow the nearest lane's (placeholder until new art is drawn).
+const LANE_ART = { M1: "lane-math", M2: "lane-math", M3: "lane-math", N: "lane-math", F: "lane-f", P: "lane-p", C: "lane-c", D: "lane-d", A: "lane-a", S: "lane-s", H: "lane-h", E: "lane-h", V: "lane-v", I: "lane-i" };
 export const TITLE_ART = BG + "title.png";
 
 export function artFor(route) {

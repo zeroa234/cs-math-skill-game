@@ -83,7 +83,7 @@ export function Profile() {
         </div>
       </section>
       <section class="small muted">
-        <p>数据来自 cs-math-skill-tree（{g.tree.meta.builtFrom}）：游戏保留 {g.tree.meta.skills} 个技能、{g.tree.meta.requiredEdges} 条“要先学”的连线，包含“数据中心与高性能网络”；筛去了“交叉应用与前沿专题”。</p>
+        <p>数据来自 CS × CE × EE 技能树（cs-math-skill-tree，{g.tree.meta.builtFrom}）：游戏保留 {g.tree.meta.skills} 个技能、{g.tree.meta.requiredEdges} 条“要先学”的连线，包含计算机、电子与电气方向；筛去了“交叉应用与前沿专题”。</p>
       </section>
       <UpdateCheck />
     </div>

@@ -86,7 +86,7 @@ lessons:
             3. 浏览器发送 **HTTP** 请求（如 `GET /items HTTP/1.1`）；
             4. 服务器运行后端程序，拼出 HTML 文档并返回状态行与响应正文；
             5. 浏览器解析 HTML，发现里面还引用了样式表、脚本与图片，继续联网请求这些子资源；
-            6. 浏览器把样式套在结构上算出位置尺寸，最终把像素画到屏幕！
+            6. 浏览器把样式套在结构上算出位置尺寸，最终把像素画到屏幕。
       - item:
           id: q-url-trip-order
           type: order
@@ -149,7 +149,7 @@ lessons:
       - guess:
           id: guess
           type: choice
-          prompt: 某网站把“删除编号 5 的文章”写成了 `<a href="/delete?id=5">删除</a>`（点一下就发 `GET` 请求删数据）。后来搜索引擎爬虫顺着网页上的跳转点抓了一遍，结果全站文章被瞬间清空！问题根源在哪？
+          prompt: 某网站把“删除编号 5 的文章”写成了 `<a href="/delete?id=5">删除</a>`（点一下就发 `GET` 请求删数据）。后来搜索引擎爬虫顺着网页上的跳转点抓了一遍，结果全站文章被瞬间清空。问题根源在哪？
           options:
             - text: "`GET` 语义约定只用来“安全读取”，绝对不应该产生删除或扣款等修改副作用；破坏性操作该用 `POST` 或 `DELETE`"
               correct: true
@@ -172,7 +172,7 @@ lessons:
             - `2xx` 成功：`200` 正常返回、`201` 新建成功、`204` 成功但无正文；
             - `3xx` 重定向/缓存：`301` 永久搬家到新 URL、`304` 资源没改过请直接用本地缓存；
             - `4xx` 客户端出错：`400` 参数格式不合法、`401` 还没登录认证、`403` 已登录但没权限、`404` 找不到路径；
-            - `5xx` 服务器自己崩溃：`500` 后端代码抛了未捕获异常！
+            - `5xx` 服务器自己崩溃：`500` 后端代码抛了未捕获异常。
       - item:
           id: q-status-match
           type: match
@@ -182,14 +182,14 @@ lessons:
             - ["`304 Not Modified`", "条件请求发现资源未变动，通知浏览器直接复用本地缓存省去重传正文"]
             - ["`401 Unauthorized`", "当前请求缺少有效登录身份认证，请先登录"]
             - ["`403 Forbidden`", "服务器知道你是谁，但你没有权限访问或操作这项资源"]
-          explain: 最常混淆的是 `401`（你是谁？未认证）与 `403`（我知道你是张三，但你不是管理员不准进！），以及 `304`（不是错误，而是省流量的缓存命中）。
+          explain: 最常混淆的是 `401`（你是谁？未认证）与 `403`（我知道你是张三，但你不是管理员不准进），以及 `304`（不是错误，而是省流量的缓存命中）。
       - card:
           title: 例题：给前端页面设计一套 REST JSON 接口与错误码
           body: |
             假设你开发一个待办事项后台，前端通过 JSON 文本收发数据（JSON 键必须双引号，格式酷似 Python 字典与列表）。设计以下三个操作应该用什么动词、路径和状态码？
           reveal:
             - title: 第 1 步：创建新任务与前端少填了标题时
-              body: '前端发 `POST /api/todos` 并带 JSON 正文 `{"title": "写作业"}`；后端存好后返回 **`201`** 与带新编号的对象。如果前端传了空字符串 `{"title": "  "}`，校验失败，后端应返回 **`400`**（客户端参数错误）和说明 JSON `{"code": "invalid_title"}`，而不是返回 `200` 或炸成 `500`！'
+              body: '前端发 `POST /api/todos` 并带 JSON 正文 `{"title": "写作业"}`；后端存好后返回 **`201`** 与带新编号的对象。如果前端传了空字符串 `{"title": "  "}`，校验失败，后端应返回 **`400`**（客户端参数错误）和说明 JSON `{"code": "invalid_title"}`，而不是返回 `200` 或炸成 `500`。'
             - title: 第 2 步：删除编号为 5 的任务与权限拦截
               body: 规范的 REST 删除写作 **`DELETE /api/todos/5`**。如果请求者根本没带登录凭证，返回 **`401`**；如果登录的是用户甲，却试图删用户乙的 5 号任务，返回 **`403`**（或防暴露存在性返回 `404`）；确认是本人且删除成功后返回 `200` 或 `204`。
       - item:
@@ -212,7 +212,7 @@ lessons:
             - text: "`GET` 参数通常拼在 URL 查询串里，适合幂等读取且可被缓存；`POST` 把表单或 JSON 载荷放在请求体（Body）中，适合新建或提交会改变状态的数据"
               correct: true
             - text: "`GET` 比 `POST` 更适合用来传输明文银行密码，因为 URL 绝对不会留在历史记录里"
-              why: 恰恰相反！URL 会完整记进浏览器历史记录、服务器访问日志和代理日志，绝不能把密码放进 `GET` 查询参数
+              why: 恰恰相反。URL 会完整记进浏览器历史记录、服务器访问日志和代理日志，绝不能把密码放进 `GET` 查询参数
             - text: "`POST` 请求在互联网上会自动加密成 HTTPS，不需要服务器配证书"
               why: 请求方法（GET/POST）与传输层是否用 HTTPS 加密没有关系，不走 HTTPS 时 POST 正文照样是明文
           explain: 选 `GET` 还是 `POST`，一看语义（只读查询 vs 产生状态变化/新建），二看隐私与体积（密码与大 JSON 放请求体走 HTTPS）。
@@ -247,7 +247,7 @@ lessons:
             网页里最关键的三个交互元素：
             - **链接（link）**：`<a href="/about">关于</a>` 让用户或爬虫顺着 URL 跳到新文档（别拿 `<a href="#">` 假冒触发脚本的按钮，动作触发请用 `<button>`）。
             - **图片**：`<img src="logo.png" alt="网站徽标">`；`alt` 既在图片挂掉时顶替文字，也是盲人听到的图片说明。
-            - **表单与标签**：`<form>` 包裹 `<label for="name">名字</label><input id="name">`，用 `for` 绑定 `id` 后，点文字也能聚焦输入框！
+            - **表单与标签**：`<form>` 包裹 `<label for="name">名字</label><input id="name">`，用 `for` 绑定 `id` 后，点文字也能聚焦输入框。
       - item:
           id: q-html-label-for
           type: choice
@@ -290,7 +290,7 @@ lessons:
             - title: 第 1 步：用 `<main>` 和 `<h1>` 锚定结构与层级
               body: 页面主体放进 `<main>` 标签，主标题写 `<h1>问候服务</h1>`，避免满屏拿没意义的 `<div>` 当标题或段落。
             - title: 第 2 步：用 `<label for="name">` 绑住 `<input id="name">` 和 `<button>`
-              body: 写 `<label for="name">你的名字</label><input id="name" maxlength="40" required><button type="submit">发送问候</button>`。`for` 与 `id` 一字不差配对后，手指点“你的名字”就能激活输入框，回车也能直接提交！
+              body: 写 `<label for="name">你的名字</label><input id="name" maxlength="40" required><button type="submit">发送问候</button>`。`for` 与 `id` 一字不差配对后，手指点“你的名字”就能激活输入框，回车也能直接提交。
 
   - id: css-box
     chapter: 前后端
@@ -305,22 +305,22 @@ lessons:
             - text: "`124px`（内容 100 + 左右内边距 20 + 左右边框 4）"
               correct: true
             - text: "`100px`（`width: 100px` 就一定代表外框总宽度是 100px）"
-              why: 浏览器默认盒模型 `content-box` 里的 `width` 只算最里面“内容区”的宽度，内边距和边框会额外往外撑大总尺寸！
+              why: 浏览器默认盒模型 `content-box` 里的 `width` 只算最里面“内容区”的宽度，内边距和边框会额外往外撑大总尺寸。
             - text: "`112px`（只加上单边 10 + 2）"
               why: 左右两侧各有 10px 内边距与 2px 边框，总宽要算左右两边的双倍
-          explain: 被“明明写了 50% + 50% 却挤成两行”坑过一次后，你就会永远记住 **CSS 盒模型**的默认算法！
+          explain: 被“明明写了 50% + 50% 却挤成两行”坑过一次后，你就会永远记住 **CSS 盒模型**的默认算法。
       - card:
           title: CSS 选择器、层叠与冲突权重
           body: |
             **CSS（层叠样式表）**把视觉样式套到 HTML 标签上。常用三类基础选择器：元素名（`p` 选所有段落）、类名（`.card` 选带 `class="card"` 的元素，最推荐复用）、编号（`#nav` 选唯一 `id="nav"`）。
 
-            如果多条规则同时给同一元素改文字颜色，听谁的？按**特异性（优先级）**从高到低：`#id > .class > 标签名`；同等级别则后来写的那一条胜出（层叠覆盖）！单位常用绝对 `px` 与相对字号 `rem`、视口百分比 `%` / `vw`。
+            如果多条规则同时给同一元素改文字颜色，听谁的？按**特异性（优先级）**从高到低：`#id > .class > 标签名`；同等级别则后来写的那一条胜出（层叠覆盖）。单位常用绝对 `px` 与相对字号 `rem`、视口百分比 `%` / `vw`。
       - card:
           title: 盒模型：`content-box` vs `border-box`
           body: |
             浏览器把每个元素看成一个**盒模型（box model）**：由内向外四层为 `内容（content） → 内边距（padding） → 边框（border） → 外边距（margin）`。
             - 默认模式 `box-sizing: content-box`：`width` 只等于中间内容区，总占位宽度 $= \text{width} + 2\times\text{padding} + 2\times\text{border}$。
-            - 现代开发救星 `box-sizing: border-box`：声明 `width: 120px` **直接把内边距与边框算进总宽里**！多栏百分比排版时再也不会因为加了 `padding` 而把相邻卡片挤到下一行。
+            - 现代开发救星 `box-sizing: border-box`：声明 `width: 120px` **直接把内边距与边框算进总宽里**。多栏百分比排版时再也不会因为加了 `padding` 而把相邻卡片挤到下一行。
       - item:
           id: q-box-calc-1
           type: number
@@ -333,7 +333,7 @@ lessons:
             同一组样式属性 `width: 120px; padding: 10px; border: 2px solid;` 分别套在两种 `box-sizing` 下，实际外框总宽与内部文字区宽度各是多少？
           reveal:
             - title: 第 1 步：在默认 `content-box` 下（往外撑）
-              body: '`width: 120px` 锁的是中间文字内容区本身；加上左右各 10px 内边距与各 2px 边框后，外框总宽撑到了 `120 + 20 + 4 = 144px`！'
+              body: '`width: 120px` 锁的是中间文字内容区本身；加上左右各 10px 内边距与各 2px 边框后，外框总宽撑到了 `120 + 20 + 4 = 144px`。'
             - title: 第 2 步：在 `border-box` 下（向内扣）
               body: '`width: 120px` 直接锁死了包含边框和内边距的外框总宽刚好等于 `120px`；因此内部文字可用宽度变成 `120 - 20 - 4 = 96px`。这也是为什么现代 CSS 开头几乎总加一句 `* { box-sizing: border-box; }`。'
       - item:
@@ -379,13 +379,13 @@ lessons:
             - `flex-direction`：`row`（横向主轴）或 `column`（纵向主轴）；
             - `justify-content`：沿**主轴**对齐或分散空白（如 `space-between` 两端贴边、`center` 居中）；
             - `align-items`：沿**交叉轴**（垂直于主轴的方向）对齐；
-            - `flex-wrap: wrap`：一行放不下时允许优雅折行，避免撑出横向滚动条！
+            - `flex-wrap: wrap`：一行放不下时允许优雅折行，避免撑出横向滚动条。
       - card:
           title: 二维网格 CSS Grid 与媒体查询
           body: |
             当页面需要同时管控“几行几列”的二维网格时（比如商品画廊或仪表盘），用 `display: grid`：如 `grid-template-columns: repeat(3, 1fr)` 一行均分三等份，配合 `gap` 自动留出网格间距。
 
-            而面对电脑大屏（1200px）与手机窄屏（360px），用**媒体查询（Media Queries）**：`@media (max-width: 640px) { ... }` 在窄屏下把三列改成一列、缩小过大字号，确保在 360px 手机上不溢出不裁切！
+            而面对电脑大屏（1200px）与手机窄屏（360px），用**媒体查询（Media Queries）**：`@media (max-width: 640px) { ... }` 在窄屏下把三列改成一列、缩小过大字号，确保在 360px 手机上不溢出不裁切。
       - item:
           id: q-flex-vs-grid
           type: choice
@@ -401,7 +401,7 @@ lessons:
       - item:
           id: q-media-query
           type: choice
-          prompt: '在手机端适配测试中，一个原本在电脑上并排展示三列卡片（每列固定写死 `width: 400px`）的页面，在 `360px` 宽的手机屏幕上直接横着撑出了屏幕外！用现代 CSS 怎么彻底修好这种横向溢出？'
+          prompt: '在手机端适配测试中，一个原本在电脑上并排展示三列卡片（每列固定写死 `width: 400px`）的页面，在 `360px` 宽的手机屏幕上直接横着撑出了屏幕外。用现代 CSS 怎么彻底修好这种横向溢出？'
           options:
             - text: '改用弹性网格或百分比相对宽度（如 `minmax(0, 1fr)`），并配合 `@media` 媒体查询或 `flex-wrap: wrap` 在窄屏下折成单列流式排版'
               correct: true
@@ -409,7 +409,7 @@ lessons:
               why: 透明元素依然占布局宽度，手机浏览器依然会被撑出难看的左右横向拖动条
             - text: 禁用鼠标滚轮和触摸屏点击
               why: 禁用交互既破坏使用体验，也无法解决固定像素宽度大于屏幕宽度导致的布局溢出
-          explain: 别用死板的 `400px` 固定宽挤压窄屏设备——优先用流式比例、允许折行和媒体查询断点！
+          explain: 别用死板的 `400px` 固定宽挤压窄屏设备——优先用流式比例、允许折行和媒体查询断点。
       - item:
           id: q-flex-axes
           type: match
@@ -455,10 +455,10 @@ lessons:
             - text: "`el.textContent = name`（把输入当作纯粹的普通文字处理，绝不解析成 HTML 标签）"
               correct: true
             - text: "`el.innerHTML = name`（把输入当成 HTML 代码直接解析渲染）"
-              why: "`innerHTML` 会把用户输入的 `<img ... onerror=...>` 当作真正的标签与事件脚本解析执行，当场引发跨站脚本攻击（XSS）！"
+              why: "`innerHTML` 会把用户输入的 `<img ... onerror=...>` 当作真正的标签与事件脚本解析执行，当场引发跨站脚本攻击（XSS）。"
             - text: 用 `alert(name)` 弹窗代替显示
               why: 需要安全地把文字放进页面元素里，用 `textContent` 最简单安全
-          explain: 牢记前端第一安全铁律：**把不受信任的用户文本放进网页时，永远用 `textContent`（或框架默认转义绑定），避开 `innerHTML`**！
+          explain: 牢记前端第一安全铁律：**把不受信任的用户文本放进网页时，永远用 `textContent`（或框架默认转义绑定），避开 `innerHTML`**。
       - card:
           title: JavaScript 语法与对象数组
           body: |
@@ -472,7 +472,7 @@ lessons:
             浏览器把收到的 HTML 解析成一棵运行时的节点树，叫做 **DOM（文档对象模型）**：
             1. **查节点**：`const btn = document.querySelector("#submit-btn")`；
             2. **挂事件**：`btn.addEventListener("click", () => { ... })` 等待用户点击或输入时触发回调；
-            3. **改画面**：用 `out.textContent = "你好，" + name` 安全更新纯文本（绝不拿用户输入拼进 `innerHTML`！）。
+            3. **改画面**：用 `out.textContent = "你好，" + name` 安全更新纯文本（绝不拿用户输入拼进 `innerHTML`）。
       - item:
           id: q-dom-xss
           type: choice
@@ -515,7 +515,7 @@ lessons:
             - title: 第 1 步：抓出目标节点并绑定点击监听器
               body: "`const input = document.querySelector('#name'); const out = document.querySelector('#out'); document.querySelector('#go').addEventListener('click', () => { ... });`"
             - title: 第 2 步：用 `.textContent` 安全赋值而不是 `.innerHTML`
-              body: "回调函数里写入 `out.textContent = '你好，' + input.value;`。当用户输入 `<em>Mei</em>` 时，DOM 创建纯文本节点，屏幕乖乖显示 `你好，<em>Mei</em>`，绝不生成斜体标签更不会执行恶意脚本！"
+              body: "回调函数里写入 `out.textContent = '你好，' + input.value;`。当用户输入 `<em>Mei</em>` 时，DOM 创建纯文本节点，屏幕乖乖显示 `你好，<em>Mei</em>`，绝不生成斜体标签更不会执行恶意脚本。"
       - item:
           id: q-js-array-index
           type: choice
@@ -551,14 +551,14 @@ lessons:
           body: |
             **React** 等现代前端框架把页面拆成一块块自给自足的积木——**组件（Component）**。
 
-            每个函数组件接收外部传进来的只读配置参数 **Props**（类似函数参数），返回一段描述界面结构的 JSX（看起来像 HTML，其实是创建界面描述对象的语法糖）。例如 `<Counter start={0} />` 可以摆在页面上好几处，各自独立工作互不串味！
+            每个函数组件接收外部传进来的只读配置参数 **Props**（类似函数参数），返回一段描述界面结构的 JSX（看起来像 HTML，其实是创建界面描述对象的语法糖）。例如 `<Counter start={0} />` 可以摆在页面上好几处，各自独立工作互不串味。
       - card:
           title: 状态（State）与事件驱动更新
           body: |
             组件内部会变化的数据不能只放进普通局部变量（函数一跑完就丢了，React 也不知道要重绘）。必须使用框架提供的状态钩子，比如：
             `const [count, setCount] = useState(0);`
 
-            当用户点击按钮触发事件调用 `setCount(count + 1)` 时，React 记下新状态并自动重新调用该组件函数算出新界面、精准更新页面上变动的那几个 DOM 文本节点——两个独立的 `<Counter />` 各自保存自己的 `count`，互不干扰！
+            当用户点击按钮触发事件调用 `setCount(count + 1)` 时，React 记下新状态并自动重新调用该组件函数算出新界面、精准更新页面上变动的那几个 DOM 文本节点——两个独立的 `<Counter />` 各自保存自己的 `count`，互不干扰。
       - item:
           id: q-react-props-state
           type: match
@@ -601,7 +601,7 @@ lessons:
             - title: 第 1 步：首次挂载记住初始状态 `0`
               body: 首次执行 `Counter()`，`useState(0)` 建起属于这一个组件实例的状态槽位并初始化为 `0`，页面绘制出按钮文字“计数：0”。
             - title: 第 2 步：点击后调用 `setN(1)` 触发局部重算与增量更新
-              body: 用户点击按钮执行 `setN(0 + 1)`，React 更新槽位值为 `1` 并重新调用 `Counter()` 得到新描述“计数：1”，对比前后差异后**只把按钮里那个数字文本节点从 `0` 改成 `1`**，页面其余输入框与滚动位置纹丝不动！
+              body: 用户点击按钮执行 `setN(0 + 1)`，React 更新槽位值为 `1` 并重新调用 `Counter()` 得到新描述“计数：1”，对比前后差异后**只把按钮里那个数字文本节点从 `0` 改成 `1`**，页面其余输入框与滚动位置纹丝不动。
       - item:
           id: q-react-controlled-input
           type: choice
@@ -650,7 +650,7 @@ lessons:
           body: |
             **Promise** 就像餐厅叫号小票：点餐时（发起 `fetch(...)`）函数立刻先还给你一张“小票”代表未来结果，不会把厨房和前厅卡死；等菜做好（或失败出错），小票状态从 `pending（等待中）` 变成 `fulfilled（已兑现）` 或 `rejected（已拒绝）`。
 
-            在 `async` 函数里写 `const res = await fetch(url);`，代码读起来像同步按顺序写，实际在 `await` 那一行会把控制权礼貌让回浏览器先渲染界面，等回包到了再接着往下跑！
+            在 `async` 函数里写 `const res = await fetch(url);`，代码读起来像同步按顺序写，实际在 `await` 那一行会把控制权礼貌让回浏览器先渲染界面，等回包到了再接着往下跑。
       - card:
           title: 实战组合：`fetch`、`URLSearchParams` 与错误处理
           body: |
@@ -661,7 +661,7 @@ lessons:
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             ```
-            - **千万别手拼字符串**：如果直接写 `"/api/greet?name=" + "Mei & Lin"`，那个 `&` 会把参数截断成 `name=Mei `！`URLSearchParams` 会自动把 `"Mei & Lin"` 安全编码成 `name=Mei+%26+Lin`。
+            - **千万别手拼字符串**：如果直接写 `"/api/greet?name=" + "Mei & Lin"`，那个 `&` 会把参数截断成 `name=Mei `。`URLSearchParams` 会自动把 `"Mei & Lin"` 安全编码成 `name=Mei+%26+Lin`。
             - **必须检查 `res.ok`**：哪怕服务器返回 `400` 或 `500`，`fetch` 只有遇到断网才会抛异常；HTTP 4xx/5xx 在 `fetch` 里仍算收到了响应，必须检查 `res.ok`（状态码 200–299）再 `res.json()`（配 `try / catch` 兜底展示报错）。
       - item:
           id: q-urlsearchparams
@@ -674,19 +674,19 @@ lessons:
               why: '`&` 在 URL 查询串里是多个参数（如 `?a=1&b=2`）之间的标准分隔符，不编码就会错把半截名字当成第二个参数名'
             - text: 字符串拼接会自动把空格变成数字 0
               why: 不做编码时空格与 `&` 等保留字符会破坏 URL 语法或切碎参数边界
-          explain: 任何由用户输入拼进 URL 查询参数的值，一律交给 `URLSearchParams` 自动转义编码（空格变 `+` 或 `%20`，`&` 变 `%26`），永不手动字符串拼接！
+          explain: 任何由用户输入拼进 URL 查询参数的值，一律交给 `URLSearchParams` 自动转义编码（空格变 `+` 或 `%20`，`&` 变 `%26`），永不手动字符串拼接。
       - item:
           id: q-fetch-res-ok
           type: choice
           prompt: '前端用 `try { const res = await fetch("/api/greet?name="); const data = await res.json(); } catch (e) { showError(); }` 请求后端，而后端对空名字返回了 **`400 Bad Request`** 并附带 JSON `{"code": "invalid_name"}`。在没有写 `if (!res.ok)` 检查的情况下，这段代码会走进 `catch` 分支吗？'
           options:
-            - text: 不会进 `catch`！只要服务器正常连上并回传了 400 响应，`fetch` 就认为网络传输本身成功兑现，必须主动判断 `if (!res.ok)` 才能把 4xx/5xx 当作业务错误处理
+            - text: 不会进 `catch`。只要服务器正常连上并回传了 400 响应，`fetch` 就认为网络传输本身成功兑现，必须主动判断 `if (!res.ok)` 才能把 4xx/5xx 当作业务错误处理
               correct: true
             - text: 会立刻进 `catch`，因为只要状态码不是 200 `fetch` 就自动断网抛出异常
               why: 这是 `fetch` 新手最高频踩的坑：`fetch` 只在网络断线、DNS 失败或被浏览器跨源策略拦截时才 reject 进 `catch`，收到 HTTP 404/500 对 `fetch` 来讲依然是一次成功的 HTTP 往返
             - text: 会直接把整个计算机浏览器强制关闭
               why: 不会关闭浏览器，只会把错误信息当成正常成功数据继续往下跑导致后续界面错乱
-          explain: 记死两条 `fetch` 铁律：① 拼查询参数用 `URLSearchParams`；② 拿到响应第一时间检查 `if (!res.ok)`！
+          explain: 记死两条 `fetch` 铁律：① 拼查询参数用 `URLSearchParams`；② 拿到响应第一时间检查 `if (!res.ok)`。
       - item:
           id: q-promise-states
           type: match
@@ -708,7 +708,7 @@ lessons:
           type: choice
           prompt: 你在网页注册表单的 `<input>` 上加上了 HTML 属性 `required` 和 `maxlength="40"`（不允许为空且最多 40 个字），并用 JS 在提交前提示报错。这样做好后，后端服务器接收数据时还需要再写一遍“判空和长度 <= 40”的检查吗？
           options:
-            - text: 必须再写一遍！攻击者可以随时绕开你的网页，直接用命令行工具（如 `curl`）或修改网页源码向后端接口发超长或空数据
+            - text: 必须再写一遍。攻击者可以随时绕开你的网页，直接用命令行工具（如 `curl`）或修改网页源码向后端接口发超长或空数据
               correct: true
             - text: 不需要，只要前端 HTML 写了 `required`，全世界的黑客就再也发不出空请求了
               why: 前端浏览器里的 HTML/JS 运行在用户自己可控的电脑上，攻击者按 F12 改掉属性或直接发 HTTP 包就能轻松绕过
@@ -720,13 +720,13 @@ lessons:
           body: |
             原生 HTML `<form action="/submit" method="post">` 按下提交按钮时，浏览器默认会打包表单字段发起请求并**整页跳转到新页面**。
 
-            而在现代前后端分离页面里，我们常给表单挂上 `submit` 事件监听器并调用 `event.preventDefault()` 拦住整页跳转，改用 `fetch` 悄悄把数据发给后端 `/api/...`，收到 JSON 后局部更新提示文字，画面丝滑不闪烁！
+            而在现代前后端分离页面里，我们常给表单挂上 `submit` 事件监听器并调用 `event.preventDefault()` 拦住整页跳转，改用 `fetch` 悄悄把数据发给后端 `/api/...`，收到 JSON 后局部更新提示文字，画面丝滑不闪烁。
       - card:
           title: 客户端校验 vs 服务端再校验
           body: |
             HTML5 自带原生客户端校验（`required`、`minlength`、`maxlength`、`type="email"`），用户没填对格式就立刻在框边提示，体验极好还省了一次浪费流量的无效请求。
 
-            但请记住：**客户端代码全跑在别人机器上**。后端拿到每个请求，永远必须重新剥除首尾空白、检查类型、判空并核对长度边界（如 `1 <= len(name) <= 40`），不合规一律返回 `400 Bad Request`！
+            但请记住：**客户端代码全跑在别人机器上**。后端拿到每个请求，永远必须重新剥除首尾空白、检查类型、判空并核对长度边界（如 `1 <= len(name) <= 40`），不合规一律返回 `400 Bad Request`。
             所以前端校验只负责体验，安全只能靠后端。
       - item:
           id: q-form-preventdefault
@@ -739,7 +739,7 @@ lessons:
               why: '`preventDefault()` 在 `submit` 事件上只阻止表单整页提交跳转，不影响打字输入'
             - text: 让表单自动绕过浏览器同源策略
               why: '`preventDefault()` 只控制浏览器本地的页面默认动作，无法改变任何网络层安全策略'
-          explain: 忘了写 `event.preventDefault()` 是新手写 AJAX 表单最常见的现象——一点提交页面就瞬间闪刷新，JS 的 `fetch` 还没收到回包就被销毁了！
+          explain: 忘了写 `event.preventDefault()` 是新手写 AJAX 表单最常见的现象——一点提交页面就瞬间闪刷新，JS 的 `fetch` 还没收到回包就被销毁了。
       - item:
           id: q-validation-both
           type: choice
@@ -784,17 +784,17 @@ lessons:
           body: |
             浏览器自带了几种保存本地数据与调用硬件的 Web API：
             - **Web Storage**：`localStorage`（持久化存本机，关闭浏览器还在，按**源**隔离）和 `sessionStorage`（只活在当前标签页关闭前），容量约几 MB 且只存字符串键值对；复杂大量结构化离线数据用 **IndexedDB**。
-            - **重要安全警示**：页面上的**任何 JS 脚本**（包括万一被攻破注入的 XSS 恶意脚本！）都能直接读写 `localStorage`！因此千万别把高敏长期登录凭证塞进 `localStorage` 里。
+            - **重要安全警示**：页面上的**任何 JS 脚本**（包括万一被攻破注入的 XSS 恶意脚本）都能直接读写 `localStorage`。因此千万别把高敏长期登录凭证塞进 `localStorage` 里。
             - 另有定位、画布（Canvas）和音视频等标准 Web API 与第三方脚本接口。
       - card:
           title: 同源策略（Same-Origin Policy）：严格三元组对比
           body: |
             怎么判定两个 URL 是不是**同源（same-origin）**？必须同时比对**三个部分完全相同**：
             1. **协议（Scheme）**：`http` ≠ `https`
-            2. **主机域名（Host）**：`site.example` ≠ `api.site.example`（连子域名不同都不算同源！）
+            2. **主机域名（Host）**：`site.example` ≠ `api.site.example`（连子域名不同都不算同源）。
             3. **端口（Port）**：`443` ≠ `8443`（`https` 省略端口默认就是 `443`，`http` 默认 `80`）
 
-            只有三项**全中**才算同源（例如 `https://site.example/app` 和 `https://site.example:443/api` 是同源！）。
+            只有三项**全中**才算同源（例如 `https://site.example/app` 和 `https://site.example:443/api` 是同源）。
       - item:
           id: q-same-origin-check
           type: choice
@@ -811,7 +811,7 @@ lessons:
               why: 域名哪怕只是多了一级子域名，Host 不一致就不算同源
             - text: "`https://site.example:8443/app`（端口号变成了 8443）"
               why: 端口从 443 变为 8443，Port 不同就不算同源
-          explain: 记死判断法：把每个 URL 规范化成 `(协议, 完整主机名, 实际端口号)` 三元组，只看路径后面怎么变都不影响同源，三元组差一位就跨源！
+          explain: 记死判断法：把每个 URL 规范化成 `(协议, 完整主机名, 实际端口号)` 三元组，只看路径后面怎么变都不影响同源，三元组差一位就跨源。
       - item:
           id: q-localstorage-risk
           type: choice
@@ -860,13 +860,13 @@ lessons:
             2. 下载并解析 CSS 构建样式规则树（CSSOM）；
             3. 两棵树合体算出每个元素的位置尺寸（布局 Layout）再画出来（绘制 Paint）。
 
-            最常见的堵塞点是 `<head>` 里的同步 `<script>`：因为 JS 可能修改 DOM，浏览器被迫停工干等它下完跑完！给外链脚本加上 **`defer`**，浏览器就可以并行后台下载、等 HTML 解析完再按出现顺序执行，首屏瞬间亮出来！
+            最常见的堵塞点是 `<head>` 里的同步 `<script>`：因为 JS 可能修改 DOM，浏览器被迫停工干等它下完跑完。给外链脚本加上 **`defer`**，浏览器就可以并行后台下载、等 HTML 解析完再按出现顺序执行，首屏瞬间亮出来。
       - card:
           title: 浏览器缓存、`ETag / 304` 与 Web Worker
           body: |
             提速还有两把狠招：
-            - **HTTP 缓存与 304 协商**：对带哈希指纹的静态资源（如 `app.a1b2.js`）配长久强缓存 `Cache-Control: max-age=31536000`；对可能常更新的资源带上 `ETag` 指纹，下次浏览器发 `If-None-Match` 询问，若文件没变服务器只回短短几十字符的 **`304 Not Modified`**（空正文）！
-            - **Web Worker**：浏览器界面渲染和普通 JS 共享同一条主通道，算 2 秒复杂图形就会卡死点击；把重计算丢进后台隔离的 **Web Worker** 跑完再发消息回来，画面依旧丝滑！
+            - **HTTP 缓存与 304 协商**：对带哈希指纹的静态资源（如 `app.a1b2.js`）配长久强缓存 `Cache-Control: max-age=31536000`；对可能常更新的资源带上 `ETag` 指纹，下次浏览器发 `If-None-Match` 询问，若文件没变服务器只回短短几十字符的 **`304 Not Modified`**（空正文）。
+            - **Web Worker**：浏览器界面渲染和普通 JS 共享同一条主通道，算 2 秒复杂图形就会卡死点击；把重计算丢进后台隔离的 **Web Worker** 跑完再发消息回来，画面依旧丝滑。
       - item:
           id: q-perf-three
           type: choice
@@ -895,7 +895,7 @@ lessons:
               why: 按下载完成顺序乱序立即执行的是 `async` 属性，不是 `defer`；`defer` 既不阻塞 HTML 解析又保证严格按出现顺序在文档解析完后执行
             - text: 加了 `defer` 的脚本永远不会被浏览器下载运行
               why: '`defer` 只是推迟执行时机到 HTML 解析完毕前，不会取消脚本加载'
-          explain: 需要维持模块先后顺序又不愿卡住首屏渲染时，首选 **`defer`**！
+          explain: 需要维持模块先后顺序又不愿卡住首屏渲染时，首选 **`defer`**。
       - item:
           id: q-etag-304
           type: choice
@@ -922,13 +922,13 @@ lessons:
           type: choice
           prompt: 在浏览器里需要实时解析处理一份 30 MB 的本地 CSV 表格做统计图表。如果直接在点击按钮的事件函数里同步循环算 3 秒，用户在那 3 秒内既滚不动页面也点不动取消按钮。改用 **Web Worker** 后需要注意一条什么约束？
           options:
-            - text: Web Worker 跑在独立后台执行上下文，可以做重计算并通过 `postMessage` 把结果传回主界面，但 Worker 内部**不能直接操作 DOM 树**
+            - text: Web Worker 跑在独立后台执行上下文，可以做重计算并通过 `postMessage` 把结果传回主界面，但 Worker 内部不能直接操作 DOM 树
               correct: true
             - text: Web Worker 必须把代码上传给第三方邮件服务器运行
               why: Web Worker 依然完完全全跑在你自己电脑浏览器的本地后台沙箱里
             - text: Web Worker 允许直接用 `innerHTML` 跨越同源策略偷读银行网站
               why: Web Worker 同样受浏览器同源策略约束，且连 `document` DOM 对象都访问不到
-          explain: 主通道专心“听用户点击 + 画 DOM”，Web Worker 专心“后台算大块数据”，两者靠发消息通信，完美解决计算卡界面！
+          explain: 主通道专心“听用户点击 + 画 DOM”，Web Worker 专心“后台算大块数据”，两者靠发消息通信，完美解决计算卡界面。
 
   - id: frontend-toolchain
     chapter: 浏览器
@@ -957,9 +957,9 @@ lessons:
       - card:
           title: 部署静态前端与全栈上线
           body: |
-            打出来的纯静态包（HTML + 压缩 JS/CSS + 图片）不需跑任何后端计算，直接丢上静态托管或 CDN（内容分发网络），让全世界用户就近秒开！
+            打出来的纯静态包（HTML + 压缩 JS/CSS + 图片）不需跑任何后端计算，直接丢上静态托管或 CDN（内容分发网络），让全世界用户就近秒开。
 
-            而需要查数据库、算接口的后端（如 Django / Express / Flask）部署上线则记住四件事：关掉开发调试模式（`DEBUG = False`，别把内部报错栈和秘密漏给游客！）、放前面一层反向代理（如 Nginx）、配置 HTTPS 证书、以及把密钥放在服务端环境变量里。
+            而需要查数据库、算接口的后端（如 Django / Express / Flask）部署上线则记住四件事：关掉开发调试模式（`DEBUG = False`，别把内部报错栈和秘密漏给游客）、放前面一层反向代理（如 Nginx）、配置 HTTPS 证书、以及把密钥放在服务端环境变量里。
       - item:
           id: q-bundler-benefits
           type: choice
@@ -995,7 +995,7 @@ lessons:
               why: 调试模式针对的是出错时暴露极其详细的交互式诊断信息和热重载开销，安全隐患极大
             - text: 因为关闭调试模式会自动把所有数据库密码改成 123456
               why: 密钥同样应在生产配置里专门替换为高强度随机密码
-          explain: 开发期爱死详尽报错栈，但生产环境绝不允许把代码与配置细节裸露给公网访客——错误详情只记进受保护的服务端日志里！
+          explain: 开发期爱死详尽报错栈，但生产环境绝不允许把代码与配置细节裸露给公网访客——错误详情只记进受保护的服务端日志里。
       - item:
           id: q-toolchain-match
           type: match
@@ -1045,7 +1045,7 @@ lessons:
                 <button id="go">问候</button>
                 <p id="out"></p>
                 ```
-                点击 `#go` 后：`const qs = new URLSearchParams({ name: input.value }); const r = await fetch("/api/greet?" + qs);` 拿回 JSON `data`，用 **`out.textContent = data.message`**（绝不用 `innerHTML`！）安全展示。
+                点击 `#go` 后：`const qs = new URLSearchParams({ name: input.value }); const r = await fetch("/api/greet?" + qs);` 拿回 JSON `data`，用 **`out.textContent = data.message`**（绝不用 `innerHTML`）安全展示。
             - title: 第 2 步：Flask 后端路由与输入边界校验
               body: |
                 ```python
@@ -1056,7 +1056,7 @@ lessons:
                         return {"code": "invalid_name"}, 400
                     return {"message": f"你好，{name}"}
                 ```
-                收到 `"  Mei  "` 去掉首尾空白返回 `200` 与 `{"message": "你好，Mei"}`；收到纯空格 `"   "` 或超过 40 字直接挡下返回 `400` 与 `{"code": "invalid_name"}`！
+                收到 `"  Mei  "` 去掉首尾空白返回 `200` 与 `{"message": "你好，Mei"}`；收到纯空格 `"   "` 或超过 40 字直接挡下返回 `400` 与 `{"code": "invalid_name"}`。
       - item:
           id: q-flask-validation
           type: choice
@@ -1102,7 +1102,7 @@ lessons:
           type: choice
           prompt: 后端开发在查询用户订单时偷懒用 Python f-string 直接拼接字符串：`sql = f"SELECT * FROM orders WHERE id = {order_id}"`。如果正常人传 `order_id = "10"` 没问题，但如果黑客传进来一段精心构造的字符串 `"10 OR 1=1"` 呢？
           options:
-            - text: 数据库会把拼出来整句当成新 SQL 查询语法执行，`1=1` 永远为真，把全站所有人的订单全部吐给黑客（SQL 注入！）
+            - text: 数据库会把拼出来整句当成新 SQL 查询语法执行，`1=1` 永远为真，把全站所有人的订单全部吐给黑客（SQL 注入）
               correct: true
             - text: 数据库会自动认出 `"10 OR 1=1"` 是黑客写的而帮他把名字改成管理员
               why: 数据库引擎看不见你原先 Python 拼接的意图，只看见最后送到它眼前的完整查询字符串
@@ -1112,16 +1112,16 @@ lessons:
       - card:
           title: 第一防线：参数化查询与输出转义（防注入与 XSS）
           body: |
-            不管对抗 SQL 注入还是跨站脚本（XSS），秘诀只有一句话：**永远把“命令结构”与“用户输入数据”彻底分开！**
-            - **防 SQL 注入**：绝对禁止用 `+` 或 f-string 拼 SQL！改用数据库驱动提供的**参数化查询**（如 `cursor.execute("SELECT * FROM orders WHERE id = ?", (order_id,))`），数据库只把 `?` 占位符里的东西当死数据，里面就算写十个 `OR 1=1` 也只是普通字符！
+            不管对抗 SQL 注入还是跨站脚本（XSS），秘诀只有一句话：**永远把“命令结构”与“用户输入数据”彻底分开。**
+            - **防 SQL 注入**：绝对禁止用 `+` 或 f-string 拼 SQL。改用数据库驱动提供的**参数化查询**（如 `cursor.execute("SELECT * FROM orders WHERE id = ?", (order_id,))`），数据库只把 `?` 占位符里的东西当死数据，里面就算写十个 `OR 1=1` 也只是普通字符。
             - **防 XSS**：如果服务端必须用模板直接吐 HTML（如 Django 模板），确保默认开启**自动 HTML 转义**，把 `<` 转成 `&lt;`；前端拿 JSON 时用 `textContent`。
       - card:
           title: 第二防线：对象级访问控制（防越权遍历 IDOR）
           body: |
-            光在接口开头加一句“检查是不是已经登录了”远远不够！看一个极其经典的真实大漏洞：
-            假设系统已验证小王登录成功（`current_user_id = 100`），小王把浏览器网址栏的 `GET /api/orders/123` 顺手改成 `GET /api/orders/124`（别人家的订单！）。
+            光在接口开头加一句“检查是不是已经登录了”远远不够。看一个极其经典的真实大漏洞：
+            假设系统已验证小王登录成功（`current_user_id = 100`），小王把浏览器网址栏的 `GET /api/orders/123` 顺手改成 `GET /api/orders/124`（别人家的订单）。
 
-            如果后端只写了 `SELECT * FROM orders WHERE id = ?` 却**没有同时校验这个订单归属权**，小王就把全站百万用户的订单全看光了！正确查询必须同时锁定当前登录主体：`WHERE id = ? AND user_id = ?`（无权直接返回 `403` 或 `404`）。
+            如果后端只写了 `SELECT * FROM orders WHERE id = ?` 却**没有同时校验这个订单归属权**，小王就把全站百万用户的订单全看光了。正确查询必须同时锁定当前登录主体：`WHERE id = ? AND user_id = ?`（无权直接返回 `403` 或 `404`）。
       - item:
           id: q-sqli-fix
           type: choice
@@ -1146,7 +1146,7 @@ lessons:
       - item:
           id: q-idor-check
           type: choice
-          prompt: 某外贸系统接口 `GET /api/invoices/508` 仅检查了“请求者带有有效的登录 Session Cookie”，查表直接返回 508 号发票，却没有检查 `508` 号发票是不是当前这位登录用户创建的。已登录的用户小李只要把 URL 改成 `509`、`510` 就能看光全平台竞争对手的发票！这属于什么漏洞，怎么修？
+          prompt: 某外贸系统接口 `GET /api/invoices/508` 仅检查了“请求者带有有效的登录 Session Cookie”，查表直接返回 508 号发票，却没有检查 `508` 号发票是不是当前这位登录用户创建的。已登录的用户小李只要把 URL 改成 `509`、`510` 就能看光全平台竞争对手的发票。这属于什么漏洞，怎么修？
           options:
             - text: 越权访问 / 对象级权限校验缺失（IDOR / BOLA）；修复时在查询或鉴权逻辑中强制加上归属条件（`WHERE id = ? AND owner_id = current_user.id`），不匹配则拒绝（403/404）
               correct: true
@@ -1154,7 +1154,7 @@ lessons:
               why: 这是典型的服务端访问控制逻辑缺失，与前端 CSS 像素大小毫无关系
             - text: 只要把发票编号从 508 改成 50800 就彻底安全了
               why: 只靠换大编号或隐蔽网址叫“靠晦涩保安全”，攻击者依然能扫号或从泄漏链接猜出编号，必须做严格的归属权检查
-          explain: “认证（你是谁）”之后永远别忘了“授权（这个特定编号的资源到底是不是你的）”！这是后续 Web 安全专项课的重点前提。
+          explain: “认证（你是谁）”之后永远别忘了“授权（这个特定编号的资源到底是不是你的）”。这是后续 Web 安全专项课的重点前提。
       - item:
           id: q-security-match
           type: match
@@ -1169,7 +1169,7 @@ lessons:
           type: choice
           prompt: 如果后端使用模板引擎直接生成带用户名问候语的 HTML 页面（而不是前端 `fetch` JSON），要防止恶意用户把名字写成 `<script>...</script>` 攻击其他访客，最可靠的模板设置是什么？
           options:
-            - text: 保持模板引擎默认开启的**自动 HTML 转义**（把 `<` 转成 `&lt;`、`>` 转成 `&gt;`），绝不对不可信用户输入使用“关闭转义 / raw 输出”标记
+            - text: 保持模板引擎默认开启的自动 HTML 转义（把 `<` 转成 `&lt;`、`>` 转成 `&gt;`），绝不对不可信用户输入使用“关闭转义 / raw 输出”标记
               correct: true
             - text: 用正则表达式把 `"script"` 删掉一次再原样允许写入原始 HTML 标签
               why: 攻击者可以用 `<img onerror=...>`、`<svg onload=...>` 等上百种写法绕过黑名单删词，只有完整 HTML 字符实体转义才稳妥
@@ -1202,7 +1202,7 @@ lessons:
             1. 用户在 HTTPS 下提交正确账号密码给 `/login`；
             2. 服务器生成一段**高熵随机不可猜的字符串**（如 `sid=9f8a...`）当作密钥编号，在服务端临时存储或 Redis 里记录 `9f8a... -> user_id=42`（这就是**会话 Session**）；
             3. 服务器在登录响应头加上 `Set-Cookie: sid=9f8a...`，发给浏览器存下；
-            4. 之后每次再请求同一网站，浏览器自动在请求头捎上 `Cookie: sid=9f8a...`，服务器查表立刻认出你是 `user_id=42`（点登出时服务器把该 `sid` 从表里删掉即可立即作废！）。
+            4. 之后每次再请求同一网站，浏览器自动在请求头捎上 `Cookie: sid=9f8a...`，服务器查表立刻认出你是 `user_id=42`（点登出时服务器把该 `sid` 从表里删掉即可立即作废）。
       - card:
           title: 保护 Cookie 的三把安全锁与隐私追踪
           body: |
@@ -1219,7 +1219,7 @@ lessons:
             - ["`Secure`", 强制浏览器只通过加密 HTTPS 通道发送 Cookie，防明文 HTTP 链路窃听]
             - ["`SameSite=Lax` 或 `Strict`", 阻止外部恶意网站偷偷诱导用户跨站提交修改请求（CSRF）时自动捎带该 Cookie]
             - [服务端销毁会话记录（Logout）, 用户点退出登录后立刻让原本那串 `sid` 彻底失效不再可用]
-          explain: 一条合格的登录 `Set-Cookie` 几乎必然长成 `sid=...; HttpOnly; Secure; SameSite=Lax` 的模样，少一个属性就少一层盾！
+          explain: 一条合格的登录 `Set-Cookie` 几乎必然长成 `sid=...; HttpOnly; Secure; SameSite=Lax` 的模样，少一个属性就少一层盾。
       - card:
           title: 例题：为什么把会话存服务端、发随机 `sid` Cookie 能立刻“踢人下线”？
           body: |
@@ -1228,13 +1228,13 @@ lessons:
             - title: 第 1 步：服务端只认自己的 Session 存储表
               body: 浏览器拿着的 `sid=9f8a...` 本身不包含“我是张三”的权限结论，只是一个去后端 Redis/数据库查表的挂号号码牌。
             - title: 第 2 步：删记录 + 下发过期 Cookie
-              body: 服务端在会话存储里删掉 `9f8a...` 这条记录（并可给当前浏览器下发 `Max-Age=0` 清除本地 Cookie）。即便丢失手机里的盗号者再带着 `sid=9f8a...` 发请求，查表不到立即返回 `401`！
+              body: 服务端在会话存储里删掉 `9f8a...` 这条记录（并可给当前浏览器下发 `Max-Age=0` 清除本地 Cookie）。即便丢失手机里的盗号者再带着 `sid=9f8a...` 发请求，查表不到立即返回 `401`。
       - item:
           id: q-session-vs-cookie-tamper
           type: choice
           prompt: '一位初学者没用随机 `sid` 查服务端 Session 表，而是图省事直接给浏览器发了一张明文 Cookie：`Set-Cookie: user_id=42; role=user`。黑客打开浏览器开发者工具改写本机存储成 `user_id=1; role=admin` 再刷新网页。会出什么事？'
           options:
-            - text: 毫无防篡改保护：用户完全控制自己电脑里的 Cookie，只要服务端直接轻信明文里的 `role=admin`，黑客一秒变成管理员！必须要么存不可猜随机 `sid` 查服务端表，要么用服务端私钥做数字签名验证
+            - text: 毫无防篡改保护：用户完全控制自己电脑里的 Cookie，只要服务端直接轻信明文里的 `role=admin`，黑客一秒变成管理员。必须要么存不可猜随机 `sid` 查服务端表，要么用服务端私钥做数字签名验证
               correct: true
             - text: 浏览器会自动拒绝让用户自己查看自己电脑上的 Cookie 内容
               why: 没有做密码学加密或服务端查表校验的纯明文 Cookie 在客户机器上对本人完全可见且随时可改
@@ -1258,13 +1258,13 @@ lessons:
           type: choice
           prompt: 用户在网站点击“退出登录”，如果前端 JS 仅仅删掉浏览器本地展示的用户昵称而不向服务器发 `/logout` 请求销毁 Session，或者盗号者之前已经复制走了那串 `sid` Cookie，会发生什么？
           options:
-            - text: 旧的 `sid` 在服务端会话存储表里依然有效，盗号者拿着复制的 Cookie 照样能继续以该用户身份调用全部后端接口！必须在服务端把该 `sid` 记录删除作废
+            - text: 旧的 `sid` 在服务端会话存储表里依然有效，盗号者拿着复制的 Cookie 照样能继续以该用户身份调用全部后端接口。必须在服务端把该 `sid` 记录删除作废
               correct: true
             - text: 只要前端把页面标题改写成“已退出”，黑客手中的旧 Cookie 就会自己销毁
               why: 前端界面文字无法让服务端存储里的会话凭证失效，必须由后端收到登出请求后真正销毁服务端会话记录
             - text: 服务器会自动把全站所有其他人的登录状态全部清空
               why: 服务端只按收到的当前 `sid` 精准删除对应那一条（或该用户要求下线的多条）会话记录，不影响别人正常使用
-          explain: 真正安全的退出登录必须“**服务端删记录作废票号 + 客户端清除 Cookie**”双管齐下！
+          explain: 真正安全的退出登录必须“**服务端删记录作废票号 + 客户端清除 Cookie**”双管齐下。
 
   - id: http-auth-cors
     chapter: 认证集成与可访问性
@@ -1288,14 +1288,14 @@ lessons:
           body: |
             除了 Cookie 自动携带外，前后端 API 也常在请求头 `Authorization` 里显式递交凭证：
             1. 服务端拒绝未认证请求时返回 `401 Unauthorized`，并附带 `WWW-Authenticate` 说明支持什么认证方式；
-            2. **Basic 认证**：把 `用户名:密码` 做 Base64 编码后放进 `Authorization: Basic ...`。**极其注意**：Base64 只是编码不是加密，谁都能瞬间解码还原密码！所以 Basic 认证必须在 HTTPS 下使用；
+            2. **Basic 认证**：把 `用户名:密码` 做 Base64 编码后放进 `Authorization: Basic ...`。**极其注意**：Base64 只是编码不是加密，谁都能瞬间解码还原密码。所以 Basic 认证必须在 HTTPS 下使用；
             3. **Bearer 认证**：直接递交一串临时颁发的访问令牌 `Authorization: Bearer <token>`（常见于移动 App 与单页前端调用 API）。
       - card:
           title: CORS 跨源资源共享与预检请求（Preflight）
           body: |
             当 `https://web.shop.com` 发起跨源 `fetch` 去 `https://api.shop.com` 时，**CORS（跨源资源共享）**看目标后端愿不愿意发“准许令”响应头：
-            - **`Access-Control-Allow-Origin: https://web.shop.com`**：明确点名允许哪一个来源的前端 JS 读取我的响应（涉及登录凭证 `credentials: "include"` 时，绝对**不能**偷懒写成通配符 `*`，必须精确写出允许的源并配 `Access-Control-Allow-Credentials: true`！）。
-            - **预检请求（Preflight `OPTIONS`）**：如果前端发的不是简单 GET，而是带有自定义头或 JSON 体的 `DELETE` / `PUT` 等可能改数据的请求，浏览器会先发一个 `OPTIONS` 探路包询问服务端允许哪些方法与请求头（`Access-Control-Allow-Methods`），服务端说 OK 后浏览器才发真正的主请求！
+            - **`Access-Control-Allow-Origin: https://web.shop.com`**：明确点名允许哪一个来源的前端 JS 读取我的响应（涉及登录凭证 `credentials: "include"` 时，绝对**不能**偷懒写成通配符 `*`，必须精确写出允许的源并配 `Access-Control-Allow-Credentials: true`）。
+            - **预检请求（Preflight `OPTIONS`）**：如果前端发的不是简单 GET，而是带有自定义头或 JSON 体的 `DELETE` / `PUT` 等可能改数据的请求，浏览器会先发一个 `OPTIONS` 探路包询问服务端允许哪些方法与请求头（`Access-Control-Allow-Methods`），服务端说 OK 后浏览器才发真正的主请求。
       - item:
           id: q-cors-wildcard-cred
           type: choice
@@ -1307,7 +1307,7 @@ lessons:
               why: '正是为了防止“任何恶意网站顺手带走你的 Cookie 读走数据”，CORS 规范硬性禁止 `*` 与 `Allow-Credentials: true` 同时生效'
             - text: 浏览器会自动把用户密码改成星号 `*` 返回
               why: 浏览器会在客户端直接阻断这次不合规的跨源响应访问并报错
-          explain: 带凭证的跨源请求相当于允许外站代你出面拿私密数据，因此后端必须用白名单核对 `Origin` 头并精确回填该受信任来源，绝不能写 `*` 或盲目把任何来访 `Origin` 原样反弹回去！
+          explain: 带凭证的跨源请求相当于允许外站代你出面拿私密数据，因此后端必须用白名单核对 `Origin` 头并精确回填该受信任来源，绝不能写 `*` 或盲目把任何来访 `Origin` 原样反弹回去。
       - item:
           id: q-basic-auth-b64
           type: choice
@@ -1319,7 +1319,7 @@ lessons:
               why: Base64 设计目的只是把任意原始编码数据转成纯 ASCII 文本方便在 HTTP 头里传输，没有任何密钥也没有保密性
             - text: 只要字符串最后有两个等号 `==` 就代表已经做过单向哈希散列，无法还原
               why: 末尾 `=` 或 `==` 只是 Base64 按每 3 个 8 位原始字符单元分组对齐时的普通填充符号，完全可以反向解码回明文
-          explain: 在 Web 安全里千万分清“**编码（Base64/URL 编码，公开可解码毫无保密性）**”和“**加密/签名（必须依赖密钥）**”！
+          explain: 在 Web 安全里千万分清“**编码（Base64/URL 编码，公开可解码毫无保密性）**”和“**加密/签名（必须依赖密钥）**”。
       - card:
           title: 例题：诊断并修好前端跨源带凭证请求报错
           body: |
@@ -1352,7 +1352,7 @@ lessons:
           type: choice
           prompt: 很多新手在开发无状态登录系统时，把用户身份写进三段式签名数字令牌发给前端。他们看令牌长得像一串乱码 `eyJhbGci...`，便顺手把用户的身份证号和敏感权限直接塞进中间段 Payload 里，以为别人看不懂。其实任何拿到这串令牌的人用一行代码就能看出里面写了什么吗？
           options:
-            - text: 一秒就能看穿：普通令牌的 Header 和 Payload 只是明文做了 Base64URL 编码，**根本没有加密**，只有第三段才是防篡改签名
+            - text: 一秒就能看穿：普通令牌的 Header 和 Payload 只是明文做了 Base64URL 编码，根本没有加密，只有第三段才是防篡改签名
               correct: true
             - text: 完全看不出来：默认把 Payload 用无法解密的高强度算法彻底锁死了
               why: 标准 JWS 形式的数字令牌只提供“签名防篡改”，不提供“机密加密”；拿去 Base64 解码立刻原形毕露
@@ -1367,11 +1367,11 @@ lessons:
             2. 严禁接受 `alg=none`（不验签漏洞）或混淆签名算法；
             3. 必须完整校验签名、过期时间 **`exp`**、签发者 **`iss`** 与受众 **`aud`**；
             4. 过期时间别太长，否则无法及时作废已泄露令牌；
-            5. 别把高敏 JWT 放进易遭 XSS 窃取的 `localStorage`！
+            5. 别把高敏 JWT 放进易遭 XSS 窃取的 `localStorage`。
       - card:
           title: OAuth 2.0 授权码模式（第三方安全登录授权）
           body: |
-            你想用微信/GitHub 账号登录新网站，绝不能把 GitHub 密码直接输进新网站里！**OAuth 2.0 授权码模式**解决“不交密码只给有限授权”：
+            你想用微信/GitHub 账号登录新网站，绝不能把 GitHub 密码直接输进新网站里。**OAuth 2.0 授权码模式**解决“不交密码只给有限授权”：
             1. 网站把你跳去认证平台登录并弹出“是否允许读取头像昵称”；
             2. 同意后认证平台带回一次性短**授权码（code）**给你的网站，再用后台密钥换取访问令牌。记住授权边界：用户即使授权给了应用 A，也只是发给它范围受限、可随时在平台撤回的局部凭证，绝非账号主密码。
       - item:
@@ -1399,7 +1399,7 @@ lessons:
             - title: 第 1 步：发起授权时先交哈希承诺 `code_challenge`
               body: 前端先用密码学随机数生成一段至少 43 个字符、只有自己本次会话知道的秘密串 `code_verifier`，算出单向哈希值 `code_challenge = base64url(sha256(code_verifier))` 连同登录请求与 `code_challenge_method=S256` 一起发给认证平台，平台把哈希与这次授权码绑定记下。
             - title: 第 2 步：拿 `code` 换令牌时必须交出原始 `code_verifier`
-              body: 认证平台回调发回一次性 `code` 后，客户端去换取正式 `access_token` 时必须当面交出原始的 `code_verifier`；就算攻击者在系统跳转途中劫持拦截了 `code`，手里既没有客户端秘密保存的 `code_verifier`，也无法从单向哈希逆推出来，服务端核验哈希不匹配立刻拒绝发令牌！
+              body: 认证平台回调发回一次性 `code` 后，客户端去换取正式 `access_token` 时必须当面交出原始的 `code_verifier`；就算攻击者在系统跳转途中劫持拦截了 `code`，手里既没有客户端秘密保存的 `code_verifier`，也无法从单向哈希逆推出来，服务端核验哈希不匹配立刻拒绝发令牌。
       - item:
           id: q-pkce-why
           type: choice
@@ -1411,7 +1411,7 @@ lessons:
               why: 用户依然在受信任认证平台上登录并确认授权范围，PKCE 防的是“授权码在回跳途中被偷截后冒名顶替兑换令牌”
             - text: 因为加上 PKCE 之后，客户端就可以跳过用户登录授权步骤直接从授权服务器拿到访问令牌
               why: PKCE 是 OAuth 2.0 授权码流程中防止授权码被中途截获冒领的扩展校验机制，不能跳过用户授权本身
-          explain: 先交哈希承诺（`code_challenge = base64url(sha256(code_verifier))`），后交原秘密核验（`code_verifier`），让截获授权码的小偷在最后一步兑换门前撞墙！
+          explain: 先交哈希承诺（`code_challenge = base64url(sha256(code_verifier))`），后交原秘密核验（`code_verifier`），让截获授权码的小偷在最后一步兑换门前撞墙。
       - item:
           id: q-session-vs-jwt-match
           type: match
@@ -1467,7 +1467,7 @@ lessons:
             写 CSS 与 JS 时也有三条底线：
             1. **绝不粗暴写 `outline: none`** 把键盘聚焦框擦光而不给替代高亮——那等于把键盘用户蒙上眼睛；
             2. **颜色对比度达标**：浅灰字配白底谁也看不清（WCAG AA 要求正文文本与背景对比度至少 `4.5:1`，大号字 `3:1`），且别“只靠红绿色区分成功/失败”，还要加文字或图标；
-            3. **上自动化审计**：用 `axe-core`、浏览器 Lighthouse 工具加上全程亲手只按 `Tab / Shift+Tab / Enter` 走一遍核心页面！
+            3. **上自动化审计**：用 `axe-core`、浏览器 Lighthouse 工具加上全程亲手只按 `Tab / Shift+Tab / Enter` 走一遍核心页面。
       - item:
           id: q-a11y-tab-outline
           type: choice
@@ -1479,7 +1479,7 @@ lessons:
               why: '`outline` 本身甚至不占盒模型布局空间，问题在于用户彻底丧失了当前键盘聚焦位置的视觉指引'
             - text: 因为浏览器只允许在每年的偶数月使用 `outline` 属性
               why: 正确做法是用 `:focus-visible` 为键盘导航保留清晰醒目的自定义焦点外框，同时不影响鼠标点击观感
-          explain: 用 `:focus-visible` 做出既美观又高对比的明显键盘聚焦框，好看和好用完全不矛盾！
+          explain: 用 `:focus-visible` 做出既美观又高对比的明显键盘聚焦框，好看和好用完全不矛盾。
       - card:
           title: 例题：把不可聚焦的 `<div>` 假按钮重构成合规可访问按钮
           body: |
@@ -1537,7 +1537,7 @@ lessons:
             - text: 不一样：`sales.png` 要在 `alt` 里写清核心信息（如“2025年各月销售额柱状图，8月达峰值”）；纯装饰 `wave.png` 应写空 `alt=""` 让读屏安静跳过
               correct: true
             - text: 两张都完全不写 `alt` 属性最好，免得占用代码行数
-              why: 完全不写 `alt` 时，读屏软件往往被迫大声把整个冗长图片文件名 `wave_bg_v2_final.png` 念出来骚扰用户！
+              why: 完全不写 `alt` 时，读屏软件往往被迫大声把整个冗长图片文件名 `wave_bg_v2_final.png` 念出来骚扰用户。
             - text: 两张都必须强行写上“这是一张图片.png”
               why: 读屏软件已经知道标签是图像，重复写“图片”或无用文件名纯属废话，核心是传达图像承载的业务意义
           explain: 写好 `alt` 的心法：**有信息就讲清信息，纯装饰就写空 `alt=""` 主动闭嘴**。
@@ -1548,14 +1548,14 @@ lessons:
             - `aria-expanded="true|false"` 告诉读屏者这个菜单此刻是展开还是合起；
             - `aria-live="polite"` 让动态更新的提示语（如“已保存”）无需打断跳转也能主动被读出来；
             - `aria-label="..."` 给只有放大镜/关闭 `×` 图标的按钮补上可念出来的真实名字。
-            记住 ARIA 第一准则：**能用原生 HTML（如 `<button>`）搞定的，就绝别拿 `<div>` 硬凑一堆 ARIA**！
+            记住 ARIA 第一准则：**能用原生 HTML（如 `<button>`）搞定的，就绝别拿 `<div>` 硬凑一堆 ARIA**。
       - card:
           title: 移动端无障碍：触控目标大小、缩放与适配
           body: |
             打开 360px 窄屏手机时，可访问性还要额外守住三条移动端底线：
             1. **足够大的触控热区**：手机靠手指点击不是精确定位鼠标光标，主要按钮和链接触控区域尽量保证至少 `44×44 px` 附近且按钮之间留足间距防误触；
             2. **绝不禁止双指缩放**：千万别在 `<meta name="viewport">` 里写 `user-scalable=no` 锁死缩放——低视力用户全靠双指放大文字看页面；
-            3. **不水平撑破屏幕**：保证 360px 宽手机下单栏流式布局，不出现左右水平拖动滚动条！
+            3. **不水平撑破屏幕**：保证 360px 宽手机下自适应单栏流式布局，文字与容器自动换行缩放，不出现左右水平拖动滚动条。
       - item:
           id: q-alt-text
           type: choice
@@ -1571,7 +1571,7 @@ lessons:
       - card:
           title: 例题：给图标按钮和异步提示语补全可访问性属性
           body: |
-            页面顶部有个只有一个垃圾桶图标 `<button><svg>...</svg></button>` 的删除按钮，点完后页面右上角会悄悄出现一行 `<div id="toast">已删除条目</div>`。读屏软件用户目前完全听不见这两件事！怎么用 WAI-ARIA 补全？
+            页面顶部有个只有一个垃圾桶图标 `<button><svg>...</svg></button>` 的删除按钮，点完后页面右上角会悄悄出现一行 `<div id="toast">已删除条目</div>`。读屏软件用户目前完全听不见这两件事。怎么用 WAI-ARIA 补全？
           reveal:
             - title: 第 1 步：给纯图标按钮加 `aria-label`，把装饰 SVG 藏给读屏器
               body: 写 `<button type="button" aria-label="删除此待办条目"><svg aria-hidden="true">...</svg></button>`。因为原生 `<button>` 已自带“按钮”角色与键盘焦点支持，读屏器会清晰播报“删除此待办条目，按钮”，而不是呆呆地念成“无名按钮”。
@@ -1655,7 +1655,7 @@ boss:
           why: "`defer` 只是避免外链脚本阻塞 HTML 解析，解决不了 XSS、SQL 注入和服务端权限漏洞"
         - text: 只有把前端表单 `<input>` 加上 `maxlength=40` 就能一劳永逸修好全部后端问题
           why: 攻击者可直接发 HTTP 请求绕开浏览器前端限制，必须靠后端参数化与权限校验守门
-      explain: 记住前后端安全核心三件套：输出写纯文本（`textContent`/自动转义）、查库参数化、对象操作验证归属权！
+      explain: 记住前后端安全核心三件套：输出写纯文本（`textContent`/自动转义）、查库参数化、对象操作验证归属权。
     - id: boss-same-origin
       type: choice
       prompt: 当前浏览器页面网址是 `https://site.example/app`。下面哪一个目标网址与当前页面属于严格**同源（Same-Origin）**？

@@ -1253,7 +1253,7 @@ lessons:
           id: pred-interval-margin
           type: number
           prompt: |
-            沿用上面 $n = 25$、$s = 10$、$t_{0.025, 24} = 2.064$ 的条件。如果我们改为构造**下一个新观测值**的 95% 预测区间，其半宽 $t_{0.025, 24} \cdot s\sqrt{1 + \frac{1}{n}}$ 是多少？（保留至少两位小数）
+            正态总体方差未知，已知样本量 $n = 25$、样本标准差 $s = 10$、临界值 $t_{0.025, 24} = 2.064$。若要构造**下一个新观测值**的 95% 预测区间，其半宽 $t_{0.025, 24} \cdot s\sqrt{1 + \frac{1}{n}}$ 是多少？（保留至少两位小数）
           answer: 21.048753
           tolerance: 0.01
           hint: 预测区间公式把 $\sqrt{1/n}$ 换成了 $\sqrt{1 + 1/n} = \sqrt{1.04}$。
@@ -1315,7 +1315,7 @@ lessons:
       - card:
           title: 用 Fisher 信息构造 MLE 渐近 95% 置信区间
           body: |
-            把思路推广到任意参数模型：由上一章结论，只要正则条件成立且样本量较大，最大似然估计 $\hat{\theta}$ 近似服从 $N(\theta, \mathrm{SE}(\hat{\theta})^2)$，其中标准误可以通过总 Fisher 信息 $I_n(\hat{\theta})$ 或观测 Fisher 信息 $J(\hat{\theta}) = -\ell''(\hat{\theta})$ 拿到：
+            把思路推广到任意参数模型：由最大似然估计的渐近正态性，只要正则条件成立且样本量较大，最大似然估计 $\hat{\theta}$ 近似服从 $N(\theta, \mathrm{SE}(\hat{\theta})^2)$，其中标准误可以通过总 Fisher 信息 $I_n(\hat{\theta})$ 或观测 Fisher 信息 $J(\hat{\theta}) = -\ell''(\hat{\theta})$ 拿到：
             $$\hat{\theta} \pm 1.96 \cdot \frac{1}{\sqrt{J(\hat{\theta})}}$$
             当未知参数有多个时，也只需取出信息表求逆后的主对角条目对应的标准误 $\mathrm{SE}(\hat{\theta}_j)$，即可分别为每个参数写出渐近 95% 置信区间。
       - item:

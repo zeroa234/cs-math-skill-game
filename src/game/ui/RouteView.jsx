@@ -2,7 +2,7 @@
 // trail, the final challenge a crown. The next level shows a "start" bubble and a mentor stands
 // beside it. The route's story and evidence are folded away under "关于这条路线". A route still in
 // development (开发中) shows its stops as a plain list instead of a playable trail.
-import { g, packs, store, useProgress, stateOf, routeNext, routeFor, routeStats, playable } from "../app/state.js";
+import { g, packs, store, useProgress, stateOf, routeNext, routeFor, routeStats, playable, customGoalsOpen } from "../app/state.js";
 import { KIND_LABEL } from "../core/route-text.js";
 import { DevTag } from "./PickGoal.jsx";
 import { href } from "../app/router.js";
@@ -37,7 +37,7 @@ export function RouteView({ id }) {
         <p>{r.tagline}</p>
         <Bar value={lit / r.stops.length} label="远征进度" />
         <div class="small">已点亮 {lit} / {r.stops.length} 站 · 互动课共 {stats.lessons} 课</div>
-        {open && <a class="btn small change-route" href={href("pick")}>换一条远征 / 自己定目标</a>}
+        {open && <a class="btn small change-route" href={href("pick")}>{customGoalsOpen ? "换一条远征 / 自己定目标" : "换一条远征"}</a>}
       </header>
       <details class="about-route card">
         <summary>关于这条路线</summary>
@@ -103,7 +103,7 @@ function DevStops({ r, stats }) {
       <ol>
         {r.stops.map((sid) => {
           const pack = packs[sid];
-          return <li><a href={href("skill", sid)}>{g.byId.get(sid).name}</a> <span class="small muted">{pack ? (pack.version >= 2 ? "互动课 · 已按新标准写好" : "互动课 · 待重写") : g.tree.meta.edition === "toy" ? "互动课开发中 · 可查看章节" : "互动课开发中 · 可看自学资料"}</span></li>;
+          return <li><a href={href("skill", sid)}>{g.byId.get(sid).name}</a> <span class="small muted">{pack ? (pack.version >= 2 && pack.coverage ? "互动课 · 已按新标准写好" : "互动课 · 待重写") : g.tree.meta.edition === "toy" ? "互动课开发中 · 可查看章节" : "互动课开发中 · 可看自学资料"}</span></li>;
         })}
       </ol>
     </section>

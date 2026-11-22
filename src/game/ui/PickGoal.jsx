@@ -39,7 +39,7 @@ export function RouteCard({ r, p, wide }) {
         <div class="facts">{s.stops} 站 · {s.withContent} 站有互动课 · 互动课{hours(s.minutes)}</div>
         {wide && r.story.map((t) => <p class="small">{t}</p>)}
         {r.evidence && <p class="small evidence">{r.evidence.line}</p>}
-        {!open && <p class="small muted">课程正按零基础和覆盖面两条标准重写：已写好 {s.beginner} / {s.stops} 站。</p>}
+        {!open && <p class="small muted">课程按零基础和覆盖面两条标准写，已写好 {s.beginner} / {s.stops} 站，全部写好后开放。</p>}
         {lit > 0 && <Bar value={lit / s.stops} label={`${r.name} 进度`} />}
         {!open ? <button type="button" class="btn" disabled>开发中，暂不能选</button>
           : active ? <a class="btn primary" href={href("route", r.id)}>继续这条</a>
@@ -126,8 +126,8 @@ function GoalPicker({ p }) {
               <div class="small muted">目标</div>
               <h3 style={{ margin: "0 0 0.3rem" }}>{g.byId.get(goal).name}</h3>
               <p class="small">{g.byId.get(goal).desc}</p>
-              <p class="small"><b>{ps.stops} 站</b> · {ps.withContent} 站有互动课（{hours(ps.minutes)}），{g.tree.meta.edition === "toy" ? "其余可查看章节。" : "其余是“按章读资料 + 综合练习”。"}</p>
-              <ol>{preview.stops.map((id) => <li class={packs[id] ? "has-lessons" : ""}>{g.byId.get(id).name}{packs[id] ? "" : g.tree.meta.edition === "toy" ? "（开发中）" : "（自学）"}</li>)}</ol>
+              <p class="small"><b>{ps.stops} 站</b> · {ps.withContent} 站有互动课（{hours(ps.minutes)}），{g.tree.meta.edition === "toy" ? "其余可查看章节。" : "其余互动课开发中，可看自学资料。"}</p>
+              <ol>{preview.stops.map((id) => <li class={packs[id] ? "has-lessons" : ""}>{g.byId.get(id).name}{packs[id] ? "" : "（开发中）"}</li>)}</ol>
               <button type="button" class="btn primary wide" disabled={!playable(preview)} onClick={() => setRoute(preview.id)}>以它为目标出发</button>
             </>
           ) : (

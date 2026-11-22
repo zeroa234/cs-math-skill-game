@@ -21,7 +21,7 @@ terms:
   - term: 字符串
     def: '一段文字，写在一对引号里，如 "你好"；类型叫 str'
   - term: 报错
-    def: 'Python 遇到看不懂或做不到的写法时停下来，显示一段错误说明'
+    def: '程序遇到看不懂或无法执行的写法时停下来，显示一段错误说明'
   - term: 运算符
     def: '表示一种计算的符号，如 + - * / // % **'
   - term: 表达式
@@ -61,7 +61,7 @@ terms:
   - term: 不可变
     def: '不能被原地改动的值，如整数、浮点数、字符串；“改”其实是算出一个新值'
   - term: 缩进
-    def: '行首空出来的空格（通常 4 个）。Python 靠缩进判断哪几行属于 if、for 等'
+    def: '行首空出来的空格或制表符，用于标示代码块层级（Python 靠缩进划分 if、for 等语句块）'
   - term: 分支
     def: 'if / elif / else 里的每一条路；一次只走其中一条'
   - term: 循环
@@ -69,7 +69,7 @@ terms:
   - term: 死循环
     def: '条件永远成立、永远停不下来的循环'
   - term: 函数
-    def: '起了名字的一段代码，用 def 定义，写名字加括号就能执行它'
+    def: '起了名字的一段可复用代码（如 Python 用 def 定义），写名字加括号就能调用'
   - term: 参数
     def: '函数括号里的名字，调用时填进来的值会交给它'
   - term: 调用
@@ -85,11 +85,11 @@ terms:
   - term: 关键字参数
     def: '调用时按名字填的参数，如 f(b=1, a=5)，顺序可以随意'
   - term: 模块
-    def: '装着现成函数的 Python 文件，用 import 导入后使用，如 math'
+    def: '把相关代码组织在一起的独立文件或单元（如 Python 的 .py 文件，用 import 导入）'
   - term: 标准库
-    def: '随 Python 一起安装好的模块，如 math、random'
+    def: '随编程语言一起自带的常用模块集合（如 Python 的 math、random）'
   - term: 第三方库
-    def: '别人写好发布在网上的模块，用 pip install 安装，如 numpy'
+    def: '社区或他人发布的可复用代码库，需额外安装后使用（如 Python 用 pip install 安装 numpy）'
   - term: 调试
     def: '找出并改正程序错误（bug）的过程'
   - term: 报错信息
@@ -101,7 +101,7 @@ terms:
   - term: 测试用例
     def: '一个具体的输入和它应得的结果，用来检查程序对不对'
   - term: 切片
-    def: '用 [开始:结束] 取出一段，不包括结束那个下标，如 "Python"[0:2] 得 "Py"'
+    def: '按起止范围从序列中切出一段子序列的写法（如 Python 中 "Python"[0:2] 得 "Py"）'
   - term: 元组
     def: '用逗号（通常加圆括号）写的一串值，如 (3, 4)；能取值但造好以后不能改；类型叫 tuple'
   - term: 集合
@@ -109,11 +109,11 @@ terms:
   - term: 列表推导式
     def: '一行造列表的写法，如 [x * x for x in range(5)]，可以带 if 筛选'
   - term: 注释
-    def: '# 后面的文字，Python 不执行，写给人看'
+    def: '写给人看的说明文字，运行时会被跳过（如 Python 用 # 开头，C/Java 用 // 或 /* */）'
   - term: 包
-    def: '装着几个模块的文件夹（里面通常有 __init__.py），如 import shapes.circle'
+    def: '把多个相关模块组织在一起的目录或命名空间（如 Python 的 import shapes.circle）'
   - term: 异常
-    def: '运行到一半才发现的错误，如 ZeroDivisionError；可以用 try / except 接住'
+    def: '程序运行中发生的错误事件（如除零错误），可用异常处理机制捕获'
   - term: 调用栈
     def: '还没执行完的函数调用叠成的一摞，最上面是正在执行的那个；报错信息就是按它写的'
 
@@ -2633,7 +2633,7 @@ lessons:
                 return box
             ```
 
-            先 `add(1)` 得 `[1]`，再 `add(2)` 得 `[1, 2]`！改法：默认值写 None，在函数里判断 `if box is None:`（box 是不是 None），是就新建 `box = []`。
+            先 `add(1)` 得 `[1]`，再 `add(2)` 得 `[1, 2]`。改法：默认值写 None，在函数里判断 `if box is None:`（box 是不是 None），是就新建 `box = []`。
       - item:
           id: default-trap
           type: choice
@@ -3287,7 +3287,7 @@ lessons:
 
       - card:
           title: 例题：问名字，再打招呼
-          body: 写一个程序：问用户叫什么、几岁，然后显示“你好，名字！10 年后你 X 岁。”一步一步来。
+          body: 写一个程序：问用户叫什么、几岁，然后显示“你好，名字。10 年后你 X 岁。”一步一步来。
           reveal:
             - title: 第 1 步：读名字
               body: "`name = input(\"名字：\")`。名字本来就是文字，不用转换。"
@@ -3296,7 +3296,7 @@ lessons:
             - title: 第 3 步：算好并显示
               body: "`print(f\"你好，{name}！10 年后你 {age + 10} 岁。\")`"
             - title: 第 4 步：试一次
-              body: 输入 小红 和 9，显示：你好，小红！10 年后你 19 岁。
+              body: 输入 小红 和 9，显示：你好，小红。10 年后你 19 岁。
       - item:
           id: forgot-int
           type: choice

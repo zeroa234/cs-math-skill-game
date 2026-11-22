@@ -86,6 +86,12 @@ export function validatePack(pack, skill, label = pack?.skill, ctx = {}) {
     if (typeof v === "string") {
       const bad = v.match(/[\x00-\x08\x0b\x0c\x0e-\x1f]|\t(?=[a-z])/);
       if (bad && !/\.code$|\.params\.code$/.test(where)) e(`${where}: control character U+${bad[0].charCodeAt(0).toString(16).padStart(4, "0")} near "${v.slice(Math.max(0, bad.index - 12), bad.index + 12).replace(/[\x00-\x1f]/g, "¤")}" — a LaTeX backslash inside "double quotes"? use single quotes or a | block`);
+      if (!/\.code$|\.params\.code$/.test(where)) {
+        const noCode = v.replace(/```[\s\S]*?```/g, " ").replace(/`[^`\n]*`/g, " ").replace(/\$\$[\s\S]*?\$\$/g, " ");
+        for (const m of noCode.matchAll(/\$([^$\n]+)\$/g)) {
+          if (/^\d/.test(m[1]) && /[\u4e00-\u9fff]/.test(m[1]) && !/\\text\{/.test(m[1])) e(`${where}: currency $ swallowed prose into inline math ("$${m[1].slice(0, 30)}$") — write "美元" instead of "$"`);
+        }
+      }
     } else if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${where}[${i}]`));
     else if (v && typeof v === "object") for (const [k, x] of Object.entries(v)) if (k !== "steps") walk(x, `${where}.${k}`);
   };
@@ -123,9 +129,12 @@ export function validatePack(pack, skill, label = pack?.skill, ctx = {}) {
   // a card ("接上题", "上面那个") must either be rewritten to stand alone or opt out of review.
   for (const l of lessons) for (const it of l.items) {
     if (it.review === false || (it.type === "sim" && it.review !== true)) continue;
-    if (/接上题|上一题|上题|同一题|上面那|上面的|上例|前一题|刚才/.test(it.prompt)) e(`${l.id}/${it.id}: prompt depends on earlier context ("${it.prompt.slice(0, 30)}…") — make it self-contained or set review: false`);
+    if (/接上题|上一题|上题|同一题|上面那|上面的|沿用上面|上例|前一题|刚才|见上图|见上表|如图所示/.test(it.prompt)) e(`${l.id}/${it.id}: prompt depends on earlier context ("${it.prompt.slice(0, 30)}…") — make it self-contained or set review: false`);
   }
   for (const it of pack.boss?.items || []) items.push([`boss/${it.id}`, it]);
+  for (const [key, it] of items) {
+    if (/```/.test(it.prompt || "")) e(`${key}: fenced code block inside prompt — move code into the item's code + lang fields`);
+  }
   for (const m of beginnerIssues(pack, playOrder(pack, skill), { inherited: ctx.byId ? inheritedTerms(skill.id, ctx.byId, ctx.packsBySkill || {}) : new Set(), coreChapters: skill.chapters.filter((c) => c.stage === "core").length })) e(m);
   for (const [key, it] of items) {
     try {
