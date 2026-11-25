@@ -165,7 +165,8 @@ lessons:
       - item:
           id: cleanup-output-bool
           type: text
-          prompt: 执行以下带异常的代码，最终打印出来的两个布尔值（用单个空格隔开）是什么？
+          format: "照屏幕上显示的样子写，两个值中间一个空格"
+          prompt: "执行以下带异常的代码，最终打印出来的两个布尔值是什么？"
           lang: python
           code: |
             import threading
@@ -177,7 +178,7 @@ lessons:
                 pass
             print(f.closed, lock.locked())
           answers: ["True False"]
-          hint: '`with` 在异常跳出时会自动关闭 `f`（`f.closed` 为 `True`）并释放 `lock`（`lock.locked()` 为 `False`）。'
+          hint: "异常跳出 `with` 块时，`with` 还会替你做哪两件收尾的事？"
           explain: |
             异常虽然打断了 `with` 块内部执行，但 `__exit__` 保证文件已关闭（`True`）、锁已解除锁定（`False`）。
 
@@ -357,6 +358,7 @@ lessons:
       - item:
           id: slice-ascii-output
           type: text
+          format: "照屏幕上显示的样子写"
           prompt: 在下面 Rust 代码里，输出会是什么？
           lang: rust
           code: |
@@ -364,7 +366,7 @@ lessons:
             let head = &text[..2];
             println!("{}:{}", head, text);
           answers: ["no:note"]
-          hint: '`&text[..2]` 借用 `"note"` 的前 2 个字节 `"no"`，而且借用并未移走 `text` 的所有权。'
+          hint: "`&text[..2]` 取的是哪几个字节？借用之后 `text` 还能用吗？"
           explain: |
             `head` 借用前两字节 `"no"`，`text` 依然完整拥有 `"note"`，所以最终打印 `no:note`。
       - item:
@@ -477,6 +479,7 @@ lessons:
       - item:
           id: mutating-rebind-python
           type: text
+          format: "照屏幕上显示的样子写"
           prompt: 看以下 Python 代码，最终打印出来的输出是什么？
           lang: python
           code: |
@@ -486,7 +489,7 @@ lessons:
             b = [99]
             print(a, b)
           answers: ["[1, 2, 3] [99]"]
-          hint: '`b.append(3)` 改了共享列表，`b = [99]` 只是把 `b` 指向了新列表。'
+          hint: "`b.append(3)` 和 `b = [99]` 这两句，哪一句改的是 `a` 也指着的那个列表？"
           explain: |
             `b.append(3)` 让 `a` 和 `b` 共同看到的列表变成 `[1, 2, 3]`；接着 `b = [99]` 重新绑定 `b`，`a` 仍指向原来的 `[1, 2, 3]`。
 
@@ -745,6 +748,7 @@ lessons:
       - item:
           id: decorator-output-text
           type: text
+          format: "照屏幕上显示的样子写"
           prompt: 看这段装饰器代码，运行后屏幕上打印出的一行结果是什么？
           lang: python
           code: |
@@ -760,7 +764,7 @@ lessons:
 
             print(double(4))
           answers: ["call 8"]
-          hint: '先在 `inner` 里不换行打印 `call `（带一个空格），再由外层 `print(double(4))` 打印返回值 `8`。'
+          hint: "`double(4)` 实际调用的是哪个函数？它在交回结果之前先打印了什么？"
           explain: |
             `@traced` 把 `double` 替换成 `inner`：先打印 `"call "`，再执行原 `double(4)` 返回 `8` 并打印 `8`，输出 `call 8`。
       - item:
@@ -987,6 +991,8 @@ lessons:
       - item:
           id: gather-output-text
           type: text
+          caseSensitive: true
+          format: "照屏幕上显示的样子写"
           prompt: 下面这段异步 Python 代码执行后，打印在屏幕上的字符串是什么？
           lang: python
           code: |
@@ -1002,7 +1008,7 @@ lessons:
 
             asyncio.run(main())
           answers: ["X,Y"]
-          hint: '`gather` 按传入参数的顺序收集每个任务的返回值（即使它们异步等待）。'
+          hint: "`gather` 交回的结果，是按任务完成的先后排，还是按传进去的顺序排？"
           explain: |
             `asyncio.gather` 按传入参数顺序把 `"X"` 和 `"Y"` 拼成列表，最终输出 `X,Y`。
 
@@ -1089,7 +1095,8 @@ lessons:
       - item:
           id: gather-partial-code-text
           type: text
-          prompt: 看下面用 `return_exceptions=True` 收集单条异步异常的 Python 代码，程序打印出来的两个输出值（用单个空格隔开）是什么？
+          format: "照屏幕上显示的样子写，两个值中间一个空格"
+          prompt: "看下面用 `return_exceptions=True` 收集单条异步异常的 Python 代码，程序打印出来的两个值是什么？"
           lang: python
           code: |
             import asyncio
@@ -1102,9 +1109,8 @@ lessons:
                 print(res[0], isinstance(res[1], ValueError))
             asyncio.run(run())
           answers: ["ok True"]
-          hint: '第一个正常返回 `"ok"`；第二个异常作为对象放进 `res[1]`，类型恰好是 `ValueError`。'
-          explain: |
-            设置 `return_exceptions=True` 后，单项失败不会直接抛爆整个 `gather`，方便逐个降级处理。
+          hint: "`return_exceptions=True` 时，`job(True)` 抛出的异常去了哪里？"
+          explain: "`res[0]` 是 `job(False)` 交回的 `\"ok\"`；`return_exceptions=True` 让 `job(True)` 抛出的 `ValueError` 作为结果放进 `res[1]`，所以 `isinstance` 得 `True`，打印 `ok True`。这样单项失败不会让整个 `gather` 报错，方便逐个降级处理。"
 
   - id: locks
     chapter: 异步/并发
@@ -1265,6 +1271,7 @@ lessons:
       - item:
           id: queue-output-text
           type: text
+          format: "照屏幕上显示的样子写"
           prompt: 看这段消息队列代码，程序打印的输出是什么？
           lang: python
           code: |
@@ -1274,7 +1281,7 @@ lessons:
             op, val = q.get()
             print(op, val)
           answers: ["add 7"]
-          hint: '先放入元组 `("add", 7)`，接着 `q.get()` 按先进先出取出它并拆包打印。'
+          hint: "`q.get()` 取出的是什么？`op, val = ...` 把它拆成了哪两个值？"
           explain: |
             `op` 拿到 `"add"`，`val` 拿到 `7`，打印结果是 `add 7`。
       - item:

@@ -6,7 +6,7 @@
 // A wrong graded item is explained right away and comes back once at the end; nothing is taken away.
 // onFinish(results) gets { [itemId]: { item, correct, firstTry, usedHint } } for graded items.
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import { checkItem } from "../core/check.js";
+import { checkItem, rightAnswer } from "../core/check.js";
 import { play } from "../app/sound.js";
 import { useProgress } from "../app/state.js";
 import { cycleFont, fontMeta, fontOf, nextFont } from "../app/font.js";
@@ -170,6 +170,9 @@ export function ItemStep({ item, label, guess, retry, onDone, onResult, onHint, 
   useKey("Enter", result ? next : check);
   useDigits(item, result, set);
   const v = verdicts || { right: guess ? "猜对了！" : "答对了！", wrong: guess ? "没关系，看完讲解就明白了" : retry ? "这次也没对，看一下解析" : "还差一点" };
+  // Choice, order and match items mark the right answer in place; typed answers have nowhere to show it,
+  // so a miss names it here (a player once got sorted-rev wrong twice and never saw [9, 5, 2]).
+  const shown = result && !result.correct ? rightAnswer(item) : null;
   return (
     <>
       <article class={"lcard qcard" + (guess ? " is-guess" : "") + (result ? (result.correct ? " is-good" : " is-bad") : "")} data-item={item.id}>
@@ -183,6 +186,7 @@ export function ItemStep({ item, label, guess, retry, onDone, onResult, onHint, 
           <div class="verdict" role="status">
             {result && <>
               <b><Icon name={result.correct ? "check" : "close"} /> {result.correct ? v.right : v.wrong}</b>
+              {shown != null && <p class="right-answer">正确答案：<code>{shown}</code></p>}
               <Md text={item.explain} />
               {!result.correct && !guess && !retry && v.again !== false && <p class="small muted">这题最后会再出现一次。</p>}
             </>}

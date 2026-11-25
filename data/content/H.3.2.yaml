@@ -477,6 +477,7 @@ lessons:
       - item:
           id: distro-path
           type: text
+          format: "从 / 开始写完整路径，如 /boot/uEnv.txt"
           prompt: 用 distro boot 启动时，U-Boot 在一个分区上最先找的配置文件，完整路径是什么？
           answers: ["/extlinux/extlinux.conf"]
           hint: 目录名和文件名用的是同一个词。

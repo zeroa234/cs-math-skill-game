@@ -110,3 +110,13 @@ test("B11: catches prose exclamations, hype words, card skill IDs, cross-chapter
   assert.deepEqual(rules({}, [lesson([{ guess: badGuess }, { card: { body: "说明。" } }, { item: q("a") }, { item: q("b") }])]), ["B11"]);
 });
 
+
+test("B12: a typed answer needs a format that does not give the answer away", () => {
+  const t = (id, extra = {}) => ({ id, type: "text", prompt: "`sorted([5, 2, 9], reverse=True)` 交出什么？", answers: ["[9, 5, 2]"], explain: "从大到小排好：[9, 5, 2]。", ...extra });
+  const two = (it) => [lesson([{ card: { body: "说明。" } }, { item: it }, { item: q("b") }])];
+  // P.1.1, 2026-11-25: "… 是什么？" with no format was answered "从大到小排" twice
+  assert.deepEqual(rules({}, two(t("a"))), ["B12"]);
+  assert.deepEqual(rules({}, two(t("a", { format: "写交出的列表，如 [1, 2]" }))), []);
+  assert.deepEqual(rules({}, two(t("a", { format: "写成列表，如 [9, 5, 2]" }))), ["B12"], "the example is the answer");
+  assert.deepEqual(rules({ boss: { items: [...boss.items, t("bt")] } }, two(q("a"))), ["B12"], "final challenge items too");
+});

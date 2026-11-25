@@ -551,7 +551,8 @@ lessons:
       - item:
           id: obj-name
           type: text
-          prompt: "`gcc -c hello.c` 得到的目标文件叫什么？（写完整文件名）"
+          format: "写完整文件名，如 main.c"
+          prompt: "`gcc -c hello.c` 得到的目标文件叫什么？"
           answers: ["hello.o"]
           explain: -c 只编译不链接，产物是同名的 .o 文件。
 
@@ -1004,7 +1005,8 @@ lessons:
       - item:
           id: mode-600
           type: text
-          prompt: 想让新文件只有自己能读写、别人什么都不能做，第三个参数写成什么？（写成 0 开头的四位）
+          format: "写成 0 开头的四位八进制数，如 0755"
+          prompt: "想让新文件只有自己能读写、别人什么都不能做，第三个参数写成什么？"
           answers: ['0600']
           explain: 自己 4 + 2 = 6，同组 0，其他人 0，写成 0600。
       - card:
@@ -1064,7 +1066,8 @@ lessons:
       - item:
           id: perror-text
           type: text
-          prompt: 打开一个不存在的文件，open 交回 -1 后调用 `perror("open")`。屏幕上显示什么？（英文原样）
+          format: "照屏幕上显示的英文原样写"
+          prompt: "打开一个不存在的文件，open 交回 -1 后调用 `perror(\"open\")`。屏幕上显示什么？"
           answers: ['open: No such file or directory']
           explain: perror 先写你给的文字和冒号，再写 errno 对应的原因。
       - card:
@@ -1916,7 +1919,8 @@ lessons:
       - item:
           id: qsort-result
           type: text
-          prompt: 上面的 qsort 排完后，依次显示 v 的四个元素（用空格隔开），是什么？
+          format: "用空格隔开，如 3 4 6 8"
+          prompt: "上面的 qsort 排完后，依次显示 v 的四个元素，是什么？"
           answers: [1 2 5 9]
           explain: cmp_int 在 x < y 时交回负数，所以小的排前面：1 2 5 9。
           review: false
@@ -2689,7 +2693,8 @@ lessons:
       - item:
           id: front-order
           type: text
-          prompt: 从空链表（head 是 NULL）开始，依次 `head = push_front(head, 1);`、`push_front(head, 2)`、`push_front(head, 3)`（每次都写回 head）。然后从 head 走一遍，依次显示的 value 是什么？（用空格隔开）
+          format: "用空格隔开，如 5 6 7"
+          prompt: "从空链表（head 是 NULL）开始，依次 `head = push_front(head, 1);`、`push_front(head, 2)`、`push_front(head, 3)`（每次都写回 head）。然后从 head 走一遍，依次显示的 value 是什么？"
           answers: [3 2 1]
           explain: 每次都插在最前面，最后插的 3 在第一个。
       - card:

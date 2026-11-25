@@ -5,7 +5,7 @@ import fs from "node:fs";
 import { indexTree, planRoute, requiredClosure, topoOrder, routeGoals } from "../../src/game/core/graph.js";
 import { goalRouteText } from "../../src/game/core/route-text.js";
 import { skillState, satisfied, starsFor, mastery, shouldLight, playableChapters } from "../../src/game/core/rules.js";
-import { checkItem, parseNumber, normalizeText } from "../../src/game/core/check.js";
+import { checkItem, parseNumber, normalizeText, rightAnswer } from "../../src/game/core/check.js";
 import { createStore, memoryStorage, emptyProgress, migrate, streak, levelOf, addXp, dayKey, VERSION } from "../../src/game/core/progress.js";
 import { FONTS, fontMeta, fontOf, nextFont } from "../../src/game/core/font.js";
 import { newCard, reviewCard, isDue, gradeFor } from "../../src/game/core/review.js";
@@ -267,9 +267,24 @@ test("choice, text, order, match checking", () => {
   for (const r of ["[1,3,7]", "1, 3, 7", "1 3 7", "1，3，7"]) assert.ok(checkItem(list, r).correct, r);
   assert.ok(!checkItem(list, "1 7 3").correct);
   assert.ok(!checkItem({ type: "text", answers: ["3 2"] }, "3, 2").correct);
+  for (const r of ["yth", "'yth'", '"yth"', "“yth”"]) assert.ok(checkItem({ type: "text", answers: ["yth"] }, r).correct, r);
+  assert.ok(!checkItem({ type: "text", answers: ["yth"] }, "'yth\"").correct);
+  assert.ok(!checkItem({ type: "text", answers: ["'abc\\n'"] }, "abc\\n").correct);
   assert.ok(checkItem({ type: "order", steps: ["x", "y", "z"] }, [0, 1, 2]).correct);
   assert.ok(!checkItem({ type: "order", steps: ["x", "y", "z"] }, [1, 0, 2]).correct);
   assert.ok(checkItem({ type: "match", pairs: [["a", "1"], ["b", "2"]] }, [0, 1]).correct);
+});
+
+test("the answer shown after a miss is the shortest one the checker accepts", () => {
+  assert.equal(rightAnswer({ type: "text", answers: ["[9, 5, 2]", "9,5,2"] }), "[9, 5, 2]");
+  assert.equal(rightAnswer({ type: "choice", options: [{ text: "a", correct: true }] }), null);
+  assert.equal(rightAnswer({ type: "number", answer: 1048576 }), "1048576");
+  assert.equal(rightAnswer({ type: "number", answer: 220 / 3, tolerance: 0.01 }), "73.33");
+  assert.equal(rightAnswer({ type: "number", answer: 0.1 + 0.2 }), "0.3");
+  assert.equal(rightAnswer({ type: "number", answer: 12.5, unit: "ms" }), "12.5 ms");
+  for (const item of [{ type: "number", answer: 220 / 3 }, { type: "number", answer: -2 / 7 }, { type: "number", answer: 6.02e23 }, { type: "number", answer: 1.6e-19 }]) {
+    assert.ok(checkItem(item, rightAnswer(item)).correct, String(item.answer));
+  }
 });
 
 test("progress store round-trips through export/import and refuses future versions", () => {

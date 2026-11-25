@@ -215,16 +215,16 @@ lessons:
       - item:
           id: ipc-allowlist-eval
           type: text
-          prompt: 看下面基于允许表的资源查询函数，依次查询 `resolve("reader", "preview", "receipt")`、`resolve("stranger", "preview", "receipt")`、`resolve("reader", "preview", "../private")` 的三个返回结果（用单个空格连接，`None` 照实写出）是什么？
+          format: "按查询顺序写，用空格隔开，`None` 照写"
+          prompt: "看下面基于允许表的资源查询函数，依次查询 `resolve(\"reader\", \"preview\", \"receipt\")`、`resolve(\"stranger\", \"preview\", \"receipt\")`、`resolve(\"reader\", \"preview\", \"../private\")` 的三个返回结果是什么？"
           lang: python
           code: |
             allowed = {("reader", "preview", "receipt"): "receipt-preview"}
             def resolve(caller, action, resource):
                 return allowed.get((caller, action, resource))
           answers: ["receipt-preview None None"]
-          hint: 只有完全匹配白名单元 `("reader", "preview", "receipt")` 才返回 `"receipt-preview"`，其余未授权来客或越权路径都返回 `None`。
-          explain: |
-            用白名单明确绑死 `(谁能来, 做什么动作, 拿哪个资源)`，陌生人或恶意路径 `../private` 全部落空返回 `None`。
+          hint: "`allowed.get(...)` 查不到时交回什么？三次查询里，哪一次的三个值正好是 `allowed` 里登记过的那一组？"
+          explain: "只有第一次的三个值正好是 `allowed` 里登记过的那一组，交回 `\"receipt-preview\"`；陌生人和 `../private` 那两组都没登记过，`get` 交回 `None`。白名单把 `(谁能来, 做什么动作, 拿哪个资源)` 明确绑死，没列出的组合一律落空。"
       - item:
           id: deep-link-webview-check
           type: choice

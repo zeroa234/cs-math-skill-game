@@ -591,6 +591,7 @@ lessons:
       - item:
           id: pipeline-filter-calc
           type: text
+          format: "照 Python 显示的写法，如 [1, 2]"
           prompt: 当输入 `logs = ["INFO:ok", "ERR:502", "ERR:404", "INFO:done"]` 时，执行下面两步管道 `extract_codes(filter_errors(logs))` 得到的 Python 列表是什么？
           lang: python
           code: |

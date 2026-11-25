@@ -1771,7 +1771,8 @@ lessons:
       - item:
           id: jac-shape
           type: text
-          prompt: '$\mathbf{F}: \mathbb{R}^3 \to \mathbb{R}^2$ 的雅可比矩阵是几行几列？（按“行×列”填，如 4x5）'
+          format: "按 行x列 写，如 4x5"
+          prompt: "$\\mathbf{F}: \\mathbb{R}^3 \\to \\mathbb{R}^2$ 的雅可比矩阵是几行几列？"
           answers: ['2x3', '2×3', '2*3', '2 x 3', '2 × 3', '2行3列', '2行×3列', '2行x3列']
           explain: 行数等于输出个数 2，列数等于输入个数 3。
       - card:
@@ -2201,7 +2202,8 @@ lessons:
       - item:
           id: chain-shape
           type: text
-          prompt: '$\mathbf{g}: \mathbb{R}^2 \to \mathbb{R}^3$，$\mathbf{h}: \mathbb{R}^3 \to \mathbb{R}^1$。$D(\mathbf{h} \circ \mathbf{g})$ 是几行几列？（按“行×列”填，如 4x5）'
+          format: "按 行x列 写，如 4x5"
+          prompt: "$\\mathbf{g}: \\mathbb{R}^2 \\to \\mathbb{R}^3$，$\\mathbf{h}: \\mathbb{R}^3 \\to \\mathbb{R}^1$。$D(\\mathbf{h} \\circ \\mathbf{g})$ 是几行几列？"
           answers: ['1x2', '1×2', '1*2', '1 x 2', '1 × 2', '1行2列', '1行×2列', '1行x2列']
           explain: Dh 是 1×3，Dg 是 3×2，相乘得 1×2：一个输出、两个输入，就是复合函数的梯度。
       - card:

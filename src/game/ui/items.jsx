@@ -80,11 +80,17 @@ function NumberIn({ item, value, setValue, locked, result }) {
   );
 }
 
+// `format` says what to type and how to write it ("填交出的列表，照 Python 显示的写法"). It stays under
+// the box while typing: "`sorted(...)` 是什么？" alone let a player answer "从大到小排" twice.
 function TextIn({ item, value, setValue, locked, result }) {
+  const fid = item.format ? `fmt-${item.id}` : undefined;
   return (
-    <label class={"answer-line" + (result ? (result.correct ? " is-correct" : " is-wrong") : "")}>
-      <input type="text" value={value} disabled={locked} placeholder={item.placeholder || "输入答案"} onInput={(e) => setValue(e.currentTarget.value)} aria-label="答案" autocomplete="off" spellcheck={false} />
-    </label>
+    <>
+      <label class={"answer-line" + (result ? (result.correct ? " is-correct" : " is-wrong") : "")}>
+        <input type="text" value={value} disabled={locked} placeholder={item.placeholder || "输入答案"} onInput={(e) => setValue(e.currentTarget.value)} aria-label="答案" aria-describedby={fid} autocomplete="off" spellcheck={false} />
+      </label>
+      {item.format && <p class="answer-format" id={fid}><Md text={item.format} inline /></p>}
+    </>
   );
 }
 

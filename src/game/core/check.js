@@ -31,6 +31,25 @@ export function parseNumber(input) {
 
 const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
 
+// A number item accepts anything within this of its answer.
+export const numberTolerance = (item) => item.tolerance ?? Math.max(1e-9, Math.abs(item.answer) * 1e-6);
+
+// The answer to show when an input item (text, number) is missed, or null for the types that mark the
+// right choice in place. Numbers get the fewest significant digits that the checker still accepts, so
+// 220/3 shows as 73.3333 and 1048576 stays whole.
+export function rightAnswer(item) {
+  if (item.type === "text") return item.answers[0];
+  if (item.type !== "number") return null;
+  const tol = numberTolerance(item);
+  let n = item.answer;
+  for (let p = 1; p <= 17; p++) {
+    const r = Number(item.answer.toPrecision(p));
+    if (Math.abs(r - item.answer) <= tol) { n = r; break; }
+  }
+  if (!item.unit) return String(n);
+  return String(n) + (/^[%°′″]/.test(item.unit) ? "" : " ") + item.unit;
+}
+
 export function checkItem(item, response) {
   switch (item.type) {
     case "choice": {
@@ -41,16 +60,18 @@ export function checkItem(item, response) {
     case "number": {
       const n = parseNumber(response);
       if (Number.isNaN(n)) return { correct: false, detail: { unreadable: true } };
-      const tol = item.tolerance ?? Math.max(1e-9, Math.abs(item.answer) * 1e-6);
+      const tol = numberTolerance(item);
       return { correct: Math.abs(n - item.answer) <= tol, detail: { value: n } };
     }
     case "text": {
       const got = normalizeText(response, item.caseSensitive);
       // A list answer like "[1, 3, 7]" also accepts "1,3,7", "1 3 7" or "[1,3,7]".
       const tokens = (s) => s.replace(/^\[|\]$/g, "").split(/[\s,，、]+/).filter(Boolean).join(" ");
+      // An unquoted answer also accepts it in one pair of quotes: Python shows "Python"[1:4] as 'yth'.
+      const unquoted = got.replace(/^(['"`])(.*)\1$|^“(.*)”$|^‘(.*)’$|^「(.*)」$/s, (m, q, a, b, c, d) => a ?? b ?? c ?? d);
       const same = (a) => {
         const want = normalizeText(a, item.caseSensitive);
-        return want === got || (want.startsWith("[") && tokens(want) === tokens(got));
+        return want === got || (!/^['"`“‘「]/.test(want) && want === unquoted) || (want.startsWith("[") && tokens(want) === tokens(got));
       };
       return { correct: item.answers.some(same), detail: {} };
     }

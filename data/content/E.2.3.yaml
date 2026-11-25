@@ -2161,6 +2161,7 @@ lessons:
       - item:
           id: hamming-enc
           type: text
+          format: "写 7 位 0 和 1，如 1010101"
           prompt: 用校验位 p₁ = d₁ ⊕ d₃ ⊕ d₄、p₂ = d₁ ⊕ d₂ ⊕ d₃、p₃ = d₂ ⊕ d₃ ⊕ d₄ 的 (7,4) 汉明码编码数据 0110，码字写成 d₁d₂d₃d₄p₁p₂p₃。码字是什么？
           answers: ['0110100']
           hint: 先代入 d₁ = 0，d₂ = 1，d₃ = 1，d₄ = 0。
@@ -2196,6 +2197,7 @@ lessons:
       - item:
           id: crc-rem
           type: text
+          format: "写 3 位 0 和 1，如 101"
           prompt: 生成多项式 g(x) = x³ + x + 1（1011），数据 1001。CRC 校验位（3 位余数）是什么？
           answers: ['110']
           hint: 数据后补 3 个 0 得 1001000，做模 2 除法。
@@ -2234,6 +2236,7 @@ lessons:
       - item:
           id: conv-enc
           type: text
+          format: "写 4 位 0 和 1，如 1011"
           prompt: 码率 1/2 卷积码，v₁ = u_k ⊕ u_{k−1} ⊕ u_{k−2}，v₂ = u_k ⊕ u_{k−2}，从全零状态开始输入 11。输出的 4 位是什么？
           answers: ['1101']
           hint: 第 2 位输入时，前两位是 1 和 0。

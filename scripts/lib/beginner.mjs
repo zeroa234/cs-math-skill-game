@@ -27,6 +27,9 @@
 //  B11 calm tone & fair choices (docs/collaboration.md & docs/content-authoring.md): no full-width
 //     exclamation marks or hype words in prose, no internal skill IDs or cross-chapter refs in cards,
 //     no "all/none of the above" options, and no bold-only answer giveaways in choices or guesses.
+//  B12 a typed answer says what to type (2026-11-25: "`sorted([5, 2, 9], reverse=True)` 是什么？" was
+//     answered "从大到小排" twice, since nothing said the value [9, 5, 2] was wanted): every text item has
+//     a `format` (shown under the input box) naming what to write and how, without containing the answer.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -126,6 +129,13 @@ export function beginnerIssues(pack, lessons, { inherited = new Set(), coreChapt
     const cm = t.match(CROSS_CHAPTER_REF);
     if (cm) out.push(`B11 ${where}: card uses cross-chapter reference "${cm[0]}" — chapters may reorder`);
   };
+  const checkFormat = (it, where) => {
+    if (it?.type !== "text") return;
+    if (!String(it.format || "").trim()) { out.push(`B12 ${where}: text item "${it.id}" has no format — say under the box what to type and how to write it (e.g. "填交出的列表，照 Python 显示的写法"), or make it a choice/number item`); return; }
+    const squash = (s) => String(s).toLowerCase().replace(/[\s`]/g, "");
+    const leak = it.answers.find((a) => squash(a).length >= 2 && squash(it.format).includes(squash(a)));
+    if (leak) out.push(`B12 ${where}: the format of "${it.id}" contains the answer "${leak}" — use a different example`);
+  };
   const checkChoice = (it, where, isGuess = false) => {
     if (!it?.options) return;
     for (const o of it.options) {
@@ -174,12 +184,13 @@ export function beginnerIssues(pack, lessons, { inherited = new Set(), coreChapt
         cardsInRow = 0;
         for (const t of itemTexts(s.item)) use(t, where);
         checkChoice(s.item, where, s.kind === "guess");
+        checkFormat(s.item, where);
         useCode(itemCode(s.item), where, lessonTeaches);
         if (s.kind === "item" && s.item.type === "sim" && !demoSeen) out.push(`B4 ${where}: graded sim "${s.item.id}" comes before any demo or worked example in this lesson`);
       }
     });
   }
-  for (const it of pack.boss?.items || []) { for (const t of itemTexts(it)) use(t, `boss/${it.id}`); checkChoice(it, `boss/${it.id}`, false); useCode(itemCode(it), `boss/${it.id}`); }
+  for (const it of pack.boss?.items || []) { for (const t of itemTexts(it)) use(t, `boss/${it.id}`); checkChoice(it, `boss/${it.id}`, false); checkFormat(it, `boss/${it.id}`); useCode(itemCode(it), `boss/${it.id}`); }
   for (const w of definedSomewhere) if (!listed.has(w)) out.push(`B1 terms: "${w}" is defined in a card but missing from terms (the look-up button needs it)`);
   const bolded = lessons.flatMap((l) => l.flow.filter((s) => s.card).flatMap((s) => [s.card.body, ...(s.card.reveal || []).map((r) => r.body)].flatMap(definedIn)));
   for (const t of pack.terms || []) if (!bolded.some((d) => d.startsWith(t.term))) out.push(`B1 terms: "${t.term}" is never defined as **${t.term}** in a card`);

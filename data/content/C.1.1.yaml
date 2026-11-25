@@ -156,7 +156,8 @@ lessons:
       - item:
           id: dec-to-bin
           type: text
-          prompt: 十进制的 37 写成二进制是什么？（不写 0b）
+          format: "只写 0 和 1，不写 0b，如 1101"
+          prompt: "十进制的 37 写成二进制是什么？"
           answers: ['100101']
           explain: 37 = 32 + 4 + 1，从 32 那一位写到 1 那一位：100101。
       - card:
@@ -192,7 +193,8 @@ lessons:
       - item:
           id: bin-to-hex
           type: text
-          prompt: 二进制 1101 0110 写成十六进制是什么？（只写两位，不写 0x）
+          format: "写两位十六进制，不写 0x，如 3F"
+          prompt: "二进制 1101 0110 写成十六进制是什么？"
           answers: [D6]
           explain: 1101 是 13，也就是 D；0110 是 6。合起来 D6。
       - item:
@@ -284,9 +286,10 @@ lessons:
       - item:
           id: minus-one
           type: text
-          prompt: '`bin((-1) % 256)` 是什么？'
+          format: "照 Python 显示的样子写，带 0b，如 0b101"
+          prompt: "`bin((-1) % 256)` 的结果是什么？"
           answers: ['0b11111111']
-          explain: (−1) % 256 = 255，8 位全是 1。所以 −1 的补码就是全 1。
+          explain: "(−1) % 256 = 255，bin(255) 是 0b11111111：8 位全是 1。所以 −1 的 8 位补码就是全 1。"
 
   - id: huffman
     chapter: 数据表示
@@ -362,7 +365,8 @@ lessons:
       - item:
           id: decode
           type: text
-          prompt: 用 B = 0、A = 11、C = 100、D = 101，把 011100 拆成符号。（写成字母，如 BAD）
+          format: "写成字母，如 BAD"
+          prompt: "用 B = 0、A = 11、C = 100、D = 101，把 011100 拆成符号。"
           answers: [BAC]
           explain: 从左读：0 是 B；接着 11 是 A；剩下 100 是 C。
       - item:
@@ -412,9 +416,10 @@ lessons:
       - item:
           id: parity
           type: text
+          format: "写 8 位 0 和 1，如 10100101"
           prompt: 给 1011001 加一位偶校验位（加在最后），完整的 8 位是什么？
           answers: ['10110010']
-          explain: 1011001 里有 4 个 1，已经是偶数，校验位是 0。
+          explain: "1011001 里有 4 个 1，已经是偶数，校验位是 0，接在最后得 10110010。"
       - card:
           title: 距离越大，能做的越多
           body: |
@@ -493,7 +498,8 @@ lessons:
       - item:
           id: one-hex
           type: text
-          prompt: 1.0 的单精度表示写成十六进制是什么？（8 位十六进制，不写 0x）
+          format: "写 8 位十六进制，不写 0x，如 41200000"
+          prompt: "1.0 的单精度表示写成十六进制是什么？"
           answers: [3F800000]
           explain: 1.0 = 1.0 × 2⁰，符号 0，阶码 0 + 127 = 01111111，尾数全 0：0 01111111 000…0 = 0x3F800000。
       - card:
@@ -841,6 +847,7 @@ lessons:
       - item:
           id: sub-8bit
           type: text
+          format: "写 8 位 0 和 1，如 00010010"
           prompt: 用加法器做 8 位的 00001001 − 00000100（9 − 4），结果的 8 位是什么？
           answers: ['00000101']
           explain: 4 = 00000100，取反加一是 11111100；00001001 + 11111100 = 1 00000101，丢掉最高的进位，得 00000101 = 5。
@@ -1742,9 +1749,10 @@ lessons:
       - item:
           id: fsm-run
           type: text
+          format: "把六次输出连着写，如 010110"
           prompt: 从状态 A 开始，依次输入 0、1、1、1、0、1。每输入一位后输出一次（看进入的那个状态），六次输出连起来是什么？
           answers: ['001100']
-          explain: 状态依次是 A、B、C、C、A、B，输出 0、0、1、1、0、0。
+          explain: "状态依次是 A、B、C、C、A、B，输出 0、0、1、1、0、0，连起来是 001100。"
       - item:
           id: state-bits
           type: number
@@ -1900,7 +1908,8 @@ boss:
   items:
     - id: twos-boss
       type: text
-      prompt: −37 的 8 位补码写成十六进制是什么？（两位，不写 0x）
+      format: "写两位十六进制，不写 0x，如 3F"
+      prompt: "−37 的 8 位补码写成十六进制是什么？"
       answers: [DB]
       explain: 37 = 00100101，取反 11011010，加一 11011011 = 0xDB。
     - id: signed-boss
@@ -1910,7 +1919,8 @@ boss:
       explain: 0xF6 = 246，最高位是 1，246 − 256 = −10。
     - id: float-boss
       type: text
-      prompt: −6.25 的 IEEE 754 单精度表示写成十六进制是什么？（8 位，不写 0x）
+      format: "写 8 位十六进制，不写 0x，如 41200000"
+      prompt: "−6.25 的 IEEE 754 单精度表示写成十六进制是什么？"
       answers: [C0C80000]
       explain: −6.25 = −1.1001₂ × 2²：符号 1，阶码 2 + 127 = 10000001，尾数 1001 后补 0，合起来 0xC0C80000。
     - id: overflow-boss

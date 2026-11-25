@@ -1151,10 +1151,11 @@ lessons:
       - item:
           id: di-test-output
           type: text
+          format: "写出得到的字符串，引号可写可不写"
           prompt: |
             用依赖注入改造 `ReportGenerator(repo)` 后，`FakeRepo(rows)` 的 `all_sales()` 直接返回预设列表 `[Sale(3), Sale(4)]`，`total_csv()` 计算总和并返回 `f"total,{total}"`。调用 `ReportGenerator(FakeRepo([Sale(3), Sale(4)])).total_csv()` 返回的字符串是什么？
           answers: ["total,7"]
-          hint: 金额 `3` 和 `4` 相加后按 `f"total,{total}"` 拼接。
+          hint: "`total_csv()` 先把哪些金额加起来？加完代进哪个模板？"
           explain: |
             `FakeRepo` 返回两条记录，求和 `3 + 4 = 7`，得到 `"total,7"`，全程没有碰任何真数据库文件。
       - item:
@@ -1823,6 +1824,8 @@ lessons:
       - item:
           id: decorator-order-text
           type: text
+          caseSensitive: true
+          format: "写出得到的字符串，引号可写可不写"
           prompt: |
             看下面装饰器组合代码，调用 `w.write("hi")` 返回的字符串是什么？
           code: |
@@ -1841,7 +1844,7 @@ lessons:
             print(w.write("hi"))
           lang: python
           answers: ["[HI]"]
-          hint: "`BracketDecorator` 先在外面把 `\"hi\"` 包成 `\"[hi]\"`，传给里面的 `UpperDecorator` 转大写。"
+          hint: "两个装饰器里，谁先拿到 `\"hi\"`？它对文字做了什么，再交给谁？"
           explain: |
             外层 `BracketDecorator` 把 `"hi"` 变成 `"[hi]"`，送入 `UpperDecorator` 转成 `"[HI]"`，最后交给 `PlainWriter` 返回 `"[HI]"`。
       - item:
@@ -2062,6 +2065,7 @@ lessons:
       - item:
           id: strategy-html-out
           type: text
+          format: "写出得到的字符串，引号可写可不写"
           prompt: |
             策略模式里 `HtmlFormatter.format(total)` 返回 `f"<b>{total}</b>"`，`ReportGenerator(formatter).render(amounts)` 把 `sum(amounts)` 传给 `formatter.format(...)`。调用 `ReportGenerator(HtmlFormatter()).render([10, 15, 5])` 返回的字符串是什么？
           answers: ["<b>30</b>"]
@@ -2243,6 +2247,7 @@ lessons:
       - item:
           id: cmd-undo-text
           type: text
+          format: "写出得到的字符串，引号可写可不写"
           prompt: |
             看下面命令模式 `AddTextCmd` 代码，`"".join(doc)` 最终输出什么字符串？（注意 `c1` 末尾有个空格，不过 `c2` 被撤销了）
           code: |
@@ -2759,6 +2764,7 @@ boss:
         三种变化原因混在一处（SRP）、扩展新格式需改已有分支（OCP）、高层直连具体 `sqlite3`（DIP）。
     - id: boss-di-test-calc
       type: text
+      format: "写出得到的字符串，引号可写可不写"
       prompt: |
         用依赖倒置与策略模式重构后，`ReportGenerator(repo, formatter)` 从构造函数传入仓库和格式化器。单元测试传入 `FakeRepo([Sale(12), Sale(8), Sale(5)])` 与返回 `f"total,{total}"` 的 `CsvFormatter()`，输出的字符串是什么？
       answers: ["total,25"]

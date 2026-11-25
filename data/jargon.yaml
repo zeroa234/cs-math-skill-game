@@ -413,6 +413,34 @@ terms:
   - 斯托克斯定理
   - 单连通
   - 叉积
+  # Vibrations, waves and optics (N.1.3, 2026-11-25)
+  - 简谐振动
+  - 过阻尼
+  - 临界阻尼
+  - 简正模式
+  - 色散关系
+  - 波节
+  - 波腹
+  - 半波损失
+  - 群速度
+  - 波包
+  - 波矢
+  - 惠更斯原理
+  - 波阵面
+  - 波程差
+  - 光程
+  - 衍射
+  - 瑞利判据
+  - 光栅
+  - 线偏振光
+  - 马吕斯定律
+  - 布儒斯特角
+  - 双折射
+  - 波片
+  - 圆偏振光
+  - 椭圆偏振光
+  - 屈光度
+  - 角放大率
 
 # term: keywords whose use in a shown program means the program uses that term (whole words, after
 # string literals and comments are removed). Only keywords that mean the same idea in every language

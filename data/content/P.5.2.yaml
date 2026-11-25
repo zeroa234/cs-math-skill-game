@@ -485,6 +485,7 @@ lessons:
       - item:
           id: declarative-text-count
           type: text
+          format: "照界面上显示的完整文字写"
           prompt: 在下方 Compose 计数器片段中，如果用户依次点击了 **三次 `+1`**，再点击 **一次 `重置`**，接着又点击 **两次 `+1`**，此时界面上 `Text` 最终显示的完整文字是什么？
           lang: kotlin
           code: |
@@ -493,7 +494,7 @@ lessons:
             // 点击 "重置" 按钮触发：{ count = 0 }
             // 界面显示：Text("Count: $count")
           answers: ["Count: 2"]
-          hint: '三次 `+1` 变 3，点一次重置回 `0`，再点两次 `+1` 后 `count` 是 `2`。'
+          hint: "点一次 `重置` 之后 `count` 是多少？之后又加了几次？"
           explain: |
             `0 -> 3 -> 0 -> 2`，`Text("Count: $count")` 随状态更新重组显示 `Count: 2`。
 
@@ -1752,10 +1753,8 @@ boss:
       explain: |
         既要对外加大逆向难度，又要留给自己随时精准定位线上闪退的“译码字典”。
     - id: boss-sqlite-transaction
-      type: text
-      prompt: |
-        在本地离线同步库里，初始时 `Task` 表有一条记录 `('task-7', 0)`，`Pending` 表为空。我们用一笔数据库事务先执行 `UPDATE Task SET done = 1 WHERE id = 'task-7'`，接着往 `Pending` 插入唯一操作记录 `('op-17', 'task-7', 4, 1)` 并提交；随后如果有人不小心**又拿完全相同的 `'op-17'` 再跑同一笔事务**，结果主键冲突报错触发捕获并显式 `ROLLBACK`。此时数据库里 `Pending` 表共有几条记录？（填数字）
-      answers: ["1"]
-      hint: 第一次事务成功写入了 1 条 `'op-17'`；第二次带同样 `'op-17'` 的事务报错回滚，整笔失败不会留下第二条重复记录。
-      explain: |
-        祝贺通关《移动应用开发》。你已经打通了生命周期状态、跨端自适应布局、运行时权限硬件、安全隔离以及离线优先同步与多端发布的全链路架构。
+      type: number
+      answer: 1
+      prompt: "在本地离线同步库里，初始时 `Task` 表有一条记录 `('task-7', 0)`，`Pending` 表为空。我们用一笔数据库事务先执行 `UPDATE Task SET done = 1 WHERE id = 'task-7'`，接着往 `Pending` 插入唯一操作记录 `('op-17', 'task-7', 4, 1)` 并提交；随后如果有人不小心**又拿完全相同的 `'op-17'` 再跑同一笔事务**，结果主键冲突报错触发捕获并显式 `ROLLBACK`。此时数据库里 `Pending` 表共有几条记录？"
+      hint: "`ROLLBACK` 会撤掉哪些改动？第一次已经提交的那条还在吗？"
+      explain: "第一次事务提交后，`Pending` 里有 1 条 `'op-17'`。第二次插入同一个主键时报错，`ROLLBACK` 把这一笔事务里的改动全部撤掉；第一次已经提交的那条不受影响，所以还是 1 条。"

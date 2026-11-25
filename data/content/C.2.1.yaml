@@ -1689,7 +1689,8 @@ lessons:
       - item:
           id: vpn-hex
           type: text
-          prompt: 32 位地址、4KB 页。虚拟地址 0x00403ABC 的页内偏移是多少？（写十六进制，不写 0x）
+          format: "写十六进制，不写 0x，如 1F0"
+          prompt: "32 位地址、4KB 页。虚拟地址 0x00403ABC 的页内偏移是多少？"
           answers: [ABC, '0ABC']
           explain: 4KB 页，偏移是低 12 位，也就是最后 3 个十六进制位：ABC。前面的 0x00403 是虚拟页号。
       - card:
@@ -3657,6 +3658,7 @@ lessons:
       - item:
           id: two-opens-write
           type: text
+          format: "写出文件里的全部字符，如 abc"
           prompt: 空文件 f。`a = open("f", O_WRONLY); b = open("f", O_WRONLY);` 然后 `write(a, "xyz", 3); write(b, "Q", 1);`。之后文件内容是什么？
           answers: [Qyz]
           explain: 两次 open 各有偏移，都从 0 开始。先写 xyz，再从开头写 Q，盖掉了 x，文件是 Qyz。
@@ -3910,6 +3912,7 @@ lessons:
       - item:
           id: chmod-750
           type: text
+          format: "写三位数字，如 644"
           prompt: 想让主人能读、写、执行，同组的人能读和执行，其他人什么都不能做（rwxr-x---），chmod 后面写什么三位数？
           answers: ['750']
           explain: 主人 4 + 2 + 1 = 7，同组 4 + 1 = 5，其他人 0。
@@ -4268,7 +4271,8 @@ boss:
       explain: 8KB = 2¹³，VPN 19 位，2¹⁹ × 4 字节 = 2²¹ 字节 = 2MB。
     - id: vpn-boss
       type: text
-      prompt: 32 位地址、4KB 页。虚拟地址 0x12345678 的虚拟页号是多少？（写十六进制，不写 0x）
+      format: "写十六进制，不写 0x，如 ABCDE"
+      prompt: "32 位地址、4KB 页。虚拟地址 0x12345678 的虚拟页号是多少？"
       answers: ['12345', '00012345']
       explain: 4KB 页的偏移是低 12 位（最后 3 个十六进制位 678），前面的 0x12345 是虚拟页号。
     - id: lru-boss

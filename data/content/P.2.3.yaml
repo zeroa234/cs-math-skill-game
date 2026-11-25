@@ -285,7 +285,8 @@ lessons:
       - item:
           id: str-times
           type: text
-          prompt: 接着上面，b 现在是 'hello'。在 IPython 里输入 `2 * b`，Out 显示什么？（照样写出来，带引号）
+          format: "照 Out 显示的样子写，带引号"
+          prompt: "接着上面，b 现在是 'hello'。在 IPython 里输入 `2 * b`，Out 显示什么？"
           answers: ["'hellohello'", hellohello]
           explain: 同一个 * 号，用在整数上是乘法，用在字符串上是重复。2 * 'hello' 得到 'hellohello'，IPython 用引号表示它是字符串。
       - card:
@@ -641,6 +642,7 @@ lessons:
       - item:
           id: greet-times
           type: text
+          format: "照屏幕上显示的样子写"
           prompt: greet.py 如下。运行 `python greet.py Ann --times 3`，显示什么？
           code: |
             import argparse
@@ -657,6 +659,8 @@ lessons:
       - item:
           id: greet-shout
           type: text
+          caseSensitive: true
+          format: "照屏幕上显示的样子写"
           prompt: greet.py 如下。运行 `python greet.py bo --shout`，显示什么？
           code: |
             import argparse
@@ -679,6 +683,7 @@ lessons:
       - item:
           id: dash-name
           type: text
+          format: "写一个 Python 表达式，如 args.name"
           prompt: '声明了 `parser.add_argument("--max-rows", type=int, default=10)`。在程序里用哪个写法拿到它的值？'
           answers: [args.max_rows]
           explain: 短横线变成下划线：args.max_rows。写 args.max-rows 会被 Python 读成 args.max 减去 rows。
@@ -1197,7 +1202,8 @@ lessons:
       - item:
           id: sorted-items
           type: text
-          prompt: '`d = {"b": 2, "c": 3, "a": 1}`。`[k for k, v in sorted(d.items())]` 是什么？'
+          format: "照 Python 显示的写法，字符串带引号，如 ['x', 'y']"
+          prompt: "`d = {\"b\": 2, \"c\": 3, \"a\": 1}`。`[k for k, v in sorted(d.items())]` 得到什么列表？"
           answers: ["['a', 'b', 'c']"]
           explain: sorted(d.items()) 按键排出 ('a', 1)、('b', 2)、('c', 3)，再只取键：['a', 'b', 'c']。
 
@@ -1404,6 +1410,7 @@ lessons:
       - item:
           id: line-repr
           type: text
+          format: "照 repr 显示的样子写，引号也要写"
           prompt: 文件第一行是 `abc`，后面还有别的行。`for line in f:` 第一次得到的 line，用 repr 显示是什么？
           answers: ["'abc\\n'"]
           explain: 读到的行包括末尾的换行符，repr 把它显示成 \n：'abc\n'。所以 line == 'abc' 是 False，要先 line.rstrip('\n') 或 line.strip()。
@@ -1762,6 +1769,7 @@ lessons:
       - item:
           id: path-stem
           type: text
+          format: "写出得到的字符串，引号可写可不写"
           prompt: '`Path("data/raw/sensor_07.csv").stem` 是什么？'
           answers: [sensor_07]
           explain: stem 是文件名去掉最后的扩展名：sensor_07。name 是 'sensor_07.csv'，suffix 是 '.csv'。
@@ -1909,6 +1917,7 @@ lessons:
       - item:
           id: timedelta
           type: text
+          format: "写出得到的字符串，如 2025-12-31"
           prompt: '`(date(2026, 2, 27) + timedelta(days=2)).isoformat()` 是什么？'
           answers: [2026-03-01]
           explain: 2026 年不是闰年，2 月只有 28 天。2 月 27 日往后 2 天是 3 月 1 日。timedelta 会自动处理月底和闰年。
@@ -1944,6 +1953,7 @@ lessons:
       - item:
           id: new-name
           type: text
+          format: "写出文件名，引号可写可不写"
           prompt: 上面的脚本运行的那天是 2026 年 10 月 31 日，文件是 notes/todo.txt。改名后的文件名（不含文件夹）是什么？
           answers: [2026-10-31_todo.txt]
           explain: prefix 是 '2026-10-31'，f.name 是 'todo.txt'，拼起来是 2026-10-31_todo.txt。
@@ -2200,6 +2210,7 @@ lessons:
       - item:
           id: override
           type: text
+          format: "照屏幕上显示的样子写"
           prompt: 下面的程序显示什么？
           code: |
             class Shape:
@@ -2298,6 +2309,7 @@ lessons:
       - item:
           id: shape-32
           type: text
+          format: "照 Python 显示的写法，如 (4, 1)"
           prompt: '`np.array([[1, 2], [3, 4], [5, 6]]).shape` 是什么？'
           answers: ['(3, 2)', '(3,2)']
           explain: 外层列表有 3 个元素（3 行），每行 2 个数（2 列），形状是 (3, 2)。
@@ -2467,6 +2479,7 @@ lessons:
       - guess:
           id: guess
           type: text
+          format: "照屏幕上显示的样子写，如 [5 0 6]"
           prompt: '`a = np.arange(10)`。猜猜 `print(a[2:5])` 显示什么？'
           answers: ['[2 3 4]']
           explain: 和列表的切片一样：从下标 2 开始，到 5 之前停。数组显示时元素之间用空格，不用逗号。
@@ -2484,6 +2497,7 @@ lessons:
       - item:
           id: step3
           type: text
+          format: "照屏幕上显示的样子写，如 [5 0 6]"
           prompt: '`a = np.arange(10)`。`print(a[::3])` 显示什么？'
           answers: ['[0 3 6 9]']
           explain: 从头到尾，每 3 个取一个：0、3、6、9。
@@ -2580,6 +2594,7 @@ lessons:
       - guess:
           id: guess
           type: text
+          format: "照屏幕上显示的样子写，如 [5 0 6]"
           prompt: '`a = np.array([3, 8, 1, 9])`。猜猜 `print(a[a > 5])` 显示什么？'
           answers: ['[8 9]']
           explain: a > 5 先逐个比较，得到 [False True False True]；再用它取出为 True 的元素：8 和 9。
@@ -2693,6 +2708,7 @@ lessons:
       - guess:
           id: guess
           type: text
+          format: "照屏幕上显示的样子写，如 [5 0 6]"
           prompt: 猜猜 `print(np.array([1, 2, 3]) * np.array([4, 5, 6]))` 显示什么？
           answers: ['[ 4 10 18]', '[4 10 18]']
           explain: 两个形状相同的数组相乘，是对应位置的元素相乘：1×4、2×5、3×6。
@@ -2855,12 +2871,14 @@ lessons:
       - item:
           id: axis-shape
           type: text
+          format: "照 Python 显示的写法，如 (4, 1)"
           prompt: '`X` 的形状是 (1000, 3)：1000 个样本，每个 3 个特征。`X.mean(axis=0).shape` 是什么？'
           answers: ['(3,)', '(3, )']
           explain: axis=0 是样本那一维，被平均掉了，剩下每个特征一个平均数，形状 (3,)。
       - item:
           id: row-max
           type: text
+          format: "照屏幕上显示的样子写，如 [5 0 6]"
           prompt: '`a = np.array([[1, 7, 3], [8, 2, 4]])`。`print(a.max(axis=1))` 显示什么？'
           answers: ['[7 8]']
           explain: axis=1 沿每一行找最大：第 0 行最大是 7，第 1 行最大是 8。
@@ -2878,6 +2896,7 @@ lessons:
       - item:
           id: cumsum-last
           type: text
+          format: "照屏幕上显示的样子写，如 [5 0 6]"
           prompt: '`print(np.cumsum([2, 0, 5, 1]))` 显示什么？'
           answers: ['[2 2 7 8]']
           explain: 一路累加：2、2 + 0 = 2、2 + 5 = 7、7 + 1 = 8。最后一个就是总和。
@@ -2955,6 +2974,7 @@ lessons:
       - item:
           id: bc-shape
           type: text
+          format: "照 Python 显示的写法，如 (4, 1)"
           prompt: '`np.ones((5, 1)) + np.ones((1, 2))` 的形状是什么？'
           answers: ['(5, 2)', '(5,2)']
           explain: 从右往左比：1 和 2，有一个是 1，取 2；5 和 1，取 5。结果 (5, 2)。
@@ -3022,7 +3042,8 @@ lessons:
       - item:
           id: row-scale
           type: text
-          prompt: '`a = np.array([[1, 2], [3, 4]])`。`print(a * np.array([10, 100]))` 显示什么？（照样写，两行可以写在一行，中间空格）'
+          format: "照屏幕上显示的样子写，两行可以写在一行，中间空格"
+          prompt: "`a = np.array([[1, 2], [3, 4]])`。`print(a * np.array([10, 100]))` 显示什么？"
           answers: ['[[ 10 200] [ 30 400]]', '[[10 200] [30 400]]']
           explain: (2, 2) 和 (2,) 广播，每一行都乘 [10, 100]：第一列乘 10，第二列乘 100。
 
@@ -3034,6 +3055,7 @@ lessons:
       - guess:
           id: guess
           type: text
+          format: "照 Python 显示的写法，如 (4, 1)"
           prompt: '`a = np.arange(6)`。猜猜 `a.reshape(2, 3).shape` 是什么？'
           answers: ['(2, 3)', '(2,3)']
           explain: reshape 把同样的 6 个数重新排成 2 行 3 列。元素个数必须对得上：2 × 3 = 6。
@@ -3051,6 +3073,7 @@ lessons:
       - item:
           id: reshape-minus1
           type: text
+          format: "照 Python 显示的写法，如 (4, 1)"
           prompt: '`np.arange(12).reshape(-1, 4).shape` 是什么？'
           answers: ['(3, 4)', '(3,4)']
           explain: 12 个元素、每行 4 个，-1 那一维算出来是 12 ÷ 4 = 3。
@@ -3075,6 +3098,7 @@ lessons:
       - item:
           id: t-ravel
           type: text
+          format: "照屏幕上显示的样子写，如 [5 0 6]"
           prompt: '`a = np.array([[1, 2], [3, 4]])`。`print(a.T.ravel())` 显示什么？'
           answers: ['[1 3 2 4]']
           explain: a.T 是 [[1 3] [2 4]]，按行摊平：1、3、2、4。
@@ -3095,6 +3119,7 @@ lessons:
       - item:
           id: argsort
           type: text
+          format: "照屏幕上显示的样子写，如 [5 0 6]"
           prompt: '`print(np.argsort(np.array([30, 10, 20])))` 显示什么？'
           answers: ['[1 2 0]']
           explain: 最小的 10 在下标 1，其次 20 在下标 2，最大的 30 在下标 0。
@@ -3162,6 +3187,7 @@ lessons:
       - item:
           id: around-half
           type: text
+          format: "照屏幕上显示的样子写，如 [1. 0. 3.]"
           prompt: '`print(np.around(np.array([0.5, 1.5, 2.5])))` 显示什么？'
           answers: ['[0. 2. 2.]']
           explain: 都正好在两个整数中间，舍到偶数：0.5 → 0，1.5 → 2，2.5 → 2。
@@ -3521,6 +3547,7 @@ lessons:
       - item:
           id: mat-shape
           type: text
+          format: "照 Python 显示的写法，如 (4, 1)"
           prompt: '`spio.savemat("f.mat", {"v": np.arange(5)})` 之后，`spio.loadmat("f.mat")["v"].shape` 是什么？'
           answers: ['(1, 5)', '(1,5)']
           explain: 一维的 (5,) 在 Matlab 里变成 1 行 5 列，读回来是 (1, 5)。拿到 loadmat 的结果先看 shape。
@@ -3698,6 +3725,7 @@ lessons:
       - item:
           id: df-shape
           type: text
+          format: "照 Python 显示的写法，如 (4, 1)"
           prompt: '`pd.DataFrame({"a": [1, 2, 3, 4], "b": [5, 6, 7, 8], "c": list("wxyz")}).shape` 是什么？'
           answers: ['(4, 3)', '(4,3)']
           explain: 3 列，每列 4 个值，所以 4 行 3 列：(4, 3)。行数在前。
@@ -4875,6 +4903,7 @@ lessons:
       - item:
           id: hist-counts
           type: text
+          format: "照屏幕上显示的样子写，如 [5 0 6]"
           prompt: '`np.histogram([1, 2, 2, 3, 3, 3], bins=[0.5, 1.5, 2.5, 3.5])[0]` 打印出来是什么？'
           answers: ['[1 2 3]']
           explain: 三个格子分别是 0.5–1.5、1.5–2.5、2.5–3.5，各有 1、2、3 个数。返回的第一个是计数，第二个是格子的边界。
@@ -5484,6 +5513,7 @@ lessons:
       - item:
           id: medfilt-out
           type: text
+          format: "照屏幕上显示的样子写，如 [1. 0. 3.]"
           prompt: '`print(signal.medfilt(np.array([1., 1, 9, 1, 1]), 3))` 显示什么？'
           answers: ['[1. 1. 1. 1. 1.]']
           explain: 9 那个位置的三个数是 1、9、1，中位数是 1；两端是 0、1、1 的中位数 1。尖刺 9 被去掉了。
@@ -5533,6 +5563,7 @@ lessons:
       - item:
           id: zoom-shape
           type: text
+          format: "照 Python 显示的写法，如 (4, 1)"
           prompt: '`ndimage.zoom(np.ones((30, 40)), 0.5).shape` 是什么？'
           answers: ['(15, 20)', '(15,20)']
           explain: 缩小到一半，每一维都变成原来的一半：15 行、20 列。
@@ -6318,6 +6349,7 @@ boss:
       explain: b 是 a 的视图，b[1] 就是 a[3]，原来是 3，改成 99。a 的和从 15 变成 15 − 3 + 99 = 111。
     - id: b-axis
       type: text
+      format: "照屏幕上显示的样子写，如 [5 0 6]"
       prompt: '`print(np.array([[1, 2, 3], [4, 5, 6]]).mean(axis=0))` 显示什么？'
       answers: ['[2.5 3.5 4.5]']
       explain: axis=0 沿行的方向平均，每一列一个平均：(1 + 4)/2、(2 + 5)/2、(3 + 6)/2。

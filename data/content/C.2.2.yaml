@@ -1201,6 +1201,7 @@ lessons:
       - item:
           id: path
           type: text
+          format: "从 / 开始写完整路径，如 /usr/bin/python"
           prompt: 当前工作目录是 `/home/alice/src`。相对路径 `../notes/a.txt` 对应的绝对路径是什么？
           answers: [/home/alice/notes/a.txt]
           hint: '`..` 先让你回到哪一层？'
@@ -1244,7 +1245,8 @@ lessons:
       - item:
           id: umask027
           type: text
-          prompt: umask 是 027，用 mode 0666 新建一个文件。它的权限是多少（写三位八进制数）？
+          format: "写三位八进制数，如 755"
+          prompt: "umask 是 027，用 mode 0666 新建一个文件。它的权限是多少？"
           answers: ['640', '0640']
           hint: 每一位分别看：去掉 0、去掉 2、去掉 7。
           explain: 主人 6 不变；同组 6 去掉写变成 4；其他人 6 的读写都被 7 去掉，变成 0。结果 640：同组只能读，其他人什么都不能做。
@@ -4151,7 +4153,8 @@ lessons:
       - item:
           id: lockset
           type: text
-          prompt: 有锁 a、b、c。变量 v 被访问三次，访问时线程分别拿着 {a, c}、{a, b, c}、{a}。三次之后 C(v) 里还剩哪把锁？（写字母）
+          format: "写锁的字母，如 b"
+          prompt: "有锁 a、b、c。变量 v 被访问三次，访问时线程分别拿着 {a, c}、{a, b, c}、{a}。三次之后 C(v) 里还剩哪把锁？"
           answers: [a, '{a}']
           explain: '{a, b, c} ∩ {a, c} = {a, c}；再 ∩ {a, b, c} 不变；再 ∩ {a} = {a}。a 一直保护着 v，不报警。'
       - card:
@@ -4261,6 +4264,7 @@ boss:
       explain: 被信号结束时，$? 是 128 加信号编号：128 + 15 = 143。
     - id: boss-dup2
       type: text
+      format: "写一个字符，如 x"
       prompt: data.txt 的内容是 `abcdef`。下面的程序打印哪个字符？
       code: |
         int fd1 = open("data.txt", O_RDONLY);
@@ -4276,7 +4280,8 @@ boss:
       explain: fd1 读了两个字节，位置是 2。dup2 让 fd2 指向 fd1 在打开文件表里的那一项，共用位置 2，所以读到第三个字符 c。
     - id: boss-umask
       type: text
-      prompt: 进程的 umask 是 077。用 `open("s.txt", O_CREAT | O_WRONLY, 0666)` 新建文件，它的权限是多少（三位八进制）？
+      format: "写三位八进制数，如 755"
+      prompt: "进程的 umask 是 077。用 `open(\"s.txt\", O_CREAT | O_WRONLY, 0666)` 新建文件，它的权限是多少？"
       answers: ['600', '0600']
       explain: 主人的 6 不变；同组和其他人的 6 都被 7 去掉，变成 0。结果是 600，只有文件主人能读写。
     - id: boss-interleave
@@ -4376,6 +4381,7 @@ boss:
       explain: 第一个参数是集合里最大的描述符加 1：9 + 1 = 10。
     - id: boss-lockset
       type: text
-      prompt: 程序里有锁 a、b、c、d。按 Eraser 的锁集算法，变量 v 被访问三次，访问时线程分别拿着 {a, b, d}、{b, d}、{c, d}。三次之后候选锁集合 C(v) 里还剩哪把锁？（写字母）
+      format: "写锁的字母，如 b"
+      prompt: "程序里有锁 a、b、c、d。按 Eraser 的锁集算法，变量 v 被访问三次，访问时线程分别拿着 {a, b, d}、{b, d}、{c, d}。三次之后候选锁集合 C(v) 里还剩哪把锁？"
       answers: [d, '{d}']
       explain: '{a, b, c, d} ∩ {a, b, d} = {a, b, d}；∩ {b, d} = {b, d}；∩ {c, d} = {d}。d 一直保护着 v，不报警。'

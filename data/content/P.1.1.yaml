@@ -409,6 +409,7 @@ lessons:
       - item:
           id: repeat
           type: text
+          format: "照屏幕上显示的样子写"
           prompt: "`print(\"ab\" * 3)` 显示什么？"
           answers: [ababab]
           explain: 字符串乘以 3，就是把它重复 3 遍：ababab。
@@ -658,6 +659,7 @@ lessons:
       - item:
           id: neg-index
           type: text
+          format: "写一个字符，引号可写可不写"
           prompt: '`"Python"[-2]` 是哪个字符？'
           answers: [o]
           explain: 从末尾往前数：n 是 -1，o 是 -2。
@@ -675,7 +677,8 @@ lessons:
       - item:
           id: slice-mid
           type: text
-          prompt: '`"Python"[1:4]` 是什么？'
+          format: "写出得到的字符串，引号可写可不写"
+          prompt: "`\"Python\"[1:4]` 的结果是什么？"
           answers: [yth]
           explain: 从下标 1（y）开始，到下标 4（o）之前为止：y、t、h。
       - card:
@@ -779,7 +782,8 @@ lessons:
       - item:
           id: suffix
           type: text
-          prompt: '`"report.final.pdf".split(".")[-1]` 是什么？'
+          format: "写出得到的字符串，引号可写可不写"
+          prompt: "`\"report.final.pdf\".split(\".\")[-1]` 的结果是什么？"
           answers: [pdf]
           explain: 按点切成 ['report', 'final', 'pdf']，最后一段是 pdf。
       - item:
@@ -1260,9 +1264,10 @@ lessons:
       - item:
           id: sorted-rev
           type: text
-          prompt: '`sorted([5, 2, 9], reverse=True)` 是什么？'
+          format: "写交出的列表，照 Python 显示的写法，如 [1, 2]"
+          prompt: "`sorted([5, 2, 9], reverse=True)` 交出什么？"
           answers: ['[9, 5, 2]']
-          explain: reverse=True 从大到小排。
+          explain: "sorted 交出一个排好的新列表；reverse=True 让它从大到小排，所以是 [9, 5, 2]。"
       - card:
           title: del：删掉
           body: |
@@ -2035,7 +2040,8 @@ lessons:
       - item:
           id: sorted-set
           type: text
-          prompt: '`sorted(set([3, 1, 3, 2]))` 是什么？'
+          format: "写交出的列表，照 Python 显示的写法，如 [1, 2]"
+          prompt: "`sorted(set([3, 1, 3, 2]))` 交出什么？"
           answers: ['[1, 2, 3]']
           explain: set 去掉重复的 3，得到 {1, 2, 3}；sorted 排好交出列表 [1, 2, 3]。
       - card:
@@ -2052,9 +2058,10 @@ lessons:
       - item:
           id: comp-double
           type: text
-          prompt: '`[x * 2 for x in [1, 2, 3]]` 是什么？'
+          format: "照 Python 显示的写法，如 [1, 2]"
+          prompt: "`[x * 2 for x in [1, 2, 3]]` 得到什么列表？"
           answers: ['[2, 4, 6]']
-          explain: 对每个 x 收下 x * 2。
+          explain: "对 [1, 2, 3] 里的每个 x 收下 x * 2，依次是 2、4、6，组成新列表 [2, 4, 6]。"
       - item:
           id: comp-filter
           type: number
@@ -2074,9 +2081,11 @@ lessons:
       - item:
           id: comp-upper
           type: text
-          prompt: '`[w.upper() for w in "a bc".split()]` 是什么？'
+          caseSensitive: true
+          format: "照 Python 显示的写法，字符串带引号，如 ['x', 'y']"
+          prompt: "`[w.upper() for w in \"a bc\".split()]` 得到什么列表？"
           answers: ["['A', 'BC']"]
-          explain: split 得 ['a', 'bc']，每个变大写。
+          explain: "split 按空格切出 ['a', 'bc']，每个变大写，组成新列表 ['A', 'BC']。"
       - card:
           title: 别一边走一边删
           body: |
@@ -2179,6 +2188,7 @@ lessons:
       - item:
           id: or-default
           type: text
+          format: "照屏幕上显示的样子写"
           prompt: '`print("" or "无名")` 显示什么？'
           answers: [无名]
           explain: 空字符串算假，or 接着看右边，交出“无名”。
@@ -2701,6 +2711,7 @@ lessons:
       - item:
           id: unpack-call
           type: text
+          format: "照屏幕上显示的样子写"
           prompt: '`print(*["a", "b"], sep="-")` 显示什么？'
           answers: [a-b]
           explain: 列表被拆成 "a" 和 "b" 两个值，用 - 隔开。
@@ -2716,9 +2727,10 @@ lessons:
       - item:
           id: key-len
           type: text
-          prompt: '`sorted(["ccc", "a", "bb"], key=len)` 是什么？'
+          format: "照 Python 显示的写法，字符串带引号，如 ['x', 'y']"
+          prompt: "`sorted([\"ccc\", \"a\", \"bb\"], key=len)` 交出什么？"
           answers: ["['a', 'bb', 'ccc']"]
-          explain: 按长度 1、2、3 排。
+          explain: "key=len 让 sorted 按每个字符串的长度排：a 长 1、bb 长 2、ccc 长 3，交出新列表 ['a', 'bb', 'ccc']。"
       - item:
           id: key-lambda
           type: choice
@@ -3012,6 +3024,7 @@ lessons:
       - item:
           id: from-import
           type: text
+          format: "写一行 Python 代码"
           prompt: 只想从 random 模块里导入 randint 这一个函数。这一行怎么写？
           answers: [from random import randint]
           explain: from 模块 import 名字。之后可以直接写 randint(1, 6)。
@@ -3169,9 +3182,10 @@ lessons:
       - item:
           id: counter
           type: text
-          prompt: 写了 `from collections import Counter` 之后，`Counter("hello").most_common(1)` 是什么？
+          format: "照 Python 显示的写法，如 [('x', 5)]"
+          prompt: "写了 `from collections import Counter` 之后，`Counter(\"hello\").most_common(1)` 交出什么？"
           answers: ["[('l', 2)]"]
-          explain: hello 里 l 出现 2 次，最多。
+          explain: "most_common(1) 交出一个列表，里面是出现次数最多的那一对 (字符, 次数)。hello 里 l 出现 2 次，最多，所以是 [('l', 2)]。"
       - item:
           id: deque
           type: number
@@ -3228,6 +3242,7 @@ lessons:
       - item:
           id: sep
           type: text
+          format: "照屏幕上显示的样子写"
           prompt: "`print(1, 2, 3, sep=\"-\")` 显示什么？"
           answers: [1-2-3]
           explain: sep 是值与值之间的分隔，默认是一个空格，这里改成了 -。
@@ -3246,6 +3261,7 @@ lessons:
       - item:
           id: fstring
           type: text
+          format: "照屏幕上显示的样子写"
           prompt: 执行 `n = 3`，再执行 `print(f"{n}的平方是{n * n}")`。显示什么？
           answers: [3的平方是9]
           explain: 花括号里的 n 填 3，n * n 填 9。
@@ -3265,6 +3281,7 @@ lessons:
       - item:
           id: fmt-2f
           type: text
+          format: "照屏幕上显示的样子写"
           prompt: '`print(f"{2 / 3:.3f}")` 显示什么？'
           answers: ['0.667']
           explain: 2 / 3 = 0.6666…，保留 3 位小数，四舍五入得 0.667。
@@ -3453,6 +3470,8 @@ lessons:
       - item:
           id: json-dumps
           type: text
+          caseSensitive: true
+          format: "照屏幕上显示的样子写"
           prompt: 写了 `import json` 之后，`print(json.dumps([1, "a", True]))` 显示什么？
           answers: ['[1, "a", true]']
           explain: JSON 的写法和 Python 稍有不同：字符串一律用双引号，True 写成小写的 true。
@@ -4134,7 +4153,8 @@ boss:
       explain: 因子总是成对出现，一对里较小的那个不超过 √n。试到 √n 还没找到，就不会有。
     - id: slice-boss
       type: text
-      prompt: '`"Python"[1:-1]` 是什么？'
+      format: "写出得到的字符串，引号可写可不写"
+      prompt: "`\"Python\"[1:-1]` 的结果是什么？"
       answers: [ytho]
       explain: 从下标 1（y）开始，到 -1（最后的 n）之前为止：ytho。
     - id: set-boss

@@ -337,6 +337,10 @@
               "caseSensitive": {
                 "type": "boolean"
               },
+              "format": {
+                "type": "string",
+                "minLength": 1
+              },
               "placeholder": {
                 "type": "string"
               }

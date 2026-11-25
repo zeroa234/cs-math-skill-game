@@ -1,0 +1,2432 @@
+skill: N.1.3
+version: 2
+authors: [main-agent]
+brief:
+  why: 手机的天线和滤波器、光纤通信、芯片光刻、激光器，背后都是振动和波。这一关从弹簧振子讲起：简谐振动、阻尼和共振，几个振子连在一起时的简正模式，一串振子变成弦上的波，再到声波、光的干涉、衍射、偏振，最后是面镜、透镜和光学仪器。假设你学过力学（牛顿第二定律、能量）、电磁学（电磁波）和偏导数。
+  outcomes:
+    - 写出简谐振动的方程和解，由劲度系数和质量算角频率、周期，由初始状态算振幅，算振动的能量和拍频
+    - 判断欠阻尼、临界阻尼和过阻尼，算阻尼振动的频率、品质因数，算受迫振动在共振时的振幅和共振峰宽度
+    - 求两个耦合振子的简正模式和频率，说明一般运动是模式的叠加，用矩阵特征值和对称性找模式
+    - 由弦的受力推出波动方程，算波速、波长、频率，写出简谐波，算两端固定的弦和管子的简正频率，算分贝
+    - 区分相速度和群速度，说明脉冲越短需要的频带越宽
+    - 算双缝条纹间距、薄膜干涉的厚度、单缝暗纹的角度、光栅主极大的角度和瑞利判据的分辨角
+    - 用马吕斯定律算偏振片的透射光强，算布儒斯特角，说出波片怎样产生圆偏振光
+    - 用折射定律和全反射临界角解题，用面镜和透镜公式求像的位置、大小、虚实和正倒，算眼镜的屈光度和显微镜、望远镜的放大率
+terms:
+  # 简谐振动与阻尼受迫振动
+  - term: 平衡位置
+    def: '物体不受合力、可以静止的位置；振动时物体在它两边来回运动'
+  - term: 回复力
+    def: '总把物体拉回平衡位置的力；弹簧的回复力 F = −kx 还和偏离的距离成正比'
+  - term: 简谐振动
+    def: '位置按余弦规律随时间变化的振动 x = A cos(ωt + φ)，由回复力产生，弹簧振子 ω = √(k/m)'
+  - term: 振幅
+    def: '振动中离开平衡位置的最大距离 A；简谐振动的能量和振幅的平方成正比'
+  - term: 角频率
+    def: '振动相位每秒变化的弧度 ω，单位 rad/s；和频率的关系 ω = 2πf'
+  - term: 相位
+    def: '简谐振动 A cos(ωt + φ) 中余弦里面的量 ωt + φ，决定物体此刻处在一个周期里的哪个阶段'
+  - term: 初相
+    def: 't = 0 时的相位 φ，由开始时的位置和速度决定'
+  - term: 频率
+    def: '每秒振动的次数 f = 1/T，单位赫兹（Hz）'
+  - term: 复数
+    def: '形如 a + bi 的数，i² = −1，a 叫实部、b 叫虚部；可以看成复平面上的一个箭头'
+  - term: 欧拉公式
+    def: 'e^(iθ) = cos θ + i sin θ：长 1、和横轴成角 θ 的箭头写成指数形式'
+  - term: 旋转矢量
+    def: '长度等于振幅、以角频率匀速转动的箭头；它在 x 轴上的分量就是简谐振动的位移'
+  - term: 拍
+    def: '两个频率相近的振动叠加时合振幅时大时小的现象，每秒起伏的次数（拍频）等于两个频率之差'
+  - term: 阻尼
+    def: '让振动逐渐减弱的作用，如和速度成正比的阻力 −bv；用 γ = b/m 表示强弱'
+  - term: 欠阻尼
+    def: '阻尼较小（γ < 2ω₀）的情况：物体边振动边衰减，振幅按 e^(−γt/2) 减小'
+  - term: 临界阻尼
+    def: '阻尼正好等于 γ = 2ω₀ 的情况：物体不振动，在不振动的情况里回到平衡位置最快'
+  - term: 过阻尼
+    def: '阻尼很大（γ > 2ω₀）的情况：物体不振动，慢慢回到平衡位置'
+  - term: 品质因数
+    def: '表示阻尼大小的数 Q = ω₀/γ；Q 越大振得越久，共振峰越高越窄'
+  - term: 受迫振动
+    def: '振子在周期性外力作用下的振动；稳定后按外力的频率振动'
+  - term: 瞬态
+    def: '受迫振动刚开始时混在运动里、按固有频率振动并逐渐衰减的部分'
+  - term: 稳态
+    def: '瞬态衰减掉以后，物体按外力的频率稳定振动的状态'
+  - term: 共振
+    def: '驱动频率接近振子的固有频率时，受迫振动的振幅急剧变大的现象'
+  # 耦合振动与简正模式
+  - term: 简正模式
+    def: '耦合系统中所有部分以同一频率、按固定振幅比例一起做简谐振动的方式；有几个能独立运动的物体就有几个'
+  - term: 色散关系
+    def: '波的角频率 ω 和波数 k 之间的关系；ω 和 k 不成正比时不同波长的波速度不同'
+  # 机械波与波动方程
+  - term: 机械波
+    def: '扰动在介质里一处一处传下去形成的波；传走的是振动状态和能量，介质只在原地附近振动'
+  - term: 横波
+    def: '介质的振动方向和传播方向垂直的波，如绳子上的波、电磁波'
+  - term: 纵波
+    def: '介质的振动方向和传播方向平行的波，如空气中的声波'
+  - term: 简谐波
+    def: '波形是正弦曲线的波 y = A cos(kx − ωt + φ)，由做简谐振动的波源产生'
+  - term: 波长
+    def: '波上相邻两个波峰（相位相同的相邻两点）之间的距离 λ；波速 v = fλ'
+  - term: 波数
+    def: '每单位长度上相位变化的弧度 k = 2π/λ'
+  - term: 波的强度
+    def: '单位时间内穿过垂直于传播方向的单位面积的能量，单位 W/m²'
+  - term: 波阵面
+    def: '同一时刻相位相同的点组成的面；平面波的波阵面是平面，点波源的是球面'
+  - term: 惠更斯原理
+    def: '波阵面上每一点都可看成发出球面子波的新波源，下一时刻的波阵面是这些子波的包络面'
+  - term: 波矢
+    def: '方向沿波的传播方向、大小等于波数 2π/λ 的矢量 k'
+  - term: 驻波
+    def: '两列振幅、频率相同、方向相反的波叠加形成的波，形状不传播，各点在原地以不同振幅振动'
+  - term: 波节
+    def: '驻波中振幅为 0、始终不动的点，相邻波节相距半个波长'
+  - term: 波腹
+    def: '驻波中振幅最大的点，位于相邻两个波节的正中间'
+  - term: 基频
+    def: '弦或管子的简正频率中最低的那个；两端固定的弦 f₁ = v/(2L)'
+  - term: 谐波
+    def: '频率是基频整数倍的简正模式，第 n 次谐波的频率是基频的 n 倍'
+  - term: 半波损失
+    def: '波在固定端（或光从折射率小射向大的界面）反射时相位突变 π，相当于多走半个波长'
+  - term: 傅里叶级数
+    def: '把一个函数写成一系列正弦和余弦之和的方法；弦的任意形状都是各个简正模式的叠加'
+  - term: 声波
+    def: '介质中压强和密度的起伏传播形成的纵波；20 °C 空气中约 343 m/s'
+  - term: 声强级
+    def: '用对数表示的声音强弱 β = 10 lg(I/I₀)，I₀ = 10⁻¹² W/m²，单位分贝'
+  - term: 分贝
+    def: '声强级的单位 dB；强度乘 10 增加 10 dB，强度加倍约增加 3 dB'
+  - term: 色散
+    def: '波的速度随波长（频率）而变的现象，如白光经三棱镜分成彩色'
+  - term: 相速度
+    def: '单个波峰（等相位点）移动的速度 v = ω/k'
+  - term: 波包
+    def: '许多频率相近的波叠加成的、只在一小段里有起伏的波'
+  - term: 群速度
+    def: '波包（包络）移动的速度 dω/dk；能量和信息以群速度传播'
+  # 干涉与衍射
+  - term: 叠加原理
+    def: '几列波在同一处相遇时，那里的位移等于各列波单独引起的位移之和；电场、力的叠加也是这个道理'
+  - term: 干涉
+    def: '两列相干波叠加后，有的地方一直加强、有的地方一直减弱，强弱稳定分布的现象'
+  - term: 相干
+    def: '两列波频率相同、相位差保持不变，叠加后能产生稳定的干涉图样'
+  - term: 波程差
+    def: '两列波从各自的波源到同一点所走路程之差；等于波长整数倍时加强，半整数倍时抵消'
+  - term: 折射
+    def: '光从一种介质斜射进另一种介质时在界面上改变传播方向的现象，因为光在两种介质里速度不同'
+  - term: 折射率
+    def: '真空光速和介质中光速之比 n = c/v；水约 1.33，玻璃约 1.5；介质中的波长是真空中的 1/n'
+  - term: 光程
+    def: '光在折射率 n 的介质中走的几何长度乘 n；用光程差算两束光的相位差'
+  - term: 衍射
+    def: '波通过小孔、窄缝或绕过障碍物边缘时传到原来影子里的现象；孔的大小和波长相近时最明显'
+  - term: 瑞利判据
+    def: '一个衍射亮斑的中心落在另一个的第一圈暗环上时两点刚好能分辨，最小分辨角约 1.22λ/D'
+  - term: 光栅
+    def: '许多条等间距平行窄缝组成的光学元件；主极大满足 d sin θ = mλ，能把不同波长的光分开'
+  # 偏振
+  - term: 偏振
+    def: '横波振动方向的选择；光的偏振方向指电场的振动方向'
+  - term: 线偏振光
+    def: '电场始终沿一个固定方向振动的光'
+  - term: 自然光
+    def: '电场振动方向杂乱、在各个方向上平均分布的光，如太阳光、灯光'
+  - term: 偏振片
+    def: '只让电场沿某个方向（透振方向）振动的光通过的薄片；自然光通过后光强减半'
+  - term: 马吕斯定律
+    def: '线偏振光通过偏振片后光强 I = I₀cos²θ，θ 是光的振动方向和透振方向的夹角'
+  - term: 入射角
+    def: '入射光和界面法线（垂直于界面的线）的夹角'
+  - term: 布儒斯特角
+    def: '入射角满足 tan θ_B = n₂/n₁ 时，反射光是振动方向平行于界面的线偏振光'
+  - term: 双折射
+    def: '某些晶体对两个互相垂直的偏振方向折射率不同，一束光进去分成两束的现象'
+  - term: 波片
+    def: '双折射晶体切成的薄片，让两个偏振方向的光产生固定的相位差；四分之一波片差 π/2，半波片差 π'
+  - term: 圆偏振光
+    def: '电场大小不变、方向每个周期转一圈的光，由振幅相等、相位差 π/2 的两个垂直分量合成'
+  - term: 椭圆偏振光
+    def: '电场尖端画出椭圆的光，两个垂直分量振幅不等或相位差不是 0、π/2、π 时出现'
+  # 几何光学成像
+  - term: 折射定律
+    def: '光从一种介质进入另一种时 n₁ sin θ₁ = n₂ sin θ₂，角度从法线量起'
+  - term: 费马原理
+    def: '光从一点到另一点走的是所用时间取极值（通常最短）的路径'
+  - term: 全反射
+    def: '光从折射率大射向折射率小的介质、入射角大于临界角时，光全部反射回来的现象'
+  - term: 临界角
+    def: '刚好发生全反射的入射角，sin θ_c = n₂/n₁（n₁ > n₂）'
+  - term: 虚像
+    def: '光线并没有真正会聚、只是反向延长线交于一点形成的像，不能用屏接住'
+  - term: 实像
+    def: '光线真正会聚形成的像，能用屏接住'
+  - term: 凹面镜
+    def: '反射面朝里凹的球面镜，把平行于主轴的光会聚到焦点，焦距 f = R/2'
+  - term: 凸面镜
+    def: '反射面朝外凸的球面镜，把平行光散开，总成正立缩小的虚像，焦距取负'
+  - term: 焦点
+    def: '平行于主轴的傍轴光线经面镜反射或透镜折射后会聚（或反向延长后会聚）的点'
+  - term: 焦距
+    def: '面镜或透镜的中心到焦点的距离 f；会聚的取正，发散的取负'
+  - term: 薄透镜
+    def: '厚度比两个表面半径小得多的透镜，满足 1/d_o + 1/d_i = 1/f'
+  - term: 凸透镜
+    def: '中间厚边缘薄的透镜，焦距为正，把平行光会聚到焦点'
+  - term: 凹透镜
+    def: '中间薄边缘厚的透镜，焦距为负，把平行光散开'
+  - term: 屈光度
+    def: '透镜会聚能力的量度 P = 1/f（f 以米计），单位 D；凸透镜为正，凹透镜为负'
+  - term: 角放大率
+    def: '用仪器看时物体在眼睛里张开的角度，和不用仪器时（放在近点或原处）张开的角度之比'
+assumes: [矩阵, 特征值, 特征向量]
+lessons:
+  # ==== 简谐振动与阻尼受迫振动 ====
+  - id: shm-basics
+    chapter: 简谐振动与阻尼受迫振动
+    title: 弹簧振子和单摆
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 光滑桌面上，一个木块连着弹簧。把木块拉开 3 cm 再松手，不计摩擦。之后木块会怎样运动？
+          options:
+            - text: 在原位置两边来回运动，最远都到 3 cm 处
+              correct: true
+            - text: 回到原来静止的位置就停下，因为那里弹簧不再用力
+              why: 回到那里时木块速度最大，它会冲过去，再被弹簧拉回来
+            - text: 来回运动，但每次跑得比上一次远一点
+              why: 没有摩擦时机械能守恒，弹簧最长时的势能每次都一样，所以每次到达的最远处一样
+          explain: 弹簧总把木块往回拉，木块冲过头又被拉回来。没有摩擦时这种来回运动会一直重复，每次的最远处都是 3 cm。这一课给这种运动写出公式。
+      - card:
+          title: 回复力
+          body: |
+            弹簧不伸不缩时木块静止的位置叫**平衡位置（equilibrium position）**，取它为原点。木块偏离 $x$ 时，胡克定律给出弹簧的力 $F = -kx$：偏到右边就往左拉，偏到左边就往右推，总指向平衡位置。这种总把物体拉回平衡位置的力叫**回复力（restoring force）**；弹簧的回复力还和偏离的距离成正比。
+
+            牛顿第二定律 $F = ma$，加速度是位置对时间的二阶导数 $\ddot x$（字母上一个点表示对时间求一次导数，两个点表示两次）：
+
+            $$m\ddot x = -kx \quad\Longrightarrow\quad \ddot x = -\frac{k}{m}x$$
+      - card:
+          title: 简谐振动
+          body: |
+            哪个函数求两次导数后等于它自己乘一个负数？余弦就是：$x = A\cos(\omega t + \varphi)$ 求两次导数得 $-\omega^2 x$。和上面的方程对比，只要
+
+            $$\omega = \sqrt{\frac{k}{m}}$$
+
+            它就是解。位置按余弦规律随时间变化的运动叫**简谐振动（simple harmonic motion）**。$A$ 叫**振幅（amplitude）**，是离平衡位置的最大距离；$\omega$ 叫**角频率（angular frequency）**，单位 rad/s；括号里的 $\omega t + \varphi$ 叫**相位（phase）**，$t = 0$ 时的相位 $\varphi$ 叫**初相（initial phase）**。
+      - item:
+          id: read-omega
+          type: number
+          prompt: 一个物体的运动满足 $\ddot x = -16x$（$x$ 以米计，$t$ 以秒计）。它做简谐振动的角频率是多少 rad/s？
+          answer: 4
+          unit: rad/s
+          hint: 把它和 $\ddot x = -\omega^2 x$ 对比，16 对应哪个量？
+          explain: 对比 $\ddot x = -\omega^2 x$，$\omega^2 = 16$，$\omega = 4\text{ rad/s}$。
+      - card:
+          title: 周期和频率
+          body: |
+            余弦每经过 $2\pi$ 重复一次，所以振动一次用的时间（周期）和每秒振动的次数分别是
+
+            $$T = \frac{2\pi}{\omega} = 2\pi\sqrt{\frac{m}{k}},\qquad f = \frac{1}{T} = \frac{\omega}{2\pi}$$
+
+            $f$ 叫**频率（frequency）**，单位赫兹（Hz），1 Hz 就是每秒一次。式子里没有振幅 $A$：拉开 1 cm 和拉开 3 cm，来回一次用的时间一样。这叫简谐振动的等时性。
+      - item:
+          id: spring-frequency
+          type: number
+          prompt: 光滑水平桌面上，质量 0.5 kg 的物体接在劲度系数 200 N/m 的弹簧上做简谐振动。它的频率是多少赫兹？（保留两位小数）
+          answer: 3.18
+          tolerance: 0.005
+          unit: Hz
+          hint: 先求角频率，再想一想角频率和频率之间差一个什么因子。
+          explain: $\omega = \sqrt{200/0.5} = 20\text{ rad/s}$，$f = \omega/(2\pi) = 20/6.283 \approx 3.18\text{ Hz}$，周期 $T = 1/f \approx 0.314\text{ s}$。
+      - item:
+          id: amplitude-period
+          type: choice
+          prompt: 一个弹簧振子先拉开 2 cm 松手，测得周期 0.5 s。改成拉开 4 cm 松手，周期是多少？
+          options:
+            - text: 仍是 0.5 s
+              correct: true
+            - text: 1 s，跑的路程加倍，时间也加倍
+              why: 路程加倍了，但弹簧的力也随偏离成正比地加大，木块跑得更快，两者正好抵消
+            - text: 0.25 s，拉得越开弹簧越用力，来回越快
+              why: 力大了速度确实大了，可要走的路也长了；$T = 2\pi\sqrt{m/k}$ 和振幅无关
+          explain: $T = 2\pi\sqrt{m/k}$ 里只有质量和劲度系数。振幅加倍，回复力和速度都加倍，路程也加倍，用时不变。
+      - card:
+          title: 例题：由初始状态求振幅和初相
+          body: 质量 0.2 kg 的物体接在劲度系数 20 N/m 的弹簧上。$t = 0$ 时它在 $x_0 = 0.04\text{ m}$ 处，速度 $v_0 = 0.3\text{ m/s}$（朝 $x$ 正方向）。求振幅。
+          reveal:
+            - title: 第 1 步：求角频率
+              body: $\omega = \sqrt{20/0.2} = 10\text{ rad/s}$。
+            - title: 第 2 步：写出 t = 0 时的位置和速度
+              body: |
+                $x = A\cos(\omega t + \varphi)$，速度 $v = \dot x = -A\omega\sin(\omega t + \varphi)$。$t = 0$ 时 $x_0 = A\cos\varphi$，$v_0 = -A\omega\sin\varphi$，即 $A\sin\varphi = -v_0/\omega$。
+            - title: 第 3 步：消去初相，得到振幅
+              body: |
+                两式平方相加，用 $\cos^2\varphi + \sin^2\varphi = 1$：
+
+                $$A = \sqrt{x_0^2 + \left(\frac{v_0}{\omega}\right)^2} = \sqrt{0.04^2 + 0.03^2} = 0.05\text{ m}$$
+
+                初相满足 $\cos\varphi = 0.8$、$\sin\varphi = -0.6$，$\varphi \approx -0.64\text{ rad}$。
+      - item:
+          id: initial-amplitude
+          type: number
+          prompt: 一个弹簧振子的角频率是 5 rad/s。$t = 0$ 时它在平衡位置右边 6 cm 处，速度是 40 cm/s，方向向右。振幅是多少厘米？
+          answer: 10
+          unit: cm
+          hint: 速度除以角频率得到一个长度，它和 6 cm 怎样合成振幅？
+          explain: $v_0/\omega = 40/5 = 8\text{ cm}$，$A = \sqrt{6^2 + 8^2} = 10\text{ cm}$。
+      - card:
+          title: 单摆
+          body: |
+            长 $L$ 的细绳下挂一个小球，偏离竖直方向角度 $\theta$。重力沿圆弧方向的分量是 $-mg\sin\theta$，弧长是 $L\theta$，所以 $mL\ddot\theta = -mg\sin\theta$。
+
+            角度很小时 $\sin\theta \approx \theta$（$\theta$ 用弧度，$10°$ 时误差约 0.5%），方程变成 $\ddot\theta = -\frac{g}{L}\theta$，又是简谐振动：
+
+            $$\omega = \sqrt{\frac{g}{L}},\qquad T = 2\pi\sqrt{\frac{L}{g}}$$
+
+            周期和摆球的质量无关，只和摆长、重力加速度有关。
+      - item:
+          id: pendulum-period
+          type: number
+          prompt: 摆长 1 m 的单摆在 $g = 9.8\text{ m/s}^2$ 的地方小角度摆动。周期是多少秒？（保留两位小数）
+          answer: 2.01
+          tolerance: 0.005
+          unit: s
+          hint: 单摆的周期公式里，摆长和重力加速度谁在分子上？
+          explain: $T = 2\pi\sqrt{1/9.8} \approx 2\pi \times 0.3194 \approx 2.01\text{ s}$。
+      - item:
+          id: pendulum-mass
+          type: choice
+          prompt: 把单摆的铁球换成同样大小、质量只有一半的木球，摆长不变，小角度摆动。周期会怎样？
+          options:
+            - text: 不变
+              correct: true
+            - text: 变短，因为球轻了，容易摆动
+              why: 球轻了，重力也按同样的比例变小，加速度 $g\sin\theta$ 不变
+            - text: 变长，因为球轻了，重力拉它回来的力小了
+              why: 力小了，可要拉动的质量也小了；两者抵消，$T = 2\pi\sqrt{L/g}$ 里没有质量
+          explain: 回复力 $mg\sin\theta$ 和质量 $m$ 成正比，加速度和质量无关，所以周期只由 $L$ 和 $g$ 决定（不计空气阻力）。
+  - id: phasor-energy-beats
+    chapter: 简谐振动与阻尼受迫振动
+    title: 旋转矢量、能量和拍
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两把音叉，一把 440 Hz，一把 442 Hz，同时敲响放在一起。你听到的声音会怎样？
+          options:
+            - text: 声音一会儿响一会儿弱，每秒起伏两次
+              correct: true
+            - text: 听到一个 441 Hz 的稳定声音，响度不变
+              why: 音调确实接近 441 Hz，但两列振动一会儿步调一致、一会儿相反，响度会起伏
+            - text: 听到 2 Hz 的低沉声音
+              why: 人耳听不到 2 Hz 的声音；2 Hz 是响度起伏的快慢，不是音调
+          explain: 两个频率相近的振动叠加，时而互相加强，时而互相抵消，响度按两者的频率差起伏。这叫拍，这一课的最后一张卡会推出它。
+      - card:
+          title: 旋转矢量
+          body: |
+            画一个长 $A$ 的箭头，尾巴固定在原点，以角速度 $\omega$ 逆时针转，$t = 0$ 时和 $x$ 轴成角 $\varphi$。$t$ 时刻它和 $x$ 轴的夹角是 $\omega t + \varphi$，箭头沿 $x$ 方向的分量正是 $A\cos(\omega t + \varphi)$。
+
+            所以简谐振动可以看成一个匀速转动的箭头在 $x$ 轴上的分量。这个箭头叫**旋转矢量（phasor）**。振幅是箭头长度，角频率是转速，相位就是箭头此刻的角度。
+      - item:
+          id: phase-lead
+          type: choice
+          prompt: 两个同频振动 $x_1 = A\cos\omega t$ 和 $x_2 = A\cos(\omega t + \pi/2)$。下面哪个说法对？
+          options:
+            - text: $x_2$ 超前 $\pi/2$，每次早 $T/4$ 到达最大值
+              correct: true
+            - text: $x_1$ 比 $x_2$ 超前，因为 $x_1$ 的相位里没有多出的一项
+              why: '$x_2$ 的箭头多转了 $\pi/2$，在 $x_1$ 前面；$x_1$ 还要再过 $T/4$ 才转到 $x_2$ 现在的角度'
+            - text: 两者同时到达最大值，只是起点不同
+              why: 同频振动的相位差保持不变，$\pi/2$ 的相位差意味着永远差四分之一周期，不会同时到达最大值
+          explain: '$x_2$ 的箭头总比 $x_1$ 多转 $\pi/2$。$t = 0$ 之后，$x_1$ 的下一个最大值在 $t = T$，$x_2$ 的在 $t = 3T/4$，早 $T/4$。相位差 $\pi/2$ 对应时间差 $T/4$。'
+      - card:
+          title: 复数和欧拉公式
+          body: |
+            规定一个平方等于 $-1$ 的数 $i$。形如 $a + bi$（$a$、$b$ 是普通的数）的数叫**复数（complex number）**，$a$ 叫实部，记作 $\operatorname{Re}$，$b$ 叫虚部。以实部为横坐标、虚部为纵坐标，每个复数就是平面上的一个箭头，这个平面叫复平面。
+
+            乘 $i$：$(a + bi)i = -b + ai$，箭头正好逆时针转 $90°$。长 1、和横轴成角 $\theta$ 的箭头是 $\cos\theta + i\sin\theta$，**欧拉公式（Euler's formula）**说它等于 $e^{i\theta}$：
+
+            $$e^{i\theta} = \cos\theta + i\sin\theta$$
+
+            两个这样的数相乘，角度相加，正像指数相乘时指数相加。
+      - card:
+          title: 用复数写振动
+          body: |
+            把旋转矢量放在复平面上，长 $A$、角度 $\theta$ 的箭头就是 $Ae^{i\theta}$。于是
+
+            $$x = \operatorname{Re}\left[Ae^{i(\omega t + \varphi)}\right]$$
+
+            对时间求导时，$e^{i\omega t}$ 只是多乘一个 $i\omega$：速度对应 $i\omega$ 倍，加速度对应 $-\omega^2$ 倍。乘 $i$ 就是把箭头再转 $90°$，所以速度比位置超前 $\pi/2$。阻尼振动和受迫振动也都可以这样解。
+      - item:
+          id: complex-derivative
+          type: choice
+          prompt: 位置写成 $\operatorname{Re}[Ae^{i\omega t}]$。加速度和位置的相位差是多少？
+          options:
+            - text: $\pi$：加速度总和位置方向相反
+              correct: true
+            - text: $\pi/2$：每求一次导数转 $90°$，加速度也一样
+              why: 加速度是求两次导数，转了两个 $90°$，共 $180°$
+            - text: 0：加速度和位置同步变大变小
+              why: 求两次导数乘的是 $(i\omega)^2 = -\omega^2$，多了一个负号，方向相反
+          explain: 求两次导数乘 $(i\omega)^2 = -\omega^2$，正好是 $\ddot x = -\omega^2x$：加速度永远指向平衡位置，和位移反相。
+      - card:
+          title: 简谐振动的能量
+          body: |
+            速度 $v = -A\omega\sin(\omega t + \varphi)$。动能 $\tfrac12mv^2 = \tfrac12mA^2\omega^2\sin^2(\cdot)$，弹簧势能 $\tfrac12kx^2 = \tfrac12kA^2\cos^2(\cdot)$。因为 $m\omega^2 = k$，两者相加
+
+            $$E = \tfrac12kA^2$$
+
+            总能量不随时间变，和振幅的平方成正比。在平衡位置势能为 0，动能最大，速度最大值 $v_{\max} = A\omega$；在最远处速度为 0，能量全是势能。
+      - item:
+          id: max-speed
+          type: number
+          prompt: 劲度系数 200 N/m 的弹簧接 0.5 kg 的物体，振幅 5 cm。物体经过平衡位置时的速度是多少 m/s？
+          answer: 1
+          unit: m/s
+          hint: 速度最大值等于振幅乘一个什么量？那个量怎样由 $k$ 和 $m$ 算出？
+          explain: $\omega = \sqrt{200/0.5} = 20\text{ rad/s}$，$v_{\max} = A\omega = 0.05 \times 20 = 1\text{ m/s}$。用能量算也一样：$\tfrac12kA^2 = 0.25\text{ J} = \tfrac12 \times 0.5 \times v^2$，$v = 1\text{ m/s}$。
+      - item:
+          id: energy-half-amplitude
+          type: number
+          prompt: 一个简谐振子运动到离平衡位置半个振幅（$x = A/2$）的地方。这时动能占总能量的几分之几？（填小数）
+          answer: 0.75
+          hint: 先算这时的势能是总能量的几分之几。势能和位移是什么关系？
+          explain: 势能 $\tfrac12k(A/2)^2 = \tfrac14 \cdot \tfrac12kA^2$，占总能量的 1/4，动能占 3/4 = 0.75。
+      - card:
+          title: 两个同频振动的合成
+          body: |
+            一个物体同时参与两个同方向、同频率的振动 $x_1 = A_1\cos(\omega t + \varphi_1)$ 和 $x_2 = A_2\cos(\omega t + \varphi_2)$。两个旋转矢量转速相同，它们的箭头相加后也以同样的速度转，所以合振动还是同频的简谐振动。合振幅是两个箭头相加后的长度，用余弦定理：
+
+            $$A = \sqrt{A_1^2 + A_2^2 + 2A_1A_2\cos(\varphi_2 - \varphi_1)}$$
+
+            同相（相位差 0）时 $A = A_1 + A_2$，反相（相位差 $\pi$）时 $A = |A_1 - A_2|$。
+      - item:
+          id: add-perpendicular-phasors
+          type: number
+          prompt: 两个同方向、同频率的简谐振动，振幅分别是 3 cm 和 4 cm，相位差 $\pi/2$。合振动的振幅是多少厘米？
+          answer: 5
+          unit: cm
+          hint: 相位差 $\pi/2$ 时，两个旋转矢量互相垂直。两条垂直边合成的长度怎么算？
+          explain: 两个箭头垂直，合成长度 $\sqrt{3^2 + 4^2} = 5\text{ cm}$。如果同相是 7 cm，反相是 1 cm。
+      - card:
+          title: 拍
+          body: |
+            频率不同的两个振动，两个箭头转速不同，相位差不断变化，合振幅时大时小。等振幅时用和差化积：
+
+            $$A\cos\omega_1t + A\cos\omega_2t = 2A\cos\frac{(\omega_1 - \omega_2)t}{2}\cos\frac{(\omega_1 + \omega_2)t}{2}$$
+
+            后一个因子振动得快，前一个因子变化得慢，像一个慢慢起伏的振幅。响度跟着它的绝对值起伏，每秒起伏 $|f_1 - f_2|$ 次，这种现象叫**拍（beat）**，$|f_1 - f_2|$ 叫拍频。调音师就是听着拍把琴弦调到和音叉一样的。
+      - item:
+          id: beat-frequency
+          type: number
+          prompt: 一把 440 Hz 的音叉和一根琴弦同时发声，每秒听到 3 次响度起伏。把琴弦稍微拧紧一点（频率升高不到 6 Hz），起伏变成每秒 5 次。拧紧之前琴弦的频率是多少赫兹？
+          answer: 443
+          unit: Hz
+          hint: 拍频 3 Hz 时，琴弦可能比 440 Hz 高，也可能比它低，各是多少？频率升高以后，哪一种的拍频会变大？
+          explain: 拍频 3 Hz，琴弦是 437 或 443 Hz。拧紧后频率升高：437 Hz 会靠近 440，拍频变小；443 Hz 会离 440 更远，拍频变大。现在拍频变成 5，所以原来是 443 Hz。
+      - item:
+          id: beat-period
+          type: number
+          prompt: 两个振幅相同的振动，频率分别是 100 Hz 和 104 Hz。合振动的响度相邻两次最强之间隔多少秒？
+          answer: 0.25
+          unit: s
+          hint: 响度每秒起伏几次？
+          explain: 拍频 $104 - 100 = 4\text{ Hz}$，每秒最强 4 次，相隔 $1/4 = 0.25\text{ s}$。
+  - id: damped-oscillator
+    chapter: 简谐振动与阻尼受迫振动
+    title: 阻尼振动
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 荡秋千时不再用力，秋千越荡越低。如果第一次摆回来时高度只剩原来的 90%，第二次摆回来时大约剩多少？
+          options:
+            - text: 大约 81%，每次都剩上一次的 90%
+              correct: true
+            - text: 80%，每次少掉同样的 10 个百分点
+              why: 空气阻力和速度有关，摆得越低速度越小，损失的也越少；每次损失的是同一个比例，不是同一个量
+            - text: 还是 90%，第一次损失之后就稳定了
+              why: 只要有阻力，每摆一次都会损失能量，高度会一直降下去
+          explain: 和速度成正比的阻力让振幅每过一个周期都乘上同一个比例，按指数规律衰减。这一课解出这条规律。
+      - card:
+          title: 阻尼力和运动方程
+          body: |
+            物体在空气或油里运动时，速度不太大时受到的阻力近似和速度成正比、方向相反：$F = -bv$。这种让振动逐渐减弱的作用叫**阻尼（damping）**。加上弹簧的力，牛顿第二定律给出 $m\ddot x = -kx - b\dot x$，除以 $m$：
+
+            $$\ddot x + \gamma\dot x + \omega_0^2x = 0,\qquad \gamma = \frac{b}{m},\quad \omega_0 = \sqrt{\frac{k}{m}}$$
+
+            $\omega_0$ 是没有阻尼时的角频率，叫固有角频率；$\gamma$ 的单位是 $\text{s}^{-1}$，表示阻尼的强弱。
+      - card:
+          title: 猜一个指数解
+          body: |
+            指数函数求导后还是它自己的倍数，所以猜 $x = e^{st}$。代入得 $(s^2 + \gamma s + \omega_0^2)e^{st} = 0$，于是
+
+            $$s = -\frac{\gamma}{2} \pm \sqrt{\frac{\gamma^2}{4} - \omega_0^2}$$
+
+            根号里的正负决定了三种运动：
+            - $\gamma < 2\omega_0$，根号里是负数，$s$ 是复数，物体边振动边衰减，叫**欠阻尼（underdamped）**；
+            - $\gamma = 2\omega_0$，**临界阻尼（critically damped）**，不振动，回到平衡位置最快；
+            - $\gamma > 2\omega_0$，**过阻尼（overdamped）**，不振动，慢慢爬回平衡位置。
+      - item:
+          id: damping-classify
+          type: match
+          prompt: 三个振子的固有角频率都是 $\omega_0 = 10\text{ rad/s}$，阻尼 $\gamma$ 不同。把每个振子和它的运动类型配对。
+          pairs:
+            - ['$\gamma = 4\ \text{s}^{-1}$', '欠阻尼：边振动边衰减']
+            - ['$\gamma = 20\ \text{s}^{-1}$', '临界阻尼：不振动，回得最快']
+            - ['$\gamma = 30\ \text{s}^{-1}$', '过阻尼：不振动，慢慢回来']
+          explain: 分界线是 $\gamma = 2\omega_0 = 20\text{ s}^{-1}$。比它小是欠阻尼，相等是临界阻尼，比它大是过阻尼。
+      - card:
+          title: 欠阻尼的解
+          body: |
+            欠阻尼时 $s = -\frac{\gamma}{2} \pm i\omega_d$，取实部得
+
+            $$x = A_0e^{-\gamma t/2}\cos(\omega_d t + \varphi),\qquad \omega_d = \sqrt{\omega_0^2 - \frac{\gamma^2}{4}}$$
+
+            余弦部分照常振动，角频率 $\omega_d$ 比 $\omega_0$ 小一点；前面的 $A_0e^{-\gamma t/2}$ 是不断缩小的振幅，每过相同的时间缩小相同的比例。能量和振幅的平方成正比，所以按 $e^{-\gamma t}$ 衰减。
+      - item:
+          id: half-amplitude-time
+          type: number
+          prompt: 一个欠阻尼振子的 $\gamma = 2\ \text{s}^{-1}$。振幅减到一半要多少秒？（保留两位小数）
+          answer: 0.69
+          tolerance: 0.005
+          unit: s
+          hint: 振幅按 $e^{-\gamma t/2}$ 变化。让它等于 1/2，两边取自然对数。
+          explain: $e^{-\gamma t/2} = 1/2$，$t = 2\ln 2/\gamma = 2 \times 0.693/2 \approx 0.69\text{ s}$。
+      - card:
+          title: 例题：一个阻尼弹簧振子
+          body: 质量 0.5 kg 的物体挂在劲度系数 200 N/m 的弹簧上，受阻尼力 $-bv$，$b = 1\text{ kg/s}$。它振动的角频率比不加阻尼时小多少？
+          reveal:
+            - title: 第 1 步：算固有角频率和 γ
+              body: $\omega_0 = \sqrt{200/0.5} = 20\text{ rad/s}$，$\gamma = b/m = 1/0.5 = 2\ \text{s}^{-1}$。
+            - title: 第 2 步：判断是哪一种阻尼
+              body: $2\omega_0 = 40\ \text{s}^{-1}$，$\gamma = 2$ 远小于它，是欠阻尼，会振动。
+            - title: 第 3 步：算阻尼振动的角频率
+              body: $\omega_d = \sqrt{20^2 - 2^2/4} = \sqrt{399} \approx 19.97\text{ rad/s}$，只比 20 小约 0.1%。阻尼不大时，频率几乎不变，主要变化是振幅越来越小。
+      - card:
+          title: 品质因数
+          body: |
+            用一个数说明阻尼有多小：**品质因数（quality factor）**
+
+            $$Q = \frac{\omega_0}{\gamma}$$
+
+            上面的例子 $Q = 20/2 = 10$（这个 $Q$ 和电荷量同字母，意思不同）。$Q$ 越大阻尼越小，振得越久。经过 $Q$ 个周期，时间约 $Q \cdot 2\pi/\omega_0 = 2\pi/\gamma$，振幅缩小到 $e^{-\pi} \approx 4.3\%$。所以 $Q$ 大致就是“能明显振动的次数”。临界阻尼时 $\gamma = 2\omega_0$，$Q = 0.5$；钟表里的石英晶体，$Q$ 可以超过一万。
+      - item:
+          id: q-factor
+          type: number
+          prompt: 质量 0.2 kg 的物体挂在劲度系数 80 N/m 的弹簧上，阻尼系数 $b = 0.8\text{ kg/s}$。品质因数 $Q$ 是多少？
+          answer: 5
+          hint: 品质因数比较的是哪两个量？它们各由题里的哪几个数算出来？
+          explain: $\omega_0 = \sqrt{80/0.2} = 20\text{ rad/s}$，$\gamma = 0.8/0.2 = 4\ \text{s}^{-1}$，$Q = 20/4 = 5$。
+      - item:
+          id: q-cycles
+          type: number
+          prompt: 一个振子的品质因数 $Q = 50$，阻尼很小。大约经过多少个周期，振幅缩小到起初的 4% 左右？
+          answer: 50
+          hint: 品质因数大致等于什么的次数？
+          explain: 经过 $Q$ 个周期，时间约 $2\pi/\gamma$，振幅变成 $e^{-\gamma t/2} = e^{-\pi} \approx 4.3\%$，所以约 50 个周期。
+      - item:
+          id: critical-use
+          type: choice
+          prompt: 老式电表的表针被一个小弹簧拉着，读数时希望表针尽快停在读数上、不要来回晃。表针的阻尼最好设计成哪一种？
+          options:
+            - text: 接近临界阻尼
+              correct: true
+            - text: 阻尼越小越好，表针能最快到位
+              why: 阻尼小时表针会冲过头，在读数两边晃很多次才停下
+            - text: 阻尼越大越好，表针不会冲过头
+              why: 过阻尼确实不冲过头，但会慢慢爬向读数，等得更久
+          explain: 临界阻尼是不振动的情况里回到平衡位置最快的，所以电表的表针、门上的闭门器都设计得接近临界阻尼。
+  - id: driven-resonance
+    chapter: 简谐振动与阻尼受迫振动
+    title: 受迫振动和共振
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 推一个荡秋千的小孩，每次都用同样大的力推一下。什么时候推，秋千荡得最高？
+          options:
+            - text: 跟着秋千自己摆动的节奏推，每摆回来一次推一次
+              correct: true
+            - text: 推得越快越好，越频繁给的能量越多
+              why: 推得太快，很多次是在秋千迎面荡回来时推，等于在减速它，能量反而送不进去
+            - text: 什么节奏都一样，推的力相同，秋千的高度就相同
+              why: 同样大的力，节奏一致时每次都顺着运动方向做正功，节奏不一致时有时做正功有时做负功
+          explain: 外力的节奏和振子自己的固有频率一致时，每一推都做正功，振幅越积越大，这叫共振。这一课算出振幅和外力频率的关系。
+      - card:
+          title: 受迫振动
+          body: |
+            在阻尼振子上加一个周期性的外力 $F_0\cos\omega t$，物体的运动叫**受迫振动（driven oscillation）**：
+
+            $$\ddot x + \gamma\dot x + \omega_0^2x = \frac{F_0}{m}\cos\omega t$$
+
+            注意 $\omega$ 是外力的角频率，由推它的人决定，$\omega_0$ 是振子自己的固有角频率。刚开始时，物体的运动里混着按 $\omega_d$ 振动、逐渐衰减的部分，叫**瞬态（transient）**；过了几个 $2/\gamma$ 的时间（瞬态的振幅按 $e^{-\gamma t/2}$ 衰减），瞬态衰减掉，物体按外力的频率 $\omega$ 稳定振动，叫**稳态（steady state）**。
+      - card:
+          title: 稳态的振幅和相位
+          body: |
+            稳态写成 $x = \operatorname{Re}[\tilde A e^{i\omega t}]$，求导就是乘 $i\omega$，代入得 $(\omega_0^2 - \omega^2 + i\gamma\omega)\tilde A = F_0/m$。取复数的大小和角度：
+
+            $$A = \frac{F_0/m}{\sqrt{(\omega_0^2 - \omega^2)^2 + \gamma^2\omega^2}},\qquad \tan\delta = \frac{\gamma\omega}{\omega_0^2 - \omega^2}$$
+
+            $x = A\cos(\omega t - \delta)$，$\delta$ 是位移比外力落后的相位。外力很慢时 $\delta \approx 0$，物体跟着力走；外力很快时 $\delta \approx \pi$，物体和力反着走；$\omega = \omega_0$ 时正好落后 $\pi/2$。
+      - item:
+          id: phase-at-resonance
+          type: choice
+          prompt: 用固有频率 $\omega_0$ 驱动一个阻尼振子，稳态时位移和外力的相位关系是什么？
+          options:
+            - text: 位移落后外力 $\pi/2$，这时外力和速度同相
+              correct: true
+            - text: 位移和外力同相，力往哪边推，物体就在哪边
+              why: 同相是外力很慢（$\omega \ll \omega_0$）时的情况；$\omega = \omega_0$ 时 $\tan\delta$ 的分母为 0，$\delta = \pi/2$
+            - text: 位移和外力反相
+              why: 反相是外力远快于固有频率时的情况
+          explain: $\omega = \omega_0$ 时 $\tan\delta$ 分母为 0，$\delta = \pi/2$。速度比位移超前 $\pi/2$，所以速度和外力同相，外力一直在做正功，这正是推秋千要跟着秋千节奏的道理。
+      - card:
+          title: 例题：三种驱动频率
+          body: 质量 0.5 kg、劲度系数 200 N/m、$b = 1\text{ kg/s}$ 的振子（$\omega_0 = 20\text{ rad/s}$，$\gamma = 2\ \text{s}^{-1}$，$Q = 10$），受 $F_0 = 2\text{ N}$ 的周期性外力。比较外力很慢、等于固有频率、很快时的振幅。
+          reveal:
+            - title: 第 1 步：外力很慢（ω → 0）
+              body: 分母变成 $\omega_0^2$，$A = F_0/(m\omega_0^2) = F_0/k = 2/200 = 0.01\text{ m}$，就是用 2 N 的力静止地拉弹簧伸长的长度。
+            - title: 第 2 步：外力频率等于固有频率
+              body: 分母只剩 $\gamma\omega_0$，$A = \frac{F_0}{m\gamma\omega_0} = \frac{2}{0.5 \times 2 \times 20} = 0.1\text{ m}$，是静止拉伸的 10 倍，正好是 $Q$ 倍。
+            - title: 第 3 步：外力很快（ω = 40 rad/s）
+              body: $A = \frac{4}{\sqrt{(400 - 1600)^2 + 4 \times 1600}} \approx 0.0033\text{ m}$。外力换向太快，物体来不及跟上，振幅反而比静止拉伸还小。
+      - item:
+          id: resonance-amplitude
+          type: number
+          prompt: 一个振子的劲度系数 $k = 500\text{ N/m}$，品质因数 $Q = 20$，受到 $F_0 = 1\text{ N}$ 的周期性外力，外力的角频率等于固有角频率。稳态振幅是多少厘米？
+          answer: 4
+          unit: cm
+          hint: 外力很慢时振幅是多少？外力频率等于固有频率时，振幅公式的分母只剩哪一项？
+          explain: 静止拉伸 $F_0/k = 1/500 = 0.002\text{ m}$。$\omega = \omega_0$ 时 $A = \frac{F_0}{m\gamma\omega_0} = \frac{F_0}{k}\cdot\frac{\omega_0}{\gamma} = Q\frac{F_0}{k} = 20 \times 0.002 = 0.04\text{ m} = 4\text{ cm}$。
+      - card:
+          title: 位移共振和速度共振
+          body: |
+            驱动频率接近固有频率时振幅急剧变大，这叫**共振（resonance）**。对 $A(\omega)$ 求导找最大值，位移振幅在
+
+            $$\omega_r = \sqrt{\omega_0^2 - \frac{\gamma^2}{2}}$$
+
+            处最大，叫位移共振，比 $\omega_0$ 略低。速度振幅是 $\omega A = \frac{F_0/m}{\sqrt{(\omega_0^2/\omega - \omega)^2 + \gamma^2}}$，分母在 $\omega = \omega_0$ 时最小，所以速度共振恰好在固有频率。阻尼小时两者几乎重合。
+      - item:
+          id: displacement-resonance
+          type: number
+          prompt: 一个振子 $\omega_0 = 20\text{ rad/s}$，$\gamma = 2\ \text{s}^{-1}$。位移振幅最大时，驱动角频率是多少 rad/s？（保留两位小数）
+          answer: 19.95
+          tolerance: 0.005
+          unit: rad/s
+          hint: 位移共振的频率公式里，从 $\omega_0^2$ 减去的是 $\gamma^2$ 的几分之几？
+          explain: $\omega_r = \sqrt{400 - 4/2} = \sqrt{398} \approx 19.95\text{ rad/s}$，只比固有频率低 0.25%。
+      - card:
+          title: 共振峰的宽度
+          body: |
+            振子从外力吸收的平均功率在 $\omega_0$ 处最大。阻尼小时，功率降到最大值一半的两个频率相距约 $\Delta\omega \approx \gamma$，这叫共振峰的宽度。于是
+
+            $$Q = \frac{\omega_0}{\gamma} \approx \frac{\omega_0}{\Delta\omega}$$
+
+            $Q$ 越大，共振峰越高越窄，振子只对很窄一段频率有强烈反应。收音机的选台电路要 $Q$ 大，才能只收一个电台；而要避免共振损坏的机器和建筑，要么让工作频率远离固有频率，要么加阻尼把峰压低。
+      - item:
+          id: bandwidth
+          type: number
+          prompt: 一个选台电路的共振频率是 1 MHz，品质因数 $Q = 100$。共振峰的宽度（半功率宽度）大约是多少千赫？
+          answer: 10
+          unit: kHz
+          hint: 品质因数大，共振峰是窄还是宽？$Q$ 和峰宽、共振频率是什么关系？
+          explain: $\Delta f \approx f_0/Q = 1\text{ MHz}/100 = 10\text{ kHz}$。用角频率或普通频率算，比值相同。
+      - item:
+          id: avoid-resonance
+          type: choice
+          prompt: 一台洗衣机甩干时转速从慢到快，经过某个转速时整台机器抖得特别厉害，过了这个转速反而平稳。最合理的解释是什么？
+          options:
+            - text: 那个转速和机器的固有频率一致，发生了共振
+              correct: true
+            - text: 转得越快离心力越大，抖动应该一直变大，中间的抖动是故障
+              why: 转得越快力确实越大，但振幅还取决于驱动频率离固有频率多远；远高于固有频率时，物体来不及跟上力的换向，振幅比共振时小得多
+            - text: 衣服分布不均只在某个转速出现
+              why: 衣服不均匀提供了周期性的外力，在所有转速都存在；只在一个转速特别抖，说明是那里的频率特殊
+          explain: 机器连同支撑有自己的固有频率。不平衡的衣物产生和转速同频的外力。转速经过固有频率时发生共振，振幅最大；再往上，$\omega \gg \omega_0$，虽然力还在随转速增大，振幅却回落到比共振时小得多的水平。
+  # ==== 耦合振动与简正模式 ====
+  - id: coupled-oscillators
+    chapter: 耦合振动与简正模式
+    title: 两个耦合振子
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个一样的单摆并排挂着，中间用一根很软的弹簧连起来。拉开左边的摆再松手，右边的摆一开始静止。之后会怎样？
+          options:
+            - text: 右边慢慢摆起来、左边慢慢停下，再反过来
+              correct: true
+            - text: 右边的摆马上和左边摆得一样大，两个一起摆
+              why: 弹簧很软，每次只传过去一点能量，要很多个周期才传完
+            - text: 右边的摆始终几乎不动，因为弹簧太软
+              why: 弹簧再软，每个周期都传过去一点；节奏一致地慢慢积累，最后能把左边的能量全部传过去
+          explain: 能量会在两个摆之间来回传，像前面讲的拍。原因是这种运动由两个频率略有不同的“集体振动方式”叠加而成，这一课把它们找出来。
+      - card:
+          title: 运动方程
+          body: |
+            两面墙之间，质量都是 $m$ 的两个物体用三根劲度系数都是 $k$ 的弹簧串起来：墙—弹簧—$m_1$—弹簧—$m_2$—弹簧—墙。$x_1$、$x_2$ 是两个物体离各自平衡位置的位移。
+
+            左边的物体：左弹簧伸长 $x_1$，拉力 $-kx_1$；中间弹簧伸长 $x_2 - x_1$，把它往右拉 $k(x_2 - x_1)$。右边的物体：右弹簧被压缩 $x_2$，推力 $-kx_2$；中间弹簧把它往左拉 $-k(x_2 - x_1)$。所以
+
+            $$\begin{aligned}m\ddot x_1 &= -2kx_1 + kx_2\\ m\ddot x_2 &= kx_1 - 2kx_2\end{aligned}$$
+
+            两个方程里都同时有 $x_1$ 和 $x_2$，一个物体的运动影响另一个，这叫耦合。
+      - card:
+          title: 两种特别的运动
+          body: |
+            同相：$x_1 = x_2$。中间的弹簧不伸不缩，每个物体只受外侧弹簧的 $-kx$，角频率 $\omega_1 = \sqrt{k/m}$。
+
+            反相：$x_1 = -x_2$。中间的弹簧伸长 $2x_1$，左边物体受力 $-kx_1 - 2kx_1 = -3kx_1$，角频率 $\omega_2 = \sqrt{3k/m}$。
+
+            这种所有物体以同一个频率、按固定的振幅比例一起做简谐振动的方式，叫**简正模式（normal mode）**，它的角频率叫简正角频率（除以 $2\pi$ 就是简正频率）。两个物体的系统有两个简正模式。
+      - item:
+          id: antisymmetric-frequency
+          type: number
+          prompt: 墙—m—m—墙之间三根相同的弹簧，$k/m = 400\ \text{s}^{-2}$。两个物体反相振动时，角频率是多少 rad/s？（保留两位小数）
+          answer: 34.64
+          tolerance: 0.005
+          unit: rad/s
+          hint: 反相时，中间的弹簧被拉长了多少？每个物体一共受多大的回复力？
+          explain: 反相时每个物体受 $-3kx$，$\omega_2 = \sqrt{3 \times 400} = \sqrt{1200} \approx 34.64\text{ rad/s}$；同相时是 $\sqrt{400} = 20\text{ rad/s}$。
+      - item:
+          id: mode-shapes
+          type: match
+          prompt: 墙—m—m—墙三根相同弹簧的系统。把每一种运动和它的特点配对。
+          pairs:
+            - ['同相模式 $x_1 = x_2$', '中间弹簧长度不变，角频率 $\sqrt{k/m}$']
+            - ['反相模式 $x_1 = -x_2$', '中间弹簧被反复拉伸和压缩，角频率 $\sqrt{3k/m}$']
+            - ['只拉开一个物体再松手', '两个模式叠加，能量在两个物体之间来回传']
+          explain: 两个简正模式各自是一个频率的简谐振动；任意的初始状态都是这两个模式按一定比例叠加，于是一般的运动不是单一频率的。
+      - card:
+          title: 一般的运动是模式的叠加
+          body: |
+            令 $q_1 = x_1 + x_2$，$q_2 = x_1 - x_2$。两个方程相加得 $m\ddot q_1 = -kq_1$，相减得 $m\ddot q_2 = -3kq_2$：$q_1$、$q_2$ 各自做简谐振动，互不影响。所以任何运动都是
+
+            $$\begin{pmatrix}x_1\\x_2\end{pmatrix} = a\begin{pmatrix}1\\1\end{pmatrix}\cos(\omega_1t + \varphi_1) + b\begin{pmatrix}1\\-1\end{pmatrix}\cos(\omega_2t + \varphi_2)$$
+
+            四个常数 $a$、$b$、$\varphi_1$、$\varphi_2$ 由两个物体开始时的位置和速度决定。
+      - card:
+          title: 例题：只拉开一个物体
+          body: $t = 0$ 时 $x_1 = A$、$x_2 = 0$，两个物体都静止。写出之后的运动。
+          reveal:
+            - title: 第 1 步：用初始位置定两个模式的大小
+              body: 都从静止开始，取 $\varphi_1 = \varphi_2 = 0$。$t = 0$ 时 $x_1 = a + b = A$，$x_2 = a - b = 0$，所以 $a = b = A/2$。
+            - title: 第 2 步：写出两个物体的运动
+              body: |
+                $$x_1 = \frac A2(\cos\omega_1t + \cos\omega_2t),\qquad x_2 = \frac A2(\cos\omega_1t - \cos\omega_2t)$$
+            - title: 第 3 步：用和差化积看出拍
+              body: |
+                $x_1 = A\cos\frac{(\omega_2 - \omega_1)t}{2}\cos\frac{(\omega_2 + \omega_1)t}{2}$，$x_2 = A\sin\frac{(\omega_2 - \omega_1)t}{2}\sin\frac{(\omega_2 + \omega_1)t}{2}$。慢变的振幅一个是余弦一个是正弦：一个最大时另一个为 0。弹簧很软时 $\omega_1$、$\omega_2$ 很接近，能量要很久才从一个物体完全传到另一个。
+      - item:
+          id: energy-transfer-time
+          type: number
+          prompt: 两个用软弹簧连着的单摆，同相模式的角频率是 3.13 rad/s，反相模式是 3.23 rad/s。拉开一个摆、另一个静止，同时松手。大约过多少秒后，能量第一次全部传到另一个摆上？（保留一位小数）
+          answer: 31.4
+          tolerance: 0.05
+          unit: s
+          hint: 第一个摆的慢变振幅是 $\cos\frac{(\omega_2 - \omega_1)t}{2}$。它第一次等于 0 是在什么时候？
+          explain: 需要 $\frac{(\omega_2 - \omega_1)t}{2} = \frac{\pi}{2}$，$t = \frac{\pi}{\omega_2 - \omega_1} = \frac{\pi}{0.10} \approx 31.4\text{ s}$。这时第一个摆静止，第二个摆的振幅最大，此后能量开始往回传。
+      - item:
+          id: start-in-mode
+          type: choice
+          prompt: 墙—m—m—墙三根相同弹簧的系统。把两个物体都向右拉开 2 cm，同时从静止松手。之后会怎样？
+          options:
+            - text: 两个物体一直同步振动，角频率 $\sqrt{k/m}$
+              correct: true
+            - text: 能量在两个物体间来回传，一个停下时另一个振得最大，像拍一样
+              why: 来回传是两个模式叠加的结果；这里的初始状态正好就是同相模式本身，反相模式的分量 $b = 0$
+            - text: 两个物体一会儿同相一会儿反相，交替出现
+              why: 开始时 $x_1 - x_2 = 0$、速度也相同，$q_2$ 始终为 0，反相的成分从来不会出现
+          explain: 初始状态 $x_1 = x_2$、都静止，代进去得 $b = 0$，只激发了同相模式。从一个简正模式的形状出发，系统就一直按这个模式振动。
+  - id: mode-chain
+    chapter: 耦合振动与简正模式
+    title: 用矩阵求模式，从一串振子到弦
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两面墙之间用四根相同的弹簧串起三个相同的物体。这个系统有几个简正模式？
+          options:
+            - text: 3 个
+              correct: true
+            - text: 2 个，同相和反相
+              why: 两个物体时是两个；三个物体可以有三种不同的集体振动方式，比如中间的物体不动、两边反着动
+            - text: 无数个，每种初始状态都是一个模式
+              why: 各种初始状态都是有限几个模式的叠加，模式本身只有物体个数那么多
+          explain: 有几个能各自运动的物体，就有几个简正模式。这一课给出一个通用的求法，再看物体非常多时会变成什么。
+      - card:
+          title: 把方程写成矩阵
+          body: |
+            墙—m—m—墙的方程可以写成
+
+            $$\ddot{\vec x} = -K\vec x,\qquad K = \frac km\begin{pmatrix}2 & -1\\ -1 & 2\end{pmatrix}$$
+
+            找简正模式，就是找一个形状 $\vec a$，让 $\vec x = \vec a\cos\omega t$ 成为解。代入得
+
+            $$K\vec a = \omega^2\vec a$$
+
+            这正是线性代数里的特征值问题：模式的形状是 $K$ 的特征向量，$\omega^2$ 是对应的特征值。
+      - card:
+          title: 解出来看看
+          body: |
+            取 $k/m = 1$，把 $K\vec a = \omega^2\vec a$ 逐行写开：$2a_1 - a_2 = \omega^2a_1$，$-a_1 + 2a_2 = \omega^2a_2$。第一式给出 $a_2 = (2 - \omega^2)a_1$，代入第二式，要 $a_1 \ne 0$ 就需要 $(2 - \omega^2)^2 - 1 = 0$，所以 $\omega^2 = 1$ 或 $3$，即 $k/m$ 和 $3k/m$。
+
+            $\omega^2 = 1$ 时 $a_2 = a_1$，即同相；$\omega^2 = 3$ 时 $a_2 = -a_1$，即反相。和上一课凭直觉找到的一样。物体多了，直觉不够用，这个办法照样能用。
+      - item:
+          id: unequal-coupling
+          type: number
+          prompt: 墙—弹簧 $k$—物体—弹簧 $k_c$—物体—弹簧 $k$—墙，两个物体质量都是 1 kg，$k = 100\text{ N/m}$，中间弹簧 $k_c = 50\text{ N/m}$。反相模式的角频率是多少 rad/s？（保留两位小数）
+          answer: 14.14
+          tolerance: 0.005
+          unit: rad/s
+          hint: 反相时中间弹簧伸长 $2x_1$，左边物体一共受多大的回复力？
+          explain: 反相时左边物体受 $-kx_1 - 2k_cx_1 = -(k + 2k_c)x_1$，$\omega = \sqrt{(100 + 100)/1} = \sqrt{200} \approx 14.14\text{ rad/s}$。同相时中间弹簧不起作用，$\omega = \sqrt{100} = 10\text{ rad/s}$。
+      - card:
+          title: 对称性帮你猜模式
+          body: |
+            墙—m—m—墙的系统左右对称：把左右对调，方程不变。所以一个模式左右对调后，要么完全不变（对称，$a_1 = a_2$），要么整体变号（反对称，$a_1 = -a_2$）。
+
+            还没解方程就知道模式只能是这两种形状，剩下只要算频率。系统越对称，能直接猜出的东西越多，这是物理里常用的办法。
+      - item:
+          id: symmetric-guess
+          type: choice
+          prompt: 墙—m—m—m—墙（四根相同的弹簧）有一个模式，左右两个物体振幅相等、方向相反。根据左右对称，中间的物体在这个模式里怎样运动？
+          options:
+            - text: 一直不动
+              correct: true
+            - text: 和左边的物体同向，振幅相同
+              why: 左右对调后，这个模式整体变号（反对称），中间物体对调后还在中间，它的位移只能等于自己的相反数，只能是 0
+            - text: 振幅是两边的两倍
+              why: 反对称的模式里，中间物体的位移必须等于它自己的相反数，所以是 0，不可能是两倍
+          explain: 这个模式左右对调后整体变号。中间物体对调后还是自己，$a_2 = -a_2$，所以 $a_2 = 0$。两边的物体反着动，中间的弹簧被两边等量拉压，合力为 0。
+      - card:
+          title: 一长串振子
+          body: |
+            $N$ 个相同物体用 $N + 1$ 根相同弹簧串在两墙之间。每个物体和邻居的关系都一样（平移对称），解出来的模式是正弦形状：第 $j$ 个物体的振幅正比于 $\sin\frac{jn\pi}{N + 1}$，$n = 1, 2, \dots, N$，角频率
+
+            $$\omega_n = 2\omega_0\sin\frac{n\pi}{2(N + 1)},\qquad \omega_0 = \sqrt{\frac km}$$
+
+            $N = 2$ 时给出 $\omega_0$ 和 $\sqrt3\omega_0$，和前面一致。$n$ 越大，相邻物体的动作越接近相反，频率越高。
+      - item:
+          id: three-mass-middle-mode
+          type: number
+          prompt: 墙—m—m—m—墙，四根相同的弹簧，$\sqrt{k/m} = 10\text{ rad/s}$。三个模式中频率居中的那个（$n = 2$），角频率是多少 rad/s？（保留两位小数）
+          answer: 14.14
+          tolerance: 0.005
+          unit: rad/s
+          hint: $n = 2$ 的模式里，三个物体的振幅比是多少？中间的物体受的合力是多少？
+          explain: $\omega_2 = 2 \times 10 \times \sin\frac{2\pi}{8} = 20\sin 45° \approx 14.14\text{ rad/s}$。这就是上一题那种两边反着动、中间不动的模式：中间物体静止，两边的物体各受两根弹簧的力 $-2kx$，$\omega = \sqrt2\omega_0$。
+      - card:
+          title: 一串无穷长的振子
+          body: |
+            去掉两面墙，让间距 $a$ 的珠子串无穷长。第 $j$ 颗受左右两根弹簧的力：
+
+            $$m\ddot x_j = k(x_{j+1} - x_j) - k(x_j - x_{j-1}) = k(x_{j+1} + x_{j-1} - 2x_j)$$
+
+            试一个沿珠子串传过去的运动 $x_j = A\cos(\kappa ja - \omega t)$。$\kappa$ 表示每单位长度相位变化多少（讲波时常写作 $k$，这里用 $\kappa$ 是为了不和弹簧的 $k$ 混淆）。用两角和与差的余弦公式展开再相加，得 $x_{j+1} + x_{j-1} = 2\cos(\kappa a)\,x_j$。
+      - card:
+          title: 色散关系
+          body: |
+            代回方程：$-m\omega^2x_j = k(2\cos\kappa a - 2)x_j$，再用 $1 - \cos\kappa a = 2\sin^2(\kappa a/2)$：
+
+            $$\omega = 2\omega_0\left|\sin\frac{\kappa a}{2}\right|$$
+
+            角频率和 $\kappa$ 的这种关系叫**色散关系（dispersion relation）**。角频率最高只能到 $2\omega_0$。$\kappa a$ 很小（波长比间距长得多）时 $\sin$ 近似等于自己的自变量，$\omega \approx \omega_0a\kappa$，扰动以速度 $\omega_0a = a\sqrt{k/m}$ 传播，和 $\kappa$ 无关。珠子无穷多、间距无穷小时，这串振子就成了连续的弹性介质，扰动就是在里面传播的波。
+      - item:
+          id: chain-wave-speed
+          type: number
+          prompt: 一串小珠子，每颗 0.01 kg，相邻两颗相距 1 cm，用劲度系数 100 N/m 的弹簧连着。波长远大于 1 cm 的扰动沿这串珠子传播的速度是多少 m/s？
+          answer: 1
+          unit: m/s
+          hint: 先求 $\omega_0 = \sqrt{k/m}$，长波的速度是 $\omega_0$ 乘什么？
+          explain: $\omega_0 = \sqrt{100/0.01} = 100\text{ rad/s}$，速度 $\omega_0a = 100 \times 0.01 = 1\text{ m/s}$。
+      - item:
+          id: chain-cutoff
+          type: choice
+          prompt: 一串珠子每颗 0.01 kg，用劲度系数 100 N/m 的弹簧连着，$\omega_0 = 100\text{ rad/s}$，所以 $2\omega_0 = 200\text{ rad/s}$。用 300 rad/s 的角频率持续推动第一颗珠子，会发生什么？
+          options:
+            - text: 扰动传不远，离推动处越远振动越弱
+              correct: true
+            - text: 扰动照常传播，只是速度更快
+              why: 色散关系里角频率最高只有 $2\omega_0$，没有哪个 $\kappa$ 能对应 300 rad/s 的传播波
+            - text: 扰动照常传播，波长变得比珠子间距还短
+              why: 波长比间距还短时，相邻珠子之间“看不出”更多细节，最短的有效波长是两倍间距，对应的正是最高频率 $2\omega_0$
+          explain: 珠子串只能传播 $\omega \le 2\omega_0$ 的波。频率更高时，相邻珠子来不及跟上，振动随距离衰减，传不出去。
+  # ==== 机械波与波动方程 ====
+  - id: string-wave-equation
+    chapter: 机械波与波动方程
+    title: 弦上的波和波动方程
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一根拉紧的长绳，你把一端快速抖一下，绳上出现一个鼓包。这个鼓包会怎样？
+          options:
+            - text: 保持形状沿绳子跑向另一端
+              correct: true
+            - text: 留在原处，慢慢变平
+              why: 鼓包处的绳子会拉动旁边的绳子，旁边的再拉动更远的，形状被一段一段传了出去
+            - text: 跑出去，但越跑越快
+              why: 跑得多快由绳子的张力和粗细决定，同一根绳子上速度不变
+          explain: 绳子上每一小段都只是上下动，可是“鼓包”这个形状沿绳子传了出去。这种传播出去的扰动就是波，这一课从牛顿第二定律推出它满足的方程。
+      - card:
+          title: 什么是波
+          body: |
+            扰动在介质里一处一处传下去，叫**机械波（mechanical wave）**。传走的是振动的状态和能量，介质本身只在原地附近振动。
+
+            介质的振动方向和波的传播方向垂直的，叫**横波（transverse wave）**，比如绳子上的波；两者平行的，叫**纵波（longitudinal wave）**，比如弹簧上一疏一密传过去的波、空气里的声波。
+      - item:
+          id: wave-types
+          type: match
+          prompt: 把每种波和它的类型配对。
+          pairs:
+            - ['抖动绳子一端产生的波', '横波：质点上下动，波沿绳子走']
+            - ['长弹簧一端前后推拉产生的疏密波', '纵波：质点前后动，和波同方向']
+            - ['体育场观众依次站起又坐下形成的“人浪”', '横波：人上下动，浪沿看台走']
+          explain: 看介质里的质点往哪个方向动：和波的前进方向垂直是横波，平行是纵波。人浪里每个人只是站起坐下，“浪”却沿看台横着走。
+      - card:
+          title: 推出波动方程
+          body: |
+            一根张力 $T$、每米质量（线密度）$\mu$ 的弦，横向位移 $y(x, t)$，偏离很小。取 $x$ 到 $x + dx$ 的一小段，质量 $\mu\,dx$。两端张力沿弦的切线方向。偏离很小时，两端张力的水平分量都约等于 $T$、互相抵消；横向分量约为 $T$ 乘斜率 $\partial y/\partial x$，合力是两端之差：
+
+            $$T\left[\frac{\partial y}{\partial x}\bigg|_{x + dx} - \frac{\partial y}{\partial x}\bigg|_x\right] = T\frac{\partial^2 y}{\partial x^2}dx$$
+
+            牛顿第二定律 $\mu\,dx\,\frac{\partial^2y}{\partial t^2} = T\frac{\partial^2y}{\partial x^2}dx$，消去 $dx$：
+
+            $$\frac{\partial^2y}{\partial t^2} = v^2\frac{\partial^2y}{\partial x^2},\qquad v = \sqrt{\frac T\mu}$$
+
+            这就是一维波动方程，$v$ 是波速。
+      - item:
+          id: string-speed
+          type: number
+          prompt: 一根弦的张力是 100 N，线密度是 0.01 kg/m。弦上横波的速度是多少 m/s？
+          answer: 100
+          unit: m/s
+          hint: 波速和张力是什么关系？张力乘 4 之后，波速乘几？
+          explain: $v = \sqrt{T/\mu} = \sqrt{100/0.01} = \sqrt{10^4} = 100\text{ m/s}$。
+      - item:
+          id: tension-quadruple
+          type: choice
+          prompt: 把一根吉他弦的张力调成原来的 4 倍，弦上波速变成原来的几倍？
+          options:
+            - text: 2 倍
+              correct: true
+            - text: 4 倍
+              why: 速度和张力的平方根成正比，不是和张力成正比
+            - text: 16 倍
+              why: 平方关系方向弄反了；$v = \sqrt{T/\mu}$，张力乘 4，速度乘 $\sqrt4 = 2$
+          explain: $v = \sqrt{T/\mu}$，张力变为 4 倍，速度变为 $\sqrt4 = 2$ 倍。
+      - card:
+          title: 通解：向两边跑的形状
+          body: |
+            任取一个函数 $f$，$y = f(x - vt)$ 都满足波动方程：由链式法则，对 $t$ 求两次导数得 $v^2f''$，对 $x$ 求两次导数得 $f''$，两边相等。
+
+            $f(x - vt)$ 的意思是：$t$ 时刻在 $x$ 处的位移，等于 $t = 0$ 时在 $x - vt$ 处的位移，也就是整个形状向右平移了 $vt$。同理 $g(x + vt)$ 向左跑。波动方程的通解是
+
+            $$y = f(x - vt) + g(x + vt)$$
+
+            形状任意，速度都是 $v$，跑的时候形状不变。
+      - item:
+          id: right-moving
+          type: choice
+          prompt: 下面哪个式子描述的是一个以 3 m/s 向 $x$ 正方向跑、形状不变的波（$x$ 以米计，$t$ 以秒计）？
+          options:
+            - text: '$y = e^{-(x - 3t)^2}$'
+              correct: true
+            - text: '$y = e^{-(x + 3t)^2}$'
+              why: '$x + 3t$ 保持不变要求 $x$ 随时间减小，这个形状向 $x$ 负方向跑'
+            - text: '$y = e^{-x^2}\cos 3t$'
+              why: 这是原地一起变大变小的形状，峰始终在 $x = 0$，没有向哪边跑
+          explain: 峰在 $x - 3t = 0$ 处，即 $x = 3t$，每秒向右移动 3 m，形状不变。
+      - card:
+          title: 例题：脉冲多久跑到另一端
+          body: 一根绳子长 10 m，张力 50 N，线密度 0.02 kg/m。从一端抖出一个脉冲，它多久到达另一端？
+          reveal:
+            - title: 第 1 步：算波速
+              body: $v = \sqrt{50/0.02} = \sqrt{2500} = 50\text{ m/s}$。
+            - title: 第 2 步：用距离除以速度
+              body: 形状以恒定速度跑，$t = 10/50 = 0.2\text{ s}$。
+      - item:
+          id: pulse-time
+          type: number
+          prompt: 一根 12 m 长的绳子，张力 72 N，线密度 0.08 kg/m。一端抖出的脉冲要多少秒才到另一端？
+          answer: 0.4
+          unit: s
+          hint: 先求波速，再看要跑多远。
+          explain: $v = \sqrt{72/0.08} = \sqrt{900} = 30\text{ m/s}$，$t = 12/30 = 0.4\text{ s}$。
+  - id: harmonic-waves
+    chapter: 机械波与波动方程
+    title: 平面简谐波、能量和惠更斯原理
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 绳子一端一直按固定的频率上下振动，绳上形成一串连续的波。如果把振动的频率提高一倍（张力不变），绳上相邻两个波峰的距离会怎样？
+          options:
+            - text: 缩短为原来的一半
+              correct: true
+            - text: 不变，波峰间距只取决于绳子
+              why: 绳子决定的是波速；同样的速度下，振动得越快，相邻两个波峰之间隔的时间越短，离得越近
+            - text: 变成原来的两倍，因为振得更带劲
+              why: 波速不变，每个周期波只往前跑一个波峰间距；周期减半，间距也减半
+          explain: 波速由绳子决定。每振动一次，波往前跑一段固定的路，频率加倍，每次跑的路减半。这一课把这个关系写成 $v = f\lambda$。
+      - card:
+          title: 平面简谐波
+          body: |
+            波源做简谐振动时，波的形状是正弦曲线，叫**简谐波（harmonic wave）**：
+
+            $$y(x, t) = A\cos(kx - \omega t + \varphi)$$
+
+            固定 $x$ 看，那一点在做角频率 $\omega$ 的简谐振动；固定 $t$ 看，是一条余弦曲线。相邻两个波峰的距离叫**波长（wavelength）**$\lambda$；$k = 2\pi/\lambda$ 叫**波数（wave number）**，表示每米相位变化多少弧度（注意它和弹簧的劲度系数用同一个字母，意思不同）。它是 $f(x - vt)$ 的一种，波速
+
+            $$v = \frac\omega k = f\lambda$$
+      - item:
+          id: sound-wavelength
+          type: number
+          prompt: 空气中声速约 343 m/s。一个 440 Hz 的音在空气中的波长是多少米？（保留两位小数）
+          answer: 0.78
+          tolerance: 0.005
+          unit: m
+          hint: 波速、频率、波长三者是什么关系？
+          explain: $\lambda = v/f = 343/440 \approx 0.78\text{ m}$。
+      - item:
+          id: phase-difference-points
+          type: number
+          prompt: 一列简谐波的波长是 2 m。沿传播方向相距 0.5 m 的两点，振动的相位差是多少度？
+          answer: 90
+          unit: °
+          hint: 相距一个波长，相位差是多少？0.5 m 是几分之几个波长？
+          explain: 相距一个波长相位差 $360°$，0.5 m 是 1/4 个波长，相位差 $90°$（$\pi/2$）。用波数算：$k\Delta x = (2\pi/2) \times 0.5 = \pi/2$。
+      - card:
+          title: 波带着能量走
+          body: |
+            弦上每一小段都在振动，有动能也有弹性势能。对简谐波算一个周期的平均，单位时间里流过弦上某一点的能量（平均功率）是
+
+            $$P = \frac12\mu\omega^2A^2v$$
+
+            和振幅的平方、频率的平方都成正比。在空间里传播的波，单位时间穿过垂直于传播方向的单位面积的能量，叫**波的强度（intensity）**，单位 $\text{W/m}^2$。
+      - item:
+          id: string-wave-power
+          type: number
+          prompt: 线密度 0.01 kg/m、波速 100 m/s 的弦上，有一列频率 100 Hz、振幅 5 mm 的简谐波。它传送能量的平均功率是多少瓦？（保留两位小数）
+          answer: 4.93
+          tolerance: 0.005
+          unit: W
+          hint: 先把频率换成角频率，振幅换成米，再代入功率公式。
+          explain: $\omega = 2\pi \times 100 \approx 628.3\text{ rad/s}$，$P = \frac12 \times 0.01 \times 628.3^2 \times 0.005^2 \times 100 \approx 4.93\text{ W}$。
+      - card:
+          title: 平面波、球面波和惠更斯原理
+          body: |
+            同一时刻相位相同的点连成的面叫**波阵面（wavefront）**。波阵面是平面的叫平面波，振幅不随距离变；点波源发出的是球面波，能量摊在半径 $r$ 的球面 $4\pi r^2$ 上，强度和 $r^2$ 成反比，振幅和 $r$ 成反比。
+
+            **惠更斯原理（Huygens' principle）**：波阵面上每一点都可以看成新的小波源，发出球面子波；下一时刻的波阵面是这些子波共同的包络面。光在界面上拐弯、绕过障碍物，都可以用它解释。
+      - item:
+          id: inverse-square
+          type: number
+          prompt: 一个点声源向四周均匀发声。离它 2 m 处的声强是离它 6 m 处的多少倍？
+          answer: 9
+          hint: 强度和距离是什么关系？距离变为几分之一？
+          explain: 强度和 $r^2$ 成反比，$(6/2)^2 = 9$ 倍。振幅只差 3 倍。
+      - card:
+          title: 二维和三维的波
+          body: |
+            水面上斜着传的波写成 $y = A\cos(k_xx + k_yy - \omega t)$。$(k_x, k_y)$ 合起来是**波矢（wave vector）**$\vec k$：方向是传播方向，大小 $|\vec k| = \sqrt{k_x^2 + k_y^2} = 2\pi/\lambda$。波阵面是 $k_xx + k_yy$ 相同的直线，和 $\vec k$ 垂直。三维时再加一个 $k_z$。
+
+            光从空气斜射进水里，频率不变，速度变了，波矢的大小随之改变，传播方向也跟着转。
+      - item:
+          id: wave-vector-length
+          type: number
+          prompt: 一列水面波写成 $y = A\cos(3x + 4y - \omega t)$，$x$、$y$ 以米计。它的波长是多少米？（保留三位小数）
+          answer: 1.257
+          tolerance: 0.0005
+          unit: m
+          hint: 先求波矢的大小，波长和它是什么关系？
+          explain: $|\vec k| = \sqrt{3^2 + 4^2} = 5\ \text{m}^{-1}$，$\lambda = 2\pi/5 \approx 1.257\text{ m}$。传播方向沿 $(3, 4)$。
+  - id: standing-waves
+    chapter: 机械波与波动方程
+    title: 驻波、弦的简正频率和傅里叶级数
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一根两端固定的绳子，在一端用合适的频率持续抖动，绳子会形成几段稳定的“鼓包”。鼓包之间的那些点会怎样？
+          options:
+            - text: 一直几乎不动
+              correct: true
+            - text: 和鼓包一起上下动，只是幅度小一些
+              why: 那些点是两列反向的波始终互相抵消的地方，振幅为 0，不是“小一些”
+            - text: 沿绳子左右滑动
+              why: 绳子是横波，每一点只上下动，不会沿绳子滑
+          explain: 往右走的波和反射回来往左走的波叠加，有些点始终抵消。整个形状不再向哪边跑，只在原地上下振动，叫驻波。
+      - card:
+          title: 两列反向的波叠加
+          body: |
+            振幅、频率相同、方向相反的两列波相加：
+
+            $$A\cos(kx - \omega t) + A\cos(kx + \omega t) = 2A\cos kx\cos\omega t$$
+
+            $x$ 和 $t$ 分开在两个因子里：每一点都以同样的频率振动，振幅 $|2A\cos kx|$ 随位置变。这叫**驻波（standing wave）**。振幅为 0、始终不动的点叫**波节（node）**，振幅最大的点叫**波腹（anti-node）**。$\cos kx = 0$ 的点相隔 $\pi/k = \lambda/2$，所以相邻波节相距半个波长。
+      - item:
+          id: node-spacing
+          type: number
+          prompt: 一根弦上形成了驻波，叠加成它的两列行波，波长都是 0.8 m。相邻两个波节相距多少米？
+          answer: 0.4
+          unit: m
+          hint: 相邻波节之间是几分之几个波长？
+          explain: 相邻波节相距 $\lambda/2 = 0.4\text{ m}$，相邻波节和波腹相距 $\lambda/4$。
+      - card:
+          title: 两端固定的弦
+          body: |
+            两端固定的弦，两端都必须是波节。驻波写成 $y = A\sin kx\cos\omega t$（$x = 0$ 处为 0），要 $x = L$ 处也为 0，需要 $kL = n\pi$，即弦长是半波长的整数倍：
+
+            $$\lambda_n = \frac{2L}{n},\qquad f_n = \frac{nv}{2L},\quad n = 1, 2, 3, \dots$$
+
+            这些就是弦的简正模式和简正频率，正是“一串振子”在物体无穷多时的结果。$n = 1$ 叫**基频（fundamental frequency）**，$f_n$ 是基频的 $n$ 倍，叫第 $n$ 次**谐波（harmonic）**。
+      - item:
+          id: string-fundamental
+          type: number
+          prompt: 一根弦张力 100 N、线密度 0.01 kg/m、两端固定、长 0.5 m。它的基频是多少赫兹？
+          answer: 100
+          unit: Hz
+          hint: 先求波速。基频时弦长是几分之几个波长？
+          explain: $v = \sqrt{100/0.01} = 100\text{ m/s}$；基频时 $L = \lambda/2$，$\lambda = 1\text{ m}$，$f_1 = v/(2L) = 100\text{ Hz}$。
+      - item:
+          id: allowed-frequencies
+          type: choice
+          multi: true
+          prompt: 一根两端固定的弦，波速 100 m/s，长 0.5 m。下面哪些频率能在它上面形成驻波？（多选）
+          options:
+            - text: 100 Hz
+              correct: true
+            - text: 150 Hz
+              why: 150 Hz 的波长是 2/3 m，弦长 0.5 m 是它的 0.75 倍，不是半波长的整数倍，两端不能同时是波节
+            - text: 200 Hz
+              correct: true
+            - text: 300 Hz
+              correct: true
+          explain: 允许的频率是 $f_n = n \times 100\text{ Hz}$：100、200、300……150 Hz 不是基频的整数倍。
+      - card:
+          title: 反射和半波损失
+          body: |
+            一端固定的绳子，脉冲到达固定端后反射回来，变成倒过来的形状：固定端不能动，反射波必须在那里和入射波抵消，相当于相位突变了 $\pi$，或者说多走了半个波长。这叫**半波损失（half-wave loss）**。
+
+            绳子末端套在能自由滑动的光滑环上（自由端）时，反射波不倒过来，自由端是波腹。光在两种介质的界面上反射时也有类似的情况。
+      - item:
+          id: fixed-end-reflection
+          type: choice
+          prompt: 一根绳子一端系在墙上，你在另一端抖出一个向上的鼓包。它被墙反射回来后是什么样子？
+          options:
+            - text: 一个向下的鼓包
+              correct: true
+            - text: 一个向上的鼓包，原样弹回
+              why: 原样弹回的是自由端；固定端那一点不能动，反射波必须和入射波在那里抵消，所以方向反过来
+            - text: 鼓包被墙吸收，没有反射
+              why: 墙不动，绳子的能量传不进墙里，几乎全部反射回来
+          explain: 墙那一点必须保持不动，反射波在那里要和入射波大小相等、方向相反，所以向上的鼓包反射成向下的鼓包，相位变化 $\pi$。
+      - card:
+          title: 傅里叶级数
+          body: |
+            拨一下吉他弦，开始时弦是一个三角形，不是正弦形状。但每个简正模式都是正弦形状，而且任意形状（满足两端为 0）都能写成它们的叠加：
+
+            $$y(x, 0) = \sum_{n=1}^{\infty}b_n\sin\frac{n\pi x}{L}$$
+
+            这叫**傅里叶级数（Fourier series）**。之后每个模式各按自己的频率 $f_n$ 振动，所以弦同时发出基频和许多谐波。各次谐波的比例不同，听起来的音色就不同，这就是同一个音在吉他和钢琴上听起来不一样的原因。
+      - item:
+          id: harmonic-content
+          type: choice
+          prompt: 在两端固定的弦的正中间拨一下（开始时弦是对称的三角形）。下面哪个说法对？
+          options:
+            - text: 没有第 2 次谐波，它在中点是波节
+              correct: true
+            - text: 只有基频，因为三角形最接近基频的形状
+              why: 三角形不是正弦曲线，必须用许多个模式叠加；它只是以基频为主
+            - text: 所有谐波都有，而且一样强
+              why: 第 2 次谐波（以及所有偶次谐波）在中点是波节，而且左右反对称，叠加不出一个左右对称的形状，所以它们的系数为 0
+          explain: 偶次谐波 $\sin(2m\pi x/L)$ 关于弦的中点反对称，正中间拨出的形状关于中点对称，所以偶次谐波的系数都是 0，只有奇次谐波，而且越高越弱。
+  - id: sound-waves
+    chapter: 机械波与波动方程
+    title: 声波、管子里的驻波和分贝
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 声音在空气里传播时，空气分子是怎样动的？
+          options:
+            - text: 沿传播方向前后来回振动，有疏有密
+              correct: true
+            - text: 跟着声音一起从声源一路飞到你耳朵里
+              why: 声音传的是振动，空气分子只在原地附近来回动；声音每秒走 343 m，空气并没有刮起这么大的风
+            - text: 像绳子上的波那样上下振动
+              why: 空气不能像绳子那样被横向拉回来，声波在空气里只能是纵波
+          explain: 声波是纵波：空气一会儿被压密、一会儿变稀，压强的起伏一层层传出去。这一课算声速、管乐器的频率和声音的强弱。
+      - card:
+          title: 声波和声速
+          body: |
+            **声波（sound wave）**是介质里压强和密度的起伏传播出去形成的纵波。它同样满足波动方程，速度由介质的“难压缩程度”和密度决定：
+
+            $$v = \sqrt{\frac B\rho}$$
+
+            $B = -\Delta p/(\Delta V/V)$ 叫体积模量：压强增加 $\Delta p$ 时体积缩小（$\Delta V$ 为负），负号让 $B$ 为正。越难压缩，$B$ 越大。空气在 20 °C 时声速约 343 m/s，水里约 1480 m/s，钢里约 5960 m/s：液体和固体虽然更重，但难压缩得多。
+      - card:
+          title: 例题：算空气中的声速
+          body: 空气被声波压缩得很快，来不及和周围交换热量，这种绝热压缩的体积模量是 $B = \gamma p$，空气 $\gamma = 1.4$。求 1 个大气压（101325 Pa）、密度 1.204 kg/m³ 的空气里的声速。
+          reveal:
+            - title: 第 1 步：算体积模量
+              body: $B = 1.4 \times 101325 \approx 1.42 \times 10^5\text{ Pa}$。
+            - title: 第 2 步：代入声速公式
+              body: $v = \sqrt{1.42 \times 10^5/1.204} \approx 343\text{ m/s}$，和测量值一致。这里的 $\gamma$ 是热学里绝热过程用到的比热容比 $C_p/C_V$，和阻尼振动里的 $\gamma = b/m$ 只是字母相同。
+      - item:
+          id: echo-distance
+          type: number
+          prompt: 对着山崖喊一声，2 秒后听到回声。声速取 343 m/s，你离山崖多少米？
+          answer: 343
+          unit: m
+          hint: 2 秒里声音走了几趟你和山崖之间的距离？
+          explain: 声音来回一趟走了 $343 \times 2 = 686\text{ m}$，单程 343 m。
+      - card:
+          title: 管子里的驻波
+          body: |
+            笛子、管风琴靠管子里空气柱的驻波发声。看空气分子的位移：封闭端空气动不了，是位移的波节；开口端空气可以自由进出，近似是位移的波腹。
+
+            - 两端开口：两端都是波腹，管长是半波长的整数倍，$f_n = \frac{nv}{2L}$，$n = 1, 2, 3, \dots$
+            - 一端封闭：一端波节一端波腹，管长是四分之一波长的奇数倍，$f_n = \frac{nv}{4L}$，$n = 1, 3, 5, \dots$，只有奇次谐波。
+      - item:
+          id: closed-pipe
+          type: number
+          prompt: 一根一端封闭、一端开口的管子长 0.25 m，声速 343 m/s。它的基频是多少赫兹？
+          answer: 343
+          unit: Hz
+          hint: 一端封闭时，最长的那个波长是管长的几倍？
+          explain: 基频时管长是 $\lambda/4$，$\lambda = 1\text{ m}$，$f_1 = 343/1 = 343\text{ Hz}$。下一个频率是 3 倍，1029 Hz，没有 686 Hz。
+      - item:
+          id: open-vs-closed
+          type: choice
+          prompt: 两根同样长的管子，一根两端开口，一根一端封闭。哪根的基频高？
+          options:
+            - text: 两端开口的，基频是封闭管的 2 倍
+              correct: true
+            - text: 一端封闭的，因为声音被封住、更集中
+              why: 封闭端是波节，最低的模式里管长只装下四分之一个波长，波长更长，频率更低
+            - text: 一样高，管长相同
+              why: 基频取决于管长装下几分之几个波长；开口管装半个，封闭管装四分之一个
+          explain: 开口管基频 $v/(2L)$，封闭管 $v/(4L)$，开口管是它的 2 倍。所以把开口管的一端堵上，音会低八度。
+      - card:
+          title: 声强级和分贝
+          body: |
+            人耳能听到的声强从 $10^{-12}\text{ W/m}^2$ 到约 $1\text{ W/m}^2$，跨了 12 个数量级，而且耳朵对响度的感觉接近按倍数变化，所以用对数表示：
+
+            $$\beta = 10\lg\frac{I}{I_0}\ \text{dB},\qquad I_0 = 10^{-12}\text{ W/m}^2$$
+
+            $\beta$ 叫**声强级（sound intensity level）**，单位**分贝（decibel）**。强度乘 10，声强级加 10 dB；强度加倍，只加约 3 dB。
+      - item:
+          id: decibel-level
+          type: number
+          prompt: 一处的声强是 $10^{-6}\text{ W/m}^2$。声强级是多少分贝？
+          answer: 60
+          unit: dB
+          hint: 先算 $I/I_0$ 是 10 的几次方。
+          explain: $I/I_0 = 10^{-6}/10^{-12} = 10^6$，$\beta = 10 \times 6 = 60\text{ dB}$，大约是正常谈话的响度。
+      - item:
+          id: two-sources-db
+          type: number
+          prompt: 一台机器在某处产生 60 dB 的声音。再开一台一样的机器（两台的声强直接相加），那里的声强级是多少分贝？（保留一位小数）
+          answer: 63
+          tolerance: 0.05
+          unit: dB
+          hint: 两台机器让声强变成几倍？强度乘这个倍数，分贝加多少？
+          explain: 两个各自独立、互不相关的声源，强度相加，变成 2 倍：$\beta = 60 + 10\lg 2 \approx 63.0\text{ dB}$，不是 120 dB。
+  - id: dispersion-group-velocity
+    chapter: 机械波与波动方程
+    title: 色散、相速度和群速度
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 往深水里扔一块石头，激起一圈圈涟漪。仔细看一小群波，会发现单个波峰从这群波的后面冒出来、往前跑、到前头消失。这说明什么？
+          options:
+            - text: 单个波峰跑得比整群波快
+              correct: true
+            - text: 单个波峰和整群波一样快，只是看错了
+              why: 波峰确实从群的尾部跑到头部，说明它比群走得快；深水波里波峰的速度是波群的 2 倍
+            - text: 单个波峰跑得比整群波慢
+              why: 如果波峰慢，它应该从群的前头冒出来、往后退到尾部消失，和看到的相反
+          explain: 当不同波长的波跑得不一样快时，“波峰的速度”和“一群波的速度”是两回事。这一课给它们分别起名字并算出来。
+      - card:
+          title: 色散和相速度
+          body: |
+            弦上的波 $\omega = vk$，任何波长都以同一个速度跑，脉冲的形状不变。但很多介质里 $\omega$ 和 $k$ 不成正比，比如用弹簧连起来的一串珠子 $\omega = 2\omega_0|\sin(ka/2)|$，深水波 $\omega = \sqrt{gk}$，光在玻璃里也是。不同波长跑得不一样快，这叫**色散（dispersion）**，白光经过三棱镜分成彩色就是光的色散。
+
+            单个波峰（等相位的点）移动的速度叫**相速度（phase velocity）**：
+
+            $$v_p = \frac\omega k$$
+      - item:
+          id: deep-water-phase
+          type: number
+          prompt: 深水波满足 $\omega = \sqrt{gk}$，$g = 9.8\text{ m/s}^2$。波长 10 m 的深水波，相速度是多少 m/s？（保留两位小数）
+          answer: 3.95
+          tolerance: 0.005
+          unit: m/s
+          hint: 先由波长算波数，再算 $\omega/k$。
+          explain: $k = 2\pi/10 \approx 0.628\ \text{m}^{-1}$，$v_p = \omega/k = \sqrt{g/k} = \sqrt{9.8/0.628} \approx 3.95\text{ m/s}$。波长越长，深水波跑得越快。
+      - card:
+          title: 两列波叠加出包络
+          body: |
+            波数和频率略有不同的两列波 $(k_1, \omega_1)$、$(k_2, \omega_2)$ 相加，和拍的推导一样：
+
+            $$2A\cos\left(\frac{\Delta k}{2}x - \frac{\Delta\omega}{2}t\right)\cos(\bar kx - \bar\omega t)$$
+
+            后一个因子是快速起伏的波，以 $\bar\omega/\bar k$ 前进；前一个因子是慢慢起伏的轮廓，叫包络，它以 $\Delta\omega/\Delta k$ 前进。许多相近频率的波叠在一起，就成了只在一小段里有起伏的**波包（wave packet）**。
+      - card:
+          title: 群速度
+          body: |
+            包络（也就是波包）移动的速度叫**群速度（group velocity）**：
+
+            $$v_g = \frac{d\omega}{dk}$$
+
+            没有色散时 $\omega = vk$，$v_g = v_p = v$。有色散时两者不同。在吸收不强的介质里，能量和信息跟着波包走，所以信号传得多快看的是群速度。调幅电台的信号就是一个高频的“载波”，外面套一个随声音慢慢变化的包络，这个包络正是由载波附近一小段频率叠加出来的。
+      - item:
+          id: group-from-table
+          type: number
+          prompt: 某种介质里测得：波数 $10.0\ \text{m}^{-1}$ 的波角频率是 100 rad/s，波数 $10.2\ \text{m}^{-1}$ 的波角频率是 101 rad/s。在这一带，群速度约是多少 m/s？
+          answer: 5
+          unit: m/s
+          hint: 群速度是 $\omega$ 随 $k$ 变化的快慢，用两组数据的差来估算。
+          explain: $v_g \approx \Delta\omega/\Delta k = 1/0.2 = 5\text{ m/s}$；相速度 $100/10 = 10\text{ m/s}$，波峰跑得比波包快一倍。
+      - item:
+          id: deep-water-ratio
+          type: number
+          prompt: 深水波 $\omega = \sqrt{gk}$。它的群速度是相速度的多少倍？（填小数）
+          answer: 0.5
+          hint: 对 $\omega = \sqrt{gk}$ 求导，再和 $\omega/k$ 比一比。
+          explain: $v_g = \frac{d}{dk}\sqrt{gk} = \frac12\sqrt{g/k}$，$v_p = \sqrt{gk}/k = \sqrt{g/k}$，所以 $v_g = v_p/2$。这就是开头看到的现象：波峰比波群快一倍，从群尾冒出、在群头消失。
+      - card:
+          title: 波包越短，频率越宽
+          body: |
+            要叠出一个只占 $\Delta x$ 长的波包，需要的波数范围 $\Delta k$ 粗略地满足
+
+            $$\Delta x\cdot\Delta k \gtrsim 2\pi$$
+
+            包络要在 $\Delta x$ 内起落一次，$\Delta k$ 就不能太小。同样，只持续 $\Delta t$ 的脉冲要包含 $\Delta f \approx 1/\Delta t$ 宽的频率。这就是为什么传得越快的数据（脉冲越短）需要越宽的频带。物理学里这个关系后来变成了量子力学的不确定关系。
+      - item:
+          id: pulse-bandwidth
+          type: number
+          prompt: 一个持续约 1 微秒的脉冲，大约要占多宽的频率范围？（单位 MHz）
+          answer: 1
+          unit: MHz
+          hint: 脉冲只持续 $10^{-6}$ s。两列波的频率要相差多少，才来得及在这段时间里从同相变成反相、再回到同相？
+          explain: $\Delta f \approx 1/\Delta t = 1/(10^{-6}\text{ s}) = 10^6\text{ Hz} = 1\text{ MHz}$。脉冲缩短到 1 纳秒，就要约 1 GHz 的频带。
+      - item:
+          id: pulse-shape-dispersion
+          type: choice
+          prompt: 一个很短的光脉冲在一根很长的玻璃光纤里传播，玻璃有色散。到达另一端时，脉冲会怎样？
+          options:
+            - text: 变宽，因为它里面不同频率的成分跑得不一样快
+              correct: true
+            - text: 形状不变，光速是常数
+              why: 真空里的光速才是常数；玻璃里不同频率的光速度不同，这就是色散
+            - text: 变窄，因为慢的部分被快的部分追上
+              why: 脉冲开始时各频率成分在一起，跑得快慢不同只会让它们越拉越开
+          explain: 短脉冲包含一段频率，色散让这些成分在光纤里一个快一个慢，到达时前后错开，脉冲被拉宽。这限制了光纤每秒能传多少个脉冲。
+  # ==== 干涉与衍射 ====
+  - id: double-slit
+    chapter: 干涉与衍射
+    title: 干涉和杨氏双缝
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个喇叭并排放，播放同一个持续的单音。你在房间里慢慢走动，会听到什么？
+          options:
+            - text: 有的地方特别响，有的地方明显变轻
+              correct: true
+            - text: 到处都比只开一个喇叭响一倍
+              why: 两列声波在有的位置步调一致互相加强，在有的位置步调相反互相抵消，不是处处加倍
+            - text: 到处都一样响，只是比一个喇叭响一点
+              why: 同一个音的两列波有固定的相位关系，强弱会随位置变化；只有两列互不相关的声音才会处处简单相加
+          explain: 两列同频率的波在空间里叠加，各处的强弱由两条路的长度差决定，这叫干涉。光也会这样，这正是证明光是波的关键实验。
+      - card:
+          title: 相干和干涉
+          body: |
+            两列波在空间相遇，各处的位移等于两列波各自引起的位移之和，这叫**叠加原理（superposition principle）**。如果两列波频率相同、相位差保持不变，叠加后各处的强弱就稳定地分布在空间里，有的地方一直强、有的地方一直弱，这叫**干涉（interference）**，能产生干涉的两列波叫**相干（coherent）**的。
+
+            两盏独立的灯发出的光相位乱变，不相干，叠在一起只是亮度相加。所以光学实验要从同一束光里分出两束来。
+      - card:
+          title: 波程差
+          body: |
+            两个同相的波源到某点的距离分别是 $r_1$、$r_2$，差 $\delta = r_2 - r_1$ 叫**波程差（path difference）**。每多走一个波长，相位多变 $2\pi$，所以两列波在这点的相位差是 $2\pi\delta/\lambda$：
+
+            - $\delta = m\lambda$（$m = 0, \pm1, \pm2, \dots$）：同相，互相加强，叫相长干涉；
+            - $\delta = (m + \tfrac12)\lambda$：反相，互相抵消，叫相消干涉。
+      - item:
+          id: speakers-cancel
+          type: choice
+          prompt: 两个同相的喇叭发 1000 Hz 的音，声速 343 m/s。你到两个喇叭的距离相差 17.15 cm。你在的地方声音怎样？
+          options:
+            - text: 很弱，两列波在这里相消
+              correct: true
+            - text: 很响，两列波在这里相长
+              why: 先算波长：$343/1000 = 0.343\text{ m}$。17.15 cm 是半个波长，两列波到这里正好反相
+            - text: 和一个喇叭一样响，距离差和干涉没关系
+              why: 干涉的强弱正是由距离差（波程差）和波长之比决定的
+          explain: 波长 $0.343\text{ m}$，波程差 $0.1715\text{ m} = \lambda/2$，两列波反相，互相抵消。
+      - card:
+          title: 杨氏双缝
+          body: |
+            一束单色光照到两条相距 $d$ 的窄缝上，两缝就是两个相干的同相光源。在远处距离 $L$ 的屏上，和中线成角 $\theta$ 的方向上，波程差 $\delta = d\sin\theta$。亮纹满足
+
+            $$d\sin\theta = m\lambda$$
+
+            角度很小时 $\sin\theta \approx \tan\theta = y/L$，第 $m$ 条亮纹离中心 $y_m = m\lambda L/d$，相邻亮纹（或暗纹）间距
+
+            $$\Delta y = \frac{\lambda L}{d}$$
+      - item:
+          id: fringe-spacing
+          type: number
+          prompt: 双缝间距 0.2 mm，用 500 nm 的光照射，屏距双缝 1 m。相邻亮纹的间距是多少毫米？
+          answer: 2.5
+          unit: mm
+          hint: 把三个量都换成米，代入条纹间距公式。
+          explain: $\Delta y = \lambda L/d = 500 \times 10^{-9} \times 1/(0.2 \times 10^{-3}) = 2.5 \times 10^{-3}\text{ m} = 2.5\text{ mm}$。
+      - card:
+          title: 例题：由条纹测波长
+          body: 双缝间距 0.5 mm，屏距 1.5 m，测得第 1 条到第 11 条亮纹之间相距 18 mm。求光的波长。
+          reveal:
+            - title: 第 1 步：算相邻亮纹的间距
+              body: 第 1 条到第 11 条之间有 10 个间距，$\Delta y = 18/10 = 1.8\text{ mm}$。量很多个间距再平均，误差更小。
+            - title: 第 2 步：由间距公式反求波长
+              body: $\lambda = \Delta y\,d/L = 1.8 \times 10^{-3} \times 0.5 \times 10^{-3}/1.5 = 6 \times 10^{-7}\text{ m} = 600\text{ nm}$，是橙红色的光。
+      - item:
+          id: wavelength-from-fringes
+          type: number
+          prompt: 双缝间距 0.25 mm，屏距 2 m，测得第 1 条到第 7 条亮纹之间相距 27 mm。光的波长是多少纳米？
+          answer: 562.5
+          tolerance: 0.05
+          unit: nm
+          hint: 先求一个间距，再由 $\Delta y = \lambda L/d$ 解出 $\lambda$。
+          explain: 第 1 条到第 7 条之间有 6 个间距，$\Delta y = 27/6 = 4.5\text{ mm}$，$\lambda = 4.5 \times 10^{-3} \times 0.25 \times 10^{-3}/2 = 5.625 \times 10^{-7}\text{ m} = 562.5\text{ nm}$。
+      - card:
+          title: 条纹的亮度
+          body: |
+            每条缝在屏上单独产生的光强是 $I_1$。两列波振幅相同、相位差 $\phi = 2\pi\delta/\lambda$，合振幅是 $2A\cos(\phi/2)$（同频振动的合成），光强和振幅平方成正比：
+
+            $$I = 4I_1\cos^2\frac{\phi}{2} = 4I_1\cos^2\frac{\pi d\sin\theta}{\lambda}$$
+
+            亮纹中心是单缝的 4 倍，暗纹是 0，平均下来正好是 $2I_1$：能量没有多也没有少，只是重新分布了。
+      - item:
+          id: quarter-path-intensity
+          type: number
+          prompt: 双缝干涉中，屏上某点两列光的波程差是四分之一波长。这一点的光强是亮纹中心的几分之几？（填小数）
+          answer: 0.5
+          hint: 先算相位差，再代入 $\cos^2(\phi/2)$。
+          explain: 相位差 $\phi = 2\pi \times \frac14 = \pi/2$，$\cos^2(\pi/4) = 0.5$，是亮纹中心的一半。
+      - item:
+          id: fringes-in-water
+          type: choice
+          prompt: 把整套双缝装置浸到水里，光在水中的速度和波长都变为空气中的 1/1.33，其他不变。条纹间距会怎样？
+          options:
+            - text: 变小，约为原来的 1/1.33
+              correct: true
+            - text: 变大，水让光传得慢，条纹被拉开
+              why: 条纹间距 $\lambda L/d$ 只和波长成正比；光在水里波长变短，间距变小
+            - text: 不变，频率没变
+              why: 频率确实不变，但干涉看的是两条路上差了几个波长，波长变了，间距就变了
+          explain: 光在水中的波长是 $\lambda/1.33$，间距 $\Delta y = \lambda L/(1.33d)$，变为原来的 $1/1.33$。频率由光源决定，进水后不变。
+  - id: thin-film
+    chapter: 干涉与衍射
+    title: 光程、薄膜干涉和迈克尔逊干涉仪
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 肥皂泡在阳光下五颜六色，而肥皂水本身是无色的。颜色最可能从哪里来？
+          options:
+            - text: 前后两个表面反射的光互相干涉
+              correct: true
+            - text: 肥皂里有彩色的染料
+              why: 同一瓶肥皂水装在杯子里是无色的；而且泡泡上的颜色会随膜变薄而流动变化，染料不会这样
+            - text: 像三棱镜一样，肥皂膜把白光按颜色分开
+              why: 膜只有几百纳米厚，光穿过时几乎不偏折；颜色出现在反射光里，而且随厚度变化，这是干涉的特征
+          explain: 膜的前表面和后表面各反射一束光，两束光走的路差了约两倍膜厚。某个颜色在某处相长，那里看起来就是那个颜色。
+      - card:
+          title: 折射和折射率
+          body: |
+            光从一种介质斜射进另一种介质，会在界面上改变方向，这叫**折射（refraction）**。原因是光在不同介质里速度不同，在介质里比在真空里慢。真空光速 $c$ 和介质中光速 $v$ 之比叫**折射率（refractive index）**：$n = c/v$。水约 1.33，玻璃约 1.5。频率由光源决定、进入介质不变，所以介质里的波长缩短为 $\lambda/n$（$\lambda$ 是真空中的波长）。
+      - card:
+          title: 光程
+          body: |
+            光在折射率 $n$ 的介质里走几何长度 $l$，经历的波长个数和在真空里走 $nl$ 一样。$nl$ 叫**光程（optical path length）**。两束光的相位差用光程差算：$\Delta\phi = 2\pi\Delta/\lambda$，$\Delta$ 是光程差。
+      - item:
+          id: optical-path
+          type: number
+          prompt: 一束光穿过 1 mm 厚、折射率 1.5 的玻璃片，另一束同样走 1 mm 但在空气里（折射率按 1 算）。两束光的光程差是多少微米？
+          answer: 500
+          unit: μm
+          hint: 分别算两段的光程，相减。
+          explain: 光程差 $(1.5 - 1) \times 1\text{ mm} = 0.5\text{ mm} = 500\ \mu\text{m}$。对 500 nm 的光，这相当于 1000 个波长。
+      - card:
+          title: 反射时的半波损失
+          body: |
+            光从折射率小的介质射向折射率大的介质，在界面上反射时，反射光的相位突变 $\pi$，相当于多走了半个波长，和绳子在固定端反射一样（半波损失）。从折射率大射向折射率小的界面反射时没有这个突变。
+
+            薄膜干涉要逐个界面看：两束反射光里，有几束发生了半波损失。两束都有或都没有时，反射不会让两束光多出相位差，只看光程差；只有一束有时，要在光程差里再加 $\lambda/2$。
+      - item:
+          id: which-reflections-flip
+          type: choice
+          prompt: 空气中一层肥皂膜（折射率 1.33），光几乎垂直照射。膜的上表面和下表面各反射一束光。哪一束有半波损失？
+          options:
+            - text: 只有上表面反射的那一束
+              correct: true
+            - text: 两束都有，所以只看光程差
+              why: 下表面那一束是从肥皂水（1.33）射向空气（1），从大到小，反射时没有半波损失
+            - text: 只有下表面反射的那一束
+              why: 弄反了；从小射向大（空气到肥皂水）的上表面反射才有半波损失
+          explain: 上表面：空气 1 → 肥皂水 1.33，从小到大，有半波损失；下表面：肥皂水 → 空气，从大到小，没有。所以两束光除了光程差 $2nt$，还多差 $\lambda/2$。
+      - card:
+          title: 例题：增透膜
+          body: 照相机镜头（玻璃 $n = 1.5$）表面镀一层氟化镁（$n = 1.38$），要让 550 nm 的绿光反射最弱。膜最薄要多厚？
+          reveal:
+            - title: 第 1 步：看两次反射有没有半波损失
+              body: 空气（1）→ 氟化镁（1.38）从小到大，有；氟化镁（1.38）→ 玻璃（1.5）也是从小到大，也有。两束都有，反射带来的相位突变互相对消，只看光程差。
+            - title: 第 2 步：写出相消的条件
+              body: 第二束光在膜里来回一趟，多走光程 $2nt$。反射最弱要求两束反相：$2nt = \lambda/2$（最薄的情况）。
+            - title: 第 3 步：解出厚度
+              body: $t = \frac{\lambda}{4n} = \frac{550}{4 \times 1.38} \approx 99.6\text{ nm}$，膜的光学厚度正好是四分之一波长。反射少了，透过去的光就多了，所以叫增透膜。
+      - item:
+          id: soap-film-thickness
+          type: number
+          prompt: 空气中一层肥皂膜，折射率 1.33，光垂直照射。要让 600 nm 的光反射最强，膜最薄是多少纳米？（保留一位小数）
+          answer: 112.8
+          tolerance: 0.05
+          unit: nm
+          hint: 只有一束反射光有半波损失。相长条件里，光程差 $2nt$ 加上 $\lambda/2$ 应该等于什么？
+          explain: 两束光相位差来自 $2nt$ 和一次半波损失，相长要求 $2nt + \lambda/2 = \lambda$，即 $2nt = \lambda/2$，$t = \lambda/(4n) = 600/(4 \times 1.33) \approx 112.8\text{ nm}$。
+      - card:
+          title: 劈尖和牛顿环
+          body: |
+            两块玻璃片一端接触、另一端垫一根细丝，中间形成很薄的楔形空气层，叫劈尖。空气层厚 $t$ 处，两束反射光的光程差是 $2t$，再加一次半波损失（下表面是空气到玻璃）。暗纹满足 $2t = m\lambda$，所以每条暗纹对应一个固定厚度，相邻暗纹的厚度差 $\lambda/2$。楔角 $\theta$ 很小时，条纹间距
+
+            $$\Delta x = \frac{\lambda}{2\theta}$$
+
+            平凸透镜放在平玻璃上，空气层是一圈圈等厚的环，看到的同心圆环叫牛顿环，暗环的半径 $r_m = \sqrt{m\lambda R}$（$R$ 是透镜球面的半径；中心接触处是 $m = 0$ 的暗斑，往外第 1 个暗环是 $m = 1$）。
+      - item:
+          id: wedge-spacing
+          type: number
+          prompt: 用 589 nm 的光照射空气劈尖，楔角是 $1.0 \times 10^{-4}$ rad。相邻暗纹的间距是多少毫米？（保留三位小数）
+          answer: 2.945
+          tolerance: 0.0005
+          unit: mm
+          hint: 相邻暗纹处空气层厚度差半个波长，沿玻璃走多远厚度才增加这么多？
+          explain: $\Delta x = \lambda/(2\theta) = 589 \times 10^{-9}/(2 \times 10^{-4}) \approx 2.945 \times 10^{-3}\text{ m} = 2.945\text{ mm}$。
+      - item:
+          id: newton-ring
+          type: number
+          prompt: 牛顿环实验中，透镜球面半径 1 m，用 600 nm 的光。从中心暗斑往外数第 4 个暗环（$m = 4$）的半径是多少毫米？（保留两位小数）
+          answer: 1.55
+          tolerance: 0.005
+          unit: mm
+          hint: 代入 $r_m = \sqrt{m\lambda R}$，单位都用米。
+          explain: $r_4 = \sqrt{4 \times 600 \times 10^{-9} \times 1} \approx 1.549 \times 10^{-3}\text{ m} \approx 1.55\text{ mm}$。
+      - card:
+          title: 迈克尔逊干涉仪
+          body: |
+            一块半透半反的镜子把光分成两束，分别射向两面镜子，反射回来再合在一起干涉。把其中一面镜子移动距离 $d$，那一路的光来回多走 $2d$，屏中心每经过一个波长的变化就亮暗交替一次。数出变化了 $N$ 次：
+
+            $$d = \frac{N\lambda}{2}$$
+
+            这样可以用光的波长当尺子，量出比头发细得多的长度变化。探测引力波的 LIGO 就是臂长 4 km 的迈克尔逊干涉仪。
+      - item:
+          id: michelson-shift
+          type: number
+          prompt: 用 632.8 nm 的激光做迈克尔逊干涉实验，移动一面镜子时数到 200 次亮暗交替。镜子移动了多少微米？（保留两位小数）
+          answer: 63.28
+          tolerance: 0.005
+          unit: μm
+          hint: 镜子移动 $d$，光程变化是多少？每变化多少光程交替一次？
+          explain: $d = N\lambda/2 = 200 \times 632.8\text{ nm}/2 = 63280\text{ nm} = 63.28\ \mu\text{m}$。
+  - id: single-slit-resolution
+    chapter: 干涉与衍射
+    title: 单缝衍射和分辨率
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 隔着一堵墙，你能听到墙那边门口的人说话，却看不到他。为什么声音能“拐弯”，光却好像不行？
+          options:
+            - text: 声音的波长和门差不多大，光的波长比门小得多
+              correct: true
+            - text: 光不是波，所以不会拐弯
+              why: 光是波，双缝干涉就说明了这一点；光也会拐弯，只是要通过和它波长差不多小的缝才明显
+            - text: 声音会穿过墙，光不会
+              why: 墙会挡掉大部分声音；能听清主要是声音从门口绕过来，不是穿墙
+          explain: 波遇到障碍物或小孔会绕到后面去，孔的大小和波长差不多时最明显。说话声的波长约 1 m，可见光不到 1 微米。
+      - card:
+          title: 衍射
+          body: |
+            波通过小孔、窄缝或绕过障碍物边缘时，传到原来“影子”里的现象叫**衍射（diffraction）**。用惠更斯原理看：缝里每一点都发出子波，它们向各个方向传播，所以通过缝后的波会散开。
+
+            缝宽 $a$ 远大于波长时，散开的角度约 $\lambda/a$，很小，看起来就是直线传播；$a$ 和 $\lambda$ 相近时，波明显向四周散开。
+      - card:
+          title: 单缝的暗纹
+          body: |
+            宽 $a$ 的单缝，看和中线成角 $\theta$ 的方向。把缝分成上下两半，上半第一点和下半第一点的波程差是 $\frac a2\sin\theta$。如果它等于 $\lambda/2$，这一对子波抵消；上下两半里每一对对应点都一样抵消，那个方向全暗。所以第一级暗纹在 $a\sin\theta = \lambda$。分成 4、6……份同样推得
+
+            $$a\sin\theta = m\lambda,\qquad m = \pm1, \pm2, \dots$$
+
+            $m = 0$ 方向所有子波同相，是最亮的中央亮纹，宽度是两侧第一级暗纹之间，约为其他亮纹的两倍。
+      - item:
+          id: single-slit-angle
+          type: number
+          prompt: 宽 0.1 mm 的单缝，用 500 nm 的光照射。第一级暗纹偏离中线多少毫弧度（mrad）？
+          answer: 5
+          unit: mrad
+          hint: 第一级暗纹满足 $a\sin\theta = \lambda$；角度很小时 $\sin\theta \approx \theta$。
+          explain: $\sin\theta = \lambda/a = 500 \times 10^{-9}/10^{-4} = 5 \times 10^{-3}$，$\theta \approx 5\text{ mrad}$（约 0.29°）。
+      - item:
+          id: central-width
+          type: number
+          prompt: 宽 0.1 mm 的单缝，用 500 nm 的光照射，屏放在 2 m 远处。中央亮纹的宽度是多少毫米？
+          answer: 20
+          unit: mm
+          hint: 中央亮纹两侧是正负第一级暗纹，它们各离中心多远？
+          explain: 第一级暗纹离中心 $L\lambda/a = 2 \times 5 \times 10^{-3} = 0.01\text{ m}$，两侧之间 $2L\lambda/a = 0.02\text{ m} = 20\text{ mm}$。
+      - item:
+          id: narrower-slit
+          type: choice
+          prompt: 单缝衍射中，把缝变窄一些，其他不变。屏上的图样会怎样？
+          options:
+            - text: 中央亮纹变宽，整个图样散得更开
+              correct: true
+            - text: 中央亮纹变窄，缝窄了光就更集中
+              why: 暗纹角度 $\sin\theta = \lambda/a$，$a$ 变小，$\theta$ 变大，亮纹反而变宽
+            - text: 图样大小不变，只是变暗
+              why: 透过的光确实少了，但衍射角由 $\lambda/a$ 决定，缝窄了角度变大
+          explain: 缝越窄，衍射越明显，$\theta \approx \lambda/a$ 越大。缝宽到和波长相当时，光向两侧铺开，中央亮纹几乎张到 ±90°。
+      - card:
+          title: 圆孔衍射和瑞利判据
+          body: |
+            透镜、瞳孔都是圆孔。直径 $D$ 的圆孔，衍射图样是中间一个亮斑、外面一圈圈暗环和亮环，第一圈暗环在
+
+            $$\sin\theta = 1.22\frac{\lambda}{D}$$
+
+            所以一个点光源经过镜头成的像不是一个点，而是一个小亮斑。两个点离得太近，两个亮斑就叠成一团分不开。**瑞利判据（Rayleigh criterion）**：一个亮斑的中心正好落在另一个的第一圈暗环上时，算刚好能分辨，对应的最小角距离 $\theta_{\min} \approx 1.22\lambda/D$。
+      - card:
+          title: 例题：人眼能分辨多小的东西
+          body: 瞳孔直径 3 mm，光的波长 550 nm。1 km 外两个点至少相隔多远，人眼才可能分辨出是两个？
+          reveal:
+            - title: 第 1 步：算最小分辨角
+              body: $\theta_{\min} = 1.22 \times 550 \times 10^{-9}/(3 \times 10^{-3}) \approx 2.24 \times 10^{-4}\text{ rad}$。
+            - title: 第 2 步：角度乘距离得到间隔
+              body: 角度很小时，间隔 ≈ 角度 × 距离 $= 2.24 \times 10^{-4} \times 1000 \approx 0.22\text{ m}$。这是衍射给出的上限，实际的眼睛还受视网膜等因素限制。
+      - item:
+          id: telescope-resolution
+          type: number
+          prompt: 一台望远镜的物镜直径 2.4 m，观察 550 nm 的光。它的最小分辨角是多少？（单位 $10^{-7}$ rad，保留两位小数）
+          answer: 2.8
+          tolerance: 0.005
+          unit: ×10⁻⁷ rad
+          hint: 代入瑞利判据的最小分辨角。
+          explain: $\theta_{\min} = 1.22 \times 550 \times 10^{-9}/2.4 \approx 2.80 \times 10^{-7}\text{ rad}$，比人眼小约 800 倍。口径越大，能分辨的细节越小。
+      - item:
+          id: resolution-choice
+          type: choice
+          prompt: 想让显微镜看清更小的细节，下面哪个办法有效？
+          options:
+            - text: 改用波长更短的光，比如蓝紫光
+              correct: true
+            - text: 换倍数更高的目镜，把像放得更大
+              why: 放大只是把已经糊在一起的亮斑放大，分不开的还是分不开；分辨极限由 $\lambda/D$ 决定
+            - text: 把光调得更亮
+              why: 亮度不改变衍射亮斑的大小，分辨率由波长和孔径决定
+          explain: $\theta_{\min} \approx 1.22\lambda/D$。波长越短、孔径越大，能分辨的越细。电子显微镜用波长极短的电子波，所以能看到原子级的细节。
+  - id: grating-phased-array
+    chapter: 干涉与衍射
+    title: 光栅、相控阵和单个电子的干涉
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把双缝换成间距相同的 1000 条缝，用同一种单色光照射。屏上的亮纹会怎样？
+          options:
+            - text: 位置和双缝的亮纹一样，但变得很细、很亮
+              correct: true
+            - text: 亮纹变得密 500 倍
+              why: 亮纹位置由相邻两缝的波程差 $d\sin\theta = m\lambda$ 决定，缝的间距没变，位置就不变
+            - text: 1000 束光乱叠在一起，屏上一片均匀的亮
+              why: 这 1000 束光来自同一束光、彼此相干，只有在所有相邻缝都同相的方向上才会全部加强
+          explain: 每两条相邻缝的波程差都满足 $d\sin\theta = m\lambda$ 的方向，所有缝同相叠加，振幅是一条缝的 1000 倍，光强是 $1000^2$ 倍；稍偏一点，1000 个箭头就转成一圈抵消掉了。所以亮纹又细又亮。
+      - card:
+          title: 光栅方程
+          body: |
+            许多条等间距的平行窄缝叫**光栅（diffraction grating）**，相邻两缝的间距 $d$ 叫光栅常数（每毫米 600 条缝，$d = 1/600\text{ mm}$）。主要的亮纹（主极大）满足
+
+            $$d\sin\theta = m\lambda,\qquad m = 0, \pm1, \pm2, \dots$$
+
+            和双缝一样。不同的是缝数 $N$ 越多，主极大越窄：两条主极大之间有 $N - 1$ 条暗纹。因为 $\sin\theta$ 不能超过 1，$m$ 最大只能取到不超过 $d/\lambda$ 的整数。
+      - item:
+          id: grating-angle
+          type: number
+          prompt: 每毫米 600 条缝的光栅，用 500 nm 的光垂直照射。第一级主极大偏离中线多少度？（保留一位小数）
+          answer: 17.5
+          tolerance: 0.05
+          unit: °
+          hint: 先算光栅常数 $d$，再由 $d\sin\theta = \lambda$ 求角度。
+          explain: $d = 1/600\text{ mm} \approx 1.667\ \mu\text{m}$，$\sin\theta = 0.5/1.667 = 0.3$，$\theta \approx 17.5°$。
+      - item:
+          id: grating-max-order
+          type: number
+          prompt: 每毫米 600 条缝的光栅，用 500 nm 的光垂直照射。一侧最多能看到第几级主极大？
+          answer: 3
+          hint: $\sin\theta$ 不能超过 1，$m$ 最大是多少？
+          explain: $m \le d/\lambda = 1667/500 \approx 3.33$，所以最多到第 3 级（$\sin\theta = 0.9$，约 64°）。
+      - card:
+          title: 光栅分光
+          body: |
+            不同波长的主极大在不同角度上，白光经过光栅会展开成彩色的光谱，光盘表面的彩虹色就是这样来的。光谱仪用光栅把光按波长分开测量。
+
+            能分开多近的两个波长？主极大的宽度随缝数变窄，第 $m$ 级上能分辨的 $\lambda/\Delta\lambda$ 约为 $mN$。钠灯发出 589.0 nm 和 589.6 nm 两条很近的黄光，要在第 1 级上把它们分开，至少需要约 $589/0.6 \approx 982$ 条被照亮的缝。
+      - item:
+          id: grating-resolve
+          type: number
+          prompt: 要在第 2 级光谱上分开 600.0 nm 和 600.3 nm 两条谱线，光栅至少要照亮多少条缝？
+          answer: 1000
+          tolerance: 1
+          hint: 先算需要的 $\lambda/\Delta\lambda$，它等于级数乘缝数。
+          explain: $\lambda/\Delta\lambda = 600/0.3 = 2000 = mN$，$m = 2$，所以 $N = 1000$。
+      - card:
+          title: 相控阵
+          body: |
+            把光栅倒过来用：一排间距 $d$ 的天线一起发射同一频率的电磁波。如果相邻天线依次晚 $\Delta\varphi$ 的相位，那么在 $\theta$ 方向上，波程带来的相位差 $2\pi d\sin\theta/\lambda$ 正好补上 $\Delta\varphi$ 时，所有天线同相、发射最强：
+
+            $$\sin\theta = \frac{\Delta\varphi\,\lambda}{2\pi d}$$
+
+            改变 $\Delta\varphi$，最强的方向（波束）就跟着转，天线本身一动不动。这就是相控阵雷达，手机基站的波束赋形也是同一个道理。
+      - item:
+          id: phased-array-angle
+          type: number
+          prompt: 一排天线间距是半个波长，相邻天线依次晚 $\pi/2$ 的相位。最强的发射方向偏离正前方多少度？
+          answer: 30
+          unit: °
+          hint: 代入 $\sin\theta = \Delta\varphi\,\lambda/(2\pi d)$，$d = \lambda/2$。
+          explain: $\sin\theta = \frac{(\pi/2)\lambda}{2\pi \times \lambda/2} = 0.5$，$\theta = 30°$。
+      - card:
+          title: 一个一个电子也会干涉
+          body: |
+            把电子一个一个地射向双缝，每个电子打在屏上只留下一个点，看起来像小颗粒。但打了成千上万个之后，这些点排成了明暗相间的干涉条纹，而且条纹间距和波长 $\lambda = h/p$（$h$ 是普朗克常数，$p$ 是电子的动量）的波的双缝干涉一致。
+
+            一次只有一个电子，没有别的电子和它干涉，说明每个电子自己就像一列波同时经过两条缝。这种“物质波”是量子力学最基本的实验事实之一。
+      - item:
+          id: single-electron
+          type: choice
+          prompt: 电子一个一个地通过双缝，最后在屏上积累出干涉条纹。如果在一条缝后面装上探测器，确定每个电子走的是哪条缝，条纹会怎样？
+          options:
+            - text: 条纹消失，变成两条缝各自的亮带叠加
+              correct: true
+            - text: 条纹不变，探测器不影响电子
+              why: 实验表明，一旦确定了电子走哪条缝，干涉就消失；条纹来自“两条路都走”的叠加
+            - text: 条纹变得更清楚
+              why: 知道路径反而破坏了两条路之间的固定相位关系，干涉条纹消失
+          explain: 干涉需要两条路的波叠加。确定了走哪条缝，就只剩一条路，没有东西和它干涉，条纹随之消失。
+  # ==== 偏振 ====
+  - id: polarization-malus
+    chapter: 偏振
+    title: 偏振片、马吕斯定律和布儒斯特角
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两副偏振太阳镜叠在一起透过它们看天空，转动其中一副。你会看到什么？
+          options:
+            - text: 转到某个角度时几乎全黑，再转 90° 又最亮
+              correct: true
+            - text: 无论怎么转，亮度都一样，只是比只戴一副时暗一些
+              why: 两片偏振片只让一个方向振动的光通过，透光方向互相垂直时，第一片放过来的光第二片全部挡住
+            - text: 每转一圈，亮度只变暗一次
+              why: 透光方向转 180° 后和原来重合，所以一圈里会全黑两次、最亮两次
+          explain: 光是横波，电场在垂直于传播方向的某个方向上振动。偏振片只放过一个方向的振动，两片的方向互相垂直时，光几乎全被挡住。
+      - card:
+          title: 光是横波
+          body: |
+            电磁波是横波：电场 $\vec E$ 和磁场 $\vec B$ 都垂直于传播方向。只看电场：它在垂直于传播方向的平面里振动，振动方向可以是这个平面里的任何方向。电场振动方向的这种选择叫**偏振（polarization）**。
+
+            电场始终沿一个固定方向振动的光叫**线偏振光（linearly polarized light）**。太阳和电灯发出的光由大量原子各自发出，振动方向杂乱、随时在变，叫**自然光（unpolarized light）**。纵波没有偏振：它的振动方向就是传播方向，没得选。
+      - card:
+          title: 偏振片和马吕斯定律
+          body: |
+            **偏振片（polarizer）**只让沿某个方向（透振方向）振动的电场通过，垂直的分量被吸收。线偏振光的振动方向和透振方向成 $\theta$ 角，通过的是电场在透振方向上的分量 $E_0\cos\theta$，光强和振幅平方成正比：
+
+            $$I = I_0\cos^2\theta$$
+
+            这叫**马吕斯定律（Malus's law）**。自然光的振动方向在各个角度上平均分布，$\cos^2\theta$ 的平均值是 1/2，所以自然光通过一片偏振片后光强减半，变成线偏振光。
+      - item:
+          id: two-polarizers
+          type: number
+          prompt: 自然光依次通过两块偏振片，它们的透振方向夹角是 60°。透射光强是入射光强的几分之几？（填小数）
+          answer: 0.125
+          hint: 第一片后光强剩多少？第二片再乘什么？
+          explain: 第一片后 $I_0/2$，第二片后 $(I_0/2)\cos^2 60° = (I_0/2)(1/4) = I_0/8 = 0.125I_0$。
+      - item:
+          id: three-polarizers
+          type: number
+          prompt: 两块透振方向互相垂直的偏振片中间，插入第三块，它的透振方向和前后两块都成 45°。自然光入射，最后透出的光强是入射光强的几分之几？（填小数）
+          answer: 0.125
+          hint: 一片一片算：第一片后多少？经过中间那片乘什么？最后一片再乘什么？
+          explain: $I_0 \to I_0/2 \to (I_0/2)\cos^2 45° = I_0/4 \to (I_0/4)\cos^2 45° = I_0/8$。没插中间那片时一点光都透不过，插进去反而有光：中间那片把振动方向“转”了一半。
+      - item:
+          id: polarizer-angle
+          type: number
+          prompt: 自然光通过两块偏振片后，光强是入射光强的 3/8。两块偏振片透振方向的夹角是多少度？
+          answer: 30
+          unit: °
+          hint: 第一片之后是 $I_0/2$，那么 $\cos^2\theta$ 应该等于多少？
+          explain: $\frac12\cos^2\theta = \frac38$，$\cos^2\theta = \frac34$，$\cos\theta = \frac{\sqrt3}{2}$，$\theta = 30°$。
+      - card:
+          title: 振荡的电荷向哪里辐射
+          body: |
+            电磁波由振荡的电荷发出。一个上下振荡的电荷，向四周辐射的电场也沿上下方向振动；它向侧面（垂直于振荡方向）辐射最强，沿着振荡方向一点也不辐射，因为在那个方向上看不到横向的振动。
+
+            阳光照到空气分子上，分子里的电子被带着振荡，再向各方向辐射，这就是散射。从和太阳光成 90° 的方向看过去，散射光是线偏振的：这是蓝天的光会被偏振片明显调暗的原因。
+      - item:
+          id: scattering-direction
+          type: choice
+          prompt: 一个沿竖直方向上下振荡的电荷。在哪个方向上完全收不到它辐射的电磁波？
+          options:
+            - text: 正上方和正下方
+              correct: true
+            - text: 水平方向
+              why: 水平方向看过去，电荷的振动完全是横向的，辐射最强
+            - text: 各个方向都能收到，强度一样
+              why: 沿振荡方向看，电荷只是一前一后地动，没有横向的振动，而电磁波是横波，所以这个方向没有辐射
+          explain: 电磁波是横波，只有电荷振动中垂直于观察方向的部分能辐射过来。沿振荡方向（正上方、正下方）这部分为 0。
+      - card:
+          title: 反射产生偏振：布儒斯特角
+          body: |
+            光从折射率 $n_1$ 的介质射到折射率 $n_2$ 的界面上，入射光和界面法线（垂直于界面的线）的夹角叫**入射角（angle of incidence）**。当入射角 $\theta_B$ 满足
+
+            $$\tan\theta_B = \frac{n_2}{n_1}$$
+
+            时，反射光中，电场在入射光和法线所在平面内振动的那部分完全消失，反射光是振动方向平行于界面的线偏振光。这个角叫**布儒斯特角（Brewster's angle）**，此时反射光和折射光正好互相垂直：折射光里的电荷沿反射方向振荡，而振荡电荷不向自己的振荡方向辐射。
+      - item:
+          id: brewster-glass
+          type: number
+          prompt: 光从空气射向折射率 1.5 的玻璃。布儒斯特角是多少度？（保留一位小数）
+          answer: 56.3
+          tolerance: 0.05
+          unit: °
+          hint: $\tan\theta_B$ 等于两种介质折射率之比，哪个在分子上？
+          explain: $\tan\theta_B = 1.5/1$，$\theta_B = \arctan 1.5 \approx 56.3°$。
+      - item:
+          id: sunglasses
+          type: choice
+          prompt: 湖面反射的阳光很刺眼。偏振太阳镜的透振方向应该怎样设计才能挡掉这些反光？
+          options:
+            - text: 竖直方向，因为湖面反射光主要是水平振动的
+              correct: true
+            - text: 水平方向，和湖面平行才能挡住湖面的光
+              why: 反射光主要在水平方向振动；透振方向设成水平反而让它全部通过
+            - text: 斜 45°，水平和竖直各挡一半
+              why: 斜 45° 对水平振动的光只挡一半；要挡住它，透振方向应该和它垂直
+          explain: 水面的反射光以平行于水面（水平）振动为主，在布儒斯特角附近几乎全是水平振动。透振方向竖直的镜片正好把它挡掉。
+  - id: birefringence-waveplates
+    chapter: 偏振
+    title: 双折射、波片和圆偏振光
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把一块透明的方解石晶体压在一行字上，透过它看，会看到什么？
+          options:
+            - text: 一行字变成了两行，转动晶体时其中一行绕着另一行转
+              correct: true
+            - text: 字被放大了，像放大镜一样
+              why: 方解石是平的晶体，不是凸透镜；它的特别之处是把一束光分成两束
+            - text: 字变成了彩色
+              why: 白光下边缘可能有一点彩色，但最明显的现象是出现两个像
+          explain: 方解石对两个互相垂直的偏振方向有不同的折射率，一束光进去变成两束、走不同的路，所以看到两个像。这一课讲这种现象，以及怎样用它改变光的偏振。
+      - card:
+          title: 双折射
+          body: |
+            有些晶体（方解石、石英）内部原子排列在不同方向上不一样，光的电场沿不同方向振动时，光速不同，也就是折射率不同。一束光进去后按两个互相垂直的偏振方向分成两束，各按自己的折射率前进，叫**双折射（birefringence）**。
+
+            其中一束朝哪个方向走折射率都一样，叫寻常光（o 光），折射率 $n_o$；另一束的折射率随传播方向变，叫非常光（e 光），垂直于晶体的特殊方向（光轴）传播时折射率是 $n_e$。两束光都是线偏振光，振动方向互相垂直。
+      - item:
+          id: double-image-polarizer
+          type: choice
+          prompt: 透过方解石看到一行字的两个像。再在方解石上面放一片偏振片并转动它，会看到什么？
+          options:
+            - text: 两个像交替变暗，一个最暗时另一个最亮
+              correct: true
+            - text: 两个像一起变亮变暗
+              why: 两个像的光是两个互相垂直方向振动的线偏振光，偏振片挡住一个时正好让另一个全部通过
+            - text: 没有变化，偏振片对晶体没影响
+              why: 两个像的光都是线偏振的，偏振片转动时按马吕斯定律变化
+          explain: o 光和 e 光的振动方向互相垂直。偏振片透振方向和其中一束平行时，那一束全过、另一束全挡，转 90° 后反过来。
+      - card:
+          title: 波片
+          body: |
+            把双折射晶体切成薄片，让光垂直射入。两个偏振方向的光不再分开，而是沿同一条路走，只是速度不同。走过厚度 $t$ 后，两者的相位差
+
+            $$\Delta\phi = \frac{2\pi}{\lambda}(n_e - n_o)t$$
+
+            这样的薄片叫**波片（wave plate）**。$\Delta\phi = \pi/2$ 的叫四分之一波片，$\Delta\phi = \pi$ 的叫半波片。折射率小、光走得快的那个方向叫快轴。
+      - item:
+          id: quarter-wave-thickness
+          type: number
+          prompt: 石英的 $n_e - n_o = 0.009$。对 589 nm 的光，最薄的四分之一波片要多少微米厚？（保留一位小数）
+          answer: 16.4
+          tolerance: 0.05
+          unit: μm
+          hint: 四分之一波片要让两个方向的光相差多少相位？相位差和厚度是什么关系？
+          explain: $t = \frac{\lambda}{4(n_e - n_o)} = \frac{589\text{ nm}}{4 \times 0.009} \approx 16361\text{ nm} \approx 16.4\ \mu\text{m}$。
+      - card:
+          title: 圆偏振光和椭圆偏振光
+          body: |
+            把电场拆成沿 $x$、$y$ 两个方向的分量。线偏振光两个分量同相（或反相）。如果两个分量振幅相等、相位差 $\pi/2$：$E_x = E_0\cos\omega t$，$E_y = E_0\sin\omega t$，电场矢量的大小不变，方向每个周期转一圈，叫**圆偏振光（circularly polarized light）**。振幅不等或相位差是别的值时，电场的尖端画出一个椭圆，叫**椭圆偏振光（elliptically polarized light）**。
+
+            让振动方向和快轴成 45° 的线偏振光通过四分之一波片：两个分量振幅相等，又被拉开 $\pi/2$ 的相位，出来就是圆偏振光。
+      - item:
+          id: make-circular
+          type: choice
+          prompt: 一束线偏振光通过四分之一波片，振动方向和快轴成 30°（不是 45°）。出来的光是什么偏振？
+          options:
+            - text: 椭圆偏振光
+              correct: true
+            - text: 圆偏振光，四分之一波片总是产生圆偏振光
+              why: 圆偏振要求两个分量振幅相等，只有 45° 时 $\cos$ 和 $\sin$ 才相等
+            - text: 还是线偏振光，只是方向转了
+              why: 两个分量被拉开了 $\pi/2$ 的相位，不再同相，合成的电场不会沿一条直线振动
+          explain: 30° 时两个分量振幅是 $E_0\cos 30°$ 和 $E_0\sin 30°$，不相等，又差 $\pi/2$ 的相位，电场尖端画椭圆。
+      - card:
+          title: 半波片和液晶屏
+          body: |
+            半波片让一个分量相对另一个反向。振动方向和快轴成 $\alpha$ 角的线偏振光，出来还是线偏振光，但振动方向转到了快轴另一侧的 $\alpha$ 处，一共转了 $2\alpha$。
+
+            偏振光经过双折射材料后再经过偏振片，两个分量重新投到同一个方向上相加，相位差决定亮暗，这叫偏振光的干涉。液晶屏就靠它：两片透振方向垂直的偏振片中间夹一层液晶，不加电压时液晶把偏振方向扭转 90°，光能通过；加电压后液晶不再扭转，光被第二片挡住，这一格就变暗。
+      - item:
+          id: half-wave-rotation
+          type: number
+          prompt: 一束线偏振光通过半波片，振动方向和快轴的夹角是 20°。出射光的振动方向比入射光转了多少度？
+          answer: 40
+          unit: °
+          hint: 出射光的振动方向跑到了快轴的哪一侧、离快轴多远？
+          explain: 入射光在快轴一侧 20°，出射光在另一侧 20°，一共转了 $2 \times 20° = 40°$。
+      - item:
+          id: lcd-pixel
+          type: choice
+          prompt: 液晶屏的一格：前后两片偏振片透振方向互相垂直，中间的液晶在不加电压时把偏振方向扭转 90°。这一格加上电压后是亮还是暗？
+          options:
+            - text: 暗，液晶不再扭转，光被第二片偏振片挡住
+              correct: true
+            - text: 亮，加电压给了光更多能量
+              why: 液晶本身不发光，电压只改变液晶分子的排列，也就改变它对偏振方向的作用
+            - text: 不加电压和加电压一样，两片偏振片垂直所以总是暗
+              why: 不加电压时液晶把偏振方向转了 90°，正好和第二片的透振方向一致，所以那时是亮的
+          explain: 不加电压：第一片后的线偏振光被扭转 90°，和第二片透振方向一致，透过，亮。加电压：液晶分子顺着电场排列，不再扭转，光的振动方向和第二片垂直，被挡住，暗。
+  # ==== 几何光学成像 ====
+  - id: refraction-snell
+    chapter: 几何光学成像
+    title: 折射定律、费马原理和全反射
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一根筷子斜插进一碗水里，从侧上方看，筷子在水面处好像折断了。水下那一段看起来是怎样的？
+          options:
+            - text: 往上翘，看起来比实际浅
+              correct: true
+            - text: 往下弯，看起来比实际深
+              why: 水下筷子发出的光在水面处偏折后进入眼睛，你顺着进入眼睛的光往回看，看到的位置比实际更高、更浅
+            - text: 没有变化，是错觉
+              why: 用相机照下来也一样，说明是光的路径真的在水面处拐了弯
+          explain: 光从水射到空气时，在界面处改变方向。眼睛总以为光是直线来的，所以把筷子的水下部分看高了。这一课给出光拐弯的规律。
+      - card:
+          title: 折射定律
+          body: |
+            光从一种介质斜射进另一种介质，在界面处改变传播方向，叫折射。入射光、折射光和界面的法线在同一平面里，入射角 $\theta_1$、折射角 $\theta_2$（都从法线量起）满足
+
+            $$n_1\sin\theta_1 = n_2\sin\theta_2$$
+
+            这叫**折射定律（Snell's law）**，也叫斯涅耳定律。从折射率小的进入折射率大的（空气到水），光线向法线靠拢；反过来则远离法线。垂直入射时不拐弯。反射时，反射角等于入射角。
+      - item:
+          id: air-to-water
+          type: number
+          prompt: 光从空气以 45° 的入射角射到水面，水的折射率 1.33。折射角是多少度？（保留一位小数）
+          answer: 32.1
+          tolerance: 0.05
+          unit: °
+          hint: 代入 $n_1\sin\theta_1 = n_2\sin\theta_2$，空气的折射率按 1 算。
+          explain: $\sin\theta_2 = \sin 45°/1.33 \approx 0.532$，$\theta_2 \approx 32.1°$，比入射角小，向法线靠拢。
+      - item:
+          id: speed-in-glass
+          type: number
+          prompt: 折射率 1.5 的玻璃里，光速是多少？（单位 $10^8$ m/s，真空光速取 $3.0 \times 10^8$ m/s）
+          answer: 2
+          unit: ×10⁸ m/s
+          hint: 折射率是什么和什么的比？
+          explain: $n = c/v$，$v = c/n = 3.0 \times 10^8/1.5 = 2.0 \times 10^8\text{ m/s}$。
+      - card:
+          title: 为什么是这个规律：惠更斯原理和费马原理
+          body: |
+            用惠更斯原理看：一个平面波阵面斜着碰到界面，先碰到的那一端先进入介质、走得慢，后碰到的一端还在空气里走得快，整个波阵面就转了个方向，几何关系正好给出 $\sin\theta_1/v_1 = \sin\theta_2/v_2$，即折射定律。
+
+            **费马原理（Fermat's principle）**换了个说法：光从一点到另一点，走的是所用时间最短（准确说是取极值）的路径。像救生员冲向水里的人，在沙滩上跑得快、在水里游得慢，最快的路线不是直线，而是在沙滩上多跑一段。对这条路的时间求导令其为 0，同样得到折射定律；反射定律也能这样推出。
+      - item:
+          id: lifeguard-path
+          type: choice
+          prompt: 按费马原理，光从空气里的 A 点到水下的 B 点。和 A、B 之间的直线相比，实际的光路怎样？
+          options:
+            - text: 在空气里走得更长、在水里走得更短的一条折线
+              correct: true
+            - text: 就是 A、B 之间的直线，因为两点之间直线最短
+              why: 光要的是时间最短，不是路程最短；在水里慢，就该少在水里走
+            - text: 在水里走得更长，因为水里的光更集中
+              why: 水里光速慢，多在水里走会花更多时间，不是最快的路线
+          explain: 空气里光快，水里光慢，在空气里多走一些、到水面后折向更陡的方向少走水路，总时间最短，这正是向法线靠拢的折射。
+      - card:
+          title: 全反射
+          body: |
+            光从折射率大的介质射向折射率小的（玻璃到空气），折射角比入射角大。入射角增大到某个值时，折射角达到 90°，折射光贴着界面走；入射角再大，光就完全不能出去，全部反射回来，叫**全反射（total internal reflection）**。刚好开始全反射的入射角叫**临界角（critical angle）**：
+
+            $$\sin\theta_c = \frac{n_2}{n_1}\quad(n_1 > n_2)$$
+
+            全反射几乎不损失光能，光纤就是靠它把光困在纤芯里传几十公里。
+      - item:
+          id: glass-critical
+          type: number
+          prompt: 光从折射率 1.5 的玻璃射向空气。全反射的临界角是多少度？（保留一位小数）
+          answer: 41.8
+          tolerance: 0.05
+          unit: °
+          hint: 临界角时折射角是 90°，$\sin 90° = 1$。
+          explain: $\sin\theta_c = 1/1.5$，$\theta_c = \arcsin(0.667) \approx 41.8°$。入射角大于 41.8° 的光全部反射回玻璃里。
+      - item:
+          id: fiber-critical
+          type: number
+          prompt: 一根光纤的纤芯折射率 1.48，外面包层的折射率 1.46。光在纤芯和包层的界面上发生全反射的临界角是多少度？（保留一位小数）
+          answer: 80.6
+          tolerance: 0.05
+          unit: °
+          hint: 光从纤芯（大）射向包层（小），$\sin\theta_c$ 等于什么？
+          explain: $\sin\theta_c = 1.46/1.48 \approx 0.9865$，$\theta_c \approx 80.6°$。只有几乎贴着光纤方向走的光（和界面夹角不到约 9.4°）才能被困住。
+      - item:
+          id: frequency-in-water
+          type: choice
+          prompt: 一束 500 nm 的绿光从空气射进水里（折射率 1.33）。在水里，它的哪些量变了？
+          options:
+            - text: 速度和波长变了，频率不变
+              correct: true
+            - text: 频率和速度变了，波长不变
+              why: 频率由光源决定，界面两侧每秒通过的波峰数必须相同，不然波峰会在界面上堆积或消失
+            - text: 都不变，只是方向变了
+              why: 方向变正是因为速度变了；$n = c/v$，水里光速变为 $c/1.33$
+          explain: 频率不变，速度变为 $c/1.33$，波长变为 $500/1.33 \approx 376\text{ nm}$。在水里看到的颜色仍是绿色，因为眼睛感受的是频率。
+  - id: mirrors
+    chapter: 几何光学成像
+    title: 平面镜和球面镜
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个人身高 1.7 m，想在竖直挂着的平面镜里看到自己的全身。镜子至少要多高？
+          options:
+            - text: 0.85 m，身高的一半，和站多远无关
+              correct: true
+            - text: 1.7 m，和身高一样
+              why: 从头顶和脚底射到镜子、再反射进眼睛的两条光线，落在镜子上的点之间只有身高的一半
+            - text: 离镜子越远，需要的镜子越小
+              why: 人往后退，像也一起往后退，两个比例同时变化，所需的镜子高度不变
+          explain: 头顶的光在镜子上头顶和眼睛的正中间反射进眼睛，脚的光在眼睛和脚的正中间反射。两点之间正好是身高的一半。这一课先讲平面镜成像，再讲能放大缩小的球面镜。
+      - card:
+          title: 平面镜成像
+          body: |
+            物体上一点发出的光经平面镜反射后散开，你顺着反射光往回延长，它们好像都从镜子后面的一点发出：那里就是像。由反射角等于入射角可知，像和物关于镜面对称：像到镜面的距离等于物到镜面的距离，大小相同。
+
+            镜后其实没有光到达，反射光只是“看起来”从那里来，这种像叫**虚像（virtual image）**。光线真的会聚到那一点、能用屏接住的像叫**实像（real image）**。
+      - item:
+          id: mirror-distance
+          type: number
+          prompt: 你站在平面镜前 1.5 m 处，然后朝镜子走近 0.5 m。现在你和自己的像相距多少米？
+          answer: 2
+          unit: m
+          hint: 走近后你离镜子多远？像离镜子多远？
+          explain: 走近后离镜子 1 m，像在镜后 1 m，相距 2 m。
+      - card:
+          title: 球面镜和焦点
+          body: |
+            反射面是一个球面的一部分。镜面朝里凹、对着球心的叫**凹面镜（concave mirror）**，朝外凸的叫**凸面镜（convex mirror）**。
+
+            和镜面中心法线（主轴）平行、离主轴很近的光线叫傍轴光线。凹面镜把傍轴光线反射后会聚到主轴上一点，叫**焦点（focal point）**；镜面中心到焦点的距离叫**焦距（focal length）**：
+
+            $$f = \frac R2$$
+
+            $R$ 是球面的半径。凸面镜把平行光反射后散开，反射光反向延长后交在镜后 $R/2$ 处，是虚焦点。
+      - card:
+          title: 面镜公式
+          body: |
+            物距 $d_o$、像距 $d_i$、焦距 $f$ 满足
+
+            $$\frac{1}{d_o} + \frac{1}{d_i} = \frac1f,\qquad m = -\frac{d_i}{d_o}$$
+
+            $m$ 是放大率，像高和物高之比（这里的 $m$ 不是质量，也不是干涉的级数）。正负号的约定：实物、实像、凹面镜的焦距取正；虚像（在镜后）的 $d_i$ 取负，凸面镜的 $f$ 取负。$m$ 为负表示像是倒立的，为正表示正立。有的中文教材用另一套正负号约定（笛卡儿符号法则），公式写法不同，算出的像的位置和虚实一样。
+      - item:
+          id: concave-image
+          type: number
+          prompt: 一个凹面镜的球面半径是 40 cm。物体放在镜前 60 cm 处。像距是多少厘米？
+          answer: 30
+          unit: cm
+          hint: 先由半径求焦距，再代入面镜公式。
+          explain: $f = 40/2 = 20\text{ cm}$，$\frac1{d_i} = \frac1{20} - \frac1{60} = \frac{2}{60}$，$d_i = 30\text{ cm}$，为正，是镜前的实像；$m = -30/60 = -0.5$，倒立、缩小一半。
+      - card:
+          title: 例题：凸面镜
+          body: 商店角落的凸面镜焦距 $-15\text{ cm}$，一个人站在镜前 30 cm 处。求像的位置和放大率。
+          reveal:
+            - title: 第 1 步：代入面镜公式，注意 f 取负
+              body: $\frac1{d_i} = \frac1f - \frac1{d_o} = -\frac1{15} - \frac1{30} = -\frac{3}{30}$，$d_i = -10\text{ cm}$。
+            - title: 第 2 步：解读像距的符号
+              body: $d_i$ 为负，像在镜后 10 cm，是虚像。
+            - title: 第 3 步：算放大率
+              body: $m = -\frac{d_i}{d_o} = -\frac{-10}{30} = \frac13$，正立、缩小到三分之一。凸面镜总是给出正立缩小的虚像，视野宽，所以用在路口和后视镜上。
+      - item:
+          id: convex-image
+          type: number
+          prompt: 一面凸面镜的焦距是 $-20\text{ cm}$，物体在镜前 20 cm 处。像距是多少厘米？（虚像填负数）
+          answer: -10
+          unit: cm
+          hint: 代入 $\frac1{d_o} + \frac1{d_i} = \frac1f$，$f = -20$。
+          explain: $\frac1{d_i} = -\frac1{20} - \frac1{20} = -\frac1{10}$，$d_i = -10\text{ cm}$：镜后 10 cm 的虚像，$m = 0.5$，正立缩小。
+      - item:
+          id: makeup-mirror
+          type: choice
+          prompt: 化妆镜是一面凹面镜，脸凑近时看到放大的正立的脸。这时脸离镜子的距离和焦距相比怎样？
+          options:
+            - text: 比焦距小，脸在焦点以内
+              correct: true
+            - text: 比焦距大，在焦点以外才能成放大的像
+              why: 焦点以外（$f$ 到 $2f$ 之间）确实是放大的，但那是倒立的实像，在镜前，不是你看到的正立的脸
+            - text: 正好等于焦距
+              why: 物体在焦点上时反射光变成平行光，不成像
+          explain: $d_o < f$ 时 $\frac1{d_i} = \frac1f - \frac1{d_o} < 0$，像距为负，是镜后的虚像，$m = -d_i/d_o > 1$，正立放大。
+  - id: thin-lens
+    chapter: 几何光学成像
+    title: 折射成像和薄透镜
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用放大镜把阳光聚成一个小亮点。再把同一个放大镜拿到离报纸很近的地方看字，看到的字是怎样的？
+          options:
+            - text: 正立、放大
+              correct: true
+            - text: 倒立、放大
+              why: 字离镜片比焦点还近时，光线出来后仍是散开的，眼睛看到的是正立放大的虚像；倒立的像要字在焦点以外
+            - text: 正立、缩小
+              why: 凸透镜只有在物体离它很近（焦点以内）时才成正立的像，而那时像是放大的
+          explain: 凸透镜和凹面镜一样，物体在焦点以内成正立放大的虚像，在焦点以外成倒立的实像。这一课先看一个折射面怎样成像，再推出透镜公式。
+      - card:
+          title: 一个折射面成像
+          body: |
+            一个半径 $R$ 的球面把折射率 $n_1$ 和 $n_2$ 两种介质分开。由折射定律和傍轴近似可以推出，物距 $d_o$（在 $n_1$ 里）和像距 $d_i$ 满足（球心在出射一侧时 $R$ 取正）
+
+            $$\frac{n_1}{d_o} + \frac{n_2}{d_i} = \frac{n_2 - n_1}{R}$$
+
+            界面是平面时 $R \to \infty$，右边为 0，$d_i = -\frac{n_2}{n_1}d_o$：负号表示虚像，和物在同一侧。从空气看水下深 $d$ 处的东西（$n_1 = 1.33$、$n_2 = 1$），像在水面下 $d/1.33$ 处，看起来浅了。
+      - item:
+          id: apparent-depth
+          type: number
+          prompt: 一枚硬币在 1.33 m 深的清水底（水的折射率 1.33），从正上方往下看。硬币看起来在水面下多少米？
+          answer: 1
+          unit: m
+          hint: 平面折射时像距是物距乘几分之几？
+          explain: 像在水面下 $d/n = 1.33/1.33 = 1.0\text{ m}$ 处，看起来比实际浅了四分之一。
+      - card:
+          title: 薄透镜
+          body: |
+            透镜有两个折射面。厚度比两个面的半径小得多时叫**薄透镜（thin lens）**。连用两次单面公式，得到磨镜者公式和薄透镜公式：
+
+            $$\frac1f = (n - 1)\left(\frac1{R_1} - \frac1{R_2}\right),\qquad \frac1{d_o} + \frac1{d_i} = \frac1f,\qquad m = -\frac{d_i}{d_o}$$
+
+            $R_1$、$R_2$ 是光先后经过的两个面的半径，球心在出射一侧取正。中间厚边缘薄的叫**凸透镜（converging lens）**，$f > 0$，把平行光会聚到焦点；中间薄边缘厚的叫**凹透镜（diverging lens）**，$f < 0$，把平行光散开。正负号约定和面镜相同：实像在透镜另一侧，$d_i$ 取正；虚像和物同侧，取负。
+      - item:
+          id: lensmaker
+          type: number
+          prompt: 一块折射率 1.5 的双凸透镜，两个面的半径都是 20 cm（$R_1 = 20\text{ cm}$，$R_2 = -20\text{ cm}$）。焦距是多少厘米？
+          answer: 20
+          unit: cm
+          hint: 代入磨镜者公式，注意 $R_2$ 是负的，减去负数等于加。
+          explain: $\frac1f = 0.5 \times \left(\frac1{20} + \frac1{20}\right) = \frac1{20}$，$f = 20\text{ cm}$。
+      - card:
+          title: 例题：凸透镜成实像
+          body: 焦距 10 cm 的薄凸透镜，物体放在透镜前 15 cm 处。求像距和放大率，说明像的性质。
+          reveal:
+            - title: 第 1 步：代入透镜公式求像距
+              body: $\frac1{d_i} = \frac1{10} - \frac1{15} = \frac{1}{30}$，$d_i = 30\text{ cm}$。
+            - title: 第 2 步：由符号判断虚实
+              body: $d_i$ 为正，像在透镜另一侧 30 cm 处，是实像，能用屏接住。
+            - title: 第 3 步：算放大率
+              body: $m = -30/15 = -2$：倒立、放大到 2 倍。物体在 $f$ 和 $2f$ 之间时总是这样，幻灯机和电影放映机就用这种情况。
+      - item:
+          id: magnifier-virtual
+          type: number
+          prompt: 焦距 10 cm 的凸透镜，物体放在透镜前 5 cm 处。像距是多少厘米？（虚像填负数）
+          answer: -10
+          unit: cm
+          hint: 代入 $\frac1{d_i} = \frac1f - \frac1{d_o}$，看结果的正负。
+          explain: $\frac1{d_i} = \frac1{10} - \frac15 = -\frac1{10}$，$d_i = -10\text{ cm}$：和物同侧的虚像，$m = -(-10)/5 = 2$，正立放大。这就是放大镜。
+      - item:
+          id: diverging-lens
+          type: number
+          prompt: 焦距 $-20\text{ cm}$ 的凹透镜，物体在透镜前 20 cm 处。像的放大率是多少？
+          answer: 0.5
+          hint: 先求像距，再算 $m = -d_i/d_o$。
+          explain: $\frac1{d_i} = -\frac1{20} - \frac1{20} = -\frac1{10}$，$d_i = -10\text{ cm}$，$m = -(-10)/20 = 0.5$：正立、缩小一半的虚像。凹透镜对实物总是成正立缩小的虚像。
+      - item:
+          id: image-types
+          type: match
+          prompt: 一个焦距为 $f$ 的凸透镜。把物体的位置和它所成的像配对。
+          pairs:
+            - ['物体在 $2f$ 以外', '倒立、缩小的实像（照相机）']
+            - ['物体在 $f$ 和 $2f$ 之间', '倒立、放大的实像（电影放映机）']
+            - ['物体在 $f$ 以内', '正立、放大的虚像（放大镜）']
+          explain: 用 $\frac1{d_i} = \frac1f - \frac1{d_o}$ 逐个检查：$d_o > 2f$ 时 $f < d_i < 2f$，$|m| < 1$；$f < d_o < 2f$ 时 $d_i > 2f$，$|m| > 1$；$d_o < f$ 时 $d_i < 0$，$m > 1$。
+  - id: optical-instruments
+    chapter: 几何光学成像
+    title: 眼睛、相机、放大镜、显微镜和望远镜
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 近视的人看不清远处的东西。近视眼镜的镜片是哪种透镜？
+          options:
+            - text: 凹透镜，把光先散开一点
+              correct: true
+            - text: 凸透镜，把光会聚得更好
+              why: 近视眼本来就把远处来的光会聚得太强，像落在视网膜前面；再加凸透镜会更糟
+            - text: 平的玻璃，只是保护眼睛
+              why: 平玻璃不改变光的会聚程度，矫正不了近视
+          explain: 近视眼会聚能力太强，凹透镜先把光散开一点，像就往后移到视网膜上。这一课用透镜公式算眼镜和几种光学仪器。
+      - card:
+          title: 眼睛和屈光度
+          body: |
+            眼睛里角膜和晶状体合起来像一个凸透镜，在视网膜上成倒立的实像。眼球的长度固定，看远看近时靠肌肉改变晶状体的厚薄来调焦距。能看清的最近点叫近点，正常约 25 cm；最远点叫远点，正常在无穷远。
+
+            眼科用焦距的倒数表示透镜的会聚能力，叫**屈光度（diopter）**：$P = 1/f$，$f$ 以米计，单位 D。凸透镜为正，凹透镜为负。常说的近视“200 度”就是 $-2\text{ D}$。
+      - item:
+          id: myopia-lens
+          type: number
+          prompt: 一个近视的人远点在眼前 50 cm 处。要让他看清无穷远的物体，眼镜的屈光度应是多少（D）？（眼镜贴近眼睛，距离不计）
+          answer: -2
+          unit: D
+          hint: 眼镜要把无穷远的物体成像在哪里，他才能看清？
+          explain: 眼镜要把无穷远处的物体成像在 50 cm 处（他的远点），这个虚像在眼镜前面，$d_i = -0.5\text{ m}$：$\frac1f = \frac1\infty + \frac1{-0.5}$，$P = -2\text{ D}$，凹透镜，即 200 度近视。
+      - item:
+          id: hyperopia-lens
+          type: number
+          prompt: 一个远视的人近点在眼前 1 m 处。他想看清眼前 25 cm 处的书，眼镜的屈光度应是多少（D）？（眼镜贴近眼睛，距离不计）
+          answer: 3
+          unit: D
+          hint: 眼镜要把 25 cm 处的书成像到他能看清的地方，也就是哪里？那个像是实像还是虚像？
+          explain: 眼镜把 25 cm 处的书成像在 1 m 处，和书同侧，是虚像：$d_o = 0.25$，$d_i = -1$，$P = \frac1{0.25} - 1 = 3\text{ D}$，凸透镜。
+      - card:
+          title: 相机
+          body: |
+            相机的镜头像一个凸透镜，在感光元件上成倒立缩小的实像。物体从很远移到近处时像距变大，所以对焦就是前后移动镜头，让像正好落在感光元件上。
+
+            镜头的光圈直径 $D$ 决定进光多少，常用光圈值 $N = f/D$ 表示，$N = 2$ 记作 f/2：$N$ 越小，光圈越大，进光越多。
+      - item:
+          id: camera-focus
+          type: number
+          prompt: 用焦距 50 mm 的相机镜头给 2 m 外的人照相。镜头到感光元件的距离应是多少毫米？（保留一位小数）
+          answer: 51.3
+          tolerance: 0.05
+          unit: mm
+          hint: 用透镜公式，物距 2000 mm。
+          explain: $\frac1{d_i} = \frac1{50} - \frac1{2000} = \frac{39}{2000}$，$d_i \approx 51.3\text{ mm}$，比对焦在无穷远时多伸出约 1.3 mm。
+      - card:
+          title: 放大镜
+          body: |
+            东西看起来有多大，取决于它在眼睛里张开的角度。不用工具时，最多把东西拿到近点 25 cm 处看。用焦距 $f$ 的凸透镜，把东西放在焦点附近，透镜给出一个很远的正立虚像，眼睛放松就能看。这时张开的角度是物高除以 $f$，而直接放在 25 cm 处是物高除以 25 cm，**角放大率（angular magnification）**
+
+            $$M = \frac{25\text{ cm}}{f}$$
+      - item:
+          id: magnifier-power
+          type: number
+          prompt: 一个焦距 5 cm 的放大镜，按像在无穷远（眼睛放松）计算，角放大率是多少？
+          answer: 5
+          hint: 不用放大镜时，物体最近能放在多远看？用放大镜时，张开的角度是物高除以什么？
+          explain: $M = 25/5 = 5$，东西看起来比放在 25 cm 处大 5 倍。
+      - card:
+          title: 显微镜和望远镜
+          body: |
+            显微镜用两个凸透镜：焦距很短的物镜把物体成一个放大的实像，目镜再像放大镜一样放大这个实像。物镜靠目镜一侧的焦点到目镜靠物镜一侧的焦点的距离 $L$（常取 16 cm），总放大率
+
+            $$M = -\frac{L}{f_{\text{物}}}\cdot\frac{25\text{ cm}}{f_{\text{目}}}$$
+
+            望远镜看的是很远的东西：长焦距的物镜在焦点处成一个缩小的实像，目镜再放大它，角放大率 $M = -f_{\text{物}}/f_{\text{目}}$。负号表示像是倒立的。
+      - item:
+          id: microscope-power
+          type: number
+          prompt: 显微镜的物镜焦距 0.4 cm，目镜焦距 2.5 cm，$L = 16\text{ cm}$。总放大率的大小是多少倍？
+          answer: 400
+          hint: 物镜放大多少倍？目镜再放大多少倍？
+          explain: 物镜 $16/0.4 = 40$ 倍，目镜 $25/2.5 = 10$ 倍，共 $40 \times 10 = 400$ 倍（像是倒立的，$M = -400$）。
+      - item:
+          id: telescope-power
+          type: number
+          prompt: 一台望远镜物镜焦距 100 cm，目镜焦距 2.5 cm。角放大率的大小是多少倍？
+          answer: 40
+          hint: 物镜焦距变长、目镜焦距变短，放大是变多还是变少？两个焦距该怎样组合？
+          explain: $|M| = f_{\text{物}}/f_{\text{目}} = 100/2.5 = 40$ 倍。物镜焦距越长、目镜焦距越短，放大越多；物镜口径越大，分辨率越好（瑞利判据）、进光越多。
+boss:
+  items:
+    - id: b-quality
+      type: number
+      prompt: 质量 0.25 kg 的物体接在劲度系数 100 N/m 的弹簧上，阻尼力 $-bv$，$b = 0.25\text{ kg/s}$。品质因数 $Q$ 是多少？
+      answer: 20
+      hint: 分别算固有角频率和 $\gamma = b/m$。
+      explain: $\omega_0 = \sqrt{100/0.25} = 20\text{ rad/s}$，$\gamma = 0.25/0.25 = 1\ \text{s}^{-1}$，$Q = \omega_0/\gamma = 20$。这里的 $Q$ 是品质因数，不是电荷量。
+    - id: b-resonance
+      type: number
+      prompt: 一个振子的劲度系数 400 N/m，品质因数 15，受 $F_0 = 2\text{ N}$ 的周期性外力，外力角频率等于固有角频率。稳态振幅是多少厘米？
+      answer: 7.5
+      unit: cm
+      hint: 同样的力静止拉伸多少？共振时是它的几倍？
+      explain: 静止拉伸 $F_0/k = 2/400 = 0.005\text{ m}$，$\omega = \omega_0$ 时振幅是它的 $Q$ 倍：$15 \times 0.005 = 0.075\text{ m} = 7.5\text{ cm}$。
+    - id: b-damping-type
+      type: choice
+      prompt: 一个振子固有角频率 $\omega_0 = 5\text{ rad/s}$，阻尼 $\gamma = 12\ \text{s}^{-1}$。拉开松手后它会怎样？
+      options:
+        - text: 不振动，慢慢回到平衡位置（过阻尼）
+          correct: true
+        - text: 边振动边衰减，角频率略小于 5 rad/s（欠阻尼）
+          why: 欠阻尼要求 $\gamma < 2\omega_0 = 10\ \text{s}^{-1}$，这里 $\gamma = 12$ 已经超过
+        - text: 不振动，以最快的方式回到平衡位置（临界阻尼）
+          why: 临界阻尼要求 $\gamma$ 正好等于 $2\omega_0 = 10\ \text{s}^{-1}$；12 比它大，是过阻尼，回得更慢
+      explain: $2\omega_0 = 10\ \text{s}^{-1} < \gamma = 12\ \text{s}^{-1}$，根号里 $\gamma^2/4 - \omega_0^2 = 36 - 25 > 0$，两个根都是负实数，不振动。
+    - id: b-normal-mode
+      type: number
+      prompt: 两面墙之间，两个 0.5 kg 的物体用三根劲度系数 180 N/m 的弹簧串起来。两个物体反相振动的模式，角频率是多少 rad/s？（保留两位小数）
+      answer: 32.86
+      tolerance: 0.005
+      unit: rad/s
+      hint: 反相时每个物体受多大的回复力？
+      explain: 反相时每个物体受 $-3kx$，$\omega = \sqrt{3k/m} = \sqrt{3 \times 180/0.5} = \sqrt{1080} \approx 32.86\text{ rad/s}$；同相模式是 $\sqrt{360} \approx 18.97\text{ rad/s}$。
+    - id: b-mode-count
+      type: number
+      prompt: 两面墙之间用 6 根相同的弹簧串起 5 个相同的物体，物体只沿弹簧方向运动。这个系统有几个简正模式？
+      answer: 5
+      hint: 简正模式的个数和什么的个数相同？
+      explain: 每个物体是一个能独立运动的坐标，5 个物体就有 5 个简正模式，频率 $\omega_n = 2\omega_0\sin\frac{n\pi}{12}$，$n = 1, \dots, 5$。
+    - id: b-string-harmonic
+      type: number
+      prompt: 一根两端固定的弦长 0.4 m，张力 64 N，线密度 0.01 kg/m。它的第 3 次谐波是多少赫兹？
+      answer: 300
+      unit: Hz
+      hint: 先求波速和基频。
+      explain: $v = \sqrt{64/0.01} = 80\text{ m/s}$，$f_1 = v/(2L) = 100\text{ Hz}$，$f_3 = 3f_1 = 300\text{ Hz}$。
+    - id: b-closed-pipe
+      type: number
+      prompt: 一根一端封闭的管子长 0.17 m，声速 343 m/s。它的基频是多少赫兹？（保留一位小数）
+      answer: 504.4
+      tolerance: 0.05
+      unit: Hz
+      hint: 一端封闭时，基频的波长是管长的几倍？
+      explain: $\lambda = 4L = 0.68\text{ m}$，$f_1 = 343/0.68 \approx 504.4\text{ Hz}$。
+    - id: b-double-slit
+      type: number
+      prompt: 双缝间距 0.3 mm，用 600 nm 的光照射，屏距 1.2 m。相邻亮纹的间距是多少毫米？
+      answer: 2.4
+      unit: mm
+      hint: 波长、屏距、缝距三个量里，哪些变大会让条纹变疏？
+      explain: $\Delta y = \lambda L/d = 600 \times 10^{-9} \times 1.2/(0.3 \times 10^{-3}) = 2.4 \times 10^{-3}\text{ m} = 2.4\text{ mm}$。
+    - id: b-coating
+      type: number
+      prompt: 在折射率 1.5 的玻璃上镀折射率 1.38 的增透膜，要让 520 nm 的光反射最弱。膜最薄是多少纳米？（保留一位小数）
+      answer: 94.2
+      tolerance: 0.05
+      unit: nm
+      hint: 两个界面的反射是否都有半波损失？相消时光程差 $2nt$ 等于多少？
+      explain: 两次反射都是从折射率小到大，都有半波损失、互相抵消；相消要求 $2nt = \lambda/2$，$t = 520/(4 \times 1.38) \approx 94.2\text{ nm}$。
+    - id: b-rayleigh
+      type: number
+      prompt: 一台望远镜的物镜直径 0.1 m，观察 500 nm 的光。按瑞利判据，它能分辨的最小角距离是多少？（单位 $10^{-6}$ rad，保留一位小数）
+      answer: 6.1
+      tolerance: 0.05
+      unit: ×10⁻⁶ rad
+      hint: 圆孔衍射的第一圈暗环在什么角度？两个亮斑靠多近时刚好分得开？
+      explain: $\theta_{\min} = 1.22\lambda/D = 1.22 \times 500 \times 10^{-9}/0.1 = 6.1 \times 10^{-6}\text{ rad}$。口径越大，能分开的两颗星靠得越近。
+    - id: b-grating
+      type: number
+      prompt: 每毫米 500 条缝的光栅，用 600 nm 的光垂直照射。第一级主极大偏离中线多少度？（保留一位小数）
+      answer: 17.5
+      tolerance: 0.05
+      unit: °
+      hint: 光栅常数是多少？代入 $d\sin\theta = \lambda$。
+      explain: $d = 1/500\text{ mm} = 2\ \mu\text{m}$，$\sin\theta = 0.6/2 = 0.3$，$\theta \approx 17.5°$。
+    - id: b-polarizers
+      type: number
+      prompt: 自然光依次通过三块偏振片，第二块的透振方向和第一块成 30°，第三块和第一块成 90°。透出的光强是入射光强的几分之几？（填小数，保留三位）
+      answer: 0.094
+      tolerance: 0.0005
+      hint: 第三块和第二块之间的夹角是多少？一块一块地乘。
+      explain: $I_0 \to I_0/2 \to (I_0/2)\cos^2 30° = 3I_0/8 \to (3I_0/8)\cos^2 60° = 3I_0/32 \approx 0.094I_0$。
+    - id: b-brewster
+      type: number
+      prompt: 光从空气射到水面（水的折射率 1.33）。反射光是完全线偏振光时，入射角是多少度？（保留一位小数）
+      answer: 53.1
+      tolerance: 0.05
+      unit: °
+      hint: 这个角叫什么角？它的正切等于什么？
+      explain: 布儒斯特角 $\tan\theta_B = 1.33$，$\theta_B \approx 53.1°$。
+    - id: b-lens
+      type: number
+      prompt: 焦距 12 cm 的薄凸透镜，物体在透镜前 18 cm 处。像距是多少厘米？
+      answer: 36
+      unit: cm
+      hint: 代入 $\frac1{d_o} + \frac1{d_i} = \frac1f$。
+      explain: $\frac1{d_i} = \frac1{12} - \frac1{18} = \frac{1}{36}$，$d_i = 36\text{ cm}$：另一侧的实像，$m = -2$，倒立放大。
+    - id: b-critical
+      type: number
+      prompt: 光从水（折射率 1.33）射向空气。全反射的临界角是多少度？（保留一位小数）
+      answer: 48.8
+      tolerance: 0.05
+      unit: °
+      hint: 临界角时折射角是 90°。
+      explain: $\sin\theta_c = 1/1.33$，$\theta_c \approx 48.8°$。
+    - id: b-diverging
+      type: choice
+      prompt: 一个物体放在凹透镜前任意位置（实物）。它成的像总是怎样的？
+      options:
+        - text: 正立、缩小的虚像
+          correct: true
+        - text: 倒立、缩小的实像
+          why: 凹透镜 $f < 0$，$\frac1{d_i} = \frac1f - \frac1{d_o}$ 对任何正的 $d_o$ 都是负数，像距为负，是虚像，不能用屏接住
+        - text: 物体在焦点以内时是正立放大的虚像
+          why: 正立放大的虚像是凸透镜在焦点以内的情况；凹透镜的 $|d_i|$ 总比 $d_o$ 小，像总是缩小的
+      explain: $f < 0$ 时 $d_i = \frac{fd_o}{d_o - f}$ 总是负数，而且 $|d_i| < d_o$，所以 $0 < m < 1$：正立、缩小的虚像。

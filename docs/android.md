@@ -38,7 +38,10 @@ keytool -genkeypair -keystore config/android/release.jks -storetype PKCS12 -alia
 1. 改 `package.json` 里的 `version`（只有这一处）。网页构建把它写进游戏（“我的 → 版本”和更新检查用它）；`app/build.gradle` 读它作 `versionName`，并算出 `versionCode` = 主 × 10000 + 次 × 100 + 修订（1.1.0 → 10100），安卓靠它判断新旧，所以版本号只能往上加。
 2. 提交，`node scripts/android/build-apk.mjs`（发版前跑一遍全量测试，见 [development.md](development.md)“测试”）。
 3. 写更新说明 `docs/releases/<版本>.md`（App 的“检查更新”会原样显示它，用纯文本就好），提交。
-4. `node scripts/publish-github.mjs --push` 把源码快照推到 [zeroa234/cs-math-skill-game](https://github.com/zeroa234/cs-math-skill-game)。
+4. `node scripts/publish-github.mjs --game-only --push` 把源码快照推到 [zeroa234/cs-math-skill-game](https://github.com/zeroa234/cs-math-skill-game)。
+   - 带 `--game-only`：宣传片的文件保持公开仓库里的版本。不带时，制作中的宣传片文件会进快照，可能被私有词检查拦下（2.5.0 时就是这样）。
+   - 先 `git -C temp/publish/repo log --oneline origin/main..HEAD` 看看：`sync-remote.mjs` 每次同步都会在这个克隆里留下一个没推送的快照提交，有的话先 `git -C temp/publish/repo reset --hard origin/main`，保证每个版本在公开仓库里只有一个提交。
+   - 推送后看一眼 Pages 工作流（`gh run list -R zeroa234/cs-math-skill-game -L 1`）。2.5.0 时部署步骤两次报“找不到 github-pages 制品”（上传其实成功了，是制品列表滞后），`gh run rerun <id>` 重跑即可。
    然后 `node scripts/windows/build-installer.mjs` 用这份快照构建出的游戏打 Windows 安装包（见下面“Windows 安装版”）。
 5. `node scripts/release-github.mjs` 建 `v<版本>` 的发布，附上 APK、电脑版 zip 和 Windows 安装包（有这个版本的安装包才附，附之前同样核对里面的游戏）（`output/web` 打包成 `cs-math-skill-game-<版本>-web.zip`，只有游戏文件，解压后双击 `index.html`）：说明取自第 3 步的文件，APK 以 `cs-math-skill-game-<版本>.apk` 上传（GitHub 会改掉文件名里的中文），中文名“计算机大学习！ <版本>（安卓）”作为显示标签；中文以 UTF-8 JSON 交给 gh，再读回来比对，上传后的 sha256 要和本地一致。
 

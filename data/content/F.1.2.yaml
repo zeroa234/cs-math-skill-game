@@ -1545,7 +1545,8 @@ lessons:
       - item:
           id: kruskal-skipped
           type: text
-          prompt: 顶点 A–E，边和权重：A-B 1、B-C 2、A-C 3、C-D 4、B-D 5、D-E 6、C-E 7。用 Kruskal 求最小生成树，凑满 4 条边之前，跳过了哪几条边？（按权重从小到大写，用空格隔开，如 X-Y Z-W）
+          format: "按权重从小到大写，用空格隔开，如 X-Y Z-W"
+          prompt: "顶点 A–E，边和权重：A-B 1、B-C 2、A-C 3、C-D 4、B-D 5、D-E 6、C-E 7。用 Kruskal 求最小生成树，凑满 4 条边之前，跳过了哪几条边？"
           answers:
             - A-C B-D
           explain: A-C 加入时 A、C 已经连通；B-D 加入时 B、D 也已经连通，两条都会成圈。
@@ -1593,6 +1594,7 @@ lessons:
       - item:
           id: find-root
           type: text
+          format: "写元素名，引号可写可不写"
           prompt: |
             并查集用 parent 记每个元素的父亲：parent = {"a": "a", "b": "a", "c": "b", "d": "d", "e": "d", "f": "c"}。find(x) 一直沿 parent 往上走，走到 parent[x] == x 为止，返回这个 x。find("f") 返回什么？
           answers:
@@ -1673,7 +1675,8 @@ lessons:
       - item:
           id: prim-order
           type: text
-          prompt: 还是顶点 A–E、边 A-B 1、B-C 2、A-C 3、C-D 4、B-D 5、D-E 6、C-E 7。这次从 E 开始跑 Prim，顶点加进树的先后顺序是什么？（用空格隔开，如 E X Y Z W）
+          format: "用空格隔开，如 E X Y Z W"
+          prompt: "还是顶点 A–E、边 A-B 1、B-C 2、A-C 3、C-D 4、B-D 5、D-E 6、C-E 7。这次从 E 开始跑 Prim，顶点加进树的先后顺序是什么？"
           answers:
             - E D C B A
           explain: 从 E：D-E 6 比 C-E 7 轻，加 D；再看 C-D 4、B-D 5、C-E 7，加 C；再看 B-C 2、A-C 3、B-D 5，加 B；最后 A-B 1，加 A。总权重 $6 + 4 + 2 + 1 = 13$。
@@ -1824,7 +1827,8 @@ lessons:
       - item:
           id: horn-true
           type: text
-          prompt: Horn 公式：$\Rightarrow a$，$a \Rightarrow b$，$(a \wedge c) \Rightarrow d$，$(\bar b \vee \bar d)$。按吝啬的贪心，最后哪些变量是真？（按字母顺序，用空格隔开）
+          format: "按字母顺序，用空格隔开，如 c d"
+          prompt: "Horn 公式：$\\Rightarrow a$，$a \\Rightarrow b$，$(a \\wedge c) \\Rightarrow d$，$(\\bar b \\vee \\bar d)$。按吝啬的贪心，最后哪些变量是真？"
           answers:
             - a b
           explain: $\Rightarrow a$ 迫使 $a$ 真；$a \Rightarrow b$ 迫使 $b$ 真；$(a \wedge c) \Rightarrow d$ 的左边要 $c$ 也真才起作用，$c$ 是假，$d$ 不用设。最后 $\bar b \vee \bar d$：$d$ 是假，成立。所以 $a$、$b$ 真，公式可满足。
@@ -2159,6 +2163,7 @@ lessons:
       - item:
           id: lcs-text
           type: text
+          format: "写大写字母，如 XYZ"
           prompt: ABCD 和 ACBD 的最长公共子序列有 3 个字母。写出一个。
           answers:
             - ABD
@@ -2670,7 +2675,8 @@ lessons:
       - item:
           id: rev-post
           type: text
-          prompt: 有向无环图的邻接表：p → [q, r]，q → [s]，r → [s]，s → []，t → [p]。按 p、q、r、s、t 的顺序找还没访问的点做 DFS（邻居也按表里的先后）。逆后序是什么？（用空格隔开）
+          format: "用空格隔开，如 a b c d e"
+          prompt: "有向无环图的邻接表：p → [q, r]，q → [s]，r → [s]，s → []，t → [p]。按 p、q、r、s、t 的顺序找还没访问的点做 DFS（邻居也按表里的先后）。逆后序是什么？"
           answers:
             - t p r q s
           explain: 从 p：p → q → s，s 完成、q 完成；p → r，r 的邻居 s 已访问，r 完成；p 完成。后序 s、q、r、p。再从 t：邻居 p 已访问，t 完成。后序 s、q、r、p、t，倒过来 t、p、r、q、s。
@@ -3313,7 +3319,8 @@ lessons:
       - item:
           id: pi-aabaab
           type: text
-          prompt: 写出 AABAAB 的前缀函数 π（6 个数，用空格隔开）。
+          format: "6 个数，用空格隔开"
+          prompt: "写出 AABAAB 的前缀函数 π。"
           answers:
             - 0 1 0 1 2 3
           explain: A：0；AA：A 首尾相同，1；AAB：0；AABA：1；AABAA：AA，2；AABAAB：AAB，3。
@@ -3390,7 +3397,8 @@ lessons:
       - item:
           id: overlap
           type: text
-          prompt: 在 ABABABA 里找 ABA，所有出现的起始位置（从 0 数，可以重叠）是哪些？（用空格隔开）
+          format: "用空格隔开，如 1 5"
+          prompt: "在 ABABABA 里找 ABA，所有出现的起始位置（从 0 数，可以重叠）是哪些？"
           answers:
             - 0 2 4
           explain: 位置 0、2、4 各有一个 ABA，它们互相重叠。KMP 找到一个后令 $j = \pi[2] = 1$，保留结尾的 A，所以重叠的也能找到。
@@ -3467,13 +3475,15 @@ lessons:
       - item:
           id: prefix-se
           type: text
-          prompt: 字典树里有 by、sea、sells、she、shells、shore、the。以 se 开头的单词有哪些？（按字母顺序，用空格隔开）
+          format: "按字母顺序，用空格隔开，如 by the"
+          prompt: "字典树里有 by、sea、sells、she、shells、shore、the。以 se 开头的单词有哪些？"
           answers:
             - sea sells
           explain: 走到 s→e，下面挂着 sea 和 sells。
       - item:
           id: longest-prefix
           type: text
+          format: "写一个单词"
           prompt: 字典树里有 by、sea、sells、she、shells、shore、the。shoreline 的开头里，最长的、正好是一个单词的是哪个？
           answers:
             - shore
@@ -3581,7 +3591,8 @@ lessons:
       - item:
           id: sa-banana
           type: text
-          prompt: banana（位置从 0 数）的后缀数组是什么？（6 个起始位置，用空格隔开）
+          format: "6 个起始位置，用空格隔开"
+          prompt: "banana（位置从 0 数）的后缀数组是什么？"
           answers:
             - 5 3 1 0 4 2
           explain: 排好的后缀：a（5）、ana（3）、anana（1）、banana（0）、na（4）、nana（2）。
@@ -3594,6 +3605,7 @@ lessons:
       - item:
           id: lrs-banana
           type: text
+          format: "写出这个子串，如 ab"
           prompt: banana 的最长重复子串（出现至少两次、可以重叠）是什么？
           answers:
             - ana
@@ -3613,6 +3625,7 @@ lessons:
       - item:
           id: mississippi
           type: text
+          format: "写出这个子串，如 ab"
           prompt: mississippi 的最长重复子串是什么？（可以重叠）
           answers:
             - issi
@@ -3679,7 +3692,8 @@ boss:
       explain: '{a, b, c} 互相能到，{d, e} 互相能到；从 d、e 回不到 a、b、c。共 2 个。'
     - id: b-dijkstra
       type: text
-      prompt: 边 s→a 4、s→b 1、b→a 2、a→c 1、b→c 5、c→t 3、a→t 6。用 Dijkstra 从 s 出发，写出顶点确定距离（出队）的顺序。（用空格隔开）
+      format: "用空格隔开，如 s a b t c"
+      prompt: "边 s→a 4、s→b 1、b→a 2、a→c 1、b→c 5、c→t 3、a→t 6。用 Dijkstra 从 s 出发，写出顶点确定距离（出队）的顺序。"
       answers:
         - s b a c t
       explain: s 0；b 1；a 经 b 是 3；c 经 a 是 4；t 经 c 是 7。边长不能为负：Dijkstra 依赖“出队时距离已经最终确定”，负边可能让之后的路更短。
@@ -3690,7 +3704,8 @@ boss:
       explain: s→a→t 送 5，s→a→b→t 送 5，s→b→t 送 5，共 15。割 {s} 的容量是 $10 + 5 = 15$，所以不可能更多。
     - id: b-pi
       type: text
-      prompt: 写出 ABAABA 的前缀函数 π（6 个数，用空格隔开）。
+      format: "6 个数，用空格隔开"
+      prompt: "写出 ABAABA 的前缀函数 π。"
       answers:
         - 0 0 1 1 2 3
       explain: A：0；AB：0；ABA：1；ABAA：1（A）；ABAAB：2（AB）；ABAABA：3（ABA）。
