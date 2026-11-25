@@ -389,6 +389,30 @@ terms:
   - 依赖倒置
   - 里氏替换
   - 代码坏味
+  # Power electronics (E.3.1, 2026-11-23): device and converter words a beginner does not know
+  - 晶闸管
+  - 重叠角
+  - 有源逆变
+  - 伏秒平衡
+  - 空间矢量
+  - 趋肤深度
+  - 面积积
+  - 励磁电感
+  # Multiple integrals and vector calculus (M.1.4.4, 2026-11-23)
+  - 二重积分
+  - 三重积分
+  - 累次积分
+  - 富比尼定理
+  - 向量场
+  - 保守场
+  - 势函数
+  - 旋度
+  - 散度
+  - 格林定理
+  - 散度定理
+  - 斯托克斯定理
+  - 单连通
+  - 叉积
 
 # term: keywords whose use in a shown program means the program uses that term (whole words, after
 # string literals and comments are removed). Only keywords that mean the same idea in every language

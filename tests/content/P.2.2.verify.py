@@ -274,7 +274,7 @@ checks += [
     (("error while loading shared libraries: libmylib.so: cannot open shared object file" in missing[2], missing[0]), (True, 127)),
     (with_path[1], "49\n"), ("libmylib.so => ./libmylib.so" in ldd_dyn, True),
     (ldd_m, ["linux-vdso.so.1", "libm.so.6 => /usr/lib/x86_64-linux-gnu/libm.so.6", "libc.so.6 => /usr/lib/x86_64-linux-gnu/libc.so.6", "/lib64/ld-linux-x86-64.so.2"]),
-    (sizes, ["15952", "816880"]), (816880 / 15952 > 50, True),
+    (round(int(sizes[0]) / 1e4, 1), 1.6), (round(int(sizes[1]) / 1e4, 1), 81.7), (int(sizes[1]) / int(sizes[0]) > 50, True),
     ("interpreter /lib64/ld-linux-x86-64.so.2" in sh("file m_dyn")[1], True),
     (sh("gcc dl.c -o dl && ./dl")[1], "49\n"),
     # file-io

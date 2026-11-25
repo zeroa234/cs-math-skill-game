@@ -1,0 +1,2204 @@
+skill: N.1.2
+version: 2
+authors: [main-agent]
+brief:
+  why: 芯片里的晶体管、手机的天线、发电厂的发电机，背后都是电和磁。这一关从“电荷之间为什么互相推拉”讲起：库仑定律和电场、高斯定律、电势和电容、电流和电路，再到磁场、电磁感应，最后把它们合成麦克斯韦方程组，看出光就是电磁波。假设你学过力学（力、功、势能）和一元积分（定积分）。
+  outcomes:
+    - 用库仑定律和叠加原理算点电荷的力和电场，画出电场线
+    - 用高斯定律求球、长直线、无限大平面这些对称带电体的电场，说出导体静电平衡的性质
+    - 算电势和电势差，由电势求电场，算电容器的电容、电荷和储能
+    - 算导线电阻、电功率，用基尔霍夫定律解直流电路，算 RC 电路的时间常数
+    - 算带电粒子在磁场中的圆周运动、通电导线受的力，用安培环路定理求直导线和螺线管的磁场
+    - 用法拉第定律和楞次定律算感应电动势并判断方向，算电感、磁场能量和 LC 振荡频率
+    - 写出麦克斯韦方程组的积分形式，指出位移电流，由 μ₀、ε₀ 算出光速，说出电磁波的能量和波谱
+terms:
+  - term: 电荷
+    def: '物质的一种属性，分正负两种，单位库仑（C）；同号相斥、异号相吸，总量守恒'
+  - term: 元电荷
+    def: '电荷的最小单位 e ≈ 1.602 × 10⁻¹⁹ C；任何带电体的电荷都是它的整数倍'
+  - term: 导体
+    def: '内部有大量可以自由移动的电荷（金属里是自由电子）的物质，电荷能在其中流动'
+  - term: 绝缘体
+    def: '内部电荷几乎不能自由移动的物质，如塑料、玻璃、橡胶'
+  - term: 感应起电
+    def: '带电体靠近导体时，导体内自由电荷重新分布，近端出现异号电荷、远端出现同号电荷'
+  - term: 库仑定律
+    def: '两个点电荷之间的力 F = k|q₁q₂|/r²，k ≈ 8.99 × 10⁹ N·m²/C²，沿两者连线，同号相斥、异号相吸'
+  - term: 电场
+    def: '电荷在周围空间产生的场；试探电荷 q 在某点受力 F，该点电场强度 E = F/q，单位 N/C'
+  - term: 叠加原理
+    def: '几个电荷共同产生的电场（或力）等于各自单独产生的电场（或力）按矢量相加'
+  - term: 电场线
+    def: '画在电场里的有向曲线：每点的切线方向是电场方向，线越密场越强；从正电荷出发，到负电荷终止'
+  - term: 电偶极子
+    def: '一对相距 d 的等量异号电荷 ±q；偶极矩 p = qd，方向从负电荷指向正电荷'
+  - term: 电通量
+    def: '穿过一个面的电场线的多少；均匀电场穿过平面时 Φ = EA cos θ，θ 是电场和面的法线的夹角'
+  - term: 高斯定律
+    def: '穿过任意闭合曲面的电通量等于面内包围的总电荷除以 ε₀：∮E·dA = Q_内/ε₀'
+  - term: 高斯面
+    def: '为用高斯定律算电场而选的闭合曲面，通常选得让面上各处电场大小相同、方向和面垂直或平行'
+  - term: 静电平衡
+    def: '导体内部电荷不再定向移动的状态；此时导体内部电场为 0，多余电荷全在表面，表面附近电场垂直于表面'
+  - term: 电势能
+    def: '电荷在电场中因位置而具有的势能；电场力做的功等于电势能的减少'
+  - term: 电势
+    def: '单位正电荷在某点具有的电势能 V = U/q，单位伏特（V）；点电荷的电势 V = kq/r'
+  - term: 电势差
+    def: '两点电势之差，也叫电压；电荷 q 从 A 移到 B，电场力做功 W = q(V_A − V_B)'
+  - term: 电子伏特
+    def: '能量单位 eV：一个电子经过 1 V 电势差获得的动能，1 eV ≈ 1.602 × 10⁻¹⁹ J'
+  - term: 等势面
+    def: '电势相同的点组成的面；电场线处处垂直于等势面，沿等势面移动电荷电场力不做功'
+  - term: 电容
+    def: '电容器所带电荷和两板电压之比 C = Q/V，单位法拉（F）；平行板电容器 C = ε₀A/d'
+  - term: 电容器
+    def: '两块彼此绝缘、靠得很近的导体，能储存电荷和电场能'
+  - term: 电介质
+    def: '放进电场中会被极化的绝缘材料；充满两板之间时电容变为原来的 κ 倍，κ 叫介电常数'
+  - term: 极化
+    def: '电介质分子的正负电荷在外电场中被拉开或转向，表面出现束缚电荷，使内部电场减弱'
+  - term: 电流
+    def: '单位时间内通过导体某一截面的电荷量 I = dQ/dt，单位安培（A）；规定正电荷移动的方向为电流方向'
+  - term: 漂移速度
+    def: '导体中自由电子在电场作用下沿导线方向的平均定向速度，通常不到 1 毫米每秒'
+  - term: 电阻
+    def: '导体两端电压和通过电流之比 R = V/I，单位欧姆（Ω）；导线的电阻 R = ρL/A'
+  - term: 电阻率
+    def: '材料本身的导电难易程度 ρ，单位 Ω·m；铜约 1.7 × 10⁻⁸ Ω·m，随温度升高而增大'
+  - term: 欧姆定律
+    def: '一定温度下，金属导体两端的电压和电流成正比：V = IR'
+  - term: 电功率
+    def: '电流做功的快慢 P = IV；电阻上发热功率 P = I²R = V²/R'
+  - term: 超导体
+    def: '温度降到某个临界温度以下时电阻突然变为 0 的材料'
+  - term: 电动势
+    def: '电源把单位正电荷从负极搬到正极时非静电力做的功 ε，单位伏特；有内阻 r 时端电压 V = ε − Ir'
+  - term: 内阻
+    def: '电源内部的电阻 r；电流越大，内阻上分走的电压越多，端电压越低'
+  - term: 基尔霍夫定律
+    def: '节点定律：流入任一节点的电流等于流出的电流；回路定律：沿任一闭合回路电势升降的代数和为 0'
+  - term: 时间常数
+    def: 'RC 电路充放电快慢的量度 τ = RC；每过一个 τ，离终值的差距缩小到原来的 1/e（约 37%）'
+  - term: 磁场
+    def: '磁体和电流周围存在的场，用磁感应强度 B 描述，单位特斯拉（T）'
+  - term: 磁感应强度
+    def: '描述磁场强弱和方向的矢量 B；电荷 q 以速度 v 运动时受力 F = qvB sin θ'
+  - term: 洛伦兹力
+    def: '运动电荷在磁场中受的力 F = qv × B，大小 qvB sin θ，方向垂直于 v 和 B，不做功'
+  - term: 安培力
+    def: '通电导线在磁场中受的力 F = IL × B，大小 ILB sin θ'
+  - term: 磁矩
+    def: '电流线圈的磁矩 μ = NIA，方向由右手定则确定；线圈在磁场中受力矩 τ = μB sin θ'
+  - term: 霍尔效应
+    def: '电流在磁场中流过导体时，载流子被洛伦兹力推向一侧，在垂直于电流和磁场的方向上出现电压'
+  - term: 毕奥-萨伐尔定律
+    def: '一小段电流 I dl 在距离 r 处产生的磁场 dB = (μ₀/4π) I dl sin θ / r²'
+  - term: 真空磁导率
+    def: 'μ₀ = 4π × 10⁻⁷ T·m/A，出现在电流产生磁场的各个公式里'
+  - term: 安培环路定理
+    def: '沿任意闭合路径，磁感应强度的环路积分等于 μ₀ 乘以穿过这条路径的总电流：∮B·dl = μ₀I'
+  - term: 螺线管
+    def: '导线密绕成的长圆筒形线圈；内部磁场近似均匀，B = μ₀nI，n 是每米匝数'
+  - term: 铁磁质
+    def: '铁、钴、镍这类能被磁化得很强、去掉外磁场后还能保留磁性的物质'
+  - term: 磁通量
+    def: '穿过一个面的磁感线的多少；匀强磁场穿过平面时 Φ = BA cos θ，单位韦伯（Wb）'
+  - term: 法拉第电磁感应定律
+    def: '闭合回路中的感应电动势等于穿过它的磁通量对时间的变化率的负值：ε = −N dΦ/dt'
+  - term: 楞次定律
+    def: '感应电流的方向总是使它产生的磁场阻碍引起它的磁通量变化'
+  - term: 动生电动势
+    def: '导体在磁场中运动切割磁感线产生的电动势；长 L 的导体以速度 v 垂直切割时 ε = BLv'
+  - term: 感生电场
+    def: '变化的磁场在周围空间激发的电场；它的电场线是闭合的，不是由电荷产生的'
+  - term: 涡流
+    def: '变化的磁场在大块导体内部感应出的旋涡状电流，会发热，也会产生阻碍运动的力'
+  - term: 反电动势
+    def: '电动机转动时线圈切割磁感线产生的、和外加电压方向相反的电动势，转得越快越大'
+  - term: 互感
+    def: '一个线圈电流变化时在另一个线圈中产生感应电动势的现象；ε₂ = −M dI₁/dt，M 叫互感系数'
+  - term: 自感
+    def: '线圈自身电流变化时在自身产生感应电动势的现象；ε = −L dI/dt，L 叫自感系数，单位亨利（H）'
+  - term: 电感
+    def: '自感系数 L 的通称，也指用来提供自感的线圈元件；长螺线管 L = μ₀N²A/l'
+  - term: 磁场能量
+    def: '电感中电流 I 储存的能量 U = ½LI²；单位体积的磁场能量 u = B²/(2μ₀)'
+  - term: LC 振荡
+    def: '电容器通过电感放电时，电场能和磁场能来回转换形成的电流振荡，角频率 ω = 1/√(LC)'
+  - term: 位移电流
+    def: '麦克斯韦引入的 ε₀ dΦ_E/dt 项：变化的电场也像电流一样产生磁场，使安培环路定理在电容器两板之间也成立'
+  - term: 麦克斯韦方程组
+    def: '描述电场和磁场的四个方程：电场的高斯定律、磁场的高斯定律、法拉第定律、加了位移电流的安培环路定理'
+  - term: 电磁波
+    def: '电场和磁场互相激发、在空间传播的波；真空中速度 c = 1/√(μ₀ε₀) ≈ 3.00 × 10⁸ m/s，E 和 B 互相垂直且都垂直于传播方向'
+  - term: 坡印廷矢量
+    def: '电磁波单位时间穿过单位面积的能量 S = EB/μ₀，方向是传播方向；它的时间平均值叫强度'
+  - term: 辐射压
+    def: '电磁波照到物体上产生的压强；完全吸收时 p = I/c，完全反射时 p = 2I/c'
+  - term: 电磁波谱
+    def: '按波长或频率排列的电磁波：无线电波、微波、红外线、可见光、紫外线、X 射线、γ 射线'
+
+lessons:
+  # ==== 库仑定律与电场 ====
+  - id: charge-coulomb
+    chapter: 库仑定律与电场
+    title: 电荷、导体和库仑定律
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用毛皮摩擦过的塑料尺能吸起小纸屑。纸屑原来不带电，塑料尺为什么还能吸住它？
+          options:
+            - text: 纸屑靠近尺的一侧出现异号电荷，吸引胜过排斥
+              correct: true
+            - text: 塑料尺摩擦后变得有黏性
+              why: 用干净的布轻轻擦过的塑料尺并不黏手，而且隔着一小段空气就能吸起纸屑，这是隔空的力
+            - text: 塑料尺带电，纸屑不带电，带电的东西会吸引任何东西
+              why: 不带电的物体整体上没有电荷，能被吸是因为它内部的电荷被推拉得重新分布了
+          explain: 纸屑整体不带电，但它内部的电荷会被塑料尺推拉，靠近尺子的一侧出现异号电荷。这一课从电荷讲起。
+      - card:
+          title: 电荷
+          body: |
+            摩擦过的物体能吸引轻小物体，是因为它带了**电荷（electric charge）**。电荷有正负两种：同号相斥、异号相吸。单位是库仑（C）。
+
+            原子由带正电的原子核和带负电的电子组成。摩擦时电子从一个物体转移到另一个物体：得到电子的带负电，失去电子的带正电。电荷不会凭空产生或消失，只会转移，这叫电荷守恒。
+
+            电荷有最小单位，叫**元电荷（elementary charge）**：$e \approx 1.602 \times 10^{-19}\text{ C}$，一个电子带 $-e$。
+      - item:
+          id: electron-count
+          type: number
+          prompt: 一个物体带了 $-3.204 \times 10^{-9}\text{ C}$ 的电荷，元电荷 $e = 1.602 \times 10^{-19}\text{ C}$。它比中性时多了多少个电子？（填科学计数法的系数，单位 $10^{10}$ 个）
+          answer: 2
+          unit: ×10¹⁰ 个
+          hint: 每个电子带多少电荷？
+          explain: 电子数 $= 3.204 \times 10^{-9} / 1.602 \times 10^{-19} = 2 \times 10^{10}$ 个。
+      - card:
+          title: 导体、绝缘体和感应起电
+          body: |
+            金属里有大量自由电子，电荷能在其中流动，这类物质叫**导体（conductor）**；塑料、玻璃、橡胶里的电荷几乎不能移动，叫**绝缘体（insulator）**。
+
+            带电体靠近导体（不接触），导体里的自由电子被推开或拉近，近端出现异号电荷、远端出现同号电荷，叫**感应起电（charging by induction）**。如果在带电体还靠近时把导体接地，然后先断开接地、再移开带电体，导体就留下了和带电体异号的净电荷（顺序反了，电荷会从地线流走）。塑料尺吸纸屑也是这样，只是纸屑的电荷只在分子内稍稍移动。
+      - item:
+          id: induction-sign
+          type: choice
+          prompt: 把一根带正电的玻璃棒靠近一个原来不带电的金属球（不接触），用手指碰一下金属球的另一侧，然后先拿开手指，再拿开玻璃棒。金属球最后带什么电？
+          options:
+            - text: 负电
+              correct: true
+            - text: 正电，因为玻璃棒带正电
+              why: 玻璃棒没有接触金属球，不会把正电荷给它；手指接地时，被吸引过来的是电子
+            - text: 不带电，因为玻璃棒没有接触
+              why: 手指接地时有电子从大地流进金属球，先拿开手指，这些电子就留在了球上
+          explain: 正电的玻璃棒把电子吸到金属球近端。手指接地时，电子从大地流入。先断开接地，多出来的电子留在球上，所以球带负电。
+      - card:
+          title: 库仑定律
+          body: |
+            两个点电荷 $q_1$、$q_2$ 相距 $r$，它们之间的力满足**库仑定律（Coulomb's law）**：
+
+            $$F = k\frac{|q_1q_2|}{r^2},\qquad k = \frac{1}{4\pi\varepsilon_0} \approx 8.99 \times 10^9\text{ N·m}^2/\text{C}^2$$
+
+            $\varepsilon_0 \approx 8.854 \times 10^{-12}\text{ C}^2/(\text{N·m}^2)$ 叫真空电容率。力沿两电荷的连线，同号相斥、异号相吸，满足牛顿第三定律。
+
+            力和距离的平方成反比：距离加倍，力变成 1/4。
+      - item:
+          id: coulomb-force
+          type: number
+          prompt: $q_1 = +2\ \mu\text{C}$ 放在 $x = 0$，$q_2 = -1\ \mu\text{C}$ 放在 $x = 0.3\text{ m}$。两电荷之间的库仑力是多少牛顿？（$k = 8.99 \times 10^9$，保留两位小数；$1\ \mu\text{C} = 10^{-6}\text{ C}$）
+          answer: 0.2
+          tolerance: 0.005
+          unit: N
+          hint: 两个电荷各是多少库、相距多少米？库仑力和距离是几次方的关系？
+          explain: $F = 8.99 \times 10^9 \times 2 \times 10^{-6} \times 1 \times 10^{-6} / 0.09 \approx 0.20\text{ N}$。两电荷异号，互相吸引。
+      - card:
+          title: 几个电荷时：力的叠加
+          body: |
+            三个或更多电荷时，某个电荷受到的总力，等于其他每个电荷单独对它的库仑力按矢量相加。这叫**叠加原理（superposition principle）**。
+
+            算的时候：先分别求每个力的大小和方向，再分解到 $x$、$y$ 轴上分别相加。
+
+            例：$+1\ \mu\text{C}$ 放在原点，左边 0.1 m 处有 $+1\ \mu\text{C}$，右边 0.1 m 处有 $+1\ \mu\text{C}$。两个力大小相等、方向相反，合力为 0。
+      - item:
+          id: coulomb-double
+          type: choice
+          prompt: 两个点电荷之间的距离变为原来的 3 倍，电荷量都不变。它们之间的力变为原来的多少？
+          options:
+            - text: $1/9$
+              correct: true
+            - text: $1/3$
+              why: 库仑力和距离的平方成反比，不是和距离成反比
+            - text: $9$ 倍
+              why: 平方反比是距离越大力越小，变为 $1/3^2$；9 倍是把它当成了和距离的平方成正比
+          explain: $F \propto 1/r^2$，距离 3 倍，力变为 $1/9$。
+      - item:
+          id: three-charges
+          type: number
+          prompt: 三个点电荷在 $x$ 轴上：$+4\ \mu\text{C}$ 在 $x = 0$，$+1\ \mu\text{C}$ 在 $x = 0.2\text{ m}$，$+4\ \mu\text{C}$ 在 $x = 0.6\text{ m}$。中间那个电荷受到的合力是多少牛顿？（向右为正，$k = 8.99 \times 10^9$，保留两位小数）
+          answer: 0.67
+          tolerance: 0.005
+          unit: N
+          hint: 左边的电荷把它往哪边推？右边的呢？哪个离得近？
+          explain: 左边电荷向右推：$8.99 \times 10^9 \times 4 \times 10^{-12} / 0.04 \approx 0.899\text{ N}$；右边电荷向左推：$8.99 \times 10^9 \times 4 \times 10^{-12} / 0.16 \approx 0.225\text{ N}$。合力 $\approx 0.67\text{ N}$，向右。
+
+  - id: electric-field
+    chapter: 库仑定律与电场
+    title: 电场、电场线和电偶极子
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把一个很小的正电荷放在一个大的带正电球体附近的不同位置，它受到的力的方向和大小会怎样？
+          options:
+            - text: 都背离球心，离球越近力越大
+              correct: true
+            - text: 都指向球心，离球越近受力越大
+              why: 同号电荷相斥，力背离带正电的球
+            - text: 方向随便，大小处处相同
+              why: 力的方向沿球心到小电荷的连线，大小随距离的平方减小
+          explain: 每个位置的力都有确定的大小和方向，而且和放进去的小电荷大小成正比。于是可以给空间每一点定义一个“单位电荷受的力”，这就是电场。
+      - card:
+          title: 电场强度
+          body: |
+            电荷在周围空间产生**电场（electric field）**。把一个很小的试探电荷 $q$ 放在某点，它受力 $\vec F$，该点的电场强度定义为
+
+            $$\vec E = \frac{\vec F}{q}$$
+
+            单位 N/C。电场是空间每一点的一个矢量，和放不放试探电荷无关。反过来，电荷 $q$ 在电场 $\vec E$ 中受力 $\vec F = q\vec E$：正电荷顺着电场方向受力，负电荷逆着。
+
+            点电荷 $Q$ 在距离 $r$ 处的电场大小 $E = kQ/r^2$，正电荷的场背离它，负电荷的场指向它。
+      - item:
+          id: point-field
+          type: number
+          prompt: 一个 $+2\ \mu\text{C}$ 的点电荷，在距离它 0.15 米处产生的电场强度是多少？（单位 $10^5$ N/C，$k = 8.99 \times 10^9$，保留两位小数）
+          answer: 7.99
+          tolerance: 0.005
+          unit: ×10⁵ N/C
+          hint: 点电荷的电场和距离的平方成反比。
+          explain: $E = kQ/r^2 = 8.99 \times 10^9 \times 2 \times 10^{-6} / 0.0225 \approx 7.99 \times 10^5\text{ N/C}$，方向背离电荷。
+      - card:
+          title: 例题：两个电荷连线中点的电场
+          body: $q_1 = +2\ \mu\text{C}$ 在 $x = 0$，$q_2 = -1\ \mu\text{C}$ 在 $x = 0.3\text{ m}$。求连线中点的电场强度。
+          reveal:
+            - title: 第 1 步：分别求两个电荷在中点的场的大小
+              body: 中点到两电荷都是 0.15 m。$E_1 = kq_1/0.15^2 \approx 7.99 \times 10^5\text{ N/C}$，$E_2 = k|q_2|/0.15^2 \approx 4.00 \times 10^5\text{ N/C}$。
+            - title: 第 2 步：分别判断方向
+              body: $E_1$ 背离正电荷 $q_1$，指向 $+x$；$E_2$ 指向负电荷 $q_2$，也指向 $+x$。
+            - title: 第 3 步：同向相加
+              body: $E = E_1 + E_2 \approx 1.20 \times 10^6\text{ N/C}$，沿 $+x$ 方向。
+      - item:
+          id: midpoint-field
+          type: number
+          prompt: $+3\ \mu\text{C}$ 的电荷在 $x = 0$，$+1\ \mu\text{C}$ 的电荷在 $x = 0.2\text{ m}$。两者连线中点的电场强度大小是多少？（单位 $10^5$ N/C，$k = 8.99 \times 10^9$，保留两位小数）
+          answer: 17.98
+          tolerance: 0.005
+          unit: ×10⁵ N/C
+          hint: 两个都是正电荷，它们在中点的场方向相同还是相反？
+          explain: 中点离两电荷各 0.1 m。$E_1 = 8.99 \times 10^9 \times 3 \times 10^{-6}/0.01 = 26.97 \times 10^5$，向 $+x$；$E_2 = 8.99 \times 10^5$，背离 $q_2$ 即向 $-x$。合场 $17.98 \times 10^5\text{ N/C}$，向 $+x$。
+      - card:
+          title: 连续分布电荷的电场
+          body: |
+            电荷连续地分布在一根线上时，把它切成很多小块 $dq$，每块看成点电荷，产生 $dE = k\,dq/r^2$，再把所有小块的场按矢量相加，也就是积分。
+
+            一个常用结果：电荷线密度为 $\lambda$（每米带的电荷）的无限长直线，在距离 $r$ 处的电场
+
+            $$E = \frac{2k\lambda}{r} = \frac{\lambda}{2\pi\varepsilon_0 r}$$
+
+            方向垂直于直线。它随 $1/r$ 减小，比点电荷的 $1/r^2$ 慢。
+      - card:
+          title: 电场线
+          body: |
+            用**电场线（electric field lines）**画电场：每点的切线方向是电场方向，线越密的地方场越强。
+
+            - 电场线从正电荷出发，到负电荷终止（或延伸到无穷远）；
+            - 两条电场线不会相交，因为每点的电场只有一个方向；
+            - 点电荷的电场线是从它出发的放射状直线。
+
+            电场线是画出来帮助想象的，不是真实存在的线。
+      - item:
+          id: field-lines
+          type: choice
+          prompt: 关于电场线，下列哪个说法对？
+          options:
+            - text: 电场线越密的地方电场越强
+              correct: true
+            - text: 电场线就是正电荷在电场中运动的轨迹
+              why: 电场线的切线是受力方向，即加速度方向；电荷有初速度时轨迹一般不沿电场线
+            - text: 两条电场线可以在空间某点相交
+              why: 相交点会有两个电场方向，而每点的电场只有一个方向
+          explain: 电场线的疏密表示场强大小，切线方向表示场的方向；电荷的运动轨迹还取决于它的初速度。
+      - card:
+          title: 电偶极子
+          body: |
+            一对相距 $d$ 的等量异号电荷 $\pm q$ 叫**电偶极子（electric dipole）**，偶极矩 $p = qd$，方向从负电荷指向正电荷。水分子就近似是一个电偶极子。
+
+            把偶极子放进均匀电场 $E$ 中，两个电荷受力大小相等、方向相反，合力为 0，但有一个力矩：
+
+            $$\tau = pE\sin\theta$$
+
+            $\theta$ 是偶极矩和电场的夹角。力矩让偶极矩转向电场方向。
+      - item:
+          id: dipole-torque
+          type: number
+          prompt: 一个偶极矩为 $6 \times 10^{-30}\text{ C·m}$ 的分子，放在 $5 \times 10^5\text{ N/C}$ 的均匀电场中，偶极矩和电场夹角 90°。它受到的力矩是多少？（单位 $10^{-24}$ N·m）
+          answer: 3
+          unit: ×10⁻²⁴ N·m
+          hint: 偶极子两端的电荷受到大小相等、方向相反的力，它们对中点的力矩怎样相加？夹角 90° 时正弦是多少？
+          explain: $\tau = pE\sin 90° = 6 \times 10^{-30} \times 5 \times 10^5 = 3 \times 10^{-24}\text{ N·m}$。
+      - item:
+          id: line-charge-field
+          type: number
+          prompt: 一根很长的直导线均匀带电，线密度 $\lambda = 2 \times 10^{-8}\text{ C/m}$。距离它 0.1 米处的电场强度是多少 N/C？（$k = 8.99 \times 10^9$，取整数）
+          answer: 3596
+          tolerance: 1
+          unit: N/C
+          hint: 无限长带电直线的场和距离的几次方成反比？
+          explain: $E = 2k\lambda/r = 2 \times 8.99 \times 10^9 \times 2 \times 10^{-8} / 0.1 = 3596\text{ N/C}$。
+
+  # ==== 高斯定律 ====
+  - id: gauss-law
+    chapter: 高斯定律
+    title: 电通量和高斯定律
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用一个封闭的气球包住一个点电荷，把气球吹大一倍。穿出气球表面的电场线条数会怎样变化？
+          options:
+            - text: 不变
+              correct: true
+            - text: 变少，因为离电荷远了，电场变弱
+              why: 电场确实变弱，但气球表面积也变大了；从电荷出发的电场线全部穿出气球，条数不变
+            - text: 变多，因为表面积变大了
+              why: 电场线的条数由电荷决定，气球多大，从电荷出发的线都只穿出一次
+          explain: 从电荷出发的每条电场线都要穿过气球一次，和气球多大、什么形状无关。高斯定律说的就是这件事。
+      - card:
+          title: 电通量
+          body: |
+            穿过一个面的电场线的多少，叫**电通量（electric flux）**。均匀电场 $E$ 穿过面积 $A$ 的平面时
+
+            $$\Phi = EA\cos\theta$$
+
+            $\theta$ 是电场和平面法线（垂直于平面的方向）的夹角。电场垂直穿过平面时 $\Phi = EA$，电场和平面平行时 $\Phi = 0$。
+
+            对封闭曲面，规定法线朝外：电场线穿出为正，穿入为负。电场不均匀时，把曲面切成很多小块，每块算 $E\,dA\cos\theta$ 再相加，记作 $\oint \vec E\cdot d\vec A$。
+      - item:
+          id: flux-angle
+          type: number
+          prompt: 一个面积 0.2 m² 的平面放在 $500\text{ N/C}$ 的均匀电场中，平面的法线和电场方向成 60°。穿过它的电通量是多少 N·m²/C？
+          answer: 50
+          unit: N·m²/C
+          hint: 只有沿法线方向的电场分量穿过平面。
+          explain: $\Phi = EA\cos 60° = 500 \times 0.2 \times 0.5 = 50\text{ N·m}^2/\text{C}$。
+      - card:
+          title: 高斯定律
+          body: |
+            以点电荷 $q$ 为球心、半径 $r$ 的球面上，电场处处垂直于球面（$q > 0$ 时穿出，$q < 0$ 时穿入，通量为负），大小 $k|q|/r^2$，所以通量 $= \frac{kq}{r^2} \cdot 4\pi r^2 = 4\pi kq = q/\varepsilon_0$，和 $r$ 无关。
+
+            推广到任意形状的闭合曲面和任意电荷分布，就是**高斯定律（Gauss's law）**：
+
+            $$\oint \vec E\cdot d\vec A = \frac{Q_{\text{内}}}{\varepsilon_0}$$
+
+            穿过闭合曲面的总电通量，只由面内的总电荷决定。面外的电荷产生的电场线穿进又穿出，对总通量的贡献为 0。
+      - item:
+          id: gauss-flux
+          type: number
+          prompt: 一个闭合曲面内有 $+3\ \text{nC}$ 和 $-1\ \text{nC}$ 两个电荷，面外 1 厘米处还有一个 $+5\ \text{nC}$ 的电荷。穿过这个闭合曲面的总电通量是多少 N·m²/C？（$\varepsilon_0 = 8.854 \times 10^{-12}$，取整数；$1\text{ nC} = 10^{-9}\text{ C}$）
+          answer: 226
+          tolerance: 1
+          unit: N·m²/C
+          hint: 面外的电荷对总通量有贡献吗？
+          explain: 只算面内电荷：$Q_{\text{内}} = 2\text{ nC}$，$\Phi = 2 \times 10^{-9}/8.854 \times 10^{-12} \approx 226\text{ N·m}^2/\text{C}$。面外的电荷让曲面上各点的电场变了，但总通量不变。
+      - item:
+          id: gauss-misconception
+          type: choice
+          prompt: 一个闭合曲面内没有电荷，下面哪个说法一定对？
+          options:
+            - text: 穿过这个曲面的总电通量为 0
+              correct: true
+            - text: 曲面上每一点的电场强度都为 0
+              why: 面外的电荷仍在曲面上产生电场，只是穿进和穿出的通量相互抵消
+            - text: 曲面附近没有任何电荷
+              why: 高斯定律只说面内总电荷为 0，面外可以有电荷
+          explain: 高斯定律管的是总通量。面内没有电荷，总通量为 0，但曲面上各点的电场一般不为 0。
+      - card:
+          title: 什么时候能用高斯定律算电场
+          body: |
+            高斯定律对任何闭合曲面都成立，但只有在电荷分布高度对称时，才能用它方便地算出电场。做法是选一个**高斯面（Gaussian surface）**，使面上各处：电场大小相同、方向和面垂直；或者电场和面平行，通量为 0。这样 $\oint \vec E\cdot d\vec A$ 就化成 $E \times$ 面积。
+
+            三种常用的对称：球对称（选同心球面）、柱对称（选同轴圆柱面）、平面对称（选穿过平面的圆柱盒）。
+      - item:
+          id: gauss-symmetry
+          type: choice
+          prompt: 要用高斯定律求一根无限长均匀带电直线周围的电场，高斯面应该怎么选？
+          options:
+            - text: 以带电线为轴的圆柱面
+              correct: true
+            - text: 以带电线上一点为球心的球面
+              why: 球面上各点到直线的距离不同，电场大小不同，通量不能化成 E 乘面积
+            - text: 包住一段直线的立方体
+              why: 立方体各面上电场的大小和方向都在变，同样不能简单相乘
+          explain: 柱对称：圆柱侧面上各点到直线距离相同，电场大小相同且垂直穿出；两个底面和电场平行，通量为 0。
+
+  - id: gauss-applications
+    chapter: 高斯定律
+    title: 用高斯定律求电场，导体的静电平衡
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 汽车被雷电击中时，坐在车里的人通常是安全的。主要原因是什么？
+          options:
+            - text: 金属车身是导体，电荷分布在外表面，车内电场很小
+              correct: true
+            - text: 轮胎是橡胶的，把车和地面绝缘了
+              why: 雷电的电压高达上亿伏，几厘米的橡胶挡不住；保护人的是金属车身
+            - text: 雷电打不穿汽车玻璃
+              why: 车窗玻璃挡不住雷电；关键是金属外壳让电荷沿外表面走
+          explain: 导体里的电荷会移动到外表面，导体内部的电场为 0。金属车身起了这个作用。这一课先用高斯定律算对称带电体的场，再讲导体。
+      - card:
+          title: 球对称：均匀带电球
+          body: |
+            半径 $R$ 的球体均匀带电 $Q$。选半径 $r$ 的同心球面作高斯面，面上电场大小相同、沿半径方向，所以 $E \cdot 4\pi r^2 = Q_{\text{内}}/\varepsilon_0$。
+
+            - 球外（$r > R$）：$Q_{\text{内}} = Q$，$E = \frac{kQ}{r^2}$，和全部电荷集中在球心一样；
+            - 球内（$r < R$）：$Q_{\text{内}} = Q\frac{r^3}{R^3}$，$E = \frac{kQr}{R^3}$，随 $r$ 线性增大。
+
+            均匀带电的薄球壳，内部 $Q_{\text{内}} = 0$，电场为 0。
+      - card:
+          title: 例题：球内外的场
+          body: 半径 0.1 m 的球体均匀带电 1 nC。求 $r = 0.05\text{ m}$ 和 $r = 0.2\text{ m}$ 处的电场（$k = 8.99 \times 10^9$）。
+          reveal:
+            - title: 第 1 步：判断点在球内还是球外
+              body: 0.05 m 在球内，0.2 m 在球外。
+            - title: 第 2 步：球内用 $kQr/R^3$
+              body: $E = 8.99 \times 10^9 \times 10^{-9} \times 0.05 / 0.001 \approx 449\text{ N/C}$。
+            - title: 第 3 步：球外用 $kQ/r^2$
+              body: $E = 8.99 \times 10^9 \times 10^{-9} / 0.04 \approx 225\text{ N/C}$。
+      - item:
+          id: sphere-inside
+          type: number
+          prompt: 半径 0.2 米的球体均匀带电 8 nC。距球心 0.1 米处的电场强度是多少 N/C？（$k = 8.99 \times 10^9$，取整数）
+          answer: 899
+          tolerance: 1
+          unit: N/C
+          hint: 这一点在球内还是球外？球内被包住的电荷占总电荷的几分之几？
+          explain: 在球内。$E = kQr/R^3 = 8.99 \times 10^9 \times 8 \times 10^{-9} \times 0.1 / 0.008 = 899\text{ N/C}$。也可以这样想：包住的电荷是 $8 \times (0.1/0.2)^3 = 1\text{ nC}$，$E = k \times 1\text{ nC}/0.1^2 = 899$。
+      - card:
+          title: 无限大带电平面
+          body: |
+            电荷面密度为 $\sigma$（每平方米带的电荷）的无限大平面。选一个垂直穿过平面的圆柱盒作高斯面，底面积 $A$：电场垂直于平面、两边方向相反，只穿过两个底面，所以 $2EA = \sigma A/\varepsilon_0$：
+
+            $$E = \frac{\sigma}{2\varepsilon_0}$$
+
+            和离平面多远无关。两块带等量异号电荷的平行大平板之间，两个平面的场同向相加，$E = \sigma/\varepsilon_0$；板外两个场抵消，$E = 0$。这就是平行板电容器里的均匀电场。
+      - item:
+          id: parallel-plates-field
+          type: number
+          prompt: 两块很大的平行金属板分别带面密度 $+\sigma$ 和 $-\sigma$ 的电荷，$\sigma = 8.854 \times 10^{-9}\text{ C/m}^2$。两板之间的电场强度是多少 N/C？（$\varepsilon_0 = 8.854 \times 10^{-12}$）
+          answer: 1000
+          unit: N/C
+          hint: 两板之间，两个平面各自的场方向相同还是相反？
+          explain: 两板之间 $E = \sigma/\varepsilon_0 = 8.854 \times 10^{-9}/8.854 \times 10^{-12} = 1000\text{ N/C}$。
+      - card:
+          title: 导体的静电平衡
+          body: |
+            导体里的自由电子在电场中会移动，直到导体内部各处电场为 0 才停止，这种状态叫**静电平衡（electrostatic equilibrium）**。此时：
+
+            - 导体内部 $E = 0$；
+            - 在导体内部任取高斯面，通量为 0，所以内部没有净电荷，多余的电荷全在表面；
+            - 表面附近的电场垂直于表面，大小 $E = \sigma/\varepsilon_0$；表面弯得越尖，电荷越密，场越强，所以避雷针做成尖的。
+
+            空腔导体内部的场也为 0，这叫静电屏蔽。
+      - item:
+          id: conductor-inside
+          type: choice
+          prompt: 一个处于静电平衡的实心金属球带了 $+5\ \text{nC}$ 的电荷。球内部（离球心一半半径处）的电场强度是多少？
+          options:
+            - text: 0，静电平衡时导体内部没有电场
+              correct: true
+            - text: 和均匀带电球体一样，$kQr/R^3$
+              why: 那是电荷均匀分布在整个球体内的情形；导体的电荷全部跑到表面，内部没有电荷
+            - text: $kQ/r^2$，像点电荷一样
+              why: 这是球外的公式；导体内部电场为 0
+          explain: 静电平衡时导体内部电场为 0，否则自由电子还会继续移动。多余的电荷全部分布在外表面。
+
+  # ==== 电势与电容 ====
+  - id: potential
+    chapter: 电势与电容
+    title: 电势能、电势和电势差
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 在均匀电场中，把一个正电荷逆着电场方向推一段距离，电场力对它做正功还是负功？它在电场中的势能怎样变化？
+          options:
+            - text: 做负功，势能增加
+              correct: true
+            - text: 做正功，势能增加
+              why: 正电荷受的电场力沿电场方向，位移逆着电场，力和位移方向相反，做负功
+            - text: 做负功，势能减少
+              why: 保守力做负功时，对应的势能增加，就像把石头举高时重力做负功、重力势能增加
+          explain: 这和把石头举高很像：重力做负功，重力势能增加。电场力也是保守力，可以定义势能。
+      - card:
+          title: 电势能
+          body: |
+            电场力和重力一样是保守力：做功只取决于起点和终点。所以可以定义**电势能（electric potential energy）** $U$，电场力做的功等于电势能的减少：$W = -\Delta U$。
+
+            均匀电场 $E$ 中，正电荷 $q$ 顺着电场方向移动 $d$，电场力做功 $qEd$，电势能减少 $qEd$，和石头下落时重力势能减少 $mgh$ 完全对应。
+
+            两个点电荷相距 $r$ 时，取无穷远处电势能为 0，$U = kq_1q_2/r$：同号为正，异号为负。
+      - item:
+          id: pe-pair
+          type: number
+          prompt: 两个 $+1\ \mu\text{C}$ 的点电荷相距 0.09 米。取无穷远为零点，它们的电势能是多少焦耳？（$k = 8.99 \times 10^9$，保留三位小数）
+          answer: 0.1
+          tolerance: 0.0005
+          unit: J
+          hint: 两个点电荷的电势能和距离是什么关系？同号还是异号？
+          explain: $U = kq_1q_2/r = 8.99 \times 10^9 \times 10^{-12}/0.09 \approx 0.100\text{ J}$，同号为正：要把它们从无穷远推到这么近，外力要做 0.1 J 的功。
+      - card:
+          title: 电势和电势差
+          body: |
+            电势能和放进去的电荷大小成正比。除以电荷，得到只由电场决定的量，叫**电势（electric potential）**：
+
+            $$V = \frac{U}{q}$$
+
+            单位伏特（V），$1\text{ V} = 1\text{ J/C}$。两点电势之差叫**电势差（potential difference）**，也就是电压。电荷 $q$ 从 A 移到 B，电场力做功
+
+            $$W_{AB} = q(V_A - V_B)$$
+
+            均匀电场中沿电场方向相距 $d$ 的两点，电势差 $V = Ed$，电场线指向电势降低的方向。
+      - item:
+          id: work-from-v
+          type: number
+          prompt: 一个 $+2\ \mu\text{C}$ 的电荷从电势 12 V 的点移到电势 2 V 的点。电场力做了多少功？（单位 $10^{-5}$ J）
+          answer: 2
+          unit: ×10⁻⁵ J
+          hint: 电场力做的功等于电荷乘以哪两点的电势差？
+          explain: $W = q(V_A - V_B) = 2 \times 10^{-6} \times (12 - 2) = 2 \times 10^{-5}\text{ J}$，为正：正电荷从高电势往低电势走，电场力做正功。
+      - card:
+          title: 电子伏特和加速电子
+          body: |
+            电荷 $q$ 从静止经过电势差 $V$ 加速，电场力做功 $qV$，全部变成动能：$\tfrac12 mv^2 = qV$。
+
+            原子物理里常用的能量单位**电子伏特（electron volt）**：一个电子经过 1 V 电势差获得的动能，
+
+            $$1\text{ eV} = 1.602 \times 10^{-19}\text{ J}$$
+
+            例：电子经过 100 V 加速，获得 100 eV 的动能，即 $1.602 \times 10^{-17}\text{ J}$。电子质量 $9.11 \times 10^{-31}\text{ kg}$，速度 $v = \sqrt{2 \times 1.602 \times 10^{-17}/9.11 \times 10^{-31}} \approx 5.93 \times 10^6\text{ m/s}$。
+      - item:
+          id: electron-speed
+          type: number
+          prompt: 一个电子从静止开始经过 400 V 的电势差加速。它获得的速度是多少？（单位 $10^7$ m/s，$e = 1.602 \times 10^{-19}\text{ C}$，$m = 9.11 \times 10^{-31}\text{ kg}$，保留两位小数）
+          answer: 1.19
+          tolerance: 0.005
+          unit: ×10⁷ m/s
+          hint: 电场力做的功全部变成了什么？
+          explain: $\tfrac12 mv^2 = eV$，$v = \sqrt{2 \times 1.602 \times 10^{-19} \times 400 / 9.11 \times 10^{-31}} \approx 1.19 \times 10^7\text{ m/s}$，是 100 V 时的 2 倍（电压 4 倍，速度 $\sqrt 4$ 倍）。
+      - item:
+          id: uniform-v
+          type: number
+          prompt: 两块平行金属板相距 2 厘米，接在 300 V 的电源两端。板间的电场强度是多少 V/m？
+          answer: 15000
+          unit: V/m
+          hint: 均匀电场中电势差和电场强度、距离是什么关系？
+          explain: $E = V/d = 300/0.02 = 15000\text{ V/m}$。V/m 和 N/C 是同一个单位。
+
+  - id: potential-calc
+    chapter: 电势与电容
+    title: 算电势，由电势求电场，等势面
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个等量异号的点电荷，连线的中点处电场和电势分别是多少（取无穷远电势为 0）？
+          options:
+            - text: 电场不为 0，电势为 0
+              correct: true
+            - text: 电场和电势都为 0
+              why: 中点处两个电荷的场都从正电荷指向负电荷，同向相加，不为 0
+            - text: 电场为 0，但电势不为 0
+              why: 电势是标量，正负电荷在中点的电势大小相等、正负相反，相加为 0
+          explain: 电场是矢量，要按方向相加；电势是标量，直接带正负号相加。两者在同一点可以一个为 0、一个不为 0。
+      - card:
+          title: 点电荷的电势和叠加
+          body: |
+            取无穷远处电势为 0，点电荷 $q$ 在距离 $r$ 处的电势
+
+            $$V = \frac{kq}{r}$$
+
+            正电荷周围电势为正，负电荷周围为负。几个点电荷时，总电势是各自电势的代数和：$V = \sum kq_i/r_i$。电势是标量，不用分解方向，比算电场简单。
+
+            连续分布的电荷，切成小块 $dq$ 后积分：$V = \int k\,dq/r$。
+      - item:
+          id: v-superposition
+          type: number
+          prompt: $+4\ \text{nC}$ 在 $x = 0$，$-2\ \text{nC}$ 在 $x = 0.4\text{ m}$。在 $x = 0.2\text{ m}$ 处的电势是多少伏？（$k = 8.99 \times 10^9$，取整数）
+          answer: 90
+          tolerance: 1
+          unit: V
+          hint: 电势是标量，两个电荷各自的电势带着正负号直接相加。
+          explain: $V = k(4 \times 10^{-9}/0.2 - 2 \times 10^{-9}/0.2) = 8.99 \times 10^9 \times 10^{-8} \approx 90\text{ V}$。
+      - card:
+          title: 由电势求电场
+          body: |
+            电场力做功 $W = qE\,dx$，又等于电势能减少 $-q\,dV$，所以沿某个方向
+
+            $$E_x = -\frac{dV}{dx}$$
+
+            电场等于电势变化率的相反数：电场指向电势下降最快的方向，电势变化越陡，电场越强。
+
+            例：某区域 $V(x) = 50x^2$（伏，$x$ 以米计），则 $E_x = -100x$；在 $x = 0.3\text{ m}$ 处 $E_x = -30\text{ V/m}$，指向 $-x$。
+      - item:
+          id: e-from-v
+          type: number
+          prompt: 某区域的电势 $V(x) = 20 - 5x^3$（伏，$x$ 以米计）。在 $x = 2\text{ m}$ 处，电场的 $x$ 分量是多少 V/m？
+          answer: 60
+          unit: V/m
+          hint: 电场指向电势降低的方向。先求 $V$ 随 $x$ 的变化率，再想电场的符号。
+          explain: $dV/dx = -15x^2$，$E_x = 15x^2$，在 $x = 2$ 处 $E_x = 60\text{ V/m}$，指向 $+x$（电势沿 $+x$ 在下降）。
+      - card:
+          title: 等势面和导体
+          body: |
+            电势相同的点组成**等势面（equipotential surface）**。沿等势面移动电荷，电场力不做功，所以电场线处处垂直于等势面。点电荷的等势面是同心球面。
+
+            静电平衡的导体内部电场为 0，任意两点间 $\Delta V = 0$，所以整个导体是一个等势体，表面是等势面。两个用导线连起来的导体球电势相等，半径小的那个表面电荷密度更大，表面电场更强。
+      - item:
+          id: equipotential-work
+          type: number
+          prompt: 一个 $+3\ \mu\text{C}$ 的电荷沿一个 50 V 的等势面移动了 0.4 米。电场力对它做了多少功？
+          answer: 0
+          unit: J
+          hint: 起点和终点的电势差是多少？
+          explain: 等势面上各点电势相同，$W = q(V_A - V_B) = 0$。这也说明电场处处垂直于等势面。
+      - card:
+          title: 静电的应用
+          body: |
+            - 静电除尘：烟气经过高电压的金属丝，烟尘颗粒带上电荷，被吸到带异号电荷的板上。
+            - 静电喷涂和复印机：让涂料微粒或墨粉带电，被吸到带异号电荷的工件或感光鼓上。
+            - 范德格拉夫起电机：传送带把电荷送进空心金属球内部，交给球的内表面；导体的电荷总是跑到外表面，球内没有电荷堆积，于是能不断接收新电荷，球的电压可以升到几十万伏。
+      - item:
+          id: two-spheres
+          type: choice
+          prompt: 一个大金属球和一个小金属球用细导线连在一起，整体带正电并达到静电平衡。下面哪个说法对？
+          options:
+            - text: 两球电势相同，小球附近电场更强
+              correct: true
+            - text: 两球表面电荷密度相同
+              why: 电势相同要求 $kQ_1/R_1 = kQ_2/R_2$，电荷和半径成正比，面密度 $Q/(4\pi R^2)$ 和半径成反比，小球更密
+            - text: 大球电势更高，因为它带的电荷更多
+              why: 用导线连起来的导体是一个整体，电势处处相等
+          explain: 连在一起的导体电势相同：$Q_1/R_1 = Q_2/R_2$，于是面密度 $\sigma \propto 1/R$，表面电场 $\sigma/\varepsilon_0$ 也和半径成反比。这就是尖端电场强的原因。
+
+  - id: capacitance
+    chapter: 电势与电容
+    title: 电容器、串并联和储能
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 相机的闪光灯在按下快门前要“充电”几秒，然后在千分之一秒内放出一道强光。这几秒里能量储存在哪里？
+          options:
+            - text: 两块靠得很近的金属板之间的电场里
+              correct: true
+            - text: 储存在灯泡的灯丝里
+              why: 灯丝只在放电时发光发热，不能事先储存能量
+            - text: 储存在电池里，闪光时再从电池里放出
+              why: 电池放电太慢，给不了这么短时间的大电流；电池先把电荷慢慢充到两块金属板上，闪光时再一下子放出来
+          explain: 电容器能慢慢充电、瞬间放电。这一课算它能存多少电荷和多少能量。
+      - card:
+          title: 电容
+          body: |
+            两块彼此绝缘、靠得很近的导体叫**电容器（capacitor）**。给它充电，一块带 $+Q$、另一块带 $-Q$，两板之间电势差为 $V$。$Q$ 和 $V$ 成正比，比值叫**电容（capacitance）**：
+
+            $$C = \frac{Q}{V}$$
+
+            单位法拉（F），$1\text{ F} = 1\text{ C/V}$。常用微法 μF（$10^{-6}$ F）和皮法 pF（$10^{-12}$ F）。
+
+            平行板电容器：板间电场 $E = \sigma/\varepsilon_0 = Q/(\varepsilon_0A)$，电压 $V = Ed$，所以 $C = \varepsilon_0A/d$。面积越大、间距越小，电容越大。
+      - item:
+          id: plate-capacitance
+          type: number
+          prompt: 平行板电容器的极板面积 0.01 m²，间距 1 毫米，中间是空气（按真空算）。它的电容是多少 pF？（$\varepsilon_0 = 8.854 \times 10^{-12}$，保留一位小数）
+          answer: 88.5
+          tolerance: 0.05
+          unit: pF
+          hint: 间距要换成米。
+          explain: $C = \varepsilon_0A/d = 8.854 \times 10^{-12} \times 0.01/0.001 = 8.854 \times 10^{-11}\text{ F} \approx 88.5\text{ pF}$。
+      - card:
+          title: 电容器的串联和并联
+          body: |
+            - 并联：各电容器电压相同，总电荷是各自电荷之和，$C = C_1 + C_2 + \cdots$；
+            - 串联：各电容器电荷相同，总电压是各自电压之和，$\frac1C = \frac1{C_1} + \frac1{C_2} + \cdots$。
+
+            注意和电阻正好相反：电容并联相加，串联取倒数和。两个相同的电容串联，总电容是一个的一半。
+      - item:
+          id: series-parallel-c
+          type: number
+          prompt: $3\ \mu\text{F}$ 和 $6\ \mu\text{F}$ 的两个电容器串联后，再和一个 $4\ \mu\text{F}$ 的电容器并联。总电容是多少 μF？
+          answer: 6
+          unit: μF
+          hint: 先算串联那部分的等效电容。
+          explain: 串联：$1/(1/3 + 1/6) = 2\ \mu\text{F}$；再并联 4 μF：$2 + 4 = 6\ \mu\text{F}$。
+      - card:
+          title: 电容器储存的能量
+          body: |
+            充电时，每把一小份电荷 $dq$ 从负极板搬到正极板，要克服当时的电压 $v = q/C$ 做功 $v\,dq$。从 0 充到 $Q$，总功是 $v$–$q$ 图下的三角形面积：
+
+            $$W = \frac{Q^2}{2C} = \tfrac12 CV^2 = \tfrac12 QV$$
+
+            这些能量储存在两板之间的电场里。单位体积的电场能量（能量密度）是 $u = \tfrac12\varepsilon_0E^2$。
+      - card:
+          title: 例题：电容器的电荷和储能
+          body: 一个 88.5 pF 的平行板电容器（面积 0.01 m²、间距 1 mm，中间是空气）接 10 V 电源。求极板电荷和储存的能量。
+          reveal:
+            - title: 第 1 步：电荷
+              body: $Q = CV = 8.854 \times 10^{-11} \times 10 \approx 8.85 \times 10^{-10}\text{ C}$。
+            - title: 第 2 步：能量
+              body: $W = \tfrac12 CV^2 = \tfrac12 \times 8.854 \times 10^{-11} \times 100 \approx 4.43 \times 10^{-9}\text{ J}$。
+            - title: 第 3 步：用能量密度检验
+              body: $E = V/d = 10^4\text{ V/m}$，$u = \tfrac12\varepsilon_0E^2 \approx 4.43 \times 10^{-4}\text{ J/m}^3$，乘以体积 $0.01 \times 0.001 = 10^{-5}\text{ m}^3$，得 $4.43 \times 10^{-9}\text{ J}$，一致。
+      - item:
+          id: flash-energy
+          type: number
+          prompt: 相机闪光灯的电容器电容 $200\ \mu\text{F}$，充电到 300 V。它储存了多少焦耳能量？
+          answer: 9
+          unit: J
+          hint: 储能和电容、电压是什么关系？
+          explain: $W = \tfrac12 CV^2 = \tfrac12 \times 200 \times 10^{-6} \times 300^2 = 9\text{ J}$。在 1 毫秒内放出，平均功率 9000 W。
+      - item:
+          id: double-voltage
+          type: choice
+          prompt: 同一个电容器，充电电压从 5 V 提高到 10 V。它储存的电荷和能量各变为原来的多少？
+          options:
+            - text: 电荷 2 倍，能量 4 倍
+              correct: true
+            - text: 电荷和能量都变为原来的 2 倍
+              why: 能量 $\tfrac12 CV^2$ 和电压的平方成正比
+            - text: 电荷不变，能量 2 倍
+              why: 电容不变时 $Q = CV$，电压加倍，电荷也加倍
+          explain: $Q = CV \propto V$，$W = \tfrac12 CV^2 \propto V^2$。
+
+  - id: dielectrics
+    chapter: 电势与电容
+    title: 电介质
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 在一个已经充好电、并且和电源断开的平行板电容器两板之间，插入一块塑料板。两板之间的电压会怎样变化？
+          options:
+            - text: 变小
+              correct: true
+            - text: 变大，因为塑料增加了阻碍
+              why: 塑料里的分子被电场拉得正负分开，表面出现的电荷削弱了板间电场，电压变小
+            - text: 不变，因为电荷没有变
+              why: 电荷没变，但板间电场被塑料削弱，电压 $V = Ed$ 随之变小
+          explain: 塑料的分子在电场中会被“拉开”，在表面出现和极板异号的电荷，抵消了一部分电场。这一课讲这种材料。
+      - card:
+          title: 电介质让电容变大
+          body: |
+            放进电场里会被极化的绝缘材料叫**电介质（dielectric）**，如塑料、陶瓷、云母、纸。
+
+            在两板之间充满电介质，电容变为原来的 $\kappa$ 倍：
+
+            $$C = \kappa C_0 = \frac{\kappa\varepsilon_0 A}{d}$$
+
+            $\kappa$ 叫介电常数（相对电容率），真空为 1，空气约 1.0006，纸约 3.7，水约 80。电介质还能承受比空气强得多的电场而不被击穿，所以电容器里都会填电介质。
+      - item:
+          id: dielectric-c
+          type: number
+          prompt: 一个 50 pF 的空气平行板电容器，两板之间充满介电常数 $\kappa = 3.7$ 的纸。电容变为多少 pF？
+          answer: 185
+          unit: pF
+          hint: 充满电介质后电容变为原来的几倍？
+          explain: $C = \kappa C_0 = 3.7 \times 50 = 185\text{ pF}$。
+      - card:
+          title: 极化：电介质为什么削弱电场
+          body: |
+            电介质的分子在外电场中，正负电荷被拉开一点（或者本来就是偶极子的分子转向电场方向），这叫**极化（polarization）**。
+
+            内部相邻分子的正负电荷相互抵消，但在靠近正极板的表面留下一层负电荷，靠近负极板的表面留下一层正电荷。这些电荷被束缚在分子上，不能自由移动，叫束缚电荷。它们产生的电场和极板的电场方向相反，使电介质内部的电场减弱为 $E = E_0/\kappa$。
+      - item:
+          id: isolated-insert
+          type: number
+          prompt: 一个空气电容器充电到 120 V 后和电源断开，然后在两板之间充满介电常数 $\kappa = 4$ 的电介质。现在两板之间的电压是多少伏？
+          answer: 30
+          unit: V
+          hint: 断开电源后，哪个量不变？
+          explain: 断开电源，电荷 $Q$ 不变；电容变为 4 倍，$V = Q/C$ 变为 1/4，$120/4 = 30\text{ V}$。
+      - card:
+          title: 电位移和自由电荷
+          body: |
+            有电介质时，高斯定律里的 $Q_{\text{内}}$ 要同时包括极板上的自由电荷和电介质表面的束缚电荷，后者不好直接算。
+
+            为此引入电位移矢量 $\vec D = \varepsilon_0\vec E + \vec P$，$\vec P$ 是单位体积的偶极矩（极化强度）。对它有 $\oint \vec D\cdot d\vec A = Q_{\text{自由}}$，只需要知道自由电荷。在均匀、各向同性的电介质里 $D = \kappa\varepsilon_0E$。
+      - item:
+          id: connected-insert
+          type: choice
+          prompt: 一个电容器一直接在电池上（电压不变），在两板之间插入电介质。极板上的电荷和储存的能量怎样变化？
+          options:
+            - text: 电荷和能量都增大
+              correct: true
+            - text: 电荷和能量都减小
+              why: 电压不变、电容变大，$Q = CV$ 变大，$\tfrac12 CV^2$ 也变大；电池会补充电荷
+            - text: 电荷不变，能量减小
+              why: 电荷不变是断开电源时的情形；接着电池时不变的是电压
+          explain: 接着电池，$V$ 不变。$C$ 变为 $\kappa$ 倍，$Q = CV$ 和 $W = \tfrac12 CV^2$ 都变为 $\kappa$ 倍，多出的电荷和能量由电池提供。
+      - item:
+          id: field-in-dielectric
+          type: number
+          prompt: 两板之间没有电介质时电场是 6000 V/m。保持极板电荷不变，充满介电常数 $\kappa = 2.5$ 的电介质后，电介质内部的电场是多少 V/m？
+          answer: 2400
+          unit: V/m
+          hint: 束缚电荷让电场减弱为原来的几分之一？
+          explain: 电介质表面的束缚电荷在板间产生反向电场，把场削弱为原来的 $1/\kappa$：$E = E_0/\kappa = 6000/2.5 = 2400\text{ V/m}$。
+
+  # ==== 电流与电阻 ====
+  - id: current-resistance
+    chapter: 电流与电阻
+    title: 电流、电阻率和欧姆定律
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 按下开关，房间另一头的灯几乎立刻就亮了。导线里的电子是以接近光速从开关跑到灯泡的吗？
+          options:
+            - text: 不是，电子本身移动得很慢，是电场在导线里传得很快
+              correct: true
+            - text: 是，所以灯才会立刻亮
+              why: 导线里到处都有自由电子，开关一合，电场几乎同时传遍整根导线，各处的电子一起开始移动
+            - text: 是，但只有最前面的那个电子跑得这么快
+              why: 没有哪个电子需要跑完全程；整根导线的电子同时被电场推动
+          explain: 电子在导线里的定向移动只有每秒零点几毫米，但电场传播得极快，整根导线的电子几乎同时开始移动。这一课从电流讲起。
+      - card:
+          title: 电流
+          body: |
+            单位时间内通过导体某一截面的电荷量叫**电流（current）**：
+
+            $$I = \frac{dQ}{dt}$$
+
+            单位安培（A），$1\text{ A} = 1\text{ C/s}$。习惯上规定正电荷移动的方向为电流方向；金属里实际移动的是电子，方向和电流相反。
+
+            例：2 A 的电流流过 10 秒，通过截面的电荷是 20 C，相当于 $20/1.602 \times 10^{-19} \approx 1.25 \times 10^{20}$ 个电子。
+      - item:
+          id: charge-through
+          type: number
+          prompt: 一个手机充电时电流为 1.5 A，充电 2 小时。流过的总电荷是多少库仑？
+          answer: 10800
+          unit: C
+          hint: 电荷等于电流乘以时间，时间用秒。
+          explain: $Q = It = 1.5 \times 7200 = 10800\text{ C}$，也就是 3 A·h（安时）。
+      - card:
+          title: 金属导电的模型
+          body: |
+            金属里的自由电子不停地做无规则热运动，速度约每秒几十万米，但方向杂乱，平均不移动。加上电场后，电子在热运动之外多了一个沿导线的平均定向速度，叫**漂移速度（drift velocity）** $v_d$。
+
+            设单位体积的自由电子数为 $n$，导线截面积 $A$，则
+
+            $$I = nqAv_d$$
+
+            铜里 $n \approx 8.5 \times 10^{28}\text{ m}^{-3}$。截面 1 mm² 的铜线通 1 A 电流，$v_d = 1/(8.5 \times 10^{28} \times 1.602 \times 10^{-19} \times 10^{-6}) \approx 7.3 \times 10^{-5}\text{ m/s}$，不到 0.1 毫米每秒。
+      - item:
+          id: drift-speed
+          type: number
+          prompt: 截面积 2 mm² 的铜导线通过 3 A 电流，铜的自由电子密度 $8.5 \times 10^{28}\text{ m}^{-3}$，$e = 1.602 \times 10^{-19}\text{ C}$。电子的漂移速度是多少？（单位 $10^{-4}$ m/s，保留两位小数）
+          answer: 1.1
+          tolerance: 0.005
+          unit: ×10⁻⁴ m/s
+          hint: 每秒穿过截面的电子有多少个？它和电流是什么关系？截面积换成平方米是多少？
+          explain: $v_d = I/(neA) = 3/(8.5 \times 10^{28} \times 1.602 \times 10^{-19} \times 2 \times 10^{-6}) \approx 1.10 \times 10^{-4}\text{ m/s}$。
+      - card:
+          title: 电阻、电阻率和欧姆定律
+          body: |
+            导体两端加电压 $V$，流过电流 $I$，比值叫**电阻（resistance）**：$R = V/I$，单位欧姆（Ω）。
+
+            对金属导体，在温度不变时 $V$ 和 $I$ 成正比，$R$ 是常数，这叫**欧姆定律（Ohm's law）**。二极管等元件不满足它。
+
+            导线的电阻和长度成正比、和截面积成反比：
+
+            $$R = \rho\frac{L}{A}$$
+
+            $\rho$ 叫**电阻率（resistivity）**，由材料决定：铜约 $1.7 \times 10^{-8}\ \Omega\text{·m}$，铝约 $2.8 \times 10^{-8}$。金属的电阻率随温度升高而增大。
+      - item:
+          id: wire-resistance
+          type: number
+          prompt: 长 10 米、截面积 1 mm² 的铜导线，电阻率 $1.7 \times 10^{-8}\ \Omega\text{·m}$。它的电阻是多少欧姆？
+          answer: 0.17
+          unit: Ω
+          hint: 截面积换成平方米：1 mm² 等于多少 m²？
+          explain: $R = \rho L/A = 1.7 \times 10^{-8} \times 10/10^{-6} = 0.17\ \Omega$。
+      - item:
+          id: stretch-wire
+          type: choice
+          prompt: 把一根导线均匀地拉长到原来的 2 倍（体积不变）。它的电阻变为原来的多少？
+          options:
+            - text: 4 倍
+              correct: true
+            - text: 2 倍
+              why: 长度变为 2 倍的同时，体积不变使截面积变为一半，两个效果相乘
+            - text: 不变，因为还是同一根导线、同样多的铜
+              why: 电阻取决于形状：$R = \rho L/A$，同样多的铜拉得越细越长，电阻越大
+          explain: $L \to 2L$，体积不变所以 $A \to A/2$，$R = \rho L/A$ 变为 $2 \times 2 = 4$ 倍。
+
+  - id: power-emf
+    chapter: 电流与电阻
+    title: 电功率、超导和电动势
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个旧电池接上小灯泡时，用电压表测它两端的电压，比不接灯泡时测得的低。原因是什么？
+          options:
+            - text: 电池内部有电阻，有电流时一部分电压降在电池内部
+              correct: true
+            - text: 灯泡把电池的电荷用掉了一部分
+              why: 接上灯泡的一瞬间电压就降低了，电荷还远没用完；这是电池内部的电阻分走了电压
+            - text: 电压表不准，接灯泡后读数会乱跳
+              why: 读数稳定地变低，而且电流越大降得越多，这是内阻的作用
+          explain: 电池内部也有电阻，电流流过时在里面要降掉一部分电压。这一课讲电功率和电源。
+      - card:
+          title: 电功率和焦耳热
+          body: |
+            电荷 $Q$ 经过电势差 $V$，电场做功 $QV$。单位时间做的功就是**电功率（electric power）**：
+
+            $$P = IV$$
+
+            在电阻上，这些功全部变成热（焦耳热）。用 $V = IR$ 代换：
+
+            $$P = I^2R = \frac{V^2}{R}$$
+
+            远距离输电用高电压：输送同样的功率 $P = IV$，电压越高电流越小，导线上损耗的 $I^2R$ 就越小。
+      - item:
+          id: wire-heat
+          type: number
+          prompt: 电阻 0.17 Ω 的导线通过 2 A 电流。导线的发热功率是多少瓦？
+          answer: 0.68
+          unit: W
+          hint: 已知电流和电阻，用哪个功率公式最直接？
+          explain: $P = I^2R = 4 \times 0.17 = 0.68\text{ W}$。
+      - item:
+          id: transmission-loss
+          type: number
+          prompt: 用总电阻 5 Ω 的输电线输送 100 kW 的功率。输电电压从 10 kV 提高到 100 kV，导线上损耗的功率变为原来的几分之一？（填分母）
+          answer: 100
+          hint: 电压升高 10 倍，电流变为多少？损耗和电流的几次方成正比？
+          explain: $I = P/V$，电压 10 倍，电流变为 1/10（10 A 变 1 A）；损耗 $I^2R$ 变为 1/100（500 W 变 5 W）。
+      - card:
+          title: 超导体
+          body: |
+            1911 年，昂内斯发现汞在约 4.2 K 以下电阻突然变为 0，这种材料叫**超导体（superconductor）**，电阻消失的温度叫临界温度。超导体中电流可以无损耗地一直流下去。
+
+            超导体还会把磁场排出体外（迈斯纳效应），这是磁悬浮演示的原理。医院的核磁共振成像（MRI）用超导线圈产生强磁场。目前已知的超导材料大多需要用液氦或液氮冷却。
+      - card:
+          title: 电动势和内阻
+          body: |
+            电源（电池、发电机）靠化学反应或电磁感应等非静电力（不是电场力，能逆着电场把正电荷从低电势搬到高电势），把正电荷从负极搬到正极，维持两极之间的电势差。单位正电荷被搬运时非静电力做的功叫**电动势（electromotive force, emf）**，记作 $\varepsilon$，单位伏特。
+
+            真实电源有**内阻（internal resistance）** $r$。输出电流 $I$ 时，端电压
+
+            $$V = \varepsilon - Ir$$
+
+            电流越大，端电压越低。外电路电阻为 $R$ 时，$I = \varepsilon/(R + r)$。
+      - item:
+          id: terminal-voltage
+          type: number
+          prompt: 一个电池电动势 1.5 V、内阻 0.5 Ω，接一个 2.5 Ω 的电阻。电池两端的电压是多少伏？
+          answer: 1.25
+          unit: V
+          hint: 先求电路中的电流，总电阻是多少？
+          explain: $I = \varepsilon/(R + r) = 1.5/3 = 0.5\text{ A}$，端电压 $V = \varepsilon - Ir = 1.5 - 0.25 = 1.25\text{ V}$（也等于 $IR = 0.5 \times 2.5$）。
+      - item:
+          id: emf-meaning
+          type: choice
+          prompt: 一节电池标着“1.5 V”，关于这个数下面哪个说法对？
+          options:
+            - text: 它是电动势，只有电池不输出电流时两端电压才等于它
+              correct: true
+            - text: 不管接什么用电器，电池两端电压都是 1.5 V
+              why: 有电流时内阻要分走 $Ir$，端电压低于 1.5 V
+            - text: 它是电池内阻上分走的电压
+              why: 内阻上的电压是 $Ir$，随电流变化，电流为 0 时它也为 0；1.5 V 是电动势
+          explain: 标称的 1.5 V 是电动势。输出电流 $I$ 时端电压 $V = \varepsilon - Ir$，电流越大越低。
+
+  - id: dc-circuits
+    chapter: 电流与电阻
+    title: 串并联、基尔霍夫定律和电表
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 家里的电灯、电视、冰箱都插在同一组电路上。它们是串联还是并联的？
+          options:
+            - text: 并联，每个电器都直接接在 220 V 两端，关掉一个不影响别的
+              correct: true
+            - text: 串联，电流依次流过每个电器
+              why: 串联时关掉一个整条电路就断了，其他电器也会停
+            - text: 一半串联一半并联，这样更省电
+              why: 家用电器都需要 220 V 才能正常工作，只有并联才能让每个都得到这个电压
+          explain: 并联时每个用电器两端电压相同，互不影响。这一课学串并联和更一般的电路怎么算。
+      - card:
+          title: 电阻的串联和并联
+          body: |
+            - 串联：电流相同，电压分配，$R = R_1 + R_2 + \cdots$；
+            - 并联：电压相同，电流分配，$\frac1R = \frac1{R_1} + \frac1{R_2} + \cdots$。
+
+            并联的总电阻比其中最小的那个还小。两个电阻并联可以写成 $R = \frac{R_1R_2}{R_1 + R_2}$。
+
+            复杂的串并联电路，从最里面能看出串联或并联的一组开始，一步步合并。
+      - item:
+          id: series-parallel-r
+          type: number
+          prompt: $6\ \Omega$ 和 $3\ \Omega$ 的电阻并联后，再和一个 $4\ \Omega$ 的电阻串联，接在 12 V 电源上（不计内阻）。电路的总电流是多少安？
+          answer: 2
+          unit: A
+          hint: 先求并联部分的等效电阻，再加上串联的那个。
+          explain: 并联：$6 \times 3/9 = 2\ \Omega$；总电阻 $2 + 4 = 6\ \Omega$；$I = 12/6 = 2\text{ A}$。
+      - card:
+          title: 基尔霍夫定律
+          body: |
+            不能化成串并联的电路，用**基尔霍夫定律（Kirchhoff's rules）**：
+
+            - 节点定律：流入任一节点的电流之和等于流出的电流之和（电荷守恒）；
+            - 回路定律：沿任一闭合回路走一圈，各元件上电势升降的代数和为 0（能量守恒）。
+
+            顺着电流方向经过电阻，电势降低 $IR$；从电源负极走到正极，电势升高 $\varepsilon$。先给每条支路设一个电流方向，解出来是负数，说明实际方向相反。
+      - card:
+          title: 例题：两个电源的电路
+          body: 电源 $\varepsilon_1 = 12\text{ V}$ 串联 $R_1 = 2\ \Omega$ 组成左支路，电源 $\varepsilon_2 = 6\text{ V}$ 串联 $R_2 = 2\ \Omega$ 组成右支路，两支路的正极都接在上节点 A、负极都接在下节点 B，中间支路是 $R_3 = 4\ \Omega$ 连接 A、B。求流过 $R_3$ 的电流（不计内阻）。
+          reveal:
+            - title: 第 1 步：设 A 点电势为未知数
+              body: 取 B 为 0 V，A 为 $V_A$。左支路从 A 流向 B 的电流（经过电源）$I_1 = (V_A - 12)/2$，右支路 $I_2 = (V_A - 6)/2$，中间 $I_3 = V_A/4$。
+            - title: 第 2 步：对节点 A 用节点定律
+              body: 从 A 流出的电流总和为 0：$\frac{V_A - 12}{2} + \frac{V_A - 6}{2} + \frac{V_A}{4} = 0$，乘以 4：$5V_A = 36$，$V_A = 7.2\text{ V}$。
+            - title: 第 3 步：求电流并检查
+              body: $I_3 = 7.2/4 = 1.8\text{ A}$（从 A 到 B）。$I_1 = -2.4\text{ A}$（实际从 B 经电源流向 A），$I_2 = 0.6\text{ A}$。检查：$-2.4 + 0.6 + 1.8 = 0$。
+      - item:
+          id: kirchhoff-node
+          type: number
+          prompt: 一个节点上接了 4 根导线：两根流入的电流分别是 3 A 和 1.5 A，一根流出的电流是 2 A。第四根导线的电流是多少安（流出为正）？
+          answer: 2.5
+          unit: A
+          hint: 流入的总和等于流出的总和。
+          explain: 流入 $3 + 1.5 = 4.5\text{ A}$，流出已有 2 A，第四根流出 2.5 A。
+      - item:
+          id: kirchhoff-two-source
+          type: number
+          prompt: 三条支路并联在节点 A、B 之间：第一条是 $\varepsilon_1 = 10\text{ V}$ 的电源（正极接 A）串联 $2\ \Omega$ 电阻，第二条是 $\varepsilon_2 = 4\text{ V}$ 的电源（正极接 A）串联 $2\ \Omega$ 电阻，第三条是 $4\ \Omega$ 的电阻。不计电源内阻。A 相对 B 的电压是多少伏？
+          answer: 5.6
+          unit: V
+          hint: 设 A 的电势为 $V_A$、B 为 0，三条支路从 A 流向 B 的电流加起来等于多少？
+          explain: 第一条支路从 A 流向 B 的电流 $(V_A - 10)/2$，第二条 $(V_A - 4)/2$，第三条 $V_A/4$。节点定律：三者之和为 0，乘以 4 得 $2V_A - 20 + 2V_A - 8 + V_A = 0$，$V_A = 28/5 = 5.6\text{ V}$。
+      - card:
+          title: 电流表和电压表
+          body: |
+            电流表要串联在被测支路里，所以它的内阻必须很小，才不会改变原来的电流。电压表要并联在被测元件两端，所以它的内阻必须很大，才不会分走太多电流。
+
+            用一个灵敏电流计（表针打到最大刻度时的电流叫满偏电流，通常很小）改装：并联一个小电阻分流，就成了大量程电流表；串联一个大电阻分压，就成了电压表。例：满偏 1 mA、内阻 100 Ω 的电流计，要改成量程 10 V 的电压表，总电阻需 $10/0.001 = 10000\ \Omega$，串联 $9900\ \Omega$。
+      - item:
+          id: voltmeter-series
+          type: number
+          prompt: 一个灵敏电流计满偏电流 2 mA、内阻 50 Ω。要改装成量程 5 V 的电压表，需要串联多大的电阻（单位 Ω）？
+          answer: 2450
+          unit: Ω
+          hint: 满偏时电流计和串联电阻上的总电压是 5 V，总电阻是多少？
+          explain: 总电阻 $5/0.002 = 2500\ \Omega$，减去电流计内阻 50 Ω，串联 $2450\ \Omega$。
+
+  - id: rc-safety
+    chapter: 电流与电阻
+    title: RC 电路和用电安全
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 给一个电容器通过电阻充电，电容器两端的电压怎样随时间变化？
+          options:
+            - text: 一开始升得快，越来越慢，逐渐接近电源电压
+              correct: true
+            - text: 匀速上升，直到等于电源电压后停住
+              why: 电压越接近电源电压，电阻两端电压越小，充电电流越小，上升越来越慢
+            - text: 一接通就立刻等于电源电压
+              why: 电荷要通过电阻慢慢流进电容器，需要时间
+          explain: 电容器电压越高，电阻两端剩下的电压越小，充电电流就越小。这一课算出这条曲线。
+      - card:
+          title: RC 电路的充电
+          body: |
+            电动势 $\varepsilon$、电阻 $R$、电容 $C$ 串联，$t = 0$ 时接通。回路定律：$\varepsilon = IR + q/C$，其中 $I = dq/dt$。解这个方程得
+
+            $$q(t) = C\varepsilon\left(1 - e^{-t/RC}\right),\qquad I(t) = \frac{\varepsilon}{R}e^{-t/RC}$$
+
+            （把 $q(t)$ 代回方程可以验证它成立。）$\tau = RC$ 叫**时间常数（time constant）**，单位秒。$t = \tau$ 时电容器充到终值的 $1 - 1/e \approx 63.2\%$；过 $5\tau$ 后已超过 99%，基本充满。
+      - item:
+          id: rc-tau
+          type: number
+          prompt: 一个 $10\text{ k}\Omega$ 的电阻和一个 $100\ \mu\text{F}$ 的电容器串联。时间常数是多少秒？
+          answer: 1
+          unit: s
+          hint: 电压变化的快慢由哪两个元件决定？把它们的单位换成欧姆和法拉再算。
+          explain: $\tau = RC = 10^4 \times 10^{-4} = 1\text{ s}$。
+      - card:
+          title: RC 电路的放电
+          body: |
+            充满电的电容器（电荷 $Q_0$）通过电阻 $R$ 放电，回路定律 $q/C + IR = 0$，$I = dq/dt$，解得
+
+            $$q(t) = Q_0e^{-t/RC}$$
+
+            电压和电流也按同样的指数规律下降，每过一个 $\tau$ 降到原来的 $1/e \approx 36.8\%$。
+
+            验证：对 $q = Q_0e^{-t/RC}$ 求导，$dq/dt = -\frac{1}{RC}q$，代入 $q/C + R\,dq/dt = q/C - q/C = 0$，成立。
+      - item:
+          id: rc-discharge
+          type: number
+          prompt: 一个电容器充电到 10 V 后通过电阻放电，时间常数 2 秒。放电 4 秒后电容器两端电压是多少伏？（保留两位小数）
+          answer: 1.35
+          tolerance: 0.005
+          unit: V
+          hint: 4 秒是几个时间常数？每个时间常数电压变为原来的几分之几？
+          explain: $V = 10e^{-4/2} = 10e^{-2} \approx 1.35\text{ V}$。
+      - item:
+          id: rc-63
+          type: number
+          prompt: 一个 RC 电路从电容器不带电开始，用 12 V 电源充电。经过一个时间常数后，电容器两端的电压约是多少伏？（保留一位小数）
+          answer: 7.6
+          tolerance: 0.05
+          unit: V
+          hint: 一个时间常数时充到终值的百分之几？
+          explain: $V = 12(1 - e^{-1}) \approx 12 \times 0.632 \approx 7.6\text{ V}$。
+      - card:
+          title: 家庭用电和安全
+          body: |
+            家庭电路的用电器都并联在火线和零线之间。电流通过人体才会造成伤害，而人体电阻大约在 1000 Ω 到 10 万 Ω 之间（皮肤潮湿时很小）。按 1000 Ω 算，220 V 会让约 0.22 A 的电流通过身体，几十毫安就可能引起心脏纤维性颤动。
+
+            安全措施：保险丝或空气开关在电流过大时断开电路；金属外壳的电器要接地，外壳漏电时电流从地线流走；漏电保护器在火线和零线电流不相等时迅速断电。
+      - item:
+          id: fuse-current
+          type: number
+          prompt: 一条 220 V 的家庭支路上同时开着 1500 W 的电热水壶和 700 W 的微波炉。这条支路的总电流是多少安？
+          answer: 10
+          unit: A
+          hint: 并联用电器的总功率是多少？
+          explain: 总功率 2200 W，$I = P/V = 2200/220 = 10\text{ A}$。若这条支路的空气开关额定 10 A，再开一个电器就可能跳闸。
+      - item:
+          id: grounding
+          type: choice
+          prompt: 洗衣机的金属外壳为什么要接地？
+          options:
+            - text: 外壳意外带电时，电流从地线流走，人碰到外壳不会有大电流通过身体
+              correct: true
+            - text: 接地能让洗衣机更省电
+              why: 地线平时没有电流，不影响耗电
+            - text: 接地能防止洗衣机产生静电
+              why: 主要目的是防止内部绝缘损坏后外壳带上 220 V；地线电阻远小于人体，故障电流会从地线走
+          explain: 地线电阻很小，和人体并联时绝大部分故障电流从地线流走，并且大电流会让保险或漏电保护器动作断电。
+
+  # ==== 磁场与安培定律 ====
+  - id: magnetic-force-charge
+    chapter: 磁场与安培定律
+    title: 磁场和运动电荷受的力
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个静止的电子放在马蹄形磁铁的两极之间。磁铁会推动或吸引它吗？
+          options:
+            - text: 不会，电荷是静止的
+              correct: true
+            - text: 会，被吸向磁铁的 N 极
+              why: 电荷不是磁极，静止的电荷不受磁铁的力
+            - text: 会，被吸向磁铁的 S 极
+              why: 磁铁对电荷的力和电荷的速度成正比，速度为 0 时力为 0
+          explain: 磁铁只对运动的电荷施力，而且力的方向和速度垂直。这一课讲这个力。
+      - card:
+          title: 磁现象和磁场
+          body: |
+            磁铁有 N、S 两极，同名相斥、异名相吸；把磁铁切成两段，每段仍有两极，至今没有发现单独的磁极。1820 年奥斯特发现电流能使附近的小磁针偏转，说明电流也会产生磁场。
+
+            磁体和电流周围存在**磁场（magnetic field）**，用**磁感应强度（magnetic field strength）** $\vec B$ 描述，单位特斯拉（T）。地磁场约 $5 \times 10^{-5}$ T，医用核磁共振约 1.5–3 T。和电场线类似，用磁感线表示磁场：磁体外部从 N 极出发回到 S 极，磁感线是闭合的。
+      - card:
+          title: 洛伦兹力
+          body: |
+            电荷 $q$ 以速度 $\vec v$ 在磁场 $\vec B$ 中运动，受力
+
+            $$F = qvB\sin\theta$$
+
+            $\theta$ 是 $\vec v$ 和 $\vec B$ 的夹角。这个力叫**洛伦兹力（Lorentz force）**，完整写法是叉乘 $\vec F = q\vec v \times \vec B$：方向同时垂直于 $\vec v$ 和 $\vec B$，正电荷用右手定则（四指从 $\vec v$ 转向 $\vec B$，拇指指向力），负电荷方向相反。
+
+            速度和磁场平行时不受力。洛伦兹力总垂直于速度，所以不做功，只改变速度的方向。
+      - item:
+          id: lorentz-force
+          type: number
+          prompt: 一个质子（$q = 1.602 \times 10^{-19}\text{ C}$）以 $2 \times 10^6\text{ m/s}$ 的速度垂直进入 0.5 T 的磁场。它受到的洛伦兹力是多少？（单位 $10^{-13}$ N，保留三位小数）
+          answer: 1.602
+          tolerance: 0.0005
+          unit: ×10⁻¹³ N
+          hint: 速度和磁场垂直时 sin θ 等于多少？
+          explain: $F = qvB = 1.602 \times 10^{-19} \times 2 \times 10^6 \times 0.5 = 1.602 \times 10^{-13}\text{ N}$。
+      - card:
+          title: 带电粒子在匀强磁场中做圆周运动
+          body: |
+            速度垂直于磁场时，洛伦兹力大小不变、始终垂直于速度，正好提供向心力：
+
+            $$qvB = \frac{mv^2}{r}\ \Rightarrow\ r = \frac{mv}{qB}$$
+
+            转一圈的周期 $T = 2\pi r/v = \frac{2\pi m}{qB}$，和速度无关。回旋加速器就利用这一点：粒子越转越快、半径越来越大，但每圈时间不变，可以用固定频率的交变电压一次次给它加速。
+
+            速度和磁场有夹角时，平行分量不受影响，轨迹是螺旋线。
+      - item:
+          id: cyclotron-radius
+          type: number
+          prompt: 一个电子（$m = 9.11 \times 10^{-31}\text{ kg}$，$e = 1.602 \times 10^{-19}\text{ C}$）以 $10^7\text{ m/s}$ 的速度垂直进入 $10^{-3}\text{ T}$ 的匀强磁场。圆周运动的半径是多少厘米？（保留一位小数）
+          answer: 5.7
+          tolerance: 0.05
+          unit: cm
+          hint: 洛伦兹力提供向心力，解出 $r$。
+          explain: $r = mv/(eB) = 9.11 \times 10^{-31} \times 10^7/(1.602 \times 10^{-19} \times 10^{-3}) \approx 0.0569\text{ m} \approx 5.7\text{ cm}$。
+      - item:
+          id: magnetic-no-work
+          type: choice
+          prompt: 一个带电粒子只在匀强磁场中运动。下面哪个说法对？
+          options:
+            - text: 它的速率保持不变
+              correct: true
+            - text: 磁场力对它做正功，它越来越快
+              why: 洛伦兹力始终垂直于速度，不做功，不改变速率
+            - text: 它一定沿磁感线方向运动
+              why: 速度垂直于磁场时粒子做圆周运动，轨迹在垂直于磁场的平面里
+          explain: 洛伦兹力垂直于速度，功率 $\vec F\cdot\vec v = 0$，动能不变，所以速率不变，只有方向在变。
+      - item:
+          id: cyclotron-period
+          type: choice
+          prompt: 回旋加速器中，质子被加速后速度变为原来的 2 倍。它在磁场中转一圈的时间怎样变化？
+          options:
+            - text: 不变
+              correct: true
+            - text: 变为原来的一半，因为跑得快了
+              why: 速度加倍，半径 $r = mv/(qB)$ 也加倍，一圈的路程加倍，时间不变
+            - text: 变为原来的 2 倍，因为半径变大了
+              why: 半径和速度同比例变大，周期 $2\pi m/(qB)$ 和速度无关
+          explain: $T = 2\pi m/(qB)$，不含速度。这正是回旋加速器能用固定频率加速的原因。
+
+  - id: magnetic-force-current
+    chapter: 磁场与安培定律
+    title: 通电导线受力、线圈力矩和霍尔效应
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 电动机里的线圈通电后会转起来。让它转起来的力来自哪里？
+          options:
+            - text: 磁场对线圈中运动电荷（电流）的力
+              correct: true
+            - text: 电流让线圈变热膨胀，推着它转
+              why: 发热膨胀非常小，也不会形成持续的转动；转动来自磁场对电流的力
+            - text: 线圈里的电荷互相排斥
+              why: 导线整体是中性的；让线圈转动的是外加磁场对电流的力矩
+          explain: 导线里的电流就是大量运动的电荷，每个都受洛伦兹力，合起来就是导线受的力。这一课从它讲到电动机。
+      - card:
+          title: 通电导线受的力
+          body: |
+            长 $L$ 的直导线通电流 $I$，放在匀强磁场 $\vec B$ 中，导线里每个运动电荷受的洛伦兹力合起来，就是导线受的力：
+
+            $$F = ILB\sin\theta$$
+
+            $\theta$ 是电流方向和磁场的夹角。这个力叫**安培力（magnetic force on a current）**，完整写法 $\vec F = I\vec L \times \vec B$，方向用右手定则判断。
+
+            电流和磁场平行时不受力，垂直时力最大。
+      - item:
+          id: wire-force
+          type: number
+          prompt: 一根长 0.5 米的直导线通 4 A 电流，垂直放在 0.2 T 的匀强磁场中。它受到的安培力是多少牛顿？
+          answer: 0.4
+          unit: N
+          hint: 电流和磁场垂直时 sin θ 等于多少？
+          explain: $F = ILB = 4 \times 0.5 \times 0.2 = 0.4\text{ N}$。
+      - card:
+          title: 电流线圈受的力矩
+          body: |
+            矩形线圈放在匀强磁场中，相对的两条边电流方向相反，受力也相反，合力为 0，但形成力矩：
+
+            $$\tau = NIAB\sin\theta$$
+
+            $N$ 是匝数，$A$ 是线圈面积，$\theta$ 是线圈法线和磁场的夹角。$\mu = NIA$ 叫线圈的**磁矩（magnetic moment）**，所以 $\tau = \mu B\sin\theta$，和电偶极子的 $\tau = pE\sin\theta$ 对应。
+
+            力矩让线圈转到法线和磁场同向。直流电动机用换向器（转轴上一对随线圈转动的半圆铜片，每转半圈把线圈两端换一次接法）每转半圈把电流方向反过来，让线圈一直朝同一方向转。
+      - item:
+          id: loop-torque
+          type: number
+          prompt: 一个 50 匝、面积 0.02 m² 的矩形线圈通 2 A 电流，放在 0.3 T 的匀强磁场中，线圈法线和磁场成 90°。线圈受到的力矩是多少 N·m？
+          answer: 0.6
+          unit: N·m
+          hint: 一匝线圈的力矩和哪几个量成正比？50 匝时力矩变成几倍？
+          explain: $\tau = NIAB\sin 90° = 50 \times 2 \times 0.02 \times 0.3 = 0.6\text{ N·m}$。
+      - card:
+          title: 霍尔效应
+          body: |
+            电流沿一块薄导体流动，磁场垂直于导体平面。运动的载流子受洛伦兹力，被推向导体的一侧，于是两侧出现电荷积累和电压，这叫**霍尔效应（Hall effect）**。
+
+            积累的电荷产生横向电场 $E$，当 $qE = qv_dB$ 时达到平衡，霍尔电压 $V_H = v_dBw$（$w$ 是宽度）。由电压的正负能判断载流子是正还是负，这是半导体里区分 N 型和 P 型的方法。霍尔电压和 $B$ 成正比，所以霍尔传感器可以测磁场。
+      - item:
+          id: hall-voltage
+          type: number
+          prompt: 一块宽 1 厘米的导体中，载流子的漂移速度为 $5 \times 10^{-4}\text{ m/s}$，垂直的磁场为 2 T。霍尔电压是多少微伏？
+          answer: 10
+          unit: μV
+          hint: 平衡时横向电场力和洛伦兹力相等，霍尔电压等于横向电场乘以宽度。
+          explain: $V_H = v_dBw = 5 \times 10^{-4} \times 2 \times 0.01 = 10^{-5}\text{ V} = 10\ \mu\text{V}$。
+      - card:
+          title: 磁力的应用
+          body: |
+            - 质谱仪：离子先经速度选择器（电场力 $qE$ 和洛伦兹力 $qvB$ 平衡，只有 $v = E/B$ 的离子能直线通过），再进入磁场做圆周运动，半径 $r = mv/(qB)$ 和质量成正比，于是不同质量的离子落在不同位置。
+            - 电动机、扬声器：通电线圈在磁场里受力转动或振动。
+            - 磁约束：带电粒子沿磁感线螺旋前进，可以用磁场把高温等离子体约束住。
+      - item:
+          id: velocity-selector
+          type: number
+          prompt: 一个速度选择器里电场为 $3 \times 10^4\text{ V/m}$，磁场为 0.1 T，两者互相垂直。能直线通过的离子速度是多少 m/s？
+          answer: 300000
+          unit: m/s
+          hint: 直线通过时电场力和洛伦兹力是什么关系？
+          explain: $qE = qvB$，$v = E/B = 3 \times 10^4/0.1 = 3 \times 10^5\text{ m/s}$，和离子的电荷、质量无关。
+
+  - id: biot-savart
+    chapter: 磁场与安培定律
+    title: 电流产生的磁场
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两根平行的直导线通有同方向的电流。它们之间会怎样？
+          options:
+            - text: 互相吸引
+              correct: true
+            - text: 互相排斥，因为同方向的东西互相排斥
+              why: 这和同号电荷相斥不同；一根导线的磁场对另一根导线中电流的力，同向电流时指向彼此
+            - text: 没有作用，因为导线整体不带电
+              why: 导线不带净电荷，但电流产生磁场，另一根导线的电流在这个磁场中受安培力
+          explain: 每根导线的电流都产生磁场，另一根导线的电流在这个磁场中受力。同向电流相吸、反向相斥。这一课算电流产生的磁场。
+      - card:
+          title: 毕奥-萨伐尔定律
+          body: |
+            一小段长 $dl$、电流 $I$ 的导线，在距离 $r$ 处产生的磁场满足**毕奥-萨伐尔定律（Biot–Savart law）**：
+
+            $$dB = \frac{\mu_0}{4\pi}\frac{I\,dl\sin\theta}{r^2}$$
+
+            $\theta$ 是电流方向和到场点连线的夹角。$\mu_0 = 4\pi \times 10^{-7}\text{ T·m/A}$ 叫**真空磁导率（permeability of free space）**。
+
+            整根导线的磁场，就是把每一小段的 $dB$ 按矢量相加，也就是积分。它和点电荷的 $1/r^2$ 相似，但方向垂直于电流和连线所在的平面。
+      - card:
+          title: 长直导线的磁场
+          body: |
+            对无限长直导线用毕奥-萨伐尔定律积分，得到距离 $r$ 处的磁场
+
+            $$B = \frac{\mu_0 I}{2\pi r}$$
+
+            磁感线是以导线为圆心的同心圆，方向用右手定则：右手握住导线，拇指指向电流，四指弯曲的方向就是磁场方向。
+
+            例：10 A 电流在 5 cm 处，$B = 4\pi \times 10^{-7} \times 10/(2\pi \times 0.05) = 4 \times 10^{-5}\text{ T}$，和地磁场差不多大。
+      - item:
+          id: wire-field
+          type: number
+          prompt: 一根很长的直导线通 20 A 电流。距离它 4 厘米处的磁感应强度是多少？（单位 $10^{-5}$ T）
+          answer: 10
+          unit: ×10⁻⁵ T
+          hint: 长直导线的磁场和距离成反比，距离换成米。
+          explain: $B = \mu_0I/(2\pi r) = 2 \times 10^{-7} \times 20/0.04 = 10^{-4}\text{ T} = 10 \times 10^{-5}\text{ T}$。
+      - card:
+          title: 两根平行电流之间的力
+          body: |
+            导线 1 在导线 2 处产生 $B_1 = \mu_0I_1/(2\pi d)$，导线 2 长 $L$ 的一段受安培力 $F = I_2LB_1$，所以单位长度受力
+
+            $$\frac{F}{L} = \frac{\mu_0I_1I_2}{2\pi d}$$
+
+            同向电流相吸，反向相斥。
+
+            圆电流：半径 $R$ 的圆形线圈通电流 $I$，圆心处的磁场 $B = \frac{\mu_0 I}{2R}$，方向沿线圈轴线，也用右手定则判断。
+      - item:
+          id: parallel-wires
+          type: number
+          prompt: 两根相距 0.1 米的长直平行导线，各通 5 A 同向电流。每米导线受到的力是多少？（单位 $10^{-5}$ N/m）
+          answer: 5
+          unit: ×10⁻⁵ N/m
+          hint: 一根导线在另一根处的磁场是多少？再乘以电流和长度。
+          explain: $F/L = \mu_0I_1I_2/(2\pi d) = 2 \times 10^{-7} \times 25/0.1 = 5 \times 10^{-5}\text{ N/m}$，互相吸引。
+      - item:
+          id: loop-center
+          type: number
+          prompt: 半径 0.1 米的单匝圆形线圈通 2 A 电流。圆心处的磁感应强度是多少微特斯拉？（保留两位小数）
+          answer: 12.57
+          tolerance: 0.005
+          unit: μT
+          hint: 圆电流在圆心的磁场和半径成反比。
+          explain: $B = \mu_0I/(2R) = 4\pi \times 10^{-7} \times 2/0.2 = 4\pi \times 10^{-6}\text{ T} \approx 12.57\ \mu\text{T}$。
+      - item:
+          id: field-direction
+          type: choice
+          prompt: 一根竖直导线中电流向上，从上往下俯视。导线周围的磁感线是什么样的？
+          options:
+            - text: 逆时针方向的同心圆
+              correct: true
+            - text: 顺时针方向的同心圆
+              why: 右手拇指向上握住导线，从上往下看四指是逆时针弯的
+            - text: 从导线向外辐射的直线
+              why: 那是带电直线的电场线；电流的磁感线绕着导线成闭合圆圈
+          explain: 右手定则：拇指沿电流向上，四指弯曲方向从上方看是逆时针。
+
+  - id: ampere-law
+    chapter: 磁场与安培定律
+    title: 安培环路定理、螺线管和磁介质
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把一根长导线绕成密密的螺旋形线圈并通电。线圈内部的磁场和同样电流的单根直导线附近相比怎样？
+          options:
+            - text: 强得多，而且内部大致均匀
+              correct: true
+            - text: 一样强，因为电流相同
+              why: 每一圈导线的磁场在线圈内部都朝同一方向，许多圈叠加起来强得多
+            - text: 为 0，因为各圈的磁场互相抵消
+              why: 线圈内部各圈的磁场方向相同，相加而不是抵消；线圈外部才大部分抵消
+          explain: 各圈电流的磁场在线圈内部同向叠加。用安培环路定理可以直接算出它。
+      - card:
+          title: 安培环路定理
+          body: |
+            沿长直导线周围半径 $r$ 的圆走一圈，每处 $B$ 沿着路径、大小 $\mu_0I/(2\pi r)$，所以 $B$ 乘以路径长度 $2\pi r$ 等于 $\mu_0I$，和 $r$ 无关。
+
+            推广到任意闭合路径和电流分布，就是**安培环路定理（Ampère's law）**：
+
+            $$\oint \vec B\cdot d\vec l = \mu_0 I_{\text{穿过}}$$
+
+            左边是把路径切成小段，每段 $B$ 沿路径的分量乘以小段长度再相加；右边是穿过这条闭合路径所围面积的总电流。和高斯定律一样，只有在对称时才能方便地用它求 $B$。
+      - item:
+          id: ampere-enclosed
+          type: number
+          prompt: 三根长直导线垂直穿过纸面：两根电流 3 A 向外，一根电流 5 A 向里。一条闭合路径把三根都围在里面，按“向外为正”计算，$\oint \vec B\cdot d\vec l$ 等于多少？（单位 $\mu_0$·A，填 $\mu_0$ 前面的数）
+          answer: 1
+          unit: μ₀·A
+          hint: 穿过路径的总电流要考虑方向。
+          explain: 总电流 $3 + 3 - 5 = 1\text{ A}$（向外），$\oint \vec B\cdot d\vec l = \mu_0 \times 1$。
+      - card:
+          title: 螺线管和螺绕环
+          body: |
+            导线密绕成的长圆筒形线圈叫**螺线管（solenoid）**。内部磁场近似均匀、沿轴线，外部几乎为 0。取一个矩形路径，一条边长 $L$ 在管内、对边在管外：只有管内那条边有贡献，$BL = \mu_0 nLI$，所以
+
+            $$B = \mu_0 nI$$
+
+            $n$ 是每米匝数。把螺线管弯成圆环叫螺绕环，取环内半径 $r$ 的圆作路径，$B \cdot 2\pi r = \mu_0NI$，$B = \mu_0NI/(2\pi r)$，磁场全部关在环内。
+      - item:
+          id: solenoid-field
+          type: number
+          prompt: 一个长螺线管每米绕 1000 匝，通 2 A 电流。内部的磁感应强度是多少毫特斯拉？（保留两位小数）
+          answer: 2.51
+          tolerance: 0.005
+          unit: mT
+          hint: 取一个一边在管内、一边在管外的矩形路径，四条边各对 $\oint\vec B\cdot d\vec l$ 贡献多少？路径围住了多少电流？
+          explain: $B = \mu_0nI = 4\pi \times 10^{-7} \times 1000 \times 2 \approx 2.51 \times 10^{-3}\text{ T} = 2.51\text{ mT}$。用的路径是一边在管内、一边在管外的矩形。
+      - item:
+          id: path-choice
+          type: choice
+          prompt: 用安培环路定理求一根无限长直导线周围的磁场，应该选什么样的闭合路径？
+          options:
+            - text: 以导线为圆心、垂直于导线的圆
+              correct: true
+            - text: 一个跨过导线的矩形
+              why: 矩形各边到导线的距离不同，$B$ 的大小和方向沿路径都在变，环路积分不能化成 $B$ 乘长度
+            - text: 围住导线的任意一条不规则闭合曲线
+              why: 定理对它也成立，但曲线上 $B$ 的大小和方向处处在变，环路积分不能化成 $B$ 乘长度，求不出 $B$
+          explain: 圆上各点到导线距离相同，$B$ 大小相同且沿圆周切线，$\oint \vec B\cdot d\vec l = B \cdot 2\pi r = \mu_0I$。
+      - card:
+          title: 物质的磁性
+          body: |
+            原子里电子的运动形成微小的磁矩。放进磁场后，物质分三类：
+
+            - 顺磁质（铝、氧气）：原子磁矩略微转向外磁场，磁场稍有增强；
+            - 抗磁质（铜、水、铋）：产生和外磁场相反的微弱磁矩，磁场稍有减弱；
+            - **铁磁质（ferromagnetic material）**（铁、钴、镍）：内部有自发磁化的小区域（磁畴），外磁场能让磁畴整齐排列，使磁场增强成百上千倍，去掉外场后还能保留磁性。
+
+            在螺线管里放铁芯，就成了磁场很强的电磁铁。
+      - item:
+          id: iron-core
+          type: choice
+          prompt: 在一个通电螺线管中插入铁芯，管内磁场变强很多。原因是什么？
+          options:
+            - text: 铁芯里的磁畴在外磁场作用下整齐排列，产生同向的强磁场
+              correct: true
+            - text: 铁芯增大了螺线管中的电流
+              why: 插入铁芯不会改变直流电流的大小（电源和电阻没变），增强的是磁化产生的磁场
+            - text: 铁芯本身就是一块永磁铁
+              why: 软铁芯平时几乎没有磁性，是被螺线管的磁场磁化后才产生强磁场
+          explain: 铁是铁磁质，外磁场使它的磁畴排列整齐，自身产生的磁场和线圈的磁场同向叠加。
+
+  # ==== 电磁感应 ====
+  - id: faraday-lenz
+    chapter: 电磁感应
+    title: 法拉第定律、楞次定律和动生电动势
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把一块磁铁插进一个接着电流表的线圈，电流表显示有电流；磁铁停在线圈里不动时，读数回到零。这说明线圈中产生电流的条件是什么？
+          options:
+            - text: 穿过线圈的磁场在变化
+              correct: true
+            - text: 线圈里有磁场
+              why: 磁铁停在线圈里时磁场很强，却没有电流；关键是磁场在变
+            - text: 磁铁碰到了线圈
+              why: 磁铁不接触线圈，只要靠近或远离也会产生电流
+          explain: 只有当穿过线圈的磁场变化时才有电流。这叫电磁感应，这一课找出它的定量规律。
+      - card:
+          title: 磁通量
+          body: |
+            和电通量类似，穿过一个面的磁感线的多少叫**磁通量（magnetic flux）**。匀强磁场 $B$ 穿过面积 $A$ 的平面时
+
+            $$\Phi_B = BA\cos\theta$$
+
+            $\theta$ 是磁场和平面法线的夹角。单位韦伯（Wb），$1\text{ Wb} = 1\text{ T·m}^2$。
+
+            磁感线总是闭合的，进入一个闭合曲面多少就穿出多少，所以穿过任意闭合曲面的磁通量为 0，这是磁场的高斯定律。
+      - card:
+          title: 法拉第电磁感应定律
+          body: |
+            穿过闭合回路的磁通量变化时，回路中产生感应电动势。**法拉第电磁感应定律（Faraday's law）**：
+
+            $$\varepsilon = -N\frac{d\Phi_B}{dt}$$
+
+            $N$ 是线圈匝数。磁通量变化越快，电动势越大。改变磁通量有三种方式：改变 $B$、改变面积 $A$、改变夹角 $\theta$（转动线圈，这就是发电机）。负号表示感应电动势总是阻碍磁通量的变化。
+      - item:
+          id: faraday-avg
+          type: number
+          prompt: 一个 100 匝、面积 0.01 m² 的线圈处在垂直于线圈平面的匀强磁场中，磁场在 0.1 秒内从 0.5 T 均匀减小到 0。平均感应电动势是多少伏？
+          answer: 5
+          unit: V
+          hint: 磁通量变化了多少？用了多长时间？别忘了匝数。
+          explain: $\Delta\Phi = 0.5 \times 0.01 = 0.005\text{ Wb}$，$\varepsilon = N\Delta\Phi/\Delta t = 100 \times 0.005/0.1 = 5\text{ V}$。
+      - card:
+          title: 楞次定律
+          body: |
+            感应电流的方向，总是让它自己产生的磁场阻碍引起它的磁通量变化。这叫**楞次定律（Lenz's law）**。
+
+            用法：先看原磁通量是增加还是减少；增加时感应电流的磁场和原磁场反向，减少时同向；再用右手定则由磁场方向定出电流方向。
+
+            楞次定律是能量守恒的结果：如果感应电流帮着磁通量变化，磁铁一推就会自己越跑越快，凭空产生能量。
+      - item:
+          id: lenz-direction
+          type: choice
+          prompt: 一个线圈处在垂直纸面向里的匀强磁场中，磁场正在均匀减小。线圈中感应电流产生的磁场是什么方向？
+          options:
+            - text: 垂直纸面向里
+              correct: true
+            - text: 垂直纸面向外，和原磁场相反
+              why: 原磁通量在减少，感应电流的磁场要“补上”它，所以和原磁场同向
+            - text: 没有感应电流，因为磁场方向没变
+              why: 磁场大小在变，磁通量就在变，就会有感应电流
+          explain: 楞次定律阻碍的是变化：磁通量减少，感应电流的磁场和原磁场同向；从纸面外看，向里的磁场对应顺时针电流。
+      - card:
+          title: 动生电动势
+          body: |
+            长 $L$ 的导体棒在磁场 $B$ 中以速度 $v$ 运动，棒、速度、磁场三者两两垂直，棒里的自由电荷随棒运动，受洛伦兹力 $qvB$ 沿棒方向，被推到一端，两端出现电势差：
+
+            $$\varepsilon = BLv$$
+
+            这叫**动生电动势（motional emf）**。用法拉第定律看：棒和导轨围成的回路面积每秒增加 $Lv$，磁通量变化率 $BLv$，结果相同。
+
+            棒中有电流 $I$ 时，它在磁场中受安培力 $ILB$，方向和运动相反，所以要用外力拉着它才能保持匀速，外力的功率正好等于电功率 $\varepsilon I$。
+      - item:
+          id: motional-emf
+          type: number
+          prompt: 一根长 0.4 米的导体棒以 5 m/s 的速度在 0.3 T 的匀强磁场中滑动，棒、速度、磁场三者两两垂直。棒两端的电动势是多少伏？
+          answer: 0.6
+          unit: V
+          hint: 1 秒内棒扫过的面积是多少？穿过这块面积的磁通每秒变化多少？
+          explain: $\varepsilon = BLv = 0.3 \times 0.4 \times 5 = 0.6\text{ V}$。
+      - item:
+          id: rod-force
+          type: number
+          prompt: 一根长 0.4 米的导体棒在两根平行导轨上以 5 m/s 的速度匀速滑动，垂直于 0.3 T 的匀强磁场，棒和导轨构成的回路总电阻为 0.2 Ω。要让棒保持匀速，外力需要多大（单位 N）？
+          answer: 0.36
+          unit: N
+          hint: 先求感应电流，再求它受的安培力。
+          explain: 电动势 $\varepsilon = BLv = 0.6\text{ V}$，$I = \varepsilon/R = 3\text{ A}$，安培力 $ILB = 3 \times 0.4 \times 0.3 = 0.36\text{ N}$，外力与它平衡。外力功率 $0.36 \times 5 = 1.8\text{ W} = \varepsilon I$。
+
+  - id: induction-applications
+    chapter: 电磁感应
+    title: 感生电场、涡流、发电机和反电动势
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 电磁炉的面板本身不发热，放上铁锅后锅底却很快变热。热是从哪里来的？
+          options:
+            - text: 面板下的线圈产生变化的磁场，在锅底感应出电流，电流使锅底发热
+              correct: true
+            - text: 面板下有电热丝，热量传给锅底
+              why: 如果是电热丝，面板本身会先变得很烫；电磁炉是让锅底自己发热
+            - text: 磁场直接把热量传给铁锅
+              why: 磁场不是热；变化的磁场在锅底感应出电流，电流流过有电阻的锅底才发热
+          explain: 变化的磁场在导体里感应出旋涡状的电流，电流使导体发热。这一课讲这种现象和它的应用。
+      - card:
+          title: 感生电场
+          body: |
+            静止的线圈放在变化的磁场里也会有感应电流，可这时导体没有运动，推动电荷的不是洛伦兹力。麦克斯韦认为：变化的磁场在周围空间激发一种电场，叫**感生电场（induced electric field）**，即使没有导体它也存在。
+
+            法拉第定律可以写成 $\oint \vec E\cdot d\vec l = -\frac{d\Phi_B}{dt}$。感生电场的电场线是闭合的，和电荷产生的电场不同，它不是保守力场：沿闭合路径走一圈，电场力做的功不为 0。
+      - item:
+          id: induced-field
+          type: number
+          prompt: 一个半径 0.1 米的圆形区域内有均匀磁场，正以每秒 0.2 T 的快慢增大。在半径 0.1 米的圆周上，感生电场的大小是多少？（单位 $10^{-2}$ V/m）
+          answer: 1
+          unit: ×10⁻² V/m
+          hint: 沿这个圆周的 $\oint \vec E\cdot d\vec l$ 等于 $E$ 乘以周长，它等于磁通量的变化率。
+          explain: $E \cdot 2\pi r = \pi r^2 \frac{dB}{dt}$，$E = \frac{r}{2}\frac{dB}{dt} = 0.05 \times 0.2 = 0.01\text{ V/m}$。
+      - card:
+          title: 涡流
+          body: |
+            变化的磁场在大块导体内部感应出旋涡状的电流，叫**涡流（eddy current）**。涡流会发热，也会产生阻碍导体相对磁场运动的力。
+
+            - 利用：电磁炉、感应加热炉；列车和过山车的电磁制动；金属探测器。
+            - 防止：变压器和电动机的铁芯用彼此绝缘的薄硅钢片叠成，切断涡流的大回路，减少发热损耗。
+
+            一块铝板在两个磁极之间摆动，很快就停下来，就是涡流的阻碍作用。
+      - card:
+          title: 发电机
+          body: |
+            $N$ 匝、面积 $A$ 的线圈在匀强磁场 $B$ 中以角速度 $\omega$ 转动，磁通量 $\Phi = BA\cos\omega t$，对时间求导得 $d\Phi/dt = -BA\omega\sin\omega t$，再由法拉第定律
+
+            $$\varepsilon = NBA\omega\sin\omega t$$
+
+            产生正弦交流电，峰值 $\varepsilon_{\max} = NBA\omega$。发电厂的发电机就是这样把机械能变成电能。日常说的“220 V 交流电”指有效值，比峰值小，220 V 市电的峰值约 311 V。
+      - item:
+          id: generator-peak
+          type: number
+          prompt: 一台小型发电机的线圈 200 匝、面积 0.05 m²，在 0.1 T 的磁场中以 50 圈每秒转动。电动势的峰值是多少伏？（保留一位小数）
+          answer: 314.2
+          tolerance: 0.05
+          unit: V
+          hint: 角速度用 rad/s：每秒 50 圈是多少弧度每秒？
+          explain: $\omega = 2\pi \times 50 \approx 314.16\text{ rad/s}$，$\varepsilon_{\max} = NBA\omega = 200 \times 0.1 \times 0.05 \times 314.16 \approx 314.2\text{ V}$。
+      - card:
+          title: 电动机的反电动势
+          body: |
+            电动机通电后转动，它的线圈也在磁场里转，同样会产生感应电动势。按楞次定律，这个电动势和外加电压方向相反，叫**反电动势（back emf）**，转得越快越大。
+
+            线圈电流 $I = (V - \varepsilon_{\text{反}})/R$。刚启动时转速为 0，没有反电动势，电流很大；转起来后反电动势增大，电流变小。所以电动机卡住不转时电流猛增，容易烧坏线圈。
+      - item:
+          id: back-emf
+          type: number
+          prompt: 一台直流电动机接 120 V 电压，线圈电阻 2 Ω。正常转动时反电动势为 100 V。此时线圈中的电流是多少安？
+          answer: 10
+          unit: A
+          hint: 线圈电阻两端的电压是外加电压减去什么？
+          explain: 正常转动 $I = (120 - 100)/2 = 10\text{ A}$；刚启动时没有反电动势，$I = 120/2 = 60\text{ A}$，是正常时的 6 倍。
+      - card:
+          title: 电磁感应的应用
+          body: |
+            - 变压器：两个线圈绕在同一个铁芯上，原线圈的交变电流产生变化的磁通量，副线圈感应出电压，$V_2/V_1 = N_2/N_1$（理想变压器）。远距离输电先升压、到用户处再降压。
+            - 无线充电、刷卡：发射线圈的交变磁场在接收线圈里感应出电流。
+            - 电吉他拾音器：振动的钢弦改变线圈中的磁通量，产生电信号。
+      - item:
+          id: transformer
+          type: number
+          prompt: 一个理想变压器原线圈 1100 匝，接 220 V 交流电；要在副线圈得到 12 V，副线圈需要多少匝？
+          answer: 60
+          unit: 匝
+          hint: 原、副线圈穿过的是同一个磁通，每一匝感应出的电压一样吗？
+          explain: $N_2 = N_1V_2/V_1 = 1100 \times 12/220 = 60$ 匝。
+
+  - id: inductance
+    chapter: 电磁感应
+    title: 互感、自感和磁场能量
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个大线圈和电灯泡串联接在直流电源上。断开开关的瞬间，开关处常常冒出火花。原因是什么？
+          options:
+            - text: 电流突然减小，线圈自身产生很大的感应电动势
+              correct: true
+            - text: 开关断开时电源电压突然升高
+              why: 电源电压没有变；火花来自线圈中电流急剧变化产生的感应电动势
+            - text: 开关的金属片摩擦生热
+              why: 普通开关断开时摩擦很小，冒火花是因为两端瞬间出现了很高的电压
+          explain: 线圈中的电流要变化时，它自己会产生阻碍这种变化的电动势；电流在极短时间内断开，这个电动势可以非常大。
+      - card:
+          title: 互感
+          body: |
+            两个线圈靠得很近，线圈 1 的电流 $I_1$ 变化时，它产生的磁场穿过线圈 2 的磁通量也变，线圈 2 中产生感应电动势：
+
+            $$\varepsilon_2 = -M\frac{dI_1}{dt}$$
+
+            这叫**互感（mutual inductance）**，$M$ 叫互感系数，单位亨利（H），由两个线圈的形状、匝数和相对位置决定。变压器、无线充电都是利用互感。
+      - item:
+          id: mutual-emf
+          type: number
+          prompt: 两个线圈的互感系数是 0.05 H。线圈 1 的电流在 0.02 秒内从 0 均匀增大到 4 A。线圈 2 中的感应电动势大小是多少伏？
+          answer: 10
+          unit: V
+          hint: 电流的变化率是多少？
+          explain: $|\varepsilon_2| = M\,\Delta I_1/\Delta t = 0.05 \times 4/0.02 = 10\text{ V}$。
+      - card:
+          title: 自感和电感
+          body: |
+            线圈自身的电流变化时，穿过自己的磁通量也变化，在自身产生感应电动势：
+
+            $$\varepsilon = -L\frac{dI}{dt}$$
+
+            这叫**自感（self-inductance）**，$L$ 叫自感系数，简称**电感（inductance）**，单位亨利。按楞次定律，它总是阻碍电流的变化：电流增大时阻碍增大，电流减小时阻碍减小，像电路里的“惯性”。
+
+            长螺线管（$N$ 匝、截面积 $A$、长 $l$）：$B = \mu_0NI/l$，磁链 $N\Phi = \mu_0N^2AI/l$，所以 $L = \mu_0N^2A/l$。
+      - item:
+          id: solenoid-l
+          type: number
+          prompt: 一个长 0.5 米的螺线管绕 1000 匝，截面积 $4 \times 10^{-4}\text{ m}^2$，中间是空气。它的电感是多少毫亨？（保留三位小数）
+          answer: 1.005
+          tolerance: 0.0005
+          unit: mH
+          hint: 先求通 1 A 电流时管内的磁场，再算穿过全部线圈的总磁通，两者怎样给出电感？
+          explain: $L = 4\pi \times 10^{-7} \times 10^6 \times 4 \times 10^{-4}/0.5 \approx 1.005 \times 10^{-3}\text{ H} = 1.005\text{ mH}$。
+      - card:
+          title: 磁场的能量
+          body: |
+            让电感中的电流从 0 增大到 $I$，要克服自感电动势做功：每一步做功 $L\frac{di}{dt} \cdot i\,dt = Li\,di$，累加起来是 $Li$–$i$ 图下的三角形面积：
+
+            $$U = \tfrac12 LI^2$$
+
+            这些能量储存在线圈的磁场里。对螺线管换算可得单位体积的**磁场能量（energy in a magnetic field）**：
+
+            $$u = \frac{B^2}{2\mu_0}$$
+
+            和电场能量密度 $\tfrac12\varepsilon_0E^2$ 对应。
+      - item:
+          id: inductor-energy
+          type: number
+          prompt: 一个 0.2 H 的电感中通过 3 A 电流。它储存的磁场能量是多少焦耳？
+          answer: 0.9
+          unit: J
+          hint: 磁场能量和电感、电流是什么关系？
+          explain: $U = \tfrac12 LI^2 = \tfrac12 \times 0.2 \times 9 = 0.9\text{ J}$。
+      - item:
+          id: inductor-behavior
+          type: choice
+          prompt: 一个电感和电阻串联接到直流电源上。刚接通的瞬间和很久以后，电感分别起什么作用？
+          options:
+            - text: 刚接通时阻碍电流增大，电流从 0 慢慢上升；很久以后电流稳定，电感像一根导线
+              correct: true
+            - text: 刚接通时像一根导线，很久以后阻碍电流
+              why: 电感阻碍的是电流的变化；稳定的直流不变化，电感就不再起作用
+            - text: 始终阻碍电流，让电流一直比没有电感时小
+              why: 稳定后 $dI/dt = 0$，自感电动势为 0，电流和没有电感时一样
+          explain: 自感电动势 $-L\,dI/dt$ 只在电流变化时出现。接通瞬间电流变化最快，阻碍最强；稳定后电感两端没有电压（不计线圈电阻）。
+
+  - id: rl-lc-rlc
+    chapter: 电磁感应
+    title: RL 电路、LC 振荡和 RLC 电路
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个充好电的电容器和一个电感接成回路（电阻可以忽略）。接通后电容器的电荷会怎样变化？
+          options:
+            - text: 来回振荡，不断反向充电
+              correct: true
+            - text: 一下子放完，然后电路里没有电流
+              why: 电感阻碍电流减小，电容器放完电时电流最大，电感会推着电流继续流，把电容器反向充上电
+            - text: 电荷保持不变，因为电感阻碍电流
+              why: 电感阻碍的是电流的变化，不是电流本身；电流会逐渐建立起来
+          explain: 电场能变成磁场能，磁场能又变回电场能，像弹簧振子里的势能和动能来回转换。这一课算这种振荡和 RL 电路的变化快慢。
+      - card:
+          title: RL 电路
+          body: |
+            电动势 $\varepsilon$、电阻 $R$、电感 $L$ 串联，$t = 0$ 时接通。回路定律：$\varepsilon - IR - L\frac{dI}{dt} = 0$，解得
+
+            $$I(t) = \frac{\varepsilon}{R}\left(1 - e^{-t/\tau}\right),\qquad \tau = \frac{L}{R}$$
+
+            （求导后代回方程可以验证。）电流从 0 按指数规律增大到 $\varepsilon/R$，时间常数 $\tau = L/R$。和 RC 电路的 $\tau = RC$ 对应：一个 $\tau$ 后达到终值的约 63.2%。
+
+            撤掉电源让电流通过电阻衰减时，$I = I_0e^{-t/\tau}$。
+      - item:
+          id: rl-tau
+          type: number
+          prompt: 一个 0.5 H 的电感和 25 Ω 的电阻串联。时间常数是多少毫秒？
+          answer: 20
+          unit: ms
+          hint: 电感越大，电流变化越快还是越慢？电阻越大呢？时间常数应该怎样由这两个量组成？
+          explain: $\tau = L/R = 0.5/25 = 0.02\text{ s} = 20\text{ ms}$。
+      - item:
+          id: rl-current
+          type: number
+          prompt: 一个 RL 串联电路接 12 V 直流电源，$R = 6\ \Omega$，$L = 0.3\text{ H}$。接通后 0.05 秒时电流是多少安？（保留两位小数）
+          answer: 1.26
+          tolerance: 0.005
+          unit: A
+          hint: 先求终值电流和时间常数，0.05 秒是几个时间常数？
+          explain: 终值 $12/6 = 2\text{ A}$，$\tau = 0.3/6 = 0.05\text{ s}$，正好一个时间常数：$I = 2(1 - e^{-1}) \approx 1.26\text{ A}$。
+      - card:
+          title: LC 振荡
+          body: |
+            充电的电容器 $C$ 和电感 $L$ 接成回路，电流会来回振荡，叫 **LC 振荡（LC oscillation）**。回路定律 $L\frac{dI}{dt} + \frac{q}{C} = 0$，$I = dq/dt$，所以
+
+            $$\frac{d^2q}{dt^2} = -\frac{1}{LC}q$$
+
+            这和弹簧振子 $\frac{d^2x}{dt^2} = -\frac{k}{m}x$ 形式相同。$q = Q_0\cos\omega t$ 求两次导数得 $-\omega^2 q$，代回可知它是解，角频率
+
+            $$\omega = \frac{1}{\sqrt{LC}},\qquad f = \frac{1}{2\pi\sqrt{LC}}$$
+
+            电容器的电场能 $q^2/(2C)$ 和电感的磁场能 $\tfrac12 LI^2$ 来回转换，总能量不变。收音机就是靠调节 $C$ 改变 LC 电路的频率来选台。
+      - item:
+          id: lc-frequency
+          type: number
+          prompt: 一个 LC 电路中 $L = 1\text{ mH}$，$C = 10\text{ nF}$。振荡频率是多少千赫？（保留一位小数）
+          answer: 50.3
+          tolerance: 0.05
+          unit: kHz
+          hint: 先算 $LC$，单位换成亨利和法拉。
+          explain: $LC = 10^{-3} \times 10^{-8} = 10^{-11}$，$f = 1/(2\pi\sqrt{10^{-11}}) \approx 50329\text{ Hz} \approx 50.3\text{ kHz}$。
+      - item:
+          id: lc-energy
+          type: number
+          prompt: 一个 LC 电路中，电容器 $C = 2\ \mu\text{F}$ 最初充电到 10 V，电感 $L = 5\text{ mH}$，电阻忽略不计。电流的最大值是多少安？
+          answer: 0.2
+          unit: A
+          hint: 电容器放完电的那一刻，能量全部到了哪里？
+          explain: 能量守恒：$\tfrac12 CV^2 = \tfrac12 LI_{\max}^2$，$I_{\max} = V\sqrt{C/L} = 10\sqrt{2 \times 10^{-6}/5 \times 10^{-3}} = 10 \times 0.02 = 0.2\text{ A}$。
+      - card:
+          title: RLC 串联电路
+          body: |
+            真实电路总有电阻。在 LC 回路里串联电阻 $R$，每个周期都有一部分能量在电阻上变成热，振荡的幅度越来越小，这叫阻尼振荡，和有摩擦的弹簧振子对应。
+
+            电阻较小时（$R < 2\sqrt{L/C}$），电荷仍会来回振荡，只是振幅按 $e^{-Rt/(2L)}$ 衰减；电阻较大时，电容器直接放电到 0 而不再振荡。
+      - item:
+          id: rlc-damping
+          type: choice
+          prompt: 在一个 LC 振荡电路中串联一个小电阻。下面哪个说法对？
+          options:
+            - text: 幅度逐渐减小，能量变成热
+              correct: true
+            - text: 振荡频率变为 0，电路立刻停止振荡
+              why: 电阻较小时仍会振荡，只是幅度逐渐衰减；只有电阻足够大时才不振荡
+            - text: 振荡幅度不变，电阻只是让电流变小
+              why: 电阻每个周期都消耗 $I^2R$ 的能量，总能量减少，幅度随之减小
+          explain: 电阻把电磁能变成热，就像摩擦让振子越摆越小。
+
+  # ==== 麦克斯韦方程组的积分形式 ====
+  - id: maxwell
+    chapter: 麦克斯韦方程组的积分形式
+    title: 位移电流和麦克斯韦方程组
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 给电容器充电时，导线里有电流，但两块极板之间是空气，没有电荷流过。极板之间的空间里会有磁场吗？
+          options:
+            - text: 有，变化的电场也会产生磁场
+              correct: true
+            - text: 没有，因为两板之间没有电流
+              why: 实验测得两板之间也有磁场；麦克斯韦指出，产生它的是两板之间正在变化的电场
+            - text: 只有极板边缘的导线附近才有
+              why: 两板之间的空间里也有环绕的磁场，和导线周围的磁场连成一片
+          explain: 麦克斯韦认为变化的电场和电流一样能产生磁场。补上这一项后，电和磁的规律合成了一组完整的方程。
+      - card:
+          title: 安培环路定理遇到的问题
+          body: |
+            对充电中的电容器，取一条绕着导线的闭合路径。安培环路定理右边是“穿过以这条路径为边界的曲面的电流”。如果曲面是一张平平的圆片，被导线穿过，电流是 $I$；如果曲面像口袋一样鼓起来，从两块极板之间穿过，就没有电流穿过它。同一条路径，两种曲面给出不同的结果，说明原来的定理在电流变化时不完整。
+      - card:
+          title: 位移电流
+          body: |
+            两板之间没有电荷流过，但电场在变：板上电荷 $q$ 增加，两板间电通量 $\Phi_E = q/\varepsilon_0$ 也增加，$\varepsilon_0\frac{d\Phi_E}{dt} = \frac{dq}{dt} = I$。
+
+            麦克斯韦把 $I_d = \varepsilon_0\frac{d\Phi_E}{dt}$ 叫**位移电流（displacement current）**，加进安培环路定理：
+
+            $$\oint \vec B\cdot d\vec l = \mu_0 I + \mu_0\varepsilon_0\frac{d\Phi_E}{dt}$$
+
+            这样无论选哪个曲面，结果都相同：变化的电场也会产生磁场。
+      - item:
+          id: displacement-current
+          type: number
+          prompt: 一个平行板电容器正在充电，两板之间的电通量以每秒 $2 \times 10^{11}\text{ V·m}$ 的快慢增加。两板之间的位移电流是多少安？（$\varepsilon_0 = 8.854 \times 10^{-12}$，保留两位小数）
+          answer: 1.77
+          tolerance: 0.005
+          unit: A
+          hint: 两板之间没有电荷流过，可那里的电场在变。位移电流和电通量的变化率之间差一个什么常数？
+          explain: $I_d = \varepsilon_0\,d\Phi_E/dt = 8.854 \times 10^{-12} \times 2 \times 10^{11} \approx 1.77\text{ A}$，等于导线中的充电电流。
+      - card:
+          title: 麦克斯韦方程组
+          body: |
+            把电磁学的四条基本规律写在一起，就是**麦克斯韦方程组（Maxwell's equations）**的积分形式：
+
+            $$\begin{aligned}
+            &\oint \vec E\cdot d\vec A = \frac{Q_{\text{内}}}{\varepsilon_0} &&\text{电场的高斯定律}\\
+            &\oint \vec B\cdot d\vec A = 0 &&\text{磁场的高斯定律}\\
+            &\oint \vec E\cdot d\vec l = -\frac{d\Phi_B}{dt} &&\text{法拉第定律}\\
+            &\oint \vec B\cdot d\vec l = \mu_0 I + \mu_0\varepsilon_0\frac{d\Phi_E}{dt} &&\text{安培–麦克斯韦定律}
+            \end{aligned}$$
+
+            第一式：电荷产生电场；第二式：没有单独的磁极；第三式：变化的磁场产生电场；第四式：电流和变化的电场产生磁场。
+      - item:
+          id: maxwell-match
+          type: match
+          prompt: 把每个方程和它说的物理事实配对。
+          pairs:
+            - ['$\oint \vec E\cdot d\vec A = Q_{\text{内}}/\varepsilon_0$', '电荷是电场的源，电场线从正电荷出发']
+            - ['$\oint \vec B\cdot d\vec A = 0$', '磁感线是闭合的，不存在单独的磁极']
+            - ['$\oint \vec E\cdot d\vec l = -d\Phi_B/dt$', '变化的磁场产生电场']
+            - ['$\oint \vec B\cdot d\vec l = \mu_0 I + \mu_0\varepsilon_0\,d\Phi_E/dt$', '电流和变化的电场产生磁场']
+          explain: 四个方程两两对称：两个讲“源”（高斯定律），两个讲“变化产生场”（法拉第和安培–麦克斯韦）。
+      - card:
+          title: 从方程组推出电磁波
+          body: |
+            第三式和第四式说明：变化的磁场产生电场，变化的电场又产生磁场。这样一环扣一环，电场和磁场可以脱离电荷和电流，在空间里传播出去，这就是**电磁波（electromagnetic wave）**。
+
+            麦克斯韦由方程组算出它的传播速度
+
+            $$c = \frac{1}{\sqrt{\mu_0\varepsilon_0}}$$
+
+            代入数值约 $3.00 \times 10^8\text{ m/s}$，和当时测得的光速一致。于是他断定：光就是电磁波。1888 年赫兹用实验产生并检测到了电磁波。
+      - item:
+          id: speed-of-light
+          type: number
+          prompt: 由 $\mu_0 = 4\pi \times 10^{-7}\text{ T·m/A}$ 和 $\varepsilon_0 = 8.854 \times 10^{-12}\text{ C}^2/(\text{N·m}^2)$ 算出真空中电磁波的速度。（单位 $10^8$ m/s，保留两位小数）
+          answer: 3
+          tolerance: 0.005
+          unit: ×10⁸ m/s
+          hint: 先算 $\mu_0\varepsilon_0$，再开方取倒数。
+          explain: $\mu_0\varepsilon_0 = 4\pi \times 10^{-7} \times 8.854 \times 10^{-12} \approx 1.1127 \times 10^{-17}$，$c = 1/\sqrt{1.1127 \times 10^{-17}} \approx 2.998 \times 10^8 \approx 3.00 \times 10^8\text{ m/s}$。
+      - item:
+          id: displacement-term
+          type: choice
+          prompt: 麦克斯韦方程组中，哪一项是麦克斯韦自己补上的？
+          options:
+            - text: 安培环路定理中的 $\mu_0\varepsilon_0\,d\Phi_E/dt$
+              correct: true
+            - text: 法拉第定律中的 $-d\Phi_B/dt$
+              why: 这一项来自法拉第 1831 年的电磁感应实验
+            - text: 电场高斯定律中的 $Q_{\text{内}}/\varepsilon_0$
+              why: 这是库仑定律的推广，早于麦克斯韦
+          explain: 位移电流项是麦克斯韦为了让安培环路定理在电流变化时也成立而加上的，正是它预言了电磁波。
+
+  # ==== 电磁波初步 ====
+  - id: em-waves
+    chapter: 电磁波初步
+    title: 平面电磁波、能量、辐射压和电磁波谱
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 手机信号、微波炉里的微波、看得见的光、医院拍片用的 X 射线，它们是同一种东西吗？
+          options:
+            - text: 是，只是频率不同
+              correct: true
+            - text: 不是，只有光是电磁波，其他是声波
+              why: 声波需要空气等介质传播，手机信号和 X 射线在真空中也能传播，它们都是电磁波
+            - text: 不是，它们传播的速度各不相同
+              why: 在真空中所有电磁波的速度都是 c，不同的只是频率和波长
+          explain: 它们都是电场和磁场一起传播的波，在真空中速度相同，区别只是频率。这一课讲电磁波的性质。
+      - card:
+          title: 平面电磁波
+          body: |
+            沿 $x$ 方向传播的平面电磁波：电场沿 $y$ 方向、磁场沿 $z$ 方向，两者互相垂直，又都垂直于传播方向（横波），而且同相变化：
+
+            $$E = E_0\sin(kx - \omega t),\qquad B = B_0\sin(kx - \omega t)$$
+
+            其中 $k = 2\pi/\lambda$ 叫波数（和库仑常数不是一回事），$\omega = 2\pi f$ 是角频率。两者大小之比 $E/B = c$，波速、频率、波长满足 $c = f\lambda$。电场振动的方向叫电磁波的偏振方向。
+      - item:
+          id: wavelength
+          type: number
+          prompt: 一个 FM 电台的频率是 100 MHz。它发出的电磁波波长是多少米？（$c = 3 \times 10^8\text{ m/s}$）
+          answer: 3
+          unit: m
+          hint: 波速、频率、波长的关系是什么？
+          explain: $\lambda = c/f = 3 \times 10^8/10^8 = 3\text{ m}$。
+      - item:
+          id: e-to-b
+          type: number
+          prompt: 一束电磁波中电场的峰值是 600 V/m。磁场的峰值是多少微特斯拉？（$c = 3 \times 10^8\text{ m/s}$）
+          answer: 2
+          unit: μT
+          hint: 电磁波中电场和磁场的大小之比是多少？
+          explain: $B_0 = E_0/c = 600/(3 \times 10^8) = 2 \times 10^{-6}\text{ T} = 2\ \mu\text{T}$。
+      - card:
+          title: 电磁波携带的能量
+          body: |
+            电磁波中电场和磁场都有能量，能量密度 $u = \tfrac12\varepsilon_0E^2 + \frac{B^2}{2\mu_0}$，用 $B = E/c$ 可以证明两部分相等。
+
+            单位时间穿过单位面积的能量用**坡印廷矢量（Poynting vector）**表示：$S = \frac{EB}{\mu_0}$，方向就是传播方向。对正弦波取时间平均，得到强度
+
+            $$I = \frac{E_0B_0}{2\mu_0} = \frac{E_0^2}{2\mu_0 c}$$
+
+            单位 W/m²。太阳光到达地球大气层外的强度约 1360 W/m²。
+      - item:
+          id: intensity
+          type: number
+          prompt: 一束电磁波电场的峰值是 600 V/m。它的强度是多少 W/m²？（$\mu_0 = 4\pi \times 10^{-7}$，$c = 3 \times 10^8$，取整数）
+          answer: 477
+          tolerance: 1
+          unit: W/m²
+          hint: 先把能量密度写成 $E$ 和 $B$ 的式子，再想强度是它在一个周期里的平均值乘以什么速度。
+          explain: $I = E_0^2/(2\mu_0c) = 360000/(2 \times 4\pi \times 10^{-7} \times 3 \times 10^8) \approx 477\text{ W/m}^2$。
+      - card:
+          title: 动量和辐射压
+          body: |
+            电磁波不但有能量，还有动量。照到物体上时会对物体施加压强，叫**辐射压（radiation pressure）**：
+
+            - 被完全吸收：$p = I/c$；
+            - 被完全反射：$p = 2I/c$（动量反向，变化量加倍）。
+
+            太阳光的辐射压很小：$1360/(3 \times 10^8) \approx 4.5 \times 10^{-6}\text{ Pa}$，但在没有空气阻力的太空中，大面积的太阳帆可以靠它慢慢加速。彗星的尾巴背向太阳，部分原因也是辐射压。
+      - item:
+          id: radiation-pressure
+          type: number
+          prompt: 强度 1360 W/m² 的太阳光垂直照到一块完全反射的太阳帆上。辐射压是多少微帕？（$c = 3 \times 10^8\text{ m/s}$，保留两位小数）
+          answer: 9.07
+          tolerance: 0.005
+          unit: μPa
+          hint: 完全反射时辐射压是完全吸收时的几倍？
+          explain: $p = 2I/c = 2 \times 1360/(3 \times 10^8) \approx 9.07 \times 10^{-6}\text{ Pa} = 9.07\ \mu\text{Pa}$。
+      - card:
+          title: 电磁波谱
+          body: |
+            按频率从低到高（波长从长到短）排列的**电磁波谱（electromagnetic spectrum）**：
+
+            | 波段 | 大致波长 | 用途 |
+            |---|---|---|
+            | 无线电波 | 大于 1 m | 收音机、电视、手机 |
+            | 微波 | 1 mm – 1 m | 微波炉、雷达、Wi-Fi |
+            | 红外线 | 700 nm – 1 mm | 遥控器、热成像 |
+            | 可见光 | 400 – 700 nm | 人眼能看到 |
+            | 紫外线 | 10 – 400 nm | 杀菌、晒黑 |
+            | X 射线 | 0.01 – 10 nm | 医学成像 |
+            | γ 射线 | 小于 0.01 nm | 放射治疗 |
+
+            频率越高，每份能量越大，紫外线、X 射线、γ 射线能破坏分子，需要防护。
+      - item:
+          id: spectrum-order
+          type: order
+          prompt: 把下面的电磁波按频率从低到高排列。
+          steps:
+            - 无线电波
+            - 微波
+            - 红外线
+            - 可见光
+            - 紫外线
+            - X 射线
+          explain: 频率从低到高就是波长从长到短：无线电波最长，X 射线最短。
+      - item:
+          id: same-speed
+          type: choice
+          prompt: 在真空中，红光和紫外线相比，哪个传播得更快？
+          options:
+            - text: 一样快
+              correct: true
+            - text: 紫外线更快，因为它频率高
+              why: 真空中所有电磁波的速度都是 $c$；频率高的波长短，$c = f\lambda$ 不变
+            - text: 红光更快，因为它波长长
+              why: 波长长的频率低，乘积 $f\lambda$ 仍等于 $c$
+          explain: 真空中所有电磁波的速度都是 $c = 1/\sqrt{\mu_0\varepsilon_0}$，与频率无关。
+
+boss:
+  items:
+    - id: b-coulomb
+      type: number
+      prompt: $q_1 = +3\ \mu\text{C}$ 和 $q_2 = -2\ \mu\text{C}$ 相距 0.2 米。它们之间的库仑力是多少牛顿？（$k = 8.99 \times 10^9$，保留两位小数）
+      answer: 1.35
+      tolerance: 0.005
+      unit: N
+      hint: 把微库换成库，代入库仑定律。
+      explain: $F = k|q_1q_2|/r^2 = 8.99 \times 10^9 \times 6 \times 10^{-12}/0.04 \approx 1.35\text{ N}$，异号相吸。
+    - id: b-gauss
+      type: number
+      prompt: 半径 0.1 米的球体均匀带电 2 nC。距球心 0.3 米处的电场强度是多少 N/C？（$k = 8.99 \times 10^9$，取整数）
+      answer: 200
+      tolerance: 1
+      unit: N/C
+      hint: 这一点在球外，高斯面包住了多少电荷？
+      explain: 球外 $E = kQ/r^2 = 8.99 \times 10^9 \times 2 \times 10^{-9}/0.09 \approx 200\text{ N/C}$。
+    - id: b-capacitor
+      type: number
+      prompt: 平行板电容器极板面积 0.02 m²，间距 2 毫米，中间是空气，接 50 V 电源。它储存的能量是多少？（单位 $10^{-7}$ J，$\varepsilon_0 = 8.854 \times 10^{-12}$，保留两位小数）
+      answer: 1.11
+      tolerance: 0.005
+      unit: ×10⁻⁷ J
+      hint: 先算电容，再用储能公式。
+      explain: $C = \varepsilon_0A/d = 8.854 \times 10^{-12} \times 0.02/0.002 = 8.854 \times 10^{-11}\text{ F}$，$W = \tfrac12 CV^2 = 0.5 \times 8.854 \times 10^{-11} \times 2500 \approx 1.11 \times 10^{-7}\text{ J}$。
+    - id: b-circuit
+      type: number
+      prompt: 一个电池电动势 9 V、内阻 1 Ω，外接 $4\ \Omega$ 和 $4\ \Omega$ 两个并联电阻。外电路消耗的总功率是多少瓦？
+      answer: 18
+      unit: W
+      hint: 先求外电路的等效电阻和总电流。
+      explain: 外电阻 $4 \parallel 4 = 2\ \Omega$，$I = 9/(2 + 1) = 3\text{ A}$，外电路功率 $I^2R = 3^2 \times 2 = 18\text{ W}$（内阻上另耗 9 W）。
+    - id: b-magnetic
+      type: number
+      prompt: 一根很长的直导线通 15 A 电流。距离它 3 厘米处的磁感应强度是多少？（单位 $10^{-5}$ T）
+      answer: 10
+      unit: ×10⁻⁵ T
+      hint: 长直导线的磁场和距离成反比。
+      explain: $B = \mu_0I/(2\pi r) = 2 \times 10^{-7} \times 15/0.03 = 10^{-4}\text{ T}$。
+    - id: b-solenoid-path
+      type: choice
+      prompt: 用安培环路定理求长螺线管内部的磁场，应该选哪条闭合路径？
+      options:
+        - text: 一条边在管内沿轴线、对边在管外的矩形
+          correct: true
+        - text: 管内一个和线圈同轴的圆
+          why: 这个圆没有电流穿过，而且管内磁场沿轴线、和圆周垂直，得不到 B
+        - text: 绕着整个螺线管外面的一个大圆
+          why: 管外磁场近似为 0，这条路径求不出管内的磁场
+        - text: 两条长边都在管内、和轴线平行的矩形框
+          why: 两条长边上 B 大小相同、相对路径方向相反，环路积分为 0，穿过的电流也为 0，得不出 B 的大小
+      explain: 矩形管内那条边上 $B$ 均匀且沿边，管外那条边 $B \approx 0$，两条短边和 $B$ 垂直，所以 $BL = \mu_0nLI$，$B = \mu_0nI$。
+    - id: b-faraday
+      type: number
+      prompt: 一个 50 匝、面积 0.04 m² 的线圈放在垂直于线圈平面的磁场中，磁场在 0.2 秒内从 0.1 T 均匀增大到 0.5 T。平均感应电动势是多少伏？
+      answer: 4
+      unit: V
+      hint: 磁通量变化了多少？别忘了匝数。
+      explain: $\Delta\Phi = (0.5 - 0.1) \times 0.04 = 0.016\text{ Wb}$，$\varepsilon = 50 \times 0.016/0.2 = 4\text{ V}$。
+    - id: b-lc
+      type: number
+      prompt: 一个 LC 电路中 $L = 2\text{ mH}$，$C = 8\text{ nF}$。振荡频率是多少千赫？（保留一位小数）
+      answer: 39.8
+      tolerance: 0.05
+      unit: kHz
+      hint: 先算 $LC$ 再开方。
+      explain: $LC = 2 \times 10^{-3} \times 8 \times 10^{-9} = 1.6 \times 10^{-11}$，$\sqrt{LC} = 4 \times 10^{-6}$，$f = 1/(2\pi \times 4 \times 10^{-6}) \approx 39789\text{ Hz} \approx 39.8\text{ kHz}$。
+    - id: b-maxwell
+      type: choice
+      prompt: 下面关于麦克斯韦方程组的说法，哪一个对？
+      options:
+        - text: 位移电流项说明变化的电场能产生磁场，它使方程组预言了电磁波
+          correct: true
+        - text: 磁场的高斯定律 $\oint \vec B\cdot d\vec A = 0$ 说明磁场处处为 0
+          why: 它说的是穿过闭合曲面的总磁通量为 0（没有单独的磁极），曲面上各点的 B 一般不为 0
+        - text: 法拉第定律说明恒定的磁场能在线圈中产生持续的电流
+          why: 只有磁通量变化时才有感应电动势
+        - text: 四个方程里只有电场的高斯定律对随时间变化的场成立
+          why: 积分形式的四个方程对随时间变化的场都成立，法拉第定律和安培–麦克斯韦定律本身就是讲变化的
+      explain: 变化的磁场产生电场（法拉第），变化的电场产生磁场（位移电流），两者相互激发，形成以 $c = 1/\sqrt{\mu_0\varepsilon_0}$ 传播的电磁波。
+    - id: b-wave
+      type: number
+      prompt: 一束电磁波在真空中的波长是 0.5 米。它的频率是多少兆赫？（$c = 3 \times 10^8\text{ m/s}$）
+      answer: 600
+      unit: MHz
+      hint: 波速等于频率乘以波长。
+      explain: $f = c/\lambda = 3 \times 10^8/0.5 = 6 \times 10^8\text{ Hz} = 600\text{ MHz}$。

@@ -1,0 +1,2194 @@
+skill: M.2.1
+version: 2
+authors: [main-agent]
+brief:
+  why: 电容充放电、弹簧振动、电机转速、种群增长，都可以写成“变化率等于某个式子”的方程。这一关学怎样解这些方程：一阶方程的分离变量和积分因子，二阶常系数方程和振动、共振，傅里叶级数和拉普拉斯变换，线性方程组和相图，解为什么存在而且唯一，最后是稳定性和用计算机一步步算出近似解。假设你学过一元积分（定积分、原函数）；矩阵和特征值用到时课里会提醒怎么算。
+  outcomes:
+    - 判断方程的阶和是否线性，用分离变量和积分因子解一阶方程和初值问题
+    - 用复指数写正弦信号，求一阶、二阶常系数方程对指数和正弦输入的响应、增益和相位滞后
+    - 由特征方程写出二阶和高阶常系数方程的通解，区分过阻尼、临界阻尼和欠阻尼
+    - 说出共振的条件，用傅里叶级数处理周期输入，用卷积和拉普拉斯变换解初值问题
+    - 用特征值解 2×2 线性方程组，画出相图并判断平衡点类型和稳定性
+    - 说出 Picard 定理的条件，判断初值问题的解是否存在、是否唯一
+    - 用欧拉法、改进欧拉法和四阶龙格–库塔法算近似解，说出误差和步长的关系，在平衡点附近线性化非线性方程组
+terms:
+  - term: 微分方程
+    def: '含有未知函数和它的导数的方程，如 y′ = 2y；只含一个自变量的叫常微分方程'
+  - term: 方程的阶
+    def: '微分方程里出现的最高阶导数的阶数，如 y″ + y = 0 是二阶方程'
+  - term: 初值问题
+    def: '微分方程加上未知函数在某一点的值（二阶时还要导数值），如 y′ = 2y、y(0) = 3'
+  - term: 通解
+    def: '含有任意常数、包括方程（几乎）所有解的式子；n 阶方程的通解有 n 个任意常数'
+  - term: 分离变量
+    def: '把 dy/dx = g(x)h(y) 写成 dy/h(y) = g(x)dx，两边分别积分求解的方法'
+  - term: 线性微分方程
+    def: '未知函数和它的各阶导数都只以一次方出现、且不互相相乘的方程，如 y′ + p(x)y = q(x)'
+  - term: 积分因子
+    def: '乘到一阶线性方程 y′ + p(x)y = q(x) 两边、使左边变成 (μy)′ 的函数 μ = e^{∫p dx}'
+  - term: 复指数
+    def: 'e^{iθ} = cos θ + i sin θ（欧拉公式）；e^{(a+ib)t} = e^{at}(cos bt + i sin bt)'
+  - term: 增益
+    def: '稳态输出振幅和输入振幅之比；对 y′ + ky = kF₀cos ωt 是 1/√(1 + (ω/k)²)，输入前的系数变了就整体乘那个倍数'
+  - term: 相位滞后
+    def: '稳态正弦输出比输入落后的角度 φ，输出写成 A cos(ωt − φ)'
+  - term: 特征方程
+    def: '把 y = e^{rt} 代入常系数线性齐次方程得到的关于 r 的代数方程，如 y″ + by′ + cy = 0 对应 r² + br + c = 0'
+  - term: 欠阻尼
+    def: '特征方程有一对复根 −a ± iω 的情形，解是振幅按 e^{−at} 衰减的振荡'
+  - term: 过阻尼
+    def: '特征方程有两个不等的负实根的情形，解不振荡、两个指数衰减相加'
+  - term: 临界阻尼
+    def: '特征方程有一个二重根 r 的情形，通解 (C₁ + C₂t)e^{rt}，是不振荡时回到平衡最快的情形'
+  - term: 朗斯基行列式
+    def: '两个函数 y₁、y₂ 的 W = y₁y₂′ − y₁′y₂；对线性齐次方程的两个解，W 不为 0 就说明它们线性无关'
+  - term: 瞬态
+    def: '线性方程的解里随时间衰减掉的那部分，如 y′ + ky = q 的齐次部分 Ce^{−kt}（k > 0）'
+  - term: 稳态
+    def: '输入是常数或周期函数时，瞬态衰减完以后剩下的、跟着输入变化的那部分解'
+  - term: 模
+    def: '复数 a + bi 在平面上到原点的距离 √(a² + b²)'
+  - term: 辐角
+    def: '复数 a + bi 对应的点和正实轴的夹角；乘法时辐角相加'
+  - term: 齐次方程
+    def: '右边的输入项为 0 的线性微分方程，如 y′ + p(x)y = 0；它的解乘常数、相加后还是解'
+  - term: 特解
+    def: '非齐次线性方程的任意一个具体的解；通解等于一个特解加上齐次方程的通解'
+  - term: 线性无关
+    def: '几个函数中没有一个能写成其余函数的常数倍之和，如 e^t 和 te^t；两个函数时就是不互为常数倍'
+  - term: 指数响应公式
+    def: '常系数方程 p(D)y = e^{at} 在 p(a) ≠ 0 时有特解 y = e^{at}/p(a)，正弦输入取 a = iω 再取实部'
+  - term: 待定系数法
+    def: '按输入的形状猜出特解的形式（如同次多项式），留下几个系数，代入方程比较系数定出它们的方法'
+  - term: 叠加原理
+    def: '线性方程中，输入 f₁ 的响应加输入 f₂ 的响应，等于输入 f₁ + f₂ 的响应'
+  - term: 时不变性
+    def: '常系数方程的性质：输入推迟 t₀，响应也只推迟 t₀，形状不变'
+  - term: 线性时不变系统
+    def: '同时满足叠加原理和时不变性的系统，简称 LTI 系统，常系数线性微分方程描述的就是这种系统'
+  - term: 共振
+    def: '输入频率接近或等于系统固有频率时响应振幅变得很大的现象；无阻尼且频率相等时振幅随时间线性增长'
+  - term: 频率响应
+    def: '把稳态增益（以及相位滞后）看作输入角频率 ω 的函数，如 g(ω) = 1/|p(iω)|'
+  - term: 实际共振
+    def: '有阻尼振子的增益在某个角频率 ω_r 处达到峰值的现象；对 x″ + bx′ + kx，b² < 2k 时 ω_r = √(k − b²/2)'
+  - term: 傅里叶级数
+    def: '把周期函数写成常数项加上一串频率成整数倍的正弦和余弦之和，系数由积分算出'
+  - term: 正交性
+    def: '在一个周期上，不同频率的正弦、余弦两两相乘后积分为 0 的性质，它让傅里叶系数可以逐个算出'
+  - term: 单位阶跃函数
+    def: '记作 u(t)，t < 0 时为 0、t > 0 时为 1 的函数，像一个在 t = 0 合上的开关'
+  - term: 单位冲激函数
+    def: '记作 δ(t)，可看作宽度趋于 0、面积为 1 的窄脉冲，满足 ∫f(t)δ(t − a)dt = f(a)'
+  - term: 冲激响应
+    def: '系统在静止初始条件下对输入 δ(t) 的响应 w(t)，也叫权函数；任何输入的响应都是输入和它的卷积'
+  - term: 卷积
+    def: '两个函数的运算 (f * g)(t) = ∫₀ᵗ f(τ)g(t − τ)dτ；它的拉普拉斯变换等于两个变换的乘积'
+  - term: 拉普拉斯变换
+    def: '把 t ≥ 0 上的函数 f(t) 变成 F(s) = ∫₀^∞ e^{−st}f(t)dt 的运算，它把求导变成乘以 s'
+  - term: 部分分式
+    def: '把两个多项式的商拆成分母更简单的几项之和，如 (s + 5)/((s − 1)(s + 2)) = 2/(s − 1) − 1/(s + 2)'
+  - term: 传递函数
+    def: '静止初始条件下输出和输入的拉普拉斯变换之比，只由系统本身决定；方程 p(D)x = f(t) 时是 W(s) = 1/p(s)'
+  - term: 极点
+    def: '让传递函数变成无穷大的 s，也就是特征方程的根；全部极点实部为负时系统稳定'
+  - term: 一阶线性方程组
+    def: '每个未知函数的一阶导数都等于这些未知函数各乘一个系数再相加的方程组，写成 x′ = Ax'
+  - term: 简正模
+    def: '线性方程组沿某个特征向量方向、按 e^{λt} 变化的解 ve^{λt}；通解是各个简正模的叠加'
+  - term: 相图
+    def: '把方程组很多条解的轨线 (x(t), y(t)) 画在同一个平面上得到的图'
+  - term: 平衡点
+    def: '所有变化率同时为 0 的状态，从那里出发会一直不动'
+  - term: 鞍点
+    def: '线性方程组的两个特征值一正一负时的平衡点，沿一个方向靠近、沿另一个方向远离，不稳定'
+  - term: 结点
+    def: '线性方程组的两个特征值是同号实数时的平衡点，轨线不旋转地进入（都为负）或离开（都为正）'
+  - term: 焦点
+    def: '线性方程组的特征值是复数且实部不为 0 时的平衡点，轨线螺旋着进入或离开'
+  - term: 迹
+    def: '方阵对角线上的数之和，2×2 矩阵的迹是 a + d，等于两个特征值之和'
+  - term: 中心
+    def: '线性方程组的特征值是纯虚数时的平衡点，轨线是绕它的闭合曲线，稳定但不渐近稳定'
+  - term: 渐近稳定
+    def: '平衡点附近出发的解都趋向它；线性方程组要求所有特征值的实部都小于 0'
+  - term: 矩阵指数
+    def: 'e^{At} = I + At + (At)²/2! + ⋯，初值问题 x′ = Ax 的解是 x(t) = e^{At}x(0)'
+  - term: 基本矩阵
+    def: '以方程组的线性无关解为列排成的矩阵 Φ(t)，通解是 Φ(t)c，且 e^{At} = Φ(t)Φ(0)⁻¹'
+  - term: 偏导数
+    def: '多元函数把其他变量当作常数、只对一个变量求的导数，如 f = x²y³ 对 y 的偏导数是 3x²y²'
+  - term: Picard 定理
+    def: '若 f 和 ∂f/∂y 在初值点附近连续，则 y′ = f(x, y) 的初值问题在附近的区间上有唯一解'
+  - term: Lipschitz 条件
+    def: '存在常数 L 使 |f(x, y₁) − f(x, y₂)| ≤ L|y₁ − y₂|；它保证初值问题的解唯一'
+  - term: Peano 定理
+    def: '只要 f 连续，y′ = f(x, y) 的初值问题在初值点附近就有解，但不一定唯一'
+  - term: 迭代
+    def: '反复把上一次的结果代进同一个式子、得到一串越来越准的近似的做法，如 Picard 迭代'
+  - term: 解的延展
+    def: '把解在区间端点的值当作新初值继续求解，直到解趋于无穷或走到 f 满足条件的区域边界'
+  - term: 方向场
+    def: '在平面上很多点画出斜率为 f(x, y) 的小线段得到的图，y′ = f(x, y) 的解曲线处处和它们相切'
+  - term: 等倾线
+    def: '方向场中斜率相同的点连成的曲线 f(x, y) = c'
+  - term: 自治方程
+    def: '右边不显含自变量的方程 y′ = f(y)，它的性质可以只从 f 的零点和正负看出'
+  - term: 相线
+    def: '自治方程 y′ = f(y) 的示意图：在一条直线上标出平衡点，用箭头表示每一段上 y 增大还是减小'
+  - term: 李雅普诺夫稳定
+    def: '初值足够接近某个解时，以后始终保持接近它的性质；再加上趋向它就是渐近稳定'
+  - term: 欧拉法
+    def: '用 y_{n+1} = y_n + h f(x_n, y_n) 一步步沿切线前进来近似解的数值方法，误差和步长成正比'
+  - term: 一阶方法
+    def: '整体误差和步长 h 成正比的数值方法，如欧拉法；p 阶方法的误差和 h^p 成正比'
+  - term: 改进欧拉法
+    def: '先用欧拉法试走一步，再用起点和试走终点两处斜率的平均走一步的二阶方法'
+  - term: 四阶龙格–库塔法
+    def: '每步算 4 个斜率再加权平均的数值方法，简称 RK4，整体误差和步长的四次方成正比'
+  - term: 雅可比矩阵
+    def: '一组函数对一组变量的全部偏导数排成的矩阵；两个函数对两个变量时是 2×2 的，在平衡点处用它近似非线性方程组'
+  - term: 线性化
+    def: '在平衡点附近只保留一阶项，用雅可比矩阵的线性方程组近似非线性方程组的方法'
+  - term: 极限环
+    def: '非线性方程组中单独的一条闭合轨线，附近的轨线都绕着它越转越近（或越远）'
+  - term: 混沌
+    def: '有界、不重复又对初值极其敏感的运动，至少需要三个未知函数的自治方程组才会出现'
+assumes: [矩阵, 行列式, 特征值, 特征向量, 向量, 单位矩阵]
+
+lessons:
+  # ==== 一阶与高阶方程 ====
+  - id: separable-equations
+    chapter: 一阶与高阶方程
+    title: 微分方程和分离变量
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一杯 90 °C 的热水放在 20 °C 的房间里。下面哪种说法最符合它的降温过程？
+          options:
+            - text: 一开始降得快，越接近室温降得越慢
+              correct: true
+            - text: 每分钟降同样多的温度，直到 20 °C
+              why: 水温和室温差得越多，散热越快；温差变小，降温也变慢
+            - text: 先慢后快
+              why: 刚开始温差最大，散热最快，所以是先快后慢
+          explain: 降温的快慢和温差成正比：dT/dt = −k(T − 20)。这种方程说的是“温度的变化率等于某个式子”，这一课学怎样从这样的方程求出温度随时间的变化。
+      - card:
+          title: 微分方程和它的解
+          body: |
+            含有未知函数和它的导数的方程叫**微分方程（differential equation）**。例如 $\frac{dy}{dt} = 2y$：未知的是函数 $y(t)$，方程说“它的变化率等于它自己的 2 倍”。
+
+            方程里最高阶导数的阶数叫**方程的阶（order）**：$y' = 2y$ 是一阶，$y'' + 4y = 0$ 是二阶。
+
+            把一个函数代进去，方程两边恒等，它就是一个解。$y = 3e^{2t}$ 代入：左边 $6e^{2t}$，右边 $2 \cdot 3e^{2t}$，相等，是解。$y = Ce^{2t}$（$C$ 任意）都是解，这种含任意常数的式子叫**通解（general solution）**。
+      - item:
+          id: check-solution
+          type: choice
+          prompt: 下面哪个函数是 $y'' + 9y = 0$ 的解？
+          options:
+            - text: $y = \sin 3t$
+              correct: true
+            - text: $y = \sin 9t$
+              why: $(\sin 9t)'' = -81\sin 9t$，代入得 $-81\sin 9t + 9\sin 9t \ne 0$
+            - text: $y = e^{3t}$
+              why: $(e^{3t})'' = 9e^{3t}$，代入得 $18e^{3t} \ne 0$
+            - text: $y = \sin 3t + 3$
+              why: 常数 3 代入后剩下 $9 \times 3 = 27$，而方程右边是 0；齐次方程的解加上一个常数就不再是解
+          explain: $(\sin 3t)'' = -9\sin 3t$，代入得 $-9\sin 3t + 9\sin 3t = 0$。验证一个函数是不是解，只需代进去看两边是否恒等。
+      - card:
+          title: 初值问题
+          body: |
+            通解里有任意常数，要确定一个具体的解，还需要额外的条件。一阶方程给出一个点上的函数值，如 $y(0) = 3$；二阶方程要给函数值和导数值两个条件。方程加上这些条件叫**初值问题（initial value problem）**。
+
+            例：$y' = 2y$，$y(0) = 3$。通解 $y = Ce^{2t}$，代入 $t = 0$：$C = 3$，所以 $y = 3e^{2t}$。
+      - item:
+          id: ivp-constant
+          type: number
+          prompt: 初值问题 $y' = -0.5y$，$y(0) = 8$ 的解是 $y = Ce^{-0.5t}$ 的形式。$y(2)$ 等于多少？（保留三位小数）
+          answer: 2.943
+          tolerance: 0.0005
+          hint: 先用初始条件定出 $C$。
+          explain: $C = 8$，$y(2) = 8e^{-1} \approx 2.943$。
+      - card:
+          title: 分离变量
+          body: |
+            方程能写成 $\frac{dy}{dx} = g(x)h(y)$ 的形式时，把含 $y$ 的移到一边、含 $x$ 的移到另一边：
+
+            $$\frac{dy}{h(y)} = g(x)\,dx$$
+
+            两边分别积分，就得到 $y$ 和 $x$ 的关系。这叫**分离变量（separation of variables）**。
+
+            例：$\frac{dy}{dx} = xy$。分离：$\frac{dy}{y} = x\,dx$；积分：$\ln|y| = \tfrac12 x^2 + C$；所以 $y = Ae^{x^2/2}$（$A = \pm e^C$，再加上 $y = 0$ 这个解，$A$ 可取任意实数）。
+      - card:
+          title: 例题：牛顿冷却定律
+          body: 热水 90 °C，室温 20 °C，满足 $\frac{dT}{dt} = -k(T - 20)$，测得 10 分钟后降到 55 °C。求 $k$，以及 20 分钟后的水温。
+          reveal:
+            - title: 第 1 步：分离变量并积分
+              body: $\frac{dT}{T - 20} = -k\,dt$，积分得 $\ln|T - 20| = -kt + C$，即 $T = 20 + Ae^{-kt}$。
+            - title: 第 2 步：用初值定常数
+              body: $T(0) = 90$，所以 $A = 70$，$T = 20 + 70e^{-kt}$。
+            - title: 第 3 步：用测量值定 k，再求 20 分钟
+              body: $55 = 20 + 70e^{-10k}$，$e^{-10k} = 0.5$，$k = \ln 2/10 \approx 0.0693$ 每分钟。$T(20) = 20 + 70 \times 0.25 = 37.5$ °C：温差每 10 分钟减半。
+      - item:
+          id: cooling-30
+          type: number
+          prompt: 一杯水按 $\frac{dT}{dt} = -k(T - 20)$ 降温，初温 80 °C，10 分钟后降到 50 °C。30 分钟后水温是多少摄氏度？
+          answer: 27.5
+          unit: °C
+          hint: 温差 $T - 20$ 每 10 分钟变为原来的几分之几？
+          explain: 温差从 60 降到 30，每 10 分钟减半。30 分钟后温差 $60 \times (1/2)^3 = 7.5$，$T = 27.5$ °C。
+      - item:
+          id: separable-ivp
+          type: number
+          prompt: 解初值问题 $\frac{dy}{dx} = 2xy^2$，$y(0) = 1$，求 $y(0.5)$。（保留三位小数）
+          answer: 1.333
+          tolerance: 0.0005
+          hint: 分离成 $dy/y^2 = 2x\,dx$，左边的原函数是什么？
+          explain: $\int y^{-2}dy = -1/y$，所以 $-1/y = x^2 + C$；$y(0) = 1$ 得 $C = -1$，$y = \frac{1}{1 - x^2}$。$y(0.5) = 1/0.75 \approx 1.333$。
+
+  - id: linear-first-order
+    chapter: 一阶与高阶方程
+    title: 一阶线性方程和积分因子
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 方程 $y' + 2y = e^{-x}$ 不能写成 $g(x)h(y)$ 的形式。你觉得它还能用公式求出解吗？
+          options:
+            - text: 能，这类方程有固定的解法
+              correct: true
+            - text: 不能，只有分离变量的方程才有公式解
+              why: 一阶线性方程总能用积分因子法求解，这一课就讲它
+            - text: 只能用计算机算近似值
+              why: 用计算机算近似值对任何方程都可以，但一阶线性方程本身就有精确的解法
+          explain: 未知函数只以一次方出现的一阶方程叫线性方程，它总能化成“某个乘积的导数”，然后直接积分。
+      - card:
+          title: 一阶线性方程
+          body: |
+            形如
+
+            $$y' + p(x)y = q(x)$$
+
+            的方程叫一阶**线性微分方程（linear differential equation）**：$y$ 和 $y'$ 都只以一次方出现，系数只依赖 $x$。$q(x) = 0$ 时叫**齐次方程（homogeneous equation）**，否则叫非齐次方程。
+
+            $y' + 2y = e^{-x}$ 是线性的；$y' = y^2$、$y' = \sin y$ 不是。电阻 $R$ 和电容 $C$ 串联的 RC 电路，电容电压满足 $RC\frac{dv}{dt} + v = v_{in}(t)$；它和牛顿冷却定律都是一阶线性方程。
+      - item:
+          id: is-linear
+          type: choice
+          prompt: 下面哪个方程是一阶线性方程？
+          options:
+            - text: $y' + x^2y = \cos x$
+              correct: true
+            - text: $y' + y^2 = x$
+              why: $y^2$ 是 $y$ 的二次方，不是线性的
+            - text: $yy' = x$
+              why: $y$ 和 $y'$ 相乘，不是线性的
+            - text: $y'' + y = 0$
+              why: 它是线性的，但最高是二阶导数，是二阶方程
+          explain: 线性看的是未知函数和导数：只能以一次方出现、不能相乘；系数可以是 $x$ 的任意函数，如 $x^2$。
+      - card:
+          title: 积分因子
+          body: |
+            思路：给方程两边乘一个函数 $\mu(x)$，使左边恰好是 $(\mu y)'$。由乘积法则 $(\mu y)' = \mu y' + \mu' y$，需要 $\mu' = p\mu$，所以
+
+            $$\mu(x) = e^{\int p(x)\,dx}$$
+
+            叫**积分因子（integrating factor）**。乘上后方程变成 $(\mu y)' = \mu q$，两边积分：$\mu y = \int \mu q\,dx + C$，再除以 $\mu$。
+      - card:
+          title: 例题：积分因子法
+          body: 解 $y' + 2y = e^{-x}$，$y(0) = 2$。
+          reveal:
+            - title: 第 1 步：求积分因子
+              body: $p = 2$，$\mu = e^{\int 2\,dx} = e^{2x}$。
+            - title: 第 2 步：乘上后左边合成一个导数
+              body: $e^{2x}y' + 2e^{2x}y = e^{2x}e^{-x}$，即 $(ye^{2x})' = e^{x}$。
+            - title: 第 3 步：积分并代初值
+              body: $ye^{2x} = e^x + C$，$y = e^{-x} + Ce^{-2x}$。$y(0) = 1 + C = 2$，$C = 1$，所以 $y = e^{-x} + e^{-2x}$。
+      - item:
+          id: integrating-factor
+          type: choice
+          prompt: 方程 $y' + \frac{3}{x}y = x$（$x > 0$）的积分因子是什么？
+          options:
+            - text: $x^3$
+              correct: true
+            - text: $e^{3x}$
+              why: 积分因子是 $e^{\int p\,dx}$，这里 $p = 3/x$，$\int p\,dx = 3\ln x$，不是 $3x$
+            - text: $3/x$
+              why: 那是 $p(x)$ 本身；积分因子要先积分再取指数
+            - text: $\ln x^3$
+              why: 积分后还要取指数：$e^{3\ln x} = x^3$
+          explain: $\int \frac3x dx = 3\ln x$，$\mu = e^{3\ln x} = x^3$。乘上后 $(x^3y)' = x^4$。
+      - item:
+          id: linear-ivp
+          type: number
+          prompt: 解 $y' + y = 2$，$y(0) = 0$，求 $y(1)$。（保留三位小数）
+          answer: 1.264
+          tolerance: 0.0005
+          hint: 积分因子是 $e^x$，$(ye^x)'$ 等于什么？
+          explain: $(ye^x)' = 2e^x$，$ye^x = 2e^x + C$，$y = 2 + Ce^{-x}$；$y(0) = 0$ 得 $C = -2$，$y = 2(1 - e^{-x})$。$y(1) = 2(1 - e^{-1}) \approx 1.264$。
+      - card:
+          title: 解的结构：瞬态和稳态
+          body: |
+            一阶线性方程的通解总是两部分之和：
+
+            $$y = y_p + Cy_h$$
+
+            $y_h$ 是齐次方程 $y' + py = 0$ 的解，$y_p$ 是非齐次方程的任意一个解，叫**特解（particular solution）**。上面例题中 $y_p = e^{-x}$，$y_h = e^{-2x}$。
+
+            对 $y' + ky = q(t)$（$k > 0$），齐次部分 $Ce^{-kt}$ 随时间衰减，叫**瞬态（transient）**。输入是常数或周期函数时，长时间后只剩跟着输入走的那部分，叫**稳态（steady state）**，不论初值是多少，最后都趋于同一个稳态。
+      - item:
+          id: rc-charge
+          type: number
+          prompt: 一个 RC 电路满足 $\frac{dv}{dt} + \frac{v}{RC} = \frac{V_0}{RC}$，$RC = 2\text{ s}$，$V_0 = 10\text{ V}$，$v(0) = 0$。$t = 2\text{ s}$ 时 $v$ 是多少伏？（保留两位小数）
+          answer: 6.32
+          tolerance: 0.005
+          unit: V
+          hint: 长时间后电压趋于多少？齐次部分按 $e$ 的几次方衰减？
+          explain: $v = V_0(1 - e^{-t/RC}) = 10(1 - e^{-1}) \approx 6.32\text{ V}$。
+
+  - id: complex-sinusoid
+    chapter: 一阶与高阶方程
+    title: 复指数、正弦函数和指数输入
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个 RC 低通电路输入频率不同的正弦电压。频率越来越高时，电容两端的输出电压会怎样？
+          options:
+            - text: 振幅越来越小，而且越来越落后于输入
+              correct: true
+            - text: 振幅不变，只是频率变高
+              why: 频率越高，电容来不及充放电，输出振幅变小
+            - text: 振幅越来越大
+              why: 低通电路让低频通过、削弱高频，频率越高输出越小
+          explain: 输出仍是同频率的正弦，只是振幅变小，而且比输入晚一点到达峰值。这一课学怎样算出这两个量。
+      - card:
+          title: 复数和欧拉公式
+          body: |
+            复数 $z = a + bi$，$i^2 = -1$。它对应平面上的点 $(a, b)$，到原点的距离叫**模（modulus）** $|z| = \sqrt{a^2 + b^2}$，和正实轴的夹角叫**辐角（argument）** $\theta$。
+
+            欧拉公式把指数和三角函数连起来：
+
+            $$e^{i\theta} = \cos\theta + i\sin\theta$$
+
+            于是 $z = |z|e^{i\theta}$（极坐标形式），乘法变成模相乘、辐角相加，除法变成模相除、辐角相减。$e^{(a + ib)t} = e^{at}(\cos bt + i\sin bt)$ 叫**复指数（complex exponential）**，它的导数仍然是 $(a + ib)e^{(a + ib)t}$，和实指数一样好算。
+      - item:
+          id: complex-modulus
+          type: number
+          prompt: 复数 $z = \frac{1}{1 + i}$ 的模是多少？（保留三位小数）
+          answer: 0.707
+          tolerance: 0.0005
+          hint: 分母的模是多少？商的模等于模的商。
+          explain: $|1 + i| = \sqrt2$，所以 $|z| = 1/\sqrt2 \approx 0.707$；辐角 $-45°$。
+      - card:
+          title: 正弦函数的振幅和相位
+          body: |
+            频率相同的 $a\cos\omega t + b\sin\omega t$ 总能合成一个正弦：
+
+            $$a\cos\omega t + b\sin\omega t = A\cos(\omega t - \phi),\quad A = \sqrt{a^2 + b^2},\ \tan\phi = \frac ba$$
+
+            $\phi$ 取 $(a, b)$ 这个点的辐角。看成复数：$A\cos(\omega t - \phi)$ 是 $Ae^{-i\phi}e^{i\omega t}$ 的实部。正弦信号的计算可以先用复指数做，最后取实部。
+      - item:
+          id: amplitude-combine
+          type: number
+          prompt: 把 $3\cos 2t + 4\sin 2t$ 写成 $A\cos(2t - \phi)$。振幅 $A$ 是多少？
+          answer: 5
+          hint: 把 $(3, 4)$ 看成平面上的一个点，振幅对应它的什么量？
+          explain: $A = \sqrt{3^2 + 4^2} = 5$，$\phi = \arctan(4/3) \approx 53.1°$。
+      - card:
+          title: 一阶常系数方程的正弦响应
+          body: |
+            一阶低通系统 $y' + ky = kF_0\cos\omega t$（$k > 0$）。把输入换成复指数 $kF_0e^{i\omega t}$，试 $\tilde y = Be^{i\omega t}$：代入得 $(i\omega + k)B = kF_0$，所以
+
+            $$\tilde y = \frac{k}{k + i\omega}F_0e^{i\omega t}$$
+
+            取实部就是稳态解。分数 $\frac{k}{k + i\omega}$ 的模是**增益（gain）** $g = \frac{1}{\sqrt{1 + (\omega/k)^2}}$，它的辐角的相反数是**相位滞后（phase lag）** $\phi = \arctan(\omega/k)$：输出 $y_p = gF_0\cos(\omega t - \phi)$。
+      - item:
+          id: first-order-gain
+          type: number
+          prompt: 系统 $y' + 2y = 2\cos 2t$ 的稳态解是 $g\cos(2t - \phi)$。增益 $g$ 是多少？（保留三位小数）
+          answer: 0.707
+          tolerance: 0.0005
+          hint: 这里 $k$ 和 $\omega$ 各是多少？
+          explain: $k = 2$，$\omega = 2$，$g = 1/\sqrt{1 + 1} \approx 0.707$，$\phi = \arctan 1 = 45°$。
+      - item:
+          id: phase-lag
+          type: number
+          prompt: 系统 $y' + y = \cos(\sqrt3\,t)$ 的稳态输出比输入滞后多少度？
+          answer: 60
+          unit: °
+          hint: 相位滞后等于 $\arctan(\omega/k)$。
+          explain: $k = 1$，$\omega = \sqrt3$，$\phi = \arctan\sqrt3 = 60°$。
+      - card:
+          title: 指数输入
+          body: |
+            输入是指数 $e^{at}$（$a$ 可以是复数）时，试 $y_p = Be^{at}$。对 $y' + ky = e^{at}$：$(a + k)B = 1$，$B = \frac{1}{a + k}$（要求 $a \ne -k$）。
+
+            同样的代入法对任何常系数线性方程都成立，二阶方程里还会用到。正弦输入就是 $a = i\omega$ 的特例；$a = 0$ 是常数输入。
+      - item:
+          id: exp-input
+          type: number
+          prompt: 方程 $y' + 3y = e^{2t}$ 有一个形如 $Be^{2t}$ 的特解。$B$ 等于多少？
+          answer: 0.2
+          hint: 把 $Be^{2t}$ 代进去，$e^{2t}$ 前面的系数要相等。
+          explain: $2Be^{2t} + 3Be^{2t} = e^{2t}$，$5B = 1$，$B = 0.2$。
+
+  - id: second-order-modes
+    chapter: 一阶与高阶方程
+    title: 二阶常系数方程：特征方程和阻尼振动
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个挂在弹簧上的重物在空气中上下振动，振幅越来越小。如果把它放进黏稠的蜂蜜里，被拉开后松手，会怎样？
+          options:
+            - text: 不再振动，慢慢回到平衡位置
+              correct: true
+            - text: 振动得更快
+              why: 阻力很大时，重物连越过平衡位置的速度都没有
+            - text: 和在空气里一样振动，只是更慢
+              why: 阻力足够大时根本不会越过平衡位置，不再是振动
+          explain: 阻力小时是衰减的振动，阻力大到一定程度就不再振动。这一课用一个代数方程区分这几种情况。
+      - card:
+          title: 特征方程
+          body: |
+            二阶常系数齐次线性方程
+
+            $$y'' + by' + cy = 0$$
+
+            试 $y = e^{rt}$：$(r^2 + br + c)e^{rt} = 0$，所以 $r$ 要满足**特征方程（characteristic equation）** $r^2 + br + c = 0$。
+
+            两个不同的根 $r_1$、$r_2$ 给出两个解，通解 $y = C_1e^{r_1t} + C_2e^{r_2t}$。例：$y'' - 3y' + 2y = 0$，$r^2 - 3r + 2 = 0$，$r = 1, 2$，$y = C_1e^t + C_2e^{2t}$。
+      - item:
+          id: char-roots
+          type: choice
+          prompt: $y'' + 5y' + 6y = 0$ 的通解是什么？
+          options:
+            - text: $C_1e^{-2t} + C_2e^{-3t}$
+              correct: true
+            - text: $C_1e^{2t} + C_2e^{3t}$
+              why: $r^2 + 5r + 6 = (r + 2)(r + 3)$，根是 $-2$、$-3$，符号是负的
+            - text: $C_1e^{-5t} + C_2e^{-6t}$
+              why: 指数里要放特征方程的根，不是方程的系数
+          explain: 特征方程 $r^2 + 5r + 6 = 0$ 的根是 $-2$、$-3$，通解 $C_1e^{-2t} + C_2e^{-3t}$。
+      - card:
+          title: 复根、重根和三种阻尼
+          body: |
+            弹簧振子 $mx'' + bx' + kx = 0$（质量 $m$、阻尼系数 $b$、弹簧系数 $k$ 都是正数）的特征方程 $mr^2 + br + k = 0$：
+
+            - $b^2 > 4mk$：两个负实根，**过阻尼（overdamped）**，两个衰减指数相加，不振荡；
+            - $b^2 = 4mk$：二重根 $r$，**临界阻尼（critically damped）**，通解 $(C_1 + C_2t)e^{rt}$；
+            - $b^2 < 4mk$：复根 $-a \pm i\omega_d$，**欠阻尼（underdamped）**，由欧拉公式通解 $e^{-at}(C_1\cos\omega_dt + C_2\sin\omega_dt)$，衰减振荡。
+
+            $b = 0$ 时 $x = A\cos(\omega_0t - \phi)$，$\omega_0 = \sqrt{k/m}$ 叫固有角频率，对应的频率是 $f_0 = \omega_0/(2\pi)$；控制课里管它叫自然频率。
+      - card:
+          title: 例题：判断阻尼类型并写通解
+          body: 求 $y'' + 4y' + 13y = 0$ 的通解，并说明 $t \to \infty$ 时解的行为。
+          reveal:
+            - title: 第 1 步：写特征方程并求根
+              body: $r^2 + 4r + 13 = 0$，$r = \frac{-4 \pm \sqrt{16 - 52}}{2} = -2 \pm 3i$。
+            - title: 第 2 步：复根对应衰减振荡
+              body: $a = 2$，$\omega_d = 3$，通解 $y = e^{-2t}(C_1\cos 3t + C_2\sin 3t)$。
+            - title: 第 3 步：长期行为
+              body: 括号里是振幅有界的振荡，$e^{-2t} \to 0$，所以解振荡着衰减到 0，是欠阻尼。
+      - item:
+          id: damping-type
+          type: choice
+          prompt: 弹簧振子 $x'' + 4x' + 4x = 0$ 属于哪种阻尼？
+          options:
+            - text: 临界阻尼
+              correct: true
+            - text: 欠阻尼
+              why: 判别式 $16 - 16 = 0$，没有复根
+            - text: 过阻尼
+              why: 判别式等于 0 时是二重根，不是两个不等实根
+          explain: $r^2 + 4r + 4 = (r + 2)^2$，二重根 $-2$，通解 $(C_1 + C_2t)e^{-2t}$，临界阻尼。
+      - item:
+          id: damped-freq
+          type: number
+          prompt: 一个弹簧振子满足 $x'' + 2x' + 26x = 0$。它衰减振荡的角频率 $\omega_d$ 是多少 rad/s？
+          answer: 5
+          unit: rad/s
+          hint: 特征方程的复根虚部是多少？
+          explain: $r = -1 \pm \sqrt{1 - 26} = -1 \pm 5i$，$\omega_d = 5$。
+      - card:
+          title: 线性无关和高阶方程
+          body: |
+            两个解 $y_1$、$y_2$ 不是彼此的常数倍，叫**线性无关（linearly independent）**，这时 $C_1y_1 + C_2y_2$ 才是通解。判断方法：**朗斯基行列式（Wronskian）** $W = y_1y_2' - y_1'y_2$ 不为 0。例：$e^{-2t}$ 和 $te^{-2t}$ 的 $W = e^{-4t} \ne 0$。
+
+            $n$ 阶常系数方程同样代入 $e^{rt}$，得到 $n$ 次特征方程；$n$ 个根各给一个解（重根 $r$ 出现 $k$ 次时，用 $e^{rt}, te^{rt}, \dots, t^{k-1}e^{rt}$），通解有 $n$ 个任意常数。
+      - item:
+          id: third-order
+          type: choice
+          prompt: $y''' - y' = 0$ 的通解是什么？
+          options:
+            - text: $C_1 + C_2e^{t} + C_3e^{-t}$
+              correct: true
+            - text: $C_1e^{t} + C_2e^{-t}$
+              why: 三阶方程的通解要有 3 个任意常数；特征方程 $r^3 - r = 0$ 还有根 $r = 0$
+            - text: $C_1 + C_2t + C_3t^2$
+              why: 那是 $y''' = 0$ 的通解；这里特征方程的根是 0、1、−1
+          explain: $r^3 - r = r(r - 1)(r + 1) = 0$，根 0、1、−1，对应 $1$、$e^t$、$e^{-t}$。
+
+  - id: forced-response
+    chapter: 一阶与高阶方程
+    title: 受迫响应：指数响应公式和待定系数
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个有阻尼的弹簧振子被一个每 2 秒来回推一次的力推着。等很久以后，它按什么节奏振动？
+          options:
+            - text: 按推力的节奏，每 2 秒一个来回
+              correct: true
+            - text: 按它自己的固有节奏振动
+              why: 有阻尼时，自由振动那部分会慢慢衰减掉，最后只剩跟着推力走的部分
+            - text: 两种节奏轮流出现
+              why: 两部分是叠加在一起的，不是轮流；而且自由振动的部分会衰减消失
+          explain: 长时间后剩下的是稳态响应，它和输入的频率相同，只是振幅和相位不同。这一课学怎样直接算出它。
+      - card:
+          title: 算子写法和指数响应公式
+          body: |
+            把求导记作 $D$：$Dy = y'$，$D^2y = y''$。方程 $y'' + by' + cy = f(t)$ 就写成 $p(D)y = f$，$p(r) = r^2 + br + c$ 正是特征方程左边的多项式，叫特征多项式。
+
+            输入是指数 $e^{at}$ 时，因为 $De^{at} = ae^{at}$，所以 $p(D)e^{at} = p(a)e^{at}$。试 $y = Be^{at}$，得 $B = 1/p(a)$：
+
+            $$y_p = \frac{e^{at}}{p(a)}\qquad (p(a) \ne 0)$$
+
+            这叫**指数响应公式（exponential response formula）**，简称 ERF。例：$y'' + 3y' + 2y = e^{-3t}$，$p(-3) = 9 - 9 + 2 = 2$，$y_p = \tfrac12 e^{-3t}$。
+      - item:
+          id: erf-coefficient
+          type: number
+          prompt: 方程 $y'' + 2y' + 5y = 3e^{t}$ 有一个形如 $Be^{t}$ 的特解。$B$ 等于多少？
+          answer: 0.375
+          hint: 特征多项式在 $r = 1$ 处的值是多少？
+          explain: $p(r) = r^2 + 2r + 5$，$p(1) = 8$，所以 $y_p = \frac{3e^t}{8}$，$B = 0.375$。
+      - card:
+          title: 正弦输入：先换成复指数，最后取实部
+          body: |
+            $\cos\omega t$ 是 $e^{i\omega t}$ 的实部。先解 $p(D)z = e^{i\omega t}$，由指数响应公式 $z_p = e^{i\omega t}/p(i\omega)$，再取实部。
+
+            把复数 $p(i\omega)$ 写成 $|p(i\omega)|e^{i\phi}$，就得到
+
+            $$y_p = \frac{1}{|p(i\omega)|}\cos(\omega t - \phi)$$
+
+            增益 $g = 1/|p(i\omega)|$，相位滞后 $\phi$ 是 $p(i\omega)$ 的辐角。对二阶方程，$p(i\omega) = (c - \omega^2) + ib\omega$。
+      - card:
+          title: 例题：二阶方程的稳态正弦响应
+          body: 求 $y'' + y' + 4y = \cos 2t$ 的稳态解。
+          reveal:
+            - title: 第 1 步：算 p(iω)
+              body: $p(r) = r^2 + r + 4$，$\omega = 2$：$p(2i) = -4 + 2i + 4 = 2i$。
+            - title: 第 2 步：写成模和辐角
+              body: $|p(2i)| = 2$；$2i$ 在虚轴正方向上，辐角是 $90°$。
+            - title: 第 3 步：写出稳态解并代回检验
+              body: $y_p = \tfrac12\cos(2t - 90°) = \tfrac12\sin 2t$。代回：$y_p'' + y_p' + 4y_p = -2\sin 2t + \cos 2t + 2\sin 2t = \cos 2t$，成立。
+      - item:
+          id: gain-second-order
+          type: number
+          prompt: 方程 $x'' + 2x' + 5x = \cos t$ 的稳态解是 $g\cos(t - \phi)$。增益 $g$ 是多少？（保留三位小数）
+          answer: 0.224
+          tolerance: 0.0005
+          hint: 先算 $p(i)$，再取它的模。
+          explain: $p(i) = -1 + 2i + 5 = 4 + 2i$，$|p(i)| = \sqrt{20} \approx 4.472$，$g = 1/4.472 \approx 0.224$。
+      - item:
+          id: phase-second-order
+          type: number
+          prompt: 方程 $x'' + 2x' + 5x = \cos t$ 的稳态输出比输入滞后多少度？（保留一位小数）
+          answer: 26.6
+          tolerance: 0.05
+          unit: °
+          hint: 相位滞后是 $p(i)$ 的辐角。
+          explain: $p(i) = 4 + 2i$，辐角 $\arctan(2/4) \approx 26.6°$。输出是 $0.224\cos(t - 26.6°)$。
+      - card:
+          title: 待定系数法
+          body: |
+            输入是多项式时，试一个同次的多项式。例：$y'' + y = t^2$，试 $y_p = At^2 + Bt + C$，$y_p'' = 2A$。代入得 $At^2 + Bt + (2A + C) = t^2$，比较两边同次项的系数：$A = 1$，$B = 0$，$2A + C = 0$，所以 $C = -2$，$y_p = t^2 - 2$。
+
+            这叫**待定系数法（method of undetermined coefficients）**：先按输入的样子猜出特解的形式，留几个系数待定，代入后比较系数把它们定出来。
+      - item:
+          id: undetermined
+          type: number
+          prompt: 方程 $y'' + 3y' + 2y = 4t$ 有一个形如 $at + b$ 的特解。$b$ 等于多少？
+          answer: -3
+          hint: 代入后，分别让 $t$ 的系数和常数项两边相等。
+          explain: $y_p' = a$，$y_p'' = 0$，代入得 $2at + (3a + 2b) = 4t$。所以 $a = 2$，$3a + 2b = 0$，$b = -3$，$y_p = 2t - 3$。
+      - card:
+          title: 线性算子和叠加原理
+          body: |
+            $L = p(D)$ 满足 $L(c_1y_1 + c_2y_2) = c_1Ly_1 + c_2Ly_2$，这样的运算叫线性算子。由此得到**叠加原理（superposition principle）**：如果 $Ly_1 = f_1$、$Ly_2 = f_2$，那么 $L(y_1 + y_2) = f_1 + f_2$。
+
+            输入是几项之和时，分别求每一项的特解再相加。非齐次方程的通解 = 任意一个特解 + 齐次方程的通解，也是这条原理的结果。
+      - item:
+          id: superposition
+          type: number
+          prompt: 方程 $y'' + 4y = 8 + 5e^{t}$ 有一个特解是一个常数加上一个 $e^t$ 的倍数。这个特解在 $t = 0$ 的值是多少？
+          answer: 3
+          hint: 输入的两项分别求特解，常数输入对应 $a = 0$。
+          explain: 对 8：$y = 8/p(0) = 8/4 = 2$；对 $5e^t$：$5e^t/p(1) = e^t$。相加 $y_p = 2 + e^t$，$y_p(0) = 3$。
+      - card:
+          title: 时不变性
+          body: |
+            系数是常数时，方程还有**时不变性（time invariance）**：输入 $f(t)$ 的响应是 $y(t)$，那么把输入推迟 $t_0$，即 $f(t - t_0)$，响应也只是推迟 $t_0$，变成 $y(t - t_0)$。原因是方程里不含 $t$，换成 $s = t - t_0$ 后方程形状不变。
+
+            同时满足叠加原理和时不变性的系统叫**线性时不变系统（linear time-invariant system）**，简称 LTI 系统。系数随时间变化的方程，例如 $y' + ty = f$，就不是时不变的。
+      - item:
+          id: lti-shift
+          type: choice
+          prompt: 常系数方程 $y' + 2y = f(t)$ 在输入 $f = \cos t$ 时的稳态响应是 $y_1(t)$。输入改成 $3\cos(t - 1)$ 时，稳态响应是什么？
+          options:
+            - text: $3y_1(t - 1)$
+              correct: true
+            - text: $3y_1(t)$
+              why: 输入推迟了 1，响应也要推迟 1，这是时不变性
+            - text: $y_1(3t - 1)$
+              why: 乘 3 是放大输入，对应把响应乘 3；把 3 放进自变量里等于改变了频率
+            - text: $y_1(t - 1) + 3$
+              why: 输入乘 3，响应也乘 3（线性），不是加 3
+          explain: 线性给出“乘 3”，时不变给出“推迟 1”，合起来是 $3y_1(t - 1)$。
+
+  - id: resonance-lrc
+    chapter: 一阶与高阶方程
+    title: 共振和 LRC 电路
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 推秋千时，按什么节奏推，秋千最容易越荡越高？
+          options:
+            - text: 按秋千自己来回摆的节奏推
+              correct: true
+            - text: 推得越快越好
+              why: 推得比秋千摆动快很多时，推力常常和运动方向相反，作用互相抵消
+            - text: 什么节奏都一样，只看用多大力
+              why: 同样大的力，节奏不同，振幅可以差很多
+          explain: 推的节奏和秋千自己的节奏一致时，每一推都在顺着运动方向加能量，振幅越来越大。这叫共振。
+      - card:
+          title: 纯共振
+          body: |
+            无阻尼振子 $x'' + \omega_0^2x = \cos\omega t$。$\omega \ne \omega_0$ 时，指数响应公式给出 $x_p = \frac{\cos\omega t}{\omega_0^2 - \omega^2}$，$\omega$ 越接近 $\omega_0$，振幅越大。
+
+            $\omega = \omega_0$ 时 $p(i\omega_0) = 0$，公式失效。这时用推广的公式：$p(a) = 0$、$p'(a) \ne 0$ 时，$y_p = \frac{te^{at}}{p'(a)}$。这里 $p'(r) = 2r$，取实部得
+
+            $$x_p = \frac{t\sin\omega_0 t}{2\omega_0}$$
+
+            振幅随时间线性增长，这叫**共振（resonance）**，没有阻尼时叫纯共振。
+      - item:
+          id: pure-resonance
+          type: number
+          prompt: 无阻尼振子 $x'' + 9x = \cos 3t$。用推广的指数响应公式求出特解，它在 $t = 12$ 时的振幅是多少？
+          answer: 2
+          hint: $p(r) = r^2 + 9$，$p'(3i)$ 是多少？
+          explain: $p'(3i) = 6i$，取实部得 $x_p = \frac{t\sin 3t}{6}$，振幅 $t/6$，$t = 12$ 时为 2。
+      - item:
+          id: near-resonance
+          type: number
+          prompt: 无阻尼振子 $x'' + 4x = \cos\omega t$，取 $\omega = 1.9$。稳态解的振幅是多少？（保留三位小数）
+          answer: 2.564
+          tolerance: 0.0005
+          hint: $\omega$ 不等于固有频率 2，可以直接用指数响应公式。
+          explain: 振幅 $\frac{1}{4 - 1.9^2} = \frac{1}{0.39} \approx 2.564$。$\omega = 1$ 时只有 $1/3$：越接近 2 越大。
+      - card:
+          title: 频率响应和实际共振
+          body: |
+            有阻尼时 $x'' + bx' + kx = \cos\omega t$ 的增益是
+
+            $$g(\omega) = \frac{1}{\sqrt{(k - \omega^2)^2 + b^2\omega^2}}$$
+
+            把 $g$ 画成 $\omega$ 的函数，叫**频率响应（frequency response）**曲线。把根号里的式子对 $\omega^2$ 求导、令导数为 0，得 $\omega^2 = k - b^2/2$，这时它最小，所以 $b^2 < 2k$ 时 $g$ 在 $\omega_r = \sqrt{k - b^2/2}$ 处有峰值，叫**实际共振（practical resonance）**。阻尼越小，峰越高越尖，也越靠近 $\omega_0 = \sqrt k$；$b^2 \ge 2k$ 时没有峰。
+      - card:
+          title: 例题：找共振频率和峰值增益
+          body: 求 $x'' + x' + 4x = \cos\omega t$ 的实际共振角频率和那里的增益。
+          reveal:
+            - title: 第 1 步：检查有没有峰
+              body: $b^2 = 1$，$2k = 8$，$b^2 < 2k$，有峰。
+            - title: 第 2 步：算 ω_r
+              body: $\omega_r = \sqrt{4 - 1/2} = \sqrt{3.5} \approx 1.871$。
+            - title: 第 3 步：算峰值增益
+              body: $k - \omega_r^2 = 0.5$，$(0.5)^2 + 1 \times 3.5 = 3.75$，$g = 1/\sqrt{3.75} \approx 0.516$，是低频增益 $g(0) = 1/4$ 的两倍多。
+      - item:
+          id: practical-resonance
+          type: number
+          prompt: 振子 $x'' + 2x' + 10x = \cos\omega t$ 的实际共振角频率 $\omega_r$ 是多少？（保留三位小数）
+          answer: 2.828
+          tolerance: 0.0005
+          hint: 先确认 $b^2 < 2k$，再用 $\omega_r = \sqrt{k - b^2/2}$。
+          explain: $b^2 = 4 < 20$，$\omega_r = \sqrt{10 - 2} = \sqrt8 \approx 2.828$，略低于固有频率 $\sqrt{10} \approx 3.162$。
+      - item:
+          id: no-peak
+          type: choice
+          prompt: 下面哪个振子的频率响应曲线没有共振峰（增益随 $\omega$ 一直下降）？
+          options:
+            - text: $x'' + 3x' + 4x = \cos\omega t$
+              correct: true
+            - text: $x'' + 2x' + 4x = \cos\omega t$
+              why: $b^2 = 4 < 2k = 8$，在 $\omega_r = \sqrt2$ 处有峰
+            - text: $x'' + 4x = \cos\omega t$
+              why: 没有阻尼时 $\omega = 2$ 处增益无穷大，是纯共振，峰最高
+            - text: $x'' + 0.5x' + 4x = \cos\omega t$
+              why: 阻尼越小峰越尖，这个振子的峰很明显
+          explain: 有峰的条件是 $b^2 < 2k$。$x'' + 3x' + 4x$ 的 $b^2 = 9 > 8$，阻尼太大，增益从 $\omega = 0$ 起一直下降。
+      - card:
+          title: LRC 电路
+          body: |
+            电感 $L$、电阻 $R$、电容 $C$ 串联，接电源 $E(t)$。电容上的电荷 $q$ 满足
+
+            $$Lq'' + Rq' + \frac1C q = E(t)$$
+
+            它和弹簧振子 $mx'' + bx' + kx = F(t)$ 一一对应：$L$ 对应 $m$，$R$ 对应 $b$，$1/C$ 对应 $k$。所以固有角频率 $\omega_0 = 1/\sqrt{LC}$；$R^2 < 4L/C$ 时欠阻尼，$R^2 = 4L/C$ 时临界阻尼。收音机调谐就是改变电容，让电路的共振频率对准要收的电台。
+      - card:
+          title: 例题：LRC 电路的频率和阻尼
+          body: $L = 0.1\text{ H}$，$C = 10\ \mu\text{F}$，$R = 50\ \Omega$。求固有频率，判断阻尼类型，并求临界阻尼时的电阻。
+          reveal:
+            - title: 第 1 步：固有频率
+              body: $LC = 10^{-6}\text{ s}^2$，$\omega_0 = 1000\text{ rad/s}$，$f_0 = \omega_0/(2\pi) \approx 159\text{ Hz}$。
+            - title: 第 2 步：判断阻尼
+              body: $4L/C = 0.4/10^{-5} = 40000\ \Omega^2$，$R^2 = 2500 < 40000$，欠阻尼，电流会振荡。
+            - title: 第 3 步：临界电阻
+              body: $R^2 = 4L/C$，$R = \sqrt{40000} = 200\ \Omega$。
+      - item:
+          id: lrc-freq
+          type: number
+          prompt: 一个串联 LRC 电路 $L = 0.2\text{ H}$，$C = 50\ \mu\text{F}$。固有频率 $f_0$ 是多少赫兹？（保留一位小数）
+          answer: 50.3
+          tolerance: 0.05
+          unit: Hz
+          hint: 先求 $\omega_0 = 1/\sqrt{LC}$，再除以 $2\pi$。
+          explain: $LC = 10^{-5}$，$\omega_0 \approx 316.2\text{ rad/s}$，$f_0 = 316.2/(2\pi) \approx 50.3\text{ Hz}$。
+      - item:
+          id: lrc-critical
+          type: number
+          prompt: 一个串联 LRC 电路 $L = 0.2\text{ H}$，$C = 50\ \mu\text{F}$。电阻取多少欧姆时恰好临界阻尼？（保留一位小数）
+          answer: 126.5
+          tolerance: 0.05
+          unit: Ω
+          hint: 对应弹簧振子的 $b^2 = 4mk$。
+          explain: $R^2 = 4L/C = 0.8/(5 \times 10^{-5}) = 16000$，$R \approx 126.5\ \Omega$。电阻更小就是欠阻尼。
+
+  - id: fourier-series
+    chapter: 一阶与高阶方程
+    title: 傅里叶级数和周期输入
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 方波一会儿是 +1，一会儿是 −1，在跳变处是竖直的。能不能用很多个正弦波加起来得到它？
+          options:
+            - text: 能，频率成整数倍的正弦加得越多，越接近方波
+              correct: true
+            - text: 不能，正弦都是光滑的，加起来不会有跳变
+              why: 有限项的和确实光滑，但项数越多，跳变附近越陡，无穷多项的和可以有跳变
+            - text: 只能用一个频率相同的正弦近似
+              why: 一个正弦只是粗略的近似，加上 3 倍、5 倍频率的正弦后会好得多
+          explain: 周期函数可以拆成很多正弦和余弦之和，这叫傅里叶级数。拆开以后，每一项都能用前面学的办法单独处理。
+      - card:
+          title: 傅里叶级数
+          body: |
+            周期为 $2\pi$、分段光滑（除了有限个跳变点，导数都连续）的函数 $f(t)$ 可以写成
+
+            $$f(t) = \frac{a_0}{2} + \sum_{n=1}^{\infty}(a_n\cos nt + b_n\sin nt)$$
+
+            叫**傅里叶级数（Fourier series）**，系数是
+
+            $$a_n = \frac1\pi\int_{-\pi}^{\pi} f(t)\cos nt\,dt,\qquad b_n = \frac1\pi\int_{-\pi}^{\pi} f(t)\sin nt\,dt$$
+
+            $a_0/2$ 就是 $f$ 在一个周期上的平均值。
+      - card:
+          title: 为什么系数这样算：正交性
+          body: |
+            在 $[-\pi, \pi]$ 上，$m \ne n$ 时 $\int\cos mt\cos nt\,dt = 0$，$\int\sin mt\sin nt\,dt = 0$，而 $\int\cos mt\sin nt\,dt$ 总是 0。这叫**正交性（orthogonality）**。
+
+            把级数两边乘上 $\cos nt$ 再积分，其他项全部变成 0，只剩 $a_n\int\cos^2 nt\,dt = \pi a_n$，所以 $a_n$ 等于上面那个积分。
+      - item:
+          id: fourier-average
+          type: number
+          prompt: 函数 $f(t) = |t|$（$-\pi < t < \pi$）按周期 $2\pi$ 延拓。它的傅里叶级数的常数项 $a_0/2$ 是多少？（保留三位小数）
+          answer: 1.571
+          tolerance: 0.0005
+          hint: 常数项就是一个周期上的平均值。
+          explain: $a_0 = \frac1\pi\int_{-\pi}^{\pi}|t|\,dt = \frac1\pi \cdot \pi^2 = \pi$，$a_0/2 = \pi/2 \approx 1.571$。
+      - card:
+          title: 例题：方波的傅里叶级数
+          body: 方波 $\mathrm{sq}(t)$ 在 $0 < t < \pi$ 时为 1，在 $-\pi < t < 0$ 时为 $-1$，周期 $2\pi$。求它的傅里叶级数。
+          reveal:
+            - title: 第 1 步：用奇偶性省掉一半
+              body: $\mathrm{sq}$ 是奇函数，$\mathrm{sq}(t)\cos nt$ 也是奇函数，在对称区间上积分为 0，所以所有 $a_n = 0$。
+            - title: 第 2 步：算 b_n
+              body: $b_n = \frac2\pi\int_0^\pi\sin nt\,dt = \frac{2}{n\pi}(1 - \cos n\pi)$。$n$ 是偶数时为 0，奇数时为 $\frac{4}{n\pi}$。
+            - title: 第 3 步：写出级数
+              body: $\mathrm{sq}(t) = \frac4\pi\left(\sin t + \frac{\sin 3t}{3} + \frac{\sin 5t}{5} + \cdots\right)$，只有奇数次的项。
+      - item:
+          id: square-b5
+          type: number
+          prompt: 方波 $\mathrm{sq}(t)$（$0 < t < \pi$ 时为 1，$-\pi < t < 0$ 时为 −1，周期 $2\pi$）的傅里叶级数里，$\sin 5t$ 的系数是多少？（保留三位小数）
+          answer: 0.255
+          tolerance: 0.0005
+          hint: 例题里 $\sin t$ 的系数是 $\frac{4}{\pi}$、$\sin 3t$ 的是 $\frac{4}{3\pi}$，$\sin 5t$ 的该是多少？
+          explain: $b_5 = \frac{4}{5\pi} \approx 0.255$。
+      - item:
+          id: even-odd
+          type: choice
+          prompt: 函数 $f(t) = t^2$（$-\pi < t < \pi$）按周期 $2\pi$ 延拓。它的傅里叶级数里哪些系数一定是 0？
+          options:
+            - text: 所有 $b_n$
+              correct: true
+            - text: 所有 $a_n$
+              why: $t^2$ 是偶函数，$t^2\cos nt$ 也是偶函数，积分一般不为 0
+            - text: 偶数 $n$ 的 $b_n$
+              why: 偶数次正弦系数为 0 是方波这类函数的特点；$t^2$ 是偶函数，所有 $b_n$ 都是 0
+            - text: 没有哪类系数一定是 0
+              why: 偶函数乘 $\sin nt$ 是奇函数，在对称区间上积分为 0，所以 $b_n$ 全是 0
+          explain: 偶函数的级数只有余弦项（和常数项），奇函数的级数只有正弦项。
+      - card:
+          title: 收敛和一般的周期
+          body: |
+            $f$ 分段光滑时，它的傅里叶级数在 $f$ 连续的点收敛到 $f(t)$，在跳变点收敛到左极限和右极限的平均值。方波在 $t = 0$ 处的级数每一项都是 0，正好是 $-1$ 和 $1$ 的平均。
+
+            周期是 $2L$ 时，把 $nt$ 换成 $\frac{n\pi t}{L}$，系数公式里的 $\frac1\pi\int_{-\pi}^{\pi}$ 换成 $\frac1L\int_{-L}^{L}$：
+
+            $$f(t) = \frac{a_0}{2} + \sum_{n=1}^{\infty}\left(a_n\cos\frac{n\pi t}{L} + b_n\sin\frac{n\pi t}{L}\right)$$
+      - item:
+          id: jump-value
+          type: number
+          prompt: 函数 $f$ 在 $0 < t < \pi$ 时为 3，在 $-\pi < t < 0$ 时为 1，周期 $2\pi$。它的傅里叶级数在 $t = 0$ 处收敛到多少？
+          answer: 2
+          hint: 跳变点处收敛到哪两个值的平均？
+          explain: $t = 0$ 左边是 1，右边是 3，级数收敛到平均值 2。
+      - card:
+          title: 平移和伸缩
+          body: |
+            已知的级数可以直接改造，不必重新积分。函数乘一个常数、加一个常数，级数也跟着乘、跟着加：$\frac{1 + \mathrm{sq}(t)}{2}$ 是在 0 和 1 之间跳的方波，它的级数就是
+
+            $$\frac12 + \frac12 \cdot \frac4\pi\left(\sin t + \frac{\sin 3t}{3} + \cdots\right)$$
+
+            把 $t$ 换成 $t - c$（平移），每一项也跟着换，系数的大小不变。
+      - item:
+          id: shift-scale
+          type: number
+          prompt: 函数 $g(t) = \frac{1 + \mathrm{sq}(t)}{2}$ 在 0 和 1 之间跳变（$\mathrm{sq}$ 是在 1 和 −1 之间跳变的方波，级数 $\frac4\pi(\sin t + \frac{\sin 3t}{3} + \cdots)$）。$g$ 的傅里叶级数里 $\sin t$ 的系数是多少？（保留三位小数）
+          answer: 0.637
+          tolerance: 0.0005
+          hint: 常数 $\frac12$ 不影响正弦项，$\frac12\mathrm{sq}(t)$ 的系数是多少？
+          explain: $\frac12 \cdot \frac4\pi = \frac2\pi \approx 0.637$。
+      - card:
+          title: 逐项积分和逐项求导
+          body: |
+            傅里叶级数总可以逐项积分。因为 $\int_0^t \sin n\tau\,d\tau = \frac{1 - \cos nt}{n}$，把方波从 0 积到 $t$，得到三角波 $|t|$（在 $(-\pi, \pi)$ 上）：
+
+            $$|t| = \frac4\pi\sum_{n \text{ 奇}}\frac{1 - \cos nt}{n^2} = \frac\pi2 - \frac4\pi\left(\cos t + \frac{\cos 3t}{9} + \frac{\cos 5t}{25} + \cdots\right)$$
+
+            常数项用到了 $1 + \frac19 + \frac{1}{25} + \cdots = \frac{\pi^2}{8}$。系数从 $\frac1n$ 变成 $\frac{1}{n^2}$，衰减更快，三角波比方波光滑。逐项求导要小心：方波的级数逐项求导后不收敛。
+      - card:
+          title: 周期输入和共振
+          body: |
+            方程 $x'' + \omega_0^2x = f(t)$，$f$ 的周期是 $2\pi$。把 $f$ 展开成傅里叶级数，每一项 $b_n\sin nt$ 单独求响应：$(D^2 + \omega_0^2)\sin nt = (\omega_0^2 - n^2)\sin nt$，所以响应是 $\frac{b_n\sin nt}{\omega_0^2 - n^2}$，再全部加起来。
+
+            哪个 $n$ 使 $\omega_0^2 - n^2$ 很小，哪一项就被放大很多。方波只含奇数次项，所以 $\omega_0$ 接近 3 时第 3 项占主导；$\omega_0 = 2$ 时却不会共振，因为方波里没有 $\sin 2t$。
+      - item:
+          id: periodic-response
+          type: number
+          prompt: 方程 $x'' + 10x = \mathrm{sq}(t)$（方波级数 $\frac4\pi(\sin t + \frac{\sin 3t}{3} + \cdots)$）的周期解里，$\sin 3t$ 项的振幅是多少？（保留三位小数）
+          answer: 0.424
+          tolerance: 0.0005
+          hint: 输入里 $\sin 3t$ 的系数是 $\frac{4}{3\pi}$，它被放大了多少倍？
+          explain: $\frac{4/(3\pi)}{10 - 9} \approx 0.424$。$\sin t$ 项只有 $\frac{4/\pi}{10 - 1} \approx 0.141$：输入里较小的第 3 项反而成了响应里最大的一项。
+      - item:
+          id: periodic-resonance
+          type: choice
+          prompt: 无阻尼振子 $x'' + \omega_0^2x = \mathrm{sq}(t)$，方波周期 $2\pi$。$\omega_0$ 取下面哪个值时会发生共振（没有周期解）？
+          options:
+            - text: $\omega_0 = 3$
+              correct: true
+            - text: $\omega_0 = 2$
+              why: 方波的偶数次系数都是 0，没有 $\sin 2t$ 这一项，所以不会共振
+            - text: $\omega_0 = 2\pi$
+              why: $2\pi$ 是方波的周期，不是角频率；方波各项的角频率是 1、3、5……
+            - text: $\omega_0 = 4$
+              why: 4 是偶数，方波里没有 $\sin 4t$
+          explain: 输入里有 $\sin 3t$，$\omega_0 = 3$ 时这一项的分母 $\omega_0^2 - 9 = 0$，发生纯共振。
+
+  - id: step-delta-convolution
+    chapter: 一阶与高阶方程
+    title: 阶跃、冲激和卷积
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用小锤猛敲一下静止的音叉，敲击的时间极短。之后音叉会怎样？
+          options:
+            - text: 按自己的频率振动，慢慢衰减
+              correct: true
+            - text: 敲完马上停下
+              why: 这一敲给了音叉一个初速度，之后它在没有外力的情况下自由振动
+            - text: 振动频率取决于敲得多用力
+              why: 力度决定振幅；频率由音叉自身决定
+          explain: 极短的一击相当于突然给系统一个初速度，之后就是齐次方程的解。这个响应叫冲激响应，它能决定系统对任何输入的响应。
+      - card:
+          title: 单位阶跃函数
+          body: |
+            **单位阶跃函数（unit step function）** $u(t)$：$t < 0$ 时为 0，$t > 0$ 时为 1。$u(t - a)$ 在 $t = a$ 时从 0 跳到 1，像一个在 $a$ 时刻合上的开关：开关在 $t = 0$ 合上，电源电压就是 $V_0u(t)$。
+
+            $u(t - a) - u(t - b)$（$a < b$）只在 $a < t < b$ 时为 1，像一个窗口：$f(t)$ 乘上它，就只留下 $f$ 在这段时间的部分。
+      - item:
+          id: window
+          type: number
+          prompt: 函数 $f(t) = 3\,(u(t - 1) - u(t - 4))$。$\int_0^{10} f(t)\,dt$ 等于多少？
+          answer: 9
+          hint: $f$ 在哪段时间不为 0？那里等于多少？
+          explain: $f$ 只在 $1 < t < 4$ 时等于 3，其他时候为 0，积分是 $3 \times 3 = 9$。
+      - card:
+          title: 单位冲激函数
+          body: |
+            想象一个面积为 1 的窄矩形：宽 $h$，高 $1/h$。$h \to 0$ 时的极限叫**单位冲激函数（unit impulse function）** $\delta(t)$：$t \ne 0$ 时为 0，总面积为 1。它不是普通的函数，靠和别的函数一起积分来定义：
+
+            $$\int_{-\infty}^{\infty} f(t)\,\delta(t - a)\,dt = f(a)$$
+
+            $u(t)$ 在 0 处跳了 1，它的导数（广义导数）就是 $\delta(t)$。一般地，函数在 $t = a$ 处跳了 $J$，导数里就多一项 $J\delta(t - a)$。
+      - item:
+          id: sifting
+          type: number
+          prompt: 计算 $\int_{-\infty}^{\infty} t^3\,\delta(t - 2)\,dt$。
+          answer: 8
+          hint: 冲激只在 $t = 2$ 处起作用。
+          explain: 积分等于 $t^3$ 在 $t = 2$ 处的值，$2^3 = 8$。
+      - item:
+          id: generalized-derivative
+          type: choice
+          prompt: 函数 $f(t) = t + 2u(t - 1)$ 的广义导数是什么？
+          options:
+            - text: $1 + 2\delta(t - 1)$
+              correct: true
+            - text: $1$
+              why: $f$ 在 $t = 1$ 处跳了 2，导数里要多一项 $2\delta(t - 1)$
+            - text: $2\delta(t - 1)$
+              why: 漏了 $t$ 的导数 1
+            - text: $1 + 2u(t - 1)$
+              why: $u$ 的导数是冲激 $\delta$，不是 $u$ 本身
+          explain: $t$ 的导数是 1；$2u(t - 1)$ 在 $t = 1$ 处跳了 2，导数是 $2\delta(t - 1)$。
+      - card:
+          title: 阶跃响应和冲激响应
+          body: |
+            方程 $p(D)x = f(t)$，开始时完全静止（$t < 0$ 时 $x$ 和它的各阶导数都是 0，叫静止初始条件）。输入 $u(t)$ 时的解叫单位阶跃响应；输入 $\delta(t)$ 时的解叫**冲激响应（impulse response）**，也叫权函数，记作 $w(t)$。
+
+            一阶方程 $x' + ax = \delta(t)$：两边从 $0^-$ 积到 $0^+$，$ax$ 的积分趋于 0，$\delta$ 的积分是 1，所以 $x$ 在一瞬间从 0 跳到 1。之后没有输入，$w(t) = e^{-at}$（$t > 0$）。
+      - item:
+          id: impulse-first
+          type: number
+          prompt: 一阶方程 $x' + 0.5x = \delta(t)$，静止初始条件。$x(2)$ 等于多少？（保留三位小数）
+          answer: 0.368
+          tolerance: 0.0005
+          hint: 冲激过后 $x(0^+)$ 是多少？之后 $x$ 满足什么方程？
+          explain: 冲激使 $x(0^+) = 1$，之后 $x' + 0.5x = 0$，$x = e^{-0.5t}$。$x(2) = e^{-1} \approx 0.368$。
+      - card:
+          title: 二阶方程的冲激响应
+          body: |
+            对 $x'' + bx' + kx = \delta(t)$：同样从 $0^-$ 积到 $0^+$，这次跳变的是速度，$x'$ 从 0 跳到 1，位置 $x$ 来不及改变。之后没有输入，所以 $t > 0$ 时，$w$ 就是齐次方程满足 $x(0) = 0$、$x'(0) = 1$ 的解。
+      - card:
+          title: 例题：求冲激响应
+          body: 求 $x'' + 4x = \delta(t)$ 在静止初始条件下的冲激响应 $w(t)$。
+          reveal:
+            - title: 第 1 步：把冲激换成初始条件
+              body: $t > 0$ 时解 $x'' + 4x = 0$，$x(0) = 0$，$x'(0) = 1$。
+            - title: 第 2 步：解齐次方程
+              body: 通解 $C_1\cos 2t + C_2\sin 2t$。$x(0) = C_1 = 0$；$x'(0) = 2C_2 = 1$，$C_2 = \tfrac12$。
+            - title: 第 3 步：写出 w
+              body: $w(t) = \tfrac12\sin 2t$（$t > 0$），$t < 0$ 时为 0。
+      - item:
+          id: impulse-second
+          type: number
+          prompt: 方程 $x'' + 9x = \delta(t)$，静止初始条件。冲激响应在 $t = \pi/6$ 时的值是多少？（保留三位小数）
+          answer: 0.333
+          tolerance: 0.0005
+          hint: 冲激过后 $x(0^+)$ 和 $x'(0^+)$ 各是多少？
+          explain: $t > 0$ 时解 $x'' + 9x = 0$，$x(0) = 0$，$x'(0) = 1$，得 $w = \frac13\sin 3t$。$w(\pi/6) = \frac13\sin\frac\pi2 \approx 0.333$。
+      - item:
+          id: step-first
+          type: number
+          prompt: 一阶方程 $x' + 2x = u(t)$，静止初始条件。$x(1)$ 等于多少？（保留三位小数）
+          answer: 0.432
+          tolerance: 0.0005
+          hint: $t > 0$ 时输入是常数 1，稳态是多少？瞬态怎样衰减？
+          explain: $t > 0$ 时 $x = \tfrac12 + Ce^{-2t}$，$x(0) = 0$ 得 $C = -\tfrac12$，$x = \tfrac12(1 - e^{-2t})$，$x(1) \approx 0.432$。
+      - card:
+          title: 卷积
+          body: |
+            把任意输入 $f(t)$ 看成一串小冲激：时刻 $\tau$ 附近那一小段的面积是 $f(\tau)\,d\tau$，它引起的响应是 $f(\tau)\,d\tau \cdot w(t - \tau)$（时不变：冲激推迟了 $\tau$，响应也推迟 $\tau$）。把它们全部叠加：
+
+            $$x(t) = \int_0^t f(\tau)\,w(t - \tau)\,d\tau$$
+
+            右边叫 $f$ 和 $w$ 的**卷积（convolution）**，记作 $(f * w)(t)$。静止初始条件下，任何输入的响应都等于输入和冲激响应的卷积。
+      - card:
+          title: 例题：用卷积求响应
+          body: $x' + 2x = 1$（$t \ge 0$），$x(0) = 0$。冲激响应 $w(t) = e^{-2t}$，用卷积求 $x(t)$。
+          reveal:
+            - title: 第 1 步：写出卷积积分
+              body: $x(t) = \int_0^t 1 \cdot e^{-2(t - \tau)}\,d\tau$。
+            - title: 第 2 步：积分
+              body: $e^{-2(t-\tau)}$ 对 $\tau$ 的原函数是 $\tfrac12 e^{-2(t-\tau)}$，代入上下限：$x(t) = \tfrac12(1 - e^{-2t})$。
+            - title: 第 3 步：对照直接解法
+              body: 用积分因子法解同一个初值问题，结果相同。卷积的好处是换一个输入时，只需要换掉积分里的 $f$。
+      - item:
+          id: convolution
+          type: number
+          prompt: 方程 $x' + x = t$（$t \ge 0$），$x(0) = 0$。冲激响应 $w(t) = e^{-t}$。用卷积求 $x(2)$。（保留三位小数）
+          answer: 1.135
+          tolerance: 0.0005
+          hint: 卷积里输入取 $f(\tau)$，冲激响应取 $w(t - \tau)$。$t = 2$ 时被积函数是什么？
+          explain: $\int_0^t \tau e^{-(t-\tau)}d\tau = t - 1 + e^{-t}$，$x(2) = 1 + e^{-2} \approx 1.135$。代回检验：$x' + x = (1 - e^{-t}) + (t - 1 + e^{-t}) = t$。
+
+  - id: laplace-transform
+    chapter: 一阶与高阶方程
+    title: 拉普拉斯变换
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 对 $e^{st}$ 求导，等于把它乘以 $s$。如果有一种办法把函数拆成很多个指数函数，求导在这种办法下会变成什么运算？
+          options:
+            - text: 乘以 $s$
+              correct: true
+            - text: 还是求导
+              why: 每个指数函数求导都只是乘以 $s$，所以整体上求导变成了乘法
+            - text: 除以 $s$
+              why: 对 $e^{st}$ 积分才相当于除以 $s$
+          explain: 拉普拉斯变换就是这个想法：它把求导变成乘以 $s$，微分方程就变成了代数方程。
+      - card:
+          title: 拉普拉斯变换的定义
+          body: |
+            函数 $f(t)$（$t \ge 0$）的**拉普拉斯变换（Laplace transform）**是
+
+            $$F(s) = \mathcal{L}\{f\}(s) = \int_0^\infty e^{-st}f(t)\,dt$$
+
+            这是一个反常积分，$s$ 足够大时才收敛。例：$f = e^{at}$，$F(s) = \int_0^\infty e^{-(s - a)t}dt = \frac{1}{s - a}$（$s > a$）。取 $a = 0$ 得 $\mathcal{L}\{1\} = \frac1s$。
+      - item:
+          id: laplace-exp
+          type: number
+          prompt: $e^{-3t}$ 的拉普拉斯变换在 $s = 1$ 处的值是多少？
+          answer: 0.25
+          hint: $\mathcal{L}\{e^{at}\} = \frac{1}{s - a}$，这里 $a$ 是多少？
+          explain: $a = -3$，$F(s) = \frac{1}{s + 3}$，$F(1) = \frac14 = 0.25$。
+      - card:
+          title: 常用的变换和规则
+          body: |
+            | $f(t)$ | $F(s)$ |
+            |---|---|
+            | $1$ | $\frac1s$ |
+            | $e^{at}$ | $\frac{1}{s - a}$ |
+            | $t^n$ | $\frac{n!}{s^{n+1}}$ |
+            | $\cos\omega t$ | $\frac{s}{s^2 + \omega^2}$ |
+            | $\sin\omega t$ | $\frac{\omega}{s^2 + \omega^2}$ |
+            | $\delta(t)$ | $1$ |
+
+            变换是线性的：$\mathcal{L}\{af + bg\} = aF + bG$。乘上 $e^{at}$ 等于把 $s$ 换成 $s - a$：$\mathcal{L}\{e^{at}f(t)\} = F(s - a)$。推迟 $a$ 等于乘上 $e^{-as}$：$\mathcal{L}\{u(t - a)f(t - a)\} = e^{-as}F(s)$。
+      - item:
+          id: transform-match
+          type: match
+          prompt: 把每个函数和它的拉普拉斯变换配对。
+          pairs:
+            - ['$e^{2t}$', '$\frac{1}{s - 2}$']
+            - ['$\sin 3t$', '$\frac{3}{s^2 + 9}$']
+            - ['$\cos 3t$', '$\frac{s}{s^2 + 9}$']
+            - ['$t^2$', '$\frac{2}{s^3}$']
+          explain: 查表：$\sin$ 的分子是 $\omega$，$\cos$ 的分子是 $s$；$t^2$ 的变换是 $\frac{2!}{s^3}$。
+      - item:
+          id: laplace-shift
+          type: number
+          prompt: $e^{-t}\cos 2t$ 的拉普拉斯变换在 $s = 0$ 处的值是多少？
+          answer: 0.2
+          hint: 先写 $\cos 2t$ 的变换，再把 $s$ 换成 $s + 1$。
+          explain: $\mathcal{L}\{e^{-t}\cos 2t\} = \frac{s + 1}{(s + 1)^2 + 4}$，$s = 0$ 时为 $\frac15 = 0.2$。
+      - card:
+          title: 导数的变换
+          body: |
+            用分部积分：$\int_0^\infty e^{-st}f'(t)\,dt = \left[e^{-st}f\right]_0^\infty + s\int_0^\infty e^{-st}f\,dt$，所以
+
+            $$\mathcal{L}\{f'\} = sF(s) - f(0),\qquad \mathcal{L}\{f''\} = s^2F(s) - sf(0) - f'(0)$$
+
+            求导变成了乘以 $s$，初始条件也自动带了进来。对微分方程两边做变换，就得到关于 $F(s)$ 的代数方程。
+      - card:
+          title: 部分分式和反变换
+          body: |
+            解出 $F(s)$ 后还要变回 $f(t)$，叫反变换。$F$ 常是两个多项式的商，先拆成**部分分式（partial fractions）**，每一项查表。分母是不同的一次因式时，用遮盖法：
+
+            $$\frac{s + 5}{(s - 1)(s + 2)} = \frac{A}{s - 1} + \frac{B}{s + 2}$$
+
+            求 $A$：遮住 $(s - 1)$，把 $s = 1$ 代进剩下的部分，$A = \frac{6}{3} = 2$。求 $B$：遮住 $(s + 2)$，代 $s = -2$，$B = \frac{3}{-3} = -1$。反变换是 $2e^t - e^{-2t}$。
+      - item:
+          id: partial-fraction
+          type: number
+          prompt: 把 $\frac{3s + 1}{(s - 1)(s + 2)}$ 拆成 $\frac{A}{s - 1} + \frac{B}{s + 2}$。$B$ 等于多少？（保留三位小数）
+          answer: 1.667
+          tolerance: 0.0005
+          hint: 遮住 $(s + 2)$，代入哪个 $s$？
+          explain: 遮住 $(s + 2)$，代 $s = -2$：$B = \frac{3(-2) + 1}{-2 - 1} = \frac{-5}{-3} \approx 1.667$。同样地，遮住 $(s - 1)$ 代 $s = 1$ 得 $A = \frac43$。
+      - card:
+          title: 例题：用拉普拉斯变换解初值问题
+          body: 解 $y'' + 3y' + 2y = 0$，$y(0) = 1$，$y'(0) = 0$。
+          reveal:
+            - title: 第 1 步：两边做变换
+              body: $(s^2Y - s) + 3(sY - 1) + 2Y = 0$。
+            - title: 第 2 步：解出 Y
+              body: $(s^2 + 3s + 2)Y = s + 3$，$Y = \frac{s + 3}{(s + 1)(s + 2)}$。
+            - title: 第 3 步：拆部分分式
+              body: 遮住 $(s + 1)$ 代 $s = -1$：系数 $\frac21 = 2$；遮住 $(s + 2)$ 代 $s = -2$：系数 $\frac{1}{-1} = -1$。$Y = \frac{2}{s + 1} - \frac{1}{s + 2}$。
+            - title: 第 4 步：反变换并检验
+              body: $y = 2e^{-t} - e^{-2t}$。$y(0) = 1$，$y'(0) = -2 + 2 = 0$，满足初始条件。
+      - item:
+          id: laplace-ivp
+          type: number
+          prompt: 用拉普拉斯变换解 $y' + 2y = e^{-t}$，$y(0) = 0$。$y(1)$ 等于多少？（保留三位小数）
+          answer: 0.233
+          tolerance: 0.0005
+          hint: 变换后得 $(s + 2)Y = \frac{1}{s + 1}$，再拆部分分式。
+          explain: $Y = \frac{1}{(s + 1)(s + 2)} = \frac{1}{s + 1} - \frac{1}{s + 2}$，$y = e^{-t} - e^{-2t}$，$y(1) \approx 0.368 - 0.135 = 0.233$。
+
+  - id: transfer-function
+    chapter: 一阶与高阶方程
+    title: 传递函数、极点和稳定性
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 方程 $x'' + bx' + 4x = 0$ 里，阻尼系数 $b$ 从正数变成负数（相当于不断往系统里补充能量）。解会怎样？
+          options:
+            - text: 振幅越来越大
+              correct: true
+            - text: 仍然衰减，只是慢一些
+              why: $b < 0$ 时特征根的实部 $-b/2$ 是正数，$e^{-bt/2}$ 随时间增长
+            - text: 立刻停下来
+              why: 补充能量只会让振动越来越强
+          explain: 解增长还是衰减，看特征方程根的实部。这一课把这些根叫作极点，用它们判断系统稳不稳定。
+      - card:
+          title: 传递函数
+          body: |
+            方程 $p(D)x = f(t)$，静止初始条件。两边做拉普拉斯变换，初值都是 0，得 $p(s)X(s) = F(s)$，即
+
+            $$X(s) = W(s)F(s),\qquad W(s) = \frac{1}{p(s)}$$
+
+            $W(s)$ 叫**传递函数（transfer function）**，只由方程的系数决定，和输入无关。输入 $\delta(t)$ 时 $F = 1$，$X = W$：传递函数的反变换就是冲激响应 $w(t)$，所以 $w$ 也叫权函数。
+      - card:
+          title: 例题：由传递函数求冲激响应
+          body: 方程 $x'' + 6x' + 8x = f(t)$。求它的传递函数和冲激响应 $w(t)$，并求 $w(0.5)$。
+          reveal:
+            - title: 第 1 步：写出传递函数
+              body: $p(s) = s^2 + 6s + 8$，$W(s) = \frac{1}{s^2 + 6s + 8}$。
+            - title: 第 2 步：分解分母
+              body: $s^2 + 6s + 8 = (s + 2)(s + 4)$，$W(s) = \frac{1}{(s + 2)(s + 4)}$。
+            - title: 第 3 步：拆部分分式
+              body: 遮住 $(s + 2)$ 代 $s = -2$：$\frac{1}{2}$；遮住 $(s + 4)$ 代 $s = -4$：$\frac{1}{-2}$。$W(s) = \frac{1/2}{s + 2} - \frac{1/2}{s + 4}$。
+            - title: 第 4 步：反变换并代值
+              body: $w(t) = \tfrac12(e^{-2t} - e^{-4t})$，$w(0.5) = \tfrac12(e^{-1} - e^{-2}) \approx 0.116$。
+      - item:
+          id: transfer-impulse
+          type: number
+          prompt: 方程 $x'' + 4x' + 3x = f(t)$ 的传递函数是 $\frac{1}{(s + 1)(s + 3)}$。求冲激响应在 $t = 1$ 的值 $w(1)$。（保留三位小数）
+          answer: 0.159
+          tolerance: 0.0005
+          hint: 传递函数拆成两项之和后，每一项的反变换是什么？
+          explain: $\frac{1}{(s + 1)(s + 3)} = \frac{1/2}{s + 1} - \frac{1/2}{s + 3}$，$w(t) = \tfrac12(e^{-t} - e^{-3t})$，$w(1) \approx 0.159$。
+      - card:
+          title: 卷积和格林公式
+          body: |
+            $X = WF$ 在时间里对应什么？卷积的变换等于变换的乘积：$\mathcal{L}\{f * g\} = F(s)G(s)$。所以
+
+            $$x(t) = (f * w)(t) = \int_0^t f(\tau)\,w(t - \tau)\,d\tau$$
+
+            这和把输入拆成冲激再叠加得到的是同一个式子，叫格林公式（Green's formula）。求出 $W$ 或 $w$ 中的一个，系统对任何输入的响应就都能算出来。
+      - item:
+          id: convolution-theorem
+          type: choice
+          prompt: $1 * e^{-2t}$（卷积）的拉普拉斯变换是什么？
+          options:
+            - text: $\frac{1}{s(s + 2)}$
+              correct: true
+            - text: $\frac1s + \frac{1}{s + 2}$
+              why: 卷积的变换是两个变换的乘积，不是和
+            - text: $\frac{1}{(s + 2)^2}$
+              why: 那是 $e^{-2t} * e^{-2t}$ 的变换；$1$ 的变换是 $\frac1s$
+            - text: $\frac{1}{s(s - 2)}$
+              why: $e^{-2t}$ 的变换是 $\frac{1}{s + 2}$，符号反了
+          explain: $\mathcal{L}\{1\} = \frac1s$，$\mathcal{L}\{e^{-2t}\} = \frac{1}{s + 2}$，乘起来是 $\frac{1}{s(s + 2)}$。
+      - card:
+          title: 极点和稳定性
+          body: |
+            $W(s) = 1/p(s)$ 在 $p(s) = 0$ 处变成无穷大，这些 $s$ 叫传递函数的**极点（pole）**，也就是特征方程的根。每个极点 $s_0$ 给冲激响应贡献一项 $e^{s_0t}$，一对复数极点 $a \pm ib$ 合起来是 $e^{at}$ 乘上 $\cos bt$、$\sin bt$。
+
+            所以，所有极点的实部都小于 0 时，$w(t) \to 0$，自由振动全部衰减，系统稳定；只要有一个极点的实部大于 0，响应就会增长。把极点画在复平面上，看它们是不是都在左半边，就能判断稳定性。
+      - item:
+          id: pole-stable
+          type: choice
+          prompt: 下面哪个传递函数对应的系统是稳定的（冲激响应衰减到 0）？
+          options:
+            - text: $\frac{1}{s^2 + 2s + 5}$
+              correct: true
+            - text: $\frac{1}{s^2 - 2s + 5}$
+              why: 极点 $1 \pm 2i$ 的实部是正的，响应振荡着增长
+            - text: $\frac{1}{s^2 + 4}$
+              why: 极点 $\pm 2i$ 的实部是 0，冲激响应 $\tfrac12\sin 2t$ 一直振荡不衰减
+            - text: $\frac{1}{s^2 + s - 2}$
+              why: 分母是 $(s + 2)(s - 1)$，极点 $1$ 在右半边，响应里有增长的 $e^t$
+          explain: $s^2 + 2s + 5 = 0$ 的根是 $-1 \pm 2i$，实部为负，冲激响应 $\tfrac12 e^{-t}\sin 2t$ 衰减到 0。
+      - item:
+          id: pole-from-ode
+          type: number
+          prompt: 方程 $x'' + 4x' + 20x = f(t)$ 的传递函数的极点是 $a \pm bi$（$b > 0$）。$b$ 是多少？
+          answer: 4
+          hint: 极点就是特征方程 $s^2 + 4s + 20 = 0$ 的根。
+          explain: $s = \frac{-4 \pm \sqrt{16 - 80}}{2} = -2 \pm 4i$，$b = 4$：冲激响应以角频率 4 振荡，按 $e^{-2t}$ 衰减。
+      - card:
+          title: 振幅响应和指数响应公式
+          body: |
+            输入 $e^{i\omega t}$ 的稳态响应是 $\frac{e^{i\omega t}}{p(i\omega)} = W(i\omega)e^{i\omega t}$，这正是指数响应公式。所以增益 $g(\omega) = |W(i\omega)|$：把传递函数放在虚轴 $s = i\omega$ 上取模，就是振幅响应。
+
+            极点离虚轴越近，$|W(i\omega)|$ 在它附近越大。极点是 $-a \pm i\omega_d$ 而 $a$ 很小时，$\omega \approx \omega_d$ 处会出现很高的共振峰。
+      - item:
+          id: amplitude-response
+          type: number
+          prompt: 系统的传递函数是 $W(s) = \frac{1}{s^2 + 0.2s + 1}$。输入 $\cos t$ 时，稳态输出的振幅是多少？
+          answer: 5
+          hint: 算 $|W(i)|$。
+          explain: $W(i) = \frac{1}{-1 + 0.2i + 1} = \frac{1}{0.2i}$，$|W(i)| = 5$。极点 $-0.1 \pm 0.995i$ 很靠近虚轴，所以在 $\omega \approx 1$ 处增益很大。
+
+  # ==== 线性方程组 ====
+  - id: linear-systems-eigen
+    chapter: 线性方程组
+    title: 一阶线性方程组和特征值法
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个水箱用一根管子连着，水从水位高的一边流向低的一边。要描述两个水箱的水位怎样变化，需要什么样的方程？
+          options:
+            - text: 两个方程，而且互相牵连
+              correct: true
+            - text: 一个方程就够
+              why: 两个水箱的水位是两个未知函数，一个方程定不出两个函数
+            - text: 两个方程，各管各的
+              why: 流量取决于两边水位的差，每个方程里都同时出现两个水位
+          explain: 每个水位的变化率都同时取决于两个水位，这样的一组方程叫方程组。这一课用特征值把它拆开。
+      - card:
+          title: 一阶线性方程组
+          body: |
+            未知的是两个函数 $x(t)$、$y(t)$：
+
+            $$\begin{aligned} x' &= ax + by \\ y' &= cx + dy \end{aligned}$$
+
+            把 $(x, y)$ 写成向量 $\mathbf{x}$，系数排成矩阵 $A = \begin{pmatrix} a & b \\ c & d \end{pmatrix}$，就是 $\mathbf{x}' = A\mathbf{x}$，叫**一阶线性方程组（first-order linear system）**。
+
+            高阶方程也能化成方程组。$x'' + 3x' + 2x = 0$：令 $y = x'$，则 $x' = y$，$y' = -2x - 3y$，$A = \begin{pmatrix} 0 & 1 \\ -2 & -3 \end{pmatrix}$。
+      - item:
+          id: to-system
+          type: choice
+          prompt: 令 $y = x'$，把 $x'' + 5x' + 6x = 0$ 化成方程组 $\mathbf{x}' = A\mathbf{x}$，$\mathbf{x} = (x, y)$。$A$ 是什么？
+          options:
+            - text: $\begin{pmatrix} 0 & 1 \\ -6 & -5 \end{pmatrix}$
+              correct: true
+            - text: $\begin{pmatrix} 0 & 1 \\ 6 & 5 \end{pmatrix}$
+              why: $x'' = -6x - 5x'$，移项后系数要变号
+            - text: $\begin{pmatrix} 1 & 0 \\ -6 & -5 \end{pmatrix}$
+              why: 第一行是 $x' = y$，即 $x$ 的系数 0、$y$ 的系数 1
+            - text: $\begin{pmatrix} 0 & 1 \\ -5 & -6 \end{pmatrix}$
+              why: 第二行按 $(x \text{ 的系数}, y \text{ 的系数})$ 排，$y' = -6x - 5y$
+          explain: $x' = 0 \cdot x + 1 \cdot y$，$y' = x'' = -6x - 5y$。
+      - card:
+          title: 特征值法
+          body: |
+            试 $\mathbf{x} = \mathbf{v}e^{\lambda t}$（$\mathbf{v}$ 是常数向量）。代入得 $\lambda\mathbf{v}e^{\lambda t} = A\mathbf{v}e^{\lambda t}$，即 $A\mathbf{v} = \lambda\mathbf{v}$：$\lambda$ 是 $A$ 的特征值，$\mathbf{v}$ 是对应的特征向量。
+
+            2×2 时特征值满足 $\lambda^2 - (a + d)\lambda + (ad - bc) = 0$，$a + d$ 叫**迹（trace）**，$ad - bc$ 是行列式；再由 $(A - \lambda I)\mathbf{v} = \mathbf{0}$ 求 $\mathbf{v}$。两个不同的实特征值给出通解 $\mathbf{x} = c_1\mathbf{v}_1e^{\lambda_1t} + c_2\mathbf{v}_2e^{\lambda_2t}$。每一项叫一个**简正模（normal mode）**：沿着特征向量的方向，按自己的指数变化。
+      - card:
+          title: 例题：两个相连的水箱
+          body: 解 $\mathbf{x}' = A\mathbf{x}$，$A = \begin{pmatrix} -2 & 1 \\ 1 & -2 \end{pmatrix}$，$\mathbf{x}(0) = (2, 0)$。
+          reveal:
+            - title: 第 1 步：求特征值
+              body: 迹 $-4$，行列式 $3$，$\lambda^2 + 4\lambda + 3 = 0$，$\lambda = -1$ 或 $-3$。
+            - title: 第 2 步：求特征向量
+              body: $\lambda = -1$：$A + I = \begin{pmatrix} -1 & 1 \\ 1 & -1 \end{pmatrix}$，$\mathbf{v}_1 = (1, 1)$。$\lambda = -3$：$A + 3I = \begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix}$，$\mathbf{v}_2 = (1, -1)$。
+            - title: 第 3 步：写通解，用初值定常数
+              body: $\mathbf{x} = c_1(1, 1)e^{-t} + c_2(1, -1)e^{-3t}$。$c_1 + c_2 = 2$，$c_1 - c_2 = 0$，$c_1 = c_2 = 1$：$x = e^{-t} + e^{-3t}$，$y = e^{-t} - e^{-3t}$。
+            - title: 第 4 步：读懂两个模
+              body: 沿 $(1, 1)$ 的模是两者一起变化，按 $e^{-t}$ 衰减；沿 $(1, -1)$ 的模是两者的差，按 $e^{-3t}$ 衰减得更快。所以两边先拉平，然后一起衰减。
+      - item:
+          id: eigenvalue
+          type: number
+          prompt: 矩阵 $A = \begin{pmatrix} 4 & 1 \\ 2 & 3 \end{pmatrix}$ 的两个特征值中，较大的是多少？
+          answer: 5
+          hint: 先算迹和行列式，写出 $\lambda^2 - (\text{迹})\lambda + \text{行列式} = 0$。
+          explain: 迹 7，行列式 $12 - 2 = 10$，$\lambda^2 - 7\lambda + 10 = (\lambda - 5)(\lambda - 2)$，特征值 5 和 2。
+      - item:
+          id: eigenvector
+          type: choice
+          prompt: 矩阵 $A = \begin{pmatrix} 4 & 1 \\ 2 & 3 \end{pmatrix}$ 的特征值 2 对应的特征向量是哪个？
+          options:
+            - text: $(1, -2)$
+              correct: true
+            - text: $(1, 1)$
+              why: $A(1, 1) = (5, 5)$，那是特征值 5 的特征向量
+            - text: $(1, 2)$
+              why: $(A - 2I)(1, 2) = (4, 4) \ne \mathbf{0}$
+            - text: $(2, 1)$
+              why: $(A - 2I)(2, 1) = (5, 5) \ne \mathbf{0}$
+          explain: $A - 2I = \begin{pmatrix} 2 & 1 \\ 2 & 1 \end{pmatrix}$，要 $2v_1 + v_2 = 0$，取 $\mathbf{v} = (1, -2)$。检验：$A(1, -2) = (2, -4) = 2(1, -2)$。
+      - item:
+          id: system-ivp
+          type: number
+          prompt: 方程组 $x' = -2x + y$，$y' = x - 2y$，初值 $x(0) = 0$，$y(0) = 2$。求 $x(1)$。（保留三位小数）
+          answer: 0.318
+          tolerance: 0.0005
+          hint: 先求系数矩阵的特征值和特征向量，再让 $t = 0$ 时的通解等于 $(0, 2)$。
+          explain: $c_1 + c_2 = 0$，$c_1 - c_2 = 2$，$c_1 = 1$，$c_2 = -1$。$x = e^{-t} - e^{-3t}$，$x(1) \approx 0.368 - 0.050 = 0.318$。
+      - card:
+          title: 复特征值和重特征值
+          body: |
+            特征值是复数 $\alpha \pm i\beta$ 时，$\mathbf{v}e^{\lambda t}$ 是复数解，它的实部和虚部各是一个实数解，含 $e^{\alpha t}\cos\beta t$ 和 $e^{\alpha t}\sin\beta t$。例：$A = \begin{pmatrix} 0 & 1 \\ -1 & 0 \end{pmatrix}$，$\lambda = \pm i$，$\mathbf{v} = (1, i)$，实数解 $(\cos t, -\sin t)$ 和 $(\sin t, \cos t)$，轨迹是圆。
+
+            特征值重复、却只有一个方向的特征向量时，第二个解是 $(\mathbf{v}t + \mathbf{w})e^{\lambda t}$，其中 $(A - \lambda I)\mathbf{w} = \mathbf{v}$。
+      - item:
+          id: complex-eigen
+          type: number
+          prompt: 方程组 $x' = -x - 2y$，$y' = 2x - y$ 的解是衰减的振荡。振荡的角频率是多少？
+          answer: 2
+          hint: 求系数矩阵的特征值，看虚部。
+          explain: 迹 $-2$，行列式 $1 + 4 = 5$，$\lambda^2 + 2\lambda + 5 = 0$，$\lambda = -1 \pm 2i$。解含 $e^{-t}\cos 2t$、$e^{-t}\sin 2t$，角频率 2。
+
+  - id: phase-portraits-matrix-exp
+    chapter: 线性方程组
+    title: 相图和矩阵指数
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 方程组 $x' = -x$，$y' = -2y$ 的解，从平面上任何一点出发，最后会去哪里？
+          options:
+            - text: 原点
+              correct: true
+            - text: 沿直线跑到无穷远
+              why: $x = x_0e^{-t}$，$y = y_0e^{-2t}$，两个分量都在衰减
+            - text: 绕着原点转圈
+              why: 特征值 $-1$、$-2$ 都是实数，解里没有正弦和余弦，不会转
+          explain: 两个分量都衰减，所有的解都走向原点。把这些解的轨迹画在一张图上，就能一眼看出方程组的性质。
+      - card:
+          title: 相图和平衡点
+          body: |
+            把 $(x(t), y(t))$ 画在 $xy$ 平面上，$t$ 变化时点走出一条曲线，叫轨线。很多条轨线画在一起叫**相图（phase portrait）**。
+
+            所有变化率都等于 0 的点叫**平衡点（equilibrium point）**：从那里出发会一直不动。对 $\mathbf{x}' = A\mathbf{x}$，原点总是平衡点；$A$ 的行列式不为 0 时，它是唯一的平衡点。轨线的样子由特征值决定：两个不同的实特征值时轨线沿特征向量方向进出，复特征值时轨线绕着原点转。
+      - item:
+          id: spiral-in
+          type: choice
+          prompt: 方程组 $\mathbf{x}' = A\mathbf{x}$ 的系数矩阵的特征值是 $-1 \pm 3i$。它的相图里，轨线是什么样子？
+          options:
+            - text: 绕着原点螺旋着进入原点
+              correct: true
+            - text: 沿直线进入原点
+              why: 实特征值时轨线才沿特征向量方向直线进出；复特征值带来 $\cos 3t$、$\sin 3t$，会转
+            - text: 绕着原点转圆圈，大小不变
+              why: 实部 $-1$ 让距离按 $e^{-t}$ 缩小，所以不是闭合的圆
+            - text: 绕着原点螺旋着离开
+              why: 实部是负的，解在衰减，是向内转
+          explain: 虚部 3 让轨线以角频率 3 旋转，实部 $-1$ 让它按 $e^{-t}$ 向原点收缩，合起来是向内的螺旋。
+      - card:
+          title: 按迹和行列式分类
+          body: |
+            记迹 $T = a + d$、行列式 $\Delta = ad - bc$，特征值满足 $\lambda^2 - T\lambda + \Delta = 0$：
+
+            | 条件 | 平衡点类型 | 稳定性 |
+            |---|---|---|
+            | $\Delta < 0$ | 鞍点 | 不稳定 |
+            | $\Delta > 0$，$T^2 > 4\Delta$ | 结点 | $T < 0$ 稳定，$T > 0$ 不稳定 |
+            | $\Delta > 0$，$T^2 = 4\Delta$ | 退化结点（二重特征值） | $T < 0$ 稳定，$T > 0$ 不稳定 |
+            | $\Delta > 0$，$T^2 < 4\Delta$ | 焦点（螺旋） | $T < 0$ 稳定，$T > 0$ 不稳定 |
+            | $\Delta > 0$，$T = 0$ | 中心 | 稳定，但不趋向原点 |
+
+            **鞍点（saddle）**的两个特征值异号；**结点（node）**的两个特征值同号；**焦点（spiral point）**的特征值是复数；**中心（center）**的特征值是纯虚数，轨线是绕它的闭合曲线。所有轨线都趋向平衡点叫**渐近稳定（asymptotically stable）**，条件是两个特征值的实部都小于 0，即 $T < 0$ 且 $\Delta > 0$。
+      - card:
+          title: 例题：判断平衡点类型
+          body: 判断 $A = \begin{pmatrix} -1 & -4 \\ 1 & -1 \end{pmatrix}$ 的原点是什么平衡点，轨线往哪个方向转。
+          reveal:
+            - title: 第 1 步：算迹和行列式
+              body: $T = -2$，$\Delta = 1 + 4 = 5 > 0$。
+            - title: 第 2 步：比较 T² 和 4Δ
+              body: $T^2 = 4 < 20$，特征值是复数 $-1 \pm 2i$，是焦点。
+            - title: 第 3 步：判断稳定性
+              body: $T < 0$，实部 $-1$，轨线螺旋着进入原点：稳定焦点。
+            - title: 第 4 步：判断转向
+              body: 在点 $(1, 0)$，速度 $A(1, 0) = (-1, 1)$，向上偏，所以是逆时针转。
+      - item:
+          id: classify-saddle
+          type: choice
+          prompt: 方程组 $\mathbf{x}' = A\mathbf{x}$，$A = \begin{pmatrix} 1 & 3 \\ 3 & 1 \end{pmatrix}$。原点是什么平衡点？
+          options:
+            - text: 鞍点
+              correct: true
+            - text: 不稳定结点
+              why: 虽然 $T = 2 > 0$，但先看行列式：$\Delta = 1 - 9 = -8 < 0$，特征值 4 和 $-2$ 异号
+            - text: 稳定结点
+              why: 有一个特征值是正的 4，沿它的方向轨线跑向无穷远
+            - text: 中心
+              why: 中心要求 $T = 0$ 且 $\Delta > 0$，这里 $\Delta < 0$
+          explain: $\Delta < 0$ 时两个特征值异号：沿 $(1, -1)$ 方向趋近原点，沿 $(1, 1)$ 方向远离，是鞍点，不稳定。
+      - item:
+          id: classify-center
+          type: choice
+          prompt: 方程组 $x' = 2y$，$y' = -2x$ 的原点是什么平衡点？
+          options:
+            - text: 中心
+              correct: true
+            - text: 稳定焦点
+              why: $T = 0$，特征值 $\pm 2i$ 的实部是 0，振幅既不衰减也不增长
+            - text: 鞍点
+              why: $\Delta = 0 \cdot 0 - 2 \cdot (-2) = 4 > 0$，不是鞍点
+            - text: 不稳定焦点
+              why: 实部为 0，轨线不会螺旋向外
+          explain: $T = 0$，$\Delta = 4$，特征值 $\pm 2i$。轨线是绕原点的闭合曲线（这里是圆），是中心。
+      - card:
+          title: 矩阵指数
+          body: |
+            一元方程 $x' = ax$ 的解是 $e^{at}x(0)$。类比，定义**矩阵指数（matrix exponential）**
+
+            $$e^{At} = I + At + \frac{(At)^2}{2!} + \frac{(At)^3}{3!} + \cdots$$
+
+            （$I$ 是单位矩阵。）逐项求导得 $(e^{At})' = Ae^{At}$，所以 $\mathbf{x}(t) = e^{At}\mathbf{x}(0)$ 就是初值问题的解。$A$ 是对角矩阵 $\begin{pmatrix} \lambda_1 & 0 \\ 0 & \lambda_2 \end{pmatrix}$ 时，每个幂都是对角的，$e^{At} = \begin{pmatrix} e^{\lambda_1t} & 0 \\ 0 & e^{\lambda_2t} \end{pmatrix}$。
+      - card:
+          title: 例题：级数会断掉的情形
+          body: $A = \begin{pmatrix} 0 & 1 \\ 0 & 0 \end{pmatrix}$（由 $x'' = 0$ 化成的方程组）。求 $e^{At}$ 和解。
+          reveal:
+            - title: 第 1 步：算 A 的幂
+              body: $A^2 = \begin{pmatrix} 0 & 0 \\ 0 & 0 \end{pmatrix}$，更高的幂也都是 0，级数只剩两项。
+            - title: 第 2 步：写出 e^{At}
+              body: $e^{At} = I + At = \begin{pmatrix} 1 & t \\ 0 & 1 \end{pmatrix}$。
+            - title: 第 3 步：乘上初值
+              body: $\mathbf{x}(0) = (x_0, v_0)$ 时，$\mathbf{x}(t) = (x_0 + v_0t,\ v_0)$：匀速直线运动，和直接解 $x'' = 0$ 的结果一致。
+      - item:
+          id: matexp-nilpotent
+          type: number
+          prompt: $A = \begin{pmatrix} 0 & 1 \\ 0 & 0 \end{pmatrix}$，$\mathbf{x}(0) = (1, 2)$。$\mathbf{x}(3) = e^{3A}\mathbf{x}(0)$ 的第一个分量是多少？
+          answer: 7
+          hint: $e^{At} = I + At$。
+          explain: $e^{3A} = \begin{pmatrix} 1 & 3 \\ 0 & 1 \end{pmatrix}$，第一个分量 $1 + 3 \times 2 = 7$。
+      - item:
+          id: matexp-diag
+          type: number
+          prompt: $A = \begin{pmatrix} -1 & 0 \\ 0 & 2 \end{pmatrix}$，$\mathbf{x}(0) = (3, 1)$。$\mathbf{x}(1) = e^{A}\mathbf{x}(0)$ 的第一个分量是多少？（保留三位小数）
+          answer: 1.104
+          tolerance: 0.0005
+          hint: 对角矩阵的指数就是对角线上各自取指数。
+          explain: $e^{A} = \begin{pmatrix} e^{-1} & 0 \\ 0 & e^{2} \end{pmatrix}$，第一个分量 $3e^{-1} \approx 1.104$。
+      - card:
+          title: 基本矩阵
+          body: |
+            一般的 $A$：找两个线性无关的解 $\mathbf{x}_1$、$\mathbf{x}_2$，把它们作为两列排成**基本矩阵（fundamental matrix）** $\Phi(t)$。通解是 $\Phi(t)\mathbf{c}$，而
+
+            $$e^{At} = \Phi(t)\,\Phi(0)^{-1}$$
+
+            $A$ 有两个线性无关的特征向量时，两列就取 $\mathbf{v}_1e^{\lambda_1t}$ 和 $\mathbf{v}_2e^{\lambda_2t}$。右乘 $\Phi(0)^{-1}$ 是为了让 $t = 0$ 时恰好等于 $I$。
+      - item:
+          id: fundamental
+          type: number
+          prompt: $A = \begin{pmatrix} 1 & 1 \\ 0 & 2 \end{pmatrix}$ 的特征值 1、2 对应特征向量 $(1, 0)$、$(1, 1)$。求 $e^{At}$ 第一行第二列那个数在 $t = 1$ 时的值。（保留三位小数）
+          answer: 4.671
+          tolerance: 0.0005
+          hint: 基本矩阵的两列取 $\mathbf{v}_1e^{\lambda_1t}$、$\mathbf{v}_2e^{\lambda_2t}$。$\Phi(0)$ 是什么矩阵？右乘 $\Phi(0)^{-1}$ 是为了让 $t = 0$ 时得到什么？
+          explain: $\Phi(t)\Phi(0)^{-1} = \begin{pmatrix} e^t & e^{2t} - e^t \\ 0 & e^{2t} \end{pmatrix}$，$t = 1$ 时第一行第二列是 $e^2 - e \approx 4.671$。
+
+  # ==== 存在唯一性 ====
+  - id: picard-theorem
+    chapter: 存在唯一性
+    title: 解存在吗？唯一吗？
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 初值问题 $y' = 3y^{2/3}$，$y(0) = 0$。把 $y = 0$ 代进去，两边都是 0，所以它是一个解。还有没有别的解？
+          options:
+            - text: 有，比如 $y = x^3$
+              correct: true
+            - text: 没有，初值问题的解总是唯一的
+              why: 只有在一定条件下解才唯一，这个方程不满足那个条件
+            - text: 没有，因为 $y = 0$ 已经满足方程
+              why: 已经找到一个解，不能说明没有别的解；把 $y = x^3$ 代进去试试
+          explain: $(x^3)' = 3x^2$，$3(x^3)^{2/3} = 3x^2$，也满足方程和初值。两条不同的解曲线从同一点出发。这一课讲什么条件下能保证解唯一。
+      - card:
+          title: 偏导数和 Picard 定理
+          body: |
+            $f(x, y)$ 有两个变量。把 $x$ 当作常数、只对 $y$ 求导，得到的是**偏导数（partial derivative）** $\frac{\partial f}{\partial y}$。例：$f = x^2y^3$，$\frac{\partial f}{\partial y} = 3x^2y^2$。
+
+            **Picard 定理（Picard–Lindelöf theorem）**：初值问题 $y' = f(x, y)$，$y(x_0) = y_0$，如果 $f$ 和 $\frac{\partial f}{\partial y}$ 在 $(x_0, y_0)$ 周围的一个矩形里连续，那么在 $x_0$ 附近的某个区间上，解存在而且唯一。
+
+            猜题里 $f = 3y^{2/3}$，$\frac{\partial f}{\partial y} = 2y^{-1/3}$ 在 $y = 0$ 处无界，条件不满足，所以出现了两个解。
+      - item:
+          id: picard-unique
+          type: choice
+          prompt: 下面哪个初值问题，Picard 定理能保证它的解唯一？
+          options:
+            - text: $y' = \sqrt y$，$y(0) = 1$
+              correct: true
+            - text: $y' = \sqrt y$，$y(0) = 0$
+              why: $\frac{\partial f}{\partial y} = \frac{1}{2\sqrt y}$ 在 $y = 0$ 处无界，条件不满足（实际上 $y = 0$ 和 $y = x^2/4$ 都是解）
+            - text: $y' = y^{1/3}$，$y(0) = 0$
+              why: $\frac{\partial f}{\partial y} = \frac13 y^{-2/3}$ 在 $y = 0$ 处无界
+            - text: $y' = \frac{y}{x}$，$y(0) = 1$
+              why: $f$ 在 $x = 0$ 处没有定义，更谈不上连续
+          explain: 在 $(0, 1)$ 附近 $y > 0$，$\sqrt y$ 和 $\frac{1}{2\sqrt y}$ 都连续，定理保证解唯一。
+      - card:
+          title: Lipschitz 条件和 Peano 定理
+          body: |
+            定理里“$\frac{\partial f}{\partial y}$ 连续”可以放宽成 **Lipschitz 条件（Lipschitz condition）**：有一个常数 $L$，使 $|f(x, y_1) - f(x, y_2)| \le L|y_1 - y_2|$。由中值定理，$\left|\frac{\partial f}{\partial y}\right| \le L$ 时就满足。$f = |y|$ 在 $y = 0$ 处不可导，但满足 $L = 1$ 的 Lipschitz 条件，解仍唯一。
+
+            如果只知道 $f$ 连续，**Peano 定理（Peano existence theorem）**保证解存在，但不保证唯一，$y' = 3y^{2/3}$ 就是例子。
+      - item:
+          id: lipschitz-rect
+          type: number
+          prompt: 在矩形 $|x| \le 1$，$|y| \le 2$ 上，$f(x, y) = x^2 + y^2$ 满足 Lipschitz 条件。用 $\left|\frac{\partial f}{\partial y}\right|$ 的最大值作 $L$，$L$ 是多少？
+          answer: 4
+          hint: $\frac{\partial f}{\partial y}$ 是什么？它在 $|y| \le 2$ 上最大是多少？
+          explain: $\frac{\partial f}{\partial y} = 2y$，在 $|y| \le 2$ 上绝对值最大是 4，所以 $L = 4$。
+      - item:
+          id: lipschitz-sin
+          type: number
+          prompt: $f(x, y) = \sin 3y$ 对所有 $y$ 满足 Lipschitz 条件。最小的 Lipschitz 常数 $L$ 是多少？
+          answer: 3
+          hint: $\frac{\partial f}{\partial y}$ 的绝对值最大能到多少？
+          explain: $\frac{\partial f}{\partial y} = 3\cos 3y$，绝对值最大是 3，在 $y = 0$ 附近 $\frac{|\sin 3y_1 - \sin 3y_2|}{|y_1 - y_2|}$ 可以任意接近 3，所以最小的 $L$ 是 3。
+      - card:
+          title: Picard 迭代
+          body: |
+            定理的证明会造出解来。把方程写成积分形式 $y(x) = y_0 + \int_{x_0}^{x}f(t, y(t))\,dt$，从常数 $y_0$ 开始，反复把上一次的结果代进右边：
+
+            $$y_{n+1}(x) = y_0 + \int_{x_0}^{x}f(t, y_n(t))\,dt$$
+
+            这样反复把上一次的结果代进同一个式子，叫**迭代（iteration）**，这里叫 Picard 迭代。Lipschitz 条件保证这串函数在一个小区间上收敛到解。例：$y' = y$，$y(0) = 1$：$y_1 = 1 + x$，$y_2 = 1 + x + \frac{x^2}{2}$……正是 $e^x$ 的泰勒多项式。
+      - card:
+          title: 例题：两次 Picard 迭代
+          body: 对 $y' = x + y$，$y(0) = 0$ 做两次 Picard 迭代。
+          reveal:
+            - title: 第 1 步：起点
+              body: $y_0(x) = 0$。
+            - title: 第 2 步：第一次迭代
+              body: $y_1 = \int_0^x (t + 0)\,dt = \frac{x^2}{2}$。
+            - title: 第 3 步：第二次迭代
+              body: $y_2 = \int_0^x \left(t + \frac{t^2}{2}\right)dt = \frac{x^2}{2} + \frac{x^3}{6}$。
+            - title: 第 4 步：和精确解比较
+              body: 精确解 $y = e^x - 1 - x = \frac{x^2}{2} + \frac{x^3}{6} + \frac{x^4}{24} + \cdots$，每迭代一次多对一项。
+      - item:
+          id: picard-iterate
+          type: number
+          prompt: 对 $y' = 1 + y^2$，$y(0) = 0$ 从 $y_0 = 0$ 开始做两次 Picard 迭代，得到 $y_2(x)$。$y_2(1)$ 是多少？（保留三位小数）
+          answer: 1.333
+          tolerance: 0.0005
+          hint: $y_1 = \int_0^x (1 + 0^2)\,dt$；再把 $y_1$ 代进去。
+          explain: $y_1 = x$，$y_2 = \int_0^x (1 + t^2)\,dt = x + \frac{x^3}{3}$，$y_2(1) \approx 1.333$。精确解是 $\tan x$，$\tan 1 \approx 1.557$：离初值点远了，两次迭代还不够准。
+
+  - id: solution-interval
+    chapter: 存在唯一性
+    title: 解能走多远：解的延展，线性和非线性
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 初值问题 $y' = y^2$，$y(0) = 1$。方程右边 $y^2$ 处处有连续的导数。你觉得解能一直延伸到很大的 $x$ 吗？
+          options:
+            - text: 不能，解在 $x = 1$ 处趋于无穷
+              correct: true
+            - text: 能，右边的导数处处连续，解就处处存在
+              why: 这只保证在初值点附近解存在且唯一，不保证能延伸到哪里
+            - text: 不能，解在 $x = 0$ 附近就不存在了
+              why: Picard 定理保证 $x = 0$ 附近有解
+          explain: 分离变量得 $y = \frac{1}{1 - x}$，$x \to 1$ 时趋于无穷。方程本身没有任何“坏点”，解却在有限的地方断了。
+      - card:
+          title: 解的延展
+          body: |
+            Picard 定理只保证 $x_0$ 附近一个小区间。到了区间端点，把那里的值当作新的初值，再用一次定理，解就能继续往前走，叫**解的延展（extension of solutions）**。只要 $(x, y(x))$ 还在 $f$ 满足条件的区域里，就能继续。延展停下来只有两种情况：解趋于无穷（爆破），或者走到了那个区域的边界。
+
+            $y' = y^2$，$y(0) = 1$ 的解 $y = \frac{1}{1 - x}$ 只存在于 $x < 1$。爆破的位置由初值决定：$y(0) = 2$ 时 $y = \frac{2}{1 - 2x}$，在 $x = 0.5$ 处爆破。
+          reveal:
+            - title: 第 1 步：分离变量并积分
+              body: |
+                例：$y' = y^2$，$y(0) = 2$。$\frac{dy}{y^2} = dx$，积分得 $-\frac1y = x + C$。
+            - title: 第 2 步：用初值定常数
+              body: |
+                $y(0) = 2$ 代入得 $C = -\frac12$，所以 $y = \frac{1}{1/2 - x}$。
+            - title: 第 3 步：找解失效的位置
+              body: |
+                分母在 $x = 0.5$ 处为 0，$x \to 0.5$ 时 $y \to \infty$：解只存在于 $x < 0.5$，尽管方程右边 $y^2$ 处处光滑。初值越大，爆破越早。
+      - item:
+          id: blowup
+          type: number
+          prompt: 初值问题 $y' = y^2$，$y(0) = 4$ 的解在 $x > 0$ 一侧的哪个 $x$ 处趋于无穷？
+          answer: 0.25
+          hint: 分离变量得 $-\frac1y = x + C$，用初值定 $C$。
+          explain: $-\frac14 = C$，$y = \frac{1}{1/4 - x}$，$x \to 0.25$ 时 $y \to \infty$。初值越大，爆破得越早。
+      - item:
+          id: blowup-tan
+          type: number
+          prompt: 初值问题 $y' = 1 + y^2$，$y(0) = 1$ 的解是 $y = \tan(x + c)$ 的形式。它在 $x > 0$ 一侧的哪个 $x$ 处趋于无穷？（保留三位小数）
+          answer: 0.785
+          tolerance: 0.0005
+          hint: $\tan c = 1$ 时 $c$ 是多少？$\tan$ 在哪里趋于无穷？
+          explain: $c = \frac\pi4$，$x + \frac\pi4 = \frac\pi2$ 时爆破，即 $x = \frac\pi4 \approx 0.785$。
+      - card:
+          title: 线性方程的解不会中途爆破
+          body: |
+            线性方程 $y' + p(x)y = q(x)$：只要 $p$、$q$ 在区间 $I$ 上连续，解就在整个 $I$ 上存在而且唯一。解能走多远由系数事先决定，和初值无关。
+
+            例：$y' + \frac{y}{x - 3} = 1$，$p$ 在 $x = 3$ 处不连续。从 $y(0) = 1$ 出发，保证存在的最大区间是 $(-\infty, 3)$；换成 $y(0) = 100$，区间还是一样。
+      - item:
+          id: linear-interval
+          type: choice
+          prompt: 线性初值问题 $y' + (\tan x)\,y = 1$，$y(0) = 0$。保证解存在的最大区间是什么？
+          options:
+            - text: $(-\frac\pi2, \frac\pi2)$
+              correct: true
+            - text: $(-\infty, \infty)$
+              why: $\tan x$ 在 $x = \pm\frac\pi2$ 处不连续，定理只保证到那里为止
+            - text: $(0, \frac\pi2)$
+              why: 区间要包含初值点 $x = 0$ 两侧，左边可以一直延伸到 $-\frac\pi2$
+            - text: 取决于初值 $y(0)$
+              why: 线性方程的存在区间只由系数 $p$、$q$ 决定，和初值无关
+          explain: $p = \tan x$、$q = 1$ 在 $(-\frac\pi2, \frac\pi2)$ 上连续，这个区间包含 $x = 0$。
+      - card:
+          title: 线性和非线性的区别
+          body: |
+            | | 线性方程 | 非线性方程 |
+            |---|---|---|
+            | 叠加 | 齐次方程的两个解相加还是解 | 一般不成立 |
+            | 存在区间 | 由系数决定，不会中途爆破 | 可能在有限处爆破，位置随初值变 |
+            | 通解 | 一个公式包含所有解 | 可能漏掉一些解 |
+
+            最后一行的例子：$y' = y^2$ 分离变量得 $y = \frac{1}{C - x}$，$C$ 取什么都得不到 $y = 0$，而 $y = 0$ 也是解（分离变量时除以 $y^2$ 把它丢掉了）。
+      - item:
+          id: superposition-test
+          type: choice
+          prompt: $y_1$、$y_2$ 都是 $y' = y^2$ 的解。$y_1 + y_2$ 一般是不是它的解？
+          options:
+            - text: 一般不是
+              correct: true
+            - text: 是，解相加还是解
+              why: 那是线性齐次方程才有的性质；这里 $(y_1 + y_2)' = y_1^2 + y_2^2$，而 $(y_1 + y_2)^2$ 还多一项 $2y_1y_2$
+            - text: 是，只要两个解定义在同一个区间上
+              why: 区间相同也没用，问题出在方程右边是 $y^2$，不是线性的
+          explain: $(y_1 + y_2)' = y_1^2 + y_2^2 \ne (y_1 + y_2)^2$（除非 $y_1y_2 = 0$）。非线性方程没有叠加原理。
+      - item:
+          id: negative-initial
+          type: number
+          prompt: 初值问题 $y' = y^2$，$y(0) = -1$。求 $y(1)$。
+          answer: -0.5
+          hint: 通解 $y = \frac{1}{C - x}$，用初值定 $C$。
+          explain: $\frac1C = -1$，$C = -1$，$y = -\frac{1}{1 + x}$，$y(1) = -0.5$。这个解在 $x > 0$ 一侧一直存在，爆破点 $x = -1$ 在另一侧。
+
+  # ==== 稳定性与数值求解 ====
+  - id: geometric-autonomous
+    chapter: 稳定性与数值求解
+    title: 方向场、自治方程和平衡点的稳定性
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 不解方程 $y' = y(2 - y)$。从 $y(0) = 1$ 出发的解，最后趋于多少？
+          options:
+            - text: '2'
+              correct: true
+            - text: 无穷大
+              why: $y$ 接近 2 时 $y' = y(2 - y)$ 接近 0，增长停了下来
+            - text: '0'
+              why: $0 < y < 2$ 时 $y' > 0$，$y$ 在增长，离 0 越来越远
+          explain: 只看 $y'$ 的正负就知道 $y$ 往哪边走、停在哪里。这一课学这种不求公式、看图判断的方法。
+      - card:
+          title: 方向场和等倾线
+          body: |
+            $y' = f(x, y)$ 告诉你每一点上解曲线的斜率。在平面上很多点各画一小段斜率为 $f(x, y)$ 的线段，叫**方向场（direction field）**。解曲线处处和这些小线段相切，顺着它们就能画出来，不必求出公式。
+
+            $f(x, y) = c$ 的曲线上，所有小线段的斜率都是 $c$，这条曲线叫**等倾线（isocline）**。先画几条等倾线，再在每条上画同样斜率的小线段，是手画方向场的快办法。
+      - item:
+          id: isocline
+          type: number
+          prompt: 方程 $y' = x^2 + y^2$ 的斜率为 4 的等倾线是一个以原点为圆心的圆。它的半径是多少？
+          answer: 2
+          hint: 斜率为 4 的点满足什么方程？
+          explain: $x^2 + y^2 = 4$，半径 2。离原点越远，斜率越大。
+      - item:
+          id: isocline-solution
+          type: choice
+          prompt: 方程 $y' = y - x$ 的斜率为 1 的等倾线是哪条？它有什么特别之处？
+          options:
+            - text: $y = x + 1$，它本身也是一条解曲线
+              correct: true
+            - text: $y = x$，它是斜率为 0 的等倾线
+              why: 斜率为 1 要求 $y - x = 1$；$y = x$ 上 $y - x = 0$，是斜率为 0 的等倾线
+            - text: $y = 1$，一条水平线
+              why: 等倾线由 $y - x = 1$ 给出，和 $x$ 有关
+            - text: $y = x + 1$，但它不是解曲线
+              why: 沿这条直线小线段的斜率处处是 1，正好等于直线自己的斜率，所以它就是解：代入 $(x + 1)' = 1 = (x + 1) - x$
+          explain: $y - x = 1$ 即 $y = x + 1$。这条直线的斜率也是 1，所以它和方向场处处相切，是一个解。
+      - card:
+          title: 自治方程和相线
+          body: |
+            右边不含自变量的方程 $y' = f(y)$ 叫**自治方程（autonomous equation）**。$f(y^*) = 0$ 的常数 $y = y^*$ 是平衡点。
+
+            在一条竖线上标出平衡点，再看每一段上 $f$ 的正负：$f > 0$ 的段画向上的箭头，$f < 0$ 画向下的，这条线叫**相线（phase line）**。附近的解都趋向它的平衡点是渐近稳定的。$f'(y^*) < 0$ 时，下方 $f > 0$ 往上推、上方 $f < 0$ 往下推，平衡点稳定；$f'(y^*) > 0$ 时不稳定。
+      - card:
+          title: 例题：逻辑斯谛方程
+          body: 种群满足 $y' = 0.5y\left(1 - \frac{y}{100}\right)$。画相线，判断平衡点的稳定性。
+          reveal:
+            - title: 第 1 步：找平衡点
+              body: $f(y) = 0$：$y = 0$ 或 $y = 100$。
+            - title: 第 2 步：看每一段的正负
+              body: $0 < y < 100$ 时 $f > 0$，向上；$y > 100$ 时 $f < 0$，向下；$y < 0$ 时 $f < 0$，向下。
+            - title: 第 3 步：判断稳定性
+              body: $y = 0$ 两边的箭头都离开它，不稳定；$y = 100$ 两边的箭头都指向它，渐近稳定。任何正的初值最后都趋于 100，叫环境容量。
+            - title: 第 4 步：增长最快在哪里
+              body: $f(y) = 0.5y - 0.005y^2$ 在 $y = 50$ 处最大，种群在一半容量时长得最快。
+      - item:
+          id: phase-line
+          type: choice
+          prompt: 自治方程 $y' = y^2 - 4$ 有两个平衡点 $y = 2$ 和 $y = -2$。哪个是稳定的？
+          options:
+            - text: $y = -2$
+              correct: true
+            - text: $y = 2$
+              why: $f'(2) = 4 > 0$，$y$ 稍大于 2 时 $f > 0$ 继续增大，稍小于 2 时 $f < 0$ 继续减小，都离开它
+            - text: 两个都稳定
+              why: 两个平衡点之间 $f < 0$，箭头向下，指向 $-2$、离开 $2$
+            - text: 两个都不稳定
+              why: $f'(-2) = -4 < 0$，两边的解都流向 $-2$
+          explain: $f'(y) = 2y$。$f'(-2) < 0$，稳定；$f'(2) > 0$，不稳定。
+      - item:
+          id: logistic-limit
+          type: number
+          prompt: 种群满足 $y' = 0.3y\left(1 - \frac{y}{50}\right)$，$y(0) = 80$。很长时间以后，$y$ 趋于多少？
+          answer: 50
+          hint: 初值比环境容量大时，$y'$ 是正还是负？
+          explain: $y > 50$ 时 $y' < 0$，种群减少，趋向稳定的平衡点 50。
+      - card:
+          title: 稳定的意思
+          body: |
+            更一般地，一个解（比如平衡点）是**李雅普诺夫稳定（Lyapunov stable）**的：只要初值离它足够近，以后就一直离它很近。如果附近的解还都趋向它，就是渐近稳定。
+
+            两者不一样。无阻尼振子 $x'' + x = 0$ 的原点是中心：附近的轨线是绕它的圆，不远离也不靠近，所以稳定但不是渐近稳定。
+      - item:
+          id: stability-concept
+          type: choice
+          prompt: 方程组 $x' = y$，$y' = -x$（无阻尼振子）的平衡点 $(0, 0)$ 是哪一种？
+          options:
+            - text: 稳定，但不是渐近稳定
+              correct: true
+            - text: 渐近稳定
+              why: 没有阻尼，轨线是圆，不会趋向原点
+            - text: 不稳定
+              why: 从附近出发的轨线始终和原点保持同样的距离，没有离开
+            - text: 鞍点
+              why: 系数矩阵的行列式是 1 > 0，迹是 0，是中心
+          explain: 轨线是 $x^2 + y^2 = $ 常数的圆。离原点近的一直近，但不会靠过去。
+      - item:
+          id: harvest
+          type: number
+          prompt: 一个鱼群（单位：万条）满足 $y' = y(4 - y) - 3$，最后一项是每年固定的捕捞量。稳定的平衡点是多少？
+          answer: 3
+          hint: 先解 $y(4 - y) - 3 = 0$，再看 $f'$ 的符号。
+          explain: $y^2 - 4y + 3 = 0$，$y = 1$ 或 $3$。$f'(y) = 4 - 2y$，$f'(3) = -2 < 0$ 稳定，$f'(1) = 2 > 0$ 不稳定：鱼群少于 1 万条时会被捕光。
+
+  - id: numerical-methods
+    chapter: 稳定性与数值求解
+    title: 数值解：欧拉法和龙格–库塔法
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用“当前点的斜率乘步长”一步步往前走，近似画出解曲线。步长缩小一半，走到同一个终点时的误差大约会怎样？
+          options:
+            - text: 大约减半
+              correct: true
+            - text: 基本不变
+              why: 步长越小，每一步用起点斜率代替整段斜率的偏差越小，误差会下降
+            - text: 变成原来的四分之一
+              why: 每一步的误差确实约变成四分之一，但步数翻了一倍，累积起来约是一半
+          explain: 这种最简单的办法叫欧拉法，误差和步长成正比。这一课学它，以及误差下降得更快的改进办法。
+      - card:
+          title: 欧拉法
+          body: |
+            初值问题 $y' = f(x, y)$，$y(x_0) = y_0$。从 $(x_0, y_0)$ 出发，沿切线走一小步 $h$，再在新的点重新算斜率：
+
+            $$y_{n+1} = y_n + h\,f(x_n, y_n),\qquad x_{n+1} = x_n + h$$
+
+            这叫**欧拉法（Euler's method）**。每一步都用起点的斜率代替整段的斜率，解曲线弯曲时就会偏离。
+      - card:
+          title: 例题：欧拉法走两步
+          body: 用欧拉法解 $y' = y$，$y(0) = 1$，步长 $h = 0.5$，求 $y(1)$ 的近似值。
+          reveal:
+            - title: 第 1 步：从 x = 0 走到 0.5
+              body: $y_1 = 1 + 0.5 \times 1 = 1.5$。
+            - title: 第 2 步：从 x = 0.5 走到 1
+              body: $y_2 = 1.5 + 0.5 \times 1.5 = 2.25$。
+            - title: 第 3 步：和精确值比较
+              body: 精确值 $e \approx 2.718$，误差约 0.468。换成 $h = 0.25$ 走四步，得 $1.25^4 \approx 2.441$，误差约 0.277。
+      - item:
+          id: euler-two-steps
+          type: number
+          prompt: 用欧拉法解 $y' = x + y$，$y(0) = 1$，步长 $h = 0.1$，走两步。$y(0.2)$ 的近似值是多少？
+          answer: 1.22
+          tolerance: 0.0005
+          hint: 第一步的斜率是 $f(0, 1)$，第二步的斜率是 $f(0.1, y_1)$。
+          explain: $y_1 = 1 + 0.1 \times 1 = 1.1$；$y_2 = 1.1 + 0.1 \times (0.1 + 1.1) = 1.22$。精确值 $2e^{0.2} - 1.2 \approx 1.243$。
+      - card:
+          title: 误差的阶
+          body: |
+            欧拉法每一步的误差和 $h^2$ 成正比；走到固定的终点要 $1/h$ 步，累积起来的整体误差和 $h$ 成正比。整体误差和 $h^p$ 成正比的方法叫 $p$ 阶方法，欧拉法是**一阶方法（first-order method）**：步长减半，误差约减半。
+
+            上面例题中 $h$ 从 0.5 减到 0.25，误差从 0.468 变成 0.277，比值约 1.7；$h$ 再小下去，比值越来越接近 2。
+      - item:
+          id: error-scaling
+          type: choice
+          prompt: 用欧拉法算某个初值问题，步长 $h = 0.1$ 时在终点的误差约 0.04。步长改成 0.05，误差大约是多少？
+          options:
+            - text: '0.02'
+              correct: true
+            - text: '0.01'
+              why: 误差变成四分之一是二阶方法的规律；欧拉法是一阶
+            - text: '0.04'
+              why: 步长变小，误差会跟着变小
+            - text: '0.08'
+              why: 步数多了，但每步的误差小得更多，整体误差是下降的
+          explain: 一阶方法的整体误差和 $h$ 成正比，$h$ 减半误差约减半。
+      - card:
+          title: 改进欧拉法
+          body: |
+            **改进欧拉法（improved Euler method）**先用欧拉法试走一步，再把起点和试走终点两处的斜率平均：
+
+            $$k_1 = f(x_n, y_n),\quad k_2 = f(x_n + h,\ y_n + hk_1),\quad y_{n+1} = y_n + \frac h2(k_1 + k_2)$$
+
+            它是二阶方法，步长减半，误差约变成原来的 $\frac14$。代价是每步要算两次 $f$。
+      - card:
+          title: 例题：改进欧拉法走一步
+          body: 用改进欧拉法解 $y' = x + y$，$y(0) = 1$，步长 $h = 0.1$，走一步。
+          reveal:
+            - title: 第 1 步：起点的斜率
+              body: $k_1 = f(0, 1) = 1$。
+            - title: 第 2 步：试走终点的斜率
+              body: 试走到 $(0.1,\ 1 + 0.1 \times 1) = (0.1, 1.1)$，$k_2 = 0.1 + 1.1 = 1.2$。
+            - title: 第 3 步：用平均斜率走一步
+              body: $y_1 = 1 + 0.05 \times (1 + 1.2) = 1.11$。精确值 $2e^{0.1} - 1.1 \approx 1.1103$，欧拉法给的是 1.1。
+      - item:
+          id: heun-two-steps
+          type: number
+          prompt: 用改进欧拉法解 $y' = y$，$y(0) = 1$，步长 $h = 0.5$，走两步。$y(1)$ 的近似值是多少？（保留三位小数）
+          answer: 2.641
+          tolerance: 0.0005
+          hint: 第一步：起点斜率 $k_1 = f(0, 1)$；试走到 $x = 0.5$ 时 $y$ 是多少，那里的斜率 $k_2$ 是多少？
+          explain: 第一步 $k_1 = 1$，$k_2 = 1.5$，$y_1 = 1 + 0.25 \times 2.5 = 1.625$。第二步同样乘 1.625，$y_2 = 1.625^2 \approx 2.641$，误差约 0.078，比欧拉法的 0.468 小得多。
+      - card:
+          title: 四阶龙格–库塔法
+          body: |
+            **四阶龙格–库塔法（fourth-order Runge–Kutta method）**，简称 RK4，每步算 4 个斜率：起点一个，中点两个（分别用 $k_1$、$k_2$ 试走半步），终点一个，再加权平均：
+
+            $$\begin{aligned} k_1 &= f(x_n, y_n), & k_2 &= f\left(x_n + \tfrac h2,\ y_n + \tfrac h2 k_1\right),\\ k_3 &= f\left(x_n + \tfrac h2,\ y_n + \tfrac h2 k_2\right), & k_4 &= f(x_n + h,\ y_n + hk_3),\end{aligned}$$
+
+            $$y_{n+1} = y_n + \frac h6(k_1 + 2k_2 + 2k_3 + k_4)$$
+
+            它的整体误差和 $h^4$ 成正比，步长减半误差约变成 $\frac{1}{16}$，是最常用的经典方法。
+          reveal:
+            - title: 第 1 步：起点和两个中点的斜率
+              body: |
+                例：$y' = -y$，$y(0) = 1$，$h = 1$。$k_1 = -1$；试走半步到 $y = 1 + 0.5 \times (-1) = 0.5$，$k_2 = -0.5$；再用 $k_2$ 试走半步到 $y = 0.75$，$k_3 = -0.75$。
+            - title: 第 2 步：终点的斜率
+              body: |
+                用 $k_3$ 走一整步到 $y = 1 - 0.75 = 0.25$，$k_4 = -0.25$。
+            - title: 第 3 步：加权平均
+              body: |
+                $y_1 = 1 + \frac16(-1 - 1 - 1.5 - 0.25) = 0.375$。精确值 $e^{-1} \approx 0.368$，走一步的误差约 0.007。
+      - item:
+          id: rk4-step
+          type: number
+          prompt: 用四阶龙格–库塔法解 $y' = y$，$y(0) = 1$，步长 $h = 0.5$，走一步。$y(0.5)$ 的近似值是多少？（保留三位小数）
+          answer: 1.648
+          tolerance: 0.0005
+          hint: 依次算 $k_1$、$k_2$、$k_3$、$k_4$，每个都是“当时的 $y$”，因为 $f(x, y) = y$。
+          explain: $k_1 = 1$，$k_2 = 1 + 0.25 \times 1 = 1.25$，$k_3 = 1 + 0.25 \times 1.25 = 1.3125$，$k_4 = 1 + 0.5 \times 1.3125 = 1.65625$。$y_1 = 1 + \frac{0.5}{6}(1 + 2.5 + 2.625 + 1.65625) \approx 1.648$，精确值 $e^{0.5} \approx 1.6487$。
+      - item:
+          id: rk4-scaling
+          type: choice
+          prompt: 用四阶龙格–库塔法算某个初值问题，步长 0.1 时误差约 $3.2 \times 10^{-6}$。步长改成 0.05，误差大约是多少？
+          options:
+            - text: $2 \times 10^{-7}$
+              correct: true
+            - text: $1.6 \times 10^{-6}$
+              why: 减半是一阶方法的规律
+            - text: $8 \times 10^{-7}$
+              why: 变成四分之一是二阶方法的规律
+            - text: $3.2 \times 10^{-6}$
+              why: 步长变小，误差会下降
+          explain: 四阶方法的误差和 $h^4$ 成正比，$h$ 减半误差约变成 $\frac{1}{16}$：$3.2 \times 10^{-6}/16 = 2 \times 10^{-7}$。
+      - card:
+          title: 步长太大会出错
+          body: |
+            $y' = -10y$ 的精确解 $e^{-10x}$ 很快衰减到 0。欧拉法每一步把 $y$ 乘以 $(1 - 10h)$：$h = 0.05$ 时乘 0.5，正常衰减；$h = 0.25$ 时乘 $-1.5$，数值解正负交替、越来越大，完全错了。
+
+            这叫数值不稳定。方程里的变化越快（衰减率越大），能用的步长就越小。
+      - item:
+          id: euler-unstable
+          type: number
+          prompt: 用欧拉法解 $y' = -20y$，每一步 $y$ 乘以 $(1 - 20h)$。步长 $h$ 超过多少时，数值解的绝对值会越来越大？
+          answer: 0.1
+          hint: 乘数的绝对值大于 1 时数值解增长。
+          explain: $|1 - 20h| > 1$ 且 $h > 0$ 时 $h > 0.1$。精确解在衰减，步长超过 0.1 时数值解却在增长。
+
+  - id: nonlinear-linearization
+    chapter: 稳定性与数值求解
+    title: 非线性方程组：线性化、极限环和混沌
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个单摆有两个能静止的位置：竖直向下，和竖直向上（倒立）。它们一样“稳”吗？
+          options:
+            - text: 向下的稳，向上的轻轻一碰就倒
+              correct: true
+            - text: 两个都稳
+              why: 倒立时稍微偏一点，重力会让它越偏越多
+            - text: 两个都不稳
+              why: 向下的位置稍微偏一点，重力会把它拉回来；有空气阻力时摆动会慢慢停在这里
+          explain: 方程是非线性的，但在平衡点附近可以用线性方程组近似，再用迹和行列式判断稳定性。
+      - card:
+          title: 非线性方程组和平衡点
+          body: |
+            自治方程组 $x' = f(x, y)$，$y' = g(x, y)$，$f$、$g$ 不是线性的。例：有阻尼的单摆 $\theta'' + 0.5\theta' + \sin\theta = 0$，令 $x = \theta$，$y = \theta'$：
+
+            $$x' = y,\qquad y' = -\sin x - 0.5y$$
+
+            平衡点要同时满足 $f = 0$、$g = 0$：$y = 0$ 且 $\sin x = 0$，即 $(0, 0)$、$(\pi, 0)$、$(2\pi, 0)$……一般写不出解的公式，但可以看平衡点附近的样子。
+      - item:
+          id: count-equilibria
+          type: number
+          prompt: 方程组 $x' = y$，$y' = x - x^3 - y$ 有几个平衡点？
+          answer: 3
+          hint: 先由 $x' = 0$ 得出 $y$，再解 $x - x^3 = 0$。
+          explain: $y = 0$，$x - x^3 = x(1 - x)(1 + x) = 0$，$x = 0, 1, -1$，共 3 个平衡点。
+      - card:
+          title: 雅可比矩阵和线性化
+          body: |
+            在平衡点 $(x_0, y_0)$ 附近，只保留 $f$、$g$ 的一阶项：
+
+            $$J = \begin{pmatrix} f_x & f_y \\ g_x & g_y \end{pmatrix}_{(x_0,\, y_0)}$$
+
+            $f_x$ 是 $f$ 对 $x$ 的偏导数，其余三个也一样。$J$ 叫**雅可比矩阵（Jacobian matrix）**。令 $u = x - x_0$，$v = y - y_0$；平衡点处 $f = g = 0$，展开后没有常数项，近似有 $(u, v)' = J(u, v)$，叫**线性化（linearization）**。用 $J$ 的迹和行列式分类：鞍点、结点、焦点在非线性方程组里保持原来的类型和稳定性；线性化得到中心时，原方程组可能是中心，也可能是慢慢旋进或旋出的焦点，要另外判断。
+      - card:
+          title: 例题：单摆的两个平衡点
+          body: 用线性化判断 $x' = y$，$y' = -\sin x - 0.5y$ 在 $(0, 0)$ 和 $(\pi, 0)$ 的类型。
+          reveal:
+            - title: 第 1 步：求偏导数
+              body: $f = y$：$f_x = 0$，$f_y = 1$。$g = -\sin x - 0.5y$：$g_x = -\cos x$，$g_y = -0.5$。
+            - title: 第 2 步：最低点 (0, 0)
+              body: $J = \begin{pmatrix} 0 & 1 \\ -1 & -0.5 \end{pmatrix}$，$T = -0.5$，$\Delta = 1$，$T^2 < 4\Delta$：稳定焦点，摆动着衰减回最低点。
+            - title: 第 3 步：最高点 (π, 0)
+              body: $J = \begin{pmatrix} 0 & 1 \\ 1 & -0.5 \end{pmatrix}$，$\Delta = -1 < 0$：鞍点，不稳定，倒立的摆一碰就倒。
+      - item:
+          id: linearize-classify
+          type: choice
+          prompt: 方程组 $x' = y$，$y' = x - x^3 - y$ 在平衡点 $(1, 0)$ 处线性化后，是什么类型？
+          options:
+            - text: 稳定焦点
+              correct: true
+            - text: 鞍点
+              why: $J = \begin{pmatrix} 0 & 1 \\ -2 & -1 \end{pmatrix}$，$\Delta = 2 > 0$；鞍点在 $(0, 0)$
+            - text: 中心
+              why: $T = -1 \ne 0$，有阻尼，轨线会旋进去
+            - text: 稳定结点
+              why: $T^2 = 1 < 4\Delta = 8$，特征值是复数，是焦点不是结点
+          explain: $g_x = 1 - 3x^2 = -2$，$J = \begin{pmatrix} 0 & 1 \\ -2 & -1 \end{pmatrix}$，$T = -1$，$\Delta = 2$，$T^2 < 4\Delta$：稳定焦点。
+      - item:
+          id: jacobian-det
+          type: number
+          prompt: 方程组 $x' = x(3 - x - y)$，$y' = y(x - 1)$ 有平衡点 $(1, 2)$。那里的雅可比矩阵的行列式是多少？
+          answer: 2
+          hint: $f = 3x - x^2 - xy$，$g = xy - y$，分别求四个偏导数再代入 $(1, 2)$。
+          explain: $f_x = 3 - 2x - y = -1$，$f_y = -x = -1$，$g_x = y = 2$，$g_y = x - 1 = 0$。行列式 $(-1)(0) - (-1)(2) = 2$；迹 $-1$，$T^2 < 4\Delta$，是稳定焦点。
+      - card:
+          title: 极限环
+          body: |
+            线性方程组的闭合轨线只出现在中心，而且一圈套一圈，不会单独出现。非线性方程组可以有单独的一条闭合轨线，附近的轨线都绕着它越转越近（或越远），叫**极限环（limit cycle）**。
+
+            例：范德波尔方程 $x'' - \mu(1 - x^2)x' + x = 0$（$\mu > 0$）。振幅小时阻尼项是负的，振幅变大；振幅大时阻尼项是正的，振幅变小。最后，除了从原点出发的解，所有的解都趋于同一个周期振荡。振幅由方程本身决定，和初值无关。
+      - item:
+          id: limit-cycle
+          type: choice
+          prompt: 范德波尔振子 $x'' - (1 - x^2)x' + x = 0$ 分别从 $x(0) = 0.1$ 和 $x(0) = 5$ 出发（$x'(0) = 0$）。很长时间以后会怎样？
+          options:
+            - text: 两个解的振幅趋于相同
+              correct: true
+            - text: 从 0.1 出发的一直是小振幅，从 5 出发的一直是大振幅
+              why: 那是线性中心的样子；这里小振幅时阻尼为负，振幅会长大
+            - text: 两个都衰减到 0
+              why: 原点附近阻尼为负，原点是不稳定的，解会离开它
+            - text: 从 5 出发的越来越大
+              why: 振幅大时阻尼为正，振幅会变小
+          explain: 两个解都趋于同一个极限环。$\mu = 1$ 时这个周期振荡的振幅约是 2。
+      - card:
+          title: 混沌
+          body: |
+            平面上（两个未知函数）的自治方程组不会出现混沌，这是庞加莱–本迪克松定理的推论。三个未知函数就不同了。洛伦茨方程
+
+            $$x' = 10(y - x),\quad y' = x(28 - z) - y,\quad z' = xy - \tfrac83 z$$
+
+            的轨线永远不重复，也不趋于平衡点或闭合轨线；初值只差一点点，过一段时间轨线就完全不同。这种对初值的敏感依赖叫**混沌（chaos）**。洛伦茨是在一个简化的大气对流模型里发现它的，这是天气难以做长期预报的原因之一。
+      - item:
+          id: chaos
+          type: choice
+          prompt: 下面哪个方程（组）可能出现混沌？
+          options:
+            - text: 洛伦茨方程（三个未知函数的自治方程组）
+              correct: true
+            - text: 两个未知函数的自治方程组
+              why: 由庞加莱–本迪克松定理，平面自治方程组不会出现混沌
+            - text: 线性方程组 $\mathbf{x}' = A\mathbf{x}$
+              why: 线性方程组的解是指数函数和正弦函数的组合，可以完全写出来
+            - text: 一阶自治方程 $y' = f(y)$
+              why: 它的解总是单调地走向平衡点或无穷，不会来回绕
+          explain: 混沌至少需要三个未知函数的自治方程组；洛伦茨方程是最著名的例子。
+
+boss:
+  items:
+    - id: b-linear-ode
+      type: number
+      prompt: 用积分因子法解 $y' + 3y = 6$，$y(0) = 0$。$y(0.5)$ 等于多少？（保留三位小数）
+      answer: 1.554
+      tolerance: 0.0005
+      hint: 积分因子是 $e^{3x}$。
+      explain: $(ye^{3x})' = 6e^{3x}$，$y = 2 + Ce^{-3x}$，$C = -2$，$y = 2(1 - e^{-3x})$，$y(0.5) = 2(1 - e^{-1.5}) \approx 1.554$。
+    - id: b-damped
+      type: number
+      prompt: 解 $y'' + 6y' + 25y = 0$，$y(0) = 0$，$y'(0) = 4$。$y(\pi/8)$ 等于多少？（保留三位小数）
+      answer: 0.308
+      tolerance: 0.0005
+      hint: 先写特征方程。它的根是实数还是复数？
+      explain: $y = e^{-3t}(C_1\cos 4t + C_2\sin 4t)$，$C_1 = 0$，$4C_2 = 4$，$y = e^{-3t}\sin 4t$。$y(\pi/8) = e^{-3\pi/8}\sin\frac\pi2 \approx 0.308$。
+    - id: b-gain
+      type: number
+      prompt: 振子 $x'' + x' + 4x = \cos t$ 的稳态解是 $g\cos(t - \phi)$。增益 $g$ 是多少？（保留三位小数）
+      answer: 0.316
+      tolerance: 0.0005
+      hint: 算 $p(i)$ 的模。
+      explain: $p(i) = -1 + i + 4 = 3 + i$，$|p(i)| = \sqrt{10}$，$g = 1/\sqrt{10} \approx 0.316$。
+    - id: b-resonance
+      type: number
+      prompt: 振子 $x'' + 2x' + 9x = \cos\omega t$ 的实际共振角频率是多少？（保留三位小数）
+      answer: 2.646
+      tolerance: 0.0005
+      hint: 先确认有峰，再用 $\omega_r = \sqrt{k - b^2/2}$。
+      explain: $b^2 = 4 < 2k = 18$，有峰，$\omega_r = \sqrt{9 - 2} = \sqrt7 \approx 2.646$。
+    - id: b-fourier
+      type: number
+      prompt: 方波 $\mathrm{sq}(t)$（$0 < t < \pi$ 时为 1，$-\pi < t < 0$ 时为 −1，周期 $2\pi$）的傅里叶级数里，$\sin 7t$ 的系数是多少？（保留三位小数）
+      answer: 0.182
+      tolerance: 0.0005
+      hint: $b_n = \frac{2}{n\pi}(1 - \cos n\pi)$。
+      explain: $n = 7$ 是奇数，$b_7 = \frac{4}{7\pi} \approx 0.182$。
+    - id: b-step-response
+      type: number
+      prompt: 方程 $x' + 4x = 8u(t - 1)$，静止初始条件（$u$ 是单位阶跃函数）。$x(1.5)$ 等于多少？（保留三位小数）
+      answer: 1.729
+      tolerance: 0.0005
+      hint: 先求输入 $8u(t)$ 的响应，再用时不变性推迟 1。
+      explain: 输入 $8u(t)$ 的响应是 $2(1 - e^{-4t})$，推迟 1 后 $x = 2(1 - e^{-4(t - 1)})$（$t > 1$），$x(1.5) = 2(1 - e^{-2}) \approx 1.729$。
+    - id: b-laplace-ivp
+      type: number
+      prompt: 用拉普拉斯变换解 $y'' + 5y' + 6y = 0$，$y(0) = 0$，$y'(0) = 2$。$y(1)$ 等于多少？（保留三位小数）
+      answer: 0.171
+      tolerance: 0.0005
+      hint: 变换后 $(s^2 + 5s + 6)Y = 2$。
+      explain: $Y = \frac{2}{(s + 2)(s + 3)} = \frac{2}{s + 2} - \frac{2}{s + 3}$，$y = 2(e^{-2t} - e^{-3t})$，$y(1) \approx 0.171$。
+    - id: b-poles
+      type: choice
+      prompt: 一个系统的传递函数是 $W(s) = \frac{1}{s^2 - s + 2}$。它的冲激响应长期是什么样子？
+      options:
+        - text: 振荡，振幅越来越大
+          correct: true
+        - text: 振荡，振幅逐渐衰减
+          why: 极点 $\frac12 \pm \frac{\sqrt7}{2}i$ 的实部是 $+\frac12$，$e^{t/2}$ 在增长
+        - text: 不振荡，单调衰减到 0
+          why: 极点是复数，所以会振荡；实部为正，所以不会衰减
+        - text: 振幅不变的振荡
+          why: 振幅不变要求极点的实部为 0
+      explain: $s^2 - s + 2 = 0$ 的根 $\frac12 \pm \frac{\sqrt7}{2}i$ 在右半平面，冲激响应含 $e^{t/2}\sin\frac{\sqrt7}{2}t$，振荡增长，系统不稳定。
+    - id: b-node
+      type: choice
+      prompt: 方程组 $\mathbf{x}' = A\mathbf{x}$，$A = \begin{pmatrix} 0 & 1 \\ -2 & -3 \end{pmatrix}$。原点是什么平衡点？
+      options:
+        - text: 稳定结点
+          correct: true
+        - text: 稳定焦点
+          why: $T^2 - 4\Delta = 9 - 8 = 1 > 0$，特征值 $-1$、$-2$ 是实数，轨线不旋转
+        - text: 鞍点
+          why: $\Delta = 2 > 0$，两个特征值同号
+        - text: 中心
+          why: $T = -3 \ne 0$
+      explain: 特征值 $-1$、$-2$（特征向量 $(1, -1)$、$(1, -2)$）都是负实数，所有轨线不旋转地进入原点：稳定结点。
+    - id: b-eigen-ivp
+      type: number
+      prompt: 方程组 $x' = x + 4y$，$y' = x + y$，初值 $x(0) = 2$，$y(0) = 1$。求 $x(1)$。（保留两位小数）
+      answer: 40.17
+      tolerance: 0.005
+      hint: 先求特征值和特征向量，看看初值是不是正好落在某个特征向量上。
+      explain: 特征值 3 和 $-1$；$\lambda = 3$ 的特征向量是 $(2, 1)$，正好是初值，所以 $\mathbf{x}(t) = (2, 1)e^{3t}$，$x(1) = 2e^3 \approx 40.17$。
+    - id: b-picard
+      type: choice
+      prompt: 下面哪个初值问题，Picard 定理不能保证解唯一？
+      options:
+        - text: $y' = y^{1/3}$，$y(0) = 0$
+          correct: true
+        - text: $y' = y^{1/3}$，$y(0) = 1$
+          why: 在 $y = 1$ 附近，$\frac{\partial f}{\partial y} = \frac13 y^{-2/3}$ 连续，定理适用
+        - text: $y' = x^2 + y^2$，$y(0) = 0$
+          why: $f$ 和 $\frac{\partial f}{\partial y} = 2y$ 处处连续
+        - text: $y' = \sin(xy)$，$y(0) = 2$
+          why: $f$ 和 $\frac{\partial f}{\partial y} = x\cos(xy)$ 处处连续
+      explain: $\frac{\partial f}{\partial y} = \frac13 y^{-2/3}$ 在 $y = 0$ 处无界。实际上 $y = 0$ 和 $y = \left(\frac{2x}{3}\right)^{3/2}$（$x \ge 0$）都是解。
+    - id: b-blowup
+      type: number
+      prompt: 初值问题 $y' = 1 + y^2$，$y(0) = 0$ 的解在 $x > 0$ 一侧的哪个 $x$ 处趋于无穷？（保留三位小数）
+      answer: 1.571
+      tolerance: 0.0005
+      hint: 分离变量，$\int\frac{dy}{1 + y^2}$ 是什么？
+      explain: $\arctan y = x$，$y = \tan x$，在 $x = \frac\pi2 \approx 1.571$ 处趋于无穷。
+    - id: b-euler
+      type: number
+      prompt: 用欧拉法解 $y' = e^{-x} - 2y$，$y(0) = 2$，步长 0.1，走两步。$y(0.2)$ 的近似值是多少？（保留三位小数）
+      answer: 1.450
+      tolerance: 0.001
+      hint: 第一步斜率 $f(0, 2)$，第二步斜率 $f(0.1, y_1)$。
+      explain: $y_1 = 2 + 0.1(1 - 4) = 1.7$；$y_2 = 1.7 + 0.1(e^{-0.1} - 3.4) \approx 1.450$。精确值 $e^{-0.2} + e^{-0.4} \approx 1.489$，误差约 0.039。
+    - id: b-autonomous
+      type: number
+      prompt: 自治方程 $y' = y(3 - y)(y - 1)$，$y(0) = 2$。很长时间以后，$y$ 趋于多少？
+      answer: 3
+      hint: 先找出所有平衡点，再看 $y = 2$ 时 $y'$ 是正还是负。
+      explain: $1 < y < 3$ 时 $y' > 0$，$y$ 增大，趋向平衡点 3（$f'(3) = -6 < 0$，稳定）。
+    - id: b-linearize
+      type: choice
+      prompt: 方程组 $x' = x(2 - x - y)$，$y' = y(x - 1)$ 有平衡点 $(1, 1)$。线性化后它是什么类型？
+      options:
+        - text: 稳定焦点
+          correct: true
+        - text: 稳定结点
+          why: $J = \begin{pmatrix} -1 & -1 \\ 1 & 0 \end{pmatrix}$，$T^2 - 4\Delta = 1 - 4 < 0$，特征值是复数
+        - text: 鞍点
+          why: $\Delta = 0 - (-1)(1) = 1 > 0$
+        - text: 中心
+          why: $T = -1 \ne 0$
+      explain: $f_x = 2 - 2x - y = -1$，$f_y = -x = -1$，$g_x = y = 1$，$g_y = x - 1 = 0$。$T = -1$，$\Delta = 1$，$T^2 < 4\Delta$：稳定焦点。

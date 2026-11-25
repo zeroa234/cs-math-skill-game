@@ -1,0 +1,1803 @@
+skill: M.1.4.4
+version: 2
+authors: [main-agent]
+brief:
+  why: 一元积分把一条线上的量加起来；现实里要加的东西常常铺在一块面、一个立体或一条弯曲的路上：一块地上的土方、一个铁块的质量、风沿航线做的功、电场穿过一张曲面的通量。这一关先讲二重积分和三重积分，怎样把区域拆块、交换积分次序，用极坐标、柱坐标、球坐标和雅可比行列式换元；再讲向量场的线积分和曲面通量，梯度、散度、旋度，最后是把它们连起来的格林定理、散度定理和斯托克斯定理。假设你学过一元积分学和多元微分学；向量、点积和 2×2、3×3 行列式会用到，课里用到时提醒怎么算。
+  outcomes:
+    - 用黎曼和说清二重积分、三重积分是什么，在矩形、长方体上写累次积分并计算
+    - 给一般区域写积分限，必要时把区域拆块，会交换二重积分和三重积分的次序
+    - 用极坐标、柱坐标、球坐标算面积、体积和质量，用雅可比行列式做一般换元
+    - 把曲线用 t 表示出来，算向量场沿曲线做的功，算向量场穿过曲面的通量
+    - 判断一个向量场是不是保守场，求势函数，算平面和空间向量场的散度和旋度
+    - 用格林定理、散度定理、斯托克斯定理在线积分、曲面积分和重积分之间转换，并说出它们的条件
+terms:
+  - term: 二重积分
+    def: '函数在平面区域上的积分 ∬_D f dA：把区域切成小块，每块的函数值乘面积再求和取极限；f ≥ 0 时是曲面下的体积'
+  - term: 累次积分
+    def: '先对一个变量积分、再把结果对另一个变量积分的写法，如 ∫_a^b ∫_c^d f dy dx'
+  - term: 富比尼定理
+    def: '函数在矩形上连续时，二重积分等于两种次序的累次积分，所以次序可以互换'
+  - term: I 型区域
+    def: '夹在两条竖线 x = a、x = b 之间，下边界 y = g₁(x)、上边界 y = g₂(x) 的平面区域'
+  - term: II 型区域
+    def: '夹在两条横线 y = c、y = d 之间，左边界 x = h₁(y)、右边界 x = h₂(y) 的平面区域'
+  - term: 投影
+    def: '把立体沿一个坐标方向压扁到坐标平面上（常用 xy 平面），它盖住的那块平面区域，也叫投影区域'
+  - term: 三重积分
+    def: '函数在空间区域上的积分 ∭_E f dV：切成小块，函数值乘小块体积求和取极限；f = 1 时就是体积'
+  - term: 极坐标
+    def: '用到原点的距离 r 和与 x 轴正方向的夹角 θ 表示平面上的点，x = r cos θ、y = r sin θ'
+  - term: 柱坐标
+    def: '水平方向用极坐标 (r, θ)、高度仍用 z 的空间坐标，体积元 dV = r dz dr dθ'
+  - term: 球坐标
+    def: '用到原点的距离 ρ、与 z 轴正方向的夹角 φ 和极角 θ 表示空间的点，体积元 ρ² sin φ dρ dφ dθ'
+  - term: 向量场
+    def: '给平面或空间里每个点配一个向量的函数，如 F(x, y) = (P, Q)，例子是每点的风速或受力'
+  - term: 线积分
+    def: '向量场沿一条有方向的曲线的积分 ∫_C F·dr，力场时就是沿曲线做的功；也叫第二型曲线积分'
+  - term: 通量
+    def: '向量场穿过一条曲线或一张曲面的总量：平面里是 ∫ F·n ds（曲线闭合时记 ∮），空间里是 ∬ F·n dS'
+  - term: 法向量
+    def: '垂直于曲线或曲面的向量；长度为 1 的叫单位法向量，记作 n'
+  - term: 叉积
+    def: '两个空间向量的乘积 a × b，结果同时垂直于 a 和 b，长度等于以 a、b 为两边的平行四边形面积，方向按右手定则'
+  - term: 保守场
+    def: '从 A 到 B 的线积分只取决于起点和终点、与路径无关的向量场；它就是某个函数的梯度'
+  - term: 势函数
+    def: '满足 ∇f = F 的函数 f；有了它，线积分等于 f(终点) − f(起点)'
+  - term: 恰当微分
+    def: '恰好是某个函数全微分 df 的式子 P dx + Q dy'
+  - term: 旋度
+    def: '衡量向量场在一点附近绕圈转的量：平面里是 Q_x − P_y，空间里是向量 ∇ × F'
+  - term: 散度
+    def: '衡量向量场在一点向外发散的量 ∇·F = P_x + Q_y + R_z，等于单位体积向外流出的通量'
+  - term: 环流
+    def: '向量场沿一条闭曲线绕一圈的线积分 ∮_C F·dr，也就是场绕这一圈做的功'
+  - term: 格林定理
+    def: '平面区域边界上逆时针的线积分等于区域上旋度的二重积分：∮ P dx + Q dy = ∬ (Q_x − P_y) dA'
+  - term: 单连通
+    def: '区域里任意一条闭曲线都能在区域内连续地缩成一点，也就是没有洞'
+  - term: 散度定理
+    def: '闭曲面向外的通量等于它围住的立体里散度的三重积分，也叫高斯定理'
+  - term: 斯托克斯定理
+    def: '曲面边界上的线积分等于旋度穿过这张曲面的通量：∮_C F·dr = ∬_S (∇ × F)·n dS'
+assumes: [向量, 点积, 行列式]
+lessons:
+  - id: double-volume
+    chapter: 二重
+    title: 用小长方体逼近体积
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一块 2 m × 3 m 的长方形空地上堆着土，各处高度不同。想估计土的体积，哪种做法最合理？
+          options:
+            - text: 把地面切成小方格，每格用格内某一点的高度乘格子面积，再全部加起来
+              correct: true
+            - text: 取四个角的高度加起来，乘地面面积
+              why: 四个角的高度之和大约是平均高度的 4 倍，结果会多出好几倍；而且只看四个点，中间的起伏都没算进去
+            - text: 用最高点的高度乘地面面积
+              why: 这样算出的是一个上界，只有各处一样高时才等于真实体积
+          explain: 把底面切碎，每一小块上的土近似成一根小方柱，柱的体积是高度乘底面积。格子越细，加起来越接近真实体积。
+      - card:
+          title: 二重积分
+          body: |
+            设 $f(x, y) \ge 0$ 定义在矩形 $R = [a, b] \times [c, d]$ 上。把 $[a, b]$ 等分成 $m$ 段、$[c, d]$ 等分成 $n$ 段，$R$ 就被切成 $mn$ 个小矩形，每个面积 $\Delta A = \Delta x\,\Delta y$。在第 $(i, j)$ 个小矩形里取一点 $(x^*_{ij}, y^*_{ij})$，以它的函数值为高的小长方体体积是 $f(x^*_{ij}, y^*_{ij})\,\Delta A$。全部加起来
+
+            $$\sum_{i=1}^{m}\sum_{j=1}^{n} f(x^*_{ij}, y^*_{ij})\,\Delta A$$
+
+            叫二重的黎曼和。$m, n \to \infty$ 时它的极限存在，就叫 $f$ 在 $R$ 上的**二重积分（double integral）**，记作 $\iint_R f(x, y)\,dA$。$f \ge 0$ 时它是曲面 $z = f(x, y)$ 和矩形之间的体积；$f$ 有正有负时，平面上方的体积算正、下方的算负。$f$ 在 $R$ 上连续，极限就一定存在。
+          reveal:
+            - title: 第 1 步：切格子，找取样点
+              body: |
+                例：$f = x^2 + y$，$R = [0, 2] \times [0, 2]$，切成 4 个边长为 1 的正方形，取每格的中心：$(0.5, 0.5)$、$(1.5, 0.5)$、$(0.5, 1.5)$、$(1.5, 1.5)$。
+            - title: 第 2 步：算各格的函数值
+              body: |
+                $0.25 + 0.5 = 0.75$，$2.25 + 0.5 = 2.75$，$0.25 + 1.5 = 1.75$，$2.25 + 1.5 = 3.75$。
+            - title: 第 3 步：乘面积再加起来
+              body: |
+                每格面积 1，黎曼和 $= 0.75 + 2.75 + 1.75 + 3.75 = 9$。精确值是 $28/3 \approx 9.33$，切得更细会更接近。
+      - item:
+          id: riemann-corner
+          type: number
+          prompt: '$f(x, y) = xy$，$R = [0, 2] \times [0, 2]$。切成 4 个边长为 1 的小正方形，取每格的右上角作取样点，二重的黎曼和是多少？'
+          answer: 9
+          hint: 四个右上角分别是哪四个点？每格面积是多少？
+          explain: 右上角是 (1, 1)、(2, 1)、(1, 2)、(2, 2)，函数值 1、2、2、4，每格面积 1，和是 9。精确值是 4：xy 往右上角增大，取右上角会高估。
+      - item:
+          id: riemann-mid
+          type: number
+          prompt: '同样是 $f(x, y) = xy$、$R = [0, 2] \times [0, 2]$、切成 4 个边长为 1 的小正方形，这次取每格的中心，黎曼和是多少？'
+          answer: 4
+          hint: 四个中心的坐标都是 0.5 或 1.5，函数值各是多少？
+          explain: 中心 (0.5, 0.5)、(1.5, 0.5)、(0.5, 1.5)、(1.5, 1.5) 的函数值是 0.25、0.75、0.75、2.25，和为 4，正好等于精确值。对 xy 这种在每格里“一边高一边低”对称变化的函数，中点取样的误差互相抵消。
+      - card:
+          title: 二重积分的性质
+          body: |
+            二重积分和一元定积分有同样的规则（$f$、$g$ 在 $R$ 上可积）：
+
+            - 线性：$\iint_R (f + g)\,dA = \iint_R f\,dA + \iint_R g\,dA$，$\iint_R cf\,dA = c\iint_R f\,dA$；
+            - 保序：处处 $f \le g$，则 $\iint_R f\,dA \le \iint_R g\,dA$；
+            - 可加：$R$ 拆成不重叠的两块 $R_1$、$R_2$，积分等于两块之和；
+            - $\iint_R 1\,dA$ 等于 $R$ 的面积 $A$。
+
+            由保序可以估界：$m \le f \le M$ 时，$mA \le \iint_R f\,dA \le MA$。积分除以面积 $\frac{1}{A}\iint_R f\,dA$ 叫 $f$ 在 $R$ 上的平均值，比如一块地的平均高度。
+      - item:
+          id: bounds
+          type: choice
+          prompt: '在 $R = [0, 2] \times [0, 3]$ 上处处 $1 \le f(x, y) \le 4$。$\iint_R f\,dA$ 一定落在哪个范围里？'
+          options:
+            - text: 6 到 24 之间
+              correct: true
+            - text: 1 到 4 之间
+              why: 1 和 4 是函数值的范围；积分还要乘区域的面积 6
+            - text: 5 到 20 之间
+              why: 把面积算成了 2 + 3 = 5；矩形面积是 2 × 3 = 6
+          explain: R 的面积是 2 × 3 = 6。由保序性质，1 × 6 ≤ ∬f dA ≤ 4 × 6，即 6 到 24。
+      - item:
+          id: average
+          type: number
+          prompt: '$R = [0, 2] \times [0, 3]$，已知 $\iint_R f\,dA = 18$。$f$ 在 $R$ 上的平均值是多少？'
+          answer: 3
+          hint: 平均值是积分除以什么？
+          explain: R 的面积是 6，平均值 = 18 / 6 = 3。
+      - item:
+          id: linearity
+          type: number
+          prompt: '在矩形 $R$ 上已知 $\iint_R f\,dA = 5$、$\iint_R g\,dA = -2$。$\iint_R (3f - 4g)\,dA$ 是多少？'
+          answer: 23
+          hint: 线性性质让你把系数提出来、把两项分开积分。
+          explain: 3 × 5 − 4 × (−2) = 15 + 8 = 23。
+
+  - id: iterated
+    chapter: 二重
+    title: 一片一片切：累次积分
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 算一个立体的体积，可以先固定 x，求立体在这个 x 处的截面面积 A(x)，再把 A(x) 沿 x 方向积分。这样算对吗？
+          options:
+            - text: 对，体积就是截面面积沿 x 的积分
+              correct: true
+            - text: 只有各处截面形状一样时才对
+              why: 截面可以随 x 变化；∫A(x)dx 把每一薄片的体积 A(x)dx 加起来，不要求截面一样
+            - text: 不对，面积不能再积分
+              why: 面积乘一小段厚度 dx 就是一薄片的体积，薄片体积加起来正是总体积
+          explain: 把立体切成很多厚 dx 的薄片，每片体积约 A(x)dx，加起来取极限就是 ∫A(x)dx。截面面积本身又是对 y 的积分，于是体积写成先对 y、后对 x 的两次积分。
+      - card:
+          title: 累次积分
+          body: |
+            在 $R = [a, b] \times [c, d]$ 上，固定 $x$，先对 $y$ 积分得到截面面积 $A(x) = \int_c^d f(x, y)\,dy$，再对 $x$ 积分：
+
+            $$\int_a^b \left[\int_c^d f(x, y)\,dy\right] dx$$
+
+            这叫**累次积分（iterated integral）**，括号通常省略，写成 $\int_a^b \int_c^d f\,dy\,dx$，从里往外算。算里层时 $x$ 当常数。
+
+            例：$\int_0^2 \int_0^1 (x + 2y)\,dy\,dx$。里层 $\int_0^1 (x + 2y)\,dy = x + 1$，外层 $\int_0^2 (x + 1)\,dx = 2 + 2 = 4$。
+      - item:
+          id: iter-1
+          type: number
+          prompt: '计算 $\int_1^2 \int_0^3 x^2 y\,dy\,dx$。（保留一位小数）'
+          answer: 10.5
+          tolerance: 0.0001
+          hint: 里层对 y 积分时 x² 是常数；外层再对 x 积分。
+          explain: 里层 ∫₀³ x²y dy = x² · 9/2；外层 ∫₁² (9/2)x² dx = (9/2)(8 − 1)/3 = 21/2 = 10.5。
+      - card:
+          title: 富比尼定理：次序可以换
+          body: |
+            **富比尼定理（Fubini's theorem）**：$f$ 在矩形 $R$ 上连续，则
+
+            $$\iint_R f\,dA = \int_a^b \int_c^d f\,dy\,dx = \int_c^d \int_a^b f\,dx\,dy$$
+
+            两种次序结果一样，挑好算的那种。被积函数能拆成 $g(x)h(y)$ 时更简单：$\iint_R g(x)h(y)\,dA = \left(\int_a^b g\,dx\right)\left(\int_c^d h\,dy\right)$。
+          reveal:
+            - title: 第 1 步：换成先对 x 积分
+              body: |
+                上一张卡的例子换次序：$\int_0^1 \int_0^2 (x + 2y)\,dx\,dy$，里层 $y$ 当常数，$\int_0^2 (x + 2y)\,dx = 2 + 4y$。
+            - title: 第 2 步：再对 y 积分
+              body: |
+                $\int_0^1 (2 + 4y)\,dy = 2 + 2 = 4$，和先对 $y$ 积分的结果相同。
+      - item:
+          id: iter-separable
+          type: number
+          prompt: '计算 $\iint_R \sin x\, e^{y}\,dA$，$R = [0, \pi/2] \times [0, 1]$。（保留三位小数）'
+          answer: 1.718
+          tolerance: 0.0005
+          hint: 被积函数是一个只含 x 的因子乘一个只含 y 的因子。
+          explain: 拆成 (∫₀^{π/2} sin x dx)(∫₀¹ eʸ dy) = 1 × (e − 1) ≈ 1.718。
+      - item:
+          id: iter-volume
+          type: number
+          prompt: '平面 $z = 4 - x - y$ 和矩形 $[0, 1] \times [0, 2]$（在 $z = 0$ 平面上）之间的立体体积是多少？'
+          answer: 5
+          hint: 体积是哪个函数在矩形上的二重积分？先确认这个函数在矩形上不为负。
+          explain: 在矩形上 4 − x − y ≥ 1 > 0。∫₀¹ ∫₀² (4 − x − y) dy dx，里层 = 8 − 2x − 2 = 6 − 2x，外层 ∫₀¹ (6 − 2x) dx = 6 − 1 = 5。
+      - item:
+          id: inner-constant
+          type: choice
+          prompt: '计算 $\int_0^1 \int_0^2 x y^2\,dy\,dx$ 的里层时，下面哪个结果对？'
+          options:
+            - text: $\frac{8x}{3}$
+              correct: true
+            - text: $\frac{8}{3}$
+              why: 里层对 y 积分时 x 当常数，要留在结果里，不能丢
+            - text: $\frac{x^2}{2}\cdot\frac{8}{3}$
+              why: 里层只对 y 积分；对 x 积分是外层的事
+          explain: ∫₀² xy² dy = x · y³/3 |₀² = 8x/3。外层再 ∫₀¹ 8x/3 dx = 4/3。
+
+  - id: general-regions
+    chapter: 二重
+    title: 一般区域：I 型和 II 型
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 区域 D 是曲线 y = x² 和直线 y = x 之间的部分（0 ≤ x ≤ 1）。固定 x、对 y 积分时，y 从哪里积到哪里？
+          options:
+            - text: 从 x² 积到 x，上下限随 x 变
+              correct: true
+            - text: 从 0 积到 1
+              why: 那是整个单位正方形，把 D 外面的部分也算进来了
+            - text: 从 x 积到 x²
+              why: 0 < x < 1 时 x² < x，下边界是抛物线、上边界是直线，这样写上下颠倒，结果差一个负号
+          explain: 在 0 和 1 之间画一条竖线，它从抛物线 y = x² 进入 D，从直线 y = x 离开。y 的范围就是从 x² 到 x。
+      - card:
+          title: I 型和 II 型区域
+          body: |
+            不是矩形的区域，按“哪个方向切成的线段两端好写”分两类：
+
+            - **I 型区域（type I region）**：$a \le x \le b$，$g_1(x) \le y \le g_2(x)$，竖着切。$\iint_D f\,dA = \int_a^b \int_{g_1(x)}^{g_2(x)} f\,dy\,dx$。
+            - **II 型区域（type II region）**：$c \le y \le d$，$h_1(y) \le x \le h_2(y)$，横着切。$\iint_D f\,dA = \int_c^d \int_{h_1(y)}^{h_2(y)} f\,dx\,dy$。
+
+            写积分限的办法：先画出区域；I 型时在区域里画一条竖线，它从下边界 $y = g_1(x)$ 进、从上边界 $y = g_2(x)$ 出，这两条曲线就是里层的下限和上限；外层的 $a$、$b$ 是竖线能扫过的最左和最右位置。里层的限可以含外层变量，外层的限必须是常数。
+      - item:
+          id: type-two
+          type: choice
+          prompt: 区域 D 由 x = 0、y = x、y = 1 三条线围成（顶点 (0, 0)、(0, 1)、(1, 1)）。把它写成 II 型区域，是哪一个？
+          options:
+            - text: 0 ≤ y ≤ 1，0 ≤ x ≤ y
+              correct: true
+            - text: 0 ≤ y ≤ 1，y ≤ x ≤ 1
+              why: 这是直线 y = x 右下方的三角形，顶点 (0, 0)、(1, 0)、(1, 1)，正好是另一半
+            - text: 0 ≤ x ≤ 1，0 ≤ y ≤ x
+              why: 这同样是右下方那个三角形，而且写成了先 y 后 x 的 I 型
+          explain: 在 0 和 1 之间画一条横线，它从 y 轴（x = 0）进入 D，到直线 x = y 离开，所以 0 ≤ x ≤ y。
+      - card:
+          title: 例题：三角形上的积分
+          body: '求 $\iint_D (x + y)\,dA$，$D$ 是顶点 $(0, 0)$、$(1, 0)$、$(1, 1)$ 的三角形。'
+          reveal:
+            - title: 第 1 步：写成 I 型区域
+              body: |
+                竖线从 $y = 0$ 进、从 $y = x$ 出，$x$ 从 0 到 1：$\int_0^1 \int_0^x (x + y)\,dy\,dx$。
+            - title: 第 2 步：算里层
+              body: |
+                $\int_0^x (x + y)\,dy = x \cdot x + \frac{x^2}{2} = \frac{3x^2}{2}$。
+            - title: 第 3 步：算外层
+              body: |
+                $\int_0^1 \frac{3x^2}{2}\,dx = \frac{1}{2}$。
+      - item:
+          id: region-volume
+          type: number
+          prompt: '曲面 $z = xy$ 在三角形区域 $0 \le x \le 2$、$0 \le y \le x$ 上方的体积是多少？'
+          answer: 2
+          hint: 先对 y 从 0 积到 x，里层的结果是 x 的什么函数？
+          explain: 里层 ∫₀ˣ xy dy = x · x²/2 = x³/2；外层 ∫₀² x³/2 dx = 16/8 = 2。
+      - card:
+          title: 面积也是二重积分
+          body: |
+            取 $f = 1$，$\iint_D 1\,dA$ 就是区域 $D$ 的面积。写成 I 型时，里层 $\int_{g_1}^{g_2} 1\,dy = g_2(x) - g_1(x)$，于是
+
+            $$\text{面积} = \int_a^b \big(g_2(x) - g_1(x)\big)\,dx$$
+
+            正是一元积分里“上曲线减下曲线”的面积公式。二重积分把它推广了：被积函数不是 1 时，加起来的就是每一点的函数值乘那一点的小面积。
+      - item:
+          id: region-area
+          type: number
+          prompt: '直线 $y = 2x$ 和抛物线 $y = x^2$ 围成的区域面积是多少？（保留三位小数）'
+          answer: 1.333
+          tolerance: 0.0005
+          hint: 两条线在哪两个 x 处相交？在两个交点之间哪一条在上面？
+          explain: 2x = x² 得 x = 0 或 2。中间 2x ≥ x²，面积 = ∫₀² (2x − x²) dx = 4 − 8/3 = 4/3 ≈ 1.333。
+      - item:
+          id: region-x
+          type: number
+          prompt: '$D$ 由 $y = x^2$ 和 $y = x$ 围成（$0 \le x \le 1$）。计算 $\iint_D x\,dA$。（保留四位小数）'
+          answer: 0.0833
+          tolerance: 0.00005
+          hint: 竖线从哪条曲线进、从哪条曲线出？里层对 y 积分时 x 是常数。
+          explain: ∫₀¹ ∫_{x²}^{x} x dy dx = ∫₀¹ x(x − x²) dx = 1/3 − 1/4 = 1/12 ≈ 0.0833。
+  - id: triple-box
+    chapter: 三重积分
+    title: 三个变量的积分：长方体上
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一块长方体铁块，各处密度不同。要算它的总质量，哪种做法对？
+          options:
+            - text: 切成很多小块，每块的密度乘小块体积，再加起来
+              correct: true
+            - text: 中心点的密度乘总体积
+              why: 只有密度处处相同，或者随坐标均匀地线性变化时，中心点的值才等于平均密度；一般情况要把各处加起来
+            - text: 最大密度和最小密度的平均值乘总体积
+              why: 密度分布不均匀时，这个“平均”和真正的平均密度没有关系，例如大部分地方很轻、只有一个角很重
+          explain: 每一小块的质量约等于密度乘体积，加起来、再让小块无限变细，就得到总质量。
+      - card:
+          title: 三重积分
+          body: |
+            长方体 $B = [a, b] \times [c, d] \times [r, s]$ 切成小长方体，每个体积 $\Delta V = \Delta x\,\Delta y\,\Delta z$，在每块里取一点，把 $f$ 的值乘 $\Delta V$ 全部加起来，再让小块无限变细，极限就是 $f$ 在 $B$ 上的**三重积分（triple integral）**，记作 $\iiint_B f(x, y, z)\,dV$。
+
+            $f = 1$ 时它是 $B$ 的体积；$f$ 是密度时它是质量；除以体积就是 $f$ 的平均值。$f$ 连续时，富比尼定理同样成立：
+
+            $$\iiint_B f\,dV = \int_a^b \int_c^d \int_r^s f\,dz\,dy\,dx$$
+
+            从里往外三次一元积分，算哪一层就只把那个字母当变量。
+          reveal:
+            - title: 第 1 步：最里层对 z
+              body: |
+                例：$\iiint_B (x + yz)\,dV$，$B = [0, 1] \times [0, 2] \times [0, 3]$。$\int_0^3 (x + yz)\,dz = 3x + \frac{9y}{2}$。
+            - title: 第 2 步：中间层对 y
+              body: |
+                $\int_0^2 \left(3x + \frac{9y}{2}\right) dy = 6x + 9$。
+            - title: 第 3 步：最外层对 x
+              body: |
+                $\int_0^1 (6x + 9)\,dx = 3 + 9 = 12$。
+      - item:
+          id: box-xyz
+          type: number
+          prompt: '计算 $\iiint_B xyz\,dV$，$B = [0, 1] \times [0, 1] \times [0, 2]$。（保留一位小数）'
+          answer: 0.5
+          tolerance: 0.0001
+          hint: 被积函数是三个各只含一个字母的因子相乘，能不能拆成三个一元积分的乘积？
+          explain: (∫₀¹ x dx)(∫₀¹ y dy)(∫₀² z dz) = (1/2)(1/2)(2) = 0.5。
+      - item:
+          id: box-mass
+          type: number
+          prompt: '长方体 $[0, 2] \times [0, 3] \times [0, 1]$（单位 m）的密度是 $1 + z$（单位 kg/m³）。总质量是多少千克？'
+          answer: 9
+          tolerance: 0.0001
+          hint: 密度只和 z 有关，对 x、y 的积分给出的是什么？
+          explain: 质量 = ∫₀² ∫₀³ ∫₀¹ (1 + z) dz dy dx。里层 ∫₀¹(1 + z)dz = 1.5，再乘底面积 2 × 3 = 6，得 9 kg。
+      - card:
+          title: 六种次序
+          body: |
+            三层积分的次序可以是 $dz\,dy\,dx$、$dy\,dz\,dx$、$dx\,dz\,dy$……最里层有 3 种选法，中间层剩 2 种，最外层 1 种，一共 $3 \times 2 \times 1 = 6$ 种。在长方体上它们都相等，挑算起来最省事的。
+
+            三重积分的平均值和二重时一样：$f_{\text{平均}} = \frac{1}{V}\iiint_B f\,dV$。比如房间里各处温度不同，平均温度就是温度的三重积分除以房间体积。
+      - item:
+          id: box-orders
+          type: choice
+          prompt: 长方体上的三重累次积分，一共有几种积分次序？
+          options:
+            - text: '6'
+              correct: true
+            - text: '3'
+              why: 只数了最内层选哪个字母；中间两层的先后还有 2 种
+            - text: '9'
+              why: 3 × 3 允许同一个字母出现两次；每个字母只积一次，所以是 3 × 2 × 1
+          explain: 最内层 3 种选法，中间层 2 种，最外层 1 种，共 6 种。
+      - item:
+          id: box-average
+          type: number
+          prompt: '$f(x, y, z) = x^2$ 在立方体 $[0, 3] \times [0, 3] \times [0, 3]$ 上的平均值是多少？'
+          answer: 3
+          hint: 先算积分，再除以立方体的体积。
+          explain: ∭ x² dV = (∫₀³ x² dx)(3)(3) = 9 × 9 = 81，体积 27，平均值 81 / 27 = 3。
+
+  - id: triple-general
+    chapter: 三重积分
+    title: 一般立体上的三重积分
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 四面体由 x ≥ 0、y ≥ 0、z ≥ 0 和 x + y + z ≤ 1 围成。固定 x、y 之后，z 从 0 积到多少？
+          options:
+            - text: 1 − x − y
+              correct: true
+            - text: '1'
+              why: 那是一个长方体的顶面；四面体的顶面是斜面 x + y + z = 1
+            - text: x + y
+              why: 把平面方程解反了；由 x + y + z ≤ 1 得 z ≤ 1 − x − y
+          explain: 竖直方向从底面 z = 0 进入，从斜面 z = 1 − x − y 离开，所以 z 的上限是 1 − x − y。
+      - card:
+          title: 先定 z，再做二重积分
+          body: |
+            一般的立体 $E$，如果能写成“在 $xy$ 平面的某个区域 $D$ 里，$z$ 从下曲面 $u_1(x, y)$ 到上曲面 $u_2(x, y)$”，就有
+
+            $$\iiint_E f\,dV = \iint_D \left[\int_{u_1(x, y)}^{u_2(x, y)} f\,dz\right] dA$$
+
+            步骤：① 画出立体，看清底面和顶面各是哪张曲面；② 把立体压扁到 $xy$ 平面，盖住的区域叫**投影（projection）**区域 $D$（两张曲面相交的地方常常是 $D$ 的边界）；③ 里层对 $z$ 从下曲面积到上曲面；④ 外面在 $D$ 上按 I 型或 II 型做二重积分。
+          reveal:
+            - title: 第 1 步：z 的范围
+              body: |
+                例：上面那个四面体的体积。$z$ 从 0 到 $1 - x - y$，$\int_0^{1 - x - y} 1\,dz = 1 - x - y$。
+            - title: 第 2 步：投影区域
+              body: |
+                令 $z = 0$，得 $D$：$x \ge 0$、$y \ge 0$、$x + y \le 1$，写成 $0 \le x \le 1$、$0 \le y \le 1 - x$。
+            - title: 第 3 步：做二重积分
+              body: |
+                里层 $\int_0^{1 - x} (1 - x - y)\,dy = (1 - x)^2 - \frac{(1 - x)^2}{2} = \frac{(1 - x)^2}{2}$；外层 $\int_0^1 \frac{(1 - x)^2}{2}\,dx = \left[-\frac{(1 - x)^3}{6}\right]_0^1 = \frac16$。
+      - item:
+          id: tetra-x
+          type: number
+          prompt: '同一个四面体（$x, y, z \ge 0$，$x + y + z \le 1$），计算 $\iiint_E x\,dV$。（保留四位小数）'
+          answer: 0.0417
+          tolerance: 0.00005
+          hint: 和例题一样先对 z、再对 y 积分，只是多了一个因子 x，它在里面两层都是常数。
+          explain: 里两层给出 x(1 − x)²/2，∫₀¹ x(1 − x)²/2 dx = (1/2)(1/2 − 2/3 + 1/4) = 1/24 ≈ 0.0417。
+      - item:
+          id: z-over-wedge
+          type: number
+          prompt: '$E$：$0 \le x \le 1$，$0 \le y \le 1$，$0 \le z \le x + y$。计算 $\iiint_E z\,dV$。（保留三位小数）'
+          answer: 0.583
+          tolerance: 0.0005
+          hint: 里层对 z 从 0 积到 x + y，得到的是 (x + y) 的几次方？
+          explain: 里层 ∫₀^{x+y} z dz = (x + y)²/2。再在正方形上积分：∫₀¹∫₀¹ (x² + 2xy + y²)/2 dy dx = (1/2)(1/3 + 1/2 + 1/3) = 7/12 ≈ 0.583。
+      - card:
+          title: 投影区域怎么找
+          body: |
+            投影区域就是立体的“影子”：从正上方往下看，立体盖住的那块平面区域。
+
+            例：立体在抛物面 $z = x^2 + y^2$ 之上、平面 $z = 4$ 之下。两张曲面相交于 $x^2 + y^2 = 4$，从上往下看，立体盖住的是半径 2 的圆盘，所以 $D$ 是 $x^2 + y^2 \le 4$。里层 $z$ 从 $x^2 + y^2$ 积到 4。
+
+            如果立体在 $xy$ 平面上的投影不好写，也可以投影到 $yz$ 或 $xz$ 平面，让 $x$ 或 $y$ 当最里层；办法一样：先定最里层的上下限，再把立体压到剩下的那个坐标平面，在上面做二重积分。
+      - item:
+          id: shadow
+          type: choice
+          prompt: 立体在抛物面 z = x² + y² 之上、平面 z = 9 之下。它在 xy 平面上的投影区域是什么？
+          options:
+            - text: 圆盘 x² + y² ≤ 9
+              correct: true
+            - text: 圆盘 x² + y² ≤ 81
+              why: 把 9 当成了半径；两曲面交线是 x² + y² = 9，半径是 3
+            - text: 正方形 −3 ≤ x ≤ 3，−3 ≤ y ≤ 3
+              why: 交线是圆，正方形的四个角落在立体外面
+          explain: 令 x² + y² = 9 得交线，从上往下看立体盖住的是半径 3 的圆盘。
+      - item:
+          id: under-paraboloid
+          type: number
+          prompt: '立体在 $z = 0$ 之上、曲面 $z = 4 - x^2 - y^2$ 之下，投影区域是正方形 $[0, 1] \times [0, 1]$。它的体积是多少？（保留三位小数）'
+          answer: 3.333
+          tolerance: 0.0005
+          hint: 体积就是顶面高度在投影区域上的二重积分。
+          explain: ∫₀¹∫₀¹ (4 − x² − y²) dy dx = 4 − 1/3 − 1/3 = 10/3 ≈ 3.333。
+
+  - id: decompose
+    chapter: 区域分割
+    title: 把区域拆成几块
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 区域是一个 L 形：长方形 [0, 2] × [0, 1] 加上它上面的 [0, 1] × [1, 2]。想算 ∬ f dA，哪种做法对？
+          options:
+            - text: 拆成两个长方形分别积分，再相加
+              correct: true
+            - text: 直接用大正方形 [0, 2] × [0, 2] 上的积分
+              why: 大正方形多出右上角 [1, 2] × [1, 2] 那一块，要减掉它的积分才对
+            - text: 二重积分只能在一块 I 型或 II 型区域上算，L 形算不了
+              why: 积分对区域可加：拆成几块 I 型或 II 型区域，各算各的再加起来就行
+          explain: 二重积分对区域是可加的，只要拆出来的几块不重叠（共用边界不算重叠）。
+      - card:
+          title: 积分对区域可加
+          body: |
+            $D$ 拆成不重叠的 $D_1$ 和 $D_2$（只共用一段边界），则
+
+            $$\iint_D f\,dA = \iint_{D_1} f\,dA + \iint_{D_2} f\,dA$$
+
+            什么时候要拆：竖着切时，下边界或上边界在中途换了一个式子；或者竖线和边界的交点不止两个（区域凹进去或中间有洞）。这时一个 I 型写不下，就在换式子的地方切一刀。也可以反过来用：在大区域上积分，再减去挖掉那块的积分。
+      - card:
+          title: 例题：一个三角形，两种写法
+          body: '三角形顶点 $(0, 0)$、$(2, 0)$、$(1, 1)$，求 $\iint_D y\,dA$。竖着切时上边界在 $x = 1$ 处从 $y = x$ 换成 $y = 2 - x$。'
+          reveal:
+            - title: 第 1 步：写成 I 型要拆两块
+              body: |
+                $\int_0^1 \int_0^x y\,dy\,dx + \int_1^2 \int_0^{2 - x} y\,dy\,dx = \int_0^1 \frac{x^2}{2}\,dx + \int_1^2 \frac{(2 - x)^2}{2}\,dx = \frac16 + \frac16 = \frac13$。
+            - title: 第 2 步：写成 II 型只要一块
+              body: |
+                横线从左边 $x = y$ 进、从右边 $x = 2 - y$ 出，$0 \le y \le 1$：$\int_0^1 \int_y^{2 - y} y\,dx\,dy = \int_0^1 y(2 - 2y)\,dy = 1 - \frac23 = \frac13$。
+            - title: 第 3 步：怎么选
+              body: |
+                两种写法结果相同。哪个方向切不用中途换式子，就选哪个方向。
+      - item:
+          id: l-shape
+          type: number
+          prompt: '计算 $\iint_L (x + y)\,dA$，$L$ 是 $[0, 2] \times [0, 1]$ 和 $[0, 1] \times [1, 2]$ 拼成的 L 形。'
+          answer: 5
+          hint: 两块长方形各自的积分是多少？长方形上 x 和 y 可以分开积。
+          explain: 第一块 ∫₀²∫₀¹ (x + y) dy dx = 2 + 1 = 3；第二块 ∫₀¹∫₁² (x + y) dy dx = 0.5 + 1.5 = 2；合计 5。
+      - item:
+          id: pieces
+          type: choice
+          prompt: 区域由 y = 0、y = x 和 y = 4 − x 围成（顶点 (0, 0)、(4, 0)、(2, 2)）。写成先对 y 后对 x 的积分，至少要拆成几块？
+          options:
+            - text: 2 块
+              correct: true
+            - text: 1 块
+              why: 上边界在 x = 2 处从 y = x 换成 y = 4 − x，一个式子写不下
+            - text: 3 块
+              why: 只有上边界在 x = 2 处换一次式子，下边界一直是 y = 0，切一刀就够
+          explain: 竖着切，0 ≤ x ≤ 2 时上边界是 y = x，2 ≤ x ≤ 4 时是 y = 4 − x，所以拆成两块。横着切（先对 x）则一块就行。
+      - item:
+          id: frame
+          type: number
+          prompt: '区域是正方形 $[-2, 2] \times [-2, 2]$ 挖去中间的正方形 $[-1, 1] \times [-1, 1]$（像一个相框）。计算 $\iint x^2\,dA$。'
+          answer: 20
+          hint: 拆成四块很麻烦。用大正方形上的积分减去挖掉那块的积分。
+          explain: 大正方形 ∫∫ x² = (∫₋₂² x² dx)(4) = (16/3)(4) = 64/3；小正方形 (2/3)(2) = 4/3；相减 60/3 = 20。
+      - item:
+          id: frame-area
+          type: number
+          prompt: '区域是正方形 $[-2, 2] \times [-2, 2]$ 挖去中间的正方形 $[-1, 1] \times [-1, 1]$（像一个相框）。用“大区域减小区域”算它的面积 $\iint 1\,dA$。'
+          answer: 12
+          hint: 两个正方形的面积各是多少？
+          explain: 16 − 4 = 12。
+
+  - id: change-order
+    chapter: 区域分割
+    title: 交换积分次序
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 积分 ∫₀¹ ∫ₓ¹ e^(y²) dy dx 的里层要对 e^(y²) 积分，而 e^(y²) 没有能写成初等函数的原函数。这个积分还能算出准确值吗？
+          options:
+            - text: 能，换成先对 x 积分就好算了
+              correct: true
+            - text: 不能，里层算不出来就没办法
+              why: 里层积不出来，可以换次序；同一块区域换个方向描述，被积函数前面会多出一个因子，正好能凑出原函数
+            - text: 能，把 e^(y²) 写成 (e^y)² 再积分
+              why: e^(y²) 和 (e^y)² = e^(2y) 是两个不同的函数
+          explain: 区域是 0 ≤ x ≤ y ≤ 1。换成先对 x 积分，里层 ∫₀ʸ e^(y²) dx = y e^(y²)，外层 ∫₀¹ y e^(y²) dy 用换元就能算。
+      - card:
+          title: 交换次序的三步
+          body: |
+            ① 从原来的积分限画出区域：$\int_0^1 \int_x^1 \cdots\,dy\,dx$ 说的是 $0 \le x \le 1$、$x \le y \le 1$，即直线 $y = x$ 上方的三角形。② 换个方向看同一块区域：横线从 $x = 0$ 进、从 $x = y$ 出，$y$ 从 0 到 1。③ 写出新积分：$\int_0^1 \int_0^y \cdots\,dx\,dy$。
+
+            于是 $\int_0^1 \int_x^1 e^{y^2}\,dy\,dx = \int_0^1 \int_0^y e^{y^2}\,dx\,dy = \int_0^1 y\,e^{y^2}\,dy = \frac{e - 1}{2} \approx 0.859$。最后一步令 $u = y^2$。
+      - item:
+          id: swap-limits
+          type: choice
+          prompt: '把 $\int_0^2 \int_{x^2}^{4} f(x, y)\,dy\,dx$ 交换成先对 x 积分，是哪一个？'
+          options:
+            - text: $\int_0^4 \int_0^{\sqrt y} f\,dx\,dy$
+              correct: true
+            - text: $\int_0^4 \int_{\sqrt y}^{2} f\,dx\,dy$
+              why: 原区域是抛物线 y = x² 上方、y 轴右边的部分；x 从 √y 到 2 描述的是抛物线下方那一块
+            - text: $\int_0^2 \int_0^{\sqrt y} f\,dx\,dy$
+              why: y 的范围写错了：原区域里 y 从 0 一直到 4
+          explain: 原区域 0 ≤ x ≤ 2、x² ≤ y ≤ 4。横着看，每个 0 ≤ y ≤ 4，x 从 0 到抛物线 x = √y。
+      - card:
+          title: 例题：两种次序核对
+          body: '$D$ 由 $y = x^2$ 和 $y = x$ 围成，用两种次序算 $\iint_D x\,dA$。'
+          reveal:
+            - title: 第 1 步：先 y 后 x
+              body: |
+                $0 \le x \le 1$，$x^2 \le y \le x$：$\int_0^1 x(x - x^2)\,dx = \frac13 - \frac14 = \frac{1}{12}$。
+            - title: 第 2 步：先 x 后 y
+              body: |
+                $0 \le y \le 1$，横线从直线 $x = y$ 进、从抛物线 $x = \sqrt y$ 出：$\int_0^1 \int_y^{\sqrt y} x\,dx\,dy = \int_0^1 \frac{y - y^2}{2}\,dy = \frac12\left(\frac12 - \frac13\right) = \frac{1}{12}$。
+            - title: 第 3 步：核对
+              body: |
+                两种次序相同，说明区域描述对了。换次序后结果不一样，几乎总是新积分限写错了。
+      - item:
+          id: swap-sin
+          type: number
+          prompt: '计算 $\int_0^1 \int_y^1 \sin(x^2)\,dx\,dy$。（保留三位小数）'
+          answer: 0.23
+          tolerance: 0.0005
+          hint: sin(x²) 的里层积不出来。区域是哪块三角形？换成先对 y 积分时，y 从几积到几？
+          explain: 区域 0 ≤ y ≤ x ≤ 1。换次序：∫₀¹ ∫₀ˣ sin(x²) dy dx = ∫₀¹ x sin(x²) dx = (1 − cos 1)/2 ≈ 0.230。
+      - card:
+          title: 三重积分换次序
+          body: |
+            三重积分也一样：先想清楚立体，再决定投影到哪个坐标平面。四面体 $x, y, z \ge 0$、$x + y + z \le 1$ 若要 $x$ 当最里层，就从“后面”看：$x$ 从 0 到 $1 - y - z$，投影到 $yz$ 平面是三角形 $y, z \ge 0$、$y + z \le 1$，得 $\int_0^1 \int_0^{1 - z} \int_0^{1 - y - z} f\,dx\,dy\,dz$。
+
+            一般规律：最里层的上下限可以含另外两个字母，中间层只能含最外层的字母，最外层是常数。
+      - item:
+          id: triple-inner
+          type: choice
+          prompt: 立体 0 ≤ x ≤ 1、0 ≤ y ≤ 2x、0 ≤ z ≤ 1 写成 dx dy dz（x 在最里层）时，x 的下限和上限是什么？
+          options:
+            - text: 从 y/2 到 1
+              correct: true
+            - text: 从 0 到 1
+              why: 由 y ≤ 2x 得 x ≥ y/2；对给定的 y，x 不能从 0 开始
+            - text: 从 0 到 y/2
+              why: 不等号方向弄反了：y ≤ 2x 给出的是 x 的下限 y/2
+          explain: 对固定的 y（0 ≤ y ≤ 2），x 要同时满足 x ≤ 1 和 x ≥ y/2。
+      - item:
+          id: swap-exp
+          type: number
+          prompt: '计算 $\int_0^1 \int_x^1 e^{-y^2}\,dy\,dx$。（保留三位小数）'
+          answer: 0.316
+          tolerance: 0.0005
+          hint: 区域是 0 ≤ x ≤ y ≤ 1。换成先对 x、后对 y，里层对 x 积分得到什么？
+          explain: 换次序得 ∫₀¹ y e^(−y²) dy = (1 − e⁻¹)/2 ≈ 0.316。
+
+  - id: polar
+    chapter: 换元与雅可比行列式
+    title: 极坐标下的二重积分
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 在圆盘 x² + y² ≤ 4 上积分，用 x、y 写积分限要用到 ±√(4 − x²)，很麻烦。改用到原点的距离 r 和转角 θ 描述圆盘，会怎样？
+          options:
+            - text: 圆盘变成 0 ≤ r ≤ 2、0 ≤ θ ≤ 2π，积分限都是常数
+              correct: true
+            - text: 换了坐标，积分的值也会跟着变
+              why: 同一块区域上同一个函数的积分只有一个值，换坐标只是换一种算法
+            - text: 换坐标后小块面积就是 dr dθ
+              why: 离原点越远，同样的 dr、dθ 围出的小块越大，小块面积是 r dr dθ
+          explain: 圆盘在 (r, θ) 下是一个“矩形”，积分限变成常数。代价是小块面积要多乘一个 r。
+      - card:
+          title: 极坐标和 dA = r dr dθ
+          body: |
+            **极坐标（polar coordinates）**：$x = r\cos\theta$，$y = r\sin\theta$，$r^2 = x^2 + y^2$。区域 $a \le r \le b$、$\alpha \le \theta \le \beta$ 叫极坐标矩形，是一段圆环。
+
+            切成小块时，半径 $r$ 处、角度增加 $\Delta\theta$ 走过的弧长是 $r\,\Delta\theta$，径向宽 $\Delta r$，小块面积约 $r\,\Delta r\,\Delta\theta$。所以
+
+            $$\iint_R f\,dA = \int_\alpha^\beta \int_a^b f(r\cos\theta, r\sin\theta)\,r\,dr\,d\theta$$
+
+            那个 $r$ 不能漏，它和 $f$ 无关，来自小块面积本身。
+          reveal:
+            - title: 第 1 步：换成极坐标
+              body: |
+                例：$\iint e^{-(x^2 + y^2)}\,dA$，区域 $x^2 + y^2 \le 4$。$e^{-(x^2+y^2)} = e^{-r^2}$，区域是 $0 \le r \le 2$、$0 \le \theta \le 2\pi$。
+            - title: 第 2 步：里层对 r
+              body: |
+                $\int_0^2 e^{-r^2}\,r\,dr = \left[-\frac{e^{-r^2}}{2}\right]_0^2 = \frac{1 - e^{-4}}{2}$。正是多出的 $r$ 让它能积出来。
+            - title: 第 3 步：外层对 θ
+              body: |
+                乘 $2\pi$：$\pi(1 - e^{-4}) \approx 3.084$。
+      - item:
+          id: polar-r2
+          type: number
+          prompt: '计算 $\iint_D (x^2 + y^2)\,dA$，$D$ 是单位圆盘 $x^2 + y^2 \le 1$。（保留三位小数）'
+          answer: 1.571
+          tolerance: 0.0005
+          hint: 被积函数在极坐标下是什么？别忘了 dA 里的那个因子。
+          explain: ∫₀^{2π} ∫₀¹ r² · r dr dθ = 2π · 1/4 = π/2 ≈ 1.571。
+      - item:
+          id: polar-ring
+          type: number
+          prompt: '计算 $\iint_D \frac{1}{x^2 + y^2}\,dA$，$D$ 是圆环 $1 \le x^2 + y^2 \le 4$。（保留三位小数）'
+          answer: 4.355
+          tolerance: 0.0005
+          hint: 圆环的 r 从几到几？被积函数乘上 r 以后剩下什么？
+          explain: ∫₀^{2π} ∫₁² (1/r²) r dr dθ = 2π ln 2 ≈ 4.355。
+      - card:
+          title: 一般的极坐标区域、面积和体积
+          body: |
+            区域 $\alpha \le \theta \le \beta$、$h_1(\theta) \le r \le h_2(\theta)$：里层 $r$ 从 $h_1$ 积到 $h_2$。面积取 $f = 1$：
+
+            $$\text{面积} = \int_\alpha^\beta \int_0^{h(\theta)} r\,dr\,d\theta = \int_\alpha^\beta \frac{h(\theta)^2}{2}\,d\theta$$
+
+            例：圆 $r = 2\cos\theta$（$-\frac\pi2 \le \theta \le \frac\pi2$）围的面积 $\int \frac{4\cos^2\theta}{2}\,d\theta = \pi$，它是圆心 $(1, 0)$、半径 1 的圆。体积：抛物面 $z = 4 - x^2 - y^2$ 和 $z = 0$ 之间是 $\int_0^{2\pi}\int_0^2 (4 - r^2)\,r\,dr\,d\theta = 8\pi$。
+      - item:
+          id: cardioid
+          type: number
+          prompt: '心形线 $r = 1 + \cos\theta$（$0 \le \theta \le 2\pi$）围成的面积是多少？（保留三位小数）'
+          answer: 4.712
+          tolerance: 0.0005
+          hint: 面积是 h(θ)²/2 对 θ 的积分。(1 + cos θ)² 展开后，cos²θ 在一整圈上的积分是多少？
+          explain: (1/2)∫₀^{2π} (1 + 2cos θ + cos²θ) dθ = (1/2)(2π + 0 + π) = 3π/2 ≈ 4.712。
+      - item:
+          id: paraboloid-volume
+          type: number
+          prompt: '抛物面 $z = 9 - x^2 - y^2$ 和平面 $z = 0$ 之间的立体体积是多少？（保留三位小数）'
+          answer: 127.235
+          tolerance: 0.0005
+          hint: 抛物面和 z = 0 相交于半径几的圆？在极坐标下高度是 r 的什么函数？
+          explain: 交线半径 3。∫₀^{2π} ∫₀³ (9 − r²) r dr dθ = 2π(81/2 − 81/4) = 81π/2 ≈ 127.235。
+      - item:
+          id: why-r
+          type: choice
+          prompt: 极坐标下 dA = r dr dθ，这个 r 是怎么来的？
+          options:
+            - text: 半径 r 处角度变化 dθ 走过的弧长是 r dθ，小块面积约 r dr dθ
+              correct: true
+            - text: 因为离原点越远，被积函数的值越大
+              why: 这个 r 和被积函数无关，f = 1 求面积时也有它
+            - text: 为了让单位对上，积分完再乘一次 r
+              why: r 在积分里面，跟着每个小块变；它不是积分完才乘的常数
+          explain: 极坐标的小块是一段扇环，径向宽 dr，弧长 r dθ，面积约 r dr dθ。这个多出来的 r 就是这个坐标变换在局部把面积放大的倍数。
+
+  - id: cyl-sph
+    chapter: 换元与雅可比行列式
+    title: 柱坐标和球坐标
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个圆柱形水桶半径 1 m、高 2 m，桶底在 z = 0。用 (r, θ, z) 描述桶里的点，范围是什么？
+          options:
+            - text: 0 ≤ r ≤ 1，0 ≤ θ ≤ 2π，0 ≤ z ≤ 2
+              correct: true
+            - text: 0 ≤ r ≤ 2，0 ≤ θ ≤ 2π，0 ≤ z ≤ 1
+              why: 把半径和高弄混了；r 是到中轴的距离，最大是半径 1
+            - text: 0 ≤ r ≤ 1，0 ≤ θ ≤ π，0 ≤ z ≤ 2
+              why: θ 只转半圈，描述的是半个桶
+          explain: 水平方向用极坐标，r 到 1、θ 转一整圈；竖直方向 z 从 0 到 2。
+      - card:
+          title: 柱坐标
+          body: |
+            **柱坐标（cylindrical coordinates）** $(r, \theta, z)$：$x = r\cos\theta$，$y = r\sin\theta$，$z = z$。水平方向是极坐标，竖直方向不变，所以小块体积是极坐标的小块面积乘高：
+
+            $$dV = r\,dz\,dr\,d\theta$$
+
+            立体绕 $z$ 轴对称时（圆柱、圆锥、抛物面）用它最方便。
+          reveal:
+            - title: 第 1 步：写出范围
+              body: |
+                例：圆柱 $r \le 1$ 里、$z = 0$ 和抛物面 $z = x^2 + y^2 = r^2$ 之间的体积。$0 \le \theta \le 2\pi$，$0 \le r \le 1$，$0 \le z \le r^2$。
+            - title: 第 2 步：里层对 z
+              body: |
+                $\int_0^{r^2} r\,dz = r^3$。
+            - title: 第 3 步：再对 r、θ
+              body: |
+                $\int_0^{2\pi} \int_0^1 r^3\,dr\,d\theta = 2\pi \cdot \frac14 = \frac\pi2$。
+      - item:
+          id: cyl-mass
+          type: number
+          prompt: '圆柱 $x^2 + y^2 \le 1$、$0 \le z \le 2$ 的密度等于到中轴的距离 $\sqrt{x^2 + y^2}$。用柱坐标求它的质量。（保留三位小数）'
+          answer: 4.189
+          tolerance: 0.0005
+          hint: 密度在柱坐标下是什么？乘上体积元以后，r 是几次方？
+          explain: ∫₀^{2π} ∫₀¹ ∫₀² r · r dz dr dθ = 2π · (1/3) · 2 = 4π/3 ≈ 4.189。
+      - card:
+          title: 球坐标
+          body: |
+            **球坐标（spherical coordinates）** $(\rho, \varphi, \theta)$：$\rho$ 是到原点的距离，$\varphi$ 是和 $z$ 轴正方向的夹角（$0 \le \varphi \le \pi$），$\theta$ 和极坐标的角一样。
+
+            $$x = \rho\sin\varphi\cos\theta,\quad y = \rho\sin\varphi\sin\theta,\quad z = \rho\cos\varphi$$
+
+            小块的三条边：径向 $d\rho$，沿经线 $\rho\,d\varphi$，沿纬线圆 $\rho\sin\varphi\,d\theta$（纬线圆半径是 $\rho\sin\varphi$）。所以 $dV = \rho^2\sin\varphi\,d\rho\,d\varphi\,d\theta$。
+
+            半径 $R$ 的球体积：$\int_0^{2\pi}\int_0^\pi\int_0^R \rho^2\sin\varphi\,d\rho\,d\varphi\,d\theta = \frac{R^3}{3} \cdot 2 \cdot 2\pi = \frac43\pi R^3$。
+      - item:
+          id: sph-r2
+          type: number
+          prompt: '用球坐标计算 $\iiint_E (x^2 + y^2 + z^2)\,dV$，$E$ 是单位球 $x^2 + y^2 + z^2 \le 1$。（保留三位小数）'
+          answer: 2.513
+          tolerance: 0.0005
+          hint: 被积函数在球坐标下是 ρ 的几次方？三层积分能不能拆成三个一元积分相乘？
+          explain: ∫₀^{2π}∫₀^π∫₀¹ ρ² · ρ² sin φ dρ dφ dθ = (1/5)(2)(2π) = 4π/5 ≈ 2.513。
+      - item:
+          id: cone-range
+          type: choice
+          prompt: “冰淇淋锥”是球面 ρ = 1 里面、圆锥 φ = π/4 以内的部分。它的 φ 的范围是什么？
+          options:
+            - text: 0 ≤ φ ≤ π/4
+              correct: true
+            - text: π/4 ≤ φ ≤ π
+              why: 这是圆锥外面、一直到 z 轴负方向的部分
+            - text: 0 ≤ φ ≤ π/2
+              why: 这是整个上半球，比锥大
+          explain: φ 从 z 轴正方向量起，锥面以内就是和 z 轴的夹角不超过 π/4。
+      - item:
+          id: cone-volume
+          type: number
+          prompt: '冰淇淋锥是球面 $\rho = 1$ 里面、圆锥 $\varphi = \pi/4$ 以内的部分（$\rho \le 1$，$0 \le \varphi \le \pi/4$）。它的体积是多少？（保留三位小数）'
+          answer: 0.613
+          tolerance: 0.0005
+          hint: 三层积分可以拆开：对 ρ、对 φ、对 θ 各积一次，∫ sin φ dφ 从 0 到 π/4 是多少？
+          explain: (∫₀¹ρ² dρ)(∫₀^{π/4} sin φ dφ)(2π) = (1/3)(1 − √2/2)(2π) ≈ 0.613。
+
+  - id: jacobian
+    chapter: 换元与雅可比行列式
+    title: 平面变换把面积放大多少
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 变换 x = 2u、y = 3v 把 uv 平面上的单位正方形 [0, 1] × [0, 1] 变到 xy 平面上，面积变成多少？
+          options:
+            - text: '6'
+              correct: true
+            - text: '1'
+              why: 横向拉长 2 倍、纵向拉长 3 倍，面积不会保持不变
+            - text: '5'
+              why: 两个方向的放大倍数要相乘，不是相加
+          explain: 正方形变成 2 × 3 的长方形，面积 6，放大了 6 倍。
+      - card:
+          title: 平面变换
+          body: |
+            多元微分学里学过**平面变换**：$x = g(u, v)$、$y = h(u, v)$ 把 $uv$ 平面上的区域 $S$ 变成 $xy$ 平面上的区域 $R$。用它换元时要求变换是一对一的（边界上可以例外），否则同一块区域会被算两次。
+
+            极坐标就是一个平面变换：$(r, \theta) \mapsto (r\cos\theta, r\sin\theta)$ 把 $(r, \theta)$ 平面上的矩形 $[1, 2] \times [0, \frac\pi2]$ 变成第一象限里的四分之一圆环。
+      - card:
+          title: 雅可比行列式是面积放大倍数
+          body: |
+            $uv$ 平面上一个小矩形 $du \times dv$，变换后近似一个平行四边形，两条边是 $(x_u, y_u)\,du$ 和 $(x_v, y_v)\,dv$。平行四边形面积是两条边组成的 2×2 行列式的绝对值，所以
+
+            $$dA = \left|\frac{\partial(x, y)}{\partial(u, v)}\right| du\,dv,\qquad \frac{\partial(x, y)}{\partial(u, v)} = x_u y_v - x_v y_u$$
+
+            这就是**雅可比行列式**。极坐标：$x_r = \cos\theta$、$x_\theta = -r\sin\theta$、$y_r = \sin\theta$、$y_\theta = r\cos\theta$，行列式 $= r\cos^2\theta + r\sin^2\theta = r$，正是极坐标里 $dA = r\,dr\,d\theta$ 的那个 $r$。
+          reveal:
+            - title: 第 1 步：求四个偏导数
+              body: |
+                例：$x = u + v$，$y = u - v$。$x_u = 1$，$x_v = 1$，$y_u = 1$，$y_v = -1$。
+            - title: 第 2 步：算行列式
+              body: |
+                $x_u y_v - x_v y_u = (1)(-1) - (1)(1) = -2$，绝对值 2。
+            - title: 第 3 步：解释
+              body: |
+                单位正方形变成顶点 $(0, 0)$、$(1, 1)$、$(2, 0)$、$(1, -1)$ 的正方形，边长 $\sqrt2$，面积正好是 2。
+      - item:
+          id: jac-linear
+          type: number
+          prompt: '变换 $x = 3u + v$，$y = u + 2v$ 的雅可比行列式 $\frac{\partial(x, y)}{\partial(u, v)}$ 是多少？'
+          answer: 5
+          hint: 先写出 x_u、x_v、y_u、y_v，再按 x_u y_v − x_v y_u 算。
+          explain: (3)(2) − (1)(1) = 5。
+      - item:
+          id: jac-point
+          type: number
+          prompt: '变换 $x = uv$，$y = v$。它在 $(u, v) = (2, 3)$ 处的雅可比行列式是多少？'
+          answer: 3
+          hint: x_u、x_v 各是什么？y 只和 v 有关。
+          explain: x_u = v，x_v = u，y_u = 0，y_v = 1，行列式 = v · 1 − u · 0 = v，在 (2, 3) 处是 3。
+      - item:
+          id: jac-image-area
+          type: number
+          prompt: '变换 $x = u - v$，$y = 2u + v$ 把 $uv$ 平面上的长方形 $[0, 1] \times [0, 2]$ 变成 $xy$ 平面上的一个平行四边形。它的面积是多少？'
+          answer: 6
+          hint: 这个变换的四个偏导数都是常数，雅可比行列式处处一样吗？面积放大倍数乘原来的面积是多少？
+          explain: 行列式 = (1)(1) − (−1)(2) = 3，原面积 2，像的面积 3 × 2 = 6。
+      - item:
+          id: polar-jacobian
+          type: choice
+          prompt: 极坐标变换 (r, θ) ↦ (r cos θ, r sin θ) 的雅可比行列式是什么？
+          options:
+            - text: r
+              correct: true
+            - text: '1'
+              why: 只有不改变面积的变换（如平移、旋转）行列式才是 1；离原点越远小块越大
+            - text: r²
+              why: 行列式是 r cos²θ + r sin²θ，只有一个 r；球坐标里才出现 ρ²
+          explain: x_r y_θ − x_θ y_r = cos θ · r cos θ − (−r sin θ) · sin θ = r。
+
+  - id: change-vars
+    chapter: 换元与雅可比行列式
+    title: 一般换元：二重和三重
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 区域是平行四边形，四条边是 x + y = 0、x + y = 2、x − y = 0、x − y = 2。直接用 x、y 积分要拆好几块。有什么更好的办法？
+          options:
+            - text: 令 u = x + y、v = x − y，区域变成 uv 平面上的正方形
+              correct: true
+            - text: 改用极坐标
+              why: 极坐标适合圆和扇形；这四条边都是斜直线，用极坐标写边界更麻烦
+            - text: 没有，只能拆块
+              why: 边界方程本身就提示了新变量：取 u、v 为两组边的方程，边界变成 u、v 等于常数
+          explain: 四条边变成 u = 0、u = 2、v = 0、v = 2，区域是正方形 [0, 2] × [0, 2]。
+      - card:
+          title: 二重积分的换元公式
+          body: |
+            一对一的变换 $x = g(u, v)$、$y = h(u, v)$ 把 $S$ 变成 $R$，则
+
+            $$\iint_R f(x, y)\,dA = \iint_S f\big(g(u, v), h(u, v)\big)\left|\frac{\partial(x, y)}{\partial(u, v)}\right| du\,dv$$
+
+            步骤：① 从边界方程或被积函数选 $u$、$v$；② 反解出 $x$、$y$ 用 $u$、$v$ 表示；③ 算雅可比行列式取绝对值；④ 把区域和被积函数都换成 $u$、$v$。要的是 $\partial(x, y)/\partial(u, v)$，不是 $\partial(u, v)/\partial(x, y)$，两者互为倒数。
+          reveal:
+            - title: 第 1 步：反解 x、y
+              body: |
+                例：$\iint_R (x + y)\,dA$，$R$ 是上面的平行四边形。$u = x + y$、$v = x - y$ 解出 $x = \frac{u + v}{2}$、$y = \frac{u - v}{2}$。
+            - title: 第 2 步：雅可比行列式
+              body: |
+                $\frac12 \cdot \left(-\frac12\right) - \frac12 \cdot \frac12 = -\frac12$，绝对值 $\frac12$。
+            - title: 第 3 步：在正方形上积分
+              body: |
+                $\int_0^2 \int_0^2 u \cdot \frac12\,du\,dv = \frac12 \cdot 2 \cdot 2 = 2$。
+      - item:
+          id: da-factor
+          type: choice
+          prompt: 用 u = x + y、v = x − y 换元时，dA 应该换成什么？
+          options:
+            - text: (1/2) du dv
+              correct: true
+            - text: 2 du dv
+              why: 2 是 ∂(u, v)/∂(x, y) 的绝对值；公式要的是 ∂(x, y)/∂(u, v)，它是 2 的倒数
+            - text: du dv
+              why: 漏乘了雅可比行列式；这个变换会改变面积
+          explain: 由 x = (u + v)/2、y = (u − v)/2 算得 |∂(x, y)/∂(u, v)| = 1/2。
+      - item:
+          id: parallelogram-square
+          type: number
+          prompt: '同一个平行四边形（边 $x + y = 0$、$x + y = 2$、$x - y = 0$、$x - y = 2$），计算 $\iint_R (x - y)^2\,dA$。（保留三位小数）'
+          answer: 2.667
+          tolerance: 0.0005
+          hint: 被积函数在 u、v 下是什么？dA 换成什么？
+          explain: ∫₀²∫₀² v² · (1/2) du dv = (1/2)(2)(8/3) = 8/3 ≈ 2.667。
+      - card:
+          title: 三重积分的换元
+          body: |
+            三个变量时换成 3×3 的雅可比行列式：
+
+            $$\iiint_R f\,dV = \iiint_S f\,\left|\frac{\partial(x, y, z)}{\partial(u, v, w)}\right| du\,dv\,dw$$
+
+            球坐标代进去算，行列式正是 $\rho^2\sin\varphi$，和用三条小块边长相乘得到的体积元一样。椭球 $\frac{x^2}{a^2} + \frac{y^2}{b^2} + \frac{z^2}{c^2} \le 1$：令 $x = au$、$y = bv$、$z = cw$，行列式是 $abc$，单位球变成椭球，体积 $abc \cdot \frac43\pi$。椭圆 $\frac{x^2}{a^2} + \frac{y^2}{b^2} \le 1$ 同理，面积是 $ab \cdot \pi$。
+      - item:
+          id: ellipse-area
+          type: number
+          prompt: '椭圆 $\frac{x^2}{9} + \frac{y^2}{4} \le 1$ 的面积是多少？（保留三位小数）'
+          answer: 18.85
+          tolerance: 0.0005
+          hint: 用哪种伸缩把单位圆变成这个椭圆？面积放大多少倍？
+          explain: 令 x = 3u、y = 2v，行列式 6，单位圆面积 π，椭圆面积 6π ≈ 18.850。
+      - item:
+          id: ellipsoid-volume
+          type: number
+          prompt: '椭球 $x^2 + \frac{y^2}{4} + \frac{z^2}{9} \le 1$ 的体积是多少？（保留三位小数）'
+          answer: 25.133
+          tolerance: 0.0005
+          hint: 三个方向各伸长几倍？单位球体积是多少？
+          explain: a = 1、b = 2、c = 3，体积 = 6 × 4π/3 = 8π ≈ 25.133。
+  - id: line-integrals
+    chapter: 曲线与曲面积分
+    title: 向量场和沿曲线做的功
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个人推着小车沿一条弯路走，推力大小处处一样，方向却随位置变。算他做的总功，能直接用“推力大小 × 路程”吗？
+          options:
+            - text: 不能，要把路切成小段，每段用推力沿走向的分量乘段长，再加起来
+              correct: true
+            - text: 能，功就是力的大小乘路程
+              why: 只有力始终沿着走的方向时才这样；力和走向有夹角时，只有沿走向的分量做功
+            - text: 能，用起点到终点的直线距离乘推力
+              why: 一般的力做的功和路径有关；只有像重力这样的特殊力场，功才只看起点和终点
+          explain: 每一小段的功是力和这段位移的点积 F·Δr；把整条路上的这些小功全部加起来、取极限，就得到总功。
+      - card:
+          title: 向量场
+          body: |
+            **向量场（vector field）**给平面上每个点配一个向量：$\mathbf F(x, y) = \big(P(x, y), Q(x, y)\big)$。风速、水流速度、力都是向量场。
+
+            - $\mathbf F = (x, y)$：每点的箭头从原点指向外，离得越远越长；
+            - $\mathbf F = (-y, x)$：箭头和到原点的连线垂直，绕原点逆时针转；
+            - $\mathbf F = (0, -mg)$：处处向下的重力。
+
+            画法：在一些点上画出箭头，看出整体的流向。
+      - card:
+          title: 线积分：做功
+          body: |
+            把曲线 $C$ 用一个变量 $t$ 表示：$\mathbf r(t) = \big(x(t), y(t)\big)$，$a \le t \le b$，$t$ 增加的方向就是曲线的方向。走一小步的位移 $d\mathbf r = (dx, dy) = \mathbf r'(t)\,dt$，力做的功 $\mathbf F \cdot d\mathbf r$。加起来就是**线积分（line integral）**：
+
+            $$W = \int_C \mathbf F \cdot d\mathbf r = \int_C P\,dx + Q\,dy = \int_a^b \mathbf F\big(\mathbf r(t)\big)\cdot\mathbf r'(t)\,dt$$
+
+            它也叫第二型曲线积分。沿同一条曲线反方向走，每一步的 $d\mathbf r$ 都反向，积分变成相反数。
+          reveal:
+            - title: 第 1 步：写出曲线和导数
+              body: |
+                例：$\mathbf F = (y, x)$，曲线 $\mathbf r(t) = (t, t^2)$，$0 \le t \le 1$。$\mathbf r'(t) = (1, 2t)$。
+            - title: 第 2 步：把场代到曲线上
+              body: |
+                $\mathbf F(\mathbf r(t)) = (t^2, t)$，点积 $t^2 \cdot 1 + t \cdot 2t = 3t^2$。
+            - title: 第 3 步：对 t 积分
+              body: |
+                $\int_0^1 3t^2\,dt = 1$。
+      - item:
+          id: segment-work
+          type: number
+          prompt: '$\mathbf F = (x, y)$。沿线段从 $(0, 0)$ 到 $(2, 1)$，$\int_C \mathbf F \cdot d\mathbf r$ 是多少？（保留一位小数）'
+          answer: 2.5
+          tolerance: 0.0001
+          hint: 线段可以写成 r(t) = (2t, t)，0 ≤ t ≤ 1。F 代到曲线上是什么？
+          explain: r′ = (2, 1)，F(r) = (2t, t)，点积 4t + t = 5t，∫₀¹ 5t dt = 2.5。
+      - item:
+          id: cubic-path
+          type: number
+          prompt: '计算 $\int_C y\,dx + x^2\,dy$，$C$ 是 $\mathbf r(t) = (t, t^3)$，$0 \le t \le 1$。（保留两位小数）'
+          answer: 0.85
+          tolerance: 0.0001
+          hint: dx、dy 各等于什么乘 dt？把 x、y 都换成 t。
+          explain: dx = dt，dy = 3t² dt。积分 ∫₀¹ (t³ + t² · 3t²) dt = 1/4 + 3/5 = 0.85。
+      - card:
+          title: 几何意义
+          body: |
+            把 $d\mathbf r$ 写成单位切向量乘弧长 $\mathbf T\,ds$，$\mathbf F \cdot d\mathbf r = (\mathbf F \cdot \mathbf T)\,ds$：只有场沿曲线切向的分量做功。场处处和曲线垂直，功为 0；场处处沿切向、大小不变，功等于大小乘曲线长。
+
+            例：$\mathbf F = (-y, x)$ 沿单位圆逆时针一圈。圆上 $\mathbf F$ 的长度是 1，方向正好是逆时针的切向，所以 $\mathbf F \cdot \mathbf T = 1$，功等于圆周长 $2\pi$，不用代公式。
+      - item:
+          id: half-circle
+          type: number
+          prompt: '$\mathbf F = (-y, x)$。沿单位圆的上半圆从 $(1, 0)$ 逆时针走到 $(-1, 0)$，功是多少？（保留三位小数）'
+          answer: 3.142
+          tolerance: 0.0005
+          hint: 在单位圆上，这个场和切向是什么关系？半圆有多长？
+          explain: 单位圆上 F 沿逆时针切向、长度 1，F·T = 1，功 = 半圆长 π ≈ 3.142。
+      - item:
+          id: reverse
+          type: choice
+          prompt: 沿同一条曲线反方向走，线积分 ∫ F·dr 会怎样？
+          options:
+            - text: 变成原来的相反数
+              correct: true
+            - text: 不变，因为是同一条曲线
+              why: 线积分和方向有关：反着走时每一步的位移 dr 都反向，点积全部变号
+            - text: 变成 0
+              why: 去和回加在一起才抵消成 0；单独反着走一次是相反数
+          explain: 反向后 dr 变成 −dr，每一小段的 F·dr 都变号，总和也变号。
+
+  - id: line-space
+    chapter: 曲线与曲面积分
+    title: 空间里的向量场和线积分
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一架无人机沿螺旋线上升，空中的风力处处不同。算风对它做的功，和平面上的线积分相比多了什么？
+          options:
+            - text: 多了一个竖直方向的分量 R dz，其他做法一样
+              correct: true
+            - text: 要改成三重积分
+              why: 路径还是一条曲线，只有一个变量 t；三重积分是对一块立体积分
+            - text: 空间里功只能用起点到终点的直线距离算
+              why: 和平面上一样，一般的力做的功要沿实际路径一段一段加
+          explain: 向量场多一个分量 R，位移多一个分量 dz，点积多一项 R dz，仍然化成对 t 的一元积分。
+      - card:
+          title: 空间向量场
+          body: |
+            空间向量场 $\mathbf F(x, y, z) = (P, Q, R)$ 给每个点配一个三维向量。例子：
+
+            - $\mathbf F = (x, y, z)$：从原点向外辐射；
+            - 原点处一个质量产生的引力场 $\mathbf F = -\frac{c\,(x, y, z)}{(x^2 + y^2 + z^2)^{3/2}}$：指向原点，大小和距离平方成反比；
+            - 点电荷的电场形状一样，只是方向和电荷的正负有关。
+      - card:
+          title: 空间线积分
+          body: |
+            曲线 $\mathbf r(t) = \big(x(t), y(t), z(t)\big)$，$a \le t \le b$：
+
+            $$\int_C \mathbf F \cdot d\mathbf r = \int_C P\,dx + Q\,dy + R\,dz = \int_a^b \mathbf F\big(\mathbf r(t)\big)\cdot\mathbf r'(t)\,dt$$
+
+            和平面一样：先写出曲线和它的导数，把场代到曲线上，点积，再对 $t$ 积分。
+          reveal:
+            - title: 第 1 步：曲线和导数
+              body: |
+                例：$\mathbf F = (y, z, x)$，螺旋线 $\mathbf r(t) = (\cos t, \sin t, t)$，$0 \le t \le 2\pi$。$\mathbf r' = (-\sin t, \cos t, 1)$。
+            - title: 第 2 步：代入并点积
+              body: |
+                $\mathbf F(\mathbf r) = (\sin t, t, \cos t)$，点积 $-\sin^2 t + t\cos t + \cos t$。
+            - title: 第 3 步：逐项积分
+              body: |
+                $\int_0^{2\pi} -\sin^2 t\,dt = -\pi$；$\int_0^{2\pi} t\cos t\,dt = [t\sin t + \cos t]_0^{2\pi} = 0$；$\int_0^{2\pi}\cos t\,dt = 0$。合计 $-\pi$。
+      - item:
+          id: space-segment
+          type: number
+          prompt: '$\mathbf F = (x, y, z)$。沿线段从 $(0, 0, 0)$ 到 $(1, 2, 2)$，$\int_C \mathbf F \cdot d\mathbf r$ 是多少？（保留一位小数）'
+          answer: 4.5
+          tolerance: 0.0001
+          hint: 线段写成 r(t) = (t, 2t, 2t)。点积以后是 t 的什么函数？
+          explain: r′ = (1, 2, 2)，F(r) = (t, 2t, 2t)，点积 t + 4t + 4t = 9t，∫₀¹ 9t dt = 4.5。
+      - item:
+          id: twisted-cubic
+          type: number
+          prompt: '计算 $\int_C z\,dx + x\,dy + y\,dz$，$C$ 是 $\mathbf r(t) = (t, t^2, t^3)$，$0 \le t \le 1$。（保留三位小数）'
+          answer: 1.517
+          tolerance: 0.0005
+          hint: dx、dy、dz 分别是多少乘 dt？三项分开算再相加。
+          explain: z dx = t³ dt，x dy = t · 2t dt，y dz = t² · 3t² dt。∫₀¹ (t³ + 2t² + 3t⁴) dt = 1/4 + 2/3 + 3/5 = 91/60 ≈ 1.517。
+      - item:
+          id: gravity-work
+          type: number
+          prompt: '重力场 $\mathbf F = (0, 0, -mg)$，$m = 2$ kg，$g = 9.8$ m/s²。一个物体沿一条弯曲的路从高度 $z = 5$ m 移到 $z = 2$ m，重力做的功是多少焦耳？（保留一位小数）'
+          answer: 58.8
+          tolerance: 0.0001
+          hint: F·dr 只剩哪一项？对它积分时只和 z 的什么有关？
+          explain: F·dr = −mg dz，∫ 从 z = 5 到 z = 2 得 −mg(2 − 5) = 3mg = 3 × 2 × 9.8 = 58.8 J，和路径的弯曲形状无关。
+
+  - id: flux
+    chapter: 曲线与曲面积分
+    title: 穿过曲面的通量
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一张 2 m² 的平网放在水流里，水速 3 m/s 处处相同。网怎么放时，每秒穿过网的水最多？是多少？
+          options:
+            - text: 网面和水流方向垂直时，每秒 6 m³
+              correct: true
+            - text: 网面和水流方向平行时，每秒 6 m³
+              why: 网面平行于水流时，水从网面旁边滑过，穿过网的是 0
+            - text: 怎么放都一样，每秒 6 m³
+              why: 只有速度垂直于网面的分量会把水送过网，倾斜时穿过的少
+          explain: 每秒穿过的水量 = 速度垂直于网面的分量 × 面积。垂直放时是 3 × 2 = 6 m³/s。
+      - card:
+          title: 通量
+          body: |
+            曲面 $S$ 上每点取一个单位**法向量（normal vector）** $\mathbf n$（先选定朝哪一侧，闭曲面通常取朝外），向量场 $\mathbf F$ 穿过 $S$ 的**通量（flux）**是
+
+            $$\iint_S \mathbf F \cdot \mathbf n\,dS$$
+
+            $dS$ 是小块曲面的面积，$\mathbf F \cdot \mathbf n$ 是场垂直于曲面的分量。$\mathbf F$ 是流速时，通量就是每秒穿过曲面的流量；平面曲面、场又处处相同时，通量 $= (\mathbf F \cdot \mathbf n) \times \text{面积}$。换另一侧的法向量，通量变号。
+      - item:
+          id: disk-flux
+          type: number
+          prompt: '$\mathbf F = (0, 0, 3)$。它向上穿过 $z = 0$ 平面上的圆盘 $x^2 + y^2 \le 4$ 的通量是多少？（保留三位小数）'
+          answer: 37.699
+          tolerance: 0.0005
+          hint: 向上的单位法向量是什么？F·n 是常数吗？
+          explain: n = (0, 0, 1)，F·n = 3，圆盘面积 4π，通量 12π ≈ 37.699。
+      - card:
+          title: 叉积
+          body: |
+            求一般曲面的法向量要用两个向量的**叉积（cross product）**：
+
+            $$\mathbf a \times \mathbf b = (a_2b_3 - a_3b_2,\ a_3b_1 - a_1b_3,\ a_1b_2 - a_2b_1)$$
+
+            它可以按 3×3 行列式记：第一行 $\mathbf i, \mathbf j, \mathbf k$，第二行 $\mathbf a$，第三行 $\mathbf b$，按第一行展开。结果同时垂直于 $\mathbf a$ 和 $\mathbf b$，长度等于以 $\mathbf a$、$\mathbf b$ 为两边的平行四边形面积，方向按右手定则（四指从 $\mathbf a$ 转向 $\mathbf b$，拇指的方向）。例：$(1, 0, 0) \times (0, 1, 0) = (0, 0, 1)$。
+      - item:
+          id: cross-third
+          type: number
+          prompt: '$(1, 2, 3) \times (4, 5, 6)$ 的第三个分量是多少？'
+          answer: -3
+          hint: 叉积的每个分量都是两个乘积相减。第三个分量用到的是两个向量的哪两个分量？
+          explain: 1 × 5 − 2 × 4 = −3。完整结果是 (−3, 6, −3)。
+      - card:
+          title: 怎样求 n dS
+          body: |
+            - 球面 $x^2 + y^2 + z^2 = a^2$：朝外 $\mathbf n = (x, y, z)/a$；
+            - 圆柱侧面 $x^2 + y^2 = a^2$：朝外 $\mathbf n = (x, y, 0)/a$；
+            - 曲面 $z = f(x, y)$：朝上 $\mathbf n\,dS = (-f_x, -f_y, 1)\,dx\,dy$，在投影区域上积分；
+            - 一般曲面 $\mathbf r(u, v)$：$\mathbf n\,dS = (\mathbf r_u \times \mathbf r_v)\,du\,dv$。
+
+            第三条是第四条的特例：取 $\mathbf r = (x, y, f(x, y))$，$\mathbf r_x \times \mathbf r_y = (1, 0, f_x) \times (0, 1, f_y) = (-f_x, -f_y, 1)$。
+          reveal:
+            - title: 第 1 步：写出 n dS
+              body: |
+                例：$\mathbf F = (x, y, z)$ 向上穿过平面片 $z = 1 - x - y$（$x, y \ge 0$，$x + y \le 1$）。$f_x = f_y = -1$，$\mathbf n\,dS = (1, 1, 1)\,dx\,dy$。
+            - title: 第 2 步：点积
+              body: |
+                $\mathbf F \cdot (1, 1, 1) = x + y + z = x + y + (1 - x - y) = 1$。
+            - title: 第 3 步：在投影区域上积分
+              body: |
+                $\iint_D 1\,dx\,dy$ 等于三角形面积 $\frac12$。
+      - item:
+          id: sphere-flux
+          type: number
+          prompt: '$\mathbf F = (x, y, z)$。它向外穿过球面 $x^2 + y^2 + z^2 = 4$ 的通量是多少？（保留三位小数）'
+          answer: 100.531
+          tolerance: 0.0005
+          hint: 球面上 F·n 等于多少？它是常数吗？
+          explain: 半径 2，n = (x, y, z)/2，F·n = (x² + y² + z²)/2 = 2。球面面积 16π，通量 32π ≈ 100.531。
+      - item:
+          id: graph-flux
+          type: number
+          prompt: '$\mathbf F = (0, 0, z)$。它向上穿过曲面 $z = x^2 + y^2$（投影区域是正方形 $[0, 1] \times [0, 1]$）的通量是多少？（保留三位小数）'
+          answer: 0.667
+          tolerance: 0.0005
+          hint: 向上的 n dS 是什么？F 和它点积后，再换成 x、y 的函数。
+          explain: n dS = (−2x, −2y, 1) dx dy，F·n dS = z dx dy = (x² + y²) dx dy，∫₀¹∫₀¹ (x² + y²) = 2/3 ≈ 0.667。
+      - item:
+          id: graph-normal
+          type: choice
+          prompt: 曲面 z = f(x, y) 朝上的 n dS 是什么？
+          options:
+            - text: (−f_x, −f_y, 1) dx dy
+              correct: true
+            - text: (f_x, f_y, 1) dx dy
+              why: 符号错了：(1, 0, f_x) × (0, 1, f_y) = (−f_x, −f_y, 1)
+            - text: (0, 0, 1) dx dy
+              why: 这只对水平的平面成立；曲面倾斜时法向量也倾斜，面积也比投影大
+          explain: 用 r = (x, y, f(x, y)) 求 r_x × r_y 得 (−f_x, −f_y, 1)，它的长度 √(1 + f_x² + f_y²) 正好把投影面积放大成曲面面积。
+
+  - id: conservative
+    chapter: 梯度/散度/旋度
+    title: 保守场和势函数
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 你从山脚 A 爬到山顶 B，可以走直路，也可以走更长的盘山路。重力对你做的功一样吗？
+          options:
+            - text: 一样，只取决于两点的高度差
+              correct: true
+            - text: 盘山路更长，重力做的功更多
+              why: 重力竖直向下，只有竖直方向的位移才让它做功；水平绕的那些路不做功
+            - text: 直路更陡，重力做的功更多
+              why: 陡只说明高度变得快；总的高度差相同，重力做的总功就相同
+          explain: 重力做的功是 −mg 乘高度变化，只看起点和终点。
+      - card:
+          title: 线积分基本定理
+          body: |
+            若 $\mathbf F = \nabla f$（$f$ 的梯度），对从 $A$ 到 $B$ 的任意光滑曲线
+
+            $$\int_C \mathbf F \cdot d\mathbf r = f(B) - f(A)$$
+
+            理由：链式法则给出 $\frac{d}{dt} f\big(\mathbf r(t)\big) = \nabla f \cdot \mathbf r'(t)$，于是 $\int_a^b \nabla f \cdot \mathbf r'\,dt = f(\mathbf r(b)) - f(\mathbf r(a))$。它是微积分基本定理在曲线上的版本。
+
+            例：$\mathbf F = (y, x)$ 就是 $f = xy$ 的梯度。沿 $(t, t^2)$ 从 $(0, 0)$ 到 $(1, 1)$ 的功等于 $f(1, 1) - f(0, 0) = 1$，和直接沿曲线代公式算的结果一样。
+      - card:
+          title: 保守场
+          body: |
+            对一个向量场，下面几件事是等价的：沿任意闭曲线 $\oint_C \mathbf F \cdot d\mathbf r = 0$；从 $A$ 到 $B$ 的线积分与路径无关；$\mathbf F$ 是某个函数的梯度。这样的场叫**保守场（conservative field）**，也叫梯度场，那个函数叫**势函数（potential function）**。$P\,dx + Q\,dy$ 是某个函数的全微分时，叫**恰当微分（exact differential）**。
+
+            检验：$\mathbf F = (P, Q) = \nabla f$ 时 $P = f_x$、$Q = f_y$，混合偏导相等，所以必须 $P_y = Q_x$。$\mathbf F$ 在整个平面上有连续偏导时，这个条件也是充分的。
+      - item:
+          id: which-conservative
+          type: choice
+          prompt: 下面哪个平面向量场是保守场？
+          options:
+            - text: (y, x)
+              correct: true
+            - text: (−y, x)
+              why: P_y = −1，Q_x = 1，不相等；它绕原点转圈，沿圆走一圈的功是 2π
+            - text: (xy, x)
+              why: P_y = x，Q_x = 1，只在 x = 1 时相等，不是处处相等
+          explain: (y, x) 的 P_y = 1 = Q_x，势函数是 xy。
+      - card:
+          title: 求势函数
+          body: |
+            办法：先把 $P$ 对 $x$ 积分，常数换成一个只含 $y$ 的函数 $g(y)$；再对 $y$ 求偏导，和 $Q$ 对比定出 $g$。
+
+            空间里同样：$\mathbf F = (P, Q, R) = \nabla f$ 要求 $P_y = Q_x$、$P_z = R_x$、$Q_z = R_y$。依次对 $x$、$y$、$z$ 积分、对比，求出 $f$。
+          reveal:
+            - title: 第 1 步：检验
+              body: |
+                例：$\mathbf F = (2xy + 3,\ x^2 + 4y)$。$P_y = 2x = Q_x$，是保守场。
+            - title: 第 2 步：对 x 积分
+              body: |
+                $f = \int (2xy + 3)\,dx = x^2y + 3x + g(y)$。
+            - title: 第 3 步：定出 g(y)
+              body: |
+                $f_y = x^2 + g'(y)$ 要等于 $x^2 + 4y$，所以 $g' = 4y$，$g = 2y^2$。$f = x^2y + 3x + 2y^2$。从 $(0, 0)$ 到 $(1, 2)$ 的功是 $f(1, 2) - f(0, 0) = 2 + 3 + 8 = 13$。
+      - item:
+          id: potential-work
+          type: number
+          prompt: '$\mathbf F = (2xy + 3,\ x^2 + 4y)$。沿任意曲线从 $(1, 1)$ 到 $(2, 3)$，$\int_C \mathbf F \cdot d\mathbf r$ 是多少？'
+          answer: 30
+          hint: 先求出一个势函数：哪个函数对 x 求偏导得 2xy + 3、对 y 求偏导得 x² + 4y？再代起点和终点。
+          explain: f = x²y + 3x + 2y²。f(2, 3) = 12 + 6 + 18 = 36，f(1, 1) = 1 + 3 + 2 = 6，相减 30。
+      - item:
+          id: which-potential
+          type: choice
+          prompt: F = (2x + y, x + 2y) 的势函数是哪一个？
+          options:
+            - text: x² + xy + y²
+              correct: true
+            - text: x² + y²
+              why: 它的梯度是 (2x, 2y)，少了交叉的 y 和 x 两项
+            - text: x² + 2xy + y²
+              why: 对 x 求偏导得 2x + 2y，不是 2x + y
+          explain: 对 x² + xy + y² 求偏导：f_x = 2x + y，f_y = x + 2y，正好是 F。
+      - item:
+          id: space-potential
+          type: number
+          prompt: '$\mathbf F = (yz,\ xz,\ xy + 2z)$。沿任意曲线从 $(0, 0, 0)$ 到 $(1, 2, 3)$，$\int_C \mathbf F \cdot d\mathbf r$ 是多少？'
+          answer: 15
+          hint: 什么函数对 x 求偏导得 yz？再看对 z 求偏导还缺什么。
+          explain: 势函数 f = xyz + z²（f_x = yz，f_y = xz，f_z = xy + 2z）。f(1, 2, 3) − f(0, 0, 0) = 6 + 9 = 15。
+
+  - id: curl-div
+    chapter: 梯度/散度/旋度
+    title: 旋度和散度
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 河面的流速场是 F = (−y, x)（整片水绕原点逆时针转）。在离原点不远的某处放一个纸做的小水车，它会自己转吗？
+          options:
+            - text: 会，逆时针转
+              correct: true
+            - text: 不会，只有放在旋涡中心才会转
+              why: 这种整体转动的水流在每一点都让小水车转，不只是中心
+            - text: 会，顺时针转
+              why: 小水车靠外一侧的水比靠里一侧的流得快，推着它和整体同向转，是逆时针
+          explain: 每一点附近的水都在绕圈，小水车跟着逆时针转。
+      - card:
+          title: 平面上的旋度
+          body: |
+            平面向量场 $\mathbf F = (P, Q)$ 的**旋度（curl）**是
+
+            $$\operatorname{curl}\mathbf F = Q_x - P_y$$
+
+            它为正时，放在那里的小水车逆时针转；为负时顺时针转；为 0 时不转。$(-y, x)$ 的旋度是 $1 - (-1) = 2$，处处一样；$(y, x)$ 的旋度是 $1 - 1 = 0$。和保守场的判据对照：$P_y = Q_x$ 正好就是旋度为 0。
+      - item:
+          id: plane-curl
+          type: number
+          prompt: '$\mathbf F = (x^2 y,\ 3xy)$。在点 $(1, 2)$ 处，平面旋度 $Q_x - P_y$ 是多少？'
+          answer: 5
+          hint: Q 对 x 求偏导、P 对 y 求偏导，再代点。
+          explain: Q_x = 3y，P_y = x²，在 (1, 2) 处 6 − 1 = 5。
+      - card:
+          title: 空间的旋度和散度
+          body: |
+            空间向量场 $\mathbf F = (P, Q, R)$ 的旋度是一个向量，按叉积的写法记作 $\nabla \times \mathbf F$：
+
+            $$\nabla \times \mathbf F = (R_y - Q_z,\ P_z - R_x,\ Q_x - P_y)$$
+
+            它的方向是局部转动的轴（右手定则），长度表示转得多快。**散度（divergence）**是一个数：
+
+            $$\nabla \cdot \mathbf F = P_x + Q_y + R_z$$
+
+            $\nabla = (\partial_x, \partial_y, \partial_z)$ 读作 nabla：作用在函数上是梯度 $\nabla f$，和场点积是散度，和场叉积是旋度。
+          reveal:
+            - title: 第 1 步：散度
+              body: |
+                例：$\mathbf F = (x^2y,\ xy^2,\ z)$。$P_x = 2xy$，$Q_y = 2xy$，$R_z = 1$，散度 $4xy + 1$。
+            - title: 第 2 步：旋度的前两个分量
+              body: |
+                $R_y - Q_z = 0 - 0 = 0$，$P_z - R_x = 0 - 0 = 0$。
+            - title: 第 3 步：旋度的第三个分量
+              body: |
+                $Q_x - P_y = y^2 - x^2$。所以 $\nabla \times \mathbf F = (0, 0, y^2 - x^2)$。
+      - item:
+          id: div-point
+          type: number
+          prompt: '$\mathbf F = (xy,\ yz,\ zx)$。在点 $(1, 2, 3)$ 处的散度是多少？'
+          answer: 6
+          hint: P 对 x、Q 对 y、R 对 z 各求一次偏导，加起来。
+          explain: P_x = y，Q_y = z，R_z = x，散度 x + y + z，在 (1, 2, 3) 处是 6。
+      - item:
+          id: curl-first
+          type: number
+          prompt: '$\mathbf F = (y^2,\ z^2,\ x^2)$。在点 $(1, 2, 3)$ 处，旋度 $\nabla \times \mathbf F$ 的第一个分量是多少？'
+          answer: -6
+          hint: 第一个分量由哪两个偏导数相减得到？先在 (1, 2, 3) 处把它们求出来。
+          explain: R_y = 0，Q_z = 2z，第一个分量 −2z = −6。完整的旋度是 (−2z, −2x, −2y) = (−6, −2, −4)。
+      - card:
+          title: 散度的意义和两个恒等式
+          body: |
+            散度衡量一点附近“往外冒”的强度：取一个包住这一点的小盒子，向外的通量除以盒子体积，盒子缩小时的极限就是散度。散度为正的点像水源，为负的点像下水口，为 0 的场流进多少就流出多少。
+
+            两个恒等式（混合偏导相等就能验证）：$\nabla \times (\nabla f) = \mathbf 0$，梯度场没有旋度；$\nabla \cdot (\nabla \times \mathbf F) = 0$，旋度场没有散度。
+      - item:
+          id: div-meaning
+          type: choice
+          prompt: 一个流速场在某点的散度为正。这说明什么？
+          options:
+            - text: 那一点附近像一个水源，流出的比流进的多
+              correct: true
+            - text: 那一点附近的水在绕圈
+              why: 绕圈用旋度衡量；散度只看流进流出的差
+            - text: 那一点的流速为 0
+              why: 散度是流速变化快慢的组合，和流速本身大不大无关
+          explain: 散度是单位体积向外的净通量，正值表示净流出。
+      - item:
+          id: curl-grad
+          type: choice
+          prompt: 对任意有连续二阶偏导的函数 f，∇ × (∇f) 等于什么？
+          options:
+            - text: 零向量
+              correct: true
+            - text: f 的二阶偏导之和
+              why: 二阶偏导之和是 ∇·(∇f)，也就是梯度的散度，不是旋度
+            - text: 取决于 f 的具体形式
+              why: 每个分量都是两个混合偏导相减，例如 f_zy − f_yz，混合偏导相等时总是 0
+          explain: ∇f = (f_x, f_y, f_z)，旋度的第一个分量是 f_zy − f_yz = 0，其余同理。梯度场是保守场，保守场没有旋度。
+
+  - id: green
+    chapter: Green/Gauss/Stokes定理
+    title: 格林定理
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把一块平面区域切成很多小方格，每个小方格的边界都逆时针绕一圈，先把场沿每个小方格边界做的功加起来。这个总和和沿大区域边界绕一圈做的功有什么关系？
+          options:
+            - text: 相等，内部的边都被走了两次、方向相反，互相抵消
+              correct: true
+            - text: 小方格加起来更大，因为走的总路程更长
+              why: 内部每条边都被相邻两个小方格各走一次，方向相反，这两段的功正好抵消
+            - text: 两者没有关系
+              why: 抵消之后只剩没有邻居的那些边，它们正好拼成大区域的边界
+          explain: 内部的边成对抵消，只剩外边界。每个小方格边界上的功约等于旋度乘它的面积，于是大边界上的功等于旋度的二重积分。
+      - card:
+          title: 格林定理
+          body: |
+            $C$ 是一条不自交的分段光滑闭曲线，按逆时针方向走（区域始终在左手边），围成区域 $R$；$P$、$Q$ 在包含 $R$ 的区域上有连续偏导。**格林定理（Green's theorem）**：
+
+            $$\oint_C P\,dx + Q\,dy = \iint_R (Q_x - P_y)\,dA$$
+
+            左边是沿边界的**环流（circulation）**，也就是场绕边界一圈做的功，右边是旋度的二重积分。曲线顺时针走时，左边变号。
+          reveal:
+            - title: 第 1 步：算旋度
+              body: |
+                例：$\oint_C (x^2 - y)\,dx + (x + y^2)\,dy$，$C$ 是正方形 $[0, 1] \times [0, 1]$ 的边界，逆时针。$Q_x - P_y = 1 - (-1) = 2$。
+            - title: 第 2 步：二重积分
+              body: |
+                $\iint_R 2\,dA = 2 \times 1 = 2$。
+            - title: 第 3 步：对照
+              body: |
+                直接算要分四条边各做一次线积分；用格林定理一步就得到 2。
+      - item:
+          id: green-circle
+          type: number
+          prompt: '计算 $\oint_C 3y\,dx + 5x\,dy$，$C$ 是圆 $x^2 + y^2 = 4$，逆时针。（保留三位小数）'
+          answer: 25.133
+          tolerance: 0.0005
+          hint: Q_x − P_y 是常数吗？圆盘面积是多少？
+          explain: Q_x − P_y = 5 − 3 = 2，圆盘面积 4π，积分 8π ≈ 25.133。
+      - item:
+          id: green-square
+          type: number
+          prompt: '计算 $\oint_C xy\,dx + x^2\,dy$，$C$ 是正方形 $[0, 1] \times [0, 1]$ 的边界，逆时针。（保留一位小数）'
+          answer: 0.5
+          tolerance: 0.0001
+          hint: 先算 Q_x − P_y，它是 x 的什么函数？
+          explain: Q_x − P_y = 2x − x = x，∫₀¹∫₀¹ x dy dx = 1/2。
+      - card:
+          title: 旋度为零推出保守，证明思路
+          body: |
+            若 $\mathbf F$ 在一个没有洞的区域上旋度处处为 0，那么对区域里任意闭曲线，格林定理给出 $\oint \mathbf F \cdot d\mathbf r = \iint 0\,dA = 0$，所以线积分与路径无关，$\mathbf F$ 是保守场。
+
+            证明思路：先只看 $P$。区域是 I 型时，上下两条边界上的 $\oint P\,dx$ 合起来是 $-\int_a^b \big[P(x, g_2) - P(x, g_1)\big]dx$，竖直的边上 $dx = 0$；而 $\iint P_y\,dA$ 里层对 $y$ 积分正好是 $P(x, g_2) - P(x, g_1)$。所以 $\oint P\,dx = -\iint P_y\,dA$。$Q$ 用 II 型同理得 $\oint Q\,dy = \iint Q_x\,dA$，相加就是格林定理。
+      - card:
+          title: 用格林定理求面积
+          body: |
+            取 $P = -\frac y2$、$Q = \frac x2$，$Q_x - P_y = 1$，于是
+
+            $$\text{面积} = \frac12\oint_C x\,dy - y\,dx$$
+
+            只要沿边界走一圈就能量出面积，机械的求积仪就是按这个原理做的。椭圆 $x = a\cos t$、$y = b\sin t$：$x\,dy - y\,dx = ab\,dt$，面积 $\frac12 \cdot ab \cdot 2\pi = \pi ab$。
+      - item:
+          id: astroid-area
+          type: number
+          prompt: '星形线 $x = \cos^3 t$，$y = \sin^3 t$（$0 \le t \le 2\pi$）围成的面积是多少？用 $\frac12\oint x\,dy - y\,dx$ 计算。（保留三位小数）'
+          answer: 1.178
+          tolerance: 0.0005
+          hint: x dy − y dx 化简后是 3 sin²t cos²t dt。sin²t cos²t 在一整圈上的积分是多少？
+          explain: x dy − y dx = 3 sin²t cos²t (cos²t + sin²t) dt。∫₀^{2π} sin²t cos²t dt = π/4，面积 = (1/2)(3)(π/4) = 3π/8 ≈ 1.178。
+      - item:
+          id: clockwise
+          type: choice
+          prompt: 把格林定理用在顺时针走的边界上，会怎样？
+          options:
+            - text: 等式两边差一个负号
+              correct: true
+            - text: 照样成立，方向无所谓
+              why: 线积分反方向走会变号，而右边的二重积分不变，所以必须按逆时针
+            - text: 要把二重积分换成三重积分
+              why: 区域还是平面区域，只是曲线走反了，结果变号
+          explain: 格林定理要求区域在左手边（逆时针）。顺时针走时 ∮ = −∬(Q_x − P_y) dA。
+
+  - id: green-normal
+    chapter: Green/Gauss/Stokes定理
+    title: 平面通量、法向形式和有洞的区域
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 水在平面上流，流速场 F = (x, y)（从原点向外）。每秒穿过单位圆流出去的水是正的、负的还是 0？
+          options:
+            - text: 正的，水处处往外流
+              correct: true
+            - text: '0，流进和流出相等'
+              why: 这个场在圆上处处指向外，没有流进来的地方
+            - text: 负的
+              why: 按朝外的法向量算，向外流算正
+          explain: 圆上 F 就是朝外的单位法向量，F·n = 1，流出量等于周长 2π。
+      - card:
+          title: 平面通量和法向形式
+          body: |
+            平面曲线 $C$ 上取朝外的单位法向量 $\mathbf n$，场穿过 $C$ 的通量是 $\oint_C \mathbf F \cdot \mathbf n\,ds$。逆时针走时，切向是 $(dx, dy)/ds$，把它顺时针转 90° 就是朝外法向，$\mathbf n\,ds = (dy, -dx)$，于是通量 $= \oint_C P\,dy - Q\,dx$。
+
+            对它用格林定理（把 $-Q$ 当新的 $P$、把 $P$ 当新的 $Q$），得到格林定理的法向形式：
+
+            $$\oint_C \mathbf F \cdot \mathbf n\,ds = \iint_R (P_x + Q_y)\,dA$$
+
+            右边是平面散度的积分：区域里的源加起来，等于穿过边界流出去的。
+      - item:
+          id: flux-circle
+          type: number
+          prompt: '$\mathbf F = (x, y)$。它穿过圆 $x^2 + y^2 = 9$ 向外的通量是多少？（保留三位小数）'
+          answer: 56.549
+          tolerance: 0.0005
+          hint: 用法向形式：散度是多少？圆盘面积是多少？
+          explain: P_x + Q_y = 2，圆盘面积 9π，通量 18π ≈ 56.549。
+      - item:
+          id: flux-square
+          type: number
+          prompt: '$\mathbf F = (x^2,\ y^2)$。它穿过正方形 $[0, 1] \times [0, 1]$ 的边界向外的通量是多少？'
+          answer: 2
+          hint: 平面散度是多少？在正方形上积分。
+          explain: P_x + Q_y = 2x + 2y，∫₀¹∫₀¹ (2x + 2y) = 1 + 1 = 2。
+      - card:
+          title: 有洞的区域
+          body: |
+            区域中间有洞时，边界分好几段：外圈逆时针，洞的边界顺时针，这样走时区域始终在左手边。格林定理照样成立，左边把各段边界的积分都加上。
+
+            例：$\mathbf F = \frac{(-y,\ x)}{x^2 + y^2}$ 在原点没有定义，原点以外旋度处处为 0。沿圆 $x^2 + y^2 = a^2$ 逆时针：$\mathbf F = \frac{(-\sin t, \cos t)}{a}$，$\mathbf r' = a(-\sin t, \cos t)$，点积为 1，积分 $2\pi$，与半径无关。任意一条绕原点一圈的逆时针曲线和一个小圆之间的环形区域里旋度为 0，格林定理说两段边界的积分之和为 0，所以绕原点一圈的积分都是 $2\pi$；不绕原点的闭曲线，积分是 0。
+      - item:
+          id: vortex-square
+          type: number
+          prompt: '计算 $\oint_C \frac{-y\,dx + x\,dy}{x^2 + y^2}$，$C$ 是顶点 $(\pm2, \pm2)$ 的正方形边界，逆时针。（保留三位小数）'
+          answer: 6.283
+          tolerance: 0.0005
+          hint: 正方形有没有绕住原点？绕住原点的逆时针闭曲线上，这个积分等于多少？
+          explain: 正方形绕原点一圈，积分和沿小圆一样是 2π ≈ 6.283。
+      - item:
+          id: vortex-away
+          type: number
+          prompt: '同一个积分 $\oint_C \frac{-y\,dx + x\,dy}{x^2 + y^2}$，$C$ 换成圆心 $(5, 0)$、半径 1 的圆，逆时针。积分是多少？'
+          answer: 0
+          hint: 这个圆围住的区域里有没有场没定义的点？那里的旋度是多少？
+          explain: 圆盘不含原点，场在里面处处有定义且旋度为 0，由格林定理积分为 0。
+      - card:
+          title: 单连通
+          body: |
+            区域里任意闭曲线都能在区域内连续缩成一点，叫**单连通（simply connected）**，直观地说就是没有洞。
+
+            结论：在单连通区域上旋度为 0 的场一定是保守场。不是单连通就不一定：上面那个场在“去掉原点的平面”上旋度为 0，可绕原点一圈的积分是 $2\pi \ne 0$，所以它不是保守场。
+      - item:
+          id: vortex-conservative
+          type: choice
+          prompt: F = (−y, x)/(x² + y²) 在原点以外旋度处处为 0。它在去掉原点的平面上是保守场吗？
+          options:
+            - text: 不是，绕原点一圈的积分是 2π，而去掉原点的平面不是单连通
+              correct: true
+            - text: 是，旋度为 0 就是保守场
+              why: 旋度为 0 推出保守场，要求区域单连通；去掉原点的平面有一个洞
+            - text: 是，因为每一小块里都找得到势函数
+              why: 每一小块里有势函数，拼成整个区域时会对不上：绕原点一圈回来，势函数的值多了 2π
+          explain: 保守场沿任意闭曲线的积分为 0，而这个场绕原点一圈得 2π，所以不是保守场。
+
+  - id: divergence-thm
+    chapter: Green/Gauss/Stokes定理
+    title: 散度定理
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个封闭的气球里有一个小气泵往外打气，其他地方没有气体产生或消失。每秒穿过整个气球表面向外的气体量，和气泵每秒打出的气体量有什么关系？
+          options:
+            - text: 相等
+              correct: true
+            - text: 取决于气球的形状
+              why: 只要气泵在里面，形状怎么变，打出来的气都得穿过表面出去
+            - text: 总是 0
+              why: 里面没有源时才是 0；有气泵在打气，向外的总量就是打气量
+          explain: 表面向外的通量等于里面所有源的总量。源的强度用散度衡量，所以通量等于散度的三重积分。
+      - card:
+          title: 散度定理
+          body: |
+            $S$ 是围住立体 $D$ 的闭曲面，$\mathbf n$ 朝外，$\mathbf F$ 有连续偏导。**散度定理（divergence theorem）**，也叫高斯定理：
+
+            $$\oint\!\!\!\oint_S \mathbf F \cdot \mathbf n\,dS = \iiint_D \nabla \cdot \mathbf F\,dV$$
+
+            左边是向外的通量，右边是散度的三重积分。它是格林定理法向形式在空间的版本。通量直接算要分好几张曲面，散度又简单时，用右边算往往省事很多。
+          reveal:
+            - title: 第 1 步：算散度
+              body: |
+                例：$\mathbf F = (x, y, z)$ 穿过单位球面向外的通量。$\nabla \cdot \mathbf F = 1 + 1 + 1 = 3$。
+            - title: 第 2 步：做三重积分
+              body: |
+                $\iiint_D 3\,dV = 3 \times \frac43\pi = 4\pi$。
+            - title: 第 3 步：和直接算对照
+              body: |
+                单位球面上 $\mathbf F \cdot \mathbf n = x^2 + y^2 + z^2 = 1$，通量等于球面面积 $4\pi$，一致。
+      - item:
+          id: cube-flux
+          type: number
+          prompt: '$\mathbf F = (x, y, z)$。它穿过立方体 $[0, 1] \times [0, 1] \times [0, 1]$ 表面向外的通量是多少？'
+          answer: 3
+          hint: 散度是多少？立方体体积是多少？
+          explain: 散度 3，体积 1，通量 3。直接算的话，只有 x = 1、y = 1、z = 1 三个面有贡献，各为 1。
+      - item:
+          id: cubic-sphere
+          type: number
+          prompt: '$\mathbf F = (x^3, y^3, z^3)$。它穿过单位球面向外的通量是多少？（保留三位小数）'
+          answer: 7.54
+          tolerance: 0.0005
+          hint: 散度是 3(x² + y² + z²)。在球坐标下它是 ρ 的几次方？
+          explain: ∭ 3ρ² · ρ² sin φ dρ dφ dθ = 3 × (1/5)(2)(2π) = 12π/5 ≈ 7.540。
+      - card:
+          title: 证明思路
+          body: |
+            先只看 $\mathbf F = (0, 0, R)$，立体 $D$ 由投影区域上方 $z$ 从 $u_1(x, y)$ 到 $u_2(x, y)$ 组成。顶面朝上，$R$ 穿过它的通量是 $\iint R(x, y, u_2)\,dA$；底面朝下，通量是 $-\iint R(x, y, u_1)\,dA$；侧面竖直，$\mathbf n$ 没有 $z$ 分量，贡献 0。合起来 $\iint [R(x, y, u_2) - R(x, y, u_1)]\,dA$，正是 $\iiint R_z\,dV$ 里层对 $z$ 积分的结果。$P$、$Q$ 同理，相加就是散度定理。
+
+            另一个看法：把立体切成小盒子，每个盒子的通量约等于散度乘体积；相邻盒子共用的面上，一个算流出、一个算流入，互相抵消，只剩外表面。
+      - item:
+          id: zero-div
+          type: choice
+          prompt: F = (y, z, x) 穿过任意一个闭曲面向外的通量是多少？
+          options:
+            - text: 0，它的散度处处为 0
+              correct: true
+            - text: 等于曲面的面积
+              why: F·n 不是处处为 1；用散度定理，散度为 0，积分就是 0
+            - text: 取决于曲面的形状
+              why: 散度处处为 0 时，任何闭曲面围住的散度积分都是 0
+          explain: ∇·F = ∂y/∂x + ∂z/∂y + ∂x/∂z = 0，由散度定理通量为 0。
+      - item:
+          id: cylinder-flux
+          type: number
+          prompt: '$\mathbf F = (x, y, 0)$。它穿过圆柱体 $x^2 + y^2 \le 1$、$0 \le z \le 2$ 的整个表面（侧面加上下底）向外的通量是多少？（保留三位小数）'
+          answer: 12.566
+          tolerance: 0.0005
+          hint: 散度是多少？圆柱体的体积是多少？
+          explain: 散度 2，体积 π × 1² × 2 = 2π，通量 4π ≈ 12.566。上下底上 F 没有 z 分量，贡献 0，全部来自侧面。
+
+  - id: stokes
+    chapter: Green/Gauss/Stokes定理
+    title: 斯托克斯定理
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一张碗形曲面的边缘是单位圆。沿边缘绕一圈的环流 ∮ F·dr，和旋度穿过这张碗的通量有什么关系？
+          options:
+            - text: 相等，和碗有多深无关
+              correct: true
+            - text: 碗越深，旋度的通量越大，环流不变
+              why: 只要边缘不变，任何以它为边的曲面上旋度的通量都相等
+            - text: 环流总是 0
+              why: 只有旋度处处为 0 的场环流才是 0
+          explain: 把碗切成小块，小块边界的环流里内部的边成对抵消，只剩碗的边缘；每个小块的环流约等于旋度穿过它的通量。
+      - card:
+          title: 斯托克斯定理
+          body: |
+            $S$ 是一张有方向的曲面，边界是闭曲线 $C$。两者的方向要配套：沿 $C$ 走时头朝 $\mathbf n$ 的方向，曲面在左手边（右手定则：四指沿 $C$，拇指指向 $\mathbf n$）。**斯托克斯定理（Stokes' theorem）**：
+
+            $$\oint_C \mathbf F \cdot d\mathbf r = \iint_S (\nabla \times \mathbf F) \cdot \mathbf n\,dS$$
+
+            $S$ 是 $xy$ 平面上的区域、$\mathbf n = (0, 0, 1)$ 时，$(\nabla \times \mathbf F) \cdot \mathbf n = Q_x - P_y$，就回到格林定理。
+          reveal:
+            - title: 第 1 步：旋度
+              body: |
+                例：$\mathbf F = (-y, x, 0)$，$S$ 是上半单位球面，朝外，边界是 $xy$ 平面上逆时针的单位圆。$\nabla \times \mathbf F = (0, 0, 2)$。
+            - title: 第 2 步：换一张好算的曲面
+              body: |
+                单位圆盘（朝上）和上半球面边界相同。圆盘上 $(\nabla \times \mathbf F) \cdot \mathbf n = 2$，通量 $2 \times \pi = 2\pi$。
+            - title: 第 3 步：核对线积分
+              body: |
+                单位圆上 $\mathbf F$ 沿逆时针切向、长度 1，环流等于周长 $2\pi$，一致。
+      - item:
+          id: stokes-disk
+          type: number
+          prompt: '$\mathbf F = (z, x, y)$，$C$ 是 $xy$ 平面上的圆 $x^2 + y^2 = 4$，逆时针。用斯托克斯定理求 $\oint_C \mathbf F \cdot d\mathbf r$。（保留三位小数）'
+          answer: 12.566
+          tolerance: 0.0005
+          hint: 旋度是多少？取哪张以 C 为边的曲面最好算？
+          explain: ∇ × F = (1, 1, 1)。取朝上的圆盘，(∇ × F)·n = 1，通量 = 面积 4π ≈ 12.566。
+      - item:
+          id: stokes-cubic
+          type: number
+          prompt: '$\mathbf F = (-y^3,\ x^3,\ 0)$，$C$ 是 $xy$ 平面上逆时针的单位圆。$\oint_C \mathbf F \cdot d\mathbf r$ 是多少？（保留三位小数）'
+          answer: 4.712
+          tolerance: 0.0005
+          hint: 旋度的 z 分量是多少？在圆盘上用极坐标积分。
+          explain: 旋度 z 分量 3x² + 3y²。圆盘上 ∫₀^{2π}∫₀¹ 3r² · r dr dθ = 3 · (1/4) · 2π = 3π/2 ≈ 4.712。
+      - card:
+          title: 证明思路和曲面无关性
+          body: |
+            证明思路：把曲面切成很多小块，每块近似平的，对每块用格林定理（换成那块的坐标）；相邻小块共用的边上方向相反、互相抵消，只剩外边界 $C$。
+
+            曲面无关性：边界相同的两张曲面 $S_1$、$S_2$（方向配套）上，旋度的通量相等。理由：两张曲面合起来围成一个立体，旋度的散度 $\nabla \cdot (\nabla \times \mathbf F) = 0$，由散度定理，穿过这个闭曲面的总通量是 0。所以算的时候可以挑最平的那张。
+      - item:
+          id: paraboloid-stokes
+          type: number
+          prompt: '$\mathbf F = (-y,\ x,\ z^2)$，$S$ 是抛物面 $z = 9 - x^2 - y^2$ 在 $z \ge 0$ 的部分，朝上。求 $\iint_S (\nabla \times \mathbf F) \cdot \mathbf n\,dS$。（保留三位小数）'
+          answer: 56.549
+          tolerance: 0.0005
+          hint: 抛物面的边界是什么？换成以它为边的圆盘，旋度穿过圆盘的通量是多少？
+          explain: 边界是 z = 0 上半径 3 的圆。∇ × F = (0, 0, 2)，换成圆盘，通量 2 × 9π = 18π ≈ 56.549。
+      - card:
+          title: 空间里的单连通
+          body: |
+            空间区域里任意闭曲线都能在区域内缩成一点，就叫单连通。在单连通区域上旋度为 0 的场是保守场：任意闭曲线都是区域里某张曲面的边界，斯托克斯定理给出环流为 0。
+
+            整个空间去掉一个点仍然单连通，闭曲线可以绕开那个点缩小。空间去掉 $z$ 轴就不是：绕 $z$ 轴的圆缩不成一点。长直导线周围的磁场就属于这种情况，旋度在导线外为 0，绕导线一圈的环流却不为 0。
+      - item:
+          id: remove-axis
+          type: choice
+          prompt: 整个空间去掉 z 轴以后，剩下的区域是单连通的吗？
+          options:
+            - text: 不是，绕 z 轴的圆不能在区域里缩成一点
+              correct: true
+            - text: 是，空间里没有洞
+              why: 去掉的 z 轴就是一个洞：绕它的闭曲线缩小时一定会碰到它
+            - text: 是，而且去掉一个点也一样不单连通
+              why: 两件事都说反了：去掉 z 轴不单连通；去掉一个点后闭曲线能绕开那个点缩小，仍是单连通
+          explain: 绕 z 轴一圈的圆缩小时必须穿过 z 轴，而 z 轴不在区域里。
+boss:
+  items:
+    - id: b-iterated
+      type: number
+      prompt: '计算 $\int_0^1 \int_0^2 x^2 y\,dy\,dx$。（保留三位小数）'
+      answer: 0.667
+      tolerance: 0.0005
+      explain: 里层 ∫₀² x²y dy = 2x²，外层 ∫₀¹ 2x² dx = 2/3 ≈ 0.667。
+    - id: b-tetra
+      type: number
+      prompt: '四面体 $x, y, z \ge 0$、$x + y + z \le 2$ 的体积是多少？用三重积分计算。（保留三位小数）'
+      answer: 1.333
+      tolerance: 0.0005
+      explain: ∫₀² ∫₀^{2−x} (2 − x − y) dy dx = ∫₀² (2 − x)²/2 dx = 8/6 = 4/3 ≈ 1.333。
+    - id: b-order
+      type: number
+      prompt: '计算 $\int_0^2 \int_{y/2}^{1} e^{x^2}\,dx\,dy$。（保留三位小数）'
+      answer: 1.718
+      tolerance: 0.0005
+      explain: 区域 0 ≤ y ≤ 2x、0 ≤ x ≤ 1。换次序：∫₀¹ ∫₀^{2x} e^{x²} dy dx = ∫₀¹ 2x e^{x²} dx = e − 1 ≈ 1.718。
+    - id: b-polar
+      type: number
+      prompt: '计算 $\iint_D \sqrt{x^2 + y^2}\,dA$，$D$ 是圆环 $1 \le x^2 + y^2 \le 4$。（保留三位小数）'
+      answer: 14.661
+      tolerance: 0.0005
+      explain: ∫₀^{2π} ∫₁² r · r dr dθ = 2π (8 − 1)/3 = 14π/3 ≈ 14.661。
+    - id: b-jacobian
+      type: choice
+      prompt: 变换 x = u + 2v、y = 3u − v 的雅可比行列式的绝对值是多少？
+      options:
+        - text: '7'
+          correct: true
+        - text: '5'
+          why: 把行列式算成了 x_u y_v + x_v y_u 的绝对值 |−1 + 6|；中间应是减号：(1)(−1) − (2)(3) = −7
+        - text: '1'
+          why: 这个变换会改变面积；只看 x_u、y_v 两项 (1)(−1) 就漏了 x_v y_u
+        - text: '6'
+          why: 只算了 x_v y_u = 2 × 3，漏了 x_u y_v = −1
+      explain: (1)(−1) − (2)(3) = −7，绝对值 7。
+    - id: b-line
+      type: number
+      prompt: '$\mathbf F = (y, 2x)$。沿抛物线 $y = x^2$ 从 $(0, 0)$ 到 $(1, 1)$，$\int_C \mathbf F \cdot d\mathbf r$ 是多少？（保留三位小数）'
+      answer: 1.667
+      tolerance: 0.0005
+      explain: r(t) = (t, t²)，r′ = (1, 2t)，F = (t², 2t)，点积 t² + 4t²，∫₀¹ 5t² dt = 5/3 ≈ 1.667。这个场不是保守场（P_y = 1 ≠ Q_x = 2），不能只看端点。
+    - id: b-plane-flux
+      type: number
+      prompt: '$\mathbf F = (1, 2, 5)$。它向上穿过平面 $z = 2$ 上的长方形 $0 \le x \le 1$、$0 \le y \le 3$ 的通量是多少？'
+      answer: 15
+      explain: 向上的单位法向量 (0, 0, 1)，F·n = 5，面积 3，通量 15。
+    - id: b-div
+      type: number
+      prompt: '$\mathbf F = (x^2 y,\ yz,\ xz^2)$。在点 $(1, 1, 1)$ 处的散度是多少？'
+      answer: 5
+      explain: P_x = 2xy，Q_y = z，R_z = 2xz，在 (1, 1, 1) 处 2 + 1 + 2 = 5。
+    - id: b-potential
+      type: number
+      prompt: '$\mathbf F = (y\cos x,\ \sin x + 2y)$。沿任意曲线从 $(0, 0)$ 到 $(\pi/2, 1)$，$\int_C \mathbf F \cdot d\mathbf r$ 是多少？'
+      answer: 2
+      explain: 势函数 f = y sin x + y²（f_x = y cos x，f_y = sin x + 2y）。f(π/2, 1) − f(0, 0) = 1 + 1 = 2。
+    - id: b-green
+      type: number
+      prompt: '计算 $\oint_C (2y + x)\,dx + (5x - y)\,dy$，$C$ 是顶点 $(0, 0)$、$(2, 0)$、$(0, 2)$ 的三角形边界，逆时针。'
+      answer: 6
+      explain: 由格林定理，Q_x − P_y = 5 − 2 = 3，三角形面积 2，积分 6。
+    - id: b-gauss
+      type: number
+      prompt: '$\mathbf F = (x, y, z)$。它穿过圆柱体 $x^2 + y^2 \le 1$、$0 \le z \le 3$ 的整个表面向外的通量是多少？（保留三位小数）'
+      answer: 28.274
+      tolerance: 0.0005
+      explain: 散度 3，体积 3π，由散度定理通量 9π ≈ 28.274。
+    - id: b-stokes
+      type: choice
+      prompt: 两张曲面边界都是同一条闭曲线 C，方向也配套。旋度 ∇ × F 穿过它们的通量有什么关系？
+      options:
+        - text: 相等，都等于沿 C 的环流
+          correct: true
+        - text: 面积大的那张通量大
+          why: 斯托克斯定理只看边界上的环流，和曲面的面积、形状都无关
+        - text: 只有两张曲面都是平面时才相等
+          why: 曲面可以是任意形状，边界和方向一样，通量就一样
+        - text: 两者互为相反数
+          why: 方向配套时两者相等；只有把其中一张的法向量反过来，才会差一个负号
+      explain: 由斯托克斯定理，两者都等于 ∮_C F·dr。也可以从散度定理看：两张曲面围成闭曲面，旋度的散度为 0，总通量为 0。

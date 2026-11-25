@@ -20,6 +20,7 @@ def test_dc_laws_and_equivalents() -> None:
     r23 = Fraction(3 * 6, 3 + 6)
     assert r23 == 2  # 3k || 6k = 2 kOhm
     assert Fraction(5 * 3, 2 + 3) == 3  # 5 V divider 2k / 3k -> 3 V
+    assert 12 * 2 == 24 and 6 * 2 == 12 and 2 * 12 == 24  # KVL power example: 12 V, 2 mA, two 6 V drops
 
     # nodes (C4 Q1)
     r_total = 2 + r23

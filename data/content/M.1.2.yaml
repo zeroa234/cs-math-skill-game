@@ -191,7 +191,7 @@ lessons:
           type: choice
           prompt: 用定义求导数时，为什么不能直接把 h = 0 代进差商？
           options:
-            - text: 代进去分子分母都是 0，得到看不出结果的 0/0
+            - text: 得到 0/0，看不出结果
               correct: true
             - text: 代进去结果总是 0
               why: 分子是 f(a) − f(a) = 0，分母也是 0，0/0 不等于 0
@@ -524,7 +524,7 @@ lessons:
           type: choice
           prompt: 余额函数为 f(t)。f(11) − f(10) 和 f′(10) 有什么区别？
           options:
-            - text: 前者是 10 月到 11 月的平均变化率（割线斜率），后者是 10 月那一刻的变化率（切线斜率）
+            - text: 前者是平均变化率，后者是瞬时变化率
               correct: true
             - text: 两者完全相同，只是写法不同
               why: 两者一般不相等；比如 f = −5t² + 60t + 120 时，f(11) − f(10) = −45，而 f′(10) = −40
@@ -1105,7 +1105,7 @@ lessons:
               correct: true
             - text: 求导做错了
               why: 椭圆最右边的点切线本来就是竖直的，公式如实反映了这一点
-            - text: 那里切线斜率是 0
+            - text: 那里切线是水平的，斜率等于 0
               why: 斜率为 0 是分子为 0；这里是分母为 0
           explain: 竖直的直线没有斜率，所以 y′ 在那里不存在。
       - card:
@@ -1278,7 +1278,7 @@ lessons:
           type: choice
           prompt: 为什么 (arccos x)′ 带负号，而 (arcsin x)′ 不带？
           options:
-            - text: arccos x 随 x 增大而减小，切线向右下降
+            - text: arccos x 是减函数
               correct: true
             - text: 因为 cos x 的导数是 −sin x
               why: 推导里确实出现 −sin y，但根本原因是 arccos 是减函数，斜率处处为负
@@ -1540,7 +1540,7 @@ lessons:
           type: choice
           prompt: 想估算 ln 0.98，用哪个近似最合适？
           options:
-            - text: ln x 在 x = 1 处的线性近似 ln x ≈ x − 1，得 −0.02
+            - text: ln x 在 x = 1 处的线性近似
               correct: true
             - text: ln x 在 x = 0 处的线性近似
               why: ln x 在 0 处没有定义，不能作基点
@@ -1565,7 +1565,7 @@ lessons:
           type: choice
           prompt: 边长 10 厘米的正方形，边长增加 0.1 厘米。面积大约增加多少平方厘米？
           options:
-            - text: 约 2（准确是 2.01）
+            - text: 约 2
               correct: true
             - text: 约 0.01
               why: 0.01 = 0.1² 只是右上角那个小正方形；两条长边各多出 10 × 0.1 = 1
@@ -1811,7 +1811,7 @@ lessons:
           type: choice
           prompt: f(x) = |x| − 1 在 [−1, 1] 上连续，f(−1) = f(1) = 0，可是 (−1, 1) 里没有导数为 0 的点。为什么不和罗尔定理矛盾？
           options:
-            - text: f 在 x = 0 处不可导，不满足定理的条件
+            - text: f 在 x = 0 处不可导
               correct: true
             - text: 罗尔定理只对多项式成立
               why: 定理对所有满足三个条件的函数成立；这里缺的是可导
@@ -1889,7 +1889,7 @@ lessons:
           type: choice
           prompt: f(x) = 1/x 在 [−1, 1] 的两端：f(1) − f(−1) = 2，割线斜率是 1。可是 f′(x) = −1/x² 总是负的。为什么这不违反中值定理？
           options:
-            - text: f 在 x = 0 处没有定义，不连续，不满足条件
+            - text: x = 0 处不连续
               correct: true
             - text: 因为割线斜率算错了
               why: '[1 − (−1)]/[1 − (−1)] = 1，没有算错'
@@ -1973,7 +1973,7 @@ lessons:
           type: choice
           prompt: 想证明 x > 0 时 ln(1 + x) < x。令 f(x) = x − ln(1 + x)，下一步该看什么？
           options:
-            - text: f(0) = 0，并且 x > 0 时 f′(x) = 1 − 1/(1 + x) > 0
+            - text: f(0) = 0，且 x > 0 时 f′(x) > 0
               correct: true
             - text: f(1) = 1 − ln 2 > 0
               why: 一个点大于 0 说明不了所有 x > 0；要看起点的值和导数的正负
@@ -2111,7 +2111,7 @@ lessons:
           options:
             - text: 局部极小，因为 f″(1) = 6 > 0
               correct: true
-            - text: 局部极大，因为 f″(1) > 0
+            - text: 局部极大，因为 f″(1) = 6 > 0
               why: 二阶导数为正表示向上弯，像碗底，是极小
             - text: 判断不了
               why: 只有 f″(1) = 0 时才判断不了；这里是 6
@@ -2220,7 +2220,7 @@ lessons:
           type: choice
           prompt: 用 eˣ ≈ 1 + x + x²/2 算 e¹，得 2.5，真实值约 2.718。为什么差这么多？
           options:
-            - text: x = 1 离基点 0 太远，二次近似只在 0 附近可靠
+            - text: x = 1 离基点 0 太远
               correct: true
             - text: 公式里的 1/2 应该是 1
               why: 1/2 是对的；它保证二阶导数相同

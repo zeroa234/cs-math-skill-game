@@ -165,7 +165,7 @@ lessons:
               correct: true
             - text: '`xs.append(7)`'
               why: 末尾通常还有空格子，直接放进去，不用挪
-            - text: '`xs[500000]`'
+            - text: '`xs[500000]`，读正中间那个'
               why: 按下标读是直接算地址，一步就到
           explain: 插在开头要把一百万个元素都往后挪一格。
       - card:
@@ -195,11 +195,11 @@ lessons:
           type: choice
           prompt: Python 列表一直 append，从来不会“满”。猜一猜它是怎么做到的？
           options:
-            - text: 满了就换一个更大的数组，把元素都搬过去
+            - text: 满了就换个更大的数组，把元素搬过去
               correct: true
             - text: 它的数组一开始就无限大
               why: 内存是有限的，数组造的时候就得定下格子数
-            - text: 每个元素单独放，互不挨着
+            - text: 每个元素单独放在内存各处，彼此不挨着
               why: 那样就不能直接算出 xs[i] 的地址了
           explain: 这一课照着教材的 ArrayStack 自己做一个：满了就换一个两倍大的。
       - card:
@@ -312,7 +312,7 @@ lessons:
           type: choice
           prompt: 不算 resize 的话，在 ArrayStack 的末尾放进和取出一个元素要几步？
           options:
-            - text: O(1)，因为不用挪任何元素
+            - text: O(1)，不用挪元素
               correct: true
             - text: O(n)，因为要挪动所有元素
               why: 只有在开头或中间增删才要挪；末尾后面没有元素
@@ -382,7 +382,7 @@ lessons:
           options:
             - text: 每次操作都要搬 8 个元素
               correct: true
-            - text: 只在第一次搬，以后都很快
+            - text: 只在第一次搬，以后数组大小稳定，都很快
               why: 放一个就翻倍，删一个又正好一半，于是又减半；每次都换数组
           explain: 两条规则的门槛挨得太近，操作在门槛上来回跳，每次都触发搬家。
       - item:
@@ -470,9 +470,9 @@ lessons:
           type: choice
           prompt: 和 ArrayStack 比，RootishArrayStack 换来了什么、付出了什么？
           options:
-            - text: 空着的格子少得多；代价是 get(i) 要先算块号，稍慢一点
+            - text: 空格子少得多；get(i) 要先算块号，稍慢
               correct: true
-            - text: 在中间插入变成了 O(1)
+            - text: 在中间插入变成了 O(1)，只挪一个块里的元素
               why: 插入后面的元素仍然要一个个挪，还是 O(1 + n − i)
             - text: get(i) 变成了 O(n)
               why: 块号用公式直接算出来，get 仍然是 O(1)
@@ -570,9 +570,9 @@ lessons:
           type: choice
           prompt: SLList 为什么要专门记着 tail？
           options:
-            - text: 不用从头走到最后，就能在末尾加节点
+            - text: 在末尾加节点时不用从头走
               correct: true
-            - text: 为了能从尾巴往前走
+            - text: 为了能从尾巴往前走，倒着遍历
               why: 单链表只有 next，没有指回前一个节点的 prev，从 tail 也走不回去
             - text: 为了让 pop 更快
               why: pop 在头上取，用的是 head
@@ -605,7 +605,7 @@ lessons:
               correct: true
             - text: 在头上放一个
               why: push 只改 head，O(1)
-            - text: 在末尾加一个
+            - text: 在末尾加一个新节点
               why: 有 tail，直接接在后面，O(1)
           explain: 删最后一个要找到倒数第二个，而单链表只能从头往后走。
 
@@ -637,7 +637,7 @@ lessons:
           options:
             - text: dummy 自己
               correct: true
-            - text: None
+            - text: None，空链表里没有节点
               why: 教材的 DLList 连成一个圈，没有 None；空的时候圈里只有 dummy
           explain: 只有 dummy 一个节点的圈：它的 next 和 prev 都是它自己。
       - card:
@@ -684,7 +684,7 @@ lessons:
           options:
             - text: O(1)
               correct: true
-            - text: O(n)
+            - text: O(n)，要先从头走到 w 的前一个
               why: 前后两个邻居都能从 w 直接找到，不用走
           explain: 只改两个指向。
       - card:
@@ -745,7 +745,7 @@ lessons:
           options:
             - text: 大约 10 个
               correct: true
-            - text: 大约 95 个
+            - text: 大约 95 个，一个一个数过去
               why: 那是每个节点只存一个元素的 DLList；这里一次跳过一整块
             - text: 1 个
               why: 不能直接算出在哪个节点，还是要从头一块一块走
@@ -777,9 +777,9 @@ lessons:
           type: choice
           prompt: 一份一百万个元素的名单，程序经常要“取第 i 个”，几乎从不在中间插入。用哪种最合适？
           options:
-            - text: 数组（ArrayStack 或 Python 列表）
+            - text: 数组，比如 Python 列表
               correct: true
-            - text: DLList
+            - text: DLList，从近的那一头走过去就行
               why: DLList 取第 i 个要走 min(i, n − i) 步，最多五十万步
           explain: 数组按下标取是 O(1)，正好是这个程序最常做的事。
 
@@ -893,7 +893,7 @@ lessons:
           options:
             - text: 读到 ) 时，栈顶是 [
               correct: true
-            - text: 读完时栈不空
+            - text: 读完时栈不空，才知道不配对
               why: 读到第三个字符 ) 时就已经发现栈顶的 [ 和它不配对了
             - text: 它是配对的
               why: '( 和 ) 中间夹着一个没关上的 [，不能算配对'
@@ -1083,20 +1083,20 @@ lessons:
           type: choice
           prompt: DualArrayDeque 的 front 有 2 个元素，back 有 7 个。按“超过 3 倍就重新平衡”，现在会重新平衡吗？
           options:
-            - text: 会，7 超过了 2 的 3 倍
+            - text: 会，7 > 2 × 3
               correct: true
-            - text: 不会
-              why: 2 × 3 = 6 < 7，back 已经超过 front 的 3 倍
+            - text: 不会，front 里还有元素，不用平衡
+              why: 规则看的是两边个数的比例，不看 front 空没空：2 × 3 = 6 < 7，back 已经超过 front 的 3 倍
           explain: 重新平衡后各有大约一半：9 个元素分成 4 和 5。
       - item:
           id: why-balance
           type: choice
           prompt: 如果 DualArrayDeque 从不重新平衡，一直从前面取，会出什么问题？
           options:
-            - text: front 被取空以后，再从前面取就要去动 back 的开头，又要挪动很多元素
+            - text: front 取空后要从 back 开头取，又要挪很多元素
               correct: true
-            - text: 不会有问题
-              why: back 是正着存的，从它的开头取要挪动它所有的元素
+            - text: 不会有问题，front 空了就从 back 末尾取，还是 O(1)
+              why: back 末尾是最后放进去的元素，不是排在最前面的那个；最前面的在 back 的开头，从那里取要挪动 back 所有的元素
           explain: 平衡保证两个栈都留着一些元素，两头取都只动栈的末尾。
 
   - id: hash-chaining
@@ -1113,7 +1113,7 @@ lessons:
               correct: true
             - text: 把键排好序，每次从中间找
               why: 那样要比较大约 20 次，键越多越慢；字典的做法几乎不随键数变慢
-            - text: 一个一个比过去
+            - text: 一个一个比过去，只是电脑比得很快
               why: 一百万个键就要比一百万次
           explain: 字典底下是一张哈希表：用键算出格子的编号，直接去那里找。
       - card:
@@ -1171,9 +1171,9 @@ lessons:
           type: choice
           prompt: 如果哈希函数写成对所有键都交回 0，用拉链法的哈希表会怎样？
           options:
-            - text: 所有键都挂在 0 号格子，查找要一个个比，变成 O(n)
+            - text: 全挤在 0 号格子，查找变成 O(n)
               correct: true
-            - text: 照样 O(1)
+            - text: 照样 O(1)，哈希表的查找总是一步就到
               why: O(1) 的前提是键被分散到各个格子；全挤在一格就退化成一个列表
           explain: 哈希表快不快，全看哈希函数能不能把键分散开。
       - card:
@@ -1195,7 +1195,7 @@ lessons:
           type: choice
           prompt: 拉链法的哈希表为什么在 n 超过 m 时要换成更大的表？
           options:
-            - text: 让每个列表保持很短，查找才是 O(1)
+            - text: 让每个列表保持很短
               correct: true
             - text: 因为格子放满了，放不下了
               why: 拉链法每格是列表，永远放得下；问题是列表会越来越长
@@ -1268,9 +1268,9 @@ lessons:
           type: choice
           prompt: 线性探测的表里删除一个键，为什么不能直接把它的格子改成空的？
           options:
-            - text: 后面因为冲突挪过去的键会查不到：查找走到空格子就停了
+            - text: 冲突时挪到后面的键会查不到
               correct: true
-            - text: 因为空格子不能再放新的键
+            - text: 因为空格子以后不能再放新的键
               why: 空格子当然能放；问题在查找，会提前停下
             - text: 因为删除以后表要变小
               why: 删除不改变表的大小
@@ -1333,7 +1333,7 @@ lessons:
           options:
             - text: 如果 x == y，那么 hash(x) == hash(y)
               correct: true
-            - text: 如果 x != y，那么 hash(x) != hash(y)
+            - text: 如果 x != y，那么 hash(x) 一定不等于 hash(y)
               why: 这条只是“最好”，做不到也可以（冲突本来就有办法处理）；反过来那条才是必须的
           explain: 相等的键必须去同一个格子，否则查找会落空。
       - card:
@@ -1691,7 +1691,7 @@ lessons:
               correct: true
             - text: 每加一个叶子都会变高
               why: 大多数时候新叶子只是加在已有的那一层
-            - text: 某个节点有了 5 个孩子的时候
+            - text: 某个节点有了 5 个孩子、要分裂的时候
               why: 那只会让它分裂，分裂停在根以下时高度不变
           explain: 根分裂造出新根，所有叶子一起深一层。
       - card:
@@ -1747,10 +1747,10 @@ lessons:
           type: choice
           prompt: 一棵树：根 10（黑），左孩子 5（红），右孩子 15（红），5 的左孩子 3（红）。它是合格的红黑树吗？
           options:
-            - text: 不是，红色的 5 有红色的孩子 3
+            - text: 不是，5 和 3 都是红的
               correct: true
-            - text: 是
-              why: 违反了“没有红边”：红节点的孩子不能是红的
+            - text: 是，根是黑的，每条路上黑节点一样多
+              why: 黑节点一样多还不够，还要满足“没有红边”：红节点的孩子不能是红的，5 和 3 连成了一条红边
           explain: 两个红节点相连，就不对应任何合格的 2-4 节点。
       - item:
           id: black-height
@@ -2026,7 +2026,7 @@ lessons:
           options:
             - text: 是最少的边数
               correct: true
-            - text: 是最多的边数
+            - text: 不一定最少，要看先走哪个邻居
               why: BFS 一层层往外，近的先被发现，所以第一次发现时走的就是最近的路
           explain: 这让 BFS 能算出“最少几步能到”（每条边一样长时）。
 
@@ -2064,7 +2064,7 @@ lessons:
           options:
             - text: 0 ≤ j < len(a)
               correct: true
-            - text: n ≤ len(a)
+            - text: n ≤ len(a)，元素会放到数组外面
               why: remove 让 n 变小，这条不会坏；坏的是 j 会一直加到超出数组
           explain: j 走到 len(a) 时不绕回 0，下一次读 a[j] 就超出了数组的范围。
       - card:
@@ -2156,7 +2156,7 @@ lessons:
               correct: true
             - text: 普通的队列，先来先处理
               why: 后来的病人可能更危急，不能只按先来后到
-            - text: 每来一个病人就把整个名单重新排序
+            - text: 每来一个病人就把整个名单重新排一遍，最紧急的排在最前面
               why: 每次都全排一遍太慢了，只需要随时知道最紧急的是谁
           explain: 这叫优先队列，常用二叉堆来做。
       - card:
@@ -2305,7 +2305,7 @@ lessons:
           options:
             - text: 两个根里较小的那个
               correct: true
-            - text: 随机选一个根
+            - text: 随机选一个，靠抛硬币决定
               why: 随机的只是往左还是往右合并；根总是较小的那个，这样堆序才成立
           explain: 第 2 步保证了较小的根留在最上面。
       - card:
@@ -2338,7 +2338,7 @@ lessons:
           options:
             - text: O(log n)
               correct: true
-            - text: O(1)
+            - text: O(1)，拿走根就行
               why: 拿走根是 O(1)，但还要把左右两棵子树 merge 起来，期望 O(log n)
             - text: O(n)
               why: 随机选边让 merge 的路径期望很短，不会走遍所有节点
@@ -2350,7 +2350,7 @@ lessons:
           options:
             - text: 经常要把两个优先队列合并成一个
               correct: true
-            - text: 只需要放进和取出最小值
+            - text: 只需要放进和取出最小值，而且要尽量快
               why: 那样 BinaryHeap 就够了，数组存储还更省空间、更快
           explain: 合并是 MeldableHeap 的长处：期望 O(log n)，而数组堆合并要一个个放。
 
@@ -2390,9 +2390,9 @@ boss:
       type: choice
       prompt: 下面哪一条对**所有**合格的红黑树都成立？
       options:
-        - text: 从根到任何一个空位置，路上的黑色节点个数都一样
+        - text: 根到每个空位置的黑节点数都一样
           correct: true
-        - text: 所有叶子都在同一层
+        - text: 所有叶子都在同一层，和 2-4 树一样
           why: 那是 2-4 树的性质；红黑树里红节点会让有的路长一些，最多是另一条的两倍
         - text: 红色节点和黑色节点一样多
           why: 红黑树没有这种要求，甚至可以一个红节点都没有

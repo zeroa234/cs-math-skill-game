@@ -137,10 +137,22 @@ recommended:
       sources:
         - { name: ACM/IEEE CS2023, url: "https://csed.acm.org/final-report/" }
 
+  - id: ce
+    status: open
+    name: 计算机工程
+    goal: C.1.2
+    also: [H.1.1, F.1.2, H.1.2, H.3.1, C.3.2, I.2.1, S.1.1, E.2.1, P.4.1, C.2.1, P.1.1]
+    tagline: 从第一行代码走到“软件和硬件在同一块板子上握手”
+    story: >-
+      你的目标是同时懂软件和硬件：电路和数字逻辑怎样搭成处理器，处理器怎样执行程序，操作系统和嵌入式程序怎样管理硬件，信号怎样被采样和处理，系统怎样联网、怎样保证安全。这条路覆盖计算机工程专业标准要求的全部 12 个核心知识领域。
+    evidence:
+      line: 按 ACM/IEEE《Computer Engineering Curricula 2016》的 12 个核心知识领域（420 核心学时）排出，每个领域取树里覆盖它最多的技能。
+      sources:
+        - { name: ACM/IEEE CE2016, url: "https://www.acm.org/binaries/content/assets/education/ce2016-final-report.pdf" }
+
   # 电子与电气方向（2026-11-22）。这几条不按上面的招聘调查选，而按专业标准选：目标技能 = 国标
-  # 《普通高等学校本科专业类教学质量国家标准》某个专业“核心课程体系示例”里的每门课在技能树里对应的技能，
-  # 计算机工程按 ACM/IEEE CE2016 的 12 个核心知识领域。对应表见 docs/recommended-routes.md 第 4 节。
-  # 这些技能还没有互动课，所以先以 dev（开发中）占位。
+  # 《普通高等学校本科专业类教学质量国家标准》某个专业“核心课程体系示例”里的每门课在技能树里对应的技能。
+  # 对应表见 docs/recommended-routes.md 第 4 节。以下四条还有技能未写互动课，先以 dev（开发中）占位。
   - id: telecom
     status: dev
     name: 通信工程
@@ -168,7 +180,7 @@ recommended:
         - { name: 电子信息类教学质量国家标准（扫描件，书 pp.304–314）, url: "https://www.sxcast.edu.cn/uploadfile/ueditor/file/202110/16339210845dcf64.pdf" }
 
   - id: power
-    status: dev
+    status: open
     name: 电气工程
     goal: E.3.3
     also: [H.1.1, H.1.2, H.1.4, H.3.2, E.1.1, H.1.3, H.4.1, E.2.3, E.3.2, E.3.1, E.2.1, E.3.5, H.1.5]
@@ -181,7 +193,7 @@ recommended:
         - { name: 电气类教学质量国家标准（扫描件，书 pp.298–303）, url: "https://dq.cqwu.edu.cn/SITE_ATTACHE/dq_cqwu_edu_cn/2024-05-21/upload/file/20240521/WZNi_1716274106507041598.pdf" }
 
   - id: automation
-    status: dev
+    status: open
     name: 电气控制与自动化
     goal: H.4.5
     also: [H.1.1, H.1.4, H.1.2, H.4.1, E.3.2, E.3.1, E.3.3, H.3.1, H.1.5]
@@ -192,16 +204,3 @@ recommended:
       line: 按国标电气类“核心课程体系示例三”排出（教学质量国家标准，2018，书 p.302）。
       sources:
         - { name: 电气类教学质量国家标准（扫描件，书 pp.298–303）, url: "https://dq.cqwu.edu.cn/SITE_ATTACHE/dq_cqwu_edu_cn/2024-05-21/upload/file/20240521/WZNi_1716274106507041598.pdf" }
-
-  - id: ce
-    status: dev
-    name: 计算机工程
-    goal: C.1.2
-    also: [H.1.1, F.1.2, H.1.2, H.3.1, C.3.2, I.2.1, S.1.1, E.2.1, P.4.1, C.2.1, P.1.1]
-    tagline: 从第一行代码走到“软件和硬件在同一块板子上握手”
-    story: >-
-      你的目标是同时懂软件和硬件：电路和数字逻辑怎样搭成处理器，处理器怎样执行程序，操作系统和嵌入式程序怎样管理硬件，信号怎样被采样和处理，系统怎样联网、怎样保证安全。这条路覆盖计算机工程专业标准要求的全部 12 个核心知识领域。
-    evidence:
-      line: 按 ACM/IEEE《Computer Engineering Curricula 2016》的 12 个核心知识领域（420 核心学时）排出，每个领域取树里覆盖它最多的技能。
-      sources:
-        - { name: ACM/IEEE CE2016, url: "https://www.acm.org/binaries/content/assets/education/ce2016-final-report.pdf" }

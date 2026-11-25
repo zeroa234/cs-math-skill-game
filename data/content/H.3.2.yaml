@@ -130,7 +130,7 @@ lessons:
           prompt: |
             单片机程序里有两个全局变量：`int threshold = 42;` 和 `int counter;`。程序烧在 Flash 里，上电时 RAM 里是不确定的值。可是 `main` 一开始读到的 threshold 就是 42，counter 就是 0。猜一猜：这是谁做的？
           options:
-            - text: 一段在 main 之前运行的启动代码：把初值从 Flash 复制到 RAM，再把其余全局变量清零
+            - text: main 之前运行的启动代码，把初值搬进 RAM、其余清零
               correct: true
             - text: 编译器在编译时直接把 42 写进了板子的 RAM
               why: 编译时板子还没上电，编译器只能把 42 放进要烧进 Flash 的文件里；上电后得有代码把它搬到 RAM
@@ -229,9 +229,9 @@ lessons:
           type: choice
           prompt: '全局变量 `int zero_init = 0;` 写了初值 0。GCC 默认把它放进哪一段？'
           options:
-            - text: .bss，和没写初值的变量放在一起
+            - text: .bss，和没写初值的一起
               correct: true
-            - text: .data，因为它写了初值
+            - text: .data，因为它写了初值 0
               why: 初值是 0 的变量不用在 Flash 里存一份 0，启动时清零就行；GCC 默认把它放进 .bss，省下 Flash
             - text: .rodata，因为它的值是常数
               why: 它没有 const，程序可以改它，必须放在可写的段里
@@ -257,9 +257,9 @@ lessons:
           type: choice
           prompt: '单片机程序里有 `const int table[4] = {1, 2, 3, 4};`。上电后，启动代码要把它复制到 RAM 吗？'
           options:
-            - text: 不用，它在 .rodata 里，留在 Flash 中，CPU 直接从 Flash 读
+            - text: 不用，它在 .rodata 里，CPU 直接从 Flash 读
               correct: true
-            - text: 要，所有全局变量都要搬进 RAM
+            - text: 要，所有全局变量都要搬进 RAM，CPU 只能从 RAM 读数据
               why: 只有可写的 .data 才需要搬；只读的数据 CPU 可以直接从 Flash 读
             - text: 要把它清零
               why: 它有确定的初值，清零会毁掉它；而且它在 Flash 里，启动代码也没法随便写
@@ -323,7 +323,7 @@ lessons:
           type: choice
           prompt: 64 位 ARM 板子上，U-Boot 跳到 Linux 内核时，用什么告诉内核设备树在内存的哪里？
           options:
-            - text: 把设备树在内存中的地址放在寄存器 x0 里
+            - text: 把地址放在寄存器 x0 里
               correct: true
             - text: 把设备树的地址写进 bootargs
               why: bootargs 是内核命令行文本；设备树地址按内核的启动约定放在寄存器里
@@ -421,7 +421,7 @@ lessons:
           prompt: |
             想让板子以后每次启动，传给内核的命令行都是 `console=ttyS0,115200 root=/dev/mmcblk0p2 rootwait`。在 U-Boot 命令行里应该执行什么？
           options:
-            - text: 先 setenv bootargs 设成这段文字，再 saveenv
+            - text: setenv bootargs 设成这段文字，再 saveenv
               correct: true
             - text: 先 setenv bootcmd 设成这段文字，再 saveenv
               why: bootcmd 是 U-Boot 自己要执行的命令；传给内核的命令行是 bootargs
@@ -591,7 +591,7 @@ lessons:
           type: choice
           prompt: 你要在一块板子上快速试一颗新的 I²C 传感器，读出它的 0 号寄存器，看看接线对不对。最省事的办法是？
           options:
-            - text: 在用户态程序里通过 /dev/i2c-1 直接读
+            - text: 用户态通过 /dev/i2c-1 直接读
               correct: true
             - text: 先写一个完整的内核驱动
               why: 能行，但只为确认接线，写驱动太费事
@@ -603,9 +603,9 @@ lessons:
           type: choice
           prompt: 一个产品里，传感器的数据要同时给三个程序用，而且传感器有一根数据就绪的中断线。为什么这时更适合写内核驱动，而不是让每个程序自己去读 /dev/i2c-1？
           options:
-            - text: 驱动能响应中断，并统一管理对总线的访问，几个程序不会互相打断对方的读写
+            - text: 驱动能响应中断，并统一管理总线访问
               correct: true
-            - text: 用户态程序不能读 I²C
+            - text: 用户态程序不能读 I²C，只有驱动能读
               why: 通过 /dev/i2c-N 可以读；问题在于中断和多个程序共用
             - text: 驱动的代码一定比用户态程序跑得快
               why: 速度不是主要原因，关键是中断处理和统一管理
@@ -665,7 +665,7 @@ lessons:
           options:
             - text: 这颗芯片在 I²C 总线上的地址
               correct: true
-            - text: 这颗芯片寄存器所在的内存地址
+            - text: 这颗芯片的寄存器在 CPU 内存空间里的地址
               why: reg 的含义由父总线决定；父节点是 I²C 控制器，所以它是 I²C 从机地址
             - text: 它用的中断号
               why: 中断写在 interrupts 属性里
@@ -763,11 +763,11 @@ lessons:
           type: choice
           prompt: 你在设备树里写了 compatible = "ti,tmp102"，想知道内核里哪个驱动会接手它。最直接的办法是？
           options:
-            - text: 在内核源码的 drivers/ 目录里搜字符串 "ti,tmp102"
+            - text: 在内核源码里搜 "ti,tmp102"
               correct: true
             - text: 在板子的 /dev 下找叫 tmp102 的文件
               why: 不是每个驱动都在 /dev 建文件；温度传感器驱动一般出现在 /sys/class/hwmon 下
-            - text: 在源码里搜 0x48
+            - text: 在内核源码里搜这块板子上的地址 0x48
               why: 0x48 是这块板子上的地址，换一块板子可能就变了；驱动是按 compatible 认设备的
           explain: compatible 字符串是驱动和设备树之间的约定，驱动源码里一定写着它。
   - id: kernel-module
@@ -830,11 +830,11 @@ lessons:
             MODULE_LICENSE("GPL");
           lang: c
           options:
-            - text: 先 hello loaded，后 hello unloaded，用 dmesg 看到
+            - text: 先 hello loaded，后 hello unloaded，在 dmesg 里
               correct: true
             - text: 只有 hello loaded
               why: 卸载时调用 module_exit 指定的函数，它也打印了一行
-            - text: 两行都打印在执行 insmod 的终端上
+            - text: 先 hello loaded，后 hello unloaded，都打印在执行命令的终端上
               why: 内核代码没有终端可写；pr_info 写进内核日志，要用 dmesg 看
           explain: 内核日志是内核里的一块环形缓冲区，dmesg 把它读出来。真实的输出前面还会带上时间戳。
       - card:
@@ -859,7 +859,7 @@ lessons:
           type: choice
           prompt: 模块 B 用到了模块 A 导出的函数，两个模块都已装在 /lib/modules 下并运行过 depmod。你执行 insmod B.ko 失败，dmesg 里提示 Unknown symbol。最合适的做法是？
           options:
-            - text: 改用 modprobe B，它会先加载 A
+            - text: 改用 modprobe B
               correct: true
             - text: 重启板子再 insmod B.ko
               why: 重启后 A 仍然没有加载，结果一样
@@ -956,9 +956,9 @@ lessons:
           type: choice
           prompt: 设备树节点写着 compatible = "acme,hello-v2", "acme,hello";，驱动的 of_match_table 里只有 "acme,hello"。它们能配上吗？
           options:
-            - text: 能：节点列出的任何一个 compatible 和驱动表里的对上就行
+            - text: 能：对上节点列出的任何一个就行
               correct: true
-            - text: 不能：必须和第一个完全一样
+            - text: 不能：必须和第一个字符串完全一样
               why: compatible 是从具体到通用的一串字符串，后面的通用值正是为了让老驱动也能接手新设备
             - text: 不能：节点只能写一个 compatible
               why: 设备树规范允许写一串字符串
@@ -985,7 +985,7 @@ lessons:
           type: choice
           prompt: 平台驱动的 probe 里，devm_request_irq 成功了，可后面一步失败，probe 返回了错误码。这个中断要不要在出错路径里手动释放？
           options:
-            - text: 不用：devm_ 申请的资源在 probe 失败或解绑时由内核自动释放
+            - text: 不用，内核会自动释放
               correct: true
             - text: 要，否则这个中断会一直登记着
               why: 用普通的 request_irq 才需要手动 free_irq；devm_ 版本正是为了省掉这件事
@@ -1063,7 +1063,7 @@ lessons:
               correct: true
             - text: 块设备，主设备号 4，次设备号 65
               why: 开头的 c 表示字符设备，块设备是 b
-            - text: 字符设备，主设备号 65，次设备号 4
+            - text: 字符设备，主设备号是 65，次设备号是 4
               why: 前一个是主设备号，后一个是次设备号
           explain: ttyS0 和 ttyS1 主设备号相同，由同一个驱动管；次设备号 64、65 区分是哪一个串口。
       - card:
@@ -1184,9 +1184,9 @@ lessons:
           options:
             - text: B，因为它最慢也不超过 6 ms
               correct: true
-            - text: A，因为它平均更快
+            - text: A，因为它平均更快，大多数时候只要 1 ms
               why: 气囊必须在规定时间内点火，偶尔一次 50 ms 就可能来不及；平均快没有用
-            - text: 两个都行
+            - text: 两个都行，平均都只要几毫秒，差别不大
               why: 偶尔 50 ms 的那个，在最要紧的那一次可能就是 50 ms
           explain: 这一课的核心：实时系统看的是最坏情况能不能按时，而不是平均有多快。
       - card:
@@ -1290,9 +1290,9 @@ lessons:
           options:
             - text: 采样任务（优先级 3）
               correct: true
-            - text: 两个轮流，各用一半时间
+            - text: 两个轮流运行，各用一半时间
               why: FreeRTOS 默认只有优先级相同的任务才轮流；优先级不同时，高的一直运行
-            - text: 先创建的那个
+            - text: 先创建的那个，它先拿到 CPU
               why: 创建的先后不影响谁运行，看的是优先级
           explain: 固定优先级的 RTOS 里，规则只有一条：可以运行的任务中，优先级最高的那个运行。
       - card:
@@ -1407,11 +1407,11 @@ lessons:
           type: choice
           prompt: 驱动的 read 函数发现设备还没有数据。正确的做法是？
           options:
-            - text: 让任务在等待队列上睡眠，数据到了由中断处理函数唤醒
+            - text: 在等待队列上睡眠，数据到了由中断唤醒
               correct: true
             - text: 在 read 里写一个空循环，不停检查数据有没有到
               why: 空循环白白占着 CPU，别的任务也没法运行；单核上可能永远等不到
-            - text: 直接返回 0
+            - text: 直接返回 0，告诉程序现在没数据，过会儿再读
               why: read 返回 0 表示文件结束，程序会以为设备再也没有数据了
           explain: 内核文档提醒：改了等待条件之后一定要调用 wake_up，否则睡着的任务不会醒来重新检查条件。
   - id: periodic
@@ -1426,9 +1426,9 @@ lessons:
           options:
             - text: 大约每 12 ms 一次
               correct: true
-            - text: 正好每 10 ms 一次
+            - text: 正好每 10 ms 一次，和设的一样
               why: vTaskDelay 从调用的那一刻开始算 10 ms，读传感器的 2 ms 要另外加上
-            - text: 每 8 ms 一次
+            - text: 每 8 ms 一次，读传感器的 2 ms 算在睡眠里
               why: 读传感器的时间不会从睡眠里扣掉，只会加上去
           explain: 这种“越跑越慢”的漂移，是写周期任务时最常见的错误。
       - card:
@@ -1603,9 +1603,9 @@ lessons:
           type: choice
           prompt: 三个互相独立、截止时间等于周期的周期任务，总利用率 0.75，按 RM 排优先级。能得出什么结论？
           options:
-            - text: 一定来得及，因为 0.75 不超过 3 个任务的上界 0.780
+            - text: 一定来得及，因为 0.75 ≤ 0.780
               correct: true
-            - text: 一定来不及，因为 0.75 大于 0.693
+            - text: 一定来不及，因为 0.75 大于上界 0.693
               why: 0.693 是任务很多时上界趋近的值；3 个任务的上界是 0.780
             - text: 不能下结论，要另外算
               why: 利用率在上界之内时，Liu–Layland 定理直接保证来得及
@@ -1617,7 +1617,7 @@ lessons:
           options:
             - text: 利用率上界判断不了，要用别的方法逐个算
               correct: true
-            - text: 一定来不及，因为超过了 0.780
+            - text: 一定来不及，因为已经超过了上界 0.780
               why: 上界只是充分条件；超过它不等于来不及
             - text: 一定来得及，因为没有超过 1
               why: U ≤ 1 是必要条件，不能保证固定优先级排法一定来得及
@@ -1703,7 +1703,7 @@ lessons:
           type: choice
           prompt: 采样任务每 10 ms 产生一个数，通信任务偶尔要花 200 ms 才发完一批。猜一猜：用一个全局变量把数从采样任务传给通信任务，会怎样？
           options:
-            - text: 通信任务忙的时候，新数据会覆盖还没发出去的旧数据
+            - text: 新数据会覆盖还没发出去的旧数据
               correct: true
             - text: 没问题，通信任务回来后会一个个发出去
               why: 一个变量只能存一个数，200 ms 里来的 20 个数会互相覆盖
@@ -1832,7 +1832,7 @@ lessons:
           type: choice
           prompt: 有人在串口中断服务程序里写了 xQueueSend(q, &c, portMAX_DELAY)。问题在哪？
           options:
-            - text: 中断服务程序里不能阻塞，也不能调用普通版本的 API，要用 xQueueSendFromISR
+            - text: 中断里不能阻塞，要用 xQueueSendFromISR
               correct: true
             - text: 没问题，中断里也可以等
               why: FreeRTOS 文档写明 xQueueSend 不能在中断服务程序里调用；中断里阻塞会卡住整个系统
@@ -1871,9 +1871,9 @@ lessons:
           options:
             - text: 可能小于 2000
               correct: true
-            - text: 一定是 2000
+            - text: 一定是 2000，每个任务都加了 1000 次
               why: 一句 C 会变成读、加、写三步，中间可能被切走
-            - text: 一定是 1000
+            - text: 一定是 1000，两个任务的加法会撞在一起
               why: 只有每一次加法都恰好撞上才会这样，通常结果在 1000 到 2000 之间
           explain: 单片机那一关讲过中断和主循环共享变量的问题；任务之间互相抢占，也是同一回事。
       - card:
@@ -1919,7 +1919,7 @@ lessons:
           type: choice
           prompt: Linux 驱动里，中断处理函数和 read 函数共享一个计数器。能不能用 mutex 保护它？
           options:
-            - text: 不能：mutex 拿不到时会睡眠，中断处理函数里不允许睡眠，应该用自旋锁
+            - text: 不能：mutex 会睡眠，中断里要用自旋锁
               correct: true
             - text: 能，mutex 在哪里都能用
               why: 内核文档写明睡眠锁只能在可抢占的任务上下文里获取，中断处理函数不是
@@ -2162,7 +2162,7 @@ lessons:
           type: choice
           prompt: 在打开 PREEMPT_RT 的内核里，一段持有 spinlock_t 的驱动代码正在运行，一个更高优先级的实时线程被唤醒。会怎样？
           options:
-            - text: 驱动代码可以被抢占，因为 spinlock_t 已经变成会睡眠、带优先级继承的 rtmutex
+            - text: 可以被抢占：spinlock_t 已经变成会睡眠的 rtmutex
               correct: true
             - text: 驱动代码一定先跑完临界区，因为持自旋锁时不能被抢占
               why: 那是非 RT 内核的规矩；PREEMPT_RT 正是改掉了这一点
@@ -2270,11 +2270,11 @@ lessons:
           type: choice
           prompt: 两个设备共用一根中断线。中断来了，你的处理函数读状态寄存器，发现自己的设备并没有请求中断。应该怎么做？
           options:
-            - text: 什么也不动，返回 IRQ_NONE
+            - text: 返回 IRQ_NONE
               correct: true
             - text: 返回 IRQ_HANDLED
               why: 那等于谎称处理了；没人认领的中断内核会统计，用来发现出故障一直乱发中断的设备
-            - text: 关掉这根中断线
+            - text: 关掉这根中断线，免得它再来
               why: 另一个设备还在用它，关掉以后那个设备也收不到中断了
           explain: 共享中断线上，每个处理函数只认领自己设备的中断。
       - card:
@@ -2414,7 +2414,7 @@ lessons:
           type: choice
           prompt: 一台工控机上，cyclictest 在系统空闲时测出的最大延迟，反而比满负载时还大。最可能的原因是？
           options:
-            - text: 空闲时 CPU 进入了深度空闲状态，从里面醒来要更久
+            - text: CPU 进了深度空闲状态，醒来要更久
               correct: true
             - text: 空闲时内核会降低实时线程的优先级
               why: 内核不会因为空闲就改实时线程的优先级
@@ -2443,13 +2443,13 @@ lessons:
           type: choice
           prompt: 启动参数加了 isolcpus=3 之后，要让实时线程真的在 CPU 3 上运行，还要做什么？
           options:
-            - text: 用 taskset 或 pthread_setaffinity_np 把这个线程绑定到 CPU 3
+            - text: 用 taskset 把这个线程绑到 CPU 3
               correct: true
-            - text: 什么都不用做，实时线程会自动去 CPU 3
+            - text: 什么都不用做，实时线程会被自动搬到 CPU 3 上
               why: 隔离只是让调度器不再自动往 CPU 3 放任务，不会主动把谁搬过去
             - text: 把 CPU 3 的频率调到最低
               why: 降频只会让它更慢，和把线程放过去无关
-          explain: 隔离出来的核是空的，要显式地把实时线程放上去。
+          explain: 隔离出来的核是空的，要显式地把实时线程放上去：在命令行用 taskset，在程序里用 pthread_setaffinity_np。
   # ---------------------------------------------------------------- 资源
   - id: kernel-memory
     chapter: 资源
@@ -2537,9 +2537,9 @@ lessons:
           type: choice
           prompt: 中断处理函数里要临时分配 64 字节。应该怎么写？
           options:
-            - text: kmalloc(64, GFP_ATOMIC)，并检查返回值是不是 NULL
+            - text: kmalloc(64, GFP_ATOMIC)
               correct: true
-            - text: kmalloc(64, GFP_KERNEL)
+            - text: kmalloc(64, GFP_KERNEL)，并检查返回值
               why: GFP_KERNEL 可能睡眠，中断处理函数里不允许
             - text: vmalloc(64)
               why: vmalloc 可能睡眠，不能在中断里用；为 64 字节专门建一段映射也很浪费
@@ -2673,11 +2673,11 @@ lessons:
           type: choice
           prompt: 你想知道驱动有没有走到某个分支，可是内核里没有 printf。猜一猜怎么办？
           options:
-            - text: 用 pr_info 这类函数把信息写进内核日志，再用 dmesg 看
+            - text: 用 pr_info 写进内核日志，用 dmesg 看
               correct: true
             - text: 驱动里没法调试，只能靠猜
               why: 内核有一整套调试手段，打印只是最简单的一种
-            - text: 在驱动里调用 printf，输出会出现在终端上
+            - text: 在驱动里照样调用 printf，输出会显示在串口终端上
               why: 内核代码不能用 C 语言的标准函数库，也没有终端可写
           explain: 这一课从最简单的打印讲起，再到查看内部状态、读崩溃信息、单步调试和卡死时的急救。
       - card:
@@ -2711,7 +2711,7 @@ lessons:
           options:
             - text: sysfs，它是给正式功能用的稳定接口
               correct: true
-            - text: debugfs，因为写起来更省事
+            - text: debugfs，因为写起来更省事，功能也一样
               why: debugfs 不是稳定接口，有的系统根本不挂载它，正式功能不能依赖它
             - text: 两个都行，没有区别
               why: 两者的定位不同：sysfs 给正式功能，debugfs 只供调试
@@ -2800,9 +2800,9 @@ lessons:
           options:
             - text: 约 0.2 mA
               correct: true
-            - text: 约 10 mA
+            - text: 约 10 mA，干活和睡眠取中间
               why: 干活时间只占 1%，平均值远低于干活时的电流
-            - text: 约 20 mA
+            - text: 约 20 mA，醒来时的电流说了算
               why: 那是干活时的电流，只持续 1% 的时间
           explain: 平均电流按时间加权：20 mA × 1% + 0.01 mA × 99% ≈ 0.21 mA。
       - card:
@@ -2839,7 +2839,7 @@ lessons:
           type: choice
           prompt: 驱动在一条出错返回的路径上调用了 pm_runtime_get_sync，却忘了 pm_runtime_put。会怎样？
           options:
-            - text: 使用计数永远不会归零，设备一直上电，省不了电
+            - text: 计数不归零，设备一直上电
               correct: true
             - text: 设备马上断电，后面的访问会出错
               why: 正好相反：多了一次 get，计数降不到 0，设备不会被关掉
@@ -2879,9 +2879,9 @@ lessons:
           type: choice
           prompt: 一个设备要求中断来了 50 μs 内必须开始处理。某块板子上，CPU 最深的空闲状态退出延迟是 300 μs。该怎么办？
           options:
-            - text: 禁止 CPU 进入退出延迟超过 50 μs 的空闲状态
+            - text: 禁用退出延迟超过 50 μs 的空闲状态
               correct: true
-            - text: 不用管，空闲状态只影响功耗
+            - text: 不用管，空闲状态只影响功耗，不影响响应时间
               why: 从 300 μs 退出延迟的状态醒来，单是醒来就超过了 50 μs 的要求
             - text: 把 CPU 频率调到最低来省电
               why: 降频只会让处理更慢，和要求背道而驰
@@ -2937,11 +2937,11 @@ lessons:
           type: choice
           prompt: STM32 的独立看门狗为什么用片内单独的低速振荡器 LSI 计时，而不用系统主时钟？
           options:
-            - text: 主时钟出了故障时，看门狗照样能数完并复位芯片
+            - text: 主时钟坏了它照样能复位芯片
               correct: true
-            - text: LSI 比主时钟精确得多
+            - text: LSI 比主时钟精确得多，计时更准
               why: LSI 是 RC 振荡器，精度并不高；用它是为了独立，不是为了精确
-            - text: 主时钟太快，计数器装不下
+            - text: 主时钟太快，计数器位数装不下
               why: 加大分频就能解决；关键是不依赖可能出故障的主时钟
           explain: 看门狗的价值在于独立：它依赖的东西越少，越能在别的部分出问题时兜底。
       - card:
@@ -2955,7 +2955,7 @@ lessons:
           type: choice
           prompt: 有人把喂狗放进了 1 ms 的定时器中断里。这样做的问题是什么？
           options:
-            - text: 某个任务卡死时，定时器中断仍在照常喂狗，看门狗起不到作用
+            - text: 任务卡死时中断照样喂狗
               correct: true
             - text: 1 ms 喂一次太频繁，会把看门狗喂坏
               why: 喂得勤不会损坏看门狗；问题在于喂狗的地方不能反映程序是否正常
@@ -3019,7 +3019,7 @@ lessons:
           type: choice
           prompt: 用 MCUboot 做 A/B 更新，新固件以测试方式启动后一直卡死，没能调用 boot_set_confirmed()，看门狗把芯片复位了。接下来会怎样？
           options:
-            - text: MCUboot 发现新镜像没被确认，把原来的镜像换回来启动
+            - text: 把原来的镜像换回来启动
               correct: true
             - text: 继续尝试启动新固件，直到它成功
               why: 测试启动只有一次机会，没确认就回退，这正是为了防止变砖
@@ -3069,9 +3069,9 @@ lessons:
           type: choice
           prompt: 设备每隔几天复位一次，日志显示复位原因都是独立看门狗。下一步最该做什么？
           options:
-            - text: 查看门狗复位前记下的信息，找出是哪个任务没有按时打卡
+            - text: 查复位前的记录，找出没按时打卡的任务
               correct: true
-            - text: 把看门狗超时改成 1 小时
+            - text: 把看门狗超时改成 1 小时，减少复位次数
               why: 这只是让复位来得更晚，卡死的问题还在
             - text: 关掉看门狗
               why: 关掉后设备卡死就再也恢复不了
@@ -3119,7 +3119,7 @@ boss:
       type: choice
       prompt: 字符设备驱动的 read 函数里，copy_to_user(buf, data, n) 的返回值不是 0。驱动该怎么做？
       options:
-        - text: 返回 -EFAULT：返回值是没能复制的字节数，说明用户给的地址有问题
+        - text: 返回 -EFAULT，有字节没复制成功
           correct: true
         - text: 把返回值原样返回给程序，表示读到了这么多字节
           why: 返回值是没复制的字节数，不是复制了多少
@@ -3132,7 +3132,7 @@ boss:
       type: choice
       prompt: 设备树里有一个启用的节点，compatible = "acme,adc-v2", "acme,adc"，pinctrl-0 指向它的引脚设置；内核里有一个 of_match_table 含 "acme,adc" 的平台驱动。下面哪句对？
       options:
-        - text: 驱动能配上这个节点；内核先把 default 引脚设置写进硬件，再调用驱动的 probe
+        - text: 能配上，内核先设好引脚再调用 probe
           correct: true
         - text: 配不上，compatible 必须和第一个字符串完全一致
           why: 节点列出的任何一个 compatible 和驱动表对上都行
@@ -3170,7 +3170,7 @@ boss:
       type: choice
       prompt: 一颗 SPI 接口的传感器，数据准备好时拉低中断线，驱动要通过 SPI 把数据读出来。Linux 驱动应该怎样处理这个中断？
       options:
-        - text: 用 request_threaded_irq：上半部只返回 IRQ_WAKE_THREAD，在线程函数里做 SPI 读取
+        - text: 用 request_threaded_irq，在线程函数里做 SPI 读取
           correct: true
         - text: 在中断处理函数里直接做 SPI 读取
           why: SPI 传输要等待，可能睡眠，中断上下文不允许睡眠
@@ -3194,7 +3194,7 @@ boss:
       type: choice
       prompt: 一台设备用 A/B 分区升级：新固件写进 B，以测试方式启动，自检通过才确认。新固件启动后卡死，没能确认，看门狗把芯片复位了。接下来会怎样？
       options:
-        - text: 引导程序发现 B 没被确认，回到 A 启动，设备恢复到旧版本
+        - text: 回到 A 启动，恢复旧版本
           correct: true
         - text: 引导程序继续启动 B，直到它成功
           why: 测试启动只给一次机会，没确认就回退，否则设备会一直卡在坏固件上

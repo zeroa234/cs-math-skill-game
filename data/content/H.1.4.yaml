@@ -1,0 +1,1932 @@
+skill: H.1.4
+version: 2
+authors: [main-agent]
+brief:
+  why: 手机充电器把 220 V 交流变成 5 V 直流，耳机放大器把微弱的音乐信号放大到能推动耳机，芯片里的运放、振荡器、稳压器，背后都是二极管和晶体管搭成的模拟电路。这一关从二极管讲起，接着是 MOSFET 和 BJT 怎样放大信号、差分对和电流镜、功率放大器、频率响应和负反馈，最后是振荡器和稳压电源。假设你学过电路基础（欧姆定律、基尔霍夫定律、戴维南等效、小信号模型和运算放大器的概念）。
+  outcomes:
+    - 用理想、恒压降、指数和小信号模型分析二极管电路，算整流输出、纹波和稳压管电路
+    - 判断 MOSFET 和 BJT 的工作区，算直流工作点、跨导 g_m、r_π、r_o
+    - 算共源、共栅、源极跟随器和共射、射极跟随器的增益、输入电阻和输出电阻
+    - 分析差分对的差模增益、共模增益和共模抑制比，说出电流镜和有源负载为什么能提高增益
+    - 区分甲类、乙类、甲乙类输出级，算乙类的最大效率，说出交越失真的成因和消除办法
+    - 用密勒定理和开路时间常数法估算放大器的上限截止频率
+    - 算负反馈放大器的闭环增益和增益灵敏度，用相位裕度判断稳定性
+    - 算 RC 文氏桥振荡器的频率和起振条件，设计整流滤波、稳压管和串联型稳压电路
+terms:
+  - term: 二极管
+    def: '只让电流朝一个方向通过的两端器件：阳极电压高于阴极时导通，反过来时截止'
+  - term: 理想二极管
+    def: '最简化的二极管模型：正向导通时相当于一根导线（压降为 0），反向时相当于断路'
+  - term: 恒压降模型
+    def: '把导通的硅二极管看成一个 0.7 V 的固定压降，截止时看成断路'
+  - term: 热电压
+    def: 'V_T = kT/q，室温下约 25 mV；二极管和 BJT 的电流随电压按 e^{v/V_T} 变化'
+  - term: 稳压管
+    def: '工作在反向击穿区的二极管（齐纳二极管），反向电流在很大范围内变化时两端电压几乎不变，约为 V_Z'
+  - term: 整流
+    def: '用二极管把交流电变成单方向的脉动电流'
+  - term: 纹波
+    def: '整流滤波后直流输出上残留的周期性起伏，峰峰值记作 V_r；开关电源的纹波也这样量，常写成 ΔV_o、ΔI_L'
+  - term: 限幅电路
+    def: '用二极管把输出电压限制在某个上限或下限以内、超出部分被削掉的电路'
+  - term: 钳位电路
+    def: '用电容和二极管把交流信号整体平移、使波形的最低点（或最高点）固定在某个电平的电路'
+  - term: MOSFET
+    def: '金属-氧化物-半导体场效应晶体管：栅极电压控制源极和漏极之间沟道的导电能力，栅极几乎不取电流'
+  - term: 阈值电压
+    def: 'MOSFET 开始形成导电沟道所需的最小栅源电压 V_t'
+  - term: 过驱动电压
+    def: '栅源电压超过阈值电压的部分 V_ov = V_GS − V_t'
+  - term: 三极管区
+    def: 'MOSFET 的 v_DS 小于 V_ov 时的工作区，沟道像一个受栅压控制的电阻（也叫可变电阻区）'
+  - term: 饱和区
+    def: 'MOSFET 的 v_DS ≥ V_ov 时的工作区，漏极电流基本只由 V_ov 决定，i_D = ½k_n′(W/L)V_ov²；放大时工作在这里'
+  - term: 跨导
+    def: '输出电流的变化和输入电压的变化之比 g_m = Δi/Δv，单位 S（西门子）；MOSFET g_m = 2I_D/V_ov，BJT g_m = I_C/V_T'
+  - term: 沟道长度调制
+    def: '饱和区的 MOSFET 漏极电流随 v_DS 增大而略微增大的现象，用输出电阻 r_o = V_A/I_D 表示'
+  - term: 共源放大器
+    def: '信号从栅极输入、从漏极输出、源极接交流地的 MOSFET 放大器，电压增益约 −g_mR_D'
+  - term: 源极跟随器
+    def: '信号从栅极输入、从源极输出的 MOSFET 放大器（共漏），电压增益略小于 1，输出电阻约 1/g_m'
+  - term: 体效应
+    def: '源极和衬底之间有电压 V_SB 时 MOSFET 阈值电压升高的现象'
+  - term: BJT
+    def: '双极型晶体管：小的基极电流控制大的集电极电流，i_C = βi_B'
+  - term: 放大区
+    def: 'BJT 发射结正偏、集电结反偏的工作区，i_C = I_S e^{v_BE/V_T}，用来放大信号'
+  - term: 电流放大系数
+    def: 'BJT 放大区集电极电流和基极电流之比 β = i_C/i_B，常见值 50–200'
+  - term: 共射放大器
+    def: '信号从基极输入、从集电极输出、发射极接交流地的 BJT 放大器，电压增益约 −g_mR_C'
+  - term: 射极跟随器
+    def: '信号从基极输入、从发射极输出的 BJT 放大器（共集），电压增益略小于 1，输入电阻大、输出电阻小'
+  - term: 偏置
+    def: '给晶体管加上合适的直流电压和电流，使它工作在放大所需的工作点上'
+  - term: 工作点
+    def: '没有信号时晶体管的直流电流和电压（如 I_D、V_DS），也叫静态工作点 Q；电机、开关电源里的“工作点”指稳定运行时的那一组值'
+  - term: 差分放大器
+    def: '放大两个输入端电压之差、抑制两者共同变化部分的放大器，核心是一对匹配的晶体管和尾电流源（差分对）'
+  - term: 零点漂移
+    def: '直接耦合放大器在没有输入信号时，输出因温度、电源变化而缓慢漂移的现象'
+  - term: 差模信号
+    def: '两个输入端电压之差 v_id = v₁ − v₂'
+  - term: 共模信号
+    def: '两个输入端电压的平均值 v_icm = (v₁ + v₂)/2；两端同时一起变化的部分'
+  - term: 共模抑制比
+    def: '差模增益和共模增益大小之比 CMRR = |A_d|/|A_cm|，常用分贝表示 20 lg CMRR'
+  - term: 失调电压
+    def: '为让差分放大器输出为 0 而需要在输入端加的直流电压 V_OS，由两侧器件不匹配引起'
+  - term: 本征增益
+    def: '单个晶体管用理想电流源作负载时能达到的最大电压增益 g_m r_o'
+  - term: 共源共栅
+    def: '一个共源管上面叠一个共栅管的结构（BJT 为共射共基），输出电阻约提高 g_m r_o 倍'
+  - term: 电流镜
+    def: '用一个参考电流和一对匹配晶体管复制出（或按比例放大缩小）另一路电流的电路'
+  - term: 有源负载
+    def: '用晶体管电流源代替电阻作放大器的负载，小信号电阻很大而直流压降不大，能大幅提高增益'
+  - term: 复合管
+    def: '两个晶体管连成一个等效晶体管的接法，如达林顿管，电流放大系数约为两管之积'
+  - term: 输出级
+    def: '放大器最后一级，负责以低输出电阻向负载提供足够的电压、电流和功率'
+  - term: 交越失真
+    def: '乙类推挽输出在输入过零附近两管都不导通，输出出现一段“死区”而引起的失真'
+  - term: 甲类
+    def: '输出管在整个信号周期内都导通（导通角 360°）的输出级，失真小但效率低：射极跟随器式最高 25%，变压器耦合式最高 50%'
+  - term: 乙类
+    def: '两个输出管各导通半个周期（导通角 180°）推挽工作的输出级，最高效率 π/4 ≈ 78.5%，有交越失真'
+  - term: 甲乙类
+    def: '给乙类推挽的两管加一点静态偏置，使它们在过零附近都微导通的输出级，用来消除交越失真'
+  - term: 热阻
+    def: '器件每耗散 1 W 功率时温度升高多少，单位 °C/W；结温 T_J = T_A + θ_JA·P_D'
+  - term: 上限截止频率
+    def: '放大器增益比中频增益下降 3 dB（变为 1/√2）时的高频端频率 f_H'
+  - term: 下限截止频率
+    def: '放大器增益比中频增益下降 3 dB 时的低频端频率 f_L，主要由耦合电容和旁路电容决定'
+  - term: 特征频率
+    def: '晶体管短路电流增益下降到 1 时的频率 f_T = g_m/[2π(C_gs + C_gd)]，衡量晶体管的速度'
+  - term: 密勒效应
+    def: '跨接在反相放大器输入和输出之间的电容 C，从输入端看相当于放大成 C(1 + |A|) 的大电容'
+  - term: 开路时间常数法
+    def: '估算上限截止频率的方法：把每个电容看到的电阻乘以电容再相加，f_H ≈ 1/(2πΣR_iC_i)'
+  - term: 主极点
+    def: '比其他极点低得多、决定放大器带宽的那个极点'
+  - term: 负反馈
+    def: '把输出的一部分送回输入、与输入相减的连接方式；用增益换取稳定、宽带和低失真'
+  - term: 环路增益
+    def: '信号绕反馈环一周的增益 Aβ；1 + Aβ 叫反馈深度'
+  - term: 反馈系数
+    def: '反馈网络把输出送回输入的比例 β'
+  - term: 增益灵敏度
+    def: '闭环增益的相对变化和开环增益相对变化之比，负反馈使它减小为 1/(1 + Aβ)'
+  - term: 相位裕度
+    def: '环路增益大小降到 1 的频率处，相位离 −180° 还差多少度；越大越稳定，工程上常用 30°–60°，一般不低于 45°'
+  - term: 频率补偿
+    def: '人为改变放大器的极点（如加主极点、密勒电容），让负反馈电路有足够相位裕度而不自激'
+  - term: 振荡器
+    def: '不需要输入信号、自己产生周期性输出波形的电路'
+  - term: 巴克豪森判据
+    def: '正弦振荡的条件：在振荡频率上环路增益 Aβ = 1，即大小为 1、相位为 0（或 360° 的整数倍）'
+  - term: 文氏桥振荡器
+    def: '用 RC 串并联网络作选频反馈的运放振荡器，频率 f = 1/(2πRC)，放大器增益需不小于 3'
+  - term: 施密特触发器
+    def: '有两个不同翻转门限的比较器（带回差），输入在两个门限之间时输出保持原状态'
+  - term: 多谐振荡器
+    def: '输出在两个状态之间切换的电路：双稳态、单稳态（产生固定宽度脉冲）、无稳态（自激产生方波）'
+  - term: 稳压电源
+    def: '把交流电变成稳定直流电压的装置：变压、整流、滤波、稳压四部分'
+  - term: 串联型稳压电路
+    def: '调整管串联在输入和负载之间，由误差放大器比较输出和基准电压来控制调整管，使输出稳定'
+  - term: 开关稳压电路
+    def: '调整管工作在开关状态，靠改变导通时间比例（占空比）调节输出的稳压电路，效率可达 90% 左右'
+
+lessons:
+  # ==== 二极管电路 ====
+  - id: diode-models
+    chapter: 二极管电路
+    title: 二极管的特性和模型
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个硅二极管和一个 1 kΩ 电阻串联接在 5 V 电源上，二极管正向接法。电路里的电流大约是多少？
+          options:
+            - text: 比 5 mA 小一点，约 4.3 mA
+              correct: true
+            - text: 正好 5 mA，二极管导通后就像一根导线
+              why: 硅二极管导通时两端还有约 0.7 V 的压降，电阻上只剩 4.3 V
+            - text: 几乎为 0，二极管电阻很大
+              why: 正向接法时二极管导通，电阻很小；反向接法时才几乎没有电流
+          explain: 导通的硅二极管两端约有 0.7 V 压降，所以电流约 (5 − 0.7)/1 kΩ = 4.3 mA。这一课讲二极管的几种模型，什么时候用哪一种。
+      - card:
+          title: 理想二极管
+          body: |
+            **二极管（diode）**有两个端子：阳极和阴极。它只让电流从阳极流向阴极。
+
+            最简化的模型是**理想二极管（ideal diode）**：阳极电压高于阴极时导通，相当于一根导线；反过来时截止，相当于断路。
+
+            分析含二极管的电路，先假设它导通（或截止），算出结果后检查：假设导通就要电流为正，假设截止就要两端电压为负。不满足就换另一种假设重算。
+      - item:
+          id: ideal-check
+          type: choice
+          prompt: 一个理想二极管的阳极接 3 V，阴极经 2 kΩ 电阻接到 5 V。二极管处于什么状态？电阻上的电流是多少？
+          options:
+            - text: 截止，电流为 0
+              correct: true
+            - text: 导通，电流 1 mA
+              why: 若导通，电流从阳极流向阴极，需要阳极电压更高；这里阳极 3 V 比电阻那头的 5 V 低，电流方向不对
+            - text: 导通，电流 4 mA
+              why: 两端电压差是 2 V 而不是 8 V，而且方向是阴极更高，二极管反偏
+          explain: 假设导通，二极管两端电压为 0，电流应从 5 V 经电阻流向 3 V，即从阴极流向阳极，二极管不允许，假设不成立。所以截止，电流为 0。
+      - card:
+          title: 真实二极管的伏安特性
+          body: |
+            真实的结型二极管，正向电流随电压按指数增长：
+
+            $$i = I_S\left(e^{v/(nV_T)} - 1\right)$$
+
+            $I_S$ 是反向饱和电流（硅管约 $10^{-15}$ A 量级），$n$ 在 1 到 2 之间（下面取 1），$V_T = kT/q$ 叫**热电压（thermal voltage）**，室温下约 25 mV。
+
+            指数关系意味着：电压每增加 $V_T\ln 10 \approx 57.6\text{ mV}$（常说约 60 mV），电流变为 10 倍。所以硅管在毫安级电流下压降总在 0.6–0.8 V 之间。反向时电流约为 $-I_S$，几乎为 0；反向电压过大会击穿。
+      - item:
+          id: decade-voltage
+          type: number
+          prompt: 一个二极管（$n = 1$，$V_T = 25\text{ mV}$）在 0.7 V 时电流为 1 mA。要让电流变为 100 mA，电压要升高多少毫伏？（保留一位小数）
+          answer: 115.1
+          tolerance: 0.05
+          unit: mV
+          hint: 电流变为几倍？指数关系下电压要增加 $V_T$ 乘以什么？
+          explain: $\Delta v = V_T\ln(100) = 25 \times 4.605 \approx 115.1\text{ mV}$，即每 10 倍约 57.6 mV，两个 10 倍。
+      - card:
+          title: 恒压降模型和小信号模型
+          body: |
+            算直流电流时，指数模型要解非线性方程，很麻烦。常用两个近似：
+
+            - **恒压降模型（constant-voltage-drop model）**：导通时看成 0.7 V 的固定压降。开头的例子：$I = (5 - 0.7)/1\text{ k}\Omega = 4.3\text{ mA}$。若这个二极管在 1 mA 时压降 0.7 V，用指数模型迭代得约 0.736 V、4.26 mA，相差不到 1%。
+            - 小信号模型：在直流工作点 $I_D$ 附近，电压的小变化和电流的小变化成正比，二极管相当于一个电阻 $r_d = V_T/I_D$。1 mA 时 $r_d = 25\ \Omega$。
+      - item:
+          id: small-signal-rd
+          type: number
+          prompt: 一个二极管的直流电流为 2 mA，$V_T = 25\text{ mV}$，$n = 1$。它的小信号电阻是多少欧姆？
+          answer: 12.5
+          unit: Ω
+          hint: 小信号电阻等于热电压除以什么？
+          explain: $r_d = V_T/I_D = 25\text{ mV}/2\text{ mA} = 12.5\ \Omega$。电流越大，小信号电阻越小。
+      - card:
+          title: 稳压管
+          body: |
+            二极管反向电压超过击穿电压后，反向电流急剧增大而电压几乎不变。专门工作在这个区域的二极管叫**稳压管（Zener diode）**，击穿电压记作 $V_Z$，常见 3.3 V、5.1 V、12 V 等。
+
+            稳压管串一个限流电阻接到较高的电压上，负载并联在稳压管两端，就成了最简单的稳压电路：输入电压或负载电流变化时，变化的部分由稳压管的电流吸收，输出电压保持在 $V_Z$ 附近。限流电阻上的电流 = 稳压管电流 + 负载电流。
+      - item:
+          id: zener-current
+          type: number
+          prompt: 9 V 电源经 200 Ω 限流电阻接一个 5 V 的稳压管，稳压管两端并联一个 1 kΩ 的负载。稳压管中流过多少毫安电流？
+          answer: 15
+          unit: mA
+          hint: 限流电阻两端电压是多少？负载取走了多少电流？
+          explain: 限流电阻电流 $(9 - 5)/200 = 20\text{ mA}$，负载电流 $5/1000 = 5\text{ mA}$，稳压管电流 $20 - 5 = 15\text{ mA}$。
+
+  - id: rectifier-limiter
+    chapter: 二极管电路
+    title: 整流、滤波、限幅和钳位
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个二极管和电阻串联，接在正弦交流电压上。电阻两端的电压波形是什么样的？
+          options:
+            - text: 只剩正半周，负半周变成 0
+              correct: true
+            - text: 和输入一样的正弦波
+              why: 负半周时二极管反偏截止，电阻上没有电流
+            - text: 正负半周都变成正的
+              why: 一个二极管只能让一个方向的电流通过；要把负半周也翻上来需要四个二极管的桥式电路
+          explain: 二极管只在正半周导通，负半周被挡住，输出成了单方向的脉动电压。这一课讲怎样把它变成平滑的直流。
+      - card:
+          title: 半波整流和全波整流
+          body: |
+            用二极管把交流电变成单方向电流叫**整流（rectification）**。
+
+            - 半波整流：一个二极管，只留下正半周。输出峰值 $V_p - 0.7\text{ V}$。
+            - 桥式全波整流：四个二极管，正负半周都让电流同方向流过负载，每个时刻有两个二极管导通，输出峰值 $V_p - 1.4\text{ V}$，脉动频率是电网频率的 2 倍。
+
+            二极管截止时承受的最大反向电压叫峰值反向电压（PIV），选管子时要留余量。半波整流的 PIV 约为 $V_p$；接了大滤波电容以后，二极管截止时两端是电容上的 $+V_p$ 和输入的 $-V_p$，PIV 接近 $2V_p$，选管要按这个留余量。
+      - item:
+          id: halfwave-peak
+          type: number
+          prompt: 峰值 10 V 的正弦电压经一个硅二极管半波整流（恒压降 0.7 V）。输出电压的峰值是多少伏？
+          answer: 9.3
+          unit: V
+          hint: 二极管导通时要分走多少电压？
+          explain: 输出峰值 $= 10 - 0.7 = 9.3\text{ V}$。
+      - item:
+          id: bridge-peak
+          type: number
+          prompt: 峰值 12 V 的正弦电压经硅二极管桥式全波整流（每管恒压降 0.7 V）。输出电压的峰值是多少伏？
+          answer: 10.6
+          unit: V
+          hint: 桥式电路中，每个时刻电流要经过几个二极管？
+          explain: 每个时刻电流经过两个导通的二极管，输出峰值 $= 12 - 2 \times 0.7 = 10.6\text{ V}$。
+      - card:
+          title: 电容滤波和纹波
+          body: |
+            在负载两端并联一个大电容。二极管导通时电容充到峰值（实际是峰值减去二极管压降，下面估算时把 $V_p$ 当作充到的峰值）；二极管截止时电容通过负载 $R$ 放电，电压缓慢下降，直到下一个峰值再充满。输出变成一条略有起伏的直流，起伏的峰峰值叫**纹波（ripple）** $V_r$。
+
+            放电时间常数 $RC$ 远大于周期时，近似有
+
+            $$V_r \approx \frac{V_p}{fRC}\ \text{（半波）},\qquad V_r \approx \frac{V_p}{2fRC}\ \text{（全波）}$$
+
+            $f$ 是电网频率。电容越大、负载电流越小，纹波越小。
+      - item:
+          id: ripple-halfwave
+          type: number
+          prompt: 半波整流后峰值 10 V，滤波电容 1000 μF，负载 1 kΩ，电网频率 50 Hz。纹波的峰峰值约为多少伏？
+          answer: 0.2
+          unit: V
+          hint: 半波整流时每个周期充一次电，纹波和 $fRC$ 成反比。
+          explain: $V_r \approx V_p/(fRC) = 10/(50 \times 1000 \times 10^{-3}) = 0.2\text{ V}$。改成全波整流，纹波减半为 0.1 V。
+      - card:
+          title: 限幅电路和钳位电路
+          body: |
+            - **限幅电路（limiter）**：二极管串一个直流电压源，并联在输出端。输出超过某个电平时二极管导通，把输出钉在这个电平上，超出的部分被削掉。两个方向各放一个，就能把信号限制在一个范围内，用来保护后面的电路。
+            - **钳位电路（clamper）**：电容串联、二极管并联在输出端。电容被充上一个直流电压，把整个波形上下平移，使波形的最低点（或最高点）固定在 0 V，形状不变。也叫直流恢复电路。
+      - item:
+          id: clamper-output
+          type: choice
+          prompt: 一个在 −5 V 和 +5 V 之间跳变的方波输入钳位电路（理想二极管，二极管把输出的最低点钳在 0 V）。输出波形是什么样的？
+          options:
+            - text: 在 0 V 和 +10 V 之间跳变的方波
+              correct: true
+            - text: 在 0 V 和 +5 V 之间跳变的方波，负半部分被削掉
+              why: 那是限幅或整流的结果；钳位电路只把波形整体平移，峰峰值 10 V 不变
+            - text: 在 −5 V 和 +5 V 之间不变
+              why: 电容会被充上 5 V，把整个波形抬高 5 V
+          explain: 输入为 −5 V 时二极管导通，电容充到 5 V；之后输出 = 输入 + 5 V，波形整体上移，在 0 到 10 V 之间跳变。
+      - item:
+          id: limiter-level
+          type: number
+          prompt: 一个限幅电路：硅二极管（恒压降 0.7 V）串一个 3 V 直流电源，并联在输出端，二极管在输出为正时导通。输入是峰值 10 V 的正弦波。输出的最高电压是多少伏？
+          answer: 3.7
+          unit: V
+          hint: 输出升到多高时二极管开始导通？
+          explain: 输出超过 $3 + 0.7 = 3.7\text{ V}$ 时二极管导通，把输出钉在 3.7 V，正半周高出的部分被削掉。
+
+  # ==== BJT与MOSFET放大电路 ====
+  - id: mosfet-dc
+    chapter: BJT与MOSFET放大电路
+    title: MOSFET 的结构和直流特性
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个 MOSFET 的栅极和其余部分之间隔着一层极薄的二氧化硅绝缘层。在直流时，栅极上流进的电流大约是多少？
+          options:
+            - text: 几乎为 0
+              correct: true
+            - text: 和漏极电流差不多
+              why: 栅极被绝缘层隔开，直流电流过不去；漏极电流走的是另一条路
+            - text: 漏极电流的百分之一左右
+              why: 那是 BJT 基极电流的量级；MOSFET 的栅极是绝缘的
+          explain: 栅极和沟道之间是绝缘层，直流电流几乎为 0，栅极只靠电压来控制。这一课讲这个电压怎样控制漏极电流。
+      - card:
+          title: MOSFET 怎样导电
+          body: |
+            **MOSFET**（金属-氧化物-半导体场效应晶体管）有四个端子：栅极 G、源极 S、漏极 D 和衬底 B。以 N 沟道（NMOS）为例：源极和漏极是两块 N 型区，中间是 P 型衬底，上面盖着薄氧化层和栅极。
+
+            栅源电压 $v_{GS}$ 为正且超过**阈值电压（threshold voltage）** $V_t$ 时，栅极下方吸引来一层电子，连通源极和漏极，形成导电沟道。$v_{GS}$ 超过 $V_t$ 的部分叫**过驱动电压（overdrive voltage）**：$V_{ov} = v_{GS} - V_t$，它越大，沟道越容易导电。
+      - card:
+          title: 三个工作区
+          body: |
+            - 截止：$v_{GS} < V_t$，没有沟道，$i_D = 0$。
+            - **三极管区（triode region）**：$v_{DS} < V_{ov}$，沟道像一个受栅压控制的电阻，$i_D = k_n'\frac{W}{L}\left(V_{ov}v_{DS} - \tfrac12 v_{DS}^2\right)$。
+            - **饱和区（saturation region）**：$v_{DS} \ge V_{ov}$，沟道在漏端被“夹断”，电流基本不再随 $v_{DS}$ 增大：
+
+            $$i_D = \tfrac12 k_n'\frac{W}{L}V_{ov}^2$$
+
+            $k_n'$ 由工艺决定，$W/L$ 是沟道的宽长比。放大信号时 MOSFET 工作在饱和区（注意：和 BJT 的“饱和”意思不同）。
+      - item:
+          id: mosfet-id
+          type: number
+          prompt: 一个 NMOS 的 $k_n'(W/L) = 2\text{ mA/V}^2$，$V_t = 0.5\text{ V}$，栅源电压 1 V，工作在饱和区。漏极电流是多少毫安？
+          answer: 0.25
+          unit: mA
+          hint: 先求过驱动电压。
+          explain: $V_{ov} = 1 - 0.5 = 0.5\text{ V}$，$I_D = \tfrac12 \times 2 \times 0.5^2 = 0.25\text{ mA}$。
+      - card:
+          title: 例题：判断工作区
+          body: 一个 NMOS（$k_n'W/L = 2\text{ mA/V}^2$，$V_t = 0.5\text{ V}$）源极接地，栅极接 1 V，漏极经 $R_D = 10\text{ k}\Omega$ 接到 $V_{DD} = 5\text{ V}$。求 $I_D$ 和 $V_D$，并验证工作区。
+          reveal:
+            - title: 第 1 步：先假设工作在饱和区
+              body: $V_{ov} = 0.5\text{ V}$，$I_D = 0.25\text{ mA}$。
+            - title: 第 2 步：算漏极电压
+              body: $V_D = V_{DD} - I_DR_D = 5 - 0.25 \times 10 = 2.5\text{ V}$，所以 $V_{DS} = 2.5\text{ V}$。
+            - title: 第 3 步：验证假设
+              body: 饱和区要求 $V_{DS} \ge V_{ov}$：$2.5 \ge 0.5$，成立。若不成立，就改用三极管区的公式重算。
+      - item:
+          id: mosfet-region
+          type: choice
+          prompt: 一个 NMOS 的 $V_t = 0.6\text{ V}$，现在 $v_{GS} = 1.4\text{ V}$，$v_{DS} = 0.5\text{ V}$。它工作在哪个区？
+          options:
+            - text: 三极管区
+              correct: true
+            - text: 饱和区，因为 $v_{GS}$ 比 $V_t$ 大
+              why: $v_{GS} > V_t$ 只说明有沟道；饱和还要求 $v_{DS} \ge V_{ov} = 0.8\text{ V}$，这里只有 0.5 V
+            - text: 截止，因为 $v_{DS}$ 比 $V_t$ 小
+              why: 是否截止看 $v_{GS}$ 和 $V_t$ 的比较，不看 $v_{DS}$
+          explain: $V_{ov} = 1.4 - 0.6 = 0.8\text{ V}$，$v_{DS} = 0.5 < 0.8$，所以在三极管区。
+      - card:
+          title: 沟道长度调制和 PMOS
+          body: |
+            实际上，饱和区的 $i_D$ 会随 $v_{DS}$ 增大而略微增大，因为夹断点向源极移动，等效沟道变短。这叫**沟道长度调制（channel-length modulation）**，写成 $i_D = \tfrac12 k_n'\frac{W}{L}V_{ov}^2(1 + \lambda v_{DS})$，等效为漏源之间并联一个输出电阻
+
+            $$r_o = \frac{V_A}{I_D} = \frac{1}{\lambda I_D}$$
+
+            P 沟道 MOSFET（PMOS）的电压和电流方向都相反：$v_{SG} > |V_t|$ 时导通，电流从源极流向漏极。把 NMOS 和 PMOS 配成互补的一对使用，叫 CMOS（互补金属-氧化物-半导体）电路。
+      - item:
+          id: mosfet-ro
+          type: number
+          prompt: 一个 NMOS 的 $\lambda = 0.05\text{ V}^{-1}$，工作电流 0.5 mA。它的输出电阻 $r_o$ 是多少千欧？
+          answer: 40
+          unit: kΩ
+          hint: 输出电阻和 $\lambda$、电流是什么关系？
+          explain: $r_o = 1/(\lambda I_D) = 1/(0.05 \times 0.5 \times 10^{-3}) = 40\text{ k}\Omega$。
+
+  - id: mosfet-amp
+    chapter: BJT与MOSFET放大电路
+    title: MOSFET 放大器：小信号模型、三种组态和偏置
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个工作在饱和区的 NMOS，栅极电压在直流 1 V 的基础上叠加一个 10 mV 的小正弦。漏极电流会怎样？
+          options:
+            - text: 在直流电流的基础上跟着做小的正弦变化
+              correct: true
+            - text: 保持不变，因为 10 mV 太小了
+              why: 漏极电流对栅压很敏感，小的栅压变化会引起成比例的电流变化
+            - text: 变成一个方波
+              why: 信号很小时，电流的变化和栅压的变化近似成正比，波形不变
+          explain: 在工作点附近，小的栅压变化引起成比例的电流变化。这个比例就是跨导，这一课用它算放大器的增益。
+      - card:
+          title: 跨导和小信号模型
+          body: |
+            在直流电流 $I_D$、过驱动电压 $V_{ov}$ 附近，栅压的小变化 $v_{gs}$ 引起漏极电流的小变化 $i_d = g_mv_{gs}$。对平方律求导得**跨导（transconductance）**：
+
+            $$g_m = k_n'\frac{W}{L}V_{ov} = \frac{2I_D}{V_{ov}}$$
+
+            小信号模型：栅极开路（不取电流），漏源之间是一个受控电流源 $g_mv_{gs}$，再并联 $r_o$。直流电源在小信号电路里都看成短路（交流地）。
+
+            例：$I_D = 0.5\text{ mA}$，$V_{ov} = 0.2\text{ V}$，$g_m = 1/0.2 = 5\text{ mA/V} = 5\text{ mS}$。
+      - item:
+          id: mosfet-gm
+          type: number
+          prompt: 一个 NMOS 工作在饱和区，$I_D = 0.25\text{ mA}$，$V_{ov} = 0.5\text{ V}$。它的跨导是多少 mS？
+          answer: 1
+          unit: mS
+          hint: 跨导和电流、过驱动电压是什么关系？
+          explain: $g_m = 2I_D/V_{ov} = 0.5/0.5 = 1\text{ mS}$。
+      - card:
+          title: 共源放大器
+          body: |
+            信号接栅极、从漏极取输出、源极接交流地，叫**共源放大器（common-source amplifier）**。小信号电流 $g_mv_{gs}$ 流过漏极负载，输出 $v_o = -g_mv_{gs}(R_D \parallel r_o \parallel R_L)$：
+
+            $$A_v = -g_m(R_D \parallel r_o \parallel R_L)$$
+
+            负号表示反相：栅压升高，电流增大，漏极电压下降。输入电阻是无穷大（栅极不取电流），输出电阻 $R_D \parallel r_o$。
+
+            例：$g_m = 5\text{ mS}$，$R_D = 10\text{ k}\Omega$，忽略 $r_o$、空载，$A_v = -50$。
+      - item:
+          id: cs-gain-ro
+          type: number
+          prompt: 一个共源放大器 $g_m = 5\text{ mS}$，$R_D = 10\text{ k}\Omega$，$r_o = 40\text{ k}\Omega$，空载。电压增益是多少？
+          answer: -40
+          hint: 漏极的总负载是哪几个电阻并联？
+          explain: $R_D \parallel r_o = 10 \times 40/50 = 8\text{ k}\Omega$，$A_v = -5 \times 8 = -40$。
+      - card:
+          title: 共栅和源极跟随器
+          body: |
+            - 共栅放大器：信号从源极输入、从漏极输出，栅极接交流地。增益 $+g_mR_D$（同相），输入电阻只有约 $1/g_m$，适合接低阻信号源或作电流缓冲。
+            - **源极跟随器（source follower）**（共漏）：信号从栅极输入、从源极输出。$v_o = \frac{R_L}{R_L + 1/g_m}v_i$，增益略小于 1，输出电阻约 $1/g_m$，用来把高内阻的信号接到低阻负载上（电压缓冲）。
+
+            源极接一个不旁路的电阻 $R_s$ 时，共源增益变为 $-\frac{g_mR_D}{1 + g_mR_s}$：增益降低，但更稳定、线性更好。
+      - item:
+          id: follower-gain
+          type: number
+          prompt: 一个源极跟随器 $g_m = 5\text{ mS}$，负载 1 kΩ（忽略 $r_o$ 和体效应）。电压增益是多少？（保留三位小数）
+          answer: 0.833
+          tolerance: 0.0005
+          hint: $1/g_m$ 等于多少欧姆？它和负载怎样分压？
+          explain: $1/g_m = 200\ \Omega$，$A_v = 1000/(1000 + 200) \approx 0.833$。
+      - item:
+          id: degenerated-cs
+          type: number
+          prompt: 一个共源放大器 $g_m = 5\text{ mS}$，$R_D = 10\text{ k}\Omega$，源极接 200 Ω 的电阻且不旁路（忽略 $r_o$，空载）。电压增益是多少？
+          answer: -25
+          hint: 源极电阻让增益变大还是变小？变为原来的几分之一？
+          explain: $A_v = -g_mR_D/(1 + g_mR_s) = -50/(1 + 1) = -25$。
+      - card:
+          title: 偏置和体效应
+          body: |
+            放大器要先有合适的**工作点（operating point）**（没有信号时的直流 $I_D$、$V_{DS}$），给晶体管加上直流电压电流使它到达工作点叫**偏置（biasing）**。分立电路常用电阻分压给栅极定电压，再在源极串电阻 $R_S$：$I_D$ 偏大时 $R_S$ 上压降增大，$V_{GS}$ 减小，把电流拉回来，工作点对器件之间的个体差异不敏感。集成电路里则用电流源偏置。
+
+            **体效应（body effect）**：源极电位高于衬底（$V_{SB} > 0$）时，阈值电压升高：$V_t = V_{t0} + \gamma\left(\sqrt{2\phi_f + V_{SB}} - \sqrt{2\phi_f}\right)$。
+      - item:
+          id: body-effect
+          type: number
+          prompt: 一个 NMOS 的 $V_{t0} = 0.5\text{ V}$，$\gamma = 0.4\ \text{V}^{1/2}$，$2\phi_f = 0.6\text{ V}$。源极比衬底高 2 V 时，阈值电压是多少伏？（保留三位小数）
+          answer: 0.835
+          tolerance: 0.0005
+          unit: V
+          hint: 代入公式，先算两个平方根。
+          explain: $V_t = 0.5 + 0.4(\sqrt{2.6} - \sqrt{0.6}) = 0.5 + 0.4(1.6125 - 0.7746) \approx 0.835\text{ V}$。
+
+  - id: bjt-dc
+    chapter: BJT与MOSFET放大电路
+    title: BJT 的结构和直流特性
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个晶体管的基极电流是 10 μA，集电极电流是 1 mA。如果基极电流增加到 20 μA（仍在正常放大状态），集电极电流大约变成多少？
+          options:
+            - text: 约 2 mA
+              correct: true
+            - text: 约 1.01 mA，只增加了 10 μA
+              why: 集电极电流约是基极电流的 100 倍，基极电流翻倍，集电极电流也约翻倍
+            - text: 不变，集电极电流只由电源决定
+              why: 在放大状态下，集电极电流受基极电流控制
+          explain: 基极的小电流控制集电极的大电流，比例约为 100。这就是 BJT 能放大的原因。
+      - card:
+          title: BJT 的结构和放大区
+          body: |
+            **BJT**（双极型晶体管）由三层半导体组成，NPN 型是 N–P–N，三个端子叫发射极 E、基极 B、集电极 C，两个 PN 结叫发射结和集电结。
+
+            发射结正偏、集电结反偏时，BJT 工作在**放大区（active mode）**：发射区的电子大量注入很薄的基区，绝大多数穿过基区被集电极收集，只有一小部分在基区复合形成基极电流。
+
+            $$i_C = I_Se^{v_{BE}/V_T},\qquad i_B = \frac{i_C}{\beta},\qquad i_E = i_C + i_B$$
+
+            $\beta$ 叫**电流放大系数（current gain）**，常见 50–200。$\alpha = i_C/i_E = \beta/(\beta + 1)$，略小于 1。
+      - item:
+          id: bjt-currents
+          type: number
+          prompt: 一个 NPN 管工作在放大区，$\beta = 100$，集电极电流 1 mA。发射极电流是多少毫安？
+          answer: 1.01
+          unit: mA
+          hint: 先求基极电流，发射极电流是哪两个电流之和？
+          explain: $I_B = 1/100 = 0.01\text{ mA}$，$I_E = I_C + I_B = 1.01\text{ mA}$。$\alpha = 1/1.01 \approx 0.990$。
+      - card:
+          title: 截止、放大和饱和
+          body: |
+            - 截止：发射结不导通（$v_{BE}$ 小于约 0.5 V），各极电流几乎为 0。
+            - 放大区：发射结正偏（$v_{BE} \approx 0.7\text{ V}$），集电结反偏（$v_{CE} > $ 约 0.3 V），$i_C = \beta i_B$。
+            - 饱和：两个结都正偏，$v_{CE}$ 降到约 0.2 V，$i_C$ 不再随 $i_B$ 增大，$i_C < \beta i_B$。数字电路里把 BJT 当开关，就在截止和饱和之间切换。
+
+            注意：BJT 的“饱和”是两个结都正偏、不能放大；MOSFET 的“饱和区”反而是放大用的区，两个词意思不同。
+      - card:
+          title: 例题：分压偏置的直流工作点
+          body: $V_{CC} = 12\text{ V}$，基极接 $R_1 = 80\text{ k}\Omega$（到 $V_{CC}$）和 $R_2 = 20\text{ k}\Omega$（到地）分压，发射极接 $R_E = 1.7\text{ k}\Omega$ 到地，集电极接 $R_C = 4\text{ k}\Omega$ 到 $V_{CC}$，$\beta = 100$，$V_{BE} = 0.7\text{ V}$。忽略基极电流对分压的影响，求 $I_C$ 和 $V_{CE}$。
+          reveal:
+            - title: 第 1 步：基极电压
+              body: $V_B = 12 \times 20/(80 + 20) = 2.4\text{ V}$。
+            - title: 第 2 步：发射极电压和电流
+              body: $V_E = 2.4 - 0.7 = 1.7\text{ V}$，$I_E = 1.7/1.7 = 1\text{ mA}$；再用 $\alpha = \beta/(\beta + 1) = 100/101$ 得 $I_C = \alpha I_E \approx 0.99\text{ mA} \approx 1\text{ mA}$。
+            - title: 第 3 步：集电极电压，检查是否在放大区
+              body: $V_C = 12 - 1 \times 4 = 8\text{ V}$，$V_{CE} = 8 - 1.7 = 6.3\text{ V} > 0.3\text{ V}$，在放大区。$R_E$ 让 $I_C$ 几乎只由电阻决定，和 $\beta$ 关系很小。
+      - item:
+          id: divider-bias
+          type: number
+          prompt: $V_{CC} = 10\text{ V}$，基极分压电阻 $R_1 = 70\text{ k}\Omega$（到 $V_{CC}$）、$R_2 = 30\text{ k}\Omega$（到地），发射极电阻 $R_E = 2.3\text{ k}\Omega$，$V_{BE} = 0.7\text{ V}$。忽略基极电流，发射极电流是多少毫安？
+          answer: 1
+          unit: mA
+          hint: 先求基极电压，再减去 $V_{BE}$。
+          explain: $V_B = 10 \times 30/100 = 3\text{ V}$，$V_E = 2.3\text{ V}$，$I_E = 2.3/2.3 = 1\text{ mA}$。
+      - item:
+          id: bjt-region
+          type: choice
+          prompt: 一个 NPN 管 $\beta = 100$，发射极接地，基极电流 0.1 mA（发射结正偏），集电极经 1 kΩ 电阻接 5 V 电源，饱和时 $v_{CE}$ 约 0.2 V。它工作在哪个区？
+          options:
+            - text: 饱和区
+              correct: true
+            - text: 放大区，集电极电流 10 mA
+              why: 10 mA 流过 1 kΩ 要压降 10 V，比电源的 5 V 还大；电流最多约 (5 − 0.2)/1 kΩ = 4.8 mA
+            - text: 截止区
+              why: 有 0.1 mA 的基极电流，发射结是导通的
+          explain: 若在放大区，$I_C = 10\text{ mA}$，$V_C = 5 - 10 = -5\text{ V}$，不可能。实际 $I_C$ 被电阻限制在约 4.8 mA，$v_{CE} \approx 0.2\text{ V}$，管子饱和。
+
+  - id: bjt-amp
+    chapter: BJT与MOSFET放大电路
+    title: BJT 放大器：小信号模型、组态、偏置和温度
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同样 1 mA 的工作电流，BJT 和 MOSFET（过驱动 0.2 V）哪个的跨导更大？
+          options:
+            - text: BJT
+              correct: true
+            - text: MOSFET
+              why: BJT 的 $g_m = I_C/V_T = 40\text{ mS}$，MOSFET 的 $g_m = 2I_D/V_{ov} = 10\text{ mS}$
+            - text: 一样大，因为电流相同
+              why: 两种器件电流对电压的依赖不同：BJT 是指数，MOSFET 是平方
+          explain: BJT 的电流随电压按指数变化，比 MOSFET 的平方律陡得多，同样电流下跨导更大。这一课用小信号模型算 BJT 放大器。
+      - card:
+          title: BJT 的小信号模型
+          body: |
+            对 $i_C = I_Se^{v_{BE}/V_T}$ 求导，工作点附近的跨导
+
+            $$g_m = \frac{I_C}{V_T}$$
+
+            1 mA 时 $g_m = 1/25 = 40\text{ mS}$。和 MOSFET 不同，基极要取电流：从基极看进去的小信号电阻 $r_\pi = \beta/g_m$。从发射极看进去的电阻 $r_e = \alpha/g_m \approx V_T/I_E$。集电极和发射极之间的输出电阻 $r_o = V_A/I_C$（和 MOSFET 的沟道长度调制对应）。
+
+            混合 π 模型：基极和发射极之间接 $r_\pi$，集电极到发射极是受控电流源 $g_mv_\pi$ 并联 $r_o$。
+      - item:
+          id: bjt-rpi
+          type: number
+          prompt: 一个 BJT 的 $\beta = 100$，$I_C = 1\text{ mA}$，$V_T = 25\text{ mV}$。它的 $r_\pi$ 是多少千欧？
+          answer: 2.5
+          unit: kΩ
+          hint: 先算跨导。从基极看进去的电阻和 β、跨导有什么关系？
+          explain: $g_m = 1/25 = 40\text{ mS}$，$r_\pi = 100/40\text{ mS} = 2.5\text{ k}\Omega$。
+      - card:
+          title: 共射放大器
+          body: |
+            信号接基极、从集电极取输出、发射极接交流地，叫**共射放大器（common-emitter amplifier）**：
+
+            $$A_v = -g_m(R_C \parallel r_o \parallel R_L)$$
+
+            输入电阻 $r_\pi$（再和偏置电阻并联），输出电阻 $R_C \parallel r_o$。
+
+            例：$I_C = 1\text{ mA}$，$R_C = 4\text{ k}\Omega$，忽略 $r_o$：空载 $A_v = -40 \times 4 = -160$；接 4 kΩ 负载后，$R_C \parallel R_L = 2\text{ k}\Omega$，$A_v = -80$。负载越重，增益越低。
+      - item:
+          id: ce-gain-load
+          type: number
+          prompt: 一个共射放大器 $I_C = 0.5\text{ mA}$，$R_C = 10\text{ k}\Omega$，负载 10 kΩ，忽略 $r_o$，$V_T = 25\text{ mV}$。电压增益是多少？
+          answer: -100
+          hint: 先算跨导，集电极的总负载是多少？
+          explain: $g_m = 0.5/25 = 20\text{ mS}$，$R_C \parallel R_L = 5\text{ k}\Omega$，$A_v = -20 \times 5 = -100$。
+      - card:
+          title: 发射极电阻和射极跟随器
+          body: |
+            - 发射极接一个不旁路的电阻 $R_e$：增益约 $-\frac{\alpha R_C}{r_e + R_e}$，输入电阻增大为 $(\beta + 1)(r_e + R_e)$。增益降低，但几乎只由电阻比决定，受 $\beta$ 和温度影响小。
+            - **射极跟随器（emitter follower）**（共集）：从发射极取输出，增益 $\frac{R_L}{R_L + r_e}$，略小于 1；输入电阻约 $(\beta + 1)(r_e + R_L)$，很大；输出电阻很小。用作缓冲级。
+            - 共基放大器：输入电阻约 $r_e$，增益 $+g_mR_C$，和共栅对应。
+      - item:
+          id: ce-re-gain
+          type: number
+          prompt: 一个共射放大器 $I_E = 1\text{ mA}$（$r_e = 25\ \Omega$），$R_C = 4\text{ k}\Omega$，发射极接 225 Ω 不旁路电阻，空载，取 $\alpha \approx 1$。电压增益约是多少？
+          answer: -16
+          hint: 增益约等于集电极电阻除以发射极这一路的总电阻。
+          explain: $A_v \approx -R_C/(r_e + R_e) = -4000/250 = -16$。没有 $R_e$ 时是 $-160$，增益降为 1/10，换来更好的稳定性和线性。
+      - item:
+          id: follower-rin
+          type: number
+          prompt: 一个射极跟随器 $\beta = 99$，$r_e = 25\ \Omega$，发射极负载 975 Ω。从基极看进去的输入电阻是多少千欧？（不计偏置电阻）
+          answer: 100
+          unit: kΩ
+          hint: 发射极这一路的电阻被放大了多少倍？
+          explain: $R_{in} = (\beta + 1)(r_e + R_L) = 100 \times 1000 = 100\text{ k}\Omega$，比负载大 100 倍，所以它能把高内阻信号源接到低阻负载上。
+      - card:
+          title: 击穿和温度效应
+          body: |
+            BJT 的集电结反向电压过大会击穿，手册给出 $BV_{CEO}$ 等最大值，使用时要留余量。
+
+            温度升高时，同样的 $v_{BE}$ 下 $I_S$ 增大，$i_C$ 增大；保持 $i_C$ 不变时，$v_{BE}$ 约以 $-2\text{ mV/°C}$ 变化。功率管电流增大使管子更热，温度升高又让电流更大，可能形成热失控而烧毁。发射极电阻 $R_E$ 和分压偏置能抑制这种正反馈：电流增大时 $R_E$ 上的压降增大，$v_{BE}$ 减小，把电流拉回来。
+      - item:
+          id: vbe-temp
+          type: number
+          prompt: 一个 BJT 在 25 °C 时 $v_{BE} = 0.70\text{ V}$（集电极电流保持不变）。温度升到 75 °C 时，$v_{BE}$ 约为多少伏？（按 −2 mV/°C 计算）
+          answer: 0.6
+          unit: V
+          hint: 温度升高了多少度？每度变化多少？
+          explain: 升高 50 °C，$\Delta v_{BE} = 50 \times (-2\text{ mV}) = -0.1\text{ V}$，$v_{BE} \approx 0.60\text{ V}$。
+
+  # ==== 差分放大器 ====
+  - id: diff-pair
+    chapter: 差分放大器
+    title: 差分对：差模和共模
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一根长导线把传感器的微弱信号送到放大器，导线沿途拾取了 50 Hz 的电源干扰，干扰同时出现在信号线和回线上。用什么办法能只放大信号、不放大干扰？
+          options:
+            - text: 放大两根线之间的电压差，两根线上相同的干扰就被抵消
+              correct: true
+            - text: 把放大倍数调小，干扰就小了
+              why: 调小放大倍数时信号也一起变小，信号和干扰的比例不变
+            - text: 只放大信号线对地的电压
+              why: 信号线对地的电压里同时含有干扰，一起被放大
+          explain: 干扰在两根线上一样，信号是两根线的差。只放大差、不放大共同的部分，干扰就被抵消。这就是差分放大器的思路。
+      - card:
+          title: 为什么要差分
+          body: |
+            多级放大器级间直接相连（不用电容隔直）时，第一级的温度漂移会被后面逐级放大，没有输入时输出也会慢慢变化，这叫**零点漂移（zero drift）**。
+
+            **差分放大器（differential amplifier）**用两个完全相同的半边电路，放大两个输入之差。两边因温度一起变化，相当于在两个输入端同时加了一样的信号，在输出被抵消。
+
+            把两个输入 $v_1$、$v_2$ 分解为：**差模信号（differential signal）** $v_{id} = v_1 - v_2$，和**共模信号（common-mode signal）** $v_{icm} = (v_1 + v_2)/2$。好的差分放大器只放大前者。
+      - item:
+          id: dm-cm
+          type: number
+          prompt: 差分放大器的两个输入端分别是 2.005 V 和 1.995 V。差模信号是多少毫伏？
+          answer: 10
+          unit: mV
+          hint: 差模信号是两个输入之差。
+          explain: $v_{id} = 2.005 - 1.995 = 0.010\text{ V} = 10\text{ mV}$；共模信号是两者平均 2.000 V。
+      - card:
+          title: MOS 差分对
+          body: |
+            两个匹配的 NMOS 源极接在一起，下面接一个恒流源 $I$（尾电流源），漏极各接电阻 $R_D$。两个栅压相同时，电流平分，各 $I/2$。
+
+            加差模信号 $v_{id}$：一边电流增加 $g_m v_{id}/2$，另一边减少同样多，总电流仍是 $I$。每管 $g_m = 2(I/2)/V_{ov} = I/V_{ov}$。两个漏极之间输出（双端输出）：
+
+            $$A_d = g_mR_D$$
+
+            只从一个漏极输出（单端输出），增益减半：$g_mR_D/2$。差模输入超过约 $\sqrt2 V_{ov}$ 时，电流全部流向一边，差分对像一个开关。
+      - item:
+          id: mos-diff-gain
+          type: number
+          prompt: 一个 MOS 差分对的尾电流 0.4 mA，每管 $V_{ov} = 0.2\text{ V}$，$R_D = 20\text{ k}\Omega$。双端输出的差模增益是多少？
+          answer: 40
+          hint: 每管电流多大？每管跨导是多少？
+          explain: 每管 $0.2\text{ mA}$，$g_m = 2 \times 0.2/0.2 = 2\text{ mS}$，$A_d = g_mR_D = 2 \times 20 = 40$。
+      - card:
+          title: BJT 差分对和共模增益
+          body: |
+            BJT 差分对的结构一样，每管电流 $I/2$，$g_m = (I/2)/V_T$，差模增益同样是 $g_mR_C$（双端）和 $g_mR_C/2$（单端）。差模输入超过约 $4V_T = 100\text{ mV}$ 时电流就几乎全部切到一边。
+
+            真实的尾电流源有输出电阻 $R_{EE}$。加共模信号时，两管电流一起变化，变化量流过 $R_{EE}$。单端输出的共模增益约为
+
+            $$A_{cm} \approx -\frac{R_C}{2R_{EE}}$$
+
+            $R_{EE}$ 越大，共模增益越小。双端输出时，两个漏极（集电极）的共模变化相同，理想情况下相减为 0。
+      - card:
+          title: 例题：BJT 差分对的共模抑制比
+          body: 每管 $I_C = 0.5\text{ mA}$，$R_C = 10\text{ k}\Omega$，尾电流源输出电阻 $R_{EE} = 50\text{ k}\Omega$，$V_T = 25\text{ mV}$。求双端和单端差模增益、单端共模增益和**共模抑制比（common-mode rejection ratio）**。
+          reveal:
+            - title: 第 1 步：跨导和差模增益
+              body: $g_m = 0.5/25 = 20\text{ mS}$。双端 $A_d = 20 \times 10 = 200$，单端 $100$。
+            - title: 第 2 步：单端共模增益
+              body: $A_{cm} \approx -R_C/(2R_{EE}) = -10/100 = -0.1$。
+            - title: 第 3 步：共模抑制比
+              body: $\text{CMRR} = |A_d|/|A_{cm}| = 100/0.1 = 1000$（单端对单端），用分贝表示 $20\lg 1000 = 60\text{ dB}$。
+      - item:
+          id: cmrr-db
+          type: number
+          prompt: 一个差分放大器单端输出的差模增益是 50，共模增益是 0.05。共模抑制比是多少分贝？
+          answer: 60
+          unit: dB
+          hint: 先求两个增益之比，再取 20 lg。
+          explain: $\text{CMRR} = 50/0.05 = 1000$，$20\lg 1000 = 60\text{ dB}$。
+      - item:
+          id: double-vs-single
+          type: choice
+          prompt: 一个差分对从双端输出改为单端输出（其余不变）。差模增益和抑制共模干扰的能力怎样变化？
+          options:
+            - text: 差模增益减半，共模信号不再被两端相减抵消，抑制能力变差
+              correct: true
+            - text: 差模增益不变，抑制共模的能力也不变
+              why: 单端只用了一边的变化，差模增益是双端的一半；共模变化也不再被另一边抵消
+            - text: 差模增益加倍
+              why: 双端输出时两边的变化相加，单端只取一边，增益减半
+          explain: 双端输出时两个输出端的差模变化相反，相减后加倍；共模变化相同，相减后抵消。单端输出失去了这两点好处，只能靠大的 $R_{EE}$ 压低共模增益。
+
+  - id: diff-nonideal-multistage
+    chapter: 差分放大器
+    title: 失调、偏置电流和多级放大器
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个差分放大器的两个输入端都接地，输出却不是 0，而是一个小的直流电压。最可能的原因是什么？
+          options:
+            - text: 两边的晶体管或电阻不完全一样
+              correct: true
+            - text: 输入端接地时会感应出电荷
+              why: 两个输入都接地时差模信号为 0；输出不为 0 是因为两边电路本身不对称
+            - text: 尾电流源的电流太大
+              why: 尾电流对两边是一样的，它本身不会造成两边的差
+          explain: 实际制造时两个“相同”的晶体管和电阻总有一点差别，输入为 0 时输出也不为 0。这一课讲这些不理想的地方，再把几级连成完整的放大器。
+      - card:
+          title: 输入失调电压
+          body: |
+            两边不完全对称时，要在输入端加一个小的直流电压，输出才回到 0，这个电压叫**失调电压（input offset voltage）** $V_{OS}$。
+
+            负载电阻有相对误差 $\Delta R/R$ 时：
+
+            - MOS 差分对：$V_{OS} = \frac{V_{ov}}{2}\cdot\frac{\Delta R_D}{R_D}$；
+            - BJT 差分对：$V_{OS} = V_T\cdot\frac{\Delta R_C}{R_C}$。
+
+            晶体管本身的不匹配（$V_t$ 或 $I_S$ 不同）也会贡献失调。BJT 的 $V_T$（25 mV）通常小于 MOS 的 $V_{ov}/2$，所以 BJT 输入级的失调往往更小。
+      - item:
+          id: offset-bjt
+          type: number
+          prompt: 一个 BJT 差分对的两个集电极电阻相差 2%，$V_T = 25\text{ mV}$，其余完全匹配。输入失调电压是多少毫伏？
+          answer: 0.5
+          unit: mV
+          hint: 失调电压和电阻的相对误差成正比，比例系数是哪个电压？
+          explain: $V_{OS} = V_T \times \Delta R_C/R_C = 25 \times 0.02 = 0.5\text{ mV}$。
+      - item:
+          id: offset-mos
+          type: number
+          prompt: 一个 MOS 差分对的 $V_{ov} = 0.2\text{ V}$，两个漏极电阻相差 2%，其余完全匹配。输入失调电压是多少毫伏？
+          answer: 2
+          unit: mV
+          hint: MOS 对的比例系数是 $V_{ov}$ 还是它的一半？
+          explain: $V_{OS} = (V_{ov}/2) \times 0.02 = 0.1 \times 0.02 = 0.002\text{ V} = 2\text{ mV}$，是同样误差下 BJT 对的 4 倍。
+      - card:
+          title: 输入偏置电流和输入范围
+          body: |
+            BJT 差分对的两个基极要取直流电流，平均值叫输入偏置电流：$I_B = \frac{I/2}{\beta + 1}$。两个基极电流之差叫输入失调电流。信号源内阻上流过这些电流会产生额外的直流误差。MOS 差分对的栅极电流几乎为 0，没有这个问题。
+
+            共模输入电压也有范围：太高会让晶体管离开放大区（MOS 进入三极管区、BJT 进入饱和），太低会让尾电流源失去作用。
+      - item:
+          id: bias-current
+          type: number
+          prompt: 一个 BJT 差分对的尾电流 200 μA，$\beta = 99$。每个输入端的偏置电流是多少微安？
+          answer: 1
+          unit: μA
+          hint: 每管的发射极电流是多少？基极电流是它的几分之一？
+          explain: 每管发射极电流 $100\ \mu\text{A}$，$I_B = 100/(\beta + 1) = 100/100 = 1\ \mu\text{A}$。
+      - card:
+          title: 多级放大器
+          body: |
+            一级放大器的增益、输入电阻、输出电阻很难同时满足要求，于是把几级连起来，各负责一件事。运放内部常见的三级结构：
+
+            1. 差分输入级：抑制共模，提供高输入电阻和一部分增益；
+            2. 中间增益级（如共射、共源）：提供主要的电压增益；
+            3. 输出级（如射极跟随器）：输出电阻小，能带负载。
+
+            总增益是各级增益之积，计算每一级时要把下一级的输入电阻当作它的负载。
+      - item:
+          id: multistage-gain
+          type: number
+          prompt: 一个三级放大器：差分输入级增益 100，中间共射级增益 −200（已计入下一级的负载效应），射极跟随输出级增益 0.9。总电压增益是多少？
+          answer: -18000
+          hint: 总增益是各级增益相乘。
+          explain: $A = 100 \times (-200) \times 0.9 = -18000$，约 85 dB。
+
+  # ==== 电流源与有源负载 ====
+  - id: gain-cell-cascode
+    chapter: 电流源与有源负载
+    title: 集成电路的思路：基本增益单元和共源共栅
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 在芯片上，一个 100 kΩ 的电阻占的面积可能比几十个晶体管还大。设计集成放大器时，你会怎样给放大管做负载？
+          options:
+            - text: 用晶体管做的电流源当负载
+              correct: true
+            - text: 照样用大电阻
+              why: 大电阻占面积大、成本高，而且要很大的直流压降
+            - text: 用电容当负载
+              why: 电容不能给晶体管提供直流通路，放大管没有工作电流
+          explain: 芯片上晶体管便宜，大电阻和大电容贵。集成放大器尽量用晶体管代替它们，这一课讲这样做的基本单元。
+      - card:
+          title: 集成电路的设计思路
+          body: |
+            分立电路里电阻、电容便宜，晶体管相对贵；芯片上正好相反：晶体管面积小，大电阻、大电容占面积大。所以集成放大器的特点是：
+
+            - 用电流源偏置和作负载，少用电阻；
+            - 级间直接耦合，不用大的耦合电容，因此靠差分结构抑制漂移；
+            - 依赖晶体管之间的匹配（同一芯片上做得很接近），而不是单个元件的绝对精度。
+      - card:
+          title: 基本增益单元和本征增益
+          body: |
+            共源放大管用一个理想电流源作负载，漏极的小信号负载只剩管子自己的 $r_o$，增益达到最大：
+
+            $$A_0 = -g_mr_o$$
+
+            $g_mr_o$ 叫晶体管的**本征增益（intrinsic gain）**。MOSFET：$g_mr_o = \frac{2I_D}{V_{ov}}\cdot\frac{V_A}{I_D} = \frac{2V_A}{V_{ov}}$，和电流无关；BJT：$g_mr_o = V_A/V_T$，$V_A = 100\text{ V}$ 时达 4000。
+
+            现代短沟道 MOSFET 的 $V_A$ 只有几伏，本征增益只有几十，要靠多叠一层管子的结构来提高。
+      - item:
+          id: intrinsic-gain
+          type: number
+          prompt: 一个 MOSFET 的 $V_A = 10\text{ V}$，过驱动电压 0.2 V。它的本征增益 $g_mr_o$ 是多少？
+          answer: 100
+          hint: 把 $g_m$ 和 $r_o$ 都用 $I_D$ 写出来，相乘时电流会约掉吗？
+          explain: $g_mr_o = 2V_A/V_{ov} = 2 \times 10/0.2 = 100$。
+      - card:
+          title: 共源共栅
+          body: |
+            在共源管 Q1 的漏极上面再叠一个共栅管 Q2，信号电流从 Q1 流进 Q2 再流到输出，这叫**共源共栅（cascode）**（BJT 叫共射共基）。
+
+            从 Q2 的漏极看进去的输出电阻被放大：
+
+            $$R_o \approx (g_{m2}r_{o2})\,r_{o1}$$
+
+            用同样理想的电流源作负载时，增益约 $-g_{m1}R_o = -(g_mr_o)^2$，是基本单元的平方。代价是多叠了一层管子，占用了更多电源电压。共源共栅还能隔开输出和 Q1 的漏极，减小 Q1 的栅漏电容对输入端的影响，提高带宽。
+      - item:
+          id: cascode-ro
+          type: number
+          prompt: 一个共源共栅结构中，两管的 $g_m = 2\text{ mS}$、$r_o = 50\text{ k}\Omega$。输出电阻约是多少兆欧？
+          answer: 5
+          unit: MΩ
+          hint: 共栅管的 $g_mr_o$ 把共源管的 $r_o$ 放大了多少倍？
+          explain: $R_o \approx (g_mr_o)r_o = (2 \times 50) \times 50\text{ k}\Omega = 5000\text{ k}\Omega = 5\text{ M}\Omega$。
+      - item:
+          id: cascode-gain
+          type: number
+          prompt: 一个共源共栅放大器用理想电流源作负载，每个管子的本征增益 $g_mr_o = 40$。电压增益约是多少？（填大小）
+          answer: 1600
+          hint: 共源共栅的增益约是本征增益的几次方？
+          explain: $|A_v| \approx (g_mr_o)^2 = 40^2 = 1600$，而单管只有 40。
+
+  - id: current-mirrors
+    chapter: 电流源与有源负载
+    title: 电流镜和有源负载
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 两个完全相同的 MOSFET，栅极连在一起、源极都接地，所以栅源电压相同，都工作在饱和区。一个管子流过 100 μA，另一个管子大约流过多少？
+          options:
+            - text: 也是约 100 μA
+              correct: true
+            - text: 50 μA，两个管子平分电流
+              why: 两管不在同一条支路上，各自的电流由自己的栅源电压决定；栅源电压相同，电流就相同
+            - text: 取决于第二个管子的负载电阻，无法确定
+              why: 饱和区的漏极电流基本只由栅源电压决定，和漏极接什么关系不大
+          explain: 饱和区电流只由 $V_{GS}$ 决定，两管 $V_{GS}$ 相同，电流就相同。这样就能把一路电流“复制”到另一路，这就是电流镜。
+      - card:
+          title: 电流镜
+          body: |
+            参考电流 $I_{REF}$ 流进 Q1，Q1 的栅极和漏极短接（二极管接法），自动产生对应的 $V_{GS}$；Q2 的栅极接同一点，于是有同样的 $V_{GS}$，复制出输出电流。这叫**电流镜（current mirror）**：
+
+            $$I_O = I_{REF}\cdot\frac{(W/L)_2}{(W/L)_1}$$
+
+            改变宽长比就能按比例放大或缩小电流。一个参考电流可以同时“镜像”给芯片上很多支路，作它们的偏置，这就是用电流镜分配偏置。电流镜的输出电阻就是 Q2 的 $r_o$。
+      - item:
+          id: mirror-ratio
+          type: number
+          prompt: 一个 NMOS 电流镜的参考电流 50 μA，Q1 的 W/L = 10，Q2 的 W/L = 40。输出电流是多少微安？
+          answer: 200
+          unit: μA
+          hint: 输出电流按宽长比的比例放大。
+          explain: $I_O = 50 \times 40/10 = 200\ \mu\text{A}$。
+      - card:
+          title: BJT 电流镜和改进的电流镜
+          body: |
+            BJT 电流镜的两个基极电流要从参考支路分走，输出电流略小于参考电流：
+
+            $$I_O = \frac{I_{REF}}{1 + 2/\beta}$$
+
+            改进的电路：
+            - 共源共栅电流镜：输出电阻从 $r_o$ 提高到约 $g_mr_o^2$，电流更接近理想；
+            - 威尔逊电流镜：用一个反馈晶体管同时减小基极电流误差（误差降到约 $2/\beta^2$）并提高输出电阻。
+      - item:
+          id: bjt-mirror
+          type: number
+          prompt: 一个 BJT 基本电流镜，$\beta = 100$，参考电流 1 mA。输出电流是多少毫安？（保留三位小数）
+          answer: 0.98
+          tolerance: 0.0005
+          unit: mA
+          hint: 两个基极电流使输出比参考小多少？
+          explain: $I_O = 1/(1 + 2/100) = 1/1.02 \approx 0.980\text{ mA}$，误差约 2%。
+      - card:
+          title: 有源负载
+          body: |
+            用电流源（如 PMOS 电流镜）代替电阻作放大管的负载，叫**有源负载（active load）**。电流源的直流压降可以很小（几百毫伏），小信号电阻却是它的 $r_o$，很大。共射（共源）级的增益
+
+            $$A_v = -g_m(r_{o1} \parallel r_{o2})$$
+
+            差分对用电流镜作有源负载时，镜像把一边的电流变化“翻”到另一边，单端输出也能得到双端那样的完整差模增益：$A_d = g_m(r_{o2} \parallel r_{o4})$，其中 $r_{o2}$ 是差分管的输出电阻、$r_{o4}$ 是电流镜输出管的输出电阻；镜像同时完成双端到单端的转换。
+      - card:
+          title: 例题：有源负载的增益
+          body: 共射放大管和作负载的电流镜输出管都有 $r_o = V_A/I_C$，$V_A = 100\text{ V}$，$I_C = 1\text{ mA}$，$V_T = 25\text{ mV}$。求 $r_o$ 和电压增益，并和 4 kΩ 电阻负载比较。
+          reveal:
+            - title: 第 1 步：输出电阻
+              body: $r_o = 100/1\text{ mA} = 100\text{ k}\Omega$。
+            - title: 第 2 步：增益
+              body: $g_m = 40\text{ mS}$，负载 $r_o \parallel r_o = 50\text{ k}\Omega$，$A_v = -40 \times 50 = -2000$。
+            - title: 第 3 步：和电阻负载比
+              body: 用 4 kΩ 电阻时 $A_v = -160$。若想用电阻得到 50 kΩ 负载，1 mA 电流会在电阻上压降 50 V，电源根本不够；电流源不费电源电压就得到了很大的小信号电阻。
+      - item:
+          id: active-load-gain
+          type: number
+          prompt: 一个用有源负载的共源放大器，$g_m = 2\text{ mS}$，放大管和负载管的 $r_o$ 都是 60 kΩ。电压增益是多少？
+          answer: -60
+          hint: 漏极的小信号负载是哪两个电阻并联？
+          explain: $r_{o1} \parallel r_{o2} = 30\text{ k}\Omega$，$A_v = -2 \times 30 = -60$。
+      - card:
+          title: 常用的晶体管组合
+          body: |
+            - **复合管（compound transistor）**，如达林顿管：两个 BJT 的发射极接下一个的基极，等效 $\beta \approx \beta_1\beta_2$，输入电阻很大，用于功率输出级。
+            - 共集–共射（CC–CE）、共漏–共源（CD–CS）：前面加一个跟随器作缓冲，提高输入电阻，也让后一级的输入电容不直接接在信号源内阻上，带宽更宽。
+            - 共漏–共栅（CD–CG）、共集–共基：组成宽带放大器。
+      - item:
+          id: darlington
+          type: number
+          prompt: 两个 β 都是 100 的 BJT 连成达林顿管。等效的电流放大系数约是多少？
+          answer: 10000
+          hint: 第一个管子的发射极电流就是第二个管子的基极电流。
+          explain: 第一管把基极电流放大约 100 倍送给第二管的基极，第二管再放大约 100 倍，$\beta \approx 100 \times 100 = 10^4$（准确值 $\beta_1\beta_2 + \beta_1 + \beta_2 = 10200$）。
+
+  # ==== 功率放大器 ====
+  - id: class-a-b
+    chapter: 功率放大器
+    title: 输出级的分类：甲类和乙类
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个音箱放大器在没有播放音乐时，输出管仍然一直流过很大的电流、发热明显。这种输出级的效率会怎样？
+          options:
+            - text: 效率很低，大量功率在没信号时也被消耗
+              correct: true
+            - text: 效率很高，因为电流一直准备好了
+              why: 没有信号时电流全部变成管子的热，没有送给负载，效率为 0
+            - text: 效率和有没有电流无关
+              why: 效率是负载得到的功率和电源提供的功率之比，静态电流越大，浪费越多
+          explain: 静态时也流过大电流，电源的功率大部分变成了热。这一课按管子导通的时间给输出级分类，比较它们的效率和失真。
+      - card:
+          title: 输出级的分类
+          body: |
+            **输出级（output stage）**要以很低的输出电阻把功率送给负载（扬声器、电机），关心的是效率和失真。按一个信号周期内输出管导通的时间分类：
+
+            - **甲类（class A）**：整个周期都导通（导通角 360°），静态电流大于信号电流的峰值；
+            - **乙类（class B）**：两个管子推挽，各导通半个周期（180°）；
+            - **甲乙类（class AB）**：每个管子导通略多于半个周期；
+            - 丙类（class C）：导通不到半个周期，用于射频调谐放大。
+      - card:
+          title: 甲类输出级
+          body: |
+            射极跟随器加一个恒流源偏置就是甲类输出级。为了让输出能在 $\pm V_{CC}$ 之间摆动，静态电流至少要等于负载电流的峰值。
+
+            正弦输出峰值 $\hat V_o$ 时，负载功率 $P_L = \frac{\hat V_o^2}{2R_L}$，电源提供的功率 $P_S = 2V_{CC}I$ 不随信号变化。效率最高时输出摆到 $\hat V_o = V_{CC}$、静态电流取最小值 $I = V_{CC}/R_L$，于是 $P_L = V_{CC}^2/(2R_L)$、$P_S = 2V_{CC}^2/R_L$，两者之比就是（变压器耦合的甲类最高可到 50%）
+
+            $$\eta_{\max} = 25\%$$
+
+            没有信号时效率为 0，电源功率全部变成热。
+          reveal:
+            - title: 第 1 步：负载得到的功率
+              body: 例：±12 V 电源、偏置电流 0.15 A、负载 100 Ω、输出峰值 12 V。$P_L = 12^2/(2 \times 100) = 0.72$ W。
+            - title: 第 2 步：电源送出的功率
+              body: 偏置电流不随信号变，正负两路合起来是 $2V_{CC}I = 2 \times 12 \times 0.15 = 3.6$ W。
+            - title: 第 3 步：效率
+              body: $\eta = 0.72/3.6 = 20\%$。只有摆到 $\hat V_o = V_{CC}$、$I$ 取最小值 $V_{CC}/R_L$ 时，$P_L/P_S$ 才等于 $1/4$。
+      - item:
+          id: class-a-eff
+          type: number
+          prompt: 一个甲类输出级用 ±10 V 电源，偏置电流 0.1 A，负载 100 Ω，输出正弦峰值 10 V。效率是百分之几？
+          answer: 25
+          unit: '%'
+          hint: 负载功率是多少？电源提供的功率是多少？
+          explain: $P_L = 10^2/(2 \times 100) = 0.5\text{ W}$，$P_S = 2 \times 10 \times 0.1 = 2\text{ W}$，$\eta = 0.5/2 = 25\%$。
+      - card:
+          title: 乙类推挽输出级
+          body: |
+            一个 NPN 管和一个 PNP 管（P–N–P 型，电流方向和 NPN 相反）组成互补对，输入为正时 NPN 导通向负载推电流，输入为负时 PNP 导通从负载拉电流，各管半个周期，没有信号时两管都截止，静态功耗为 0。
+
+            输出峰值 $\hat V_o$ 时 $P_L = \frac{\hat V_o^2}{2R_L}$。负载电流是峰值 $\hat V_o/R_L$ 的半波正弦，一个周期里的平均值是 $\frac{\hat V_o}{\pi R_L}$，正负两路电源各送一次，所以 $P_S = \frac{2V_{CC}\hat V_o}{\pi R_L}$，效率 $\eta = \frac{\pi\hat V_o}{4V_{CC}}$。$\hat V_o = V_{CC}$ 时达到最大：
+
+            $$\eta_{\max} = \frac{\pi}{4} \approx 78.5\%$$
+
+            两管的总功耗 $P_D = P_S - P_L$，对 $\hat V_o$ 求导令其为 0，得 $\hat V_o = 2V_{CC}/\pi$ 时最大，为 $\frac{2V_{CC}^2}{\pi^2R_L}$，每管一半。两管导通都要约 0.7 V，输入过零附近两管都截止，输出出现一段死区，这叫**交越失真（crossover distortion）**。
+      - item:
+          id: class-b-power
+          type: number
+          prompt: 一个乙类推挽功放用 ±12 V 电源驱动 8 Ω 扬声器，忽略管子的饱和压降。最大输出功率是多少瓦？
+          answer: 9
+          unit: W
+          hint: 输出峰值最大能到多少？
+          explain: $\hat V_o = 12\text{ V}$，$P_L = 12^2/(2 \times 8) = 9\text{ W}$，此时效率 78.5%，电源提供约 11.46 W。
+      - item:
+          id: class-b-eff-half
+          type: number
+          prompt: 一个乙类推挽功放用 ±12 V 电源，输出正弦峰值只有 6 V（忽略饱和压降）。效率是百分之几？（保留一位小数）
+          answer: 39.3
+          tolerance: 0.05
+          unit: '%'
+          hint: 乙类的效率和输出峰值成正比。
+          explain: $\eta = \frac{\pi \hat V_o}{4V_{CC}} = \frac{\pi \times 6}{48} \approx 39.3\%$，输出越小效率越低。
+      - item:
+          id: crossover
+          type: choice
+          prompt: 乙类推挽输出级在输入信号过零附近会出现交越失真。原因是什么？
+          options:
+            - text: 两管都要 $v_{BE}$ 约 0.7 V 才导通，输入在 ±0.7 V 之间时两管都截止，输出为 0
+              correct: true
+            - text: 两个管子同时导通，电流互相抵消
+              why: 乙类在过零附近恰恰是两管都不导通，而不是都导通
+            - text: 扬声器在过零时阻抗变大
+              why: 失真来自晶体管的导通门槛，和负载阻抗无关
+          explain: 输入在约 ±0.7 V 之间时两管都不导通，输出有一段“死区”。消除办法是给两管加一点静态偏置，使它们在过零附近都微导通，这就是甲乙类。
+
+  - id: class-ab-power
+    chapter: 功率放大器
+    title: 甲乙类输出级、功率管和集成功放
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 给乙类推挽输出的两个管子各加一点小的静态电流，让它们在没有信号时也微微导通。这样做主要改善了什么？
+          options:
+            - text: 消除了过零附近的死区，减小了交越失真
+              correct: true
+            - text: 提高了最大效率
+              why: 静态电流会带来一点额外功耗，效率略低于乙类
+            - text: 增大了最大输出功率
+              why: 最大输出仍由电源电压和负载决定，偏置电流不改变它
+          explain: 两管在过零附近都已微导通，就不再有一段两管都截止的死区。这一课讲怎样产生这个偏置，以及功率管的散热。
+      - card:
+          title: 甲乙类和它的偏置
+          body: |
+            在两个输出管的基极之间加一个约 $2V_{BE}$ 的直流电压 $V_{BB}$，两管静态时都流过一个小电流 $I_Q$，这就是**甲乙类（class AB）**输出级。效率略低于乙类，但交越失真基本消除，音频功放大多用它。
+
+            产生 $V_{BB}$ 的两种办法：
+            - 两个串联的二极管，和输出管做在同一散热片上，温度变化时一起变化；
+            - $V_{BE}$ 倍增器：一个晶体管，$R_1$ 接在集电极和基极之间，$R_2$ 接在基极和发射极之间，$V_{BB} = V_{BE}\left(1 + \frac{R_1}{R_2}\right)$，调电阻就能调偏置。
+      - item:
+          id: vbe-multiplier
+          type: number
+          prompt: 一个 $V_{BE}$ 倍增器中晶体管 $V_{BE} = 0.6\text{ V}$，集电极–基极之间的电阻 $R_1 = 1.2\text{ k}\Omega$，基极–发射极之间的电阻 $R_2 = 1\text{ k}\Omega$（忽略基极电流）。它两端的电压是多少伏？
+          answer: 1.32
+          unit: V
+          hint: $R_2$ 两端的电压是多少？流过它的电流同样流过 $R_1$。
+          explain: $V_{BB} = 0.6 \times (1 + 1.2) = 1.32\text{ V}$。
+      - card:
+          title: CMOS 输出级和其他变体
+          body: |
+            CMOS 芯片里的甲乙类输出级用 NMOS 和 PMOS 互补对，常把两管接成共源形式，输出可以摆到接近电源两端（轨到轨）。
+
+            其他常见变体：用达林顿复合管提高电流增益；加短路保护（输出电流过大时由一个检测管分走基极驱动）；准互补输出（两个都用 NPN 功率管，便于制造）。
+      - card:
+          title: 功率管和散热
+          body: |
+            功率管的结温不能超过上限（硅管约 150–200 °C）。热量从管芯经外壳、散热片传到空气，每一段的**热阻（thermal resistance）** $\theta$ 单位是 °C/W，串联相加：
+
+            $$T_J = T_A + P_D(\theta_{JC} + \theta_{CS} + \theta_{SA})$$
+
+            功率 BJT 的 $\beta$ 较小，还要注意二次击穿和热失控。功率 MOSFET（如 DMOS）大电流时电流随温度升高而减小，不会热失控，开关速度快，常用在开关电源和电机驱动中。
+      - item:
+          id: junction-temp
+          type: number
+          prompt: 一个功率管耗散 20 W，结到外壳热阻 1.5 °C/W，外壳到散热片 0.5 °C/W，散热片到空气 3 °C/W，环境温度 25 °C。结温是多少摄氏度？
+          answer: 125
+          unit: °C
+          hint: 三段热阻串联，总热阻是多少？
+          explain: 总热阻 $1.5 + 0.5 + 3 = 5\text{ °C/W}$，$T_J = 25 + 20 \times 5 = 125\text{ °C}$。
+      - card:
+          title: 集成功率放大器
+          body: |
+            集成功放把输入级、增益级、甲乙类输出级、偏置和保护电路做在一个芯片上，只需外接少量元件。
+
+            桥式接法（BTL）：两个功放驱动负载的两端，一端输出 $+v$、另一端 $-v$，负载两端的电压摆幅加倍。同样的电源电压下，输出功率是单个功放的 4 倍（功率和电压的平方成正比），不需要大的输出耦合电容，常用于电源电压低的车载和便携设备。
+      - item:
+          id: btl-power
+          type: number
+          prompt: 一个单电源 5 V 的集成功放单端接法时，最大能给 4 Ω 负载输出 0.5 W。换成桥式接法（两个同样的功放）驱动同一负载，理想情况下最大输出功率是多少瓦？
+          answer: 2
+          unit: W
+          hint: 桥式接法下负载两端的电压摆幅变为几倍？功率呢？
+          explain: 电压摆幅加倍，功率与电压平方成正比，变为 4 倍：$4 \times 0.5 = 2\text{ W}$。
+      - item:
+          id: mos-power-runaway
+          type: choice
+          prompt: 为什么功率 MOSFET 并联使用时不太容易出现一个管子过热烧毁的问题，而功率 BJT 并联时要特别小心？
+          options:
+            - text: 大电流时 MOSFET 的电流随温度升高而减小，热的管子会自动分到更少电流
+              correct: true
+            - text: MOSFET 的漏极电流只由栅压决定，温度对它没有影响
+              why: 温度会改变迁移率和阈值电压；大电流时 MOSFET 的电流随温度升高而减小，热的管子自动分到更少电流
+            - text: MOSFET 的栅极不取电流，所以没有功耗
+              why: 栅极电流小是驱动上的优点，功耗主要在漏源之间
+          explain: BJT 温度升高时同样的 $v_{BE}$ 下电流增大，热的管子分到更多电流、更热，形成热失控；MOSFET 大电流时迁移率随温度下降，电流减小，自动均流。
+
+  # ==== 频率响应 ====
+  - id: freq-low-hf-model
+    chapter: 频率响应
+    title: 低频响应和晶体管的高频模型
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个音频放大器在 1 kHz 时增益是 100。在 5 Hz 和 50 MHz 时增益会怎样？
+          options:
+            - text: 两头都会下降
+              correct: true
+            - text: 处处都是 100
+              why: 低频时耦合电容的阻抗变大挡住信号，高频时晶体管内部电容把信号旁路，增益都会下降
+            - text: 只有高频会下降，低频一直是 100
+              why: 用电容隔开级间直流的放大器，低频端也会下降；直接耦合的放大器才能放大直流
+          explain: 低频端受耦合、旁路电容限制，高频端受晶体管内部电容限制，中间一段增益平坦。这一课讲两端是怎么下降的。
+      - card:
+          title: 频率响应和截止频率
+          body: |
+            放大器的增益随频率变化的关系叫频率响应。中间一段增益基本不变，叫中频增益 $A_M$。高频端增益下降到 $A_M/\sqrt2$（下降 3 dB）的频率叫**上限截止频率（upper cutoff frequency）** $f_H$，低频端的叫**下限截止频率（lower cutoff frequency）** $f_L$，带宽 $BW = f_H - f_L$。
+
+            一个 RC 环节在 $f = 1/(2\pi RC)$ 处形成一个极点：过了这个频率，增益每 10 倍频下降 20 dB。
+      - card:
+          title: 低频响应
+          body: |
+            分立放大器用耦合电容隔开级间的直流，用旁路电容把发射极（源极）电阻在交流时短路。频率低时这些电容的阻抗 $1/(2\pi fC)$ 变大，信号被衰减，各自形成一个低频极点。
+
+            每个电容的极点频率 $f = \frac{1}{2\pi R C}$，$R$ 是这个电容两端看出去的总电阻。旁路电容看到的电阻很小（约 $1/g_m$ 或 $r_e$），往往决定 $f_L$。直接耦合的集成放大器没有这些电容，可以放大直流。
+      - item:
+          id: coupling-pole
+          type: number
+          prompt: 一个耦合电容 1 μF，它两端看出去的总电阻是 10 kΩ。它形成的低频极点在多少赫兹？（保留一位小数）
+          answer: 15.9
+          tolerance: 0.05
+          unit: Hz
+          hint: 这个电容和它两端看到的电阻组成一个 RC 环节，转折频率由哪两个量决定？
+          explain: $f = 1/(2\pi \times 10^4 \times 10^{-6}) \approx 15.9\text{ Hz}$。
+      - item:
+          id: bypass-dominant
+          type: choice
+          prompt: 一个共射放大器有输入耦合电容、输出耦合电容和发射极旁路电容，三个电容都是 10 μF。哪个电容最可能决定下限截止频率？
+          options:
+            - text: 发射极旁路电容
+              correct: true
+            - text: 输入耦合电容，因为它离信号源最近
+              why: 极点频率取决于电容看到的电阻；输入耦合电容看到的是信号源内阻加放大器输入电阻，较大
+            - text: 输出耦合电容，因为它接负载
+              why: 输出耦合电容看到的是 R_C 加负载电阻，几千欧，比旁路电容看到的大得多
+          explain: 旁路电容看到的电阻约为 $r_e$ 加上基极一侧折算过来的电阻，只有几十欧，同样的电容下它的极点频率最高，决定 $f_L$。
+      - card:
+          title: 晶体管内部的电容
+          body: |
+            晶体管内部有很小的电容：MOSFET 的栅源电容 $C_{gs}$、栅漏电容 $C_{gd}$；BJT 的 $C_\pi$（基区存储电荷和发射结电容）和跨接在基极–集电极之间的 $C_\mu$。高频时这些电容的阻抗变小，把信号旁路掉，增益下降。
+
+            衡量晶体管速度的是**特征频率（transition frequency）**：输出短路时电流增益降到 1 的频率，
+
+            $$f_T = \frac{g_m}{2\pi(C_{gs} + C_{gd})}\quad\text{或}\quad\frac{g_m}{2\pi(C_\pi + C_\mu)}$$
+      - item:
+          id: transition-freq
+          type: number
+          prompt: 一个 BJT 的 $g_m = 40\text{ mS}$，$C_\pi = 10\text{ pF}$，$C_\mu = 2\text{ pF}$。它的特征频率是多少兆赫？（取整数）
+          answer: 531
+          tolerance: 1
+          unit: MHz
+          hint: 特征频率是电流增益降到 1 的地方；分母是 2π 乘电容，要把哪两个电容加起来？
+          explain: $f_T = 0.04/(2\pi \times 12 \times 10^{-12}) \approx 530.5 \times 10^6\text{ Hz} \approx 531\text{ MHz}$。
+
+  - id: miller-octc
+    chapter: 频率响应
+    title: 密勒效应和开路时间常数法
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 共射放大器的基极和集电极之间只有 2 pF 的小电容，放大器增益是 −100。从输入端看进去，这个电容的影响相当于多大的电容？
+          options:
+            - text: 约 200 pF
+              correct: true
+            - text: 2 pF，电容就是电容
+              why: 输出电压是输入的 −100 倍，电容两端的电压差是输入电压的 101 倍，充放电电流也大了 101 倍
+            - text: 约 0.02 pF，被放大器隔开了
+              why: 跨接的电容两端电压差反而被放大，从输入看它变大而不是变小
+          explain: 电容一端接输入、另一端接被反相放大的输出，两端的电压差被放大，从输入看就像一个大得多的电容。这叫密勒效应，是限制放大器带宽的主要原因。
+      - card:
+          title: 密勒效应
+          body: |
+            一个电容 $C$ 跨接在增益为 $A$（反相，$A < 0$）的放大器的输入和输出之间。输入电压 $v$ 时，电容两端电压差为 $v - Av = v(1 + |A|)$，从输入端流进电容的电流是普通接法的 $(1 + |A|)$ 倍。所以从输入看，它等效为一个接地的电容
+
+            $$C_M = C(1 + |A|)$$
+
+            这叫**密勒效应（Miller effect）**。共源（共射）放大器的 $C_{gd}$（$C_\mu$）正是这样被放大的，常常成为决定 $f_H$ 的主要电容。
+      - item:
+          id: miller-cap
+          type: number
+          prompt: 一个共源放大器的增益为 −50，栅漏电容 $C_{gd} = 1\text{ pF}$。从输入端看，它的密勒等效电容是多少 pF？
+          answer: 51
+          unit: pF
+          hint: 等效电容等于 $C(1 + |A|)$。
+          explain: $C_M = 1 \times (1 + 50) = 51\text{ pF}$。
+      - card:
+          title: 例题：用密勒定理估算上限截止频率
+          body: 某共射放大级增益 −100，$C_\mu = 2\text{ pF}$，$C_\pi = 10\text{ pF}$，信号源内阻 1 kΩ（为简化，忽略 $r_\pi$ 对输入端电阻的分流）。求输入端等效电容和上限截止频率。
+          reveal:
+            - title: 第 1 步：密勒电容
+              body: $C_M = C_\mu(1 + 100) = 202\text{ pF}$。
+            - title: 第 2 步：输入端总电容
+              body: $C_{in} = C_\pi + C_M = 10 + 202 = 212\text{ pF}$。
+            - title: 第 3 步：输入端的 RC 极点
+              body: $f_H \approx \frac{1}{2\pi \times 1\text{ k}\Omega \times 212\text{ pF}} \approx 751\text{ kHz}$。小小的 2 pF 被放大成 202 pF，成了限制带宽的主角。
+      - item:
+          id: miller-fh
+          type: number
+          prompt: 一个共源级增益 −40，$C_{gd} = 0.5\text{ pF}$，$C_{gs} = 2\text{ pF}$，信号源内阻 10 kΩ。用密勒定理估算的上限截止频率是多少兆赫？（保留两位小数）
+          answer: 0.71
+          tolerance: 0.005
+          unit: MHz
+          hint: 先算输入端的总电容，再算 RC 极点。
+          explain: $C_M = 0.5 \times 41 = 20.5\text{ pF}$，$C_{in} = 22.5\text{ pF}$，$f_H = 1/(2\pi \times 10^4 \times 22.5 \times 10^{-12}) \approx 0.707\text{ MHz}$，约 0.71 MHz。
+      - card:
+          title: 开路时间常数法
+          body: |
+            电路里有好几个电容时，可以用**开路时间常数法（open-circuit time constants）**估算 $f_H$：每次只看一个电容，把其他电容都当作开路，算出这个电容两端看进去的电阻 $R_i$，得到时间常数 $R_iC_i$；把它们相加：
+
+            $$f_H \approx \frac{1}{2\pi\sum R_iC_i}$$
+
+            哪一项最大，哪个电容就是瓶颈。这个方法不需要解完整的传递函数，适合手算。
+      - card:
+          title: 增益和带宽的交换
+          body: |
+            共源级的高频响应由一个**主极点（dominant pole）**决定时，$f_H \approx \frac{1}{2\pi R_{sig}[C_{gs} + C_{gd}(1 + g_mR_L')]}$，$R_L'$ 是漏极的总负载。增益 $g_mR_L'$ 越大，密勒电容越大，带宽越窄：增益和带宽此消彼长，两者之积近似不变（增益带宽积）。
+
+            更精确地看，$C_{gd}$ 还在传递函数里引入一个右半平面零点 $f_Z = g_m/(2\pi C_{gd})$，通常远高于 $f_H$。
+      - item:
+          id: octc-sum
+          type: number
+          prompt: 一个放大器有两个电容：$C_1 = 5\text{ pF}$ 看到的电阻 20 kΩ，$C_2 = 2\text{ pF}$ 看到的电阻 10 kΩ。用开路时间常数法估算 $f_H$ 是多少兆赫？（保留两位小数）
+          answer: 1.33
+          tolerance: 0.005
+          unit: MHz
+          hint: 两个时间常数分别是多少纳秒？相加后代入公式。
+          explain: $\tau_1 = 100\text{ ns}$，$\tau_2 = 20\text{ ns}$，总和 120 ns，$f_H \approx 1/(2\pi \times 120 \times 10^{-9}) \approx 1.33\text{ MHz}$。
+
+  - id: freq-other-stages
+    chapter: 频率响应
+    title: 共栅、共源共栅、跟随器和多级放大器的高频响应
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 共源放大器的带宽受密勒效应限制。共栅放大器的输入和输出之间没有跨接电容。它的带宽会怎样？
+          options:
+            - text: 宽得多，因为没有密勒放大
+              correct: true
+            - text: 和共源一样
+              why: 共栅的 C_gd 一端接交流地，没有被增益放大，输入端的极点频率高得多
+            - text: 更窄，因为共栅的输入电阻小
+              why: 输入电阻小反而让输入端的 RC 时间常数更小，极点更高
+          explain: 共栅级的电容不跨接在反相的输入输出之间，没有密勒放大，所以频率特性好。这一课比较几种组态的高频响应。
+      - card:
+          title: 共栅和共源共栅
+          body: |
+            共栅级的 $C_{gs}$ 接在低阻的源极（约 $1/g_m$），$C_{gd}$ 接在栅极交流地和漏极之间，都不被增益放大，带宽可以接近 $f_T$。
+
+            共源共栅：下面共源管的负载是上面共栅管的输入电阻，约 $1/g_m$，所以共源管自己的增益只有约 $-1$，它的 $C_{gd}$ 只被放大成 $2C_{gd}$。高增益在上面的共栅管输出端得到，而那里没有密勒放大。这样既有高增益，又有宽带宽。
+      - item:
+          id: cascode-miller
+          type: number
+          prompt: 共源共栅结构中，下面的共源管 $C_{gd} = 1\text{ pF}$，它自己的增益约为 −1。它在输入端的密勒等效电容约是多少 pF？
+          answer: 2
+          unit: pF
+          hint: 密勒电容等于 $C(1 + |A|)$，这里的 $A$ 是哪一级的增益？
+          explain: $C_M = 1 \times (1 + 1) = 2\text{ pF}$。若是单独的共源级增益 −100，则是 101 pF。
+      - card:
+          title: 跟随器和差分放大器
+          body: |
+            源极（射极）跟随器的增益接近 1，$C_{gs}$ 两端电压差很小，等效电容被“自举”减小为 $C_{gs}(1 - A)$，输入电容小、带宽宽。
+
+            差分放大器在差模信号下，两管的源极公共点是交流地，每半边就是一个共源级，高频响应和共源级相同。共模增益在高频时会升高（尾电流源的输出电阻被寄生电容旁路），所以 CMRR 随频率升高而下降。
+
+            宽带结构还有共漏–共源、共集–共射等：用跟随器驱动共源（共射）级，信号源内阻不再直接乘上密勒电容。
+      - item:
+          id: follower-bootstrap
+          type: number
+          prompt: 一个源极跟随器的增益 0.9，$C_{gs} = 2\text{ pF}$。从栅极看进去，$C_{gs}$ 的等效电容是多少 pF？
+          answer: 0.2
+          unit: pF
+          hint: 跟随器中 $C_{gs}$ 两端的电压差是输入电压的几分之几？
+          explain: $C_{eq} = C_{gs}(1 - A) = 2 \times (1 - 0.9) = 0.2\text{ pF}$。
+      - card:
+          title: 多级放大器的带宽
+          body: |
+            几级放大器串联，总带宽比每一级都窄。$n$ 级完全相同、每级上限截止频率 $f_1$（单极点）的放大器，总的上限截止频率
+
+            $$f_H = f_1\sqrt{2^{1/n} - 1}$$
+
+            两级时 $f_H \approx 0.644f_1$，三级时约 $0.510f_1$。实际设计中常让其中一级有一个远低于其他的主极点，总带宽就近似等于这个主极点频率。
+      - item:
+          id: cascade-bandwidth
+          type: number
+          prompt: 两级完全相同的放大器串联，每级的上限截止频率都是 1 MHz（单极点）。总的上限截止频率约是多少千赫？（取整数）
+          answer: 644
+          tolerance: 1
+          unit: kHz
+          hint: 两级的幅频特性相乘，合成增益降到 $1/\sqrt2$ 时，每级各自降到了多少？
+          explain: $f_H = 1\text{ MHz} \times \sqrt{\sqrt2 - 1} \approx 1 \times 0.6436 \approx 644\text{ kHz}$。
+      - item:
+          id: widest-stage
+          type: choice
+          prompt: 下面哪种单管放大器在同样的晶体管和负载下，带宽通常最宽？
+          options:
+            - text: 共栅放大器
+              correct: true
+            - text: 共源放大器
+              why: 共源级的 C_gd 被密勒效应放大，带宽最窄
+            - text: 都一样，带宽只由晶体管的特征频率决定
+              why: 特征频率是上限；实际带宽还取决于组态里电容有没有被增益放大、电容看到的电阻有多大
+          explain: 共栅级没有密勒放大，输入端电阻又小（约 $1/g_m$），极点频率高，带宽最宽；代价是输入电阻小。
+
+  # ==== 负反馈 ====
+  - id: feedback-basics
+    chapter: 负反馈
+    title: 负反馈的一般结构和性质
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个放大器的增益随温度在 8000 到 12000 之间变化，很不稳定。把输出的 1% 送回输入并和输入相减后，整体增益大约会怎样？
+          options:
+            - text: 稳定在 100 左右，几乎不随温度变化
+              correct: true
+            - text: 仍在 8000 到 12000 之间变化
+              why: 反馈后的增益约为 1/β，主要由反馈网络（电阻）决定，放大器本身的变化影响很小
+            - text: 变得更大，因为送回了信号
+              why: 送回的信号和输入相减，整体增益变小
+          explain: 增益很大时，闭环增益约等于 1/β = 100，由反馈电阻决定，放大器自身的变化几乎被抵消。这一课讲负反馈的一般规律。
+      - card:
+          title: 反馈的一般结构
+          body: |
+            开环增益为 $A$ 的放大器，输出 $x_o$ 经反馈网络取出 $\beta x_o$ 送回输入端，和输入相减：$x_i = x_s - \beta x_o$，$x_o = Ax_i$。解得闭环增益
+
+            $$A_f = \frac{A}{1 + A\beta}$$
+
+            这种和输入相减的反馈叫**负反馈（negative feedback）**，$\beta$ 叫**反馈系数（feedback factor）**（和 BJT 的电流放大系数 $\beta$ 不是一回事，只是习惯上都用这个字母），$A\beta$ 叫**环路增益（loop gain）**，$1 + A\beta$ 叫反馈深度。$A\beta \gg 1$ 时 $A_f \approx 1/\beta$：增益只由反馈网络决定。运放接成的同相放大器就是例子：$\beta = R_1/(R_1 + R_2)$，$A_f \approx 1 + R_2/R_1$。
+      - card:
+          title: 例题：增益的稳定性
+          body: 开环增益 $A = 10^4$，反馈系数 $\beta = 0.01$。求闭环增益；若 $A$ 下降一半，闭环增益变化百分之几？
+          reveal:
+            - title: 第 1 步：闭环增益
+              body: $A\beta = 100$，$A_f = 10^4/101 \approx 99.0$。
+            - title: 第 2 步：A 减半后
+              body: $A = 5000$，$A\beta = 50$，$A_f = 5000/51 \approx 98.04$。
+            - title: 第 3 步：相对变化和代价
+              body: 闭环增益只变了约 $(99.01 - 98.04)/99.01 \approx 0.98\%$，而开环增益变了 50%。代价是增益从 $10^4$ 降到约 100，降低了 $1 + A\beta = 101$ 倍。
+      - item:
+          id: closed-loop-gain
+          type: number
+          prompt: 一个负反馈放大器的开环增益 $A = 2000$，反馈系数 $\beta = 0.05$。闭环增益是多少？（保留两位小数）
+          answer: 19.8
+          tolerance: 0.005
+          hint: 先算环路增益 $A\beta$。
+          explain: $A\beta = 100$，$A_f = 2000/101 \approx 19.80$，接近 $1/\beta = 20$。
+      - card:
+          title: 负反馈的好处和代价
+          body: |
+            - 降低增益灵敏度：$\frac{dA_f}{A_f} = \frac{1}{1 + A\beta}\cdot\frac{dA}{A}$，这个比值叫**增益灵敏度（gain sensitivity）**，$1 + A\beta$ 也叫减敏系数；
+            - 展宽带宽：单极点放大器的上限截止频率变为 $f_H(1 + A\beta)$，增益和带宽之积不变；
+            - 减小非线性失真，抑制反馈环内产生的干扰；
+            - 改变输入电阻和输出电阻（取决于反馈的接法）。
+
+            代价是增益降低 $1 + A\beta$ 倍，还可能在高频引起不稳定（自激）。
+      - item:
+          id: bandwidth-extend
+          type: number
+          prompt: 一个单极点放大器的开环增益 $10^4$、上限截止频率 1 kHz。加上 $\beta = 0.01$ 的负反馈后，闭环上限截止频率约是多少千赫？
+          answer: 101
+          unit: kHz
+          hint: 反馈深度是多少？增益带宽积会变吗？
+          explain: $1 + A\beta = 101$，$f_{Hf} = 1 \times 101 = 101\text{ kHz}$；闭环增益约 99，增益带宽积仍约 $10^7$ Hz。
+      - card:
+          title: 四种反馈组态
+          body: |
+            按在输出端取样的是电压还是电流、在输入端混合的是电压（串联）还是电流（并联），负反馈有四种组态：
+
+            | 组态 | 稳定的增益 | 输入电阻 | 输出电阻 |
+            |---|---|---|---|
+            | 串联–并联（电压放大器） | $v_o/v_s$ | 增大 $1 + A\beta$ 倍 | 减小 |
+            | 串联–串联（跨导放大器） | $i_o/v_s$ | 增大 | 增大 |
+            | 并联–并联（跨阻放大器） | $v_o/i_s$ | 减小 | 减小 |
+            | 并联–串联（电流放大器） | $i_o/i_s$ | 减小 | 增大 |
+
+            规律：串联混合使输入电阻增大，并联混合使它减小；取样电压使输出电阻减小（稳定电压），取样电流使它增大（稳定电流）。
+      - item:
+          id: topology-choice
+          type: choice
+          prompt: 要做一个输入电阻很大、输出电阻很小的电压放大器，应该用哪种反馈组态？
+          options:
+            - text: 串联–并联（输入串联混合、输出电压取样）
+              correct: true
+            - text: 并联–并联
+              why: 并联混合会使输入电阻减小
+            - text: 串联–串联
+              why: 输出电流取样会使输出电阻增大，稳定的是输出电流而不是电压
+          explain: 串联混合提高输入电阻，电压取样降低输出电阻，正好是理想电压放大器需要的。同相放大器就是这种组态。
+
+  - id: feedback-amplifiers
+    chapter: 负反馈
+    title: 四种反馈放大器的分析
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个运放同相放大器，反馈电阻把输出电压分压后送回反相输入端。负反馈对它的输出电阻有什么影响？
+          options:
+            - text: 输出电阻大大减小，带负载时输出电压更稳
+              correct: true
+            - text: 输出电阻增大
+              why: 取样的是输出电压，负载变化引起的输出电压变化会被反馈纠正，相当于输出电阻减小
+            - text: 没有影响，输出电阻只由运放内部决定
+              why: 负反馈会把输出电阻除以反馈深度 1 + Aβ
+          explain: 输出电压一下降，反馈信号跟着下降，放大器就加大输出把它拉回来，表现为很小的输出电阻。
+      - card:
+          title: 串联–并联：反馈电压放大器
+          body: |
+            反馈网络并联在输出端取样输出电压，串联在输入回路里送回电压。设基本放大器的输入电阻 $R_i$、输出电阻 $R_o$，则
+
+            $$R_{if} = R_i(1 + A\beta),\qquad R_{of} = \frac{R_o}{1 + A\beta}$$
+
+            例：运放开环增益 $10^5$，输入电阻 1 MΩ、输出电阻 100 Ω，接成 $\beta = 0.1$ 的同相放大器：$1 + A\beta \approx 10^4$，闭环增益约 10，输入电阻约 $10^{10}\ \Omega$，输出电阻约 0.01 Ω。
+      - item:
+          id: series-shunt-ro
+          type: number
+          prompt: 一个基本放大器的开环增益 1000、输出电阻 2 kΩ，接成反馈系数 0.1 的串联–并联负反馈。闭环输出电阻约是多少欧姆？（保留一位小数）
+          answer: 19.8
+          tolerance: 0.05
+          unit: Ω
+          hint: 输出电阻除以反馈深度。
+          explain: $1 + A\beta = 101$，$R_{of} = 2000/101 \approx 19.8\ \Omega$。
+      - card:
+          title: 另外三种组态
+          body: |
+            - 串联–串联（跨导放大器）：在输出回路串一个电阻 $R_F$ 取样输出电流，把 $i_oR_F$ 作为反馈电压。闭环跨导约 $1/R_F$，输入、输出电阻都增大。例：发射极接电阻的共射级就是这种反馈。
+            - 并联–并联（跨阻放大器）：反馈电阻 $R_F$ 从输出接回输入节点，送回电流。闭环跨阻约 $-R_F$，输入、输出电阻都减小。光电二极管接收器常用它。
+            - 并联–串联（电流放大器）：取样输出电流、以电流形式送回输入，闭环电流增益约 $1/\beta$，输入电阻减小、输出电阻增大。
+      - item:
+          id: transresistance
+          type: number
+          prompt: 一个用运放做的跨阻放大器，反馈电阻 100 kΩ，运放增益很大。输入 2 μA 电流时，输出电压的大小约是多少伏？
+          answer: 0.2
+          unit: V
+          hint: 深度负反馈下闭环跨阻约等于多少？
+          explain: 跨阻约 $R_F = 100\text{ k}\Omega$，$|v_o| \approx 2 \times 10^{-6} \times 10^5 = 0.2\text{ V}$（反相）。
+      - card:
+          title: 分析方法小结
+          body: |
+            分析一个反馈放大器的步骤：
+
+            1. 判断反馈类型：输出端取样电压还是电流，输入端混合电压还是电流，是负反馈还是正反馈；
+            2. 求反馈系数 $\beta$（深度负反馈时闭环增益约为 $1/\beta$）；
+            3. 把反馈网络的负载效应计入基本放大器，求 $A$、$R_i$、$R_o$；
+            4. 用 $1 + A\beta$ 算 $A_f$、$R_{if}$、$R_{of}$。
+
+            判断正负反馈常用瞬时极性法：假设输入升高，沿环路推各点升降，回到输入端时若使净输入减小就是负反馈。
+      - item:
+          id: feedback-polarity
+          type: choice
+          prompt: 一个运放的输出经电阻接回同相输入端（反相输入端接信号）。这是什么反馈？
+          options:
+            - text: 正反馈
+              correct: true
+            - text: 负反馈，因为有反馈电阻
+              why: 是正是负看反馈后净输入是增大还是减小，不看有没有电阻
+            - text: 没有反馈，因为信号接在反相端
+              why: 输出经电阻接回了输入端，就构成了反馈环路
+          explain: 输出升高时，同相端被拉高，运放输出继续升高，净输入增大，是正反馈。这种接法会让输出很快冲到正或负的饱和值，不能用来做线性放大器，只用于输出在两个饱和值之间切换的电路。
+      - item:
+          id: noninv-gain
+          type: number
+          prompt: 一个同相放大器，反馈电阻 $R_2 = 90\text{ k}\Omega$，接地电阻 $R_1 = 10\text{ k}\Omega$，运放开环增益很大。闭环增益约是多少？
+          answer: 10
+          hint: 反馈系数是多少？深度负反馈下闭环增益约为它的倒数。
+          explain: $\beta = R_1/(R_1 + R_2) = 0.1$，$A_f \approx 1/\beta = 1 + R_2/R_1 = 10$。
+
+  - id: stability-compensation
+    chapter: 负反馈
+    title: 环路增益、稳定性和频率补偿
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个负反馈放大器在低频工作正常，但接上后输出端出现了一个持续的高频正弦振荡，没有输入时也有。最可能的原因是什么？
+          options:
+            - text: 高频时放大器的相移使负反馈变成了正反馈
+              correct: true
+            - text: 电源电压太高
+              why: 电源电压影响的是输出范围，不会凭空产生特定频率的振荡
+            - text: 反馈太少
+              why: 自激通常发生在环路增益大、相移又到了 180° 的时候，反馈越深越容易自激
+          explain: 每个极点都会带来相移。高频时相移累计到 180°，相减变成相加，负反馈变成了正反馈，环路增益又不小于 1 时就会自激振荡。这一课讲怎样判断和防止。
+      - card:
+          title: 稳定性问题
+          body: |
+            闭环增益 $A_f(s) = \frac{A(s)}{1 + A(s)\beta}$。如果在某个频率上 $A\beta = -1$，分母为 0，没有输入也有输出，电路自激振荡。
+
+            用极点看：单极点放大器加反馈后，极点从 $\omega_P$ 移到 $\omega_P(1 + A_0\beta)$，仍在左半平面，总是稳定的。两个极点时，反馈越深，两个极点越靠近，最后变成一对复数极点，响应出现过冲和振铃。三个或更多极点时，反馈足够深会把极点推到右半平面，电路自激。
+
+            判断稳定性要先求环路增益 $A\beta$：在环路某处断开，加测试信号，看绕一圈回来是多少。
+      - card:
+          title: 用波特图判断：相位裕度
+          body: |
+            画出环路增益 $|A\beta|$ 和相位随频率变化的波特图（横轴取对数频率，一张画增益的分贝数，一张画相位）：
+
+            - **相位裕度（phase margin）**：$|A\beta| = 1$（0 dB）的频率处，相位离 $-180°$ 还差多少度；
+            - 增益裕度：相位到达 $-180°$ 的频率处，$|A\beta|$ 比 0 dB 低多少分贝。
+
+            两者都为正时电路稳定。相位裕度 45° 时阶跃响应有明显过冲，工程上常用 30°–60°、一般不低于 45°；相位裕度为 0 时处于自激边缘。
+      - item:
+          id: phase-margin
+          type: number
+          prompt: 一个反馈放大器在环路增益 $|A\beta| = 1$ 的频率处，环路增益的相位是 −135°。相位裕度是多少度？
+          answer: 45
+          unit: °
+          hint: 相位裕度是这个相位离 −180° 还有多远。
+          explain: $\text{PM} = 180° - 135° = 45°$。
+      - item:
+          id: unstable-check
+          type: choice
+          prompt: 一个放大器的环路增益在相位到达 −180° 的频率处，大小仍有 +6 dB。闭环后会怎样？
+          options:
+            - text: 不稳定，会自激振荡
+              correct: true
+            - text: 稳定，因为 6 dB 不大
+              why: 相位 −180° 时环路增益大于 1（0 dB），负反馈变成了增益大于 1 的正反馈，会自激
+            - text: 稳定，但增益会减小 6 dB
+              why: 增益裕度为负（−6 dB），电路不稳定
+          explain: 在相移 180° 的频率上 $|A\beta| > 1$，信号绕环一周被放大且同相，振荡会自己增长起来。
+      - card:
+          title: 频率补偿
+          body: |
+            为了让反馈电路稳定，人为修改放大器的频率特性，叫**频率补偿（frequency compensation）**：
+
+            - 加主极点：在某个节点并一个电容，制造一个很低的极点，让 $|A\beta|$ 在其他极点带来大相移之前就降到 1 以下。简单，但浪费带宽。
+            - 密勒补偿：在第二级放大器的输入和输出之间跨接一个小电容 $C_C$，利用密勒效应把它放大成大电容，形成很低的主极点，同时把第二级的输出极点推向高频（极点分离）。运放内部普遍用这种方法，例如 741 运放内部约 30 pF 的补偿电容。
+      - item:
+          id: dominant-pole
+          type: number
+          prompt: 一个运放补偿后的开环增益是 $10^5$，主极点在 10 Hz。它的增益带宽积是多少兆赫？
+          answer: 1
+          unit: MHz
+          hint: 单极点放大器的增益每 10 倍频降 10 倍，降到 1 时频率是多少？
+          explain: $GBW = 10^5 \times 10\text{ Hz} = 10^6\text{ Hz} = 1\text{ MHz}$。接成增益 10 的放大器时带宽约 100 kHz。
+      - card:
+          title: 例题：判断需不需要补偿
+          body: 一个放大器有三个极点：1 MHz、10 MHz、100 MHz，直流开环增益 $10^4$，要接成闭环增益 100（$\beta = 0.01$，$A_0\beta = 100$）。判断是否稳定。
+          reveal:
+            - title: 第 1 步：环路增益降到 1 在哪里
+              body: 第一个极点后每 10 倍频降 20 dB，第二个极点后降 40 dB。$A_0\beta = 100$（40 dB），在 1 MHz 到 10 MHz 之间降 20 dB 后剩 20 dB，再在 10 MHz 以后以 40 dB 每 10 倍频下降，约在 31.6 MHz 处降到 0 dB。
+            - title: 第 2 步：这里的相位
+              body: 相位约 $-\arctan(31.6) - \arctan(3.16) - \arctan(0.316) \approx -88.2° - 72.4° - 17.5° \approx -178°$。
+            - title: 第 3 步：结论
+              body: 相位裕度只有约 2°，处于自激边缘，必须补偿，例如加一个更低的主极点，或用密勒补偿。
+
+  # ==== 振荡器与稳压电源 ====
+  - id: sine-oscillators
+    chapter: 振荡器与稳压电源
+    title: 正弦波振荡器
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 话筒离音箱太近时，会发出刺耳的啸叫，即使没人说话也会响。这种啸叫是怎么产生的？
+          options:
+            - text: 音箱的声音被话筒收进去再放大，绕一圈回来比原来还大，自己维持下去
+              correct: true
+            - text: 话筒本身坏了，自己在发声
+              why: 把话筒移远或调小音量，啸叫就消失，说明是话筒和音箱之间的环路造成的
+            - text: 音箱声音太大把话筒震坏了
+              why: 啸叫是一个稳定的音调，是环路正反馈形成的振荡，不是损坏
+          explain: 某个频率的声音绕“音箱→话筒→放大器”一圈回来，相位相同、大小还变大，就会越来越响直到饱和。电子振荡器正是有意利用这种正反馈。
+      - card:
+          title: 振荡的条件
+          body: |
+            **振荡器（oscillator）**不需要输入，自己产生周期性的输出。正弦振荡器由放大器 $A$ 和选频的反馈网络 $\beta$ 组成正反馈环路。在某个频率 $\omega_0$ 上，若信号绕环一周恰好回到原样，振荡就能维持：
+
+            $$A(j\omega_0)\beta(j\omega_0) = 1$$
+
+            即大小为 1、相位为 0（或 360° 的整数倍），这叫**巴克豪森判据（Barkhausen criterion）**。起振时要让环路增益略大于 1，振荡幅度从噪声中增长起来；幅度大了以后，靠二极管、热敏电阻或放大器的非线性把环路增益压回到 1，幅度稳定。
+      - card:
+          title: 文氏桥振荡器
+          body: |
+            **文氏桥振荡器（Wien-bridge oscillator）**的反馈网络是一个 RC 串联支路和一个 RC 并联支路组成的分压器，接回运放的同相端。在
+
+            $$f_0 = \frac{1}{2\pi RC}$$
+
+            时，这个网络的相移为 0，衰减为 1/3。所以运放同相放大器的增益至少为 3（$1 + R_2/R_1 \ge 3$，即 $R_2 \ge 2R_1$）才能起振。
+
+            另一种 RC 振荡器是相移振荡器：用三节 RC 网络产生 180° 相移，配合反相放大器满足总相移 360°。
+      - item:
+          id: wien-freq
+          type: number
+          prompt: 一个文氏桥振荡器 $R = 10\text{ k}\Omega$，$C = 10\text{ nF}$。振荡频率是多少千赫？（保留两位小数）
+          answer: 1.59
+          tolerance: 0.005
+          unit: kHz
+          hint: 文氏网络相移为 0 的频率和 R、C 是什么关系？
+          explain: $f_0 = 1/(2\pi \times 10^4 \times 10^{-8}) \approx 1592\text{ Hz} \approx 1.59\text{ kHz}$。
+      - item:
+          id: wien-gain
+          type: number
+          prompt: 文氏桥振荡器的同相放大器中，接地电阻 $R_1 = 10\text{ k}\Omega$。为了起振，反馈电阻 $R_2$ 至少要多少千欧？
+          answer: 20
+          unit: kΩ
+          hint: 起振要求环路增益不小于 1，文氏网络在振荡频率处把信号衰减到几分之几？
+          explain: 增益至少 3，$1 + R_2/R_1 \ge 3$，$R_2 \ge 2R_1 = 20\text{ k}\Omega$。实际取略大一点，再加稳幅元件。
+      - card:
+          title: LC 振荡器和石英晶体振荡器
+          body: |
+            频率高于几百千赫时用 LC 回路选频。考毕兹振荡器用一个电感和两个串联电容，振荡频率
+
+            $$f_0 = \frac{1}{2\pi\sqrt{LC_{\text{串}}}},\qquad C_{\text{串}} = \frac{C_1C_2}{C_1 + C_2}$$
+
+            哈特莱振荡器则用两个电感和一个电容。
+
+            石英晶体受压时产生电压、加电压时产生形变，等效为一个品质因数极高的 LC 谐振回路。用它选频的晶体振荡器频率非常稳定（误差可小到百万分之几），电脑和手表里的时钟都用它。
+      - item:
+          id: colpitts
+          type: number
+          prompt: 一个考毕兹振荡器 $L = 10\ \mu\text{H}$，$C_1 = C_2 = 2\text{ nF}$。振荡频率约是多少兆赫？（保留三位小数）
+          answer: 1.592
+          tolerance: 0.0005
+          unit: MHz
+          hint: 两个电容串联的等效电容是多少？
+          explain: $C_{\text{串}} = 1\text{ nF}$，$f_0 = 1/(2\pi\sqrt{10^{-5} \times 10^{-9}}) = 1/(2\pi \times 10^{-7}) \approx 1.592\text{ MHz}$。
+
+  - id: multivibrators
+    chapter: 振荡器与稳压电源
+    title: 施密特触发器、方波发生器和 555 定时器
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 家里的恒温器在 20 °C 时开暖气，到 22 °C 时才关，而不是在同一个温度开关。这样设计的好处是什么？
+          options:
+            - text: 温度在 20 °C 附近小幅波动时，暖气不会频繁地开开关关
+              correct: true
+            - text: 更省电，因为温度更低
+              why: 平均温度差不多；主要好处是避免在门限附近反复切换
+            - text: 让温度更精确
+              why: 两个门限让温度在 20–22 °C 之间变化，精度反而略低，换来的是不频繁切换
+          explain: 开和关用两个不同的门限，小的波动越不过另一个门限，就不会引起反复切换。电子电路里的施密特触发器也是这样，这一课还用它做方波发生器。
+      - card:
+          title: 双稳态电路：施密特触发器
+          body: |
+            运放的输出经 $R_2$、$R_1$ 分压后接回同相端（正反馈），输入接反相端。输出只能是正负两个饱和电平 $+L$ 或 $-L$ 之一，两个状态都能自己保持（双稳态）。
+
+            输出为 $+L$ 时同相端电压 $\beta L$（这里的 $\beta$ 是分压比 $\frac{R_1}{R_1 + R_2}$，与电流放大系数、反馈系数无关），输入升到 $\beta L$ 以上才翻到 $-L$；之后门限变成 $-\beta L$，输入要降到 $-\beta L$ 以下才翻回来。这种带两个门限的比较器叫**施密特触发器（Schmitt trigger）**，两个门限之差 $2\beta L$ 叫回差。
+      - item:
+          id: schmitt-thresholds
+          type: number
+          prompt: 一个反相施密特触发器的输出饱和电压为 ±12 V，$R_1 = 10\text{ k}\Omega$，$R_2 = 50\text{ k}\Omega$。两个门限电压之差（回差）是多少伏？
+          answer: 4
+          unit: V
+          hint: 先求 $\beta$，门限是 $\pm\beta L$。
+          explain: $\beta = 10/60 = 1/6$，门限 $\pm 2\text{ V}$，回差 $4\text{ V}$。
+      - card:
+          title: 无稳态：方波和三角波发生器
+          body: |
+            在施密特触发器的输出和反相输入之间接一个电阻 $R$，反相端再接电容 $C$ 到地。输出为 $+L$ 时电容充电，电压升到 $\beta L$ 时输出翻到 $-L$，电容开始放电，降到 $-\beta L$ 时又翻回来。输出是方波，电容上是近似三角形的指数曲线，周期
+
+            $$T = 2RC\ln\frac{1 + \beta}{1 - \beta}$$
+
+            这叫无稳态**多谐振荡器（multivibrator）**。把电容电压换成积分器的输出，就能得到线性的三角波。单稳态电路则只在触发后输出一个固定宽度的脉冲。
+      - item:
+          id: astable-period
+          type: number
+          prompt: 一个运放方波发生器 $R = 10\text{ k}\Omega$，$C = 0.1\ \mu\text{F}$，$\beta = 0.5$。方波周期是多少毫秒？（保留两位小数）
+          answer: 2.2
+          tolerance: 0.005
+          unit: ms
+          hint: 代入 $T = 2RC\ln[(1 + \beta)/(1 - \beta)]$，$\ln 3$ 约等于多少？
+          explain: $RC = 1\text{ ms}$，$T = 2 \times 1 \times \ln 3 \approx 2 \times 1.0986 \approx 2.20\text{ ms}$。
+      - card:
+          title: 555 定时器
+          body: |
+            555 集成定时器内部有两个比较器（门限 $\tfrac23V_{CC}$ 和 $\tfrac13V_{CC}$）、一个触发器和一个放电管。外接两个电阻和一个电容就能接成无稳态多谐振荡器：电容经 $R_A + R_B$ 充电到 $\tfrac23V_{CC}$，再经 $R_B$ 放电到 $\tfrac13V_{CC}$，
+
+            $$t_H = 0.693(R_A + R_B)C,\qquad t_L = 0.693R_BC,\qquad T = 0.693(R_A + 2R_B)C$$
+
+            接成单稳态时，一次触发输出一个宽度 $T = 1.1RC$ 的脉冲，可以用来延时和去抖动。
+      - item:
+          id: timer-555
+          type: number
+          prompt: 一个 555 无稳态电路 $R_A = 1\text{ k}\Omega$，$R_B = 10\text{ k}\Omega$，$C = 10\text{ nF}$。输出频率约是多少千赫？（保留两位小数）
+          answer: 6.87
+          tolerance: 0.01
+          unit: kHz
+          hint: 充电时电流经过哪两个电阻，放电时经过哪一个？两段时间加起来是周期。
+          explain: $T = 0.693 \times 21000 \times 10^{-8} \approx 145.5\ \mu\text{s}$，$f \approx 6.87\text{ kHz}$；高电平占 $11/21 \approx 52\%$。
+      - item:
+          id: monostable
+          type: number
+          prompt: 一个 555 单稳态电路 $R = 100\text{ k}\Omega$，$C = 10\ \mu\text{F}$。每次触发输出的脉冲宽度是多少秒？
+          answer: 1.1
+          unit: s
+          hint: 555 单稳态的脉冲宽度约等于 RC 的几倍？
+          explain: $T = 1.1 \times 10^5 \times 10^{-5} = 1.1\text{ s}$。
+
+  - id: power-supply
+    chapter: 振荡器与稳压电源
+    title: 直流稳压电源
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个手机充电器从 220 V 交流电得到稳定的 5 V 直流电。下面哪个顺序最合理？
+          options:
+            - text: 降压 → 整流 → 滤波 → 稳压
+              correct: true
+            - text: 稳压 → 滤波 → 整流 → 降压
+              why: 稳压电路处理的是直流，要先把交流整流滤波成直流才能稳压
+            - text: 整流 → 稳压 → 降压 → 滤波
+              why: 变压器只能对交流降压，整流成直流后就不能再用变压器了
+          explain: 先用变压器把电压降到合适的交流，再整流成单方向，滤波成较平的直流，最后稳压去掉剩下的波动和电网变化。这一课把这几步串起来。
+      - card:
+          title: 稳压电源的组成
+          body: |
+            **稳压电源（regulated power supply）**通常分四部分：
+
+            1. 变压：变压器把电网电压降到需要的大小；
+            2. 整流：二极管桥把交流变成脉动直流；
+            3. 滤波：大电容（或 LC、π 形网络）把脉动压平，留下纹波；
+            4. 稳压：抵消纹波、电网电压波动和负载电流变化，输出稳定的直流。
+
+            稳压性能用两个指标衡量：输入电压变化时输出变化多少（线性调整率），负载电流变化时输出变化多少（负载调整率）。
+      - card:
+          title: 例题：稳压管并联稳压电路
+          body: 12 V 输入经限流电阻 $R$ 给 5.1 V 稳压管稳压，负载电流 10 mA，要求稳压管至少流过 5 mA 才能保持稳压。$R$ 取多大？
+          reveal:
+            - title: 第 1 步：限流电阻上的电流
+              body: 流过 $R$ 的电流 = 负载电流 + 稳压管最小电流 = $10 + 5 = 15\text{ mA}$。
+            - title: 第 2 步：限流电阻两端的电压
+              body: $12 - 5.1 = 6.9\text{ V}$。
+            - title: 第 3 步：求电阻
+              body: $R = 6.9/15\text{ mA} = 460\ \Omega$。负载电流变小时多出来的电流流进稳压管；负载开路时稳压管要承受全部 15 mA，选管子时要按这个算功耗：$5.1 \times 0.015 \approx 0.077\text{ W}$。
+      - item:
+          id: zener-resistor
+          type: number
+          prompt: 15 V 输入经限流电阻给 9 V 稳压管稳压，负载电流 20 mA，稳压管最小工作电流 5 mA。限流电阻最大取多少欧姆？
+          answer: 240
+          unit: Ω
+          hint: 限流电阻要提供哪两部分电流？它两端电压是多少？
+          explain: $R = (15 - 9)/(20 + 5)\text{ mA} = 6/0.025 = 240\ \Omega$。
+      - card:
+          title: 串联型稳压电路和三端稳压器
+          body: |
+            稳压管电路只能带很小的电流。**串联型稳压电路（series regulator）**用一个调整管（射极跟随器）串在输入和负载之间，误差放大器把输出的一部分 $\frac{R_2}{R_1 + R_2}V_o$ 和基准电压 $V_{REF}$ 比较，控制调整管，使
+
+            $$V_o = V_{REF}\left(1 + \frac{R_1}{R_2}\right)$$
+
+            集成三端稳压器把这些做在一起：78xx 输出固定正电压（7805 为 5 V），79xx 为负电压；LM317 可调，它的 1.25 V 基准加在输出端和 ADJ 端之间，$R_1$ 接输出与 ADJ，$R_2$ 接 ADJ 与地，$V_o = 1.25\left(1 + \frac{R_2}{R_1}\right)$。输入要比输出高出一个压差（约 2 V），调整管上的功耗 $(V_{in} - V_o)I_o$ 变成热，效率约为 $V_o/V_{in}$。
+      - item:
+          id: lm317
+          type: number
+          prompt: 一个 LM317 可调稳压电路 $R_1 = 240\ \Omega$，$R_2 = 720\ \Omega$。输出电压是多少伏？
+          answer: 5
+          unit: V
+          hint: LM317 在输出端和调节端之间维持 1.25 V，流过 $R_1$ 的电流几乎全部流进 $R_2$，两段电压怎么相加？
+          explain: $V_o = 1.25 \times (1 + 720/240) = 1.25 \times 4 = 5\text{ V}$。
+      - card:
+          title: 开关稳压电路
+          body: |
+            **开关稳压电路（switching regulator）**让调整管在完全导通和完全截止之间快速切换（几十千赫到几兆赫），管子上要么电流大电压小、要么电压大电流小，功耗很小。用电感和电容把开关后的脉冲滤平。
+
+            降压型（buck）的输出 $V_o = DV_{in}$，$D$ 是导通时间占周期的比例（占空比）。效率常达 85%–95%，比线性稳压高得多，代价是输出有开关纹波、电路较复杂。手机充电器、电脑电源都用开关电源。
+      - item:
+          id: linear-vs-buck
+          type: number
+          prompt: 用线性稳压器把 12 V 降到 5 V，给 1 A 的负载供电。稳压器自身大约要消耗多少瓦？（忽略静态电流）
+          answer: 7
+          unit: W
+          hint: 调整管两端的电压差是多少？电流是多少？
+          explain: $P = (12 - 5) \times 1 = 7\text{ W}$，效率只有 $5/12 \approx 41.7\%$。换成效率 90% 的降压开关稳压器，损耗只有约 0.56 W，占空比约 $5/12 \approx 0.42$。
+      - item:
+          id: buck-duty
+          type: number
+          prompt: 一个理想降压型开关稳压器输入 24 V，要输出 6 V。占空比应为多少？
+          answer: 0.25
+          hint: 输入只在每个周期导通的那段时间接到输出，滤波后的平均值和导通时间比例是什么关系？
+          explain: $D = V_o/V_{in} = 6/24 = 0.25$，即开关在每个周期里导通 25% 的时间。
+
+boss:
+  items:
+    - id: b-diode
+      type: number
+      prompt: 9 V 电源经 2 kΩ 电阻给一个硅二极管正向供电。用恒压降模型（0.7 V），电流是多少毫安？
+      answer: 4.15
+      unit: mA
+      hint: 电阻两端的电压是多少？
+      explain: $I = (9 - 0.7)/2\text{ k}\Omega = 4.15\text{ mA}$。
+    - id: b-cs-amp
+      type: number
+      prompt: 一个共源放大器 $I_D = 0.4\text{ mA}$，$V_{ov} = 0.25\text{ V}$，$R_D = 15\text{ k}\Omega$，忽略 $r_o$，空载。电压增益是多少？
+      answer: -48
+      hint: 先求跨导。
+      explain: $g_m = 2 \times 0.4/0.25 = 3.2\text{ mS}$，$A_v = -3.2 \times 15 = -48$。
+    - id: b-diff
+      type: number
+      prompt: 一个 BJT 差分对每管 $I_C = 0.25\text{ mA}$，$R_C = 20\text{ k}\Omega$，尾电流源输出电阻 $R_{EE} = 100\text{ k}\Omega$，$V_T = 25\text{ mV}$。单端输出的共模抑制比是多少分贝？
+      answer: 60
+      unit: dB
+      hint: 分别求单端差模增益和单端共模增益。
+      explain: $g_m = 10\text{ mS}$，单端差模 $g_mR_C/2 = 100$，共模 $R_C/(2R_{EE}) = 0.1$，CMRR $= 1000$，即 60 dB。
+    - id: b-mirror
+      type: number
+      prompt: 一个 BJT 基本电流镜 $\beta = 50$，参考电流 2 mA。输出电流是多少毫安？（保留三位小数）
+      answer: 1.923
+      tolerance: 0.0005
+      unit: mA
+      hint: 两个基极电流使输出电流比参考电流小多少？
+      explain: $I_O = 2/(1 + 2/50) = 2/1.04 \approx 1.923\text{ mA}$。
+    - id: b-class-b
+      type: number
+      prompt: 一个乙类推挽功放用 ±15 V 电源驱动 8 Ω 负载，忽略饱和压降。最大输出功率时的效率是百分之几？（保留一位小数）
+      answer: 78.5
+      tolerance: 0.05
+      unit: '%'
+      hint: 输出峰值等于电源电压时，乙类效率是多少？
+      explain: $\eta_{\max} = \pi/4 \approx 78.5\%$，此时输出 $15^2/16 \approx 14.1\text{ W}$。
+    - id: b-miller
+      type: number
+      prompt: 一个共射级增益 −80，$C_\mu = 1\text{ pF}$，$C_\pi = 9\text{ pF}$，信号源内阻 2 kΩ（忽略 $r_\pi$ 的分流）。用密勒定理估算的上限截止频率是多少千赫？（取整数）
+      answer: 884
+      tolerance: 1
+      unit: kHz
+      hint: 输入端总电容是 $C_\pi$ 加上被放大的 $C_\mu$。
+      explain: $C_{in} = 9 + 1 \times (1 + 80) = 90\text{ pF}$，$f_H = 1/(2\pi \times 2000 \times 90 \times 10^{-12}) \approx 884\text{ kHz}$。
+    - id: b-feedback
+      type: number
+      prompt: 一个负反馈放大器的开环增益 $5 \times 10^4$，反馈系数 0.02。开环增益下降到 $4 \times 10^4$ 时，闭环增益下降百分之几？（保留三位小数）
+      answer: 0.025
+      tolerance: 0.0005
+      unit: '%'
+      hint: 分别用 $A/(1 + A\beta)$ 算出前后两个闭环增益。
+      explain: 前：$50000/1001 \approx 49.9500$；后：$40000/801 \approx 49.9376$。下降 $(49.9500 - 49.9376)/49.9500 \approx 0.025\%$，而开环增益下降了 20%，相差约 $1 + A\beta$ 倍。
+    - id: b-phase-margin
+      type: choice
+      prompt: 两个反馈放大器 X、Y 的相位裕度分别是 70° 和 20°。下面哪个说法对？
+      options:
+        - text: X 更稳定，Y 的阶跃响应会有明显的过冲和振铃
+          correct: true
+        - text: Y 更稳定，因为相位裕度小说明相移小
+          why: 相位裕度是离 −180° 的距离，越小越接近自激
+        - text: 两者都会自激振荡
+          why: 相位裕度为正就是稳定的，只是裕度小时过冲大
+        - text: 相位裕度只影响增益，不影响稳定性
+          why: 相位裕度正是衡量稳定程度的指标
+      explain: 相位裕度越大越稳定。20° 虽然稳定，但闭环极点接近虚轴，阶跃响应过冲很大、振铃很久；通常要求 45° 以上。
+    - id: b-wien
+      type: number
+      prompt: 一个文氏桥振荡器 $R = 5\text{ k}\Omega$，$C = 20\text{ nF}$。振荡频率约是多少千赫？（保留两位小数）
+      answer: 1.59
+      tolerance: 0.005
+      unit: kHz
+      hint: 振荡频率等于 $1/(2\pi RC)$。
+      explain: $RC = 10^{-4}\text{ s}$，$f_0 = 1/(2\pi \times 10^{-4}) \approx 1.59\text{ kHz}$。
+    - id: b-supply
+      type: number
+      prompt: 18 V 输入经限流电阻给 12 V 稳压管稳压，负载电流 25 mA，稳压管最小工作电流 5 mA。限流电阻最大取多少欧姆？
+      answer: 200
+      unit: Ω
+      hint: 限流电阻要提供负载电流和稳压管的最小电流。
+      explain: $R = (18 - 12)/(25 + 5)\text{ mA} = 6/0.03 = 200\ \Omega$。

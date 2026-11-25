@@ -153,7 +153,7 @@ lessons:
           type: choice
           prompt: 运行一个 Python 程序，只要 `python hi.py`。猜一猜：一个 C 程序写好以后，通常要怎样才能运行？
           options:
-            - text: 先用一个专门的程序把它整个翻译成电脑能直接运行的文件，再运行那个文件
+            - text: 先整个翻译成能直接运行的文件，再运行它
               correct: true
             - text: 和 Python 一样，让一个程序边读边执行写好的文本
               why: C 的通常做法是先把整个程序翻译好，再运行翻译出来的文件
@@ -483,7 +483,7 @@ lessons:
           type: choice
           prompt: "`#include \"mathx.h\"` 做了什么？"
           options:
-            - text: 把 mathx.h 的文字原样复制到这一行
+            - text: 复制 mathx.h 的文字进来
               correct: true
             - text: 运行 mathx.h 里的代码
               why: 预处理只是复制文字，什么都不运行
@@ -661,7 +661,7 @@ lessons:
           type: choice
           prompt: b.c 里写 `extern int count;`，这一行做了什么？
           options:
-            - text: 声明 count 定义在别的文件里，这里只是借用
+            - text: 借用别的文件定义的 count
               correct: true
             - text: 新定义一个 count，初始值是 0
               why: extern 只是声明，不会再造一个 count；否则就成了两个定义
@@ -791,7 +791,7 @@ lessons:
           type: choice
           prompt: '`ldd 程序名` 告诉你什么？'
           options:
-            - text: 这个程序启动时要装进来的共享库，以及每个找到的位置
+            - text: 启动时要装进来的共享库
               correct: true
             - text: 这个程序用到的所有头文件
               why: 头文件只在编译时用，运行时早就不需要了
@@ -801,7 +801,7 @@ lessons:
       - card:
           title: 为什么要共享库
           body: |
-            同一个求平方根的程序，在这台电脑上用 `ls -l` 看文件大小：动态链接的是 15952，加 `-static` 全部静态链接的是 816880，大了五十多倍，因为 libc 的一大块被复制了进去。
+            同一个求平方根的程序，在这台电脑上用 `ls -l` 看文件大小：动态链接的约 1.6 万，加 `-static` 全部静态链接的约 81.7 万（具体数随 libc 版本略有不同），大了五十多倍，因为 libc 的一大块被复制了进去。
 
             用共享库的好处：每个程序的文件小；很多程序同时运行时，共享库只需要装进来一份；libc 修了 bug，所有动态链接它的程序重启后就用上新版本，不用重新链接。代价是：运行时必须找得到、并且是兼容的版本。
       - item:
@@ -840,11 +840,11 @@ lessons:
           type: choice
           prompt: 为什么编译共享库时要加 `-fPIC`？
           options:
-            - text: 共享库在不同程序里会被装到不同的位置，代码要放在哪里都能运行
+            - text: 共享库会被装到不同位置，代码要在哪都能跑
               correct: true
             - text: 为了让库运行得更快
               why: -fPIC 是为了放在任何位置都能用，不是为了加速
-            - text: 为了把库的代码复制进可执行文件
+            - text: 为了在链接时把库的代码整段复制进可执行文件里
               why: 复制进可执行文件是静态链接；共享库恰恰不复制
           explain: 位置事先定不下来，代码就不能写死自己在哪里。
       - item:
@@ -941,7 +941,7 @@ lessons:
           type: choice
           prompt: 下面哪种说法对？
           options:
-            - text: printf 是库函数，它把文字准备好以后，通过系统调用让内核输出
+            - text: printf 是库函数，最后通过系统调用让内核输出
               correct: true
             - text: printf 本身就是一个系统调用
               why: printf 属于标准库，负责填格式；真正请内核办事的是 write 这类系统调用
@@ -1040,7 +1040,7 @@ lessons:
           type: choice
           prompt: 为什么读文件要写成 while 循环，而不是只调用一次 `read(fd, buf, 64)`？
           options:
-            - text: 一次 read 可能只读到一部分，要一直读到它交回 0
+            - text: 一次 read 可能只读到一部分
               correct: true
             - text: 因为 read 每次只能读一个字符
               why: read 一次可以读很多个，最多是你给的个数；只是不保证读满
@@ -1447,9 +1447,9 @@ lessons:
           type: choice
           prompt: "`int a[5];` 之后写 `a[5] = 1;`，会怎样？"
           options:
-            - text: 通常能编译，运行时往数组后面的内存里写了 1，结果无法预料
+            - text: 能编译，运行时写到数组后面的内存，结果无法预料
               correct: true
-            - text: 运行时报 IndexError
+            - text: 运行时像 Python 一样报 IndexError
               why: C 没有这种检查，那是 Python 的做法
             - text: a 自动变长，多出一个元素
               why: 数组长度创建时就定死了，不会变
@@ -2003,7 +2003,7 @@ lessons:
               correct: true
             - text: 一直都在，直到关机
               why: 程序结束时它占的内存就会还给系统，何况函数结束得更早
-            - text: 要等整个程序结束才收回
+            - text: 要等整个程序结束时才统一收回
               why: 函数里的普通变量随这次调用结束就收回了
           explain: 不同的变量放在内存的不同区域，收回的时间也不同。这一课先认识这些区域。
       - card:
@@ -2190,7 +2190,7 @@ lessons:
           options:
             - text: 栈帧越压越多，栈用完，程序崩溃
               correct: true
-            - text: 永远运行下去，但不出错
+            - text: 会一直递归运行下去，但程序不会出错
               why: 每次调用都要占一块新的栈帧，栈很快就满了
             - text: 编译时报错
               why: 写法完全合法，问题在运行时才出现
@@ -2309,7 +2309,7 @@ lessons:
           type: choice
           prompt: 为什么栈上的缓冲区溢出能让程序跳到别处执行？
           options:
-            - text: 返回地址就存在局部数组上方，写出数组的边界就会盖掉它，ret 时跳到被改写的地址
+            - text: 越界写会盖掉返回地址
               correct: true
             - text: 溢出会修改程序文件里的机器码
               why: 溢出改的是运行时栈上的数据，不是磁盘上的程序文件
@@ -2439,7 +2439,7 @@ lessons:
               correct: true
             - text: 要它的函数结束的时候
               why: 那是普通局部变量；malloc 来的内存不跟着函数走
-            - text: C 会自动发现没人用了，替你还
+            - text: C 会像 Python 一样自动发现没人用了，替你还
               why: C 没有这种自动回收，Python 才有
           explain: malloc 来的内存要你亲手 free。这给了你自由，也带来了一类常见的内存错误。
       - card:
@@ -2546,11 +2546,11 @@ lessons:
           type: choice
           prompt: 程序要读进用户输入的一串数，事先不知道有多少个。猜一猜，下面哪种做法最合理？
           options:
-            - text: 先 malloc 一小块，不够了再换一块更大的，把旧的内容搬过去
+            - text: 先 malloc 一小块，不够时换更大的并搬过去
               correct: true
             - text: 一开始就开一个一百万个元素的数组
               why: 大多数时候浪费，而且万一超过一百万还是不够
-            - text: 每读一个数就单独 malloc 一个 int
+            - text: 每读一个数就单独 malloc 一个 int，再把它们连起来
               why: 这些 int 散落在堆的各处，没法再用下标 a[i] 访问
           explain: 这就是“可变数组”：用完了就换一块更大的。C 有现成的 realloc 帮你换。
       - card:
@@ -2767,11 +2767,11 @@ lessons:
             }
           lang: c
           options:
-            - text: buf 在函数结束后就被收回了，返回的地址指向已经不属于它的内存
+            - text: buf 在函数结束后被收回，返回的地址已经失效
               correct: true
             - text: 函数不能返回指针
               why: 函数可以返回指针，问题在于返回的是谁的地址
-            - text: sprintf 不能用在 char 数组上
+            - text: sprintf 不能把结果写进局部的 char 数组
               why: sprintf 正是往 char 数组里写
           explain: buf 是普通局部变量，放在 make_greeting 的栈帧里。return 之后栈帧收回，返回的地址还在，那块内存却已经不归它了。
       - card:

@@ -1,0 +1,1875 @@
+skill: E.1.1
+version: 2
+authors: [main-agent]
+brief:
+  why: 手机信号、光纤、微波炉、高压线旁的磁场，背后都是同一组方程。大学物理讲了电磁学的积分形式；这一关用多元积分学里的散度和旋度把它们写成微分形式，推出电磁波，再讲电磁波在传输线、两种介质的分界面、波导和谐振腔里怎样传播，最后是天线怎样把电流变成辐射。假设你学过大学物理电磁学（高斯定律、安培环路定理、法拉第定律、位移电流）、多元积分与向量分析（通量、散度、旋度、散度定理、斯托克斯定理）和电路基础。
+  outcomes:
+    - 用高斯定律和安培定律求对称分布的电场和磁场，算同轴线的电容和电感
+    - 写出麦克斯韦方程组的积分和微分形式，用散度定理、斯托克斯定理互相转换，说出各项的物理意义
+    - 由麦克斯韦方程组推出平面波，算波速、波长、波阻抗、功率密度和趋肤深度
+    - 算传输线的特性阻抗、反射系数、驻波比和输入阻抗，用四分之一波长变换器匹配
+    - 算垂直入射的反射和透射，求布儒斯特角，算矩形波导的截止频率和谐振腔的谐振频率
+    - 说出电流元辐射的特点，算短偶极子的辐射电阻
+terms:
+  - term: 电位移
+    def: '介质中的电场量 D = εE，它的通量只由自由电荷决定：∇·D = ρ'
+  - term: 磁场强度
+    def: '介质中的磁场量 H = B/μ，它的环流只由自由电流和位移电流决定'
+  - term: 电位
+    def: '静电场里单位正电荷的电势能 Φ（大学物理叫电势，有的书写作 V），电场是它的负梯度 E = −∇Φ'
+  - term: 微分形式
+    def: '把方程写成每一点上场的散度、旋度之间的关系，和描述一整块区域的积分形式相对'
+  - term: 位移电流
+    def: '安培–麦克斯韦定律里的 ∂D/∂t：变化的电场（介质里还包括极化的变化）也像电流一样产生磁场'
+  - term: 阻抗
+    def: '交流电路里电压相量和电流相量之比 Z = R + jX：实部是电阻，虚部是电抗'
+  - term: 线电荷密度
+    def: '每米导线上的电荷 ρ_l，单位 C/m'
+  - term: 电流密度
+    def: '穿过单位面积的电流，是一个向量 J，单位 A/m²'
+  - term: 弛豫时间
+    def: '导体内部的净电荷减少到原来 1/e 所用的时间 τ = ε/σ'
+  - term: 趋肤深度
+    def: '交流场在导体里振幅衰减到表面 1/e 处的深度 δ = 1/√(πfμσ)，频率越高越浅'
+  - term: 相对介电常数
+    def: '材料的介电常数和真空介电常数之比 ε_r，空气约 1，水在低频约 80'
+  - term: 极化
+    def: '电介质里分子的正负电荷被电场拉开（介质极化）；对电磁波，指电场方向随时间变化的方式（波的极化）'
+  - term: 唯一性定理
+    def: '区域里的源和边界上的切向场（静电场是边界电位）给定时，满足麦克斯韦方程组的解只有一个'
+  - term: 拉普拉斯方程
+    def: '没有电荷的均匀介质里电位满足的方程 ∇²Φ = 0'
+  - term: 拉普拉斯算子
+    def: '∇² = ∂²/∂x² + ∂²/∂y² + ∂²/∂z²；作用在向量上时，对每个分量各算一次'
+  - term: 波动方程
+    def: '∇²E = με ∂²E/∂t²：没有电荷和电流的均匀介质里电场满足的方程，解是以 1/√(με) 传播的波'
+  - term: 坡印廷矢量
+    def: '描述电磁能量流动的向量 S = E × H，大小是单位时间穿过单位面积的能量，单位 W/m²'
+  - term: 均匀平面波
+    def: '场只沿传播方向变化、在每个垂直于传播方向的平面上处处相同的电磁波'
+  - term: 波阻抗
+    def: '平面波电场和磁场大小之比 η = √(μ/ε)，真空里约 377 Ω'
+  - term: 相量
+    def: '表示正弦量的复数，模是振幅、辐角是初相：E₀cos(ωt + φ) 的相量是 E₀e^{jφ}'
+  - term: 波数
+    def: '波每传播 1 m 相位转过的弧度 k = ω√(με) = 2π/λ，单位 rad/m'
+  - term: 特性阻抗
+    def: '传输线上单方向行波的电压和电流之比 Z₀ = √(L/C)，只由截面形状和材料决定'
+  - term: 反射系数
+    def: '反射波电压和入射波电压之比 Γ = (Z_L − Z₀)/(Z_L + Z₀)，匹配时为零'
+  - term: 驻波比
+    def: '线上电压振幅最大值和最小值之比 S = (1 + |Γ|)/(1 − |Γ|)，匹配时为 1'
+  - term: 共轭
+    def: '复数 a + bj 的共轭是 a − bj，两者相乘得实数 a² + b²，用来做复数除法'
+  - term: 电抗
+    def: '阻抗 Z = R + jX 的虚部 X；电感、电容的阻抗是纯电抗，不消耗功率'
+  - term: 史密斯圆图
+    def: '把归一化阻抗对应的反射系数画在单位圆里的图，圆心是匹配点，用来读输入阻抗、设计匹配'
+  - term: 品质因数
+    def: '谐振器储能和每周期损耗之比的 2π 倍，Q ≈ 谐振频率 / 半功率带宽，越大谐振越尖'
+  - term: 折射率
+    def: '真空光速和介质中波速之比 n = √(ε_r μ_r)'
+  - term: 布儒斯特角
+    def: '平行极化波反射系数为零的入射角 θ_B = arctan(n₂/n₁)'
+  - term: 截止频率
+    def: '波导里某个模式能够传播的最低频率；低于它场沿波导按指数衰减'
+  - term: 电流元
+    def: '比波长短得多、电流处处相同的一小段导线，也叫短偶极子，是分析天线的基本单元'
+  - term: 辐射电阻
+    def: '把天线辐射的功率看成消耗在一个电阻上时这个电阻的值，P = ½I₀²R_rad'
+  - term: 增益
+    def: '输出和输入之比；对天线，指最强方向的功率密度和同样功率均匀辐射时之比，再乘以效率'
+  - term: 有效面积
+    def: '天线接收的功率和来波功率密度之比 A_e = Gλ²/(4π)，单位 m²'
+assumes: []
+lessons:
+  - id: em-review
+    chapter: 静电场
+    title: 场是什么，怎样测量
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个静止的电子放在两块带电平行板之间，它会受力吗？如果它在磁铁两极之间静止不动呢？
+          options:
+            - text: 在平行板之间受力，在磁铁两极之间不受力
+              correct: true
+            - text: 两种情况都受力
+              why: 磁场只对运动的电荷有力，F = qv × B，静止时 v = 0
+            - text: 两种情况都不受力
+              why: 电场对电荷有力，不论电荷动不动，F = qE
+          explain: 电场对所有电荷施力，磁场只对运动电荷施力。场就是用它对试探电荷的力来定义和测量的。
+      - card:
+          title: 用力来定义场
+          body: |
+            空间里某点的电场 $\mathbf E$ 和磁感应强度 $\mathbf B$，用放在那里的试探电荷 $q$ 受到的力定义：
+
+            $$\mathbf F = q(\mathbf E + \mathbf v \times \mathbf B)$$
+
+            这叫洛伦兹力。$\mathbf E$ 的单位是 V/m，$\mathbf B$ 的单位是特斯拉（T）。真空中两个常数：介电常数 $\varepsilon_0 \approx 8.854 \times 10^{-12}$ F/m，磁导率 $\mu_0 = 4\pi \times 10^{-7}$ H/m。它们合起来给出光速 $c = 1/\sqrt{\mu_0\varepsilon_0} \approx 3.00 \times 10^8$ m/s。
+      - item:
+          id: electron-force
+          type: number
+          prompt: '电子电荷量 $1.602 \times 10^{-19}$ C，放在 1000 V/m 的匀强电场里。它受到的电场力是多少牛顿？（单位 $10^{-16}$ N，保留三位小数）'
+          answer: 1.602
+          tolerance: 0.0005
+          hint: 电场力等于电荷量乘以什么？
+          explain: F = qE = 1.602 × 10⁻¹⁹ × 1000 = 1.602 × 10⁻¹⁶ N。
+      - item:
+          id: light-speed
+          type: number
+          prompt: '用 $\varepsilon_0 = 8.854 \times 10^{-12}$ F/m、$\mu_0 = 4\pi \times 10^{-7}$ H/m 算 $1/\sqrt{\mu_0\varepsilon_0}$。结果是多少？（单位 $10^8$ m/s，保留三位小数）'
+          answer: 2.998
+          tolerance: 0.0005
+          hint: 先算 μ₀ε₀ 的乘积，再开方取倒数。
+          explain: μ₀ε₀ ≈ 1.1127 × 10⁻¹⁷，开方 3.336 × 10⁻⁹，倒数 2.998 × 10⁸ m/s，正是光速。麦克斯韦由此推断光是电磁波。
+      - card:
+          title: 用通电导线测磁场
+          body: |
+            磁场对运动电荷的力，也可以用一段通电导线来测。导线里的电流就是一串运动的电荷，长 $L$、电流 $I$ 的直导线在磁场里受力
+
+            $$\mathbf F = I\mathbf L \times \mathbf B$$
+
+            导线和 $\mathbf B$ 垂直时，力的大小是 $ILB$，方向和导线、磁场都垂直。电流表、电动机和扬声器都利用这个力。反过来，测出这个力，就知道那里的 $B$ 有多大。
+      - item:
+          id: wire-force
+          type: number
+          prompt: '长 0.5 m 的直导线通 2 A 电流，放在 0.1 T 的匀强磁场里，导线和磁场垂直。导线受力多少牛顿？'
+          answer: 0.1
+          hint: 导线和磁场垂直时，力等于哪三个量的乘积？
+          explain: F = ILB = 2 × 0.5 × 0.1 = 0.1 N。
+      - card:
+          title: 磁场强度
+          body: |
+            描述磁场还常用另一个量：**磁场强度（magnetic field strength）** $\mathbf H$。真空里
+
+            $$\mathbf H = \frac{\mathbf B}{\mu_0}$$
+
+            单位是 A/m。电场也有一个对应的量 $\mathbf D = \varepsilon_0\mathbf E$。在真空里多出这两个量似乎没有必要；到了介质（玻璃、水、铁）里，材料自身的极化和磁化会改变场，那时 $\mathbf D$ 和 $\mathbf H$ 只和你放进去的自由电荷、自由电流有关，用起来更方便。
+      - item:
+          id: earth-h
+          type: number
+          prompt: '地面附近地磁场的磁感应强度约 50 μT。在空气里（按真空算），对应的磁场强度是多少 A/m？（$\mu_0 = 4\pi \times 10^{-7}$ H/m，保留一位小数）'
+          answer: 39.8
+          tolerance: 0.05
+          hint: H 等于 B 除以什么？注意 μT 是 10⁻⁶ T。
+          explain: H = B/μ₀ = 50 × 10⁻⁶ / (4π × 10⁻⁷) ≈ 39.8 A/m。
+  - id: gauss-electrostatics
+    chapter: 静电场
+    title: 高斯定律和电位
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一根很长的直导线均匀带电。离它 0.1 m 处的电场和离它 0.2 m 处相比，大小是什么关系？
+          options:
+            - text: 0.1 m 处是 0.2 m 处的 2 倍
+              correct: true
+            - text: 0.1 m 处是 0.2 m 处的 4 倍
+              why: 点电荷的场和距离平方成反比；长直线电荷的电通量穿过的是圆柱面，面积和距离成正比，所以场和距离成反比
+            - text: 两处一样大
+              why: 那是无限大带电平面的情形；长直线的场随距离减小
+          explain: 用高斯定律取同轴圆柱面，侧面积 2πrL，电场 E = ρ_l/(2πε₀r)，和 r 成反比。
+      - card:
+          title: 高斯定律的两种形式
+          body: |
+            大学物理讲过积分形式：穿过任意闭曲面的电通量等于面内的电荷除以 $\varepsilon_0$。在介质里用**电位移（electric displacement）** $\mathbf D = \varepsilon\mathbf E$，它的通量只看自由电荷。$\varepsilon = \varepsilon_r\varepsilon_0$，$\varepsilon_r$ 叫**相对介电常数（relative permittivity）**，大学物理里记作 $\kappa$，空气约 1：
+
+            $$\oint_S \mathbf D \cdot \mathbf n\,dS = Q_{\text{内}}$$
+
+            左边用散度定理换成 $\iiint \nabla \cdot \mathbf D\,dV$，右边写成 $\iiint \rho\,dV$，对任意小体积都成立，于是得到**微分形式（differential form）**
+
+            $$\nabla \cdot \mathbf D = \rho$$
+
+            积分形式适合对称的电荷分布求场，微分形式描述每一点上场和电荷的关系。
+          reveal:
+            - title: 第 1 步：选高斯面
+              body: |
+                例：无限长直线，**线电荷密度（line charge density）** $\rho_l = 1$ nC/m。取半径 $r$、长 $L$ 的同轴圆柱面，场沿径向，两个底面没有通量。
+            - title: 第 2 步：写出高斯定律
+              body: |
+                $\varepsilon_0 E \cdot 2\pi r L = \rho_l L$，所以 $E = \frac{\rho_l}{2\pi\varepsilon_0 r}$。
+            - title: 第 3 步：代数
+              body: |
+                $r = 0.1$ m：$E = \frac{10^{-9}}{2\pi \times 8.854 \times 10^{-12} \times 0.1} \approx 180$ V/m。
+      - item:
+          id: point-charge
+          type: number
+          prompt: '真空中 1 nC 的点电荷，离它 0.3 m 处的电场强度是多少 V/m？（$\varepsilon_0 = 8.854 \times 10^{-12}$ F/m，保留一位小数）'
+          answer: 99.9
+          tolerance: 0.05
+          hint: 取以点电荷为球心的球面作高斯面，球面面积是多少？
+          explain: E = Q/(4πε₀r²) = 10⁻⁹ / (4π × 8.854 × 10⁻¹² × 0.09) ≈ 99.9 V/m。
+      - item:
+          id: div-d
+          type: number
+          prompt: '某区域里 $\mathbf D = (2x,\ 3y,\ 0)$（单位 C/m²，坐标以米计）。那里的自由电荷体密度是多少 C/m³？'
+          answer: 5
+          hint: 自由电荷密度等于 D 的什么？
+          explain: ρ = ∇·D = ∂(2x)/∂x + ∂(3y)/∂y + 0 = 5 C/m³。
+      - card:
+          title: 电位和同轴线的电容
+          body: |
+            静电场的旋度为零，所以它是保守场，可以写成一个函数的负梯度：$\mathbf E = -\nabla\Phi$，$\Phi$ 叫**电位（electric potential）**，单位伏特，也就是大学物理里的电势，电气工程的书上多叫电位。两点间的电压是电场从一点到另一点的线积分。
+
+            同轴线：内导体半径 $a$、外导体内半径 $b$，中间介质 $\varepsilon$。内导体每米带 $\rho_l$，中间的场 $E = \frac{\rho_l}{2\pi\varepsilon r}$，从 $a$ 积到 $b$ 得电压 $V = \frac{\rho_l}{2\pi\varepsilon}\ln\frac ba$，每米的电容
+
+            $$C = \frac{\rho_l}{V} = \frac{2\pi\varepsilon}{\ln(b/a)}$$
+      - item:
+          id: coax-c
+          type: number
+          prompt: '同轴线内导体半径 1 mm、外导体内半径 3.5 mm，中间填充 $\varepsilon_r = 2.25$ 的介质。每米的电容是多少 pF/m？（保留一位小数）'
+          answer: 99.9
+          tolerance: 0.05
+          hint: 介质的介电常数是 ε_r 乘什么？ln(b/a) 是多少？
+          explain: C = 2π × 2.25 × 8.854 × 10⁻¹² / ln 3.5 ≈ 99.9 pF/m。
+      - item:
+          id: coax-air
+          type: number
+          prompt: '空气同轴线内导体半径 1 mm、外导体内半径 2.3 mm。每米的电容是多少 pF/m？（保留一位小数）'
+          answer: 66.8
+          tolerance: 0.05
+          hint: 空气的相对介电常数约是多少？
+          explain: C = 2π × 8.854 × 10⁻¹² / ln 2.3 ≈ 66.8 pF/m。
+
+  - id: images-laplace
+    chapter: 静电场
+    title: 镜像法和拉普拉斯方程
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个正点电荷放在一块很大的接地金属板上方。金属板对它有力吗？
+          options:
+            - text: 有，金属板表面感应出负电荷，把它吸过去
+              correct: true
+            - text: 没有，金属板接地，不带电
+              why: 接地只保证板的电位为零；正电荷会把负电荷吸到板的上表面，板对它有吸引力
+            - text: 有，把它推开
+              why: 感应出来的是异号电荷，所以是吸引
+          explain: 感应电荷分布很复杂，但可以用“板下方对称位置放一个负电荷”来等效，这就是镜像法。
+      - card:
+          title: 镜像法
+          body: |
+            接地导体平面上方高 $h$ 处有点电荷 $q$。板上方的场，和把板拿走、在板下方 $-h$ 处放一个 $-q$ 的场完全一样：两个电荷在原来板的位置上产生的电位处处为零，正好满足接地的边界条件。**唯一性定理（uniqueness theorem）**说：区域里的电荷给定、边界上的电位也给定时，满足方程的解只有一个。所以这就是答案。
+
+            电荷受的力就是两个点电荷之间的库仑力：$F = \frac{q^2}{4\pi\varepsilon_0(2h)^2}$，方向指向板。电流在理想导体平面附近也可以用镜像电流处理。
+      - item:
+          id: image-force
+          type: number
+          prompt: '1 nC 的点电荷在大接地金属板上方 0.1 m 处。金属板对它的吸引力是多少？（单位 $10^{-7}$ N，保留两位小数）'
+          answer: 2.25
+          tolerance: 0.005
+          hint: 镜像电荷在哪里？两个电荷相距多远？
+          explain: 镜像电荷 −1 nC 在板下方 0.1 m，相距 0.2 m。F = 8.988 × 10⁹ × 10⁻¹⁸ / 0.04 ≈ 2.25 × 10⁻⁷ N。
+      - card:
+          title: 拉普拉斯方程
+          body: |
+            没有电荷的区域里 $\nabla \cdot \mathbf D = 0$，再代入 $\mathbf E = -\nabla\Phi$（均匀介质），得到
+
+            $$\nabla^2\Phi = \frac{\partial^2\Phi}{\partial x^2} + \frac{\partial^2\Phi}{\partial y^2} + \frac{\partial^2\Phi}{\partial z^2} = 0$$
+
+            左边的 $\nabla^2$ 叫**拉普拉斯算子**，这个方程叫**拉普拉斯方程**。最简单的例子：两块平行板相距 $d$、电压 $V$，电位只随 $x$ 变，$\Phi'' = 0$，解是直线 $\Phi = Vx/d$，场 $E = V/d$ 处处相同。形状复杂时用分离变量法：设 $\Phi = X(x)Y(y)$，把偏微分方程拆成几个常微分方程分别解。
+      - item:
+          id: plates
+          type: number
+          prompt: '两块平行金属板相距 2 mm，电压 10 V，中间没有电荷。板间电场强度是多少 V/m？'
+          answer: 5000
+          hint: 电位在两板之间怎样随距离变化？
+          explain: Φ = Vx/d 是直线，E = V/d = 10 / 0.002 = 5000 V/m。
+      - card:
+          title: 通量管和场图
+          body: |
+            画场图：电场线和等位线处处垂直。把相邻电场线围成的管子叫通量管，每根管子里的电通量相同；把等位线画成等间隔的电压。两者把区域分成近似的“曲边正方形”时，每米的电容约等于 $\varepsilon$ 乘以并联的通量管数、再除以串联的电位格数。这种手绘办法在计算机普及之前常用来估算电容，现在仍是理解场分布的好工具。
+      - item:
+          id: field-lines
+          type: choice
+          prompt: 静电场里电场线和等位线是什么关系？
+          options:
+            - text: 处处垂直
+              correct: true
+            - text: 处处平行
+              why: 沿等位线移动电位不变，电场在这个方向没有分量，所以电场线垂直于等位线
+            - text: 没有固定关系
+              why: E = −∇Φ，梯度总是垂直于等值线
+          explain: 电场是电位的负梯度，梯度垂直于等值线。
+
+  - id: ampere-magnetostatics
+    chapter: 恒定电流与静磁场
+    title: 安培定律和同轴线的电感
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 同轴电缆的内导体通电流 I，外导体通大小相同、方向相反的电流。电缆外面（外导体以外）的磁场有多大？
+          options:
+            - text: 零
+              correct: true
+            - text: 和只有内导体通电时一样大
+              why: 外导体的电流方向相反；在电缆外面画一个圆圈，圈住的是两股电流的和
+            - text: 是只有内导体通电时的两倍
+              why: 两股电流方向相反，在外面的效果是相互抵消，不是相加
+          explain: 在电缆外面取一个同轴的圆形回路，它包住的电流是 I − I = 0，按对称性回路上各点的磁场一样大，所以处处为零。同轴线把磁场关在两层导体之间。
+      - card:
+          title: 安培定律的两种形式
+          body: |
+            大学物理的安培环路定理，用磁场强度写是：沿任意闭合回路的环流等于回路包住的电流（静态时）。
+
+            $$\oint_C \mathbf H \cdot d\mathbf l = I_{\text{内}}$$
+
+            把电流写成**电流密度（current density）** $\mathbf J$ 的通量，$\mathbf J$ 是穿过单位面积的电流，单位 A/m²：$I_{\text{内}} = \iint_S \mathbf J \cdot \mathbf n\,dS$。左边用斯托克斯定理换成 $\iint_S (\nabla \times \mathbf H) \cdot \mathbf n\,dS$。两边对任意曲面都相等，所以
+
+            $$\nabla \times \mathbf H = \mathbf J$$
+          reveal:
+            - title: 第 1 步：选回路
+              body: |
+                例：长直导线通 5 A 电流。取以导线为轴、半径 $r$ 的圆，按对称性圆上各点的 $H$ 一样大，方向沿圆周。
+            - title: 第 2 步：写出安培定律
+              body: |
+                $H \cdot 2\pi r = I$，所以 $H = \frac{I}{2\pi r}$，$B = \mu_0 H = \frac{\mu_0 I}{2\pi r}$。
+            - title: 第 3 步：代数
+              body: |
+                $r = 2$ cm：$B = \frac{4\pi \times 10^{-7} \times 5}{2\pi \times 0.02} = 5 \times 10^{-5}$ T，也就是 50 μT，和地磁场差不多大。
+      - item:
+          id: wire-b
+          type: number
+          prompt: '长直导线通 20 A 电流，离导线 0.1 m 处的磁感应强度是多少 μT？（$\mu_0 = 4\pi \times 10^{-7}$ H/m）'
+          answer: 40
+          tolerance: 0.001
+          hint: 按安培定律，离导线 r 处 B 和 I、r 是什么关系？
+          explain: B = μ₀I/(2πr) = 4π × 10⁻⁷ × 20 / (2π × 0.1) = 4 × 10⁻⁵ T = 40 μT。
+      - item:
+          id: curl-j
+          type: number
+          prompt: '某区域里的静磁场 $\mathbf H = (0,\ 3x,\ 0)$ A/m，坐标以米计。那里电流密度的 z 分量是多少 A/m²？'
+          answer: 3
+          hint: 旋度的 z 分量由哪两个偏导数相减得到？哪一个是对 H_y 求的？
+          explain: J_z = ∂(3x)/∂x − ∂(0)/∂y = 3 A/m²。另外两个分量是 0，电流沿 z 方向流。
+      - card:
+          title: 同轴线的电感
+          body: |
+            同轴线内导体半径 $a$、外导体内半径 $b$，内外导体通相反的电流 $I$。两层导体之间 $H = \frac{I}{2\pi r}$，外面为零。
+
+            取 1 m 长、从 $r = a$ 到 $r = b$ 的长方形截面，穿过它的磁通
+
+            $$\Phi = \int_a^b \frac{\mu I}{2\pi r}\,dr = \frac{\mu I}{2\pi}\ln\frac ba$$
+
+            电感是磁通和电流之比，每米的电感 $L = \frac{\mu}{2\pi}\ln\frac ba$。高频时电流只在导体表面流，导体内部的磁场可以不算。$a = 1$ mm、$b = 3.5$ mm、$\mu = \mu_0$ 时，$L = 2 \times 10^{-7} \times \ln 3.5 \approx 0.251$ μH/m。
+      - item:
+          id: coax-l-air
+          type: number
+          prompt: '同轴线内导体半径 1 mm、外导体内半径 2.3 mm，中间是空气。高频时每米的电感是多少 nH/m？（保留到个位）'
+          answer: 167
+          tolerance: 0.5
+          hint: 电感是磁通除以电流；磁通对 1/r 从 a 积到 b，积出来是 b/a 的什么函数？
+          explain: L = 2 × 10⁻⁷ × ln 2.3 ≈ 1.666 × 10⁻⁷ H/m ≈ 167 nH/m。电感只由 b/a 这个比值决定：内外半径按同样比例放大或缩小，电感不变。
+      - card:
+          title: 两种材料串在一起时的静态场
+          body: |
+            平行板电容器里叠了两层介质，每层厚 1 mm，相对介电常数 $\varepsilon_{r1} = 2$、$\varepsilon_{r2} = 4$，两板电压 30 V。两层里的场不一样大。
+
+            分界面上没有自由电荷，$\mathbf D$ 的通量连续，两层的 $D$ 相等：$\varepsilon_1 E_1 = \varepsilon_2 E_2$，所以 $E_1 = 2E_2$，介电常数小的那层场大。再用电压 $E_1 d + E_2 d = 30$ V，得 $E_1 = 20$ kV/m、$E_2 = 10$ kV/m。
+
+            导体串联也一样：稳恒电流的 $J$ 处处相等，$J = \sigma E$，电导率小的那段场大；两段的 $\varepsilon/\sigma$ 不同时，分界面上会积起一层电荷。
+      - item:
+          id: two-layer
+          type: number
+          prompt: '平行板电容器里叠两层介质，每层厚 1 mm，相对介电常数分别是 3 和 6，两板电压 45 V。相对介电常数为 3 的那层里电场强度是多少 kV/m？'
+          answer: 30
+          hint: 两层的 D 相等，E₁ 是 E₂ 的几倍？两层的电压加起来是多少？
+          explain: ε₁E₁ = ε₂E₂，E₁ = 2E₂；E₁ × 1 mm + E₂ × 1 mm = 45 V，1.5E₁ × 0.001 = 45，E₁ = 30 kV/m，E₂ = 15 kV/m。
+      - item:
+          id: layer-choice
+          type: choice
+          prompt: 电缆绝缘层里夹了一层很薄的空气隙，和绝缘材料（相对介电常数约 3）串联在两极之间。哪里的电场最强？
+          options:
+            - text: 绝缘材料里，因为它比空气厚得多
+              why: 串联时决定场强的是各层的介电常数，不是厚度；D 连续，ε 小的层 E 大
+            - text: 空气隙里，它的介电常数小，E = D/ε 大
+              correct: true
+            - text: 两处一样，因为电压加在同一对电极之间
+              why: 电压相同是对整个串联层说的；各层分到的电压和场强按 ε 分配，不相等
+          explain: 两层的 D 相等，空气的 ε 约是绝缘材料的 1/3，所以气隙里的场约是材料里的 3 倍。高压电缆里的气隙因此容易先击穿放电。
+
+  - id: relaxation-skin
+    chapter: 恒定电流与静磁场
+    title: 电荷弛豫和趋肤深度
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 设法把一团电荷放进一块铜的内部。过一小会儿，这些电荷在哪里？
+          options:
+            - text: 还在原处
+              why: 铜里有大量自由电子，电荷产生的电场会推动它们移动
+            - text: 跑到铜块表面
+              correct: true
+            - text: 均匀散布在整块铜里，浓度变低
+              why: 同号电荷相互排斥，只要内部还有净电荷就有电场推它们，最后都被推到表面
+          explain: 导体内部的净电荷会很快消失，跑到表面上去。快到什么程度，取决于材料的导电能力和它被电场极化的程度。
+      - card:
+          title: 电荷守恒
+          body: |
+            从一小块体积里流出去的电流，等于里面电荷减少的速度。用散度写成
+
+            $$\nabla \cdot \mathbf J = -\frac{\partial \rho}{\partial t}$$
+
+            这叫电流连续性方程。在导体里 $\mathbf J = \sigma\mathbf E$，$\sigma$ 是电导率（电阻率的倒数）；又有 $\nabla \cdot (\varepsilon\mathbf E) = \rho$。两式合起来就能算出内部电荷怎样消失。
+      - card:
+          title: 弛豫时间
+          body: 均匀导体里把 $\mathbf J = \sigma\mathbf E$ 代进连续性方程，一步一步来。
+          reveal:
+            - title: 第 1 步：用电荷表示电流的散度
+              body: |
+                $\nabla \cdot \mathbf J = \sigma\nabla \cdot \mathbf E = \frac{\sigma}{\varepsilon}\rho$。
+            - title: 第 2 步：得到一个常微分方程
+              body: |
+                $\frac{\partial\rho}{\partial t} = -\frac{\sigma}{\varepsilon}\rho$，解是 $\rho(t) = \rho_0 e^{-t/\tau}$，$\tau = \varepsilon/\sigma$。
+            - title: 第 3 步：给它起名字
+              body: |
+                $\tau$ 叫**弛豫时间（relaxation time）**：内部电荷每过一个 $\tau$ 减少到 $1/e$。铜 $\sigma = 5.8 \times 10^7$ S/m、$\varepsilon \approx \varepsilon_0$，$\tau \approx 1.5 \times 10^{-19}$ s，几乎是立刻。
+      - item:
+          id: relax-sea
+          type: number
+          prompt: '海水的电导率约 4 S/m，相对介电常数约 81。它的电荷弛豫时间是多少？（单位 $10^{-10}$ s，保留两位小数）'
+          answer: 1.79
+          tolerance: 0.005
+          hint: 弛豫时间由材料的哪两个性质决定？海水的 ε 是 ε₀ 的多少倍？
+          explain: τ = 81 × 8.854 × 10⁻¹² / 4 ≈ 1.79 × 10⁻¹⁰ s。
+      - item:
+          id: relax-glass
+          type: number
+          prompt: '某种玻璃的电导率约 $10^{-12}$ S/m，相对介电常数约 5。它的电荷弛豫时间是多少秒？（保留到个位）'
+          answer: 44
+          tolerance: 0.5
+          hint: 把玻璃的 ε 和 σ 放进同一个比值。σ 比海水小很多，τ 会更长还是更短？
+          explain: τ = 5 × 8.854 × 10⁻¹² / 10⁻¹² ≈ 44 s。绝缘体上的电荷能停留很久，所以摩擦起电的电荷留在玻璃上，不会马上消失。
+      - card:
+          title: 趋肤深度
+          body: |
+            交流电流在导体里并不均匀分布。频率越高，电流越挤向表面：场的振幅从表面往里按 $e^{-z/\delta}$ 衰减，$\delta$ 叫**趋肤深度（skin depth）**。良导体里
+
+            $$\delta = \frac{1}{\sqrt{\pi f \mu \sigma}}$$
+
+            深入一个 $\delta$，振幅降到表面的 $1/e \approx 37\%$。
+          reveal:
+            - title: 第 1 步：列出数据
+              body: |
+                铜，$f = 1$ MHz，$\mu = \mu_0 = 4\pi \times 10^{-7}$ H/m，$\sigma = 5.8 \times 10^7$ S/m。
+            - title: 第 2 步：算根号里的乘积
+              body: |
+                $\pi \times 10^6 \times 4\pi \times 10^{-7} \times 5.8 \times 10^7 \approx 2.29 \times 10^8$，开方约 $1.51 \times 10^4$。
+            - title: 第 3 步：取倒数
+              body: |
+                $\delta \approx 6.61 \times 10^{-5}$ m，约 66 μm，比一根头发还细。
+      - item:
+          id: skin-50
+          type: number
+          prompt: '铜的电导率 $5.8 \times 10^7$ S/m，$\mu = 4\pi \times 10^{-7}$ H/m。50 Hz 工频下铜的趋肤深度是多少毫米？（保留两位小数）'
+          answer: 9.35
+          tolerance: 0.005
+          hint: δ 和 √f 成反比。1 MHz 时约 66 μm，频率降到 50 Hz，δ 要乘上几？
+          explain: δ = 1/√(π × 50 × 4π × 10⁻⁷ × 5.8 × 10⁷) ≈ 9.35 × 10⁻³ m = 9.35 mm。工频下普通粗细的铜线里电流基本均匀；截面厚到几厘米的大电流母线，中心部分就用不上，所以常做成扁的薄片或空心管。
+      - item:
+          id: skin-2delta
+          type: number
+          prompt: 导体表面某交流场的振幅为 100%。深入两个趋肤深度处，振幅是表面的百分之几？（保留一位小数）
+          answer: 13.5
+          tolerance: 0.05
+          hint: 每深入一个 δ，振幅乘上多少？两个 δ 就乘两次。
+          explain: e⁻² ≈ 0.135，即 13.5%。
+      - item:
+          id: skin-scale
+          type: choice
+          prompt: 同一种导体，频率从 1 MHz 升到 100 MHz，趋肤深度怎样变？
+          options:
+            - text: 变成原来的 1/10
+              correct: true
+            - text: 变成原来的 1/100
+              why: δ 和 √f 成反比，频率乘 100，δ 只除以 √100 = 10
+            - text: 不变，趋肤深度只由材料决定
+              why: 公式里有 f；同一材料频率越高越浅
+          explain: δ ∝ 1/√f，频率乘 100，δ 除以 10。铜在 100 MHz 时约 6.6 μm。
+
+  - id: maxwell-differential
+    chapter: 时变电磁场与麦克斯韦方程组
+    title: 麦克斯韦方程组的微分形式
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 磁感线总是闭合的，没有起点也没有终点。你觉得这句话写成方程，说的是磁场的什么等于零？
+          options:
+            - text: 散度
+              correct: true
+            - text: 旋度
+              why: 旋度描述绕一点打转的程度；磁场绕着电流打转，旋度并不为零
+            - text: 磁场本身
+              why: 磁场可以很强，同时仍然没有起点和终点
+          explain: 散度衡量一点是不是“源头”或“汇点”。磁感线没有源头，所以 ∇·B = 0。
+      - card:
+          title: 四个方程
+          body: |
+            大学物理学过麦克斯韦方程组的积分形式。用散度定理和斯托克斯定理，每一个都能写成微分形式：
+
+            | 名字 | 积分形式 | 微分形式 |
+            |---|---|---|
+            | 高斯定律 | $\oint_S \mathbf D \cdot \mathbf n\,dS = Q$ | $\nabla \cdot \mathbf D = \rho$ |
+            | 磁通连续 | $\oint_S \mathbf B \cdot \mathbf n\,dS = 0$ | $\nabla \cdot \mathbf B = 0$ |
+            | 法拉第定律 | $\oint_C \mathbf E \cdot d\mathbf l = -\frac{d}{dt}\iint_S \mathbf B \cdot \mathbf n\,dS$ | $\nabla \times \mathbf E = -\frac{\partial \mathbf B}{\partial t}$ |
+            | 安培–麦克斯韦定律 | $\oint_C \mathbf H \cdot d\mathbf l = \iint_S \left(\mathbf J + \frac{\partial \mathbf D}{\partial t}\right) \cdot \mathbf n\,dS$ | $\nabla \times \mathbf H = \mathbf J + \frac{\partial \mathbf D}{\partial t}$ |
+
+            积分形式说的是一块区域、一条回路整体上的关系；微分形式说的是每一点上的关系。$\partial\mathbf D/\partial t$ 是**位移电流（displacement current）**密度，在介质里它还包括极化的变化。
+      - card:
+          title: 例题：把法拉第定律写成微分形式
+          body: 积分形式对任意一条回路 $C$ 和它围住的任意曲面 $S$ 都成立。
+          reveal:
+            - title: 第 1 步：左边换成面积分
+              body: |
+                斯托克斯定理：$\oint_C \mathbf E \cdot d\mathbf l = \iint_S (\nabla \times \mathbf E) \cdot \mathbf n\,dS$。
+            - title: 第 2 步：右边把求导移进积分
+              body: |
+                曲面不随时间动，$-\frac{d}{dt}\iint_S \mathbf B \cdot \mathbf n\,dS = \iint_S \left(-\frac{\partial \mathbf B}{\partial t}\right) \cdot \mathbf n\,dS$。
+            - title: 第 3 步：被积函数相等
+              body: |
+                两个面积分对任意曲面都相等，只能是被积函数处处相等：$\nabla \times \mathbf E = -\frac{\partial \mathbf B}{\partial t}$。反过来，对微分形式两边做面积分、再用斯托克斯定理，就回到积分形式。
+      - item:
+          id: gauss-order
+          type: order
+          prompt: 把高斯定律从积分形式改写成微分形式，按顺序排好这几步。
+          steps:
+            - 写出积分形式：D 穿过闭曲面的通量等于面内的电荷
+            - 左边用散度定理换成 ∇·D 的体积分
+            - 右边把面内电荷写成 ρ 的体积分
+            - 两个体积分对任意体积都相等，所以被积函数相等：∇·D = ρ
+          explain: 和法拉第定律一样，先把两边变成同一种积分，再用“对任意区域都成立”得到每一点的关系。高斯定律用的是散度定理，因为它说的是闭曲面和它包住的体积。两者在有的书里都叫“高斯定理”，但散度定理是对任何向量场都成立的数学恒等式，高斯定律是一条物理规律：D 的通量等于面内的自由电荷。
+      - item:
+          id: maxwell-match
+          type: match
+          prompt: 把每个方程和它说的事配对。
+          pairs:
+            - ['∇·D = ρ', 电场线从正电荷出发、到负电荷终止]
+            - ['∇·B = 0', 磁感线没有起点和终点]
+            - ['∇×E = −∂B/∂t', 变化的磁场产生绕着它的电场]
+            - ['∇×H = J + ∂D/∂t', 电流和变化的电场产生绕着它的磁场]
+          explain: 两个散度方程说场从哪里出发，两个旋度方程说场绕着什么打转。后两个把电场和磁场联系起来，这是电磁波存在的原因。
+      - card:
+          title: 传导电流和位移电流哪个大
+          body: |
+            电导率 $\sigma$、介电常数 $\varepsilon$ 的材料里有正弦电场 $E_0\cos\omega t$。传导电流密度 $\sigma E_0\cos\omega t$，振幅 $\sigma E_0$；位移电流密度 $\partial D/\partial t = -\omega\varepsilon E_0\sin\omega t$，振幅 $\omega\varepsilon E_0$。两者振幅之比
+
+            $$\frac{\sigma}{\omega\varepsilon}$$
+
+            远大于 1 时材料像导体，$\partial D/\partial t$ 这一项可以不算；远小于 1 时像绝缘体，传导电流可以不算。$\omega = 2\pi f$ 是角频率。
+      - item:
+          id: cu-ratio
+          type: number
+          prompt: '铜的电导率 $5.8 \times 10^7$ S/m，介电常数按 $\varepsilon_0 = 8.854 \times 10^{-12}$ F/m 算。1 GHz 时传导电流和位移电流的振幅之比是多少？（单位 $10^9$，保留两位小数）'
+          answer: 1.04
+          tolerance: 0.005
+          hint: 两个电流密度的振幅里，频率出现在哪一个上？
+          explain: ωε₀ = 2π × 10⁹ × 8.854 × 10⁻¹² ≈ 0.0556，5.8 × 10⁷ / 0.0556 ≈ 1.04 × 10⁹。到了微波频率，铜里的位移电流仍然可以不算。
+      - item:
+          id: sea-ratio
+          type: number
+          prompt: '海水的电导率约 4 S/m，相对介电常数约 81。1 MHz 时传导电流和位移电流的振幅之比约是多少？（保留到个位）'
+          answer: 888
+          tolerance: 0.5
+          hint: 这里的 ε 是 81ε₀。
+          explain: 4 / (2π × 10⁶ × 81 × 8.854 × 10⁻¹²) ≈ 888。海水在 1 MHz 仍然像导体，无线电波进不了多深，潜艇通信因此用极低频。
+      - item:
+          id: disp-where
+          type: choice
+          prompt: 下面哪一种情形里，位移电流是主角，传导电流可以不算？
+          options:
+            - text: 真空里传播的无线电波
+              correct: true
+            - text: 铜导线里 1 GHz 的电流
+              why: 铜在 1 GHz 时 σ/(ωε) 约 10⁹，传导电流远大于位移电流
+            - text: 海水里 1 kHz 的电流，频率低，变化慢
+              why: 海水在 1 kHz 时 σ/(ωε) 约 9 × 10⁵，仍然是传导电流为主；频率越低位移电流越小
+          explain: 真空里 σ = 0，没有传导电流，只剩位移电流。正是它和法拉第定律一起，让电磁波能在真空里传播。
+
+  - id: media-boundaries
+    chapter: 时变电磁场与麦克斯韦方程组
+    title: 介质中的场和边界条件
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 平行板电容器两板之间放进一块玻璃板，玻璃板和两块极板平行（板面垂直于电场），玻璃和极板之间留着空气。玻璃里面的电场比旁边空气里的大还是小？
+          options:
+            - text: 小，玻璃里的分子被极化，产生的电场和外场方向相反
+              correct: true
+            - text: 大，玻璃把电场线聚拢到自己里面
+              why: 被聚拢的是 D 线；电介质里的极化电荷产生反向的场，E 变小
+            - text: 一样大
+              why: 板面垂直于电场时，分界面两边连续的是 D 的法向分量，玻璃里的 E 要按 1/ε_r 变小；只有板面平行于电场时，切向 E 连续，里外才一样大
+          explain: 外场把分子里的正负电荷拉开一点，表面出现极化电荷，它们的场和外场方向相反。所以介质里的 E 比外面小，削弱的程度用相对介电常数描述。
+      - card:
+          title: 介质里的三个关系
+          body: |
+            外加电场把介质分子里的正负电荷拉开一点，叫**极化（polarization）**，它削弱了介质内部的场。材料对场的反应用三个关系描述：
+
+            $$\mathbf D = \varepsilon\mathbf E,\qquad \mathbf B = \mu\mathbf H,\qquad \mathbf J = \sigma\mathbf E$$
+
+            $\varepsilon = \varepsilon_r\varepsilon_0$，$\varepsilon_r$ 是相对介电常数；$\mu = \mu_r\mu_0$，$\mu_r$ 是相对磁导率。空气 $\varepsilon_r \approx 1$，聚乙烯约 2.25，水在低频约 80；铁的 $\mu_r$ 可达几百到几千，大多数其他材料 $\mu_r \approx 1$。麦克斯韦方程组加上这三个关系，才能对具体材料算出场。
+      - item:
+          id: water-d
+          type: number
+          prompt: '水的相对介电常数取 80，水里的电场强度为 100 V/m。电位移是多少 nC/m²？（$\varepsilon_0 = 8.854 \times 10^{-12}$ F/m，保留一位小数）'
+          answer: 70.8
+          tolerance: 0.05
+          hint: D 和 E 之间多出来的那个因子是什么？
+          explain: D = 80 × 8.854 × 10⁻¹² × 100 ≈ 7.08 × 10⁻⁸ C/m² = 70.8 nC/m²。
+      - card:
+          title: 边界条件
+          body: |
+            两种材料的分界面上，场会突变。突变的规则由麦克斯韦方程组的积分形式得到：贴着分界面画一个很扁的回路或很扁的盒子，让它的厚度趋于零。
+
+            | 量 | 规则 | 由哪个方程 |
+            |---|---|---|
+            | $\mathbf E$ 的切向分量 | 连续 | 法拉第定律，扁回路 |
+            | $\mathbf H$ 的切向分量 | 连续；界面上有面电流 $J_s$ 时差 $J_s$ | 安培–麦克斯韦定律，扁回路 |
+            | $\mathbf D$ 的法向分量 | 连续；界面上有面电荷 $\rho_s$ 时差 $\rho_s$ | 高斯定律，扁盒子 |
+            | $\mathbf B$ 的法向分量 | 连续 | $\nabla \cdot \mathbf B = 0$，扁盒子 |
+
+            回路扁到厚度为零时，垂直于界面的两条短边不贡献，穿过回路的磁通也趋于零，只剩两侧的切向分量。理想导体内部没有场，所以它表面上切向 $\mathbf E$ 为零。
+      - card:
+          title: 例题：电场穿过两种介质的分界面
+          body: 分界面是 $y = 0$。上方 $\varepsilon_{r1} = 2$，下方 $\varepsilon_{r2} = 4$，界面上没有自由电荷。上方的电场 $\mathbf E_1 = (3,\ 4)$ V/m，$x$ 分量沿界面，$y$ 分量垂直界面。求下方的电场。
+          reveal:
+            - title: 第 1 步：切向分量照抄
+              body: |
+                切向 $E$ 连续：$E_{2x} = E_{1x} = 3$ V/m。
+            - title: 第 2 步：法向分量用 D 连续
+              body: |
+                $\varepsilon_{r1}E_{1y} = \varepsilon_{r2}E_{2y}$，$2 \times 4 = 4E_{2y}$，$E_{2y} = 2$ V/m。
+            - title: 第 3 步：合起来
+              body: |
+                $\mathbf E_2 = (3,\ 2)$ V/m。进入介电常数大的一侧，法向分量变小，电场线向分界面偏折。
+      - item:
+          id: boundary-en
+          type: number
+          prompt: '分界面上没有自由电荷。一侧相对介电常数 3，电场的法向分量 6 V/m、切向分量 2 V/m；另一侧相对介电常数 9。另一侧电场的法向分量是多少 V/m？'
+          answer: 2
+          hint: 法向连续的是 D，不是 E。
+          explain: 3 × 6 = 9 × E₂ₙ，E₂ₙ = 2 V/m。切向分量照样是 2 V/m。
+      - item:
+          id: conductor-e
+          type: choice
+          prompt: 理想导体表面紧贴外侧的电场是什么方向？
+          options:
+            - text: 垂直于导体表面
+              correct: true
+            - text: 平行于导体表面，沿着电流方向
+              why: 切向 E 连续，导体内部 E = 0，所以表面外侧切向 E 也是 0
+            - text: 方向任意，取决于外加的场
+              why: 外加场决定大小；方向总是垂直表面，因为切向分量必须为零
+          explain: 导体内部切向 E 为零，切向 E 跨过界面连续，所以表面外侧只剩法向分量。法向分量的大小等于表面电荷 ρ_s 除以 ε。
+      - card:
+          title: 唯一性定理
+          body: |
+            唯一性定理对时变场同样成立：一个区域里的源（电荷、电流）给定，边界上的切向 $\mathbf E$（或切向 $\mathbf H$）也给定，那么区域里满足麦克斯韦方程组的场只有一个。静电场的说法是：边界上的电位给定，区域里的电位就唯一确定。
+
+            它的用处是“猜答案”：不管用什么办法找到一个场，只要它满足方程和全部边界条件，它就是答案。镜像法正是这样：镜像电荷在边界上给出零电位，所以它给出的场就是真实的场。
+      - item:
+          id: uniqueness-use
+          type: choice
+          prompt: 小明用镜像法求出接地导体平面上方点电荷的场，同学说“镜像电荷是假的，结果不可信”。哪一种回答对？
+          options:
+            - text: 镜像电荷只在平面下方，不影响上方，所以结果可信
+              why: 镜像电荷在上方也产生场；可信是因为合场满足了边界条件，不是因为它不影响上方
+            - text: 在平面上方，合场满足方程，也满足平面上电位为零，按唯一性定理就是真实的场
+              correct: true
+            - text: 镜像法只是近似，离平面远时才准
+              why: 在平面上方它是精确解；只有平面下方（导体里）它不代表真实的场
+          explain: 唯一性定理保证：满足方程和边界条件的解只有一个。镜像电荷是帮助构造这个解的工具，它只在要求解的区域之外。
+
+  - id: poynting
+    chapter: 时变电磁场与麦克斯韦方程组
+    title: 电磁能量和坡印廷定理
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一根电阻丝接在电池两端发热。你觉得发出的热能是从哪里进入电阻丝的？
+          options:
+            - text: 沿着导线内部，随电子一起流进来
+              why: 电子漂移得很慢，带的动能很少；按场的计算，能量从导线外的空间穿过侧面进入
+            - text: 从导线外面的空间，穿过电阻丝的侧面进入
+              correct: true
+            - text: 从电池正极沿导线表面一直滑过去，最后在电阻丝里停下
+              why: 能量在导线外的场里流动，到了电阻丝处是从侧面垂直流进去变成热，不是贴着表面一路滑到另一端
+          explain: 这是坡印廷定理给出的结论：能量由电场和磁场携带，在导线周围的空间里流动，从侧面进入电阻。
+      - card:
+          title: 场里储存的能量
+          body: |
+            电场和磁场里都储存能量。单位体积里的能量（能量密度）是
+
+            $$w_e = \tfrac12\varepsilon E^2,\qquad w_m = \tfrac12\mu H^2$$
+
+            单位 J/m³。电容器的能量 $\frac12CV^2$、电感的能量 $\frac12LI^2$，都可以由这两个式子对体积积分得到。空气里 $E = 10^6$ V/m 时 $w_e = \frac12 \times 8.854 \times 10^{-12} \times 10^{12} \approx 4.43$ J/m³。
+      - item:
+          id: energy-density
+          type: number
+          prompt: '空气在电场强度约 3 MV/m 时会被击穿。这时的电场能量密度是多少 J/m³？（$\varepsilon_0 = 8.854 \times 10^{-12}$ F/m，保留一位小数）'
+          answer: 39.8
+          tolerance: 0.05
+          hint: 能量密度和 E 的几次方成正比？3 MV/m 写成 10 的几次方？
+          explain: w = ½ × 8.854 × 10⁻¹² × 9 × 10¹² ≈ 39.8 J/m³。这是空气能储存的电场能量密度的上限，所以空气电容器储能很少。
+      - card:
+          title: 坡印廷矢量和坡印廷定理
+          body: |
+            **坡印廷矢量（Poynting vector）** $\mathbf S = \mathbf E \times \mathbf H$，单位 W/m²，方向是能量流动的方向，大小是单位时间穿过单位面积的能量。大学物理讲过它；麦克斯韦方程组还给出一条能量守恒的定理：
+
+            $$-\oint_S \mathbf S \cdot \mathbf n\,dS = \frac{d}{dt}\iiint_V (w_e + w_m)\,dV + \iiint_V \mathbf J \cdot \mathbf E\,dV$$
+
+            左边是流进闭曲面的功率，右边是里面储存的能量增加的速度，加上变成热的功率。这叫坡印廷定理。
+          reveal:
+            - title: 第 1 步：电阻丝表面的场
+              body: |
+                电阻丝半径 $a$、长 $L$，两端电压 $V$、电流 $I$。表面的电场沿导线，$E = V/L$；磁场绕导线，$H = \frac{I}{2\pi a}$。
+            - title: 第 2 步：坡印廷矢量
+              body: |
+                $\mathbf E$ 沿导线、$\mathbf H$ 绕导线，叉积指向导线的轴，大小 $S = \frac{V}{L} \cdot \frac{I}{2\pi a}$。
+            - title: 第 3 步：对侧面积分
+              body: |
+                侧面积 $2\pi a L$，流进的功率 $S \cdot 2\pi a L = VI$，正好等于电阻消耗的功率。
+      - item:
+          id: wire-s
+          type: number
+          prompt: '电阻丝半径 1 mm、长 1 m，两端电压 3 V，电流 2 A。电阻丝表面坡印廷矢量的大小是多少 W/m²？（保留到个位）'
+          answer: 955
+          tolerance: 0.5
+          hint: 表面的电场由电压和长度决定，表面的磁场由电流和周长决定，两者各是多少？
+          explain: E = 3 V/m，H = 2/(2π × 0.001) ≈ 318.3 A/m，S = EH ≈ 955 W/m²。乘以侧面积 2π × 0.001 × 1 ≈ 0.00628 m²，得 6 W，等于 VI。
+      - card:
+          title: 正弦场的平均功率
+          body: |
+            场按 $\cos\omega t$ 变化时，坡印廷矢量也随时间起伏，我们关心的是一个周期的平均值。$\cos^2\omega t$ 的平均值是 $\frac12$，所以 $E_0\cos\omega t$ 和同相的 $H_0\cos\omega t$ 给出
+
+            $$\langle S\rangle = \tfrac12E_0H_0$$
+
+            如果 E 和 H 不同相，相差 $\theta$，平均值是 $\frac12E_0H_0\cos\theta$；相差 90° 时平均功率为零，能量只是来回交换。
+      - item:
+          id: avg-s
+          type: number
+          prompt: '某处正弦电场振幅 100 V/m，与它垂直、同相的磁场振幅 0.2 A/m。一个周期内坡印廷矢量的平均值是多少 W/m²？'
+          answer: 10
+          hint: 振幅相乘以后还要乘多少？
+          explain: ⟨S⟩ = ½ × 100 × 0.2 = 10 W/m²。直接用振幅相乘得 20，那是瞬时最大值。
+      - item:
+          id: s-direction
+          type: choice
+          prompt: 某处电场沿 +x 方向，磁场沿 +y 方向。能量往哪个方向流？
+          options:
+            - text: +z
+              correct: true
+            - text: −z
+              why: x̂ × ŷ = +ẑ，按右手定则从 x 转到 y，拇指指向 +z
+            - text: 沿电场方向 +x，能量跟着电场走
+              why: 能量流的方向是 E × H，和 E、H 都垂直
+          explain: S = E × H，x̂ × ŷ = ẑ。电磁波里 E、H 和传播方向两两垂直，就是这个原因。
+
+  - id: waves-time
+    chapter: 均匀平面波
+    title: 从麦克斯韦方程组到电磁波
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一种玻璃的相对介电常数是 2.25（相对磁导率是 1）。电磁波在它里面的速度大约是真空里的多少？
+          options:
+            - text: 1/2.25
+              why: 波速和 √(με) 成反比，要开方：1/√2.25
+            - text: 1/1.5
+              correct: true
+            - text: 一样，电磁波的速度总是光速
+              why: 真空里是 c；在介质里 ε 变大，波速变小
+          explain: 波速 v = 1/√(με) = c/√ε_r = c/1.5。介电常数越大，波走得越慢。
+      - card:
+          title: 推出波动方程
+          body: 没有电荷和电流的均匀介质里（$\rho = 0$，$\mathbf J = 0$），把两个旋度方程合起来。
+          reveal:
+            - title: 第 1 步：对法拉第定律两边取旋度
+              body: |
+                $\nabla \times (\nabla \times \mathbf E) = -\mu\frac{\partial}{\partial t}(\nabla \times \mathbf H)$。
+            - title: 第 2 步：代入安培–麦克斯韦定律
+              body: |
+                $\nabla \times \mathbf H = \varepsilon\frac{\partial \mathbf E}{\partial t}$，右边变成 $-\mu\varepsilon\frac{\partial^2 \mathbf E}{\partial t^2}$。
+            - title: 第 3 步：化简左边
+              body: |
+                向量恒等式 $\nabla \times (\nabla \times \mathbf E) = \nabla(\nabla \cdot \mathbf E) - \nabla^2\mathbf E$，没有电荷时 $\nabla \cdot \mathbf E = 0$，得到
+
+                $$\nabla^2\mathbf E = \mu\varepsilon\frac{\partial^2 \mathbf E}{\partial t^2}$$
+
+                这是**波动方程**。拉普拉斯算子作用在向量上，就是在直角坐标里对 $\mathbf E$ 的每个分量各算一次 $\frac{\partial^2}{\partial x^2} + \frac{\partial^2}{\partial y^2} + \frac{\partial^2}{\partial z^2}$。
+      - card:
+          title: 形状不变地往前走
+          body: |
+            设电场只有 $x$ 分量，只随 $z$ 和 $t$ 变：$\frac{\partial^2 E_x}{\partial z^2} = \mu\varepsilon\frac{\partial^2 E_x}{\partial t^2}$。任何形如 $E_x = f(z - vt)$ 的函数都是解，只要
+
+            $$v = \frac{1}{\sqrt{\mu\varepsilon}}$$
+
+            $f(z - vt)$ 的意思是：$t = 0$ 时在 $z = 0$ 的那个波形，过了时间 $t$ 原样出现在 $z = vt$ 处。真空里 $v = c$；介质里 $v = c/\sqrt{\varepsilon_r\mu_r}$，比值 $n = c/v = \sqrt{\varepsilon_r\mu_r}$ 叫**折射率（refractive index）**。
+      - item:
+          id: pulse-move
+          type: number
+          prompt: '真空里一个电场脉冲 $t = 0$ 时峰值在 $z = 0$，沿 +z 传播。$t = 10$ ns 时峰值在哪里？（单位 m，$c = 2.998 \times 10^8$ m/s，保留两位小数）'
+          answer: 3.00
+          tolerance: 0.005
+          hint: 波形原样平移，平移的距离是 vt。
+          explain: z = ct = 2.998 × 10⁸ × 10⁻⁸ ≈ 3.00 m。光在 1 ns 里走约 30 cm，这是高速电路要考虑走线长短的原因。
+      - item:
+          id: speed-er4
+          type: number
+          prompt: '1 GHz 的电磁波在 $\varepsilon_r = 4$、$\mu_r = 1$ 的无损介质里传播。波速是多少？（单位 $10^8$ m/s，$c = 2.998 \times 10^8$ m/s，保留两位小数）'
+          answer: 1.50
+          tolerance: 0.005
+          hint: 波速由 με 的平方根决定。ε 变成 4 倍，那个平方根变成几倍？
+          explain: v = 2.998 × 10⁸ / √4 ≈ 1.50 × 10⁸ m/s。波速和频率无关，只由材料决定。
+      - card:
+          title: 均匀平面波和波阻抗
+          body: |
+            电场只随 $z$ 变、在每个垂直于 $z$ 的平面上处处相同，这样的波叫**均匀平面波（uniform plane wave）**。把 $E_x = f(z - vt)$ 代进法拉第定律，得到磁场只有 $y$ 分量，并且
+
+            $$H_y = \frac{E_x}{\eta},\qquad \eta = \sqrt{\frac{\mu}{\varepsilon}}$$
+
+            $\eta$ 叫**波阻抗（wave impedance）**，单位欧姆，是电场和磁场大小之比。真空里 $\eta_0 = \sqrt{\mu_0/\varepsilon_0} \approx 377$ Ω。$\mathbf E$、$\mathbf H$ 和传播方向两两垂直，$\mathbf E \times \mathbf H$ 指向传播方向。
+      - item:
+          id: eta0
+          type: number
+          prompt: '用 $\mu_0 = 4\pi \times 10^{-7}$ H/m、$\varepsilon_0 = 8.854 \times 10^{-12}$ F/m 算真空的波阻抗。是多少欧姆？（保留到个位）'
+          answer: 377
+          tolerance: 0.5
+          hint: 波阻抗是 μ 和 ε 的哪种组合？先算比值再开方。
+          explain: μ₀/ε₀ ≈ 1.419 × 10⁵，开方约 376.7 Ω，约 377 Ω。
+      - item:
+          id: eta-er4
+          type: number
+          prompt: '$\varepsilon_r = 4$、$\mu_r = 1$ 的无损介质里，波阻抗是多少欧姆？（真空波阻抗按 376.7 Ω 算，保留到个位）'
+          answer: 188
+          tolerance: 0.5
+          hint: ε 变成 4 倍时 μ/ε 变成几分之几？再开方。
+          explain: η = η₀/√4 ≈ 188 Ω。介电常数越大，同样的电场配的磁场越强。
+      - item:
+          id: wave-h
+          type: choice
+          prompt: 真空中一个均匀平面波沿 +z 传播，某时刻某点的电场是 +x 方向、377 V/m。那里的磁场是什么？
+          options:
+            - text: +y 方向，约 1 A/m
+              correct: true
+            - text: −y 方向，约 1 A/m
+              why: E × H 要指向传播方向 +z；x̂ × (−ŷ) = −ẑ，方向反了
+            - text: +x 方向，约 1 A/m，和电场同方向
+              why: 平面波的 E 和 H 互相垂直，也都垂直于传播方向
+            - text: +y 方向，约 377 A/m
+              why: H = E/η，要除以 377 Ω，不是相等
+          explain: H = E/η₀ = 377/377 = 1 A/m，方向使 E × H 指向 +z，所以是 +y。
+
+  - id: waves-frequency
+    chapter: 均匀平面波
+    title: 频域的电磁波和极化
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 手机常用的 1 GHz 附近的电磁波，在真空里一个波长大约多长？
+          options:
+            - text: 3 m
+              why: 波长 = 速度 / 频率 = 3 × 10⁸ / 10⁹ m，结果比 1 m 短
+            - text: 30 cm
+              correct: true
+            - text: 3 cm
+              why: 3 cm 对应 10 GHz；频率高 10 倍，波长短 10 倍
+          explain: λ = c/f = 3 × 10⁸ / 10⁹ = 0.3 m。手机天线只有几厘米，正好是这个波长的几分之一。
+      - card:
+          title: 相量
+          body: |
+            正弦变化的量 $E_0\cos(\omega t + \varphi)$ 只由振幅 $E_0$ 和初相 $\varphi$ 决定（$\omega$ 大家都一样）。把这两个数合成一个复数 $E_0e^{j\varphi}$，叫**相量（phasor）**。工程上虚数单位写成 $j$，$j^2 = -1$。
+
+            欧拉公式 $e^{j\theta} = \cos\theta + j\sin\theta$ 把两者连起来：
+
+            $$E_0\cos(\omega t + \varphi) = \operatorname{Re}\{E_0e^{j\varphi}e^{j\omega t}\}$$
+
+            好处是求导变简单：$e^{j\omega t}$ 对时间求导就是乘 $j\omega$，所以对相量来说 $\partial/\partial t$ 换成乘 $j\omega$，微分方程变成代数方程。
+      - item:
+          id: phasor-pick
+          type: choice
+          prompt: 正弦量 $5\cos(\omega t - 90°)$ 的相量是哪一个？
+          options:
+            - text: $-5j$
+              correct: true
+            - text: $5j$
+              why: 初相是 −90°，e^(−j90°) = cos(−90°) + j sin(−90°) = −j，符号反了
+            - text: $5$
+              why: 5 是初相为 0 的相量；这里初相是 −90°，不能丢
+          explain: 相量 = 5e^(−j90°) = 5(cos 90° − j sin 90°) = −5j。5cos(ωt − 90°) 也就是 5 sin ωt。
+      - card:
+          title: 复数的运算和共轭
+          body: |
+            复数 $a + bj$ 可以看成平面上的点 $(a, b)$。加减按分量算；乘法按多项式展开，再用 $j^2 = -1$。$|a + bj| = \sqrt{a^2 + b^2}$ 是它到原点的距离，也就是相量的振幅。
+
+            除法要先把分母变成实数：$a + bj$ 的**共轭（conjugate）**是 $a - bj$，两者相乘 $(a + bj)(a - bj) = a^2 + b^2$，没有虚部。例如
+
+            $$\frac{1 + 2j}{3 + 2j} = \frac{(1 + 2j)(3 - 2j)}{(3 + 2j)(3 - 2j)} = \frac{7 + 4j}{13}$$
+      - card:
+          title: 频域的麦克斯韦方程组和波数
+          body: |
+            把 $\partial/\partial t$ 换成 $j\omega$，两个旋度方程变成
+
+            $$\nabla \times \mathbf E = -j\omega\mu\mathbf H,\qquad \nabla \times \mathbf H = \mathbf J + j\omega\varepsilon\mathbf E$$
+
+            无损介质里沿 $+z$ 的平面波写成相量 $E_x = E_0e^{-jkz}$，其中 $k = \omega\sqrt{\mu\varepsilon}$ 叫**波数（wave number）**，单位 rad/m，表示每米相位转过多少弧度。转一整圈 $2\pi$ 走过的距离是波长：$\lambda = 2\pi/k = v/f$。用相量算平均功率密度是 $\langle\mathbf S\rangle = \frac12\operatorname{Re}(\mathbf E \times \mathbf H^*)$（$^*$ 表示共轭），E 和 H 有相位差时也适用；无损平面波里两者同相，结果就是 $\frac{E_0^2}{2\eta}$。
+          reveal:
+            - title: 第 1 步：波速和波长
+              body: |
+                1 GHz，$\varepsilon_r = 4$：$v = c/2 \approx 1.5 \times 10^8$ m/s，$\lambda = v/f \approx 0.15$ m。
+            - title: 第 2 步：波数
+              body: |
+                $k = 2\pi/\lambda \approx 41.9$ rad/m。
+            - title: 第 3 步：磁场
+              body: |
+                $\eta = \eta_0/2 \approx 188$ Ω，电场振幅 10 V/m 时 $H_0 = E_0/\eta \approx 0.053$ A/m。
+            - title: 第 4 步：功率密度
+              body: |
+                $\langle S\rangle = \frac{E_0^2}{2\eta} = \frac{100}{2 \times 188.4} \approx 0.265$ W/m²。
+      - item:
+          id: lambda-er4
+          type: number
+          prompt: '1 GHz 平面波在 $\varepsilon_r = 4$、$\mu_r = 1$ 的无损介质里传播。波长是多少厘米？（$c = 2.998 \times 10^8$ m/s，保留一位小数）'
+          answer: 15.0
+          tolerance: 0.05
+          hint: 先求介质里的波速，再除以频率。
+          explain: v = c/2 ≈ 1.499 × 10⁸ m/s，λ = v/f ≈ 0.1499 m ≈ 15.0 cm，是真空里的一半。
+      - item:
+          id: h-er4
+          type: number
+          prompt: '$\varepsilon_r = 4$、$\mu_r = 1$ 的无损介质里，平面波电场振幅 10 V/m。磁场振幅是多少 mA/m？（真空波阻抗按 376.7 Ω 算，保留一位小数）'
+          answer: 53.1
+          tolerance: 0.05
+          hint: 先求这种介质的波阻抗。
+          explain: η = 376.7/2 ≈ 188.4 Ω，H₀ = 10/188.4 ≈ 0.0531 A/m = 53.1 mA/m。
+      - item:
+          id: s-er4
+          type: number
+          prompt: '$\varepsilon_r = 4$ 的无损介质里，平面波电场振幅 10 V/m，波阻抗约 188.4 Ω。平均功率密度是多少 W/m²？（保留三位小数）'
+          answer: 0.265
+          tolerance: 0.0005
+          hint: 振幅相乘得到的是瞬时最大值，一个周期的平均要乘多少？
+          explain: 100 / (2 × 188.4) ≈ 0.265 W/m²。忘了除以 2 会得到 0.531，那是瞬时最大值。
+      - card:
+          title: 波的极化
+          body: |
+            电场的方向也可以随时间转。在 $z = 0$ 处看 $E_x = E_1\cos\omega t$、$E_y = E_2\cos(\omega t + \delta)$，电场矢量的端点随时间画出一条曲线，这就是电磁波的极化，说的是电场方向怎样变，和介质极化不是一回事：
+
+            - $\delta = 0$ 或 180°：端点在一条直线上来回，叫线极化；
+            - $E_1 = E_2$ 且 $\delta = \pm 90°$：端点画圆，叫圆极化；
+            - 其他情况画椭圆，叫椭圆极化。
+
+            卫星通信常用圆极化，因为接收天线怎样转都能收到同样强的信号。
+      - item:
+          id: pol-circle
+          type: choice
+          prompt: 平面波沿 z 传播，$E_x = \cos(\omega t - kz)$，$E_y = \sin(\omega t - kz)$。它是什么极化？
+          options:
+            - text: 线极化，因为两个分量振幅相同
+              why: 振幅相同还不够；sin 比 cos 落后 90°，两个分量不同时达到最大
+            - text: 圆极化
+              correct: true
+            - text: 椭圆极化
+              why: 振幅相等、相位差 90° 正好是圆；椭圆是一般情形
+          explain: sin θ = cos(θ − 90°)，两个分量振幅相等、相位差 90°，cos² + sin² = 1，端点画圆。
+      - item:
+          id: pol-angle
+          type: number
+          prompt: '平面波在 $z = 0$ 处 $E_x = 2\cos\omega t$，$E_y = \cos\omega t$。电场的方向和 x 轴成多少度？（保留一位小数）'
+          answer: 26.6
+          tolerance: 0.05
+          hint: 两个分量同相，任何时刻 E_y/E_x 都一样。
+          explain: E_y/E_x 始终是 1/2，电场在一条直线上来回，是线极化。角度 arctan(1/2) ≈ 26.6°。
+
+  - id: tem-lines
+    chapter: 传输线
+    title: TEM 波和传输线
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一根 1 m 长的电缆，传 50 Hz 时可以当普通导线，传 1 GHz 时却要按“传输线”专门分析。主要原因是什么？
+          options:
+            - text: 1 GHz 时电缆的电阻变得很大
+              why: 趋肤效应确实让电阻变大，但即使电阻为零，1 GHz 时电缆各处电压也不一样，那才是主因
+            - text: 1 GHz 时电缆比线上的波长还长好几倍，同一时刻各处电压的相位不同
+              correct: true
+            - text: 1 GHz 的电流太大
+              why: 电流大小和频率无关；要看的是电缆长和波长的比
+          explain: 50 Hz 的波长约 6000 km，1 m 电缆上电压处处一样；1 GHz 在电缆里的波长只有约 20 cm，同一时刻电缆上有正有负，必须当成波来分析。
+      - card:
+          title: 传输线方程
+          body: |
+            两根导体（同轴线、双绞线、电路板上的走线和地平面）之间可以传一种 E 和 H 都横在传播方向上的波，叫 TEM 波（横电磁波）。它在每个横截面上的场和静态场形状一样，所以可以用每米的电感 $L$ 和电容 $C$ 描述。沿线的电压、电流满足
+
+            $$\frac{\partial V}{\partial z} = -L\frac{\partial I}{\partial t},\qquad \frac{\partial I}{\partial z} = -C\frac{\partial V}{\partial t}$$
+
+            两式合起来就是波动方程，波速 $v = 1/\sqrt{LC}$。导体之间填满同一种介质的 TEM 线，$LC = \mu\varepsilon$，所以 $v = 1/\sqrt{\mu\varepsilon}$，和同一介质里的平面波一样快。
+      - card:
+          title: 特性阻抗
+          body: |
+            一个只往一个方向走的波，电压和电流之比是常数：
+
+            $$Z_0 = \sqrt{\frac LC}$$
+
+            叫**特性阻抗（characteristic impedance）**，单位欧姆。它不是电阻，波在无损线上走不消耗功率；它说的是这根线上的波“电压要配多大的电流”。
+
+            交流电路里电压相量和电流相量之比叫**阻抗（impedance）** $Z = R + jX$：实部 $R$ 是电阻，虚部 $X$ 叫**电抗（reactance）**。$j$ 表示电压和电流相差 90°，电感、电容的阻抗是纯电抗，不消耗功率。
+          reveal:
+            - title: 第 1 步：取同轴线的 L 和 C
+              body: |
+                同轴线 $a = 1$ mm、$b = 3.5$ mm、$\varepsilon_r = 2.25$：$L \approx 0.251$ μH/m，$C \approx 99.9$ pF/m。
+            - title: 第 2 步：特性阻抗
+              body: |
+                $Z_0 = \sqrt{0.251 \times 10^{-6} / 99.9 \times 10^{-12}} \approx 50.1$ Ω。这就是常见的 50 Ω 同轴线。
+            - title: 第 3 步：波速
+              body: |
+                $v = 1/\sqrt{LC} \approx 2.0 \times 10^8$ m/s，正好是 $c/\sqrt{2.25} = c/1.5$。
+      - item:
+          id: z0-air
+          type: number
+          prompt: '空气同轴线每米的电感约 0.1666 μH/m、电容约 66.79 pF/m。特性阻抗是多少欧姆？（保留一位小数）'
+          answer: 49.9
+          tolerance: 0.05
+          hint: L 用 μH、C 用 pF，两者差几个数量级？比值开方是多少？
+          explain: √(0.1666 × 10⁻⁶ / 66.79 × 10⁻¹²) ≈ √2494 ≈ 49.9 Ω。
+      - item:
+          id: v-coax
+          type: number
+          prompt: '同轴线中间填充 $\varepsilon_r = 2.25$、$\mu_r = 1$ 的介质。线上的波速是多少？（单位 $10^8$ m/s，$c = 2.998 \times 10^8$ m/s，保留两位小数）'
+          answer: 2.00
+          tolerance: 0.005
+          hint: TEM 线的波速等于同一介质里平面波的波速。
+          explain: v = c/√2.25 = 2.998 × 10⁸ / 1.5 ≈ 2.00 × 10⁸ m/s。线上信号比真空光速慢三分之一。
+      - item:
+          id: elec-length
+          type: number
+          prompt: '一根填充 $\varepsilon_r = 2.25$ 介质的同轴线长 1 m，线上波速约 $2.0 \times 10^8$ m/s，传 100 MHz 信号。线长是几个波长？（保留两位小数）'
+          answer: 0.50
+          tolerance: 0.005
+          hint: 100 MHz 时线上一个波长有多少米？
+          explain: λ = 1.999 × 10⁸ / 10⁸ ≈ 2.0 m，1 m 约是 0.50 个波长。线长超过波长的十分之一左右，就要按传输线分析。
+      - item:
+          id: z0-length
+          type: choice
+          prompt: 一根 50 Ω 同轴线剪成 1 m 和 10 m 两段。两段的特性阻抗各是多少？
+          options:
+            - text: 都是 50 Ω
+              correct: true
+            - text: 1 m 的 5 Ω，10 m 的 50 Ω
+              why: 特性阻抗 √(L/C) 由每米的 L 和 C 决定，和线有多长无关
+            - text: 1 m 的 50 Ω，10 m 的 500 Ω，因为越长阻抗越大
+              why: 那是导线电阻的规律；特性阻抗只取决于截面形状和材料
+          explain: Z₀ = √(L/C)，L、C 都是每米的量，剪短不改变它们的比。
+
+  - id: line-junctions
+    chapter: 传输线
+    title: 反射、驻波和输入阻抗
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一根很长的 50 Ω 传输线末端开路（什么也不接）。一个电压脉冲走到末端会怎样？
+          options:
+            - text: 停在末端，因为没有电流可以流出去
+              why: 能量不能凭空消失；末端开路时电流必须为零，于是产生一个反射波把电流抵消掉
+            - text: 全部反射回来，电压极性不变
+              correct: true
+            - text: 全部反射回来，电压极性反过来
+              why: 极性反转的是末端短路的情形，那时末端电压必须为零
+          explain: 开路处电流为零，反射电流和入射电流大小相等、方向相反，反射电压和入射电压同号相加。用时域反射仪找电缆断点就是利用这个回波。
+      - card:
+          title: 反射系数
+          body: |
+            线上一般同时有往前走的波 $V^+$ 和反射回来的波 $V^-$：总电压 $V = V^+ + V^-$，总电流 $I = (V^+ - V^-)/Z_0$。在负载处 $V/I$ 必须等于负载阻抗 $Z_L$，解出
+
+            $$\Gamma = \frac{V^-}{V^+} = \frac{Z_L - Z_0}{Z_L + Z_0}$$
+
+            $\Gamma$ 叫**反射系数（reflection coefficient）**。负载等于 $Z_0$（匹配）时 $\Gamma = 0$，没有反射；开路 $\Gamma = 1$，短路 $\Gamma = -1$。
+      - item:
+          id: gamma-75
+          type: number
+          prompt: '50 Ω 传输线末端接 75 Ω 电阻负载。负载处的反射系数是多少？'
+          answer: 0.2
+          hint: 反射系数的分子是两个阻抗的差还是和？
+          explain: Γ = (75 − 50)/(75 + 50) = 25/125 = 0.2。
+      - card:
+          title: 驻波和驻波比
+          body: |
+            只往一个方向走的波叫行波。入射波和反射波叠加，线上电压的振幅随位置起伏，这样的波叫驻波：两者同相处最大 $|V^+|(1 + |\Gamma|)$，反相处最小 $|V^+|(1 - |\Gamma|)$，相邻的最大和最小相距四分之一波长。最大和最小之比
+
+            $$S = \frac{1 + |\Gamma|}{1 - |\Gamma|}$$
+
+            叫**驻波比（standing wave ratio，SWR）**。匹配时 $S = 1$，全反射时 $S$ 为无穷大。反射回去的功率占入射功率的 $|\Gamma|^2$。
+          reveal:
+            - title: 第 1 步：反射系数
+              body: |
+                50 Ω 线接 100 Ω 负载：$\Gamma = \frac{100 - 50}{100 + 50} = \frac13$。
+            - title: 第 2 步：驻波比
+              body: |
+                $S = \frac{1 + 1/3}{1 - 1/3} = 2$。
+            - title: 第 3 步：反射功率
+              body: |
+                $|\Gamma|^2 = \frac19 \approx 11\%$，负载收到约 89%。
+      - item:
+          id: swr-25
+          type: number
+          prompt: '50 Ω 传输线末端接 25 Ω 电阻负载。驻波比是多少？'
+          answer: 2
+          hint: 先算 Γ，驻波比用的是 |Γ|。
+          explain: Γ = (25 − 50)/(25 + 50) = −1/3，|Γ| = 1/3，S = (4/3)/(2/3) = 2。25 Ω 和 100 Ω 负载的驻波比一样，只是反射波极性相反。
+      - item:
+          id: refl-power
+          type: number
+          prompt: 某负载的反射系数大小为 0.2。反射回去的功率占入射功率的百分之几？
+          answer: 4
+          hint: 功率和电压的平方成正比。
+          explain: '|Γ|² = 0.04，即 4%。直接把 0.2 当成 20% 是常见的错：反射系数说的是电压之比。'
+      - card:
+          title: 两根线的接头
+          body: |
+            特性阻抗 $Z_1$ 的线接到特性阻抗 $Z_2$ 的线上（后面那根足够长、没有反射回来）。对第一根线来说，接头就像一个 $Z_2$ 的负载：
+
+            $$\Gamma = \frac{Z_2 - Z_1}{Z_2 + Z_1},\qquad \tau = 1 + \Gamma = \frac{2Z_2}{Z_1 + Z_2}$$
+
+            $\tau$ 是透射电压和入射电压之比。接头两边的电压必须相等，所以 $V^+ + V^- = \tau V^+$。$\tau$ 可以大于 1，但透射的功率不会超过入射功率。
+      - item:
+          id: tau-50-75
+          type: number
+          prompt: '50 Ω 线接到一根很长的 75 Ω 线上。透射到 75 Ω 线上的电压是入射电压的几倍？'
+          answer: 1.2
+          hint: 透射电压等于入射电压加上反射电压，先算反射系数是多少？
+          explain: Γ = (75 − 50)/125 = 0.2，τ = 1.2。透射功率比 = τ² × 50/75 = 0.96，加上反射的 0.04 正好是 1。
+      - card:
+          title: 输入阻抗
+          body: |
+            接着负载 $Z_L$、长 $l$ 的无损线，从输入端看进去的阻抗是
+
+            $$Z_{\text{in}} = Z_0\frac{Z_L + jZ_0\tan\beta l}{Z_0 + jZ_L\tan\beta l},\qquad \beta = \frac{2\pi}{\lambda}$$
+
+            两个特殊的线长：半波长 $l = \lambda/2$ 时 $\tan\beta l = 0$，$Z_{\text{in}} = Z_L$，像线不存在一样；四分之一波长 $l = \lambda/4$ 时 $\tan\beta l$ 趋于无穷，
+
+            $$Z_{\text{in}} = \frac{Z_0^2}{Z_L}$$
+
+            短路变开路，大阻抗变小阻抗。
+      - item:
+          id: zin-quarter
+          type: number
+          prompt: '特性阻抗 50 Ω、长四分之一波长的无损线，末端接 100 Ω。输入阻抗是多少欧姆？'
+          answer: 25
+          hint: 四分之一波长线把 Z_L 变成什么？
+          explain: Z_in = Z₀²/Z_L = 2500/100 = 25 Ω。
+      - item:
+          id: short-quarter
+          type: choice
+          prompt: 一段四分之一波长的无损线，末端短路。从输入端看进去像什么？
+          options:
+            - text: 短路，末端短路，看进去当然也短路
+              why: 那是半波长线的情形；四分之一波长线把阻抗倒过来，Z₀²/0 趋于无穷
+            - text: 一个 Z₀ 的电阻
+              why: 只有接 Z₀ 负载（匹配）时输入阻抗才是 Z₀；短路负载会全反射
+            - text: 开路
+              correct: true
+          explain: Z_in = Z₀²/Z_L，Z_L = 0 时为无穷大。微波电路常用四分之一波长短路线当“不影响直流偏置的支架”。
+
+  - id: matching-resonance
+    chapter: 传输线
+    title: 匹配、史密斯圆图和谐振
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 50 Ω 的电缆要接 100 Ω 的天线。不想有反射，又不想白白消耗功率，你会怎么做？
+          options:
+            - text: 在天线两端并联一个 100 Ω 电阻，凑成 50 Ω
+              why: 这样确实匹配，但一半功率被电阻烧掉
+            - text: 中间插一段特定特性阻抗、特定长短的传输线
+              correct: true
+            - text: 换一根 100 Ω 的电缆，但发射机仍是 50 Ω 输出
+              why: 这样反射只是挪到了发射机和电缆之间
+          explain: 一段四分之一波长、特性阻抗合适的线可以把 100 Ω 变成 50 Ω，没有电阻就不消耗功率。
+      - card:
+          title: 四分之一波长变换器
+          body: |
+            在负载 $Z_L$ 前面加一段四分之一波长、特性阻抗 $Z_T$ 的线，输入阻抗变成 $Z_T^2/Z_L$。让它等于主线的 $Z_0$：
+
+            $$Z_T = \sqrt{Z_0 Z_L}$$
+
+            这段线只在它恰好是四分之一波长的频率上完全匹配，频率偏开后反射逐渐变大。
+          reveal:
+            - title: 第 1 步：变换段的特性阻抗
+              body: |
+                例：50 Ω 线接 100 Ω 负载，工作频率 2 GHz，变换段用空气线。$Z_T = \sqrt{50 \times 100} \approx 70.7$ Ω。
+            - title: 第 2 步：线上的波长
+              body: |
+                空气线上波速是 $c$，$\lambda = \frac{2.998 \times 10^8}{2 \times 10^9} \approx 0.150$ m。
+            - title: 第 3 步：取四分之一
+              body: |
+                变换段长 $\lambda/4 \approx 3.75$ cm。线里填了介质时，波速变慢，要用线上的波长算。
+      - item:
+          id: qw-200
+          type: number
+          prompt: '用四分之一波长变换器把 200 Ω 负载匹配到 50 Ω 传输线上。变换段的特性阻抗应取多少欧姆？'
+          answer: 100
+          hint: Z_T² 要等于哪两个阻抗的乘积？
+          explain: Z_T = √(50 × 200) = 100 Ω。取算术平均 125 Ω 是常见的错，那样输入阻抗是 125²/200 ≈ 78 Ω。
+      - item:
+          id: qw-length
+          type: number
+          prompt: '四分之一波长变换器用 $\varepsilon_r = 2.25$ 的同轴线做，工作频率 1 GHz。这段线实际有多少厘米长？（$c = 2.998 \times 10^8$ m/s，保留一位小数）'
+          answer: 5.0
+          tolerance: 0.05
+          hint: 先算线上的波长，再取四分之一。
+          explain: v = c/1.5 ≈ 1.999 × 10⁸ m/s，λ ≈ 20.0 cm，λ/4 ≈ 5.0 cm。按真空波长算会得到 7.5 cm，偏长了。
+      - card:
+          title: 史密斯圆图
+          body: |
+            把负载阻抗除以 $Z_0$ 得到归一化阻抗 $z = Z_L/Z_0$，反射系数 $\Gamma = \frac{z - 1}{z + 1}$ 是一个复数，画在复平面上。电阻不为负的阻抗全部落在半径 1 的圆里，圆心是匹配点 $\Gamma = 0$。阻抗 $Z = R + jX$ 的实部是电阻、虚部是电抗。在这个圆里再画上 $R$ 相等和 $X$ 相等的曲线，就是**史密斯圆图（Smith chart）**。
+
+            沿无损线往信号源方向走，$|\Gamma|$ 不变，$\Gamma$ 绕圆心顺时针转，每走半个波长转一整圈。所以读输入阻抗、设计匹配，都可以在图上转圈完成。
+      - item:
+          id: smith-gamma
+          type: number
+          prompt: '50 Ω 线接负载 $100 + j50$ Ω。反射系数的大小是多少？（保留三位小数）'
+          answer: 0.447
+          tolerance: 0.0005
+          hint: 先把负载除以 50；除以一个复数时，分子分母同乘它的什么才能把分母变成实数？
+          explain: Γ = (1 + j)/(3 + j) = (1 + j)(3 − j)/10 = (4 + 2j)/10 = 0.4 + 0.2j，模 √0.2 ≈ 0.447。
+      - card:
+          title: 短截线匹配
+          body: |
+            末端短路、长 $l$ 的一段线，输入阻抗是纯电抗 $jZ_0\tan\beta l$，改变线长就能得到任意大小的电感或电容。这样的一小段线叫短截线。
+
+            单支节匹配的思路：从负载往信号源方向找一个位置，那里输入导纳（阻抗的倒数）的实部正好是 $1/Z_0$；在这里并联一段短截线，让它提供大小相等、符号相反的导纳虚部，把虚部抵消掉。在史密斯圆图上，这就是从负载点转到“导纳实部等于 $1/Z_0$”的那个圆上，再沿那个圆走到圆心。
+      - item:
+          id: stub-what
+          type: choice
+          prompt: 单支节匹配里，那段末端短路的短截线起什么作用？
+          options:
+            - text: 消耗掉反射波的功率
+              why: 无损短截线的输入阻抗是纯电抗，不消耗功率
+            - text: 提供一个纯电抗，抵消该处导纳的虚部
+              correct: true
+            - text: 把线的特性阻抗变成负载阻抗，从而不再有反射
+              why: 并联短截线不改变主线的特性阻抗；它只改变那一点的总导纳
+          explain: 先选位置让导纳实部等于 1/Z₀，再用短截线把虚部抵消，总导纳就是 1/Z₀，从那里往信号源方向看就匹配了。
+      - card:
+          title: TEM 谐振和品质因数
+          body: |
+            一段长 $L$、两端都短路的线，只有在两端电压都为零的驻波才能存在，也就是线长是半波长的整数倍：
+
+            $$f_n = \frac{nv}{2L},\quad n = 1, 2, \ldots$$
+
+            这样的线是一个谐振器。谐振有多“尖”用**品质因数（quality factor）** $Q$ 描述：$Q = \omega \times$ 储存的能量 $\div$ 损耗的功率，近似等于谐振频率除以半功率带宽（功率降到峰值一半的两个频率之差），$Q \approx f_0/\Delta f$。损耗越小，$Q$ 越高，谐振越窄。
+      - item:
+          id: res-half
+          type: number
+          prompt: '一段 0.5 m 长的空气传输线，两端短路。最低的谐振频率是多少 MHz？（$c = 2.998 \times 10^8$ m/s，保留到个位）'
+          answer: 300
+          tolerance: 0.5
+          hint: 两端都短路时，线长最少要放下几个半波长？
+          explain: λ = 2L = 1 m，f₁ = c/λ ≈ 300 MHz。下一个谐振在 600 MHz。
+      - item:
+          id: q-bw
+          type: number
+          prompt: 某谐振器的谐振频率 300 MHz，半功率带宽 0.3 MHz。品质因数约是多少？
+          answer: 1000
+          hint: Q ≈ f₀/Δf。
+          explain: Q ≈ 300/0.3 = 1000。
+
+  - id: normal-incidence
+    chapter: 反射与折射
+    title: 垂直入射和复杂媒质
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 光垂直照到普通窗玻璃（折射率约 1.5）的一个表面上。反射回来的光大约占多少？
+          options:
+            - text: 一半左右
+              why: 玻璃和空气的波阻抗差得不算多，反射只有百分之几
+            - text: 几乎为零，玻璃是透明的
+              why: 透明说明吸收少，但分界面两边波阻抗不同，总有一部分反射
+            - text: 4% 左右
+              correct: true
+          explain: 晚上从亮着灯的屋里看窗户能看到自己的影子，就是这几个百分点的反射。后面会算出它正好是 4%。
+      - card:
+          title: 垂直入射的反射和透射
+          body: |
+            平面波从波阻抗 $\eta_1$ 的介质垂直射到波阻抗 $\eta_2$ 的介质上。分界面上切向 $\mathbf E$ 和切向 $\mathbf H$ 都连续，解出来和传输线接头的式子一样，只是把 $Z$ 换成 $\eta$：
+
+            $$\Gamma = \frac{\eta_2 - \eta_1}{\eta_2 + \eta_1},\qquad \tau = 1 + \Gamma = \frac{2\eta_2}{\eta_1 + \eta_2}$$
+
+            反射功率占入射功率的 $|\Gamma|^2$，无损时透射的占 $1 - |\Gamma|^2$。
+          reveal:
+            - title: 第 1 步：两边的波阻抗
+              body: |
+                从空气射到 $\varepsilon_r = 4$ 的介质：$\eta_1 = \eta_0 \approx 377$ Ω，$\eta_2 = \eta_0/2 \approx 188$ Ω。
+            - title: 第 2 步：反射系数
+              body: |
+                $\Gamma = \frac{188 - 377}{188 + 377} = -\frac13$，负号表示反射电场和入射电场反相。
+            - title: 第 3 步：功率
+              body: |
+                反射 $\frac19 \approx 11\%$，透射约 89%。
+      - item:
+          id: glass-r
+          type: number
+          prompt: '光从空气垂直射到 $\varepsilon_r = 2.25$、$\mu_r = 1$ 的玻璃上。反射功率占入射功率的百分之几？'
+          answer: 4
+          hint: ε_r = 2.25 时，玻璃的波阻抗是空气的几分之几？
+          explain: Γ = (1/1.5 − 1)/(1/1.5 + 1) = −0.2，|Γ|² = 0.04，即 4%。
+      - item:
+          id: er9-r
+          type: number
+          prompt: '平面波从空气垂直射到 $\varepsilon_r = 9$、$\mu_r = 1$ 的无损介质上。反射功率占入射功率的百分之几？'
+          answer: 25
+          hint: 先求 η₂/η₁，再算 Γ。
+          explain: η₂ = η₀/3，Γ = (1/3 − 1)/(1/3 + 1) = −0.5，|Γ|² = 25%。
+      - item:
+          id: pec-normal
+          type: choice
+          prompt: 平面波垂直射到理想导体表面。下面哪一项正确？
+          options:
+            - text: 全部反射，Γ = −1，导体表面处总电场为零
+              correct: true
+            - text: 全部透射进导体，因为导体导电性好
+              why: 理想导体内部不能有场，波进不去，只能全部反射
+            - text: 全部反射，Γ = +1，表面处电场加倍
+              why: 理想导体的 η 为零，Γ = (0 − η₁)/(0 + η₁) = −1；表面切向 E 必须为零，所以是反相抵消
+          explain: 入射波和反射波叠加成驻波，导体表面是电场的零点，往外每隔半个波长又是一个零点。
+      - card:
+          title: 有损媒质和良导体
+          body: |
+            有电导率的材料里，把 $\sigma\mathbf E$ 并进 $j\omega\varepsilon\mathbf E$，等于用复介电常数 $\varepsilon - j\sigma/\omega$。波一边走一边衰减：$E = E_0e^{-\alpha z}e^{-j\beta z}$，$\alpha$ 是衰减常数。
+
+            良导体里 $\alpha = \beta = 1/\delta$，波走一个趋肤深度振幅降到 $1/e$。良导体的波阻抗约为 $(1 + j)/(\sigma\delta)$，铜在 1 MHz 时只有约 0.00037 Ω，比空气的 377 Ω 小得多，所以 $\Gamma \approx -1$，金属表面是很好的镜子。
+      - item:
+          id: power-1pct
+          type: number
+          prompt: 平面波进入良导体，振幅按 $e^{-z/\delta}$ 衰减。功率密度降到表面的 1% 时，深入了几个趋肤深度？（保留两位小数）
+          answer: 2.30
+          tolerance: 0.005
+          hint: 功率和振幅的平方成正比，所以功率按 e^(−2z/δ) 衰减。
+          explain: e^(−2z/δ) = 0.01，z = δ × ln100 / 2 ≈ 2.30δ。按振幅算会得到 4.61δ，那是振幅降到 1% 的深度。
+      - card:
+          title: 等离子体
+          body: |
+            电离层里有大量自由电子，可以看作等离子体。对频率 $f$ 的波，它的相对介电常数是
+
+            $$\varepsilon_r = 1 - \frac{f_p^2}{f^2},\qquad f_p \approx 8.98\sqrt{N}\ \text{Hz}$$
+
+            $N$ 是每立方米的电子数，$f_p$ 叫等离子体频率。$f > f_p$ 时 $\varepsilon_r$ 在 0 和 1 之间，波能穿过；$f < f_p$ 时 $\varepsilon_r < 0$，$k$ 变成虚数，波不能传播，被反射回来。短波电台靠电离层反射传到很远，卫星通信则用高得多的频率穿过它。
+      - item:
+          id: plasma-fp
+          type: number
+          prompt: '电离层某层的电子密度为 $10^{12}$ 个/m³。它的等离子体频率约是多少 MHz？（用 $f_p \approx 8.98\sqrt N$ Hz，保留两位小数）'
+          answer: 8.98
+          tolerance: 0.005
+          hint: √(10¹²) 是多少？
+          explain: √(10¹²) = 10⁶，f_p ≈ 8.98 × 10⁶ Hz = 8.98 MHz。
+      - item:
+          id: plasma-pass
+          type: choice
+          prompt: 电离层的等离子体频率约 9 MHz。下面哪种信号能从地面穿过它到达卫星？
+          options:
+            - text: 1 MHz 的中波电台
+              why: 1 MHz 低于 9 MHz，ε_r < 0，波被反射回地面
+            - text: 100 MHz 的调频电台
+              correct: true
+            - text: 都不能，电离层把所有无线电波反射回来
+              why: 只反射低于等离子体频率的波；更高的频率 ε_r 接近 1，能穿过去
+          explain: 100 MHz 远高于 9 MHz，ε_r = 1 − 0.0081 ≈ 0.99，几乎像空气。所以调频电台传不远，卫星却用 GHz 频段。
+
+  - id: oblique-incidence
+    chapter: 反射与折射
+    title: 斜入射、全反射和布儒斯特角
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一根吸管斜插在一杯水里，从侧面看像在水面处折断了。原因是什么？
+          options:
+            - text: 水把吸管压弯了
+              why: 拿出来吸管是直的；看起来弯是因为光在水面改变了方向
+            - text: 光从水里进入空气时改变了方向
+              correct: true
+            - text: 水面反射的光盖住了吸管
+              why: 反射只让水面发亮；吸管的位置看起来偏移，是折射造成的
+          explain: 波斜着穿过分界面时会改变方向，这叫折射。方向改变多少，由两种介质的波速之比决定。
+      - card:
+          title: 斯涅尔定律
+          body: |
+            斜入射时，入射波、反射波、透射波沿分界面方向的相位变化必须步调一致，否则边界条件不能在界面上处处成立。由此得到：反射角等于入射角，透射角满足
+
+            $$n_1\sin\theta_1 = n_2\sin\theta_2$$
+
+            这叫斯涅尔定律，角度从法线量起。$n = \sqrt{\varepsilon_r\mu_r}$ 是折射率，也就是真空光速和介质中波速之比。从小 $n$ 进入大 $n$，透射波向法线偏。
+      - item:
+          id: snell-30
+          type: number
+          prompt: 光从空气以 30° 入射角射到折射率 1.5 的玻璃上。折射角是多少度？（保留一位小数）
+          answer: 19.5
+          tolerance: 0.05
+          hint: 斯涅尔定律说 n₁ sin θ₁ 和什么相等？先把左边算出来。
+          explain: sin θ₂ = 0.5/1.5 ≈ 0.333，θ₂ ≈ 19.5°，比入射角小，向法线偏。
+      - card:
+          title: 全反射
+          body: |
+            从大 $n$ 射向小 $n$（比如从玻璃射向空气），透射角比入射角大。入射角增大到
+
+            $$\theta_c = \arcsin\frac{n_2}{n_1}$$
+
+            时透射角达到 90°；再大，斯涅尔定律要求 $\sin\theta_2 > 1$，透射波不能往外传，能量全部反射回去。这叫全反射，$\theta_c$ 叫临界角。玻璃射向空气的临界角约 41.8°。光纤就是靠纤芯和包层之间的全反射把光关在里面。
+      - item:
+          id: critical-water
+          type: number
+          prompt: 光从水里（折射率 1.33）射向空气。临界角是多少度？（保留到个位）
+          answer: 49
+          tolerance: 0.5
+          hint: 临界角时透射角正好是 90°，这时斯涅尔定律变成什么？
+          explain: θ_c = arcsin(1/1.33) ≈ 48.8°，约 49°。在水下往上看，水面以外的景物都挤在一个约 98° 宽的圆锥里。
+      - card:
+          title: 两种极化和布儒斯特角
+          body: |
+            入射方向和法线确定的平面叫入射面。电场垂直于入射面的叫垂直极化（TE），电场在入射面里的叫平行极化（TM）。两种的反射系数不同。
+
+            对平行极化，有一个入射角让反射系数为零，叫**布儒斯特角（Brewster angle）**：
+
+            $$\theta_B = \arctan\frac{n_2}{n_1}$$
+
+            从空气射向 $\varepsilon_r = 4$ 的介质，$\theta_B = \arctan 2 \approx 63.4°$。以这个角度反射的光只剩垂直极化分量，偏振太阳镜就是挡掉这种水平方向的反射光。
+      - item:
+          id: brewster-glass
+          type: number
+          prompt: 光从空气射向折射率 1.5 的玻璃。布儒斯特角是多少度？（保留一位小数）
+          answer: 56.3
+          tolerance: 0.05
+          hint: 布儒斯特角的正切等于两个折射率的什么比值？
+          explain: θ_B = arctan 1.5 ≈ 56.3°。
+      - item:
+          id: brewster-which
+          type: choice
+          prompt: 非磁性介质的分界面上，布儒斯特角对哪种极化有效？
+          options:
+            - text: 只对平行极化（TM）有效
+              correct: true
+            - text: 只对垂直极化（TE）有效
+              why: 对非磁性介质，垂直极化的反射系数在任何入射角都不为零
+            - text: 两种极化都有效，所以布儒斯特角下没有任何反射
+              why: 布儒斯特角下仍有垂直极化的反射，所以反射光是纯垂直极化的
+          explain: 平行极化在 θ_B 处反射为零，垂直极化仍有反射。所以以布儒斯特角反射的光是线极化的，这也是测量材料折射率的一种办法。
+
+  - id: waveguides
+    chapter: 波导与谐振腔
+    title: 平行板波导和矩形波导
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一根空心的矩形金属管，能用来传直流电吗？
+          options:
+            - text: 能，金属导电
+              why: 传直流需要一去一回两根导体；空心管只有一个导体
+            - text: 不能，它只有一个导体，没有回路
+              correct: true
+            - text: 能，只要管子足够粗
+              why: 和粗细无关；空心管能传的是频率足够高的电磁波，不能传直流
+          explain: 空心波导不能传直流，也不能传频率低于某个值的波。它传的是在管壁之间来回反射的高频电磁波。
+      - card:
+          title: 平行板之间的模式
+          body: |
+            两块相距 $d$ 的金属平行板之间，除了 TEM 波，还能传一类波：平面波在两板之间斜着来回反射。两板上切向电场必须为零，所以沿板间方向必须正好放下整数个半波长，这样的每一种场分布叫一个模式。电场全横在传播方向上的叫 TE 模，磁场全横着的叫 TM 模。
+
+            第 $n$ 个模式只有在频率高于
+
+            $$f_c = \frac{nc}{2d}$$
+
+            时才能传播（板间是空气）。$f_c$ 叫**截止频率（cutoff frequency）**。低于它时场沿波导按指数衰减，不传输能量。
+      - item:
+          id: pp-cutoff
+          type: number
+          prompt: '两块平行金属板相距 1 cm，中间是空气。TE₁ 模的截止频率是多少 GHz？（$c = 2.998 \times 10^8$ m/s，保留一位小数）'
+          answer: 15.0
+          tolerance: 0.05
+          hint: 截止时两板间距正好是几个半波长？波长和频率怎么换算？
+          explain: f_c = 2.998 × 10⁸ / 0.02 ≈ 15.0 GHz。此时两板间距正好是半个波长。
+      - card:
+          title: 矩形波导
+          body: |
+            宽 $a$、高 $b$（$a > b$）的空心矩形金属管只有一个导体，没有 TEM 模。电场在宽边方向放下 $m$ 个半波长、在窄边方向放下 $n$ 个，记作 TE$_{mn}$ 或 TM$_{mn}$，截止频率
+
+            $$f_c = \frac c2\sqrt{\left(\frac ma\right)^2 + \left(\frac nb\right)^2}$$
+
+            截止频率最低的是 TE$_{10}$，$f_c = c/(2a)$，叫主模。TM 模的 $m$、$n$ 都不能为零，最低是 TM$_{11}$。
+          reveal:
+            - title: 第 1 步：主模
+              body: |
+                WR-90 波导 $a = 22.86$ mm、$b = 10.16$ mm。TE$_{10}$：$f_c = \frac{2.998 \times 10^8}{2 \times 0.02286} \approx 6.56$ GHz。
+            - title: 第 2 步：下一个模式
+              body: |
+                TE$_{20}$：$c/a \approx 13.1$ GHz；TE$_{01}$：$c/(2b) \approx 14.8$ GHz。
+            - title: 第 3 步：单模工作范围
+              body: |
+                6.56 到 13.1 GHz 之间只有 TE$_{10}$ 能传播。实际按 8.2–12.4 GHz 使用，离两个截止频率都留出余量。
+      - item:
+          id: wr90-te10
+          type: number
+          prompt: '矩形波导宽边 22.86 mm，内部是空气。TE₁₀ 模的截止频率是多少 GHz？（$c = 2.998 \times 10^8$ m/s，保留两位小数）'
+          answer: 6.56
+          tolerance: 0.005
+          hint: 主模的截止波长是宽边的两倍。
+          explain: f_c = c/(2a) = 2.998 × 10⁸ / 0.04572 ≈ 6.56 GHz。
+      - item:
+          id: wr90-te20
+          type: number
+          prompt: '同一根波导（宽边 22.86 mm，空气），TE₂₀ 模的截止频率是多少 GHz？（保留两位小数）'
+          answer: 13.11
+          tolerance: 0.005
+          hint: m = 2，n = 0。
+          explain: f_c = (c/2)(2/a) = c/a ≈ 13.11 GHz，是 TE₁₀ 的两倍。
+      - item:
+          id: below-cutoff
+          type: choice
+          prompt: 把 5 GHz 的信号送进 TE₁₀ 截止频率为 6.56 GHz 的空心波导。会怎样？
+          options:
+            - text: 照样传播，只是慢一些
+              why: 低于截止频率，任何模式都不能传播，不是变慢
+            - text: 场沿波导按指数衰减，传不了多远
+              correct: true
+            - text: 自动换成 TEM 模传播
+              why: 空心波导只有一个导体，没有 TEM 模
+          explain: 低于截止频率的场叫凋落场或消逝场（evanescent field），沿波导按指数衰减。波导因此也像一个高通滤波器。
+      - card:
+          title: 波导波长
+          body: |
+            在波导里，沿管子方向的波长比同频率的平面波长：
+
+            $$\lambda_g = \frac{\lambda}{\sqrt{1 - (f_c/f)^2}}$$
+
+            频率接近截止频率时 $\lambda_g$ 趋于无穷。可以把波想象成在管壁之间斜着前进：沿管子方向看，同相位的点隔得更远；能量沿管子前进的速度（群速）比 $c$ 慢。
+      - item:
+          id: guide-lambda
+          type: number
+          prompt: '空气矩形波导 TE₁₀ 模截止频率 6.557 GHz，工作频率 10 GHz。波导波长是多少毫米？（$c = 2.998 \times 10^8$ m/s，保留一位小数）'
+          answer: 39.7
+          tolerance: 0.05
+          hint: 先算自由空间波长；波导里同相位的点隔得更远，要除以一个由 f_c/f 决定、小于 1 的因子，它是什么？
+          explain: λ ≈ 29.98 mm，f_c/f ≈ 0.656，√(1 − 0.430) ≈ 0.755，λ_g ≈ 39.7 mm。
+
+  - id: cavities
+    chapter: 波导与谐振腔
+    title: 谐振腔
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把一段矩形波导两端也用金属板封死，变成一个金属盒子。里面能存在什么样的电磁场？
+          options:
+            - text: 任何频率的场都可以
+              why: 六个面上切向电场都要为零，只有三个方向都正好放下整数个半波长的频率才行
+            - text: 只有某些特定频率的驻波
+              correct: true
+            - text: 什么场都不能有，被金属屏蔽了
+              why: 金属屏蔽的是外面的场；盒子里面可以有驻波
+          explain: 封闭的金属盒子只允许几个特定频率的驻波存在，这就是谐振腔。
+      - card:
+          title: 矩形谐振腔的谐振频率
+          body: |
+            尺寸 $a \times b \times d$ 的矩形空腔，三个方向分别放下 $m$、$n$、$p$ 个半波长：
+
+            $$f_{mnp} = \frac c2\sqrt{\left(\frac ma\right)^2 + \left(\frac nb\right)^2 + \left(\frac pd\right)^2}$$
+
+            $b$ 最短时，最低的模式是 TE$_{101}$：$f = \frac c2\sqrt{1/a^2 + 1/d^2}$。它可以看成 TE$_{10}$ 波在两端金属板之间来回反射形成的驻波。
+      - item:
+          id: cavity-101
+          type: number
+          prompt: '空气矩形谐振腔 a = 22.86 mm、b = 10.16 mm、d = 30 mm。TE₁₀₁ 模的谐振频率是多少 GHz？（$c = 2.998 \times 10^8$ m/s，保留两位小数）'
+          answer: 8.24
+          tolerance: 0.005
+          hint: m = 1，n = 0，p = 1。
+          explain: f = (c/2)√(1/0.02286² + 1/0.03²) ≈ 1.499 × 10⁸ × 55.0 ≈ 8.24 GHz。
+      - item:
+          id: cavity-cube
+          type: number
+          prompt: '边长 3 cm 的立方体空气谐振腔，最低谐振频率是多少 GHz？（$c = 2.998 \times 10^8$ m/s，保留两位小数）'
+          answer: 7.07
+          tolerance: 0.005
+          hint: 三边相等时 TE₁₀₁ 的两个非零指标都是 1。
+          explain: f = (c/2)√2/0.03 ≈ 7.07 GHz。
+      - card:
+          title: 为什么微波频段用腔体
+          body: |
+            10 GHz 时真空中的波长只有 3 cm。电感、电容的引线只要几毫米长，就到了波长的十分之一，线上各处的电流不再一样，“电感集中在线圈里、电容集中在两板之间”的假设不成立，引线还会向外辐射能量。
+
+            谐振腔把电场和磁场都关在金属壁里面，不往外辐射，损耗只来自壁上的电流。铜在 10 GHz 的趋肤深度约 0.66 μm，电流全挤在这么薄的一层里，所以腔壁要做得很光滑：表面起伏比趋肤深度大时，电流要绕着起伏走，损耗变大。
+      - item:
+          id: why-cavity
+          type: choice
+          prompt: 10 GHz 的窄带滤波器为什么常用谐振腔，而不用电感和电容焊成的谐振电路？
+          options:
+            - text: 引线长度和波长可比，元件不再“集中”
+              correct: true
+            - text: 电感和电容在 10 GHz 时会被高频电压击穿
+              why: 击穿取决于电压和绝缘，不取决于频率本身；问题在于元件尺寸已经和波长可比
+            - text: 谐振腔里的电磁波传得比导线里快，延迟小
+              why: 空气腔里和空气中导线周围的电磁波速度都约为 c；腔体的好处是不辐射、损耗小
+          explain: 尺寸和波长可比时，电路要按场来处理；谐振腔把场关在金属壁里，不辐射，Q 也比电感电容做的谐振电路高得多。
+      - card:
+          title: 谐振腔的品质因数和等效电路
+          body: |
+            腔壁有一点电阻，壁上的电流在趋肤深度那么薄的一层里流动，消耗功率。谐振腔的 $Q = \omega \times$ 储能 $\div$ 损耗功率，铜腔通常有几千到上万，比电感电容做的谐振电路高得多。
+
+            在一个谐振频率附近，谐振腔的行为和一个 $RLC$ 谐振电路一样：$f_0 = \frac{1}{2\pi\sqrt{LC}}$，$Q \approx f_0/\Delta f$。所以微波电路里用它做窄带滤波器和稳定振荡器的频率，微波炉的炉腔也是一个谐振腔。
+      - item:
+          id: cavity-q
+          type: number
+          prompt: 某铜谐振腔的谐振频率 10 GHz，半功率带宽 1 MHz。品质因数约是多少？
+          answer: 10000
+          hint: 带宽和谐振频率用同一个单位。
+          explain: Q ≈ 10 GHz / 1 MHz = 10⁴。
+      - item:
+          id: rlc-f0
+          type: number
+          prompt: '某谐振腔的一个模式在谐振频率附近等效为 L = 1 nH、C = 1 pF 的谐振电路。谐振频率是多少 GHz？（保留两位小数）'
+          answer: 5.03
+          tolerance: 0.005
+          hint: LC 的乘积是多少？开方以后再乘 2π，取倒数。
+          explain: LC = 10⁻²¹，√ ≈ 3.16 × 10⁻¹¹，f₀ ≈ 1/(1.99 × 10⁻¹⁰) ≈ 5.03 GHz。
+      - item:
+          id: cavity-scale
+          type: choice
+          prompt: 把一个矩形谐振腔的三个尺寸都放大到 2 倍。各模式的谐振频率怎样变？
+          options:
+            - text: 都升到 2 倍
+              why: 腔越大，放下半个波长需要的波长越长，频率越低
+            - text: 都降到 1/2
+              correct: true
+            - text: 都降到 1/8，因为体积变成 8 倍
+              why: 频率由尺寸决定，公式里是 1/a、1/b、1/d，不是体积
+          explain: 公式里每一项都和尺寸成反比，尺寸加倍，频率减半。这也是低频谐振腔太大、只在微波频段好用的原因。
+
+  - id: radiation
+    chapter: 电磁辐射基础
+    title: 电流元和天线
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 下面哪一种电荷会向远处辐射电磁波？
+          options:
+            - text: 静止的电荷
+              why: 静止电荷只有静电场，随距离平方衰减，不向外送能量
+            - text: 匀速直线运动的电荷
+              why: 匀速运动的电荷换一个跟着它走的参考系看就是静止的，不辐射
+            - text: 加速运动的电荷，比如在天线里来回振荡的电子
+              correct: true
+          explain: 只有加速的电荷（变化的电流）会辐射。天线里的电子来回振荡，正是在不停地加速。
+      - card:
+          title: 什么叫辐射
+          body: |
+            有限大小的静电荷和恒定电流，离得远时场按 $1/r^2$ 或更快地减小（无限长线电荷的 $1/r$ 只是离线很近时的近似），穿过一个大球面的功率随 $r$ 增大趋于零。变化的电流还产生一部分按 $1/r$ 减小的场，这时 $E$ 和 $H$ 都按 $1/r$，坡印廷矢量按 $1/r^2$，乘以球面积 $4\pi r^2$，穿过球面的功率和 $r$ 无关：能量一去不回，这就是辐射。
+
+            离天线比 $\lambda/(2\pi)$ 远得多的地方，$1/r$ 的部分占主导，叫远场区。
+      - card:
+          title: 电流元
+          body: |
+            一小段长 $\Delta l \ll \lambda$、通正弦电流 $I$ 的导线叫**电流元（Hertzian dipole）**，也叫短偶极子。它的远场
+
+            $$E_\theta = j\eta\frac{kI\Delta l}{4\pi r}\sin\theta\,e^{-jkr},\qquad H_\phi = \frac{E_\theta}{\eta}$$
+
+            前面的 $j = e^{j90°}$ 表示相位再超前 90°，$e^{-jkr}$ 表示传到距离 $r$ 处相位落后 $kr$。$\theta$ 是从导线轴量起的角。场正比于 $\sin\theta$：垂直于导线的方向最强，沿导线方向为零。复杂的天线可以看成许多电流元的叠加。
+      - item:
+          id: dipole-null
+          type: choice
+          prompt: 一根竖直的短偶极子天线。哪个方向收不到它的信号？
+          options:
+            - text: 水平方向
+              why: 水平方向 θ = 90°，sin θ = 1，正是最强的方向
+            - text: 正上方和正下方
+              correct: true
+            - text: 各个方向一样，短天线没有方向性
+              why: 场正比于 sin θ，方向图是“面包圈”形，沿轴向为零
+          explain: 正上方、正下方沿着导线，θ = 0 或 180°，sin θ = 0。所以竖直天线适合向四周水平方向发射。
+      - card:
+          title: 辐射电阻
+          body: |
+            天线辐射出去的功率可以写成 $P = \frac12I_0^2R_{\text{rad}}$，$R_{\text{rad}}$ 叫**辐射电阻（radiation resistance）**：从电路一侧看，辐射出去的功率就像消耗在这个电阻上。短偶极子
+
+            $$R_{\text{rad}} = 80\pi^2\left(\frac{\Delta l}{\lambda}\right)^2\ \Omega$$
+
+            天线导体本身还有损耗电阻 $R_{\text{loss}}$，效率 $= R_{\text{rad}}/(R_{\text{rad}} + R_{\text{loss}})$。半波振子（全长为半个波长）的辐射电阻约 73 Ω。这个式子假定电流沿全长相同；电流从中间向两端线性减小的短振子，辐射电阻只有它的 1/4，即 $20\pi^2(\Delta l/\lambda)^2$，看中文教材时注意是哪一种。
+      - item:
+          id: rrad-50
+          type: number
+          prompt: '短偶极子长为波长的 1/50。辐射电阻是多少欧姆？（保留两位小数）'
+          answer: 0.32
+          tolerance: 0.005
+          hint: 辐射电阻和 Δl/λ 的几次方成正比？电流沿全长相同时系数是多少？
+          explain: 80 × 9.87 × (1/50)² ≈ 0.32 Ω。
+      - item:
+          id: eff-short
+          type: number
+          prompt: '某短偶极子的辐射电阻约 0.316 Ω，导体和匹配电路的损耗电阻合计 1 Ω。天线效率是百分之几？（保留到个位）'
+          answer: 24
+          tolerance: 0.5
+          hint: 效率是辐射功率占总功率的比例；电流相同时两个电阻按什么分功率？
+          explain: 0.316/1.316 ≈ 24%。四分之三的功率变成了热，这就是短天线效率低的原因；半波振子的 73 Ω 远大于损耗电阻，效率高得多。
+      - card:
+          title: 增益和有效面积
+          body: |
+            天线把功率集中到某些方向。最强方向的功率密度和“把同样功率均匀撒向四面八方”时的功率密度之比叫方向性系数，短偶极子是 1.5；再乘以效率得到**增益（gain）** $G$。
+
+            接收时，天线从功率密度为 $S$ 的来波里收到的功率是 $P = A_eS$，$A_e$ 叫**有效面积（effective area）**。任何天线都满足
+
+            $$A_e = \frac{G\lambda^2}{4\pi}$$
+
+            频率越低，波长越长，同样增益的天线有效面积越大。
+          reveal:
+            - title: 第 1 步：波长
+              body: |
+                例：无损短偶极子工作在 300 MHz，$\lambda = \frac{2.998 \times 10^8}{3 \times 10^8} \approx 0.999$ m。
+            - title: 第 2 步：代入有效面积
+              body: |
+                $A_e = \frac{1.5 \times 0.999^2}{4\pi} \approx 0.119$ m²。
+            - title: 第 3 步：换算单位
+              body: |
+                1 m² = 10⁴ cm²，$A_e \approx 1190$ cm²。一根很短的导线，收集来波功率的“面积”却有一张桌面那么大。
+      - item:
+          id: ae-dipole
+          type: number
+          prompt: '无损的短偶极子增益 1.5，工作在 1 GHz。它的有效面积是多少平方厘米？（$c = 2.998 \times 10^8$ m/s，保留到个位）'
+          answer: 107
+          tolerance: 0.5
+          hint: 1 GHz 的波长是多少？有效面积里波长是几次方？
+          explain: λ ≈ 0.2998 m，A_e = 1.5 × 0.0899 / (4π) ≈ 0.0107 m² ≈ 107 cm²。
+      - card:
+          title: 天线阵
+          body: |
+            几个相同的天线排成一排，总的方向图等于单个天线的方向图乘以一个只和排列有关的“阵因子”。两个同相馈电、相距 $d$ 的天线：在某个方向上两路信号的路程差为 $d\cos\psi$（$\psi$ 从两者连线量起），路程差是半波长的奇数倍的方向上两者抵消，是整数个波长的方向上两者相加。
+
+            改变各单元的电流相位，就能让最强的方向转动而天线不动，这是相控阵雷达和 5G 基站波束扫描的原理。
+      - item:
+          id: array-null
+          type: choice
+          prompt: 两个全向天线相距半个波长，同相馈电。沿两者连线的方向上，合成的信号怎样？
+          options:
+            - text: 互相抵消，接近零
+              correct: true
+            - text: 加倍，因为两路同相
+              why: 同相是在发射端；沿连线方向两路走的路程差半个波长，到达时反相
+            - text: 和单个天线一样，阵列只影响垂直于连线的方向
+              why: 阵因子在每个方向都起作用；沿连线方向路程差最大，正好是半波长
+          explain: 路程差 d cos 0 = λ/2，相位差 180°，两路抵消。垂直于连线的方向路程差为零，两路相加，那里最强。
+
+boss:
+  items:
+    - id: b-line
+      type: number
+      prompt: '真空中一根无限长直线均匀带电，线电荷密度 2 nC/m。离它 0.2 m 处的电场强度是多少 V/m？（$\varepsilon_0 = 8.854 \times 10^{-12}$ F/m，保留到个位）'
+      answer: 180
+      tolerance: 0.5
+      explain: E = ρ_l/(2πε₀r) = 2 × 10⁻⁹ / (2π × 8.854 × 10⁻¹² × 0.2) ≈ 180 V/m。
+    - id: b-coax-l
+      type: number
+      prompt: '同轴线内导体半径 0.5 mm、外导体内半径 2 mm，中间是空气。高频时每米的电感是多少 nH/m？（保留到个位）'
+      answer: 277
+      tolerance: 0.5
+      explain: L = (μ₀/2π) ln(b/a) = 2 × 10⁻⁷ × ln 4 ≈ 277 nH/m。
+    - id: b-skin
+      type: number
+      prompt: '铝的电导率约 $3.5 \times 10^7$ S/m，$\mu = 4\pi \times 10^{-7}$ H/m。1 MHz 时铝的趋肤深度是多少 μm？（保留一位小数）'
+      answer: 85.1
+      tolerance: 0.05
+      explain: δ = 1/√(πfμσ) = 1/√(π × 10⁶ × 4π × 10⁻⁷ × 3.5 × 10⁷) ≈ 85.1 μm。
+    - id: b-maxwell
+      type: choice
+      prompt: 麦克斯韦方程组里，位移电流出现在哪一个方程中？
+      options:
+        - text: '∇·D = ρ'
+          why: 这是高斯定律，说的是电场的源是电荷
+        - text: '∇×E = −∂B/∂t'
+          why: 这是法拉第定律，右边是变化的磁场，不是电流
+        - text: '∇×H = J + ∂D/∂t'
+          correct: true
+        - text: '∇·B = 0'
+          why: 这是磁通连续性，没有电流项
+      explain: 安培–麦克斯韦定律右边的 ∂D/∂t 就是位移电流密度，没有它就推不出电磁波。
+    - id: b-lambda
+      type: number
+      prompt: '3 GHz 平面波在 $\varepsilon_r = 9$、$\mu_r = 1$ 的无损介质里传播。波长是多少厘米？（$c = 2.998 \times 10^8$ m/s，保留两位小数）'
+      answer: 3.33
+      tolerance: 0.005
+      explain: v = c/3 ≈ 0.999 × 10⁸ m/s，λ = v/f ≈ 0.0333 m = 3.33 cm。
+    - id: b-swr
+      type: number
+      prompt: '50 Ω 传输线末端接 150 Ω 电阻负载。驻波比是多少？'
+      answer: 3
+      explain: Γ = (150 − 50)/(150 + 50) = 0.5，S = 1.5/0.5 = 3。
+    - id: b-qw
+      type: number
+      prompt: '用四分之一波长变换器把 72 Ω 负载匹配到 50 Ω 传输线。变换段的特性阻抗应取多少欧姆？'
+      answer: 60
+      explain: Z_T = √(50 × 72) = √3600 = 60 Ω。
+    - id: b-normal
+      type: number
+      prompt: '平面波从空气垂直射到 $\varepsilon_r = 16$、$\mu_r = 1$ 的无损介质上。反射功率占入射功率的百分之几？'
+      answer: 36
+      explain: η₂ = η₀/4，Γ = (1/4 − 1)/(1/4 + 1) = −0.6，|Γ|² = 36%。
+    - id: b-brewster
+      type: number
+      prompt: '平行极化的波从空气射向 $\varepsilon_r = 3$、$\mu_r = 1$ 的介质。布儒斯特角是多少度？'
+      answer: 60
+      tolerance: 0.05
+      explain: θ_B = arctan √3 = 60°。
+    - id: b-te10
+      type: number
+      prompt: '空气矩形波导宽边 15.8 mm、窄边 7.9 mm。TE₁₀ 模的截止频率是多少 GHz？（$c = 2.998 \times 10^8$ m/s，保留两位小数）'
+      answer: 9.49
+      tolerance: 0.005
+      explain: f_c = c/(2a) = 2.998 × 10⁸ / 0.0316 ≈ 9.49 GHz，窄边不影响主模的截止频率。
+    - id: b-rrad
+      type: number
+      prompt: '短偶极子长为波长的 1/20。辐射电阻是多少欧姆？（用 80π²(Δl/λ)²，保留两位小数）'
+      answer: 1.97
+      tolerance: 0.005
+      explain: 80π² / 400 ≈ 1.97 Ω。
+    - id: b-cavity
+      type: choice
+      prompt: 关于谐振腔和波导，下面哪一项正确？
+      options:
+        - text: 矩形波导的主模是 TE₁₀，频率低于它的截止频率时场按指数衰减
+          correct: true
+        - text: 矩形波导可以传 TEM 模，所以直流也能通过
+          why: 空心波导只有一个导体，没有 TEM 模，也不能传直流
+        - text: 谐振腔尺寸越大，谐振频率越高
+          why: 谐振频率和尺寸成反比，腔越大频率越低
+        - text: 谐振腔的品质因数越高，谐振带宽越宽
+          why: Q ≈ f₀/Δf，Q 越高带宽越窄
+      explain: 主模 TE₁₀ 的截止频率是 c/(2a)，低于它任何模式都不能传播。
