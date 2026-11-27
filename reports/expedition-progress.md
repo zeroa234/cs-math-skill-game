@@ -2,7 +2,7 @@
 
 定时任务 `cs-math-expeditions-finish`（2026-11-23 起，每 5 小时一轮）的进度文件。每轮开头读、结尾更新。
 
-目标：telecom（通信工程）、ic（集成电路设计）、power（电气工程）、automation（电气控制与自动化）四条远征的每一站都有达标的内容包并改成 `status: open`；Gemini 写的 E.2.1、H.1.3、I.2.1、S.1.1 审读完并按 collaboration.md 引入（`node scripts/sync-remote.mjs --accept 973751f --push`）。**后一半已完成（第 1 轮）；automation 已审读并开放（第 4 轮）；power 已审读并开放（第 6 轮）。**
+目标：telecom（通信工程）、ic（集成电路设计）、power（电气工程）、automation（电气控制与自动化）四条远征的每一站都有达标的内容包并改成 `status: open`；Gemini 写的 E.2.1、H.1.3、I.2.1、S.1.1 审读完并按 collaboration.md 引入（`node scripts/sync-remote.mjs --accept 973751f --push`）。**后一半已完成（第 1 轮）；automation 已审读并开放（第 4 轮）；power 已审读并开放（第 6 轮）。2026-11-28 全部完成：ic 2026-11-26 开放；telecom 的 E.1.4、E.1.5、E.2.4 由云端 Gemini 写完，整条审读后 2026-11-27 开放，2026-11-28 引入工作区（见 docs/collaboration.md 记录）。工作区写到第 13 课的 E.2.4 草稿删除。**
 
 定时任务在第 5 轮之后被停用（`list_scheduled_tasks` 显示 enabled: false），第 6 轮是用户在会话里说“继续”时做的。
 
