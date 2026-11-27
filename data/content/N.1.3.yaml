@@ -784,7 +784,7 @@ lessons:
           body: |
             取 $k/m = 1$，把 $K\vec a = \omega^2\vec a$ 逐行写开：$2a_1 - a_2 = \omega^2a_1$，$-a_1 + 2a_2 = \omega^2a_2$。第一式给出 $a_2 = (2 - \omega^2)a_1$，代入第二式，要 $a_1 \ne 0$ 就需要 $(2 - \omega^2)^2 - 1 = 0$，所以 $\omega^2 = 1$ 或 $3$，即 $k/m$ 和 $3k/m$。
 
-            $\omega^2 = 1$ 时 $a_2 = a_1$，即同相；$\omega^2 = 3$ 时 $a_2 = -a_1$，即反相。和上一课凭直觉找到的一样。物体多了，直觉不够用，这个办法照样能用。
+            $\omega^2 = 1$ 时 $a_2 = a_1$，即同相；$\omega^2 = 3$ 时 $a_2 = -a_1$，即反相，正是凭直觉猜出的同相、反相两种模式。物体多了，直觉不够用，这个办法照样能用。
       - item:
           id: unequal-coupling
           type: number
@@ -828,7 +828,7 @@ lessons:
           tolerance: 0.005
           unit: rad/s
           hint: $n = 2$ 的模式里，三个物体的振幅比是多少？中间的物体受的合力是多少？
-          explain: $\omega_2 = 2 \times 10 \times \sin\frac{2\pi}{8} = 20\sin 45° \approx 14.14\text{ rad/s}$。这就是上一题那种两边反着动、中间不动的模式：中间物体静止，两边的物体各受两根弹簧的力 $-2kx$，$\omega = \sqrt2\omega_0$。
+          explain: $\omega_2 = 2 \times 10 \times \sin\frac{2\pi}{8} = 20\sin 45° \approx 14.14\text{ rad/s}$。这个模式是两边反着动、中间不动：中间物体静止，两边的物体各受两根弹簧的力 $-2kx$，$\omega = \sqrt2\omega_0$。
       - card:
           title: 一串无穷长的振子
           body: |
@@ -1549,7 +1549,7 @@ lessons:
       - card:
           title: 迈克尔逊干涉仪
           body: |
-            一块半透半反的镜子把光分成两束，分别射向两面镜子，反射回来再合在一起干涉。把其中一面镜子移动距离 $d$，那一路的光来回多走 $2d$，屏中心每经过一个波长的变化就亮暗交替一次。数出变化了 $N$ 次：
+            一块半透半反的镜子把光分成两束，分别射向两面镜子，反射回来再合在一起干涉。把其中一面镜子移动距离 $d$，那一路的光来回多走 $2d$，光程每变化一个波长，屏中心就由亮变暗再变亮一次（移过一条条纹）。数出移过了 $N$ 条：
 
             $$d = \frac{N\lambda}{2}$$
 
@@ -1557,11 +1557,11 @@ lessons:
       - item:
           id: michelson-shift
           type: number
-          prompt: 用 632.8 nm 的激光做迈克尔逊干涉实验，移动一面镜子时数到 200 次亮暗交替。镜子移动了多少微米？（保留两位小数）
+          prompt: 用 632.8 nm 的激光做迈克尔逊干涉实验，移动一面镜子时，屏中心由亮变暗再变亮共 200 次（移过 200 条条纹）。镜子移动了多少微米？（保留两位小数）
           answer: 63.28
           tolerance: 0.005
           unit: μm
-          hint: 镜子移动 $d$，光程变化是多少？每变化多少光程交替一次？
+          hint: 镜子移动 $d$，光程变化是多少？光程变化多少移过一条条纹？
           explain: $d = N\lambda/2 = 200 \times 632.8\text{ nm}/2 = 63280\text{ nm} = 63.28\ \mu\text{m}$。
   - id: single-slit-resolution
     chapter: 干涉与衍射
@@ -2383,12 +2383,12 @@ boss:
       explain: $\theta_{\min} = 1.22\lambda/D = 1.22 \times 500 \times 10^{-9}/0.1 = 6.1 \times 10^{-6}\text{ rad}$。口径越大，能分开的两颗星靠得越近。
     - id: b-grating
       type: number
-      prompt: 每毫米 500 条缝的光栅，用 600 nm 的光垂直照射。第一级主极大偏离中线多少度？（保留一位小数）
-      answer: 17.5
+      prompt: 每毫米 500 条缝的光栅，用 550 nm 的光垂直照射。第一级主极大偏离中线多少度？（保留一位小数）
+      answer: 16.0
       tolerance: 0.05
       unit: °
       hint: 光栅常数是多少？代入 $d\sin\theta = \lambda$。
-      explain: $d = 1/500\text{ mm} = 2\ \mu\text{m}$，$\sin\theta = 0.6/2 = 0.3$，$\theta \approx 17.5°$。
+      explain: $d = 1/500\text{ mm} = 2\ \mu\text{m}$，$\sin\theta = 0.55/2 = 0.275$，$\theta \approx 16.0°$。
     - id: b-polarizers
       type: number
       prompt: 自然光依次通过三块偏振片，第二块的透振方向和第一块成 30°，第三块和第一块成 90°。透出的光强是入射光强的几分之几？（填小数，保留三位）

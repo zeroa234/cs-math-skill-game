@@ -152,7 +152,7 @@ recommended:
 
   # 电子与电气方向（2026-11-22）。这几条不按上面的招聘调查选，而按专业标准选：目标技能 = 国标
   # 《普通高等学校本科专业类教学质量国家标准》某个专业“核心课程体系示例”里的每门课在技能树里对应的技能。
-  # 对应表见 docs/recommended-routes.md 第 4 节。以下四条还有技能未写互动课，先以 dev（开发中）占位。
+  # 对应表见 docs/recommended-routes.md 第 4 节。每一站都写好、整条审读后才改成 open；通信工程还有技能未写互动课，仍是 dev（开发中）。
   - id: telecom
     status: dev
     name: 通信工程
@@ -167,7 +167,7 @@ recommended:
         - { name: 电子信息类教学质量国家标准（扫描件，书 pp.304–314）, url: "https://www.sxcast.edu.cn/uploadfile/ueditor/file/202110/16339210845dcf64.pdf" }
 
   - id: ic
-    status: dev
+    status: open
     name: 集成电路设计
     goal: H.2.4
     also: [H.1.1, H.1.3, N.2.2, H.1.4, H.1.2, H.2.7, H.2.5, H.2.8]

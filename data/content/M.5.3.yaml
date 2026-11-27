@@ -313,7 +313,7 @@ lessons:
           type: choice
           prompt: 小明说：“我用电脑验证了，对 $n = 1$ 到 $10^{9}$，某个式子都成立，所以它对所有正整数都成立。”这个说法对吗？
           options:
-            - text: 不对，验证有限多个不能代替证明，后面可能出现反例
+            - text: 不对，有限验证不能代替证明
               correct: true
             - text: 对，验证了十亿个，出错的可能为零
               why: 像 $n^2 + n + 41$ 这样，前面一大串都对、后面突然出错的例子是真实存在的
@@ -404,7 +404,7 @@ lessons:
           type: choice
           prompt: 下面哪条推理规则是可靠的？
           options:
-            - text: 由“P ⇒ Q”和“Q ⇒ R”，得到“P ⇒ R”
+            - text: P ⇒ Q 和 Q ⇒ R 推出 P ⇒ R
               correct: true
             - text: 由“P ⇒ Q”和“Q”，得到“P”
               why: 反例：P 是“n 是 4 的倍数”，Q 是“n 是偶数”，n = 6 时 Q 真、P 假
@@ -777,7 +777,7 @@ lessons:
           type: choice
           prompt: 某人写了一个归纳证明：基础步骤 $P(0)$ 证得很仔细，归纳步骤只验证了 $n = 0, 1, 2$ 时 $P(n) \Rightarrow P(n + 1)$。这能得出对所有 $n$ 成立吗？
           options:
-            - text: 不能，只得到 P(0) 到 P(3)
+            - text: 不能，只推到 P(3)
               correct: true
             - text: 能，归纳步骤验证了三次就够了
               why: 归纳步骤必须对所有 n 都证明，验证几个 n 只能往前推几步
@@ -848,7 +848,7 @@ lessons:
           type: choice
           prompt: 上面素数分解的证明，为什么用强归纳，而不是普通归纳？
           options:
-            - text: n + 1 拆成 k × m 时，k、m 可以是 2 到 n 之间任何数，不一定是 n
+            - text: k、m 可以是 2 到 n 间任何数，不一定是 n
               correct: true
             - text: 因为基础步骤从 2 开始，不是从 0 开始
               why: 起点挪到 2 用普通归纳也能做；关键在归纳步骤要用到哪些情况
@@ -884,7 +884,7 @@ lessons:
           type: choice
           prompt: 想把凑硬币的强归纳证明改写成普通归纳，应该对哪个谓词做普通归纳？
           options:
-            - text: Q(n)：8 元到 n 元每个金额都能凑出
+            - text: Q(n)：8 到 n 元都能凑出
               correct: true
             - text: P(n)：n 元能凑出
               why: 对 P 做普通归纳，归纳步骤只能用 P(n)，用不上 P(n − 2)
@@ -946,7 +946,7 @@ lessons:
           type: choice
           prompt: 证明“如果 $\sqrt{r}$ 是有理数，那么 $r$ 是有理数”：设 $\sqrt{r} = \dfrac{m}{n}$，$m$、$n$ 是整数，$n \ne 0$。下一步是什么？
           options:
-            - text: 两边平方，r = m²/n²，m² 和 n² 都是整数，所以 r 是有理数
+            - text: 两边平方：r = m²/n²，是两个整数之比
               correct: true
             - text: 因为 m/n 是分数，所以 r 也是分数，不用再算
               why: 这一步要说清 r 等于哪两个整数相除，不能只靠“看起来像”
@@ -976,7 +976,7 @@ lessons:
           type: choice
           prompt: 要证明“如果 $n^2$ 是 3 的倍数，那么 $n$ 是 3 的倍数”。某同学证明了“如果 $n$ 是 3 的倍数，那么 $n^2$ 是 3 的倍数”。他证明了原命题吗？
           options:
-            - text: 没有，他证的是逆命题，逆命题和原命题可能一真一假
+            - text: 没有，那是逆命题
               correct: true
             - text: 证明了，这是逆否命题
               why: 逆否命题要两边都加“不”：“如果 n 不是 3 的倍数，那么 n² 不是 3 的倍数”
@@ -1031,7 +1031,7 @@ lessons:
           options:
             - text: 假设有一个最大的整数，记作 N
               correct: true
-            - text: 假设所有整数都比 N 小
+            - text: 假设所有整数都比一个固定的数 N 小
               why: 这里的 N 从哪来没说；反证要假设的是“命题不成立”，即“最大的整数存在”
             - text: 假设没有最大的整数
               why: 这是要证的结论本身，不能假设它
@@ -1191,7 +1191,7 @@ lessons:
           type: choice
           prompt: “证明：对所有整数 $n$，$n^2 > 0$。情形 1：$n > 0$，正数乘正数是正数。情形 2：$n < 0$，负数乘负数是正数。”这个证明错在哪？
           options:
-            - text: 漏了 n = 0 这种情形，而 n = 0 时 n² = 0，结论根本不成立
+            - text: 漏了 n = 0
               correct: true
             - text: 情形 2 错了，负数乘负数是负数
               why: 负数乘负数是正数，情形 2 本身没错
@@ -1542,7 +1542,7 @@ lessons:
           options:
             - text: 最关键的一步没有证，证明没写完
               correct: true
-            - text: 没有问题，读者可以自己补
+            - text: 没有问题，这一步不难，读者可以自己补上
               why: 一个证明的作用就是把每一步交代清楚；把难的一步留给读者，等于没证
             - text: 应该改用反证法
               why: 问题不在用什么方法，而在缺了一步
@@ -1712,9 +1712,9 @@ lessons:
           type: choice
           prompt: $8 \times 8$ 的棋盘，剪掉左上角和它右边紧挨着的那一格，剩下 62 格。用“黑白相间涂色、每张骨牌正好盖一黑一白”的论证，能说明“不能用 31 张骨牌盖满”吗？
           options:
-            - text: 不能，剪掉的两格一黑一白，剩下黑白各 31 个，涂色论证得不出矛盾
+            - text: 不能，剩下黑白各 31 个
               correct: true
-            - text: 能，还是剩 62 格
+            - text: 能，剩下的 62 格还是和原来一样盖不满
               why: 涂色论证靠的是黑白数量不等；剪掉相邻两格后黑白各少一个，数量仍相等
             - text: 能，因为剪掉的是角
               why: 关键不是剪哪里，而是剪掉的两格颜色是否相同
@@ -1900,7 +1900,7 @@ lessons:
           type: choice
           prompt: 一个过程每走一步，某个非负整数 $f$ 都“不会增加”（变小或不变）。能保证这个过程一定会停吗？
           options:
-            - text: 不能，f 可能一直不变，过程一直走下去
+            - text: 不能，f 可能一直不变
               correct: true
             - text: 能，非负整数不能一直变小
               why: 它不一定在变小；一直保持不变时，良序原理帮不上忙
@@ -1949,7 +1949,7 @@ lessons:
           type: choice
           prompt: 两个男生 A、B 和两个女生 X、Y 要配成两对。A 和 B 都更喜欢 X；X 和 Y 都更喜欢 A。如果配成 A–Y、B–X，会出什么问题？
           options:
-            - text: A 和 X 都更喜欢对方，他们会撇下各自的搭档去配对
+            - text: A 和 X 会撇下搭档去配对
               correct: true
             - text: 没有问题，每人都有搭档
               why: A 更喜欢 X，X 也更喜欢 A，这样的配对不稳定
@@ -2314,7 +2314,7 @@ lessons:
           type: choice
           prompt: 同余模 5 把整数划分成 5 块。2 和 9 在不在同一块？
           options:
-            - text: 不在：2 在余 2 的块里，9 在余 4 的块里
+            - text: 不在，余数不同
               correct: true
             - text: 在，因为它们都在 0 到 10 之间
               why: 分块看的是除以 5 的余数，不是大小
@@ -2374,7 +2374,7 @@ lessons:
           type: choice
           prompt: 学校的选课规则里，“A 课是 B 课的先修课”表示要先学 A 才能学 B。有没有可能 A 是 B 的先修课，B 又是 A 的先修课？
           options:
-            - text: 不应该有，否则这两门课谁都没法先学
+            - text: 不应该有
               correct: true
             - text: 可以有，两门课互相补充
               why: 互为先修时，学 A 要先学 B，学 B 又要先学 A，谁都开不了头
@@ -2511,7 +2511,7 @@ lessons:
           type: choice
           prompt: 集合 $\{2, 3, 4, 6\}$ 上的整除关系，有没有最小元？
           options:
-            - text: 没有：2 和 3 都是极小元，但谁也不整除谁
+            - text: 没有，2 和 3 谁也不整除谁
               correct: true
             - text: 有，是 2，因为它是最小的数
               why: 偏序里的“小”看整除，不看数的大小；2 不整除 3
@@ -2844,7 +2844,7 @@ lessons:
           type: choice
           prompt: 括号串 ] [ 里左右括号各一个，个数一样多。它是配对括号串吗？
           options:
-            - text: 不是，左右一样多只是配对的必要条件，不是充分条件
+            - text: 不是，个数相等还不够
               correct: true
             - text: 是，因为左右括号一样多
               why: 刚证的是“配对 ⇒ 一样多”，反过来不一定成立
@@ -3123,7 +3123,7 @@ lessons:
           type: choice
           prompt: 原书证明了“每个这样的博弈都有一方有必胜策略”。国际象棋如果把和棋算作先手输，也是这样的博弈。那么这个定理告诉了我们国际象棋谁必胜吗？
           options:
-            - text: 没有：定理只说有一方必胜，证明没给出是哪一方，也没给出走法
+            - text: 没有，定理没说是哪一方
               correct: true
             - text: 告诉了，先手必胜
               why: 证明里只说“如果某一步…就…否则…”，没算出是哪种情况
@@ -3271,7 +3271,7 @@ lessons:
           type: choice
           prompt: 有人想证一个“更好看”的上界：$T_n \le 2^n$（$T_1 = 1$，$T_n = 2T_{n-1} + 1$）。归纳步骤写成 $T_n = 2T_{n-1} + 1 \le 2 \cdot 2^{n-1} + 1 = 2^n + 1$。接下来会怎样？
           options:
-            - text: 卡住了：得到的是 T_n ≤ 2ⁿ + 1，推不出 T_n ≤ 2ⁿ
+            - text: 卡住了，推不出 T_n ≤ 2ⁿ
               correct: true
             - text: 证完了，因为 2ⁿ + 1 和 2ⁿ 差不多
               why: 归纳步骤要严格推出 P(n)；多出来的 1 每一步都会累积
@@ -3690,7 +3690,7 @@ boss:
       type: choice
       prompt: 两个正整数 $x \ne y$，每一步把大的那个换成“大的减小的”，直到两个数相等为止。要证明它一定会停，用哪个量最合适？
       options:
-        - text: x + y：它是正整数，每步都严格变小
+        - text: x + y
           correct: true
         - text: y：它每步都变小
           why: x 比 y 大时，换掉的是 x，y 不变；不是每步都严格变小

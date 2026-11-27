@@ -734,7 +734,7 @@ NUM["potential-method/append-16"] = total; add(total <= 3 * 16, True)
 # ---------------- components
 tinyG = [(0, 5), (4, 3), (0, 1), (9, 12), (6, 4), (5, 4), (0, 2), (11, 12), (9, 10), (0, 6), (7, 8), (9, 11), (5, 3)]
 TG = nx.Graph(); TG.add_nodes_from(range(13)); TG.add_edges_from(tinyG)
-add(sorted(nx.node_connected_component(TG, 0)), [0, 1, 2, 3, 4, 5, 6]); CHOICE["components/guess"] = "图不连通，剩下 6 个顶点在别的块里"
+add(sorted(nx.node_connected_component(TG, 0)), [0, 1, 2, 3, 4, 5, 6]); CHOICE["components/guess"] = "图不连通"
 def cc_ids(n, edges):                # the lesson's method: DFS from each unmarked vertex, one id per call
     adj = {v: [] for v in range(n)}
     for u, v in edges: adj[u].append(v); adj[v].append(u)
@@ -908,7 +908,7 @@ G_ = nx.DiGraph(); G_.add_nodes_from(range(1, 6)); G_.add_weighted_edges_from(ba
 nxd = dict(nx.all_pairs_dijkstra_path_length(G_))
 add(all(floyd(5, bad_e)[i_][j_] == nxd[i_].get(j_, math.inf) for i_ in range(1, 6) for j_ in range(1, 6)), True)
 cyc = floyd(3, [(1, 2, 1), (2, 3, -3), (3, 1, 1)]); add(min(cyc[i][i] for i in (1, 2, 3)) < 0, True)
-CHOICE["floyd-warshall/neg-cycle-diag"] = "某个 d[i][i] 变成了负数"
+CHOICE["floyd-warshall/neg-cycle-diag"] = "d[i][i] < 0"
 
 TC = nx.transitive_closure(nx.DiGraph([(1, 2), (2, 3), (3, 4)]), reflexive=False)
 NUM["floyd-warshall/closure-count"] = TC.number_of_edges()

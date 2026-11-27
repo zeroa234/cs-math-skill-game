@@ -6,11 +6,8 @@
   "type": "module",
   "description": "A beginner-friendly learning game built on the cs-math-skill-tree data",
   "scripts": {
-    "dev": "node server.mjs",
-    "start": "node server.mjs",
     "data": "node scripts/build-data.mjs",
     "build": "node scripts/build-data.mjs && node scripts/build-web.mjs",
-    "lint": "node --check server.mjs && node --check scripts/build-data.mjs && node --check scripts/build-web.mjs",
     "test": "node --test tests/unit/*.test.mjs",
     "e2e": "node tests/e2e.mjs"
   },

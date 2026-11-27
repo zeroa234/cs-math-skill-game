@@ -216,7 +216,7 @@ lessons:
           options:
             - text: 数一数两个元素之间比较了几次
               correct: true
-            - text: 用秒表测一次运行时间
+            - text: 用秒表在自己电脑上测一次运行时间
               why: 秒表的结果取决于机器、负载和输入，换台机器就变；代价模型要只取决于算法和输入
             - text: 数一数程序有几行
               why: 行数和执行次数无关：一行在循环里可能执行上百万次
@@ -301,9 +301,9 @@ lessons:
           type: choice
           prompt: 倍增实验里，时间比值稳定在 2 左右。下面哪个结论最稳妥？
           options:
-            - text: 增长大约是 n 或 n log n，靠倍增实验分不清
+            - text: 大约是 n 或 n log n，分不清
               correct: true
-            - text: 一定是 n
+            - text: 一定是 n，比值是 2 就说明时间和 n 成正比
               why: n log n 的比值是 2 + 2/log₂n，n 大时也接近 2
             - text: 一定是 log n
               why: log n 翻倍后只多 1，比值接近 1，不是 2
@@ -357,7 +357,7 @@ lessons:
           options:
             - text: f = O(g)，但 f 不是 Ω(g)
               correct: true
-            - text: f = Θ(g)
+            - text: f = Θ(g)，两个都是 n 的分数次幂
               why: 比值 g/f = n^(1/6) 会无限变大，两者不同阶
             - text: f = Ω(g)
               why: 指数 1/2 < 2/3，f 增长得更慢
@@ -478,7 +478,7 @@ lessons:
           type: choice
           prompt: 为什么“在 n 个数里找有没有 0”的任何算法都至少要看 n 个数？
           options:
-            - text: 如果有一个数没看，它可能正好是 0，算法就会答错
+            - text: 漏看的那个可能正是 0
               correct: true
             - text: 因为看一遍的程序写起来最简单
               why: 下界说的是“任何算法都不可能更少”，和哪种写法简单无关
@@ -579,7 +579,7 @@ lessons:
           type: choice
           prompt: 在 Python 3.14 里运行 `import sys` 再 `print(sys.getsizeof(1))`，显示 28。这说明什么？
           options:
-            - text: Python 的一个整数也是一个对象，带着自己的固定开销，比 Java 的 int 大得多
+            - text: 整数也是对象，有固定开销
               correct: true
             - text: Python 的整数总是 28 位十进制数
               why: 28 是字节数，不是位数；1 只有一位
@@ -607,7 +607,7 @@ lessons:
               correct: true
             - text: '5'
               why: 每次调用会再调两次，fib1(3)、fib1(2) 这些会被重复调用很多次
-            - text: '6'
+            - text: 6，从 fib1(5) 到 fib1(0) 每个值算一次
               why: fib1(5) 到 fib1(0) 只有 6 个不同的值，但同一个值会被重复算好几遍
           explain: fib1(5) 调 fib1(4) 和 fib1(3)，fib1(4) 又调 fib1(3) 和 fib1(2)……fib1(3) 被算了 2 次，fib1(2) 3 次，加起来一共 15 次调用。
       - card:
@@ -1047,7 +1047,7 @@ lessons:
           type: choice
           prompt: 原书说，实际写三次乘法的程序时，不会一直拆到 1 位。为什么？
           options:
-            - text: 位数小到机器一条乘法就能算时，直接用机器的乘法更快
+            - text: 小数直接用机器乘法更快
               correct: true
             - text: 拆到 1 位时算法会出错
               why: 拆到 1 位也是对的，只是递归本身有开销，小的数不划算
@@ -1176,7 +1176,7 @@ lessons:
           options:
             - text: 每层工作量 n、3n/4、9n/16……是公比小于 1 的等比数列，和是第一项的常数倍
               correct: true
-            - text: 因为一共只有 log n 层
+            - text: 因为一共只有 log n 层，每层最多 n，加起来就是 O(n)
               why: 层数确实是对数级，但光数层数得不出 O(n)；要看每层的工作量越来越小
             - text: 因为每次扔掉了一半
               why: 这里保证的是剩下不超过 3/4，不是一半；关键是公比 3/4 < 1
@@ -1186,7 +1186,7 @@ lessons:
           type: choice
           prompt: 随机选择算法的最坏情况是什么样？
           options:
-            - text: 每次都恰好挑到最大的数，每次只扔掉一个，共 Θ(n²)
+            - text: 每次只扔掉一个，Θ(n²)
               correct: true
             - text: 最坏也是 O(n)
               why: O(n) 是平均情况；运气极差时每次只排除一个数
@@ -1378,11 +1378,11 @@ lessons:
           type: choice
           prompt: FFT 为什么要用复数点，而不是普通的正负实数？
           options:
-            - text: 递归到下一层时，要平方后的点仍然正负成对，实数的平方不会是负的
+            - text: 平方后的点仍要正负成对，实数做不到
               correct: true
             - text: 复数算起来比实数快
               why: 复数乘法反而更费事；用它是为了让每一层都能正负配对
-            - text: 只有复数能表示多项式的系数
+            - text: 只有复数能表示多项式的系数，实数系数会丢精度
               why: 系数可以是普通的数；复数只是被选来当求值的点
           explain: 第一层用 $\pm x$ 没问题，第二层要 $x^2$ 也正负成对，这只有在复数里才做得到，比如 $i^2 = -1$。
   - id: activity-selection
@@ -1511,9 +1511,9 @@ lessons:
           type: choice
           prompt: 割性质的证明里，把 $e$ 加进 $T$ 形成的圈上，为什么一定还有另一条横跨割的边？
           options:
-            - text: 圈从 S 这边经过 e 到了另一边，要回到出发点就得再横跨一次
+            - text: 圈要回到起点，得再横跨一次
               correct: true
-            - text: 因为 T 是最小生成树
+            - text: 因为 T 是最小生成树，每个割都要有它的边
               why: 这和 T 是不是最小无关，只和“圈要回到起点”有关
             - text: 因为 e 是最轻的边
               why: e 最轻用在最后比较重量；“还有一条横跨的边”只靠圈的形状
@@ -1629,7 +1629,7 @@ lessons:
           type: choice
           prompt: 原书的另一个技巧是“路径压缩”：find(x) 走到根以后，把一路经过的每个节点都直接挂到根上。它带来什么？
           options:
-            - text: 以后再查这些节点只要一步，一长串操作平均下来几乎是常数时间
+            - text: 以后再查只要一步，平均几乎是常数
               correct: true
             - text: 每一次 find 都变成 O(1)
               why: 第一次走那条长路还是要走完；省下的是以后的查找，所以说的是平均（摊还）的代价
@@ -1647,7 +1647,7 @@ lessons:
           type: choice
           prompt: 另一种建最小生成树的思路：从一个顶点出发，每次往树上添一条边，把一个新顶点接进来。该添哪条边？
           options:
-            - text: 一端在树上、一端不在的边里最轻的那条
+            - text: 连接树内外的最轻边
               correct: true
             - text: 全图剩下的边里最轻的那条
               why: 那条边可能两端都不在树上，加进来就不是“一棵树长大”了，那是 Kruskal
@@ -1719,7 +1719,7 @@ lessons:
               correct: true
             - text: 每个字母都换成 1 位
               why: 1 位只有 0 和 1 两种，分不出 4 个字母
-            - text: 没法更短
+            - text: 没法更短：四个字母必须各用 2 位才分得开
               why: 码长不一定要一样，常出现的用短码就能省
           explain: 出现得多的用短码、少的用长码，总长度就能变短。难点是码长不一样时，还要能唯一地解开。
       - card:
@@ -1873,7 +1873,7 @@ lessons:
           options:
             - text: 不一定
               correct: true
-            - text: 一定
+            - text: 一定，每一步都选了最好的
               why: 原书正好给了一个反例：贪心建 4 所，最少只要 3 所
           explain: 原书 DPV 的 11 个镇的例子里，贪心先选覆盖最多的 a，最后共建 4 所；可在 b、e、i 建 3 所就够了。
       - card:
@@ -1963,7 +1963,7 @@ lessons:
           type: choice
           prompt: 为什么这种“按顺序填表”只能用在没有圈的图上？
           options:
-            - text: 有圈时排不出“所有边都从左到右”的顺序，总有一个点要等一个还没算的前驱
+            - text: 排不出先后顺序
               correct: true
             - text: 有圈时最短路一定不存在
               why: 有圈的图照样有最短路（边长非负时可以用 Dijkstra），只是不能这样一趟算完
@@ -2264,7 +2264,7 @@ lessons:
           options:
             - text: 可能差很多
               correct: true
-            - text: 一样
+            - text: 一样，结合律保证结果相同
               why: 结果一样，但中间矩阵的大小不同，次数可以差十几倍
           explain: 原书 DPV 的例子里，最好和最差的顺序差了 17 倍多。
       - card:
@@ -2304,7 +2304,7 @@ lessons:
           type: choice
           prompt: 填 $C(i, j)$ 的表时，为什么要按链的长度 $j - i$ 从小到大，而不是按 $i$ 从小到大？
           options:
-            - text: C(i, j) 要用的 C(i, k)、C(k+1, j) 都是更短的链，必须先算好
+            - text: 更短的链要先算好
               correct: true
             - text: 按 i 从小到大也一样
               why: C(1, n) 要用 C(2, n)，而 C(2, n) 的 i 更大，按 i 从小到大时它还没算
@@ -2400,11 +2400,11 @@ lessons:
           type: choice
           prompt: 树上最大独立集的关系式里，“选 $u$”那一项为什么加的是孙子的 $I$，而不是孩子的？
           options:
-            - text: 选了 u，它的孩子都和 u 相邻，不能选；孙子和 u 不相邻，可以接着算
+            - text: 孩子和 u 相邻不能选，孙子可以
               correct: true
             - text: 为了让算法更快
               why: 这是正确性的要求：选了 u 就不能选孩子
-            - text: 孙子的子树比孩子的大
+            - text: 孙子的子树比孩子的大，能选的点更多
               why: 孙子的子树更小；用孙子是因为孩子被 u 挡住了
           explain: 独立集里不能有相邻的两个点，$u$ 和它的孩子都相邻。所以选 $u$ 时跳过一层，看孙子。
       - card:
@@ -2494,7 +2494,7 @@ lessons:
           type: choice
           prompt: 用记账法分析这个栈：push 收 2 元、pop 和 multipop 收 0 元。为什么 n 次操作的总代价是 O(n)？
           options:
-            - text: 每个元素进栈时存下 1 元，弹出它时用这 1 元付，存款从不为负
+            - text: 每个元素只弹出一次
               correct: true
             - text: 因为 multipop 每次最多弹出 k 个
               why: k 可以很大；关键是每个元素只会被弹出一次
@@ -2573,7 +2573,7 @@ lessons:
           type: choice
           prompt: 一张无向图有 13 个顶点。从顶点 0 做一次 DFS，只走到了 0–6 这 7 个顶点。能说明什么？
           options:
-            - text: 图不连通，剩下 6 个顶点在别的块里
+            - text: 图不连通
               correct: true
             - text: DFS 写错了
               why: DFS 会走到所有和起点连通的顶点；没走到的说明和 0 之间根本没有路
@@ -2647,7 +2647,7 @@ lessons:
           options:
             - text: 后面没有别的课要依赖它的课
               correct: true
-            - text: 最基础、没有先修的课
+            - text: 最基础、没有先修、最先开始学的课
               why: DFS 先往深处走，最深处（没有后续）的课最先走完
             - text: 编号最小的课
               why: 走完的先后看图的结构，不看编号
@@ -2863,11 +2863,11 @@ lessons:
           type: choice
           prompt: Dijkstra 和贪心一章的 Prim 写法几乎一样：都用优先队列，每次取 key 最小的点。key 有什么不同？
           options:
-            - text: Prim 的 key 是连到树上的那一条边的权重；Dijkstra 的 key 是从起点出发的整条路的长度
+            - text: Prim 看一条边，Dijkstra 看整条路的长度
               correct: true
             - text: 没有不同，两者求的是同一棵树
               why: 两者的 key 不同，求出的树一般也不同：比如 s 到 b 的边长 3、s 到 a 的边长 2、a 到 b 的边长 2，最小生成树用 s-a、a-b，最短路树用 s-a、s-b
-            - text: Dijkstra 的 key 是边数
+            - text: Dijkstra 的 key 是从起点走到这个点经过了几条边
               why: 那是 BFS；Dijkstra 加的是边的长度
           explain: 原书 DPV：Prim 里一个点的值是从集合出发最轻的那一条边，Dijkstra 里是到这个点的整条路长。两者运行时间相同，但结果一般不同。
 
@@ -2990,11 +2990,11 @@ lessons:
           type: choice
           prompt: Floyd–Warshall 的三层循环里，为什么中转点 $k$ 必须放在最外层？
           options:
-            - text: 算第 k 层要用到第 k − 1 层的全部结果，得先把一层算完
+            - text: 第 k 层要用到整个第 k − 1 层
               correct: true
             - text: 放在哪一层都一样
               why: k 放在里层时，d[i][k] 和 d[k][j] 可能还没用上前面的中转点，结果会错
-            - text: 为了让程序跑得更快
+            - text: 为了让程序跑得更快，外层循环的开销最小
               why: 三种放法都是 n³ 次；问题是对不对
           explain: 关系式里 $\text{dist}(i, j, k)$ 用到 $\text{dist}(i, k, k-1)$ 和 $\text{dist}(k, j, k-1)$，必须先有完整的第 $k - 1$ 层。
       - item:
@@ -3002,7 +3002,7 @@ lessons:
           type: choice
           prompt: Floyd–Warshall 跑完后，怎么看出图里有负环？
           options:
-            - text: 某个 d[i][i] 变成了负数
+            - text: d[i][i] < 0
               correct: true
             - text: 某个 d[i][j] 是 ∞
               why: ∞ 只说明 i 到不了 j
@@ -3116,7 +3116,7 @@ lessons:
           options:
             - text: 不可能
               correct: true
-            - text: 可能
+            - text: 可能，还有别的路能绕过去
               why: 所有从 s 到 t 的流都要穿过这两组的分界，而能穿过去的容量一共只有 4
           explain: 不管怎么送，流都要从 s 那一组跨到 t 那一组，跨过去的边总容量只有 4。
       - card:

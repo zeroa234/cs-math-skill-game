@@ -1,0 +1,2303 @@
+skill: H.2.5
+version: 2
+authors: [main-agent]
+brief:
+  why: 芯片里的上百亿个晶体管几乎都是 MOSFET。这一关先从端口看它：电流和电压的关系、小信号模型、反相器和 CMOS 逻辑门、二极管和双极型晶体管、共源放大器；再讲这些关系的物理来历：电子和空穴、掺杂、漂移和扩散、PN 结、MOS 电容和阈值电压；最后讲芯片怎样做出来，工艺怎样约束电路，以及按比例缩小为什么走到了尽头。假设你学过电路基础（欧姆定律、基尔霍夫定律、小信号模型）和微积分。
+  outcomes:
+    - 判断 MOSFET 工作在截止区、三极管区还是饱和区，用平方律算漏极电流，计入沟道长度调制和背栅效应
+    - 算 MOSFET 的跨导、输出电阻和本征增益，画出小信号等效电路
+    - 由电压传输特性求噪声容限，算电阻负载反相器的输出低电平和静态功耗
+    - 说明 CMOS 反相器为什么静态不耗电，算转折电压、传播延迟和动态功耗，画出静态 CMOS 与非门、或非门并确定管子尺寸
+    - 用二极管方程、小信号电阻和两种电容描述二极管，用 $I_C = I_Se^{V_{BE}/V_T}$ 和 $\beta$ 描述双极型晶体管
+    - 用二端口模型算放大器接负载后的增益，算电阻负载和电流源负载的共源放大器的增益
+    - 用键模型和能带说明电子和空穴，用质量作用定律算掺杂和补偿后的载流子浓度
+    - 算漂移电流、扩散电流和方块电阻，用 60 mV 规则估算电势和 PN 结的内建电势，算耗尽区宽度
+    - 说明 MOS 电容的积累、耗尽和反型，算平带电压、阈值电压和反型层电荷，由反型层电荷推出 MOSFET 的电流
+    - 说出 CMOS 工艺的主要步骤和设计规则、DRC、LVS、STA 的作用，说明 Dennard 缩放、它失效的原因和短沟道效应
+terms:
+  # 晶体管模型
+  - term: 电场
+    def: '电荷受力的来源，大小是每单位距离上的电压降 E = −dφ/dx，单位 V/cm'
+  - term: 掺杂
+    def: '往硅里掺入极少量别的原子来控制导电：掺磷得 n 型硅，掺硼得 p 型硅'
+  - term: MOSFET
+    def: '金属–氧化物–半导体场效应晶体管，靠栅极电压在源和漏之间形成导电沟道，栅极不取直流电流'
+  - term: 衬底
+    def: 'MOSFET 做在其上的那块硅，NMOS 是 p 型，PMOS 是 n 型；它的电压也影响阈值电压'
+  - term: 源极
+    def: 'MOSFET 里电子（PMOS 里是空穴）出发的那一端；NMOS 里电位较低的一端'
+  - term: 漏极
+    def: 'MOSFET 里电子（PMOS 里是空穴）流入的那一端；NMOS 里电位较高的一端'
+  - term: 栅氧化层
+    def: '栅极和硅之间很薄的二氧化硅绝缘层，单位面积电容 C_ox = ε_ox/t_ox'
+  - term: 栅极
+    def: 'MOSFET 的控制端，隔着栅氧化层用电场控制下面是否形成沟道'
+  - term: 沟道
+    def: '栅压超过阈值时在源漏之间的硅表面形成的导电层，NMOS 里是一层电子'
+  - term: 阈值电压
+    def: '形成沟道所需的最小栅源电压 V_th，常见 0.3–0.7 V'
+  - term: 截止区
+    def: 'V_GS 低于阈值电压、没有沟道的状态，按简单模型漏极电流为零'
+  - term: 过驱动电压
+    def: '栅源电压超过阈值的部分 V_ov = V_GS − V_th'
+  - term: 三极管区
+    def: 'V_GS > V_th 且 V_DS < V_GS − V_th 的工作范围，I_D = k[(V_GS − V_th)V_DS − V_DS²/2]，也叫线性区'
+  - term: 夹断
+    def: 'V_DS 增大到 V_GS − V_th 时漏端的沟道消失的现象'
+  - term: 饱和区
+    def: 'MOSFET 在 V_DS ≥ V_GS − V_th 时的工作范围，电流按平方律 I_D = ½k(V_GS − V_th)²，几乎不随 V_DS 变'
+  - term: 沟道长度调制
+    def: '饱和区里 V_DS 增大使有效沟道变短、电流略增的现象，写成因子 (1 + λV_DS)'
+  - term: 背栅效应
+    def: '源极相对衬底的电压 V_SB 增大使阈值电压升高的现象，也叫体效应'
+  - term: PMOS
+    def: '做在 n 型衬底上、靠空穴导电的 MOSFET，电压方向和 NMOS 相反'
+  - term: 空穴
+    def: '晶体里缺了一个电子的位置，可以移动，表现得像带正电 +q 的粒子'
+  - term: 工作点
+    def: '放大器里由直流偏置确定的电压和电流，小信号叠加在它上面'
+  - term: 跨导
+    def: '工作点处漏极电流对栅源电压的变化率 g_m；饱和区 MOSFET 的 g_m = 2I_D/V_ov'
+  - term: 本征增益
+    def: '一个晶体管单独能给出的最大电压增益 g_m r_o'
+  - term: 反相器
+    def: '输入低则输出高、输入高则输出低的逻辑门'
+  - term: 电压传输特性
+    def: '逻辑门输出电压随输入电压变化的曲线'
+  - term: 噪声容限
+    def: '逻辑电平能容忍的干扰：NM_H = V_OH − V_IH，NM_L = V_IL − V_OL'
+  - term: 传播延迟
+    def: '从输入变化到输出变到一半所用的时间'
+  - term: CMOS
+    def: '把 NMOS 和 PMOS 互补使用的电路，静止时电源到地之间总有一个管子关断，几乎不耗电'
+  - term: 下拉网络
+    def: '静态 CMOS 门里接在输出和地之间的 NMOS 网络'
+  - term: 上拉网络
+    def: '静态 CMOS 门里接在电源和输出之间的 PMOS 网络，和下拉网络互为对偶'
+  - term: 二极管
+    def: '由 p 型和 n 型半导体连成的器件，I = I_S(e^(V/V_T) − 1)，正向容易导电、反向几乎不导电'
+  - term: 热电压
+    def: 'V_T = kT/q，300 K 时 25.9 mV'
+  - term: 耗尽电容
+    def: 'PN 结交界处正负离子层形成的电容，反偏越大越小'
+  - term: 扩散电容
+    def: '正偏时注入的少子电荷随电压变化形成的电容 C_d = τ_T I_D/V_T'
+  - term: 双极型晶体管
+    def: '由 npn 或 pnp 三层半导体组成、用基极电流（或 V_BE）控制集电极电流的晶体管，简称 BJT'
+  - term: 发射极
+    def: 'BJT 里向基区注入载流子的一端，符号上画箭头'
+  - term: 基极
+    def: 'BJT 中间很薄的那一层的电极，控制集电极电流'
+  - term: 集电极
+    def: 'BJT 里收集穿过基区的载流子的一端'
+  - term: 杂质补偿
+    def: 同时掺施主和受主时两者互相抵消的现象，也简称补偿。
+  - term: 方块电阻
+    def: 一层薄膜上边长相等的一块正方形的电阻，和正方形多大无关，单位记作 Ω/□。
+  - term: 反型层
+    def: 栅压超过阈值电压后，p 型衬底表面聚集的一层电子，是 NMOS 导电的沟道。
+  - term: 正向有源区
+    def: 'BJT 发射结正偏、集电结反偏的工作范围，I_C = I_S e^(V_BE/V_T)'
+  - term: 电流增益
+    def: 'BJT 集电极电流和基极电流之比 β，一般 50–300'
+  - term: 二端口模型
+    def: '用输入电阻、开路增益和输出电阻三个数描述一个放大器的小信号模型'
+  - term: 共源放大器
+    def: '源极接地、栅极输入、漏极输出的 MOSFET 放大器，A_v = −g_m(R_D ∥ r_o)'
+  # 器件物理
+  - term: 电子–空穴对
+    def: '一个电子离开共价键时同时产生的一个自由电子和一个空穴'
+  - term: 本征载流子浓度
+    def: '纯净半导体里热激发的电子（也是空穴）浓度 nᵢ，硅室温约 10¹⁰ cm⁻³'
+  - term: 质量作用定律
+    def: '热平衡时电子和空穴浓度的乘积只由温度决定：n₀p₀ = nᵢ²'
+  - term: 载流子
+    def: '能运载电流的粒子，半导体里是自由电子和空穴'
+  - term: 价带
+    def: '被拴在共价键上的电子所在的能量范围，顶部记作 E_v'
+  - term: 导带
+    def: '能自由移动的电子所在的能量范围，底部记作 E_c'
+  - term: 带隙
+    def: '价带顶和导带底之间没有允许能量的空档 E_g，硅为 1.12 eV'
+  - term: 复合
+    def: '一个自由电子落回一个空穴、两者一起消失的过程，速率正比于 np'
+  - term: 热平衡
+    def: '产生和复合速率相等、浓度不随时间变化的状态，此时 n₀p₀ = nᵢ²'
+  - term: 施主
+    def: '能放出一个自由电子的杂质，如硅里的磷、砷'
+  - term: 受主
+    def: '能接受一个电子、产生一个空穴的杂质，如硅里的硼、镓'
+  - term: 多子
+    def: '浓度大的那种载流子，n 型硅里是电子，p 型硅里是空穴'
+  - term: 少子
+    def: '浓度小的那种载流子，n 型硅里是空穴，p 型硅里是电子'
+  - term: 补偿
+    def: '同时掺施主和受主时两者互相抵消，起作用的是两者之差'
+  - term: 漂移速度
+    def: '载流子在电场作用下的平均定向速度，弱电场时 v = μE'
+  - term: 迁移率
+    def: '漂移速度和电场之比 μ，单位 cm²/(V·s)，表示载流子在电场里跑得多快'
+  - term: 扩散
+    def: '浓度不均匀时载流子靠热运动从浓处向淡处的净流动'
+  - term: 扩散系数
+    def: '扩散的粒子流和浓度梯度之比 D，单位 cm²/s'
+  - term: 爱因斯坦关系
+    def: '扩散系数和迁移率之比等于热电压：D/μ = kT/q'
+  - term: 内建电势
+    def: '热平衡 PN 结两侧的电势差 φ_B = V_T ln(N_aN_d/nᵢ²)'
+  - term: 耗尽区
+    def: 'PN 结交界处几乎没有自由载流子、只剩电离杂质的区域'
+  - term: 耗尽近似
+    def: '认为耗尽区里载流子完全没有、区外完全电中性的近似'
+  - term: 势垒
+    def: 'PN 结交界处挡住载流子的电势差，热平衡时等于内建电势，正偏时变为 φ_B − V_D'
+  - term: 少子注入
+    def: '正偏时耗尽区边上的少子浓度升高为平衡值的 e^(V_D/V_T) 倍'
+  - term: 多晶硅
+    def: '沉积在氧化层上、由许多小晶粒组成的硅，重掺杂后用作 MOSFET 的栅极'
+  - term: 平带电压
+    def: '让 MOS 结构硅表面的电势和内部相同、氧化层里没有电场所需的栅压 V_FB'
+  - term: 积累
+    def: 'MOS 电容栅压低于平带电压时多子被吸到硅表面的状态'
+  - term: 耗尽
+    def: 'MOS 电容栅压在平带电压和阈值电压之间时多子被推开、表面只剩离子的状态'
+  - term: 反型
+    def: 'MOS 电容栅压超过阈值时表面少子浓度超过多子、表面导电类型反过来的状态'
+  # 工艺与电路实现约束
+  - term: 光刻
+    def: '透过掩模曝光光刻胶、显影出图形的工艺步骤'
+  - term: 刻蚀
+    def: '把没被光刻胶保护的材料去掉的工艺步骤'
+  - term: 离子注入
+    def: '把杂质离子加速打进硅里再退火激活的掺杂方法'
+  - term: 设计规则
+    def: '工艺允许的最小线宽、间距、交叠等几何规则'
+  - term: DRC
+    def: '设计规则检查：用软件检查版图是否违反设计规则'
+  - term: LVS
+    def: '版图与原理图一致性检查：比对从版图提取的电路和原理图'
+  - term: 静态时序分析
+    def: '把每条路径的延迟加起来、检查是否满足时钟要求的方法（STA）'
+  - term: 速度饱和
+    def: '强电场下载流子漂移速度不再随电场增长的现象，硅里约 10⁷ cm/s'
+  - term: 按比例缩小
+    def: '尺寸和电压同除以 κ、掺杂乘以 κ 的缩放规则（Dennard 缩放），延迟变为 1/κ，单位面积功耗不变'
+lessons:
+  - id: mosfet-terminals
+    chapter: 晶体管模型
+    title: MOSFET：用栅压控制的开关
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一块手机处理器里有上百亿个晶体管，每个都像一个开关。猜猜控制这个开关通断的是什么？
+          options:
+            - text: 加在一个电极上的电压，这个电极几乎不取电流
+              correct: true
+            - text: 流进控制端的电流，电流越大开得越大
+              why: 芯片里的绝大多数晶体管不靠电流控制：控制端和导电的部分之间隔着一层绝缘膜，电流过不去
+            - text: 照到它上面的光
+              why: 受光控制的器件用来感光，不用来做逻辑运算的开关
+          explain: 芯片里的晶体管绝大多数是 MOSFET。它的控制端和导电的部分之间隔着一层很薄的绝缘膜，只靠电压的电场去控制，静止时几乎不取电流，所以上百亿个放在一起也不会把电源拖垮。
+      - card:
+          title: 硅集成电路
+          body: |
+            一块芯片是在一片硅上同时做出大量晶体管和连线。用得最多的晶体管叫 **MOSFET（metal-oxide-semiconductor field-effect transistor）**，金属–氧化物–半导体场效应晶体管：靠栅极电压产生的**电场（electric field）**控制导电，电场的大小是每单位距离上的电压，单位 V/cm。
+
+            纯硅几乎不导电。往硅里掺入极少量别的原子叫**掺杂（doping）**：掺磷的叫 n 型硅，里面有大量能自由移动的电子；掺硼的叫 p 型硅，自由电子极少，导电靠带正电的“空位”。
+      - card:
+          title: MOSFET 的结构
+          body: |
+            n 沟道 MOSFET（NMOS）做在一块 p 型硅上，这块硅叫**衬底（body）**。衬底表面有两块 n 型区，分别叫**源极（source）**和**漏极（drain）**。两者之间的表面上盖着一层很薄的二氧化硅，叫**栅氧化层（gate oxide）**，上面是导电的**栅极（gate）**。
+
+            源和漏之间的距离叫沟道长 $L$，垂直于它的方向上沟道有多宽叫沟道宽 $W$。栅极和下面的硅被氧化层隔开，所以直流时栅极电流为零。
+      - item:
+          id: gate-current
+          type: choice
+          prompt: 一个 NMOS 的栅极加上 1 V 直流电压，稳定以后栅极电流大约是多少？
+          options:
+            - text: 几乎为零
+              correct: true
+            - text: 和漏极电流一样大，电流从栅极流进、从源极流出
+              why: 栅极和硅之间隔着绝缘的栅氧化层，直流电流过不去
+            - text: 由栅极到源极之间的电阻决定，大约 1 V 除以几百欧
+              why: 栅极和源极之间没有导电通路，中间是绝缘层，可以看成一个电容
+          explain: 栅极、氧化层和下面的硅构成一个电容。加直流电压时只在一开始充电，充好以后电流为零。这是 MOSFET 适合做大规模数字电路的原因之一。
+      - card:
+          title: 沟道和阈值电压
+          body: |
+            源极接地，栅极加正电压 $V_{GS}$。栅极的正电荷把衬底里的电子吸到氧化层下面的表面。$V_{GS}$ 超过某个值后，表面聚集的电子足够多，在源和漏之间连成一条 n 型的导电通道，叫**沟道（channel）**。出现沟道所需的最小 $V_{GS}$ 叫**阈值电压（threshold voltage）**，记作 $V_{th}$，常见值在 0.3–0.7 V。
+
+            $V_{GS} < V_{th}$ 时没有沟道，源漏之间不导通，叫**截止区（cutoff region）**。$V_{GS} - V_{th}$ 叫**过驱动电压（overdrive voltage）**，记作 $V_{ov}$。
+      - item:
+          id: cutoff-check
+          type: choice
+          prompt: 一个 NMOS 的 $V_{th} = 0.5$ V。$V_{GS} = 0.4$ V、$V_{DS} = 1$ V 时，漏极电流按这个模型是多少？
+          options:
+            - text: 零，管子截止
+              correct: true
+            - text: 很大，因为 $V_{DS}$ 有 1 V
+              why: 漏源电压再大，没有沟道也没有电流通路；先看 $V_{GS}$ 有没有超过 $V_{th}$
+            - text: 是 $V_{GS} = 0.8$ V 时电流的一半，因为 0.4 是 0.8 的一半
+              why: 电流不随 $V_{GS}$ 成比例变化；$V_{GS}$ 低于阈值时沟道根本没形成
+          explain: $V_{GS} = 0.4 < 0.5$ V，没有沟道，按这个简单模型 $I_D = 0$。（实际上还有很小的亚阈值电流，晶体管做得很小时它变得重要。）
+      - card:
+          title: 三极管区
+          body: |
+            $V_{GS} > V_{th}$、$V_{DS}$ 不大时，沟道像一个电阻，电阻的大小由 $V_{GS}$ 控制。电流是
+
+            $$I_D = k\left[(V_{GS} - V_{th})V_{DS} - \frac{V_{DS}^2}{2}\right],\qquad k = \mu_nC_{ox}\frac WL$$
+
+            这个工作范围叫**三极管区（triode region）**，也叫线性区（名字来自早期的真空三极管，和双极型晶体管无关）。$\mu_n$ 是电子迁移率（表示电子在电场里跑得多快），$C_{ox}$ 是单位面积的栅氧化层电容，两者由材料和工艺决定。$V_{DS}$ 很小时 $V_{DS}^2$ 一项可以略去，管子就是一个阻值 $1/[k(V_{GS} - V_{th})]$ 的电阻。
+      - card:
+          title: 例题：三极管区的电流
+          body: NMOS 的 $k = 2\ \text{mA/V}^2$，$V_{th} = 0.5$ V，$V_{GS} = 1.5$ V，$V_{DS} = 0.2$ V。求漏极电流。
+          reveal:
+            - title: 第 1 步：判断有没有沟道
+              body: $V_{GS} = 1.5 > 0.5$ V，导通，$V_{ov} = 1.0$ V。
+            - title: 第 2 步：判断是不是三极管区
+              body: $V_{DS} = 0.2$ V 比 $V_{ov} = 1.0$ V 小，沟道从源到漏都在，是三极管区。
+            - title: 第 3 步：代入公式
+              body: $I_D = 2\times(1.0\times0.2 - 0.2^2/2) = 2\times0.18 = 0.36$ mA。
+      - item:
+          id: triode-current
+          type: number
+          prompt: NMOS 的 $k = 2\ \text{mA/V}^2$，$V_{th} = 0.5$ V，$V_{GS} = 1.5$ V，$V_{DS} = 0.5$ V（仍在三极管区）。漏极电流是多少毫安？
+          answer: 0.75
+          tolerance: 0.001
+          unit: mA
+          hint: $V_{ov}V_{DS}$ 和 $V_{DS}^2/2$ 各是多少？
+          explain: $I_D = 2\times(1.0\times0.5 - 0.125) = 0.75$ mA。$V_{DS}$ 从 0.2 V 加到 0.5 V，电流从 0.36 mA 到 0.75 mA，增长得越来越慢，因为漏端的沟道变薄了。
+      - item:
+          id: on-resistance
+          type: number
+          prompt: NMOS 当开关用，$k = 2\ \text{mA/V}^2$，$V_{GS} - V_{th} = 1$ V，$V_{DS}$ 很小。导通电阻是多少欧？
+          answer: 500
+          tolerance: 0.5
+          unit: Ω
+          hint: $V_{DS}$ 很小时三极管区的式子退成什么？
+          explain: 略去 $V_{DS}^2$ 一项，$I_D = kV_{ov}V_{DS}$，$R_{on} = 1/(kV_{ov}) = 1/(2\times10^{-3}\times1) = 500$ Ω。栅压越高，导通电阻越小。
+      - item:
+          id: wider-device
+          type: choice
+          prompt: 其他都不变，把 MOSFET 的沟道宽度 $W$ 加倍。三极管区的电流怎样变？
+          options:
+            - text: 加倍
+              correct: true
+            - text: 减半
+              why: 减半的是 $L$ 加倍的情形；$W$ 加倍相当于两个管子并联，电流加倍
+            - text: 不变，电流只由电压决定
+              why: $k = \mu_nC_{ox}W/L$ 里有 $W$，同样的电压下电流和 $W$ 成正比
+          explain: $k \propto W/L$。沟道宽一倍，相当于两条沟道并排，电流加倍；沟道长一倍，电子要走两倍的路，电流减半。设计电路时就是靠选 $W/L$ 来定电流的大小。
+  - id: mosfet-saturation
+    chapter: 晶体管模型
+    title: 饱和区和平方律
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: NMOS 的 $V_{GS}$ 固定，漏源电压 $V_{DS}$ 从 0 一直加大。漏极电流会怎样变？
+          options:
+            - text: 先近似成比例增加，然后几乎不再增加
+              correct: true
+            - text: 一直和 $V_{DS}$ 成正比，像电阻一样
+              why: 只有 $V_{DS}$ 很小时才像电阻；$V_{DS}$ 大了以后漏端的沟道被“夹断”，电流就上不去了
+            - text: 先增加，到某处以后反而减小
+              why: 三极管区公式的抛物线在 $V_{DS} = V_{ov}$ 以后才往下走，但那时公式已经不适用，实际电流保持在最大值
+          explain: $V_{DS}$ 小时管子像电阻；$V_{DS}$ 增大到 $V_{GS} - V_{th}$ 以后，漏端的沟道消失，电流基本停在那时的值。这一段叫饱和区，放大器就工作在这里。
+      - card:
+          title: 夹断和饱和
+          body: |
+            沟道里各点的电压从源端的 0 升到漏端的 $V_{DS}$。某点能形成沟道，要求栅极和这一点的电压差超过 $V_{th}$。漏端的电压差是 $V_{GS} - V_{DS}$，当 $V_{DS} = V_{GS} - V_{th}$ 时漏端的沟道正好消失，叫**夹断（pinch-off）**。
+
+            再加大 $V_{DS}$，多出来的电压落在漏端那一小段夹断区上，沟道里的情况几乎不变，电流保持在 $V_{DS} = V_{ov}$ 时的值。这个工作范围叫**饱和区（saturation region）**。
+      - card:
+          title: 平方律
+          body: |
+            把 $V_{DS} = V_{ov}$ 代入三极管区的式子：
+
+            $$I_D = k\left(V_{ov}^2 - \frac{V_{ov}^2}{2}\right) = \frac12k(V_{GS} - V_{th})^2$$
+
+            这叫平方律。区域的判断：$V_{GS} < V_{th}$ 截止；$V_{GS} > V_{th}$ 且 $V_{DS} < V_{GS} - V_{th}$ 是三极管区；$V_{DS} \ge V_{GS} - V_{th}$ 是饱和区。注意 BJT 的“饱和区”指的是另一种状态，两种器件的这个叫法不要混。
+      - item:
+          id: square-law
+          type: number
+          prompt: NMOS 的 $k = 4\ \text{mA/V}^2$，$V_{th} = 0.4$ V，$V_{GS} = 0.9$ V，工作在饱和区。漏极电流是多少毫安？
+          answer: 0.5
+          tolerance: 0.001
+          unit: mA
+          hint: 过驱动电压是多少？
+          explain: $V_{ov} = 0.5$ V，$I_D = \tfrac12\times4\times0.5^2 = 0.5$ mA。电流和过驱动电压的平方成正比：$V_{ov}$ 加倍，电流变 4 倍。
+      - item:
+          id: region-triode
+          type: choice
+          prompt: NMOS 的 $V_{th} = 0.5$ V，$V_{GS} = 1.2$ V，$V_{DS} = 0.5$ V。它工作在哪个区？
+          options:
+            - text: 截止区
+              why: $V_{GS} = 1.2$ V 已经超过 $V_{th}$，有沟道
+            - text: 三极管区
+              correct: true
+            - text: 饱和区，因为 $V_{DS}$ 比 $V_{th}$ 大
+              why: 饱和的条件是 $V_{DS}$ 不小于 $V_{GS} - V_{th}$，不是和 $V_{th}$ 比；这里 $V_{GS} - V_{th} = 0.7$ V，比 $V_{DS}$ 大
+          explain: $V_{ov} = 0.7$ V，$V_{DS} = 0.5$ V 小于它，漏端还有沟道，是三极管区。
+      - card:
+          title: 例题：先判断区域再算电流
+          body: NMOS 的 $k = 1\ \text{mA/V}^2$，$V_{th} = 0.6$ V，$V_{GS} = 1.4$ V，$V_{DS} = 1.0$ V。求漏极电流。
+          reveal:
+            - title: 第 1 步：算过驱动电压
+              body: $V_{ov} = 1.4 - 0.6 = 0.8$ V，大于零，有沟道。
+            - title: 第 2 步：和 V_DS 比，定区域
+              body: $V_{DS} = 1.0 \ge 0.8$ V，漏端已夹断，是饱和区。
+            - title: 第 3 步：用平方律
+              body: $I_D = \tfrac12\times1\times0.8^2 = 0.32$ mA。若误用三极管区的式子会得到 $1\times(0.8 - 0.5) = 0.30$ mA，而且 $V_{DS}$ 再大时会算出越来越小的电流，这是错的。
+      - card:
+          title: 沟道长度调制
+          body: |
+            实际上饱和区的电流还会随 $V_{DS}$ 略微增加：$V_{DS}$ 越大，夹断点越往源端移，有效的沟道变短，电流变大。这叫**沟道长度调制（channel-length modulation）**，写成
+
+            $$I_D = \frac12k(V_{GS} - V_{th})^2(1 + \lambda V_{DS})$$
+
+            $\lambda$ 和沟道长 $L$ 成反比，短沟道的管子 $\lambda$ 大。它让输出特性曲线在饱和区微微上翘。
+      - item:
+          id: clm-current
+          type: number
+          prompt: 一个饱和区的 NMOS，不计沟道长度调制时 $I_D = 0.32$ mA。取 $\lambda = 0.1\ \text{V}^{-1}$，$V_{DS} = 2$ V，电流是多少毫安？
+          answer: 0.384
+          tolerance: 0.001
+          unit: mA
+          hint: 乘上的因子 $1 + \lambda V_{DS}$ 是多少？
+          explain: $0.32\times(1 + 0.1\times2) = 0.32\times1.2 = 0.384$ mA。
+      - card:
+          title: 背栅效应和 PMOS
+          body: |
+            衬底也像一个栅极。源极电压比衬底高（$V_{SB} > 0$）时，阈值电压变大：
+
+            $$V_{th} = V_{th0} + \gamma\left(\sqrt{-2\phi_p + V_{SB}} - \sqrt{-2\phi_p}\right)$$
+
+            这叫**背栅效应（backgate effect）**，也叫体效应，$\gamma$ 是体效应系数，$-2\phi_p$ 是由衬底掺杂决定的一个正电压（约 0.6–0.9 V）。把 n 和 p 都换过来就是 **PMOS**：做在 n 型衬底上，靠**空穴（hole）**导电（空穴是晶体里缺了一个电子的位置，表现得像一个带正电的粒子），电压方向全部相反，导通条件是 $V_{SG} > |V_{tp}|$，饱和电流 $I_D = \tfrac12k_p(V_{SG} - |V_{tp}|)^2$。空穴迁移率只有电子的约三分之一到二分之一，同样尺寸的 PMOS 电流小。
+      - item:
+          id: backgate-vth
+          type: number
+          prompt: NMOS 的 $V_{th0} = 0.5$ V，$\gamma = 0.4\ \text{V}^{1/2}$，$-2\phi_p = 0.7$ V。$V_{SB} = 1$ V 时阈值电压是多少伏？
+          answer: 0.687
+          tolerance: 0.001
+          unit: V
+          hint: $\sqrt{1.7}$ 和 $\sqrt{0.7}$ 各是多少？
+          explain: $\sqrt{1.7} - \sqrt{0.7} = 1.304 - 0.837 = 0.467$，$V_{th} = 0.5 + 0.4\times0.467 = 0.687$ V。串联在上面的管子源极不接地，背栅效应让它更难导通。
+      - item:
+          id: pmos-current
+          type: number
+          prompt: PMOS 的 $k_p = 1\ \text{mA/V}^2$，$|V_{tp}| = 0.5$ V，$V_{SG} = 1.3$ V，$V_{SD} = 1.0$ V。漏极电流是多少毫安？
+          answer: 0.32
+          tolerance: 0.001
+          unit: mA
+          hint: 先用 $V_{SG} - |V_{tp}|$ 和 $V_{SD}$ 比一比，定区域。
+          explain: $V_{SG} - |V_{tp}| = 0.8$ V，$V_{SD} = 1.0 \ge 0.8$ V，饱和。$I_D = \tfrac12\times1\times0.8^2 = 0.32$ mA，电流从源极流向漏极。
+  - id: mosfet-small-signal
+    chapter: 晶体管模型
+    title: MOSFET 的小信号模型
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 饱和区的 NMOS 偏置在 $I_D = 1$ mA。栅极电压在原来的基础上来回抖动 ±5 mV，漏极电流会怎样抖动？
+          options:
+            - text: 跟着小幅抖动，幅度和 5 mV 成正比
+              correct: true
+            - text: 不动，因为 5 mV 太小
+              why: 饱和区电流随 $V_{GS}$ 变化，再小的变化也会引起成比例的电流变化
+            - text: 只在电压升高时变化，降低时不变
+              why: 在偏置点附近，平方律曲线可以看成一小段直线，升高和降低都按同一个斜率变化
+          explain: 平方律曲线在偏置点附近很接近一条直线。只要抖动足够小，电流的变化就和电压的变化成正比，比例系数就是曲线在这一点的斜率。
+      - card:
+          title: 工作点和小信号
+          body: |
+            放大器里，直流电压把晶体管定在一个**工作点（operating point）**（$V_{GS}$、$I_D$），要放大的小信号叠加在上面：$v_{GS} = V_{GS} + v_{gs}$，$i_D = I_D + i_d$。
+
+            小信号足够小时，$i_d$ 和 $v_{gs}$ 成正比，比例系数是平方律曲线在工作点的斜率，叫**跨导（transconductance）**：
+
+            $$g_m = \frac{\partial I_D}{\partial V_{GS}} = kV_{ov} = \sqrt{2kI_D} = \frac{2I_D}{V_{ov}}$$
+
+            三种写法用的是同一个平方律，按手头已知的量选一种。
+      - item:
+          id: gm-sqrt
+          type: number
+          prompt: 饱和区的 NMOS，$k = 2\ \text{mA/V}^2$，$I_D = 1$ mA。跨导是多少毫西门子（mS）？
+          answer: 2
+          tolerance: 0.001
+          unit: mS
+          hint: 已知 $k$ 和 $I_D$，三种写法里哪一种最方便？
+          explain: $g_m = \sqrt{2kI_D} = \sqrt{2\times2\times10^{-3}\times10^{-3}} = 2\times10^{-3}$ S $= 2$ mS。栅压每变 1 mV，漏极电流变 2 μA。
+      - item:
+          id: gm-vov
+          type: number
+          prompt: 饱和区的 NMOS，$I_D = 0.5$ mA，过驱动电压 $V_{ov} = 0.2$ V。跨导是多少毫西门子？
+          answer: 5
+          tolerance: 0.001
+          unit: mS
+          hint: 只知道电流和过驱动电压时用哪种写法？
+          explain: $g_m = 2I_D/V_{ov} = 2\times0.5/0.2 = 5$ mS。同样的电流，过驱动电压越小，跨导越大；但 $V_{ov}$ 太小管子会接近截止，速度也变慢。
+      - card:
+          title: 输出电阻和小信号电路
+          body: |
+            沟道长度调制让饱和区电流随 $V_{DS}$ 略有变化，小信号下相当于漏源之间并了一个电阻，叫输出电阻：$r_o = 1/(\lambda I_D)$。背栅电压的变化也会改变电流，比例系数叫背栅跨导 $g_{mb}$，通常是 $g_m$ 的一到三成。
+
+            小信号等效电路：栅极开路；漏源之间一个电流为 $g_mv_{gs}$ 的受控电流源，并联 $r_o$；必要时再加 $g_{mb}v_{bs}$。直流电源在小信号电路里都接地。
+      - item:
+          id: ro-value
+          type: number
+          prompt: 饱和区的 NMOS，$\lambda = 0.1\ \text{V}^{-1}$，$I_D = 0.5$ mA。输出电阻是多少千欧？
+          answer: 20
+          tolerance: 0.01
+          unit: kΩ
+          hint: 输出电阻和 $\lambda$、$I_D$ 是什么关系？电流越大，它越大还是越小？
+          explain: $r_o = 1/(0.1\times0.5\times10^{-3}) = 2\times10^4$ Ω $= 20$ kΩ。电流越大，输出电阻越小。
+      - card:
+          title: 例题：算跨导、输出电阻和本征增益
+          body: 饱和区的 NMOS，$k = 4\ \text{mA/V}^2$，$V_{th} = 0.5$ V，$V_{GS} = 0.8$ V，$\lambda = 0.05\ \text{V}^{-1}$。求 $I_D$、$g_m$、$r_o$ 和 $g_mr_o$。
+          reveal:
+            - title: 第 1 步：工作点电流
+              body: $V_{ov} = 0.3$ V，$I_D = \tfrac12\times4\times0.09 = 0.18$ mA。
+            - title: 第 2 步：跨导和输出电阻
+              body: $g_m = kV_{ov} = 4\times0.3 = 1.2$ mS；$r_o = 1/(0.05\times0.18\times10^{-3}) = 111$ kΩ。
+            - title: 第 3 步：两者相乘
+              body: $g_mr_o = 1.2\times10^{-3}\times1.11\times10^5 = 133$。这个乘积叫**本征增益（intrinsic gain）**，是一个晶体管单独能给出的最大电压增益。
+      - item:
+          id: intrinsic-gain
+          type: number
+          prompt: 饱和区的 NMOS，$k = 2\ \text{mA/V}^2$，$V_{ov} = 0.25$ V，$\lambda = 0.04\ \text{V}^{-1}$。本征增益 $g_mr_o$ 是多少？
+          answer: 200
+          tolerance: 0.1
+          hint: 先求 $I_D$，再求 $g_m$ 和 $r_o$。
+          explain: $I_D = \tfrac12\times2\times0.0625 = 0.0625$ mA，$g_m = 2\times0.25 = 0.5$ mS，$r_o = 1/(0.04\times6.25\times10^{-5}) = 400$ kΩ，$g_mr_o = 200$。也可以直接用 $g_mr_o = 2/(\lambda V_{ov}) = 2/(0.04\times0.25) = 200$。
+      - card:
+          title: 栅电容和速度
+          body: |
+            栅极和沟道之间是一个电容。饱和区里栅源电容约为 $C_{gs} \approx \tfrac23WLC_{ox}$。小信号从栅极输入时要给它充放电，频率越高，流进栅极的电流越大。
+
+            电流增益降到 1 的频率叫特征频率，$f_T \approx g_m/(2\pi C_{gs})$。沟道越短，$C_{gs}$ 越小、$g_m$ 越大，$f_T$ 越高，这是晶体管越做越小的一个原因。
+      - item:
+          id: ft-value
+          type: number
+          prompt: 一个 NMOS 的 $W = 1$ μm、$L = 0.1$ μm，$C_{ox} = 10\ \text{fF/μm}^2$，$g_m = 1$ mS。按 $C_{gs} = \tfrac23WLC_{ox}$、$f_T = g_m/(2\pi C_{gs})$ 估算，特征频率约多少吉赫兹（GHz）？
+          answer: 239
+          tolerance: 1
+          unit: GHz
+          hint: 先算 $C_{gs}$，注意单位是飞法（$10^{-15}$ F）。
+          explain: $C_{gs} = \tfrac23\times1\times0.1\times10 = 0.667$ fF，$f_T = 10^{-3}/(2\pi\times0.667\times10^{-15}) = 2.39\times10^{11}$ Hz $\approx 239$ GHz。实际的寄生电容会让它低一些。
+  - id: inverter-basics
+    chapter: 晶体管模型
+    title: 反相器和噪声容限
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 数字电路里“1”不是规定成正好 1.8 V，而是“高于某个值都算 1”。为什么要用一个范围？
+          options:
+            - text: 信号会被干扰改变一点，用范围才能容忍
+              correct: true
+            - text: 电源电压本身做不准，只好把标准放宽
+              why: 电源不准是原因之一，但更主要的是信号在传输中会叠加噪声；用范围是为了让每一级都能把有误差的信号恢复回去
+            - text: 用一个范围能让电路跑得更快
+              why: 范围的宽窄和速度没有直接关系，它是为了抗干扰
+          explain: 每一级门电路都会把落在“1”范围里的输入恢复成接近电源电压的输出，误差不会一级级累加。这就要求门电路的输入输出关系有一段很陡的转折。
+      - card:
+          title: 反相器和电压传输特性
+          body: |
+            最简单的逻辑门是**反相器（inverter）**：输入低，输出高；输入高，输出低。把输出电压随输入电压变化的关系画成曲线，叫**电压传输特性（voltage transfer characteristic）**。
+
+            理想的反相器在 $V_{DD}/2$ 处从 $V_{DD}$ 突然跳到 0。实际的曲线有一段倾斜的转折区，在转折区里曲线的斜率（电压增益）绝对值大于 1，正是这个增益把有误差的信号拉回到 0 或 $V_{DD}$。
+      - item:
+          id: gain-needed
+          type: choice
+          prompt: 一串反相器首尾相接，第一级输入一个带噪声的“1”。为什么第三级输出的“1”反而更干净？
+          options:
+            - text: 转折区增益大于 1，把输出推回电源或地
+              correct: true
+            - text: 噪声在导线上被电阻吸收掉了
+              why: 导线不会选择性地吸收噪声；恢复信号靠的是门电路的非线性和增益
+            - text: 每一级都把输入原样复制过去，噪声不会变大也不会变小
+              why: 原样复制（增益 1）时噪声会一级级累积；反相器在逻辑电平附近增益小、在转折区增益大，才能整形
+          explain: 输入在“1”的范围里时，输出被压到接近 0；下一级再把它推到接近 $V_{DD}$。这种恢复作用叫再生，是数字电路能做到很多级而不出错的原因。
+      - card:
+          title: 逻辑电平和噪声容限
+          body: |
+            在电压传输特性上找斜率等于 $-1$ 的两点，对应的输入叫 $V_{IL}$ 和 $V_{IH}$：输入低于 $V_{IL}$ 一定被当作 0，高于 $V_{IH}$ 一定被当作 1。输出能给出的最高、最低电压叫 $V_{OH}$、$V_{OL}$。
+
+            前一级输出的 1 最低是 $V_{OH}$，后一级要求不低于 $V_{IH}$，两者之差是能容忍的噪声，叫高电平**噪声容限（noise margin）**：$NM_H = V_{OH} - V_{IH}$；同样 $NM_L = V_{IL} - V_{OL}$。
+      - item:
+          id: nm-low
+          type: number
+          prompt: 一个反相器 $V_{OH} = 1.8$ V，$V_{OL} = 0.1$ V，$V_{IH} = 1.1$ V，$V_{IL} = 0.7$ V。低电平噪声容限是多少伏？
+          answer: 0.6
+          tolerance: 0.001
+          unit: V
+          hint: 低电平时，前一级最高输出多少，后一级最多能接受多少？
+          explain: $NM_L = V_{IL} - V_{OL} = 0.7 - 0.1 = 0.6$ V。前一级输出的 0 最高 0.1 V，后一级到 0.7 V 还认作 0，中间 0.6 V 是能容忍的干扰。
+      - item:
+          id: nm-high
+          type: number
+          prompt: 一个反相器 $V_{OH} = 1.8$ V，$V_{OL} = 0.1$ V，$V_{IH} = 1.1$ V，$V_{IL} = 0.7$ V。高电平噪声容限是多少伏？
+          answer: 0.7
+          tolerance: 0.001
+          unit: V
+          hint: 前一级输出的 1 最低是多少？后一级要求的 1 最低是多少？
+          explain: $NM_H = V_{OH} - V_{IH} = 1.8 - 1.1 = 0.7$ V。两个噪声容限中较小的一个决定了电路的抗干扰能力，这里是 0.6 V。
+      - card:
+          title: 例题：判断一次干扰会不会出错
+          body: 一级反相器输出低电平 0.1 V，经过一段导线时，被旁边导线的信号经电容耦合过来（串扰）抬高了 0.5 V，送到下一级。下一级的 $V_{IL} = 0.7$ V、$V_{IH} = 1.1$ V。会不会出错？
+          reveal:
+            - title: 第 1 步：算到达时的电压
+              body: $0.1 + 0.5 = 0.6$ V。
+            - title: 第 2 步：和输入门限比
+              body: $0.6 < V_{IL} = 0.7$ V，仍被当作 0。
+            - title: 第 3 步：看余量
+              body: 低电平噪声容限是 0.6 V，干扰 0.5 V 没超过它，不出错；若干扰超过 0.6 V，输入就进入 $V_{IL}$ 和 $V_{IH}$ 之间的不确定区。
+      - item:
+          id: noise-error
+          type: choice
+          prompt: 某反相器 $V_{OH} = 2.5$ V，下一级 $V_{IH} = 1.6$ V、$V_{IL} = 0.9$ V。输出的高电平在导线上被干扰拉低 1.0 V。下一级怎样？
+          options:
+            - text: 落到 1.5 V，低于 $V_{IH}$，可能误判
+              correct: true
+            - text: 没问题，1.5 V 仍高于电源的一半
+              why: 判断用的是下一级的 $V_{IH}$，不是电源的一半；1.5 V 低于 1.6 V，已进入不确定区
+            - text: 一定被当作 0，因为低于 $V_{IH}$
+              why: 1.5 V 在 $V_{IL}$ 和 $V_{IH}$ 之间的不确定区，结果不确定，不一定是 0
+          explain: 高电平噪声容限 $NM_H = 2.5 - 1.6 = 0.9$ V，干扰 1.0 V 超过了它。输入进入不确定区，下一级的输出可能不是合格的逻辑电平。
+  - id: inverter-loads
+    chapter: 晶体管模型
+    title: 电阻负载的反相器和瞬态
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用一个 NMOS 和一个电阻做反相器：电阻从电源接到输出，NMOS 从输出接到地。输入为高时输出为低。这时电源里有没有电流？
+          options:
+            - text: 有，电流一直从电源流到地
+              correct: true
+            - text: 没有，输出低时电路不工作
+              why: NMOS 导通、电阻两端有电压差，电流就会持续流过，输出低时恰恰在耗电
+            - text: 只在输入刚变高的那一瞬间才有电流
+              why: 那是给电容放电的电流；电阻和导通的 NMOS 构成一条从电源到地的直流通路，电流一直在
+          explain: 输入高时 NMOS 导通，电源、电阻、NMOS、地连成通路，一直有电流，即使输出不变也在耗电。这叫静态功耗，是这种反相器被 CMOS 取代的原因。
+      - card:
+          title: 电阻负载的反相器
+          body: |
+            输入低（低于 $V_{th}$）时 NMOS 截止，电阻里没有电流，输出 $V_{OH} = V_{DD}$。输入高时 NMOS 导通，输出被拉低，但拉不到 0：电阻上的电流 $(V_{DD} - V_{out})/R$ 必须等于 NMOS 的电流。输出低，NMOS 的 $V_{DS}$ 小，工作在三极管区，于是
+
+            $$\frac{V_{DD} - V_{OL}}{R} = k\left[(V_{DD} - V_{th})V_{OL} - \frac{V_{OL}^2}{2}\right]$$
+
+            解出 $V_{OL}$。$R$ 越大、$k$ 越大，$V_{OL}$ 越接近 0。
+      - card:
+          title: 例题：求输出低电平
+          body: $V_{DD} = 2.5$ V，$R = 10$ kΩ，NMOS 的 $k = 1\ \text{mA/V}^2$、$V_{th} = 0.5$ V，输入 2.5 V。求 $V_{OL}$。
+          reveal:
+            - title: 第 1 步：写出电流相等的方程
+              body: $kR = 10\ \text{V}^{-1}$。两边乘 $R$：$2.5 - V = 10\,(2V - V^2/2) = 20V - 5V^2$。
+            - title: 第 2 步：整理成二次方程
+              body: $5V^2 - 21V + 2.5 = 0$。
+            - title: 第 3 步：取合理的根
+              body: $V = \dfrac{21 - \sqrt{441 - 50}}{10} = \dfrac{21 - 19.77}{10} = 0.123$ V。另一个根 4.08 V 超过电源电压，舍去。检查：$V_{DS} = 0.123$ V 远小于 $V_{ov} = 2$ V，确实在三极管区。
+      - item:
+          id: static-current
+          type: number
+          prompt: 电阻负载反相器 $V_{DD} = 2.5$ V，$R = 10$ kΩ，输出低电平 $V_{OL} = 0.123$ V。电源提供的静态功率是多少毫瓦？
+          answer: 0.594
+          tolerance: 0.002
+          unit: mW
+          hint: 先求电阻里的电流。
+          explain: $I = (2.5 - 0.123)/10\ \text{kΩ} = 0.238$ mA，$P = V_{DD}I = 2.5\times0.238 = 0.594$ mW。一百万个这样的门同时输出低，就是近 600 W，所以大规模芯片不能用电阻负载。
+      - item:
+          id: vol-tradeoff
+          type: choice
+          prompt: 想让电阻负载反相器的 $V_{OL}$ 更低，同时不明显增加静态功耗。下面哪种办法对？
+          options:
+            - text: 加大 NMOS 的 $W/L$
+              correct: true
+            - text: 减小电阻 $R$
+              why: $R$ 减小时电流变大，$V_{OL}$ 反而升高，功耗也增大
+            - text: 降低电源电压
+              why: 电源降低会让 $V_{OH}$ 和噪声容限一起变小，而且 $V_{OL}$ 和电源的比例改善不大
+          explain: $k$ 变大，NMOS 导通电阻变小，输出被拉得更低；电流主要由电阻限制，功耗几乎不变。代价是管子面积和输入电容变大。
+      - card:
+          title: 瞬态：电容的充放电
+          body: |
+            反相器的输出接着下一级的栅极和连线，合起来是一个负载电容 $C_L$。输出变化就是给 $C_L$ 充电或放电，需要时间。从输入变化到输出变到一半所用的时间叫**传播延迟（propagation delay）**：输出从高到低记作 $t_{PHL}$，从低到高记作 $t_{PLH}$。
+
+            电阻负载反相器输出由低变高时，$C_L$ 经电阻充电，是 RC 电路，到一半用 $\ln2\,RC = 0.69RC$。输出由高变低时，导通的 NMOS 用大电流放电，快得多。
+      - item:
+          id: tplh-rc
+          type: number
+          prompt: 电阻负载反相器的上拉电阻 10 kΩ，负载电容 10 fF。输出由低变高的传播延迟约多少皮秒（ps）？
+          answer: 69.3
+          tolerance: 0.5
+          unit: ps
+          hint: RC 电路充到一半要几个时间常数？
+          explain: $t_{PLH} = 0.69RC = 0.69\times10^4\times10^{-14} = 6.9\times10^{-11}$ s $= 69$ ps。
+      - item:
+          id: tphl-sat
+          type: number
+          prompt: 一个反相器输出由高变低时，NMOS 以约 2 mA 的电流给 10 fF 的负载电容放电，电源 2.5 V。输出从 2.5 V 降到一半大约要多少皮秒？
+          answer: 6.25
+          tolerance: 0.05
+          unit: ps
+          hint: 电容上的电荷变化是多少？用恒定电流放掉要多久？
+          explain: 电荷变化 $\Delta Q = C\Delta V = 10^{-14}\times1.25 = 1.25\times10^{-14}$ C，$t = \Delta Q/I = 1.25\times10^{-14}/2\times10^{-3} = 6.25$ ps。比电阻充电快十倍，上升和下降很不对称。
+      - item:
+          id: nmos-load
+          type: choice
+          prompt: 早期芯片用一个 NMOS 代替负载电阻（NMOS 负载反相器）。这样做主要是为了什么？
+          options:
+            - text: 大电阻很占芯片面积
+              correct: true
+            - text: 为了去掉静态功耗
+              why: NMOS 负载照样在输出低时导通，电源到地仍有直流通路；去掉静态功耗要靠 CMOS
+            - text: 让输出低电平正好等于 0
+              why: 负载管和下拉管同时导通，输出低电平仍不为零，由两管的电流相等决定
+          explain: 芯片上的电阻要用一长条掺杂的硅，几十千欧会很占面积；一个小晶体管就能起同样的作用。静态功耗的问题一直到 CMOS 才解决。
+  - id: cmos-inverter
+    chapter: 晶体管模型
+    title: CMOS 反相器
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把电阻负载换成一个 PMOS，两个管子的栅极连在一起作输入。输入保持高或保持低不变时，电源里还有电流吗？
+          options:
+            - text: 几乎没有，两个管子总有一个是关着的
+              correct: true
+            - text: 有，和电阻负载一样
+              why: 输入高时 PMOS 截止，输入低时 NMOS 截止，电源到地之间总有一个开关断开
+            - text: 有，而且比电阻负载更大
+              why: 互补的接法正是为了在静止时切断电源到地的通路
+          explain: 输入高：NMOS 导通、PMOS 截止，输出接地；输入低：PMOS 导通、NMOS 截止，输出接电源。电源到地之间总有一个管子关着，静止时几乎不耗电。这就是 CMOS。
+      - card:
+          title: CMOS 反相器
+          body: |
+            **CMOS（complementary MOS）**把 NMOS 和 PMOS 互补地用：PMOS 源极接 $V_{DD}$、NMOS 源极接地，两个漏极连在一起作输出，两个栅极连在一起作输入。
+
+            输出高时 PMOS 把它拉到 $V_{DD}$，输出低时 NMOS 把它拉到 0，所以 $V_{OH} = V_{DD}$、$V_{OL} = 0$，噪声容限大；静止时没有直流通路，静态功耗只有很小的漏电。只有在转换的一瞬间两管同时导通，有一点直通电流。
+      - item:
+          id: cmos-levels
+          type: choice
+          prompt: CMOS 反相器的输出低电平是多少？
+          options:
+            - text: 0 V
+              correct: true
+            - text: 由 NMOS 和 PMOS 的电流相等决定的一个小电压，像电阻负载那样
+              why: 输入高时 PMOS 截止、没有电流，NMOS 里也就没有电流，$V_{DS} = 0$，输出就是 0
+            - text: NMOS 的阈值电压
+              why: 阈值电压是栅极上的门限，和输出能降到多低无关
+          explain: 静态时没有电流流过导通的 NMOS，它两端没有压降，输出正好是 0。高电平同理是 $V_{DD}$，这叫满摆幅输出。
+      - card:
+          title: 转折点 V_M
+          body: |
+            输入从 0 升到 $V_{DD}$，输出从 $V_{DD}$ 降到 0。输入等于输出的那一点叫转折电压 $V_M$，此时两管都在饱和区，电流相等：
+
+            $$\frac12k_n(V_M - V_{tn})^2 = \frac12k_p(V_{DD} - V_M - |V_{tp}|)^2$$
+
+            解出 $V_M = \dfrac{V_{tn} + r(V_{DD} - |V_{tp}|)}{1 + r}$，$r = \sqrt{k_p/k_n}$。两管的 $k$ 相等、阈值也对称时 $V_M = V_{DD}/2$，两个噪声容限一样大。空穴迁移率低，所以 PMOS 一般做得比 NMOS 宽两到三倍。
+      - item:
+          id: vm-value
+          type: number
+          prompt: CMOS 反相器 $V_{DD} = 1.8$ V，$V_{tn} = |V_{tp}| = 0.5$ V，PMOS 和 NMOS 尺寸相同，$k_p = k_n/2$。转折电压 $V_M$ 是多少伏？
+          answer: 0.831
+          tolerance: 0.002
+          unit: V
+          hint: $r = \sqrt{k_p/k_n}$ 是多少？代进 $V_M$ 的式子。
+          explain: $r = \sqrt{0.5} = 0.707$，$V_M = (0.5 + 0.707\times1.3)/1.707 = 0.831$ V，比 $V_{DD}/2 = 0.9$ V 低：PMOS 弱，NMOS 能更早把输出拉下来。把 PMOS 加宽一倍就能回到 0.9 V。
+      - card:
+          title: 延迟和动态功耗
+          body: |
+            输出翻转时，导通的管子用接近饱和电流 $I$ 给负载电容充放电。输出变一半要 $\Delta Q = C_LV_{DD}/2$ 的电荷，所以传播延迟大约是
+
+            $$t_p \approx \frac{C_LV_{DD}}{2I}$$
+
+            每次输出由低变高，电源要给 $C_L$ 充上 $C_LV_{DD}$ 的电荷，消耗 $C_LV_{DD}^2$ 的能量（一半存进电容、一半变成热，放电时电容里那一半也变成热）。每秒这样充放电 $f$ 个来回，动态功耗 $P = C_LV_{DD}^2f$。电源电压降低一半，动态功耗降到四分之一，这是芯片电压一路降低的原因。
+      - card:
+          title: 例题：算延迟和功耗
+          body: CMOS 反相器 $V_{DD} = 1.8$ V，负载电容 10 fF，导通管的饱和电流 0.5 mA，每秒充放电 $10^9$ 个来回。求传播延迟和动态功耗。
+          reveal:
+            - title: 第 1 步：延迟
+              body: $t_p = \dfrac{10^{-14}\times1.8}{2\times0.5\times10^{-3}} = 1.8\times10^{-11}$ s $= 18$ ps。
+            - title: 第 2 步：每个来回的能量
+              body: $C_LV_{DD}^2 = 10^{-14}\times3.24 = 3.24\times10^{-14}$ J。
+            - title: 第 3 步：乘上频率
+              body: $P = 3.24\times10^{-14}\times10^9 = 3.24\times10^{-5}$ W $= 32.4$ μW。
+      - item:
+          id: power-scaling
+          type: number
+          prompt: 一块芯片的动态功耗是 20 W。电源电压从 1.2 V 降到 0.9 V，负载电容和频率不变，动态功耗变成多少瓦？
+          answer: 11.25
+          tolerance: 0.01
+          unit: W
+          hint: 动态功耗和电源电压是几次方关系？
+          explain: $P \propto V_{DD}^2$，$20\times(0.9/1.2)^2 = 20\times0.5625 = 11.25$ W。
+      - item:
+          id: delay-current
+          type: number
+          prompt: CMOS 反相器 $V_{DD} = 1.0$ V，负载电容 4 fF，导通管的饱和电流 0.2 mA。按 $t_p \approx C_LV_{DD}/(2I)$，传播延迟是多少皮秒？
+          answer: 10
+          tolerance: 0.01
+          unit: ps
+          hint: 输出变一半要搬走多少电荷？
+          explain: $t_p = 4\times10^{-15}\times1.0/(2\times2\times10^{-4}) = 10^{-11}$ s $= 10$ ps。
+  - id: cmos-gates
+    chapter: 晶体管模型
+    title: 静态 CMOS 逻辑门
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 用 NMOS 做下拉：两个 NMOS 串联在输出和地之间，栅极分别接输入 A 和 B。什么时候输出被拉到地？
+          options:
+            - text: A 和 B 都为高
+              correct: true
+            - text: A 和 B 有一个为高
+              why: 串联的两个开关要都闭合才通；有一个断开，通路就断了
+            - text: A 和 B 都为低
+              why: NMOS 的栅极为低时截止，两个都截止更不可能接通
+          explain: 串联就是“与”：两个都导通才接通。并联就是“或”：有一个导通就接通。CMOS 门就是用这个规律搭出来的。
+      - card:
+          title: 上拉网络和下拉网络
+          body: |
+            静态 CMOS 门由两部分组成：NMOS 组成的**下拉网络（pull-down network）**接在输出和地之间，PMOS 组成的**上拉网络（pull-up network）**接在电源和输出之间。
+
+            两个网络互为对偶：NMOS 串联的地方，PMOS 就并联；NMOS 并联的地方，PMOS 就串联。这样对任何输入组合，总是正好一个网络导通，输出不是接地就是接电源，静止时没有直流通路。
+      - card:
+          title: 与非门和或非门
+          body: |
+            二输入与非门（NAND）：两个 NMOS 串联下拉，两个 PMOS 并联上拉。A、B 都为 1 时下拉导通，输出 0；否则至少一个 PMOS 导通，输出 1，所以 $Y = \overline{AB}$。
+
+            二输入或非门（NOR）：两个 NMOS 并联下拉，两个 PMOS 串联上拉，$Y = \overline{A + B}$。一个 $n$ 输入的静态 CMOS 门用 $2n$ 个晶体管。
+      - item:
+          id: nand3-count
+          type: number
+          prompt: 一个三输入静态 CMOS 与非门一共用几个晶体管？
+          answer: 6
+          hint: 每个输入接几个晶体管？
+          explain: 每个输入接一个 NMOS 和一个 PMOS：3 个 NMOS 串联下拉，3 个 PMOS 并联上拉，共 6 个。
+      - item:
+          id: nor-pullup
+          type: choice
+          prompt: 静态 CMOS 或非门的上拉网络是怎样连的？
+          options:
+            - text: PMOS 串联
+              correct: true
+            - text: PMOS 并联，和下拉网络一样
+              why: 两个网络必须互为对偶；或非门的下拉是并联，上拉就是串联
+            - text: NMOS 串联
+              why: 上拉网络用 PMOS，因为 PMOS 能把输出拉到满电源电压；NMOS 往上拉时会损失一个阈值电压
+          explain: 或非门只有 A、B 都为 0 时输出才为 1，即两个 PMOS 都导通才能上拉，所以串联。
+      - card:
+          title: 串联管要加宽
+          body: |
+            串联的管子相当于电阻串联，导通电阻加倍，电流减半，延迟变长。为了让门的最坏延迟和一个参考反相器一样，串联的每个管子要加宽：两个串联各加宽到 2 倍，三个串联各加宽到 3 倍。
+
+            PMOS 本来就比 NMOS 弱（迁移率低），或非门的 PMOS 又是串联的，要做得很宽才能不慢，面积和输入电容都大。所以 CMOS 电路更多用与非门，或非门的输入一般不超过三四个。
+      - card:
+          title: 例题：二输入与非门的尺寸
+          body: 参考反相器的 NMOS 宽 $W_n = 1$ μm、PMOS 宽 $W_p = 2$ μm（PMOS 宽一倍以补偿迁移率）。要让二输入与非门的上拉和下拉在最坏情况下都和反相器一样快，各管多宽？
+          reveal:
+            - title: 第 1 步：下拉网络
+              body: 两个 NMOS 串联，电阻加倍，所以每个加宽到 2 倍：$2$ μm。
+            - title: 第 2 步：上拉网络的最坏情况
+              body: 两个 PMOS 并联，最坏情况是只有一个导通，它单独要和反相器的 PMOS 一样强：$2$ μm。
+            - title: 第 3 步：汇总
+              body: NMOS 各 2 μm，PMOS 各 2 μm。只有一个输入的电容比反相器大：每个输入接的总栅宽是 4 μm，反相器是 3 μm。
+      - item:
+          id: nor2-width
+          type: number
+          prompt: 参考反相器 $W_n = 1$ μm、$W_p = 2$ μm。二输入静态 CMOS 或非门要在最坏情况下和它一样快，每个 PMOS 要多宽（μm）？
+          answer: 4
+          tolerance: 0.001
+          unit: μm
+          hint: 或非门的 PMOS 是串联还是并联？
+          explain: 两个 PMOS 串联，每个要加宽到反相器 PMOS 的 2 倍：$2\times2 = 4$ μm。NMOS 并联，各 1 μm 即可。每个输入的栅宽是 5 μm，比与非门的 4 μm 大，这是或非门少用的原因。
+      - item:
+          id: nand3-width
+          type: number
+          prompt: 参考反相器 $W_n = 1$ μm。三输入与非门的下拉网络要和反相器一样快，每个 NMOS 要多宽（μm）？
+          answer: 3
+          tolerance: 0.001
+          unit: μm
+          hint: 三个 NMOS 串联，导通电阻是一个的几倍？
+          explain: 三个串联，电阻是一个的 3 倍，所以每个加宽到 3 倍：3 μm。
+  - id: diode-model
+    chapter: 晶体管模型
+    title: 二极管的电路模型
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个硅二极管正向电压从 0.60 V 加到 0.66 V，只加了 60 mV。电流大约变成原来的几倍？
+          options:
+            - text: 约 1.1 倍
+              why: 那是把二极管当成电阻、电流和电压成正比；二极管的电流随电压按指数增长
+            - text: 约 10 倍
+              correct: true
+            - text: 约 2 倍
+              why: 指数增长比这快：室温下每多 60 mV，电流约增加一个数量级
+          explain: 二极管电流按 $e^{V/V_T}$ 增长，$V_T \approx 25.9$ mV，60 mV 对应 $e^{2.32} \approx 10$。这条“60 mV 一个数量级”的规律在 MOSFET 的亚阈值区和 BJT 里都会再出现。
+      - card:
+          title: 二极管的大信号模型
+          body: |
+            **二极管（diode）**是在同一块硅里一边掺成 p 型、一边掺成 n 型做成的，p 端叫阳极、n 端叫阴极。阳极相对阴极的电压记作 $V_D$，$V_D > 0$ 叫正偏，$V_D < 0$ 叫反偏。电流和电压的关系是
+
+            $$I_D = I_S\left(e^{V_D/V_T} - 1\right)$$
+
+            这叫二极管方程。$V_T = kT/q$ 叫**热电压（thermal voltage）**，300 K 时 25.9 mV（有的教材取约 26 mV 或 25 mV）；$I_S$ 叫反向饱和电流，很小（如 $10^{-15}$ A）。正偏时电流指数增长，反偏时电流趋于 $-I_S$，几乎为零。
+      - item:
+          id: decade-voltage
+          type: number
+          prompt: 300 K 时 $V_T = 25.9$ mV。二极管正向电流增加到 10 倍，电压要增加多少毫伏？
+          answer: 59.6
+          tolerance: 0.1
+          unit: mV
+          hint: 电流变成 10 倍，指数 $V_D/V_T$ 要增加多少？
+          explain: $\Delta V = V_T\ln10 = 25.9\times2.303 = 59.6$ mV，约 60 mV。
+      - card:
+          title: 恒压降模型
+          body: |
+            电流从 0.1 mA 到 10 mA 跨了两个数量级，电压只变约 0.12 V。所以分析电路时常把导通的硅二极管看成一个固定的压降，约 0.7 V（小电流时 0.6 V 左右），截止时看成断开。这叫恒压降模型，是二极管方程的大信号近似。
+
+            要算得更准时，先用 0.7 V 求出电流，再用二极管方程修正电压，一两次就够。
+      - item:
+          id: vd-at-current
+          type: number
+          prompt: 二极管 $I_S = 10^{-14}$ A，300 K（$V_T = 25.9$ mV）。正向电流 1 mA 时两端电压是多少伏？
+          answer: 0.656
+          tolerance: 0.001
+          unit: V
+          hint: 正偏时 $-1$ 可以略去，怎样把指数关系反过来解出电压？
+          explain: $I_D/I_S = 10^{11}$，$\ln10^{11} = 25.33$，$V_D = 0.0259\times25.33 = 0.656$ V，和恒压降模型的 0.7 V 相差不到 0.05 V。
+      - card:
+          title: 小信号模型
+          body: |
+            二极管偏置在直流电流 $I_D$ 上，再叠加一个小的电压变化 $v_d$，电流的变化是 $i_d = v_d/r_d$，其中
+
+            $$r_d = \frac{dV_D}{dI_D} = \frac{V_T}{I_D}$$
+
+            叫小信号电阻（或动态电阻），是二极管方程在工作点的斜率的倒数。电流越大，$r_d$ 越小：1 mA 时约 26 Ω。这和 MOSFET 的跨导是同一个思路：在工作点附近把曲线当作直线。
+      - item:
+          id: rd-value
+          type: number
+          prompt: 二极管偏置在 0.5 mA，300 K（$V_T = 25.9$ mV）。小信号电阻是多少欧？
+          answer: 51.8
+          tolerance: 0.1
+          unit: Ω
+          hint: $r_d$ 和偏置电流是什么关系？
+          explain: $r_d = 25.9\ \text{mV}/0.5\ \text{mA} = 51.8$ Ω。电流减半，小信号电阻加倍。
+      - card:
+          title: 两种电容
+          body: |
+            二极管还有电容，高频时要计入。反偏或小正偏时，PN 交界处有一层没有能自由移动的电荷的区域，两侧带着正负电荷，像一个电容，叫**耗尽电容（depletion capacitance）**，反偏越大越小。
+
+            正偏时，越过交界的载流子在对面堆积了一些电荷 $Q = \tau_TI_D$（$\tau_T$ 是渡越时间），电压一变，这些电荷跟着变，相当于一个电容，叫**扩散电容（diffusion capacitance）**：$C_d = \tau_TI_D/V_T$。大电流正偏时扩散电容占主导。
+      - item:
+          id: cd-value
+          type: number
+          prompt: 二极管的渡越时间 $\tau_T = 1$ ns，正向电流 1 mA，$V_T = 25.9$ mV。扩散电容是多少皮法（pF）？
+          answer: 38.6
+          tolerance: 0.1
+          unit: pF
+          hint: 扩散电容的式子里有哪三个量？代入时注意单位。
+          explain: $C_d = 10^{-9}\times10^{-3}/0.0259 = 3.86\times10^{-11}$ F $= 38.6$ pF，比典型的耗尽电容（零点几到几皮法）大得多。这限制了二极管从正偏切换到反偏的速度。
+      - item:
+          id: which-cap
+          type: choice
+          prompt: 一个二极管加 5 V 反偏，用在高频电路里。主要要考虑哪种电容？
+          options:
+            - text: 耗尽电容
+              correct: true
+            - text: 扩散电容
+              why: 扩散电容来自正偏时注入的载流子，反偏时几乎没有注入，扩散电容可以忽略
+            - text: 两种都没有，反偏时二极管就是断路
+              why: 直流上反偏近似断路，但交界处的正负电荷层仍是一个电容，高频信号能通过它
+          explain: 反偏时没有载流子注入，只剩耗尽层电容。反偏越大，耗尽层越宽，电容越小；变容二极管就是利用这一点用电压调电容。
+  - id: bjt-basics
+    chapter: 晶体管模型
+    title: 双极型晶体管
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一种晶体管用很小的输入电流控制大约一百倍的输出电流。如果输入电流加倍，输出电流大约怎样？
+          options:
+            - text: 也加倍
+              correct: true
+            - text: 变成四倍
+              why: 平方关系是 MOSFET 饱和区电流和过驱动电压的关系；这种晶体管的输出电流和输入电流近似成正比
+            - text: 不变，输出电流只由电源决定
+              why: 在正常放大的工作范围里，输出电流由输入电流控制，电源只要足够高就行
+          explain: 这就是双极型晶体管：集电极电流约是基极电流的 $\beta$ 倍，$\beta$ 一般几十到几百，两者近似成正比。
+      - card:
+          title: 结构和符号
+          body: |
+            **双极型晶体管（BJT，bipolar junction transistor）**由三层半导体叠成。npn 管是 n、p、n 三层，分别接**发射极（emitter）**、**基极（base）**和**集电极（collector）**，中间的 p 型基区很薄。符号里发射极上画箭头，箭头方向是正常工作时发射极电流的方向，npn 管箭头朝外。
+
+            “双极”是说电子和空穴两种带电粒子都参与导电；MOSFET 只靠一种，所以也叫单极型。
+      - card:
+          title: 正向有源区
+          body: |
+            npn 管用来放大时，基极–发射极之间正偏（$V_{BE} \approx 0.6$–$0.7$ V），基极–集电极之间反偏，这叫**正向有源区（forward active region）**，模拟电路的书里也叫放大区。发射区注入基区的电子大部分穿过薄薄的基区被集电极收走，集电极电流
+
+            $$I_C = I_Se^{V_{BE}/V_T}$$
+
+            只由 $V_{BE}$ 决定，和 $V_{CE}$ 几乎无关（只要集电结反偏）。和二极管一样，$V_{BE}$ 每多 60 mV，$I_C$ 约增加 10 倍。
+      - item:
+          id: vbe-1ma
+          type: number
+          prompt: npn 管 $I_S = 10^{-15}$ A，300 K（$V_T = 25.9$ mV），工作在正向有源区，$I_C = 1$ mA。$V_{BE}$ 是多少伏？
+          answer: 0.716
+          tolerance: 0.001
+          unit: V
+          hint: 由 $I_C = I_Se^{V_{BE}/V_T}$ 解出 $V_{BE}$。
+          explain: $V_{BE} = V_T\ln(I_C/I_S) = 0.0259\times\ln10^{12} = 0.0259\times27.63 = 0.716$ V。
+      - item:
+          id: active-check
+          type: choice
+          prompt: 一个 npn 管 $V_{BE} = 0.7$ V，$V_{CE} = 0.2$ V。它在正向有源区吗？
+          options:
+            - text: 不在，集电结已经正偏了
+              correct: true
+            - text: 在，因为发射结正偏
+              why: 正向有源区还要求集电结反偏；$V_{BC} = V_{BE} - V_{CE} = 0.5$ V，集电结正偏
+            - text: 在，$V_{CE}$ 只要大于零就行
+              why: 判断看 $V_{BC}$：$V_{CE}$ 小于约 0.3 V 时集电结正偏，管子进入 BJT 的饱和区
+          explain: $V_{BC} = 0.7 - 0.2 = 0.5$ V，集电结正偏，集电极也开始向基区注入，电流不再只由 $V_{BE}$ 决定。这叫 BJT 的饱和区，和 MOSFET 的饱和区不是一回事。
+      - card:
+          title: 电流增益
+          body: |
+            基区里有少量电子遇到空穴后两者一起消失，还有基区向发射区注入的空穴，这两部分要靠基极电流补上。基极电流和集电极电流成正比：
+
+            $$I_C = \beta I_B,\qquad I_E = I_C + I_B = (\beta + 1)I_B$$
+
+            $\beta$ 叫共射**电流增益（current gain）**，一般 50–300。也常用 $\alpha = I_C/I_E = \beta/(\beta + 1)$，接近 1。基区越薄、发射区掺杂比基区越重，$\beta$ 越大。
+      - item:
+          id: base-current
+          type: number
+          prompt: npn 管 $\beta = 100$，$I_C = 1$ mA。发射极电流是多少毫安？
+          answer: 1.01
+          tolerance: 0.0001
+          unit: mA
+          hint: 先求基极电流。
+          explain: $I_B = 1/100 = 0.01$ mA，$I_E = I_C + I_B = 1.01$ mA。$\alpha = 1/1.01 = 0.990$。
+      - card:
+          title: BJT 的跨导和输入电阻
+          body: |
+            对 $I_C = I_Se^{V_{BE}/V_T}$ 求导，得 BJT 的跨导
+
+            $$g_m = \frac{I_C}{V_T}$$
+
+            只由电流决定，和管子大小无关。基极看进去的小信号电阻是 $r_\pi = \beta/g_m$。和 MOSFET 比：同样 1 mA，BJT 的 $g_m = 38.6$ mS；MOSFET 的 $g_m = 2I_D/V_{ov}$，$V_{ov} = 0.2$ V 时只有 10 mS。BJT 跨导大，MOSFET 的栅极不取直流电流。
+      - card:
+          title: 例题：一个 BJT 的跨导和输入电阻
+          body: npn 管 $\beta = 100$，偏置在 $I_C = 1$ mA，$V_T = 25.9$ mV。求 $g_m$、$r_\pi$。
+          reveal:
+            - title: 第 1 步：跨导
+              body: $g_m = 1\ \text{mA}/25.9\ \text{mV} = 38.6$ mS。
+            - title: 第 2 步：输入电阻
+              body: $r_\pi = \beta/g_m = 100/0.0386 = 2.59$ kΩ。
+            - title: 第 3 步：看它们怎样随偏置变
+              body: 电流加倍，$g_m$ 加倍，$r_\pi$ 减半；$\beta$ 不变时 $g_mr_\pi = \beta$ 始终成立。
+      - item:
+          id: bjt-gm
+          type: number
+          prompt: npn 管偏置在 $I_C = 0.5$ mA，$V_T = 25.9$ mV。跨导是多少毫西门子？
+          answer: 19.3
+          tolerance: 0.05
+          unit: mS
+          hint: BJT 的跨导只由什么决定？
+          explain: $g_m = 0.5/25.9\ \text{S} = 19.3$ mS。
+      - item:
+          id: bjt-rpi
+          type: number
+          prompt: npn 管 $\beta = 150$，偏置在 $I_C = 0.5$ mA，$V_T = 25.9$ mV。基极的小信号输入电阻 $r_\pi$ 是多少千欧？
+          answer: 7.77
+          tolerance: 0.02
+          unit: kΩ
+          hint: 先求 $g_m$。
+          explain: $g_m = 19.3$ mS，$r_\pi = 150/0.0193 = 7.77$ kΩ。
+  - id: single-stage-amps
+    chapter: 晶体管模型
+    title: 共源放大器
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一个放大器不接负载时电压增益是 20。接上一个负载电阻后，增益会怎样？
+          options:
+            - text: 变小
+              correct: true
+            - text: 不变，增益是放大器自己的性质
+              why: 放大器有输出电阻，接上负载后输出电压被分掉一部分，增益下降
+            - text: 变大，负载会帮忙放大
+              why: 无源的负载电阻只会分压，不能提供能量来增加增益
+          explain: 放大器的输出端可以看成一个受控电压源串一个输出电阻。负载和输出电阻分压，负载上的电压比开路时小，所以增益下降。
+      - card:
+          title: 放大器的二端口模型
+          body: |
+            不管里面怎样，一个电压放大器的小信号行为可以用三个数概括：输入电阻 $R_{in}$（信号源看进去的电阻），开路电压增益 $A_{v0}$，输出电阻 $R_{out}$。这叫**二端口模型（two-port model）**。
+
+            接上信号源内阻 $R_S$ 和负载 $R_L$ 时，总增益是三段相乘：
+
+            $$\frac{v_{out}}{v_s} = \frac{R_{in}}{R_{in} + R_S}\cdot A_{v0}\cdot\frac{R_L}{R_L + R_{out}}$$
+
+            好的电压放大器 $R_{in}$ 大、$R_{out}$ 小。
+      - item:
+          id: loaded-gain
+          type: number
+          prompt: 一个放大器 $A_{v0} = -20$，$R_{out} = 5$ kΩ，输入电阻极大。接上 5 kΩ 的负载，电压增益是多少？
+          answer: -10
+          tolerance: 0.001
+          hint: 负载和输出电阻怎样分压？
+          explain: $A_v = -20\times5/(5 + 5) = -10$。输出电阻和负载一样大，增益减半。
+      - card:
+          title: 电阻负载的共源放大器
+          body: |
+            NMOS 源极接地，栅极加偏置和输入信号，漏极经电阻 $R_D$ 接电源，从漏极取输出，这叫**共源放大器（common-source amplifier）**。
+
+            小信号电路里电源接地，$R_D$ 从漏极接到地，和 $r_o$ 并联。受控电流 $g_mv_{gs}$ 流过它们产生输出电压：
+
+            $$A_v = \frac{v_{out}}{v_{in}} = -g_m(R_D\parallel r_o)$$
+
+            负号表示输出和输入反相。栅极不取电流，$R_{in}$ 无穷大；$R_{out} = R_D\parallel r_o$。
+      - card:
+          title: 例题：算共源放大器的增益
+          body: NMOS 偏置后 $g_m = 2$ mS，$r_o = 50$ kΩ，$R_D = 5$ kΩ。求电压增益和输出电阻。
+          reveal:
+            - title: 第 1 步：并联电阻
+              body: $R_D\parallel r_o = \dfrac{5\times50}{5 + 50} = 4.55$ kΩ。
+            - title: 第 2 步：增益
+              body: $A_v = -2\ \text{mS}\times4.55\ \text{kΩ} = -9.09$。
+            - title: 第 3 步：输出电阻
+              body: $R_{out} = 4.55$ kΩ。$r_o$ 远大于 $R_D$ 时，$A_v \approx -g_mR_D = -10$。
+      - item:
+          id: cs-gain
+          type: number
+          prompt: 共源放大器 $g_m = 1$ mS，$r_o = 100$ kΩ，$R_D = 10$ kΩ。电压增益是多少？
+          answer: -9.09
+          tolerance: 0.01
+          hint: 先算 $R_D$ 和 $r_o$ 的并联。
+          explain: $R_D\parallel r_o = 1000/110 = 9.09$ kΩ，$A_v = -1\times9.09 = -9.09$。
+      - card:
+          title: 电流源负载
+          body: |
+            想要大增益，$R_D$ 就要大；可 $R_D$ 上的直流压降 $I_DR_D$ 不能超过电源，而且大电阻占面积。改用一个工作在饱和区的 PMOS 当负载：它的直流电流固定，小信号下只相当于它的输出电阻 $r_{o2}$，这叫电流源负载（有源负载）。
+
+            这时 $A_v = -g_m(r_{o1}\parallel r_{o2})$，两管 $r_o$ 相等时是 $-g_mr_o/2$，接近本征增益的一半，常常有几十倍。
+      - item:
+          id: active-load-gain
+          type: number
+          prompt: 共源放大器 $g_m = 2$ mS，放大管 $r_{o1} = 50$ kΩ，电流源负载的 $r_{o2} = 100$ kΩ。电压增益是多少？
+          answer: -66.7
+          tolerance: 0.1
+          hint: 小信号下负载只剩 $r_{o2}$，和 $r_{o1}$ 并联。
+          explain: $r_{o1}\parallel r_{o2} = 5000/150 = 33.3$ kΩ，$A_v = -2\times33.3 = -66.7$。比 5 kΩ 电阻负载的 $-9.09$ 大了七倍多，而且不需要大电阻。
+      - item:
+          id: rd-limit
+          type: choice
+          prompt: 电阻负载的共源放大器，$I_D = 1$ mA，电源 1.8 V。为了增益，把 $R_D$ 从 1 kΩ 加到 5 kΩ，会出什么问题？
+          options:
+            - text: $R_D$ 上要降 5 V，超过了电源
+              correct: true
+            - text: 增益变成原来的五分之一
+              why: 增益和 $R_D$（并上 $r_o$）成正比，$R_D$ 加大，增益应该变大；问题出在直流偏置上
+            - text: 没有问题，增益变为五倍
+              why: 增益的式子成立的前提是管子在饱和区；$R_D$ 上的直流压降 $I_DR_D = 5$ V 已超过 1.8 V 的电源
+          explain: 漏极直流电压 $V_D = V_{DD} - I_DR_D$ 会降到负值，实际上管子进入三极管区，增益大幅下降。这就是用电流源负载的原因。
+  - id: electrons-holes
+    chapter: 器件物理
+    title: 键模型、电子和空穴
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 铜、硅、玻璃三种材料，按室温下导电能力从强到弱排，硅在哪里？
+          options:
+            - text: 在中间，比铜差得多、比玻璃好得多
+              correct: true
+            - text: 最强，所以芯片都用它来做
+              why: 芯片用硅不是因为它导电好，而是因为它的导电能力能被掺杂和电压大幅度地控制
+            - text: 最弱，纯硅其实是绝缘体
+              why: 纯硅的导电性很差，但比玻璃好很多个数量级，而且掺一点杂质就能大大提高
+          explain: 硅是半导体，导电能力介于金属和绝缘体之间。纯硅里能导电的电荷很少，但这个数目能用掺杂和电场控制，这正是做晶体管需要的。
+      - card:
+          title: 键模型
+          body: |
+            硅原子最外层有 4 个电子。在硅晶体里，每个原子和周围 4 个原子各共用一对电子，形成 4 根共价键，所有外层电子都被拴在键上。
+
+            绝对零度时没有能自由移动的电子，硅不导电。温度升高时，热运动偶尔把一个电子从键上震脱，它就能在晶体里自由移动，成为导电的电子。
+      - card:
+          title: 空穴
+          body: |
+            电子离开以后，原来那根键上留下一个空位。邻近键上的电子很容易跳过来填它，空位就移到了别处。这个能移动的空位表现得像一个带正电 $+q$ 的粒子，叫**空穴（hole）**。
+
+            所以半导体里有两种能运载电流的粒子：自由电子（浓度记作 $n$，带 $-q$）和空穴（浓度记作 $p$，带 $+q$），合称**载流子（carrier）**。纯硅里每产生一个自由电子就留下一个空穴，两者成对出现，叫**电子–空穴对（electron–hole pair）**，所以 $n = p$。
+      - item:
+          id: hole-charge
+          type: choice
+          prompt: 一块硅里沿 $+x$ 方向加电场。空穴往哪边移动？
+          options:
+            - text: $+x$，和电场同向
+              correct: true
+            - text: $-x$，因为空穴其实是电子在动
+              why: 键上的电子确实往 $-x$ 挪，但它们一个个挪进空位，空位本身往 $+x$ 走，像一个正电荷
+            - text: 不动，空位不受力
+              why: 空位跟着周围电子的移动走，整体表现为一个受力 $+qE$ 的正电荷
+          explain: 电子往 $-x$ 填空位，空位就往 $+x$ 移。空穴沿电场方向运动、带正电，它的电流和电子的电流方向相同，都沿 $+x$。
+      - card:
+          title: 能带图
+          body: |
+            同样的事可以用能量来说。被拴在键上的电子的能量都在一个范围里，叫**价带（valence band）**；脱离键、能自由移动的电子的能量在更高的另一个范围，叫**导带（conduction band）**。两者之间没有允许的能量，这段空档叫**带隙（band gap）**，硅是 1.12 eV。
+
+            把一个电子从价带送到导带至少要 1.12 eV，同时在价带留下一个空穴。画能带图时，导带底记作 $E_c$，价带顶记作 $E_v$。
+      - item:
+          id: photon-cutoff
+          type: number
+          prompt: 光的能量是一份一份被吸收的，每份 $E = hc/\lambda$。一份的能量至少要等于带隙，才能在硅里产生一个电子–空穴对。硅的带隙 1.12 eV，能被吸收的光最长波长是多少纳米？取 $hc = 1240$ eV·nm。
+          answer: 1107
+          tolerance: 1
+          unit: nm
+          hint: 由 $E = hc/\lambda$ 反过来求 $\lambda$，$E$ 取多少？
+          explain: $\lambda = 1240/1.12 = 1107$ nm，在近红外。硅做的相机传感器对可见光和近红外都灵敏，对更长的波长就“看不见”了。
+      - card:
+          title: 导体、半导体、绝缘体
+          body: |
+            用能带的说法：金属里有一个只填了一部分的能带，电子随时有空状态可去，导电好。绝缘体的价带全满、带隙很大（二氧化硅约 9 eV），室温下几乎没有电子能跳过去。半导体的价带也全满，但带隙小（约 1 eV），室温下有少量电子被热运动送到导带。
+
+            纯净半导体里热激发出来的电子和空穴叫本征载流子，它们的浓度叫**本征载流子浓度（intrinsic carrier concentration）**，记作 $n_i$，室温下的硅里约 $10^{10}\ \text{cm}^{-3}$。
+      - item:
+          id: intrinsic-fraction
+          type: number
+          prompt: 硅每立方厘米有 $5\times10^{22}$ 个原子，室温下本征载流子浓度 $n_i = 10^{10}\ \text{cm}^{-3}$。平均每多少个原子才有一个自由电子？写成 $N\times10^{12}$，$N$ 是多少？
+          answer: 5
+          hint: 原子密度除以电子浓度。
+          explain: $5\times10^{22}/10^{10} = 5\times10^{12}$。键上的电子有 $2\times10^{23}\ \text{cm}^{-3}$ 个，被震脱的只占约十万亿分之五。
+      - item:
+          id: insulator-gap
+          type: choice
+          prompt: 二氧化硅和硅都是价带全满、导带全空。为什么二氧化硅可以做 MOSFET 的栅绝缘层？
+          options:
+            - text: 带隙约 9 eV，电子几乎激发不上去
+              correct: true
+            - text: 它的价带没有填满，电子动不了
+              why: 价带没填满的是金属，那样它会导电，反而不能做绝缘层
+            - text: 它里面根本没有电子
+              why: 二氧化硅里有大量电子，只是都被拴在价带里，跳到导带需要约 9 eV，热运动给不了
+          explain: 被激发的电子数大致按 $e^{-E_g/2kT}$ 变化，带隙从 1.1 eV 到 9 eV，这个因子相差六十多个数量级。所以二氧化硅里几乎没有能导电的电子，可以做绝缘层；薄到几纳米时，电子会直接穿过它造成漏电。
+  - id: generation-equilibrium
+    chapter: 器件物理
+    title: 产生、复合和热平衡
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 硅里不断有电子被热运动从键上震脱，那为什么自由电子不会越来越多？
+          options:
+            - text: 它们碰上空穴就落回键上消失
+              correct: true
+            - text: 自由电子会跑出晶体表面
+              why: 电子在体内就会和空穴相遇而消失，不需要离开晶体
+            - text: 被震脱的电子过一会儿自己就没了
+              why: 电子不会凭空消失，它要找到一个空位（空穴）才能回到键上
+          explain: 电子–空穴对不断产生，也不断因为电子落回空位而消失。两者速率相等时，浓度保持不变，这就是热平衡。
+      - card:
+          title: 产生和复合
+          body: |
+            产生一个电子–空穴对的过程叫产生，速率记作 $G$；一个自由电子落回一个空穴、两者一起消失的过程叫**复合（recombination）**，速率记作 $R$。
+
+            产生只靠热运动，在一定温度下 $G$ 是个常数。复合需要电子和空穴相遇，电子越多、空穴越多，相遇越频繁，所以 $R \propto np$。浓度不再变化时 $G = R$，这种状态叫**热平衡（thermal equilibrium）**，热平衡下的浓度记作 $n_0$、$p_0$。
+      - item:
+          id: rate-double
+          type: choice
+          prompt: 一块硅在热平衡下，设法让电子浓度瞬间变成两倍，空穴不变。复合速率瞬间怎样？
+          options:
+            - text: 变成两倍，多出的电子逐渐消失
+              correct: true
+            - text: 不变，复合速率只由温度决定
+              why: 只由温度决定的是产生速率；复合速率正比于 $np$，$n$ 翻倍它也翻倍
+            - text: 变成四倍，因为是 n 乘 p
+              why: $R \propto np$，只有 $n$ 变成两倍时 $R$ 变成两倍；$n$、$p$ 都加倍才是四倍
+          explain: $R \propto np$ 翻倍而 $G$ 不变，复合多于产生，多出来的电子把一部分空穴也一起消耗掉，直到 $np$ 回到 $n_i^2$。
+      - card:
+          title: 质量作用定律
+          body: |
+            热平衡时 $G = R \propto n_0p_0$，而 $G$ 只由温度决定，所以 $n_0p_0$ 也只由温度决定。纯硅里 $n_0 = p_0 = n_i$，于是
+
+            $$n_0p_0 = n_i^2$$
+
+            这叫**质量作用定律（mass action law）**，不管掺不掺杂都成立：电子多了，空穴就少。$n_i$ 随温度上升很快，近似 $n_i \propto T^{3/2}e^{-E_g/2kT}$，$k = 8.617\times10^{-5}$ eV/K 是玻尔兹曼常数。
+      - item:
+          id: p0-from-n0
+          type: number
+          prompt: 一块硅在室温热平衡下 $n_0 = 10^{15}\ \text{cm}^{-3}$，$n_i = 10^{10}\ \text{cm}^{-3}$。空穴浓度 $p_0$ 是多少？写成 $N\times10^5\ \text{cm}^{-3}$，$N$ 是多少？
+          answer: 1
+          hint: 用 $n_0p_0 = n_i^2$。
+          explain: $p_0 = 10^{20}/10^{15} = 10^5\ \text{cm}^{-3}$。电子比本征时多十万倍，空穴就少十万倍。
+      - card:
+          title: 例题：温度对本征浓度的影响
+          body: 硅 $E_g = 1.12$ eV，300 K 时 $n_i = 10^{10}\ \text{cm}^{-3}$。按 $n_i \propto T^{3/2}e^{-E_g/2kT}$，350 K 时 $n_i$ 约是多少？
+          reveal:
+            - title: 第 1 步：算温度因子
+              body: $(350/300)^{3/2} = 1.26$。
+            - title: 第 2 步：算指数因子的比
+              body: $\dfrac{E_g}{2k} = \dfrac{1.12}{2\times8.617\times10^{-5}} = 6499$ K，$\exp\left[6499\left(\dfrac{1}{300} - \dfrac{1}{350}\right)\right] = e^{3.095} = 22.1$。
+            - title: 第 3 步：相乘
+              body: $1.26\times22.1 = 27.8$，$n_i \approx 2.8\times10^{11}\ \text{cm}^{-3}$。温度只升高 50 K，本征浓度增加近 30 倍。
+      - item:
+          id: ni-250k
+          type: number
+          prompt: 硅 $E_g = 1.12$ eV，300 K 时 $n_i = 10^{10}\ \text{cm}^{-3}$。按 $n_i \propto T^{3/2}e^{-E_g/2kT}$，250 K 时 $n_i$ 是 300 K 时的多少倍？$k = 8.617\times10^{-5}$ eV/K。（保留两位有效数字）
+          answer: 0.01
+          tolerance: 0.0003
+          hint: 温度因子 $(250/300)^{3/2}$ 和指数因子 $\exp[6499(1/300 - 1/250)]$ 各是多少？
+          explain: $(250/300)^{1.5} = 0.761$，$\exp[6499\times(-6.67\times10^{-4})] = e^{-4.33} = 0.0131$，相乘约 0.010。降温 50 K，$n_i$ 降到约百分之一。
+      - item:
+          id: equilibrium-meaning
+          type: choice
+          prompt: 关于热平衡，下面哪个说法对？
+          options:
+            - text: 产生和复合仍在不停地进行，只是速率相等
+              correct: true
+            - text: 既没有产生也没有复合，一切都停了
+              why: 热平衡是动态的：每秒仍有大量电子–空穴对产生和复合，只是两者相等，浓度不变
+            - text: 电子和空穴浓度一定相等
+              why: 只有纯硅里才相等；掺杂以后热平衡时 $n_0 \ne p_0$，但乘积仍是 $n_i^2$
+          explain: 热平衡是一种动态的平衡。光照、注入电流会打破它，让 $np \ne n_i^2$，器件工作时常常就处在这种非平衡状态。
+  - id: doping
+    chapter: 器件物理
+    title: 掺杂：施主和受主
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 往硅里每一百万个原子换进 1 个磷原子。磷原子比硅多一个外层电子。室温下电子浓度会怎样变？
+          options:
+            - text: 增加几百万倍
+              correct: true
+            - text: 几乎不变，一百万个里才一个
+              why: 磷的浓度是 $5\times10^{22}/10^6 = 5\times10^{16}\ \text{cm}^{-3}$，而纯硅的自由电子只有 $10^{10}$，多出几百万倍
+            - text: 减少，杂质会捕获电子
+              why: 磷多出的那个电子很容易挣脱，结果是放出电子，不是捕获
+          explain: 每个磷原子几乎都放出一个自由电子，$5\times10^{16}$ 比 $10^{10}$ 多 500 万倍。这就是掺杂：用很少的杂质大幅度、可控地改变载流子浓度。
+      - card:
+          title: 施主
+          body: |
+            磷有 5 个外层电子，替代一个硅原子后，4 个用来成键，第 5 个只被松松地拴着，室温下几乎都挣脱成自由电子，留下一个带正电、不能移动的磷离子。能放出电子的杂质叫**施主（donor）**，磷、砷、锑都是，浓度记作 $N_d$。
+
+            掺施主、电子多的硅叫 n 型硅。这时电子是**多子（majority carrier）**，空穴是**少子（minority carrier）**。
+      - item:
+          id: n-type-p0
+          type: number
+          prompt: 硅掺磷 $N_d = 10^{16}\ \text{cm}^{-3}$，全部电离，$n_i = 10^{10}\ \text{cm}^{-3}$。空穴浓度是多少？写成 $N\times10^4\ \text{cm}^{-3}$，$N$ 是多少？
+          answer: 1
+          hint: 电子浓度约等于多少？再用 $n_0p_0 = n_i^2$。
+          explain: $n_0 \approx N_d = 10^{16}$，$p_0 = 10^{20}/10^{16} = 10^4\ \text{cm}^{-3}$。少子比多子少 12 个数量级。
+      - card:
+          title: 受主
+          body: |
+            硼只有 3 个外层电子，替代硅后成键时缺一个。邻近的电子很容易跳过来补上，在价带里留下一个空穴，硼变成带负电、不能移动的离子。能接受电子、产生空穴的杂质叫**受主（acceptor）**，硼、铝、镓都是，浓度记作 $N_a$。
+
+            掺受主、空穴多的硅叫 p 型硅，空穴是多子，电子是少子：$p_0 \approx N_a$，$n_0 = n_i^2/N_a$。
+      - item:
+          id: p-type-n0
+          type: number
+          prompt: 硅掺硼 $N_a = 2\times10^{17}\ \text{cm}^{-3}$，全部电离，$n_i = 10^{10}\ \text{cm}^{-3}$。电子浓度是多少 $\text{cm}^{-3}$？
+          answer: 500
+          tolerance: 1
+          unit: cm⁻³
+          hint: 多子是哪一种？浓度约多少？
+          explain: $p_0 \approx 2\times10^{17}$，$n_0 = 10^{20}/(2\times10^{17}) = 500\ \text{cm}^{-3}$。
+      - item:
+          id: which-acceptor
+          type: choice
+          multi: true
+          prompt: 下面哪些原子掺进硅里是受主？（多选）
+          options:
+            - text: 硼
+              correct: true
+            - text: 镓
+              correct: true
+            - text: 磷
+              why: 磷有 5 个外层电子，多出一个放给导带，是施主
+            - text: 砷
+              why: 砷和磷一样有 5 个外层电子，是施主
+          explain: 外层 3 个电子的硼、铝、镓比硅少一个，是受主；外层 5 个电子的磷、砷、锑多一个，是施主。
+      - card:
+          title: 补偿
+          body: |
+            同时掺施主和受主时，施主放出的电子先去填受主的空位，两者互相抵消，叫**补偿（compensation）**，也叫**杂质补偿**。电中性要求正电荷等于负电荷：$p_0 + N_d = n_0 + N_a$。$N_d > N_a$ 且两者之差远大于 $n_i$ 时，$n_0 \approx N_d - N_a$，$p_0 = n_i^2/n_0$。
+
+            做 CMOS 时，先把整片硅掺成 p 型，再在要放 PMOS 的地方掺更多施主，把那一块变成 n 型（叫 n 阱），靠的就是补偿。
+      - card:
+          title: 例题：补偿后的浓度
+          body: 硅里先掺了 $N_a = 3\times10^{16}$，再在一块区域里掺 $N_d = 10^{17}\ \text{cm}^{-3}$，$n_i = 10^{10}$。求这块区域的 $n_0$、$p_0$。
+          reveal:
+            - title: 第 1 步：看哪种杂质多
+              body: $N_d > N_a$，是 n 型。
+            - title: 第 2 步：多子浓度
+              body: $n_0 \approx N_d - N_a = 7\times10^{16}\ \text{cm}^{-3}$。
+            - title: 第 3 步：少子浓度
+              body: $p_0 = 10^{20}/(7\times10^{16}) = 1.43\times10^3\ \text{cm}^{-3}$。
+      - item:
+          id: compensated-n
+          type: number
+          prompt: 一块硅同时掺了 $N_d = 5\times10^{16}$ 和 $N_a = 2\times10^{16}\ \text{cm}^{-3}$，全部电离，$n_i = 10^{10}$。空穴浓度是多少 $\text{cm}^{-3}$？
+          answer: 3333
+          tolerance: 2
+          unit: cm⁻³
+          hint: 补偿以后净的施主浓度是多少？
+          explain: $n_0 \approx 5\times10^{16} - 2\times10^{16} = 3\times10^{16}$，$p_0 = 10^{20}/(3\times10^{16}) = 3333\ \text{cm}^{-3}$。只用 $N_d$ 算会得到 2000，漏掉了被受主抵消的电子。
+  - id: drift
+    chapter: 器件物理
+    title: 漂移和电阻
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 硅里加上恒定的电场，自由电子会怎样运动？
+          options:
+            - text: 以固定的平均速度逆着电场漂移
+              correct: true
+            - text: 一直加速，越跑越快，没有上限
+              why: 电子不断被硅原子的热振动和杂质撞得改变方向，每次碰撞都把攒下的定向速度打乱，平均速度不会一直增长
+            - text: 不动，只是热运动更剧烈
+              why: 热运动杂乱无章，平均为零；电场在上面叠加了一个定向的平均速度
+          explain: 电子在两次碰撞之间被电场加速，碰撞后方向被打乱，平均下来得到一个和电场成正比的定向速度，叫漂移速度。
+      - card:
+          title: 漂移速度和迁移率
+          body: |
+            载流子在电场作用下叠加在热运动上的平均定向速度叫**漂移速度（drift velocity）**。电场（单位 V/cm）不太强时它和电场成正比：
+
+            $$v_n = -\mu_nE,\qquad v_p = \mu_pE$$
+
+            比例系数叫**迁移率（mobility）**，单位 $\text{cm}^2/(\text{V·s})$，表示载流子在电场里跑得多快。轻掺杂的硅里 $\mu_n \approx 1350$、$\mu_p \approx 480$；杂质越多，碰撞越频繁，迁移率越低（掺到 $10^{17}$ 时电子约 800）。
+      - item:
+          id: drift-v
+          type: number
+          prompt: 电子迁移率 $1350\ \text{cm}^2/(\text{V·s})$，电场 1000 V/cm。漂移速度是多少？写成 $N\times10^6$ cm/s，$N$ 是多少？
+          answer: 1.35
+          tolerance: 0.001
+          hint: 漂移速度是迁移率乘什么？
+          explain: $v = 1350\times1000 = 1.35\times10^6$ cm/s。电场很强时速度会饱和在约 $10^7$ cm/s，不再按这个比例增长。
+      - card:
+          title: 漂移电流密度
+          body: |
+            单位面积上的电流等于单位体积里的电荷乘以漂移速度。电子带 $-q$、往电场反方向走，空穴带 $+q$、沿电场走，两者的电流方向相同，加起来：
+
+            $$J = q(n\mu_n + p\mu_p)E = \sigma E$$
+
+            $\sigma = q(n\mu_n + p\mu_p)$ 叫电导率，它的倒数 $\rho = 1/\sigma$ 叫电阻率，单位 Ω·cm。掺杂一种时只有多子那一项要紧。
+      - item:
+          id: drift-j
+          type: number
+          prompt: n 型硅 $n = 10^{16}\ \text{cm}^{-3}$，$\mu_n = 1350\ \text{cm}^2/(\text{V·s})$，电场 1000 V/cm，$q = 1.602\times10^{-19}$ C。漂移电流密度是多少 A/cm²？
+          answer: 2163
+          tolerance: 2
+          unit: A/cm²
+          hint: 电流密度由哪几个量相乘？
+          explain: $J = 1.602\times10^{-19}\times10^{16}\times1350\times1000 = 2163$ A/cm²。截面 1 μm × 1 μm（$10^{-8}\ \text{cm}^2$）时约 22 μA。
+      - card:
+          title: 方块电阻
+          body: |
+            芯片上的电阻是一层薄薄的掺杂区，厚度 $t$ 固定，只能画长 $L$ 和宽 $W$。电阻 $R = \rho L/(Wt)$，可以写成
+
+            $$R = R_\square\frac LW,\qquad R_\square = \frac{\rho}{t}$$
+
+            $R_\square$ 叫**方块电阻（sheet resistance）**（单位记作 Ω/□），是边长相等的一块正方形的电阻，和正方形多大无关。设计时只要数电阻有几个“方块”长：$L/W = 10$ 就是 10 个方块。
+      - card:
+          title: 例题：一个掺杂电阻
+          body: n 型层 $N_d = 10^{17}\ \text{cm}^{-3}$，电子迁移率 $800\ \text{cm}^2/(\text{V·s})$，厚 0.5 μm。求方块电阻，以及 $L/W = 10$ 的电阻值。
+          reveal:
+            - title: 第 1 步：电阻率
+              body: $\sigma = 1.602\times10^{-19}\times10^{17}\times800 = 12.8$ S/cm，$\rho = 0.078$ Ω·cm。
+            - title: 第 2 步：方块电阻
+              body: $R_\square = \rho/t = 0.078/(0.5\times10^{-4}) = 1561$ Ω/□。
+            - title: 第 3 步：数方块
+              body: $R = 1561\times10 = 15.6$ kΩ。
+      - item:
+          id: resistor-squares
+          type: number
+          prompt: 一层掺杂硅的方块电阻 200 Ω/□。要做一个 10 kΩ 的电阻，宽 2 μm，长要多少微米？
+          answer: 100
+          tolerance: 0.01
+          unit: μm
+          hint: 10 kΩ 需要几个方块？
+          explain: 方块数 $= 10\,000/200 = 50$，长 $= 50\times2 = 100$ μm。大电阻要很长一条，这是芯片上尽量避免用大电阻的原因。
+      - item:
+          id: mobility-doping
+          type: choice
+          prompt: 把硅的掺杂从 $10^{15}$ 提高到 $10^{17}\ \text{cm}^{-3}$，电子迁移率随之从约 1350 降到约 $800\ \text{cm}^2/(\text{V·s})$。电阻率怎样变？
+          options:
+            - text: 下降，但下降得比 100 倍少
+              correct: true
+            - text: 正好下降 100 倍
+              why: 载流子多了 100 倍，但杂质离子也多了，迁移率从约 1350 降到约 800，电阻率只下降约 60 倍
+            - text: 升高，因为杂质阻碍电子运动
+              why: 杂质确实让迁移率下降，但载流子浓度增加得多得多，总的电导率是增大的
+          explain: $\sigma = qn\mu$：$n$ 增加 100 倍，$\mu$ 降到约 0.6 倍，$\sigma$ 增加约 60 倍。
+  - id: diffusion
+    chapter: 器件物理
+    title: 扩散电流
+    minutes: 13
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一滴墨水滴进静止的水里，没有任何外力，墨水也会慢慢散开。硅里电子左边多、右边少，没有电场时会有净的电子流动吗？
+          options:
+            - text: 会，从多的一边流向少的一边
+              correct: true
+            - text: 不会，没有电场就没有力
+              why: 每个电子的热运动方向随机，但左边电子多，往右跑的总数多于往左跑的，合起来就有净流动
+            - text: 会，从少的一边流向多的一边
+              why: 随机运动只会把浓度抹平，净流动从浓处指向淡处
+          explain: 热运动让载流子往各个方向乱跑，哪边多，从那边跑过来的就多，净效果是从浓到淡，叫扩散。
+      - card:
+          title: 扩散电流密度
+          body: |
+            浓度不均匀时，载流子靠热运动从浓处向淡处的净流动叫**扩散（diffusion）**。单位时间穿过单位面积的粒子数和浓度梯度成正比，比例系数 $D$ 叫**扩散系数（diffusion coefficient）**，单位 $\text{cm}^2/\text{s}$。乘上电荷得电流密度：
+
+            $$J_n = qD_n\frac{dn}{dx},\qquad J_p = -qD_p\frac{dp}{dx}$$
+
+            电子带负电，往淡处跑时电流方向和它相反，所以电子的式子里没有负号。
+      - item:
+          id: diff-direction
+          type: choice
+          prompt: 电子浓度从左往右减小。电子的扩散电流朝哪边？
+          options:
+            - text: 向左，和电子运动方向相反
+              correct: true
+            - text: 向右，和电子运动方向相同
+              why: 电子往右扩散，但电子带负电，电流方向和它的运动方向相反
+            - text: 没有电流，扩散不算电流
+              why: 带电粒子的定向运动就是电流，不管推动它的是电场还是浓度差
+          explain: $dn/dx < 0$，$J_n = qD_n\,dn/dx < 0$，指向左。
+      - card:
+          title: 爱因斯坦关系
+          body: |
+            扩散和漂移都由同样的热运动和碰撞决定，所以扩散系数和迁移率成正比：
+
+            $$\frac{D}{\mu} = \frac{kT}{q} = V_T$$
+
+            这叫**爱因斯坦关系（Einstein relation）**，比例系数就是热电压，300 K 时 25.9 mV。迁移率大的载流子扩散也快。
+      - item:
+          id: dn-einstein
+          type: number
+          prompt: 300 K 时电子迁移率 $1350\ \text{cm}^2/(\text{V·s})$，$V_T = 25.9$ mV。电子扩散系数是多少 $\text{cm}^2/\text{s}$？
+          answer: 35
+          tolerance: 0.05
+          unit: cm²/s
+          hint: 爱因斯坦关系把哪两个量联系起来？$V_T$ 换成伏特是多少？
+          explain: $D_n = 1350\times0.0259 = 35.0\ \text{cm}^2/\text{s}$。空穴 $480\times0.0259 = 12.4\ \text{cm}^2/\text{s}$。
+      - card:
+          title: 例题：线性分布的扩散电流
+          body: 电子浓度在 1 μm 内从 $10^{16}\ \text{cm}^{-3}$ 线性降到 0，$\mu_n = 1350\ \text{cm}^2/(\text{V·s})$，$V_T = 25.9$ mV。求扩散电流密度的大小。
+          reveal:
+            - title: 第 1 步：扩散系数
+              body: $D_n = 1350\times0.0259 = 35.0\ \text{cm}^2/\text{s}$。
+            - title: 第 2 步：浓度梯度
+              body: $\dfrac{dn}{dx} = -\dfrac{10^{16}}{10^{-4}} = -10^{20}\ \text{cm}^{-4}$。
+            - title: 第 3 步：代入
+              body: $|J_n| = 1.602\times10^{-19}\times35.0\times10^{20} = 560$ A/cm²，方向和电子运动相反。
+      - item:
+          id: diff-current
+          type: number
+          prompt: n 型硅里空穴浓度在 2 μm 内从 $10^{14}\ \text{cm}^{-3}$ 线性降到 0，$D_p = 12.4\ \text{cm}^2/\text{s}$，$q = 1.602\times10^{-19}$ C。空穴扩散电流密度是多少 A/cm²？
+          answer: 0.993
+          tolerance: 0.002
+          unit: A/cm²
+          hint: 梯度是多少？空穴的扩散电流朝浓度减小的方向。
+          explain: $dp/dx = -10^{14}/(2\times10^{-4}) = -5\times10^{17}\ \text{cm}^{-4}$，$J_p = -qD_p\,dp/dx = 1.602\times10^{-19}\times12.4\times5\times10^{17} = 0.993$ A/cm²，沿空穴运动方向。
+      - item:
+          id: diff-vs-drift
+          type: choice
+          prompt: 少子（如 p 型硅里的电子）浓度很低。为什么它们的电流往往主要靠扩散而不是漂移？
+          options:
+            - text: 少子太少，漂移电流小；扩散看的是浓度梯度
+              correct: true
+            - text: 少子不受电场的作用，只能靠扩散运动
+              why: 少子同样受电场作用，但漂移电流 $qn\mu E$ 里 $n$ 很小，所以漂移电流很小
+            - text: 少子的迁移率是零，在电场里不会漂移
+              why: 少子的迁移率和它作为多子时差不多，并不为零
+          explain: 漂移电流和浓度成正比（$\propto n$），少子太少，漂移电流很小；扩散电流和浓度的梯度成正比（$\propto dn/dx$）。少子浓度从结边的较大值很快降到平衡值，梯度可以很大，这正是二极管和 BJT 里少子电流的来源。
+  - id: pn-equilibrium
+    chapter: 器件物理
+    title: 浓度和电势：60 mV 规则
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一块硅左半边电子浓度高、右半边低，处在热平衡，没有接电源，也没有电流。左右两边之间有没有电压？
+          options:
+            - text: 有，电子多的一边电势高
+              correct: true
+            - text: 没有，没接电源就没有电压
+              why: 电子要从浓处往淡处扩散，必须有一个电场把它推回来才能没有电流；有电场就有电势差
+            - text: 有，电子多的一边电势低
+              why: 电场要把扩散过去的电子往回拉，电子被吸向电势高的地方，所以电子多的一边电势高
+          explain: 扩散想把电子推向淡处，平衡时必须有一个电场把它们拉回来，两股电流正好抵消。这个电场来自浓度差，对应一个电势差。
+      - card:
+          title: 平衡时浓度和电势的关系
+          body: |
+            热平衡时电子的漂移电流和扩散电流处处抵消：$qn\mu_nE + qD_n\,dn/dx = 0$。电场是电势沿距离下降的快慢，$E = -d\phi/dx$。把它和 $D_n = \mu_nV_T$ 代进去，整理成 $dn/n = d\phi/V_T$，两边积分再取指数，得到
+
+            $$n_0 = n_ie^{\phi/V_T},\qquad p_0 = n_ie^{-\phi/V_T}$$
+
+            这里电势 $\phi$ 以本征硅（$n_0 = p_0 = n_i$）为零点。反过来，$\phi = V_T\ln(n_0/n_i) = -V_T\ln(p_0/n_i)$：n 型硅的电势为正，p 型硅为负。
+      - item:
+          id: phi-n
+          type: number
+          prompt: 硅掺施主 $N_d = 10^{17}\ \text{cm}^{-3}$，$n_i = 10^{10}$，300 K（$V_T = 25.9$ mV）。以本征硅为零点，它的电势 $\phi$ 是多少伏？
+          answer: 0.417
+          tolerance: 0.001
+          unit: V
+          hint: $n_0/n_i$ 是 10 的几次方？
+          explain: $\phi = 0.0259\times\ln10^7 = 0.0259\times16.12 = 0.417$ V。
+      - card:
+          title: 60 mV 规则
+          body: |
+            $V_T\ln10 = 25.9\times2.303 = 59.6$ mV，约 60 mV。所以
+
+            $$\phi \approx 60\ \text{mV}\times\lg\frac{n_0}{n_i}$$
+
+            浓度每差 10 倍，电势差 60 mV。$n_0 = 10^{17}$ 是 $n_i$ 的 $10^7$ 倍，$\phi \approx 7\times60 = 420$ mV；p 型 $p_0 = 10^{16}$，$\phi \approx -6\times60 = -360$ mV。这样不用计算器也能很快估出电势。
+      - item:
+          id: rule-p
+          type: number
+          prompt: 用 60 mV 规则估算：p 型硅 $p_0 = 10^{15}\ \text{cm}^{-3}$，$n_i = 10^{10}$。以本征硅为零点，它的电势是多少毫伏？
+          answer: -300
+          tolerance: 0.5
+          unit: mV
+          hint: $p_0/n_i$ 是 10 的几次方？p 型的电势正负号是什么？
+          explain: $p_0/n_i = 10^5$，$\phi = -5\times60 = -300$ mV。精确值是 $-0.0259\times\ln10^5 = -298$ mV。
+      - card:
+          title: 内建电势
+          body: |
+            把 p 型区和 n 型区做在同一块硅里（PN 结），热平衡时两边的电势就是各自的 $\phi_n$ 和 $\phi_p$，交界处的电势差叫**内建电势（built-in potential）**：
+
+            $$\phi_B = \phi_n - \phi_p = V_T\ln\frac{N_dN_a}{n_i^2}$$
+
+            用 60 mV 规则：$\phi_B \approx 60\ \text{mV}\times(\lg\frac{N_d}{n_i} + \lg\frac{N_a}{n_i})$。这个电势差落在交界附近一层很薄的区域里，那里有很强的电场。
+      - card:
+          title: 例题：PN 结的内建电势
+          body: PN 结 $N_d = 10^{17}$、$N_a = 10^{16}\ \text{cm}^{-3}$，$n_i = 10^{10}$，300 K。用 60 mV 规则估算，再精确计算。
+          reveal:
+            - title: 第 1 步：两边的电势
+              body: $\phi_n \approx 7\times60 = 420$ mV，$\phi_p \approx -6\times60 = -360$ mV。
+            - title: 第 2 步：相减
+              body: $\phi_B \approx 420 - (-360) = 780$ mV。
+            - title: 第 3 步：精确值
+              body: $V_T\ln(10^{33}/10^{20}) = 0.0259\times\ln10^{13} = 0.775$ V，和估算只差 5 mV。
+      - item:
+          id: phib-value
+          type: number
+          prompt: PN 结 $N_a = 10^{17}$、$N_d = 10^{15}\ \text{cm}^{-3}$，$n_i = 10^{10}$，300 K（$V_T = 25.9$ mV）。内建电势是多少伏？
+          answer: 0.716
+          tolerance: 0.001
+          unit: V
+          hint: $N_aN_d/n_i^2$ 是 10 的几次方？
+          explain: $\phi_B = 0.0259\times\ln10^{12} = 0.0259\times27.63 = 0.716$ V。60 mV 规则给出 $12\times60 = 720$ mV。
+      - item:
+          id: voltmeter
+          type: choice
+          prompt: 用电压表接在一个不通电的 PN 结二极管两端，能读出约 0.7 V 的内建电势吗？
+          options:
+            - text: 不能，读数为零
+              correct: true
+            - text: 能，内建电势就是两端电压
+              why: 表笔的金属和半导体接触时也有接触电势，一圈加起来正好抵消内建电势
+            - text: 能，但需要很灵敏的电压表
+              why: 不是灵敏度的问题：热平衡下回路里没有能量来源，任何电压表都读出零
+          explain: 如果读得出，接上负载就能从一块静置的二极管里不断取出能量，这违反热力学第二定律。金属接触处的电势差把内建电势抵消了。
+  - id: pn-depletion
+    chapter: 器件物理
+    title: PN 结的耗尽区和电流
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: PN 结的 p 区掺杂重（$10^{17}$），n 区掺杂轻（$10^{15}$）。交界处那层没有自由载流子的区域主要伸进哪一边？
+          options:
+            - text: 掺杂轻的 n 区
+              correct: true
+            - text: 掺杂重的 p 区
+              why: 两侧离子的总电荷要相等；p 区每立方厘米的离子多，薄薄一层就够，n 区离子少，要很厚一层
+            - text: 两边一样宽
+              why: 只有两边掺杂相同时才对称；宽度和掺杂成反比
+          explain: 两侧正负电荷总量相等：$N_ax_p = N_dx_n$。n 区掺杂只有 p 区的百分之一，就要伸进去一百倍的宽度。
+      - card:
+          title: 耗尽区
+          body: |
+            PN 结交界处，n 区的电子扩散到 p 区、p 区的空穴扩散到 n 区，彼此复合，在交界附近留下一层几乎没有自由载流子、只剩电离杂质的区域，叫**耗尽区（depletion region）**：n 侧是施主正离子，p 侧是受主负离子，它们的电场从 n 指向 p，挡住继续扩散。
+
+            **耗尽近似（depletion approximation）**：认为这一层里载流子完全没有，层外完全电中性。两侧电荷相等，$N_ax_p = N_dx_n$。
+      - item:
+          id: charge-balance
+          type: number
+          prompt: PN 结 $N_a = 10^{17}$、$N_d = 10^{16}\ \text{cm}^{-3}$，耗尽区伸进 p 区 $x_p = 0.02$ μm。伸进 n 区的 $x_n$ 是多少微米？
+          answer: 0.2
+          tolerance: 0.0001
+          unit: μm
+          hint: 两侧离子的总电荷要相等。
+          explain: $N_ax_p = N_dx_n$，$x_n = 0.02\times10^{17}/10^{16} = 0.2$ μm。掺杂轻 10 倍，伸进去就宽 10 倍。
+      - card:
+          title: 耗尽区宽度
+          body: |
+            每一层电荷都让电场变化一点：电场从 p 侧边缘的零沿直线增大到交界处的最大值，再沿直线降回 n 侧边缘的零，是一个三角形；电势差是三角形的面积。令它等于 $\phi_B - V_D$（$V_D$ 是外加电压，正偏为正），解出总宽度
+
+            $$W = \sqrt{\frac{2\varepsilon_{Si}(\phi_B - V_D)}{q}\left(\frac{1}{N_a} + \frac{1}{N_d}\right)}$$
+
+            $\varepsilon_{Si} = 11.7\varepsilon_0 = 1.036\times10^{-12}$ F/cm。反偏（$V_D < 0$）让耗尽区变宽，正偏让它变窄。
+      - card:
+          title: 例题：算耗尽区宽度
+          body: PN 结 $N_a = 10^{17}$、$N_d = 10^{15}\ \text{cm}^{-3}$，$\phi_B = 0.716$ V，零偏。求 $W$ 和伸进 n 区的部分 $x_n$。
+          reveal:
+            - title: 第 1 步：括号里的倒数和
+              body: $10^{-17} + 10^{-15} = 1.01\times10^{-15}\ \text{cm}^3$，几乎全由轻掺杂的一边决定。
+            - title: 第 2 步：代入
+              body: $W = \sqrt{2\times1.036\times10^{-12}\times0.716\times1.01\times10^{-15}/1.602\times10^{-19}} = 9.67\times10^{-5}$ cm $= 0.967$ μm。
+            - title: 第 3 步：两侧的分配
+              body: $x_n = W\cdot\dfrac{N_a}{N_a + N_d} = 0.957$ μm，$x_p = 0.0096$ μm。
+      - item:
+          id: w-reverse
+          type: number
+          prompt: PN 结 $N_a = 10^{17}$、$N_d = 10^{15}\ \text{cm}^{-3}$，$\phi_B = 0.716$ V，加 3 V 反偏。耗尽区宽度是多少微米？$\varepsilon_{Si} = 1.036\times10^{-12}$ F/cm，$q = 1.602\times10^{-19}$ C。
+          answer: 2.203
+          tolerance: 0.005
+          unit: μm
+          hint: 反偏 3 V 时，括号里的 $\phi_B - V_D$ 是多少？
+          explain: $W = \sqrt{2\times1.036\times10^{-12}\times3.716\times1.01\times10^{-15}/1.602\times10^{-19}} = 2.20\times10^{-4}$ cm $= 2.20$ μm，是零偏时的 $\sqrt{3.716/0.716} = 2.28$ 倍。
+      - item:
+          id: forward-narrow
+          type: choice
+          prompt: 给 PN 结加 0.5 V 正偏（$\phi_B = 0.7$ V），耗尽区怎样变？
+          options:
+            - text: 变窄
+              correct: true
+            - text: 变宽
+              why: 正偏让 $\phi_B - V_D$ 从 0.7 降到 0.2，$W$ 变小；反偏才让它变宽
+            - text: 不变，宽度只由掺杂决定
+              why: $W \propto \sqrt{\phi_B - V_D}$，外加电压直接改变它
+          explain: $W$ 变成原来的 $\sqrt{0.2/0.7} = 0.53$ 倍。交界处的电势差变小，载流子更容易越过去，正向电流随之指数增长。
+      - card:
+          title: 正偏注入和二极管方程的来历
+          body: |
+            交界处的电势差像一道挡住载流子的坎，叫**势垒（potential barrier）**。正偏 $V_D$ 把它从 $\phi_B$ 降到 $\phi_B - V_D$。按平衡时浓度和电势的关系，耗尽区边上的少子浓度升高 $e^{V_D/V_T}$ 倍：p 侧的电子从 $n_{p0} = n_i^2/N_a$ 升到 $n_{p0}e^{V_D/V_T}$。这叫**少子注入（minority carrier injection）**。
+
+            注入的少子靠扩散往里走，扩散电流正比于多出来的浓度 $n_{p0}(e^{V_D/V_T} - 1)$，于是 $I_D = I_S(e^{V_D/V_T} - 1)$。$I_S$ 正比于 $n_i^2$，掺杂轻的一侧少子多，贡献大部分电流。
+      - item:
+          id: injected
+          type: number
+          prompt: PN 结 p 区 $N_a = 10^{17}\ \text{cm}^{-3}$，$n_i = 10^{10}$，加 0.6 V 正偏，$V_T = 25.9$ mV。p 侧耗尽区边上的电子浓度是多少？写成 $N\times10^{13}\ \text{cm}^{-3}$，$N$ 是多少？
+          answer: 1.15
+          tolerance: 0.01
+          hint: 平衡时的 $n_{p0}$ 是多少？乘上的因子是多少？
+          explain: $n_{p0} = 10^{20}/10^{17} = 10^3$，$e^{0.6/0.0259} = e^{23.17} = 1.15\times10^{10}$，$n_p = 1.15\times10^{13}\ \text{cm}^{-3}$，仍远小于多子 $10^{17}$。
+  - id: mos-equilibrium
+    chapter: 器件物理
+    title: 热平衡下的 MOS 电容
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 一块 p 型硅上长一层氧化层，再盖一层重掺杂的 n 型硅作栅极，栅极和硅用导线连起来（不加电压）。氧化层下面的硅表面，空穴浓度和硅内部比怎样？
+          options:
+            - text: 比内部少
+              correct: true
+            - text: 和内部一样，没加电压就什么也不发生
+              why: 栅极和衬底材料不同，各自的电势不同（n 型为正、p 型为负），连起来后这个电势差要落在氧化层和硅表面上
+            - text: 比内部多
+              why: n 型栅极的电势比 p 型衬底高，它把带正电的空穴从表面推开，而不是吸过来
+          explain: n 型多晶硅的电势约 +0.55 V，p 型衬底为负，两者之差在热平衡时落在氧化层和硅表面一层上。栅极相对衬底偏正，把空穴从表面推开，表面出现一层耗尽区。
+      - card:
+          title: MOS 电容
+          body: |
+            栅极、氧化层、硅三层叠起来，叫 MOS（金属–氧化物–半导体）结构，它本身是一个电容。栅极常用**多晶硅（polysilicon）**：沉积在氧化层上、由许多小晶粒组成的硅，重掺杂后能导电。单位面积的氧化层电容是
+
+            $$C_{ox} = \frac{\varepsilon_{ox}}{t_{ox}},\qquad \varepsilon_{ox} = 3.9\varepsilon_0 = 3.45\times10^{-13}\ \text{F/cm}$$
+
+            $t_{ox}$ 是氧化层厚度。$t_{ox} = 10$ nm 时 $C_{ox} = 3.45\times10^{-7}\ \text{F/cm}^2 = 3.45\ \text{fF/μm}^2$。氧化层越薄，同样的电压在硅表面感应出的电荷越多，栅极对沟道的控制越强。
+      - item:
+          id: cox-2nm
+          type: number
+          prompt: 栅氧化层厚 2 nm，$\varepsilon_{ox} = 3.45\times10^{-13}$ F/cm。单位面积氧化层电容是多少 $\text{fF/μm}^2$？
+          answer: 17.27
+          tolerance: 0.05
+          unit: fF/μm²
+          hint: 先算 F/cm²，再换算：$1\ \text{μm}^2 = 10^{-8}\ \text{cm}^2$。
+          explain: $C_{ox} = 3.45\times10^{-13}/(2\times10^{-7}) = 1.73\times10^{-6}\ \text{F/cm}^2$，乘 $10^{-8}$ 得每平方微米 $1.73\times10^{-14}$ F $= 17.3$ fF。比 10 nm 时大 5 倍。
+      - card:
+          title: 栅极和衬底的电势差
+          body: |
+            以本征硅为零点，重掺杂的 n 型多晶硅栅极电势约 $\phi_{n^+} = +0.55$ V（上标 + 表示重掺杂，0.55 V 是 6.012 的取法），p 型衬底 $\phi_p = -V_T\ln(N_a/n_i)$。栅极接到衬底上时，这两个电势之差 $\phi_{n^+} - \phi_p$ 要分在氧化层和硅表面的耗尽层上。
+
+            要让硅表面回到和内部一样、氧化层里没有电场，需要在栅极上加 $V_{GB} = -(\phi_{n^+} - \phi_p)$，这个电压叫**平带电压（flatband voltage）**，记作 $V_{FB}$。
+      - item:
+          id: phip-1e17
+          type: number
+          prompt: p 型衬底 $N_a = 10^{17}\ \text{cm}^{-3}$，$n_i = 10^{10}$，300 K。用 60 mV 规则估算它的电势 $\phi_p$，是多少毫伏？
+          answer: -420
+          tolerance: 0.5
+          unit: mV
+          hint: $p_0/n_i$ 是 10 的几次方？p 型取负号。
+          explain: $10^{17}/10^{10} = 10^7$，$\phi_p \approx -7\times60 = -420$ mV（精确值 $-417$ mV）。
+      - card:
+          title: 例题：算平带电压
+          body: n 型多晶硅栅（$\phi_{n^+} = 0.55$ V），p 型衬底 $N_a = 10^{16}\ \text{cm}^{-3}$。求平带电压；如果换成 p 型多晶硅栅（$\phi_{p^+} = -0.55$ V）呢？
+          reveal:
+            - title: 第 1 步：衬底电势
+              body: $\phi_p \approx -6\times60 = -360$ mV。
+            - title: 第 2 步：n 型栅
+              body: $V_{FB} = -(0.55 - (-0.36)) = -0.91$ V。
+            - title: 第 3 步：p 型栅
+              body: $V_{FB} = -(-0.55 - (-0.36)) = +0.19$ V。栅极材料改变平带电压，进而改变阈值电压，CMOS 工艺就是给 NMOS 和 PMOS 用不同掺杂的栅来调阈值的。
+      - item:
+          id: vfb-1e17
+          type: number
+          prompt: n 型多晶硅栅（$\phi_{n^+} = 0.55$ V），p 型衬底 $\phi_p = -0.42$ V。平带电压是多少伏？
+          answer: -0.97
+          tolerance: 0.001
+          unit: V
+          hint: 平带电压要把两种材料的电势差抵消掉。
+          explain: $V_{FB} = -(0.55 - (-0.42)) = -0.97$ V。要在栅极上加 $-0.97$ V，硅表面的电势才和内部相同。
+      - item:
+          id: equilibrium-surface
+          type: choice
+          prompt: 一个 n 型多晶硅栅、p 型衬底的 MOS 结构，$V_{FB} = -0.97$ V。$V_{GB} = 0$ 时，硅表面处在什么状态？
+          options:
+            - text: 耗尽：空穴被推开，留下受主负离子
+              correct: true
+            - text: 积累：空穴被吸到了表面
+              why: 积累要求 $V_{GB}$ 比 $V_{FB}$ 更负；$V_{GB} = 0$ 比 $-0.97$ V 高，栅极相对偏正，是把空穴推开
+            - text: 平带：表面和内部完全一样
+              why: 平带要求 $V_{GB} = V_{FB} = -0.97$ V；现在高出 0.97 V
+          explain: $V_{GB} = 0$ 比平带电压高 0.97 V，这部分电压把空穴从表面推开，形成耗尽层。再往上加到阈值电压，表面会出现电子层。
+  - id: mos-bias
+    chapter: 器件物理
+    title: 积累、耗尽和反型
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: p 型衬底的 MOS 电容，栅极电压从很负加到很正。硅表面最后会聚集起哪种载流子？
+          options:
+            - text: 电子
+              correct: true
+            - text: 空穴，因为衬底是 p 型
+              why: 栅极很正时把空穴推开，同时把少量电子吸到表面；电压够高时表面的电子比空穴还多
+            - text: 什么也没有，表面只剩离子
+              why: 那是中间一段电压（耗尽）的情形；电压再高，表面就会出现大量电子
+          explain: 栅极很负时空穴被吸到表面（积累）；稍正时空穴被推开、只剩负离子（耗尽）；更正时电子被吸上来，表面从 p 型“反”成 n 型（反型）。MOSFET 的沟道就是这层反型的电子。
+      - card:
+          title: 三种状态
+          body: |
+            - **积累（accumulation）**：$V_{GB} < V_{FB}$，空穴被吸到表面，表面比内部更 p。
+            - **耗尽（depletion）**：$V_{FB} < V_{GB} < V_{th}$，空穴被推开，表面留下一层受主负离子，厚度随电压增加。
+            - **反型（inversion）**：$V_{GB} > V_{th}$，表面的电子浓度超过内部的空穴浓度，表面成了 n 型，这层电子叫**反型层（inversion layer）**。
+
+            反型的标准是表面电势从 $\phi_p$ 升到 $-\phi_p$，即表面相对内部升高 $-2\phi_p$。
+      - item:
+          id: mos-region
+          type: choice
+          prompt: 一个 p 型衬底的 MOS 电容 $V_{FB} = -0.97$ V、$V_{th} = 0.35$ V。$V_{GB} = -0.5$ V 时表面处在什么状态？
+          options:
+            - text: 耗尽
+              correct: true
+            - text: 积累，因为栅压是负的
+              why: 判断看和 $V_{FB}$ 比：$-0.5$ V 比 $-0.97$ V 高，空穴已被推开，不是积累
+            - text: 反型
+              why: 反型要 $V_{GB}$ 超过 $V_{th} = 0.35$ V
+          explain: $V_{FB} < -0.5 < V_{th}$，是耗尽。栅压是负的不等于积累，因为材料的电势差已经让表面偏向耗尽了。
+      - card:
+          title: 阈值电压
+          body: |
+            到阈值时，耗尽层达到最大厚度，里面受主离子的电荷是 $Q_{d,max} = \sqrt{2\varepsilon_{Si}qN_a(-2\phi_p)}$（每单位面积）。栅压要做三件事：抵消材料的电势差（$V_{FB}$），让表面电势升高 $-2\phi_p$，在氧化层上提供和耗尽电荷相应的电压 $Q_{d,max}/C_{ox}$。所以
+
+            $$V_{th} = V_{FB} - 2\phi_p + \frac{\sqrt{2\varepsilon_{Si}qN_a(-2\phi_p)}}{C_{ox}}$$
+      - card:
+          title: 例题：算阈值电压
+          body: n 型多晶硅栅，p 型衬底 $N_a = 10^{17}\ \text{cm}^{-3}$（$\phi_p = -0.42$ V，$V_{FB} = -0.97$ V），$t_{ox} = 10$ nm（$C_{ox} = 3.45\times10^{-7}\ \text{F/cm}^2$）。求 $V_{th}$。
+          reveal:
+            - title: 第 1 步：最大耗尽电荷
+              body: $Q_{d,max} = \sqrt{2\times1.036\times10^{-12}\times1.602\times10^{-19}\times10^{17}\times0.84} = 1.67\times10^{-7}\ \text{C/cm}^2$。
+            - title: 第 2 步：它在氧化层上需要的电压
+              body: $Q_{d,max}/C_{ox} = 1.67\times10^{-7}/3.45\times10^{-7} = 0.484$ V。
+            - title: 第 3 步：三项相加
+              body: $V_{th} = -0.97 + 0.84 + 0.484 = 0.354$ V。
+      - item:
+          id: inversion-charge
+          type: number
+          prompt: 一个 MOS 电容 $C_{ox} = 3.45\times10^{-7}\ \text{F/cm}^2$，栅压比阈值电压高 1 V。反型层里每平方厘米有多少个电子？反型层电荷 $|Q_n| = C_{ox}(V_{GB} - V_{th})$，$q = 1.602\times10^{-19}$ C。写成 $N\times10^{12}$，$N$ 是多少？
+          answer: 2.15
+          tolerance: 0.01
+          hint: 先算电荷，再除以一个电子的电荷。
+          explain: $|Q_n| = 3.45\times10^{-7}$ C/cm²，除以 $1.602\times10^{-19}$ 得 $2.15\times10^{12}$ 个/cm²。超过阈值以后，栅压每多 1 V，反型层就多这么多电子，这正是 MOSFET 电流随栅压增加的原因。
+      - item:
+          id: xd-max
+          type: number
+          prompt: p 型衬底 $N_a = 10^{17}\ \text{cm}^{-3}$，到阈值时表面电势升高 $-2\phi_p = 0.84$ V。最大耗尽层厚度 $x_{d,max} = \sqrt{2\varepsilon_{Si}(-2\phi_p)/(qN_a)}$ 是多少纳米？$\varepsilon_{Si} = 1.036\times10^{-12}$ F/cm。
+          answer: 104
+          tolerance: 0.5
+          unit: nm
+          hint: 代入后得到的是厘米，$1\ \text{nm} = 10^{-7}$ cm。
+          explain: $x_{d,max} = \sqrt{2\times1.036\times10^{-12}\times0.84/(1.602\times10^{-19}\times10^{17})} = 1.04\times10^{-5}$ cm $= 104$ nm。超过阈值后耗尽层不再变厚，多出来的栅电荷都由反型层的电子平衡。
+      - card:
+          title: C–V 曲线
+          body: |
+            测 MOS 电容随栅压的变化（C–V 曲线）是检查工艺的常用办法。积累时电荷就在表面，电容等于 $C_{ox}$；耗尽时耗尽层像另一个串联的电容，总电容下降；反型后（低频测量时）电荷又回到表面，电容回到 $C_{ox}$。从曲线能读出 $t_{ox}$、$V_{FB}$、$V_{th}$ 和衬底掺杂。
+      - item:
+          id: cv-accum
+          type: choice
+          prompt: 测一个 MOS 电容的 C–V 曲线，栅压很负（积累）时测到 $3.45\ \text{fF/μm}^2$（$\varepsilon_{ox} = 3.45\times10^{-13}$ F/cm）。由此能直接得到什么？
+          options:
+            - text: 氧化层有多厚
+              correct: true
+            - text: 衬底的掺杂浓度
+              why: 积累时电容只和氧化层有关；掺杂要从耗尽段的电容或阈值来推
+            - text: 阈值电压多大
+              why: 阈值电压要看电容从下降转为回升的位置，积累段的数值只给出氧化层电容
+          explain: 积累时 $C = C_{ox} = \varepsilon_{ox}/t_{ox}$，$t_{ox} = 3.45\times10^{-13}/3.45\times10^{-7} = 10^{-6}$ cm $= 10$ nm。
+  - id: mosfet-from-charge
+    chapter: 器件物理
+    title: 从反型层电荷到 MOSFET 的电流
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: MOSFET 的源极接地、漏极接 $V_{DS} > 0$。沟道里靠近漏极的地方，反型层的电子比靠近源极的地方多还是少？
+          options:
+            - text: 少，漏端和栅极的电压差小
+              correct: true
+            - text: 多，电子都往漏极跑，堆在那里
+              why: 电子流向漏极，但单位面积有多少电子由栅极和该点的电压差决定，漏端电压差小，电子少
+            - text: 一样多，沟道从源到漏是均匀的
+              why: 只有 $V_{DS} = 0$ 时才均匀；有 $V_{DS}$ 时沟道电压从源到漏升高，反型层逐渐变薄
+          explain: 反型层电荷 $|Q_n| = C_{ox}(V_{GS} - V - V_{th})$，$V$ 是沟道上这一点的电压。从源到漏 $V$ 由 0 升到 $V_{DS}$，电子越来越少，所以电流随 $V_{DS}$ 的增长越来越慢。
+      - card:
+          title: 沟道里的电荷和电流
+          body: |
+            沿沟道取坐标 $y$（源极 $y = 0$、漏极 $y = L$），这一点的沟道电压是 $V(y)$。把这一点看成一个小 MOS 电容，反型层电荷每单位面积是
+
+            $$Q_n(y) = -C_{ox}\left[V_{GS} - V(y) - V_{th}\right]$$
+
+            电流 = 沟道每单位长的电荷 × 漂移速度：$I_D = W|Q_n|\mu_n\dfrac{dV}{dy}$（$dV/dy$ 就是沿沟道的电场）。沿沟道各处电流相同。
+      - card:
+          title: 推出三极管区的电流
+          body: |
+            把上式写成 $I_D\,dy = W\mu_nC_{ox}(V_{GS} - V - V_{th})\,dV$，两边从源到漏积分（$y$ 从 0 到 $L$，$V$ 从 0 到 $V_{DS}$）：
+
+            $$I_D = \frac{W}{L}\mu_nC_{ox}\left[(V_{GS} - V_{th})V_{DS} - \frac{V_{DS}^2}{2}\right]$$
+
+            这就是三极管区的公式，$k = \mu_nC_{ox}W/L$。$V_{DS} = V_{GS} - V_{th}$ 时漏端 $Q_n = 0$，沟道在漏端夹断，电流达到最大，再往上就是饱和区。
+      - item:
+          id: k-from-process
+          type: number
+          prompt: 沟道里电子的迁移率 $400\ \text{cm}^2/(\text{V·s})$，$C_{ox} = 3.45\times10^{-7}\ \text{F/cm}^2$，$W/L = 10$。$k = \mu_nC_{ox}W/L$ 是多少 $\text{mA/V}^2$？
+          answer: 1.38
+          tolerance: 0.01
+          unit: mA/V²
+          hint: $\text{cm}^2/(\text{V·s})\times\text{F/cm}^2$ 的单位是什么？
+          explain: $\mu_nC_{ox} = 400\times3.45\times10^{-7} = 1.38\times10^{-4}\ \text{A/V}^2$，乘 10 得 $1.38\times10^{-3}\ \text{A/V}^2 = 1.38\ \text{mA/V}^2$。沟道里的迁移率比体硅里小，因为电子贴着氧化层表面跑，散射更多。
+      - item:
+          id: pinchoff-charge
+          type: choice
+          prompt: 饱和区的 MOSFET 漏端沟道已经夹断（$Q_n = 0$），为什么电流没有变成零？
+          options:
+            - text: 被夹断点附近的强电场扫进漏极
+              correct: true
+            - text: 夹断以后漏端没有电子，电流确实是零
+              why: 饱和区里电流最大且几乎不变；夹断点到漏极之间是一小段耗尽区，电场很强，电子穿过它不需要反型层
+            - text: 电子从栅极穿过氧化层流过来补充
+              why: 栅极和沟道之间隔着绝缘的氧化层，没有直流电流
+          explain: 电荷密度为零只出现在一点附近，那里电场很大，速度很高，电荷 × 速度仍然等于电流。模型里“$Q_n = 0$”是一个近似的说法。
+      - card:
+          title: 例题：由工艺数据算电流
+          body: NMOS 的 $\mu_nC_{ox} = 138\ \text{μA/V}^2$，$W = 2$ μm，$L = 0.5$ μm，$V_{th} = 0.35$ V，$V_{GS} = 1.0$ V，$V_{DS} = 1.0$ V。求漏极电流。
+          reveal:
+            - title: 第 1 步：算 k
+              body: $k = 138\times2/0.5 = 552\ \text{μA/V}^2$。
+            - title: 第 2 步：定区域
+              body: $V_{ov} = 0.65$ V，$V_{DS} = 1.0 \ge 0.65$，饱和区。
+            - title: 第 3 步：平方律
+              body: $I_D = \tfrac12\times552\times0.65^2 = 117\ \text{μA}$。
+      - card:
+          title: 背栅效应的来历
+          body: |
+            源极电压比衬底高 $V_{SB}$ 时，沟道相对衬底更正，表面要升高 $-2\phi_p + V_{SB}$ 才反型，耗尽层更厚，耗尽电荷变成 $\sqrt{2\varepsilon_{Si}qN_a(-2\phi_p + V_{SB})}$，阈值电压随之升高：
+
+            $$V_{th} = V_{th0} + \gamma\left(\sqrt{-2\phi_p + V_{SB}} - \sqrt{-2\phi_p}\right),\qquad \gamma = \frac{\sqrt{2\varepsilon_{Si}qN_a}}{C_{ox}}$$
+
+            衬底掺杂越重、氧化层越厚，$\gamma$ 越大，背栅效应越明显。
+      - item:
+          id: gamma-value
+          type: number
+          prompt: p 型衬底 $N_a = 10^{17}\ \text{cm}^{-3}$，$C_{ox} = 3.45\times10^{-7}\ \text{F/cm}^2$，$\varepsilon_{Si} = 1.036\times10^{-12}$ F/cm，$q = 1.602\times10^{-19}$ C。体效应系数 $\gamma$ 是多少 $\text{V}^{1/2}$？
+          answer: 0.528
+          tolerance: 0.002
+          unit: V^½
+          hint: $\gamma$ 的根号下是哪三个量相乘？算出来再除以什么？
+          explain: $\sqrt{2\times1.036\times10^{-12}\times1.602\times10^{-19}\times10^{17}} = 1.82\times10^{-7}$，除以 $3.45\times10^{-7}$ 得 0.528。
+      - item:
+          id: sat-from-process
+          type: number
+          prompt: NMOS 的 $\mu_nC_{ox} = 138\ \text{μA/V}^2$，$W = 4$ μm，$L = 0.5$ μm，$V_{th} = 0.35$ V，$V_{GS} = 0.85$ V，饱和区。漏极电流是多少微安？
+          answer: 138
+          tolerance: 0.5
+          unit: μA
+          hint: 先算 $k$ 和过驱动电压。
+          explain: $k = 138\times8 = 1104\ \text{μA/V}^2$，$V_{ov} = 0.5$ V，$I_D = \tfrac12\times1104\times0.25 = 138$ μA。
+  - id: cmos-process
+    chapter: 工艺与电路实现约束
+    title: CMOS 工艺流程
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 芯片上几十纳米宽的图形是怎样“画”到硅片上的？
+          options:
+            - text: 光透过有图形的掩模照到感光胶上
+              correct: true
+            - text: 用极细的针一笔笔刻出来
+              why: 一片硅上有上百亿个晶体管，逐个刻太慢；光刻能一次把整片图形转移过去
+            - text: 用打印机把导电墨水印上去
+              why: 打印的精度在微米级，远达不到几十纳米，也做不出晶体管需要的掺杂和氧化层
+          explain: 这叫光刻：感光胶被光照到的地方性质改变，显影后留下和掩模一样的图形，再用刻蚀或注入把图形转移到下面的材料里。整个工艺就是光刻和别的步骤一遍遍重复。
+      - card:
+          title: 单项工艺
+          body: |
+            - 热氧化：在高温氧气里让硅表面长出二氧化硅，用作栅氧化层和隔离。
+            - **光刻（lithography）**：涂感光胶（光刻胶），透过掩模曝光，显影出图形。
+            - **刻蚀（etching）**：把没被光刻胶保护的材料去掉，常用等离子体干法刻蚀，侧壁陡直。
+            - **离子注入（ion implantation）**：把杂质离子加速打进硅里，再加热（退火）修复被打乱的原子排列、激活杂质，形成阱、源和漏。
+            - 薄膜沉积：用化学气相沉积等方法铺上多晶硅、氮化硅、二氧化硅和金属。
+      - item:
+          id: litho-resolution
+          type: number
+          prompt: 光刻能分辨的最小线宽近似为 $k_1\lambda/NA$。用波长 193 nm 的光、数值孔径 $NA = 1.35$、$k_1 = 0.3$，最小线宽约多少纳米？
+          answer: 42.9
+          tolerance: 0.1
+          unit: nm
+          hint: 把三个数代进去。
+          explain: $0.3\times193/1.35 = 42.9$ nm。要做得更细，就要用更短的波长（13.5 nm 的极紫外光）或多次曝光。
+      - item:
+          id: oxide-consume
+          type: number
+          prompt: 热氧化时，每长出 100 nm 的二氧化硅要消耗约 44 nm 的硅。在硅片上长 20 nm 的栅氧化层，会消耗多少纳米的硅？
+          answer: 8.8
+          tolerance: 0.01
+          unit: nm
+          hint: 消耗的硅和长出的氧化层成正比。
+          explain: $20\times0.44 = 8.8$ nm。氧化层有一半多长在原来硅表面的上方，四成多“吃”进了硅里。
+      - card:
+          title: CMOS 工艺集成
+          body: |
+            一个简化的 CMOS 流程：
+
+            1. 在 p 型硅片上做隔离：刻出浅沟槽，填入二氧化硅，把各个晶体管隔开。
+            2. 注入施主形成 n 阱，PMOS 将做在里面。
+            3. 长栅氧化层，沉积多晶硅，光刻、刻蚀出栅极。
+            4. 以栅极为掩模注入：NMOS 区注入施主形成 n⁺ 源漏，PMOS 区注入受主形成 p⁺ 源漏，退火。
+            5. 沉积介质，开接触孔，做多层金属互连，每层用化学机械抛光磨平。
+
+            栅极自己当掩模，源漏自动对准栅的两边，叫自对准。
+      - item:
+          id: process-order
+          type: order
+          prompt: 把一个简化 CMOS 流程的步骤按先后排好。
+          steps:
+            - 浅沟槽隔离
+            - 注入形成 n 阱
+            - 长栅氧化层、做多晶硅栅
+            - 以栅为掩模注入源漏并退火
+            - 沉积介质、做金属互连
+          explain: 隔离和阱要在栅之前，因为栅做好以后高温和注入会影响它；源漏用栅自对准，必须在栅之后；金属不耐高温，放在最后。
+      - card:
+          title: 例题：注入一片硅要多久
+          body: 在直径 200 mm 的硅片上注入剂量 $10^{15}\ \text{cm}^{-2}$ 的砷离子（每个带一个电荷），离子束电流 1 mA。大约要多长时间？
+          reveal:
+            - title: 第 1 步：一共要多少个离子
+              body: 面积 $\pi\times10^2 = 314\ \text{cm}^2$，离子数 $10^{15}\times314 = 3.14\times10^{17}$。
+            - title: 第 2 步：总电荷
+              body: $3.14\times10^{17}\times1.602\times10^{-19} = 0.0503$ C。
+            - title: 第 3 步：除以束流
+              body: $t = 0.0503/10^{-3} = 50$ s。
+      - item:
+          id: implant-time
+          type: number
+          prompt: 在直径 300 mm 的硅片上注入剂量 $10^{15}\ \text{cm}^{-2}$ 的单电荷离子，束流 2 mA。大约要多少秒？$q = 1.602\times10^{-19}$ C。
+          answer: 56.6
+          tolerance: 0.2
+          unit: s
+          hint: 先算硅片面积和离子总数。
+          explain: 面积 $\pi\times15^2 = 707\ \text{cm}^2$，离子 $7.07\times10^{17}$ 个，电荷 0.113 C，$t = 0.113/0.002 = 56.6$ s。
+  - id: process-constraints
+    chapter: 工艺与电路实现约束
+    title: 工艺怎样约束电路
+    minutes: 14
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 想让同样尺寸的 MOSFET 在同样电压下电流更大（$k$ 更大），工艺上能改什么？
+          options:
+            - text: 把栅氧化层做薄
+              correct: true
+            - text: 把栅氧化层做厚
+              why: $C_{ox} = \varepsilon_{ox}/t_{ox}$，氧化层越厚电容越小，$k = \mu_nC_{ox}W/L$ 反而变小
+            - text: 把衬底掺杂加重
+              why: 掺杂加重会提高阈值电压、降低迁移率，并不直接增大 $k$
+          explain: $k = \mu_nC_{ox}W/L$。工艺定下 $t_{ox}$（决定 $C_{ox}$）、掺杂（决定 $V_{th}$ 和迁移率）和最小 $L$；设计者只能在这些限制下选 $W$ 和 $L$。
+      - card:
+          title: 工艺决定器件的性能
+          body: |
+            同一个工艺做出来的晶体管，$t_{ox}$、衬底掺杂、栅极材料都相同，所以 $C_{ox}$、$V_{th}$、$\gamma$、$\mu_nC_{ox}$ 在整片芯片上都一样，设计者能改的只有每个管子的 $W$ 和 $L$。
+
+            源漏和衬底之间是 PN 结，它们的耗尽电容、栅极和源漏交叠的电容、连线的电容都是寄生电容。它们和工艺尺寸成正比，决定了电路能跑多快、耗多少电。
+      - item:
+          id: cox-ratio
+          type: number
+          prompt: 一个工艺把栅氧化层从 4 nm 减薄到 2 nm，其他不变。同样尺寸、同样过驱动电压的 NMOS，饱和电流变成原来的几倍？
+          answer: 2
+          tolerance: 0.001
+          hint: 饱和电流和 $C_{ox}$ 什么关系？$C_{ox}$ 和 $t_{ox}$ 什么关系？
+          explain: $I_D = \tfrac12\mu_nC_{ox}(W/L)V_{ov}^2 \propto C_{ox} \propto 1/t_{ox}$，减薄一半，电流加倍。代价是电子直接穿过很薄的氧化层，栅极漏电急剧增加，所以更薄时要换成介电常数更大的材料。
+      - card:
+          title: 版图和设计规则
+          body: |
+            电路最后要画成版图：每一层（阱，做源漏和沟道的有源区，多晶硅，接触孔，各层金属）上的一个个多边形，用来做光刻掩模。工艺能做到的最小线宽、最小间距、各层之间的最小交叠写成一套**设计规则（design rules）**。
+
+            违反规则的地方可能短路、断路或良率很低。版图画完要用软件检查，这叫 **DRC（design rule check）**，设计规则检查。
+      - item:
+          id: drc-catch
+          type: choice
+          prompt: 版图上两条金属线相距 40 nm，设计规则要求同层金属最小间距 50 nm。DRC 会怎样？
+          options:
+            - text: 报错，因为间距小于规则
+              correct: true
+            - text: 不报，只要两条线不碰在一起就行
+              why: 规则留了余量：光刻和刻蚀有偏差，间距太小时两条线在实际芯片上可能连在一起
+            - text: 不报，DRC 只检查晶体管不检查金属
+              why: DRC 检查所有层的几何规则，金属层的宽度和间距正是最常见的检查项
+          explain: 40 nm 小于 50 nm 的最小间距，DRC 报违规，必须把两条线挪开。
+      - card:
+          title: 签核：LVS 和 STA
+          body: |
+            版图对了规则，还要确认它和电路图一致：从版图里提取出晶体管和连线，和原理图逐个比对，这叫 **LVS（layout versus schematic）**，版图与原理图一致性检查。
+
+            还要确认电路在规定的时钟频率下来得及：**静态时序分析（STA，static timing analysis）**把每条路径上各个门和连线的延迟加起来，和时钟周期要求的时间比。要求的到达时间减去实际到达时间叫裕量（slack），为负就是时序违例，要加大驱动、缩短连线或降低频率。DRC、LVS、STA 都通过才能送去流片。
+      - item:
+          id: slack-value
+          type: number
+          prompt: 时钟周期 1.0 ns，某条路径要求信号在时钟沿后 0.95 ns 内到达（周期里留出 0.05 ns 给接收端锁存信号），STA 算出这条路径实际要 1.02 ns。裕量是多少纳秒？
+          answer: -0.07
+          tolerance: 0.0001
+          unit: ns
+          hint: 要求的到达时间和实际到达时间哪个大？差值的正负说明什么？
+          explain: $0.95 - 1.02 = -0.07$ ns，负的，时序违例。要把这条路径加快 70 ps，或者把时钟周期放长。
+      - item:
+          id: lvs-catch
+          type: choice
+          prompt: 版图上一个 NMOS 的栅极忘了连到输入线上，但每个图形都满足设计规则。哪一步检查能发现？
+          options:
+            - text: LVS
+              correct: true
+            - text: DRC
+              why: DRC 只看几何规则（宽度、间距、交叠），少连一根线并不违反规则
+            - text: STA
+              why: STA 按网表算延迟，前提是网表和版图一致；连线错误要靠 LVS 发现
+          explain: LVS 从版图提取出的电路里这个栅极是悬空的，和原理图对不上，就会报错。
+  - id: scaling
+    chapter: 工艺与电路实现约束
+    title: 按比例缩小和短沟道效应
+    minutes: 15
+    flow:
+      - guess:
+          id: guess
+          type: choice
+          prompt: 把晶体管的长、宽、氧化层厚度和电源电压都缩小到原来的 0.7 倍。一块同样大的芯片上，单位面积的发热会怎样？
+          options:
+            - text: 基本不变
+              correct: true
+            - text: 变成两倍，因为晶体管多了一倍
+              why: 晶体管确实多了约一倍，但每个晶体管的功耗降到约一半，两者抵消
+            - text: 降到一半，因为电压低了
+              why: 每个晶体管的功耗降了，但单位面积上的晶体管数也增加了，合起来不变
+          explain: 这就是 Dennard 缩放的结论：尺寸和电压一起缩小时，芯片更密、更快，而单位面积的功耗不变。它在 1974 年提出，指导了此后约三十年的工艺发展。
+      - card:
+          title: Dennard 缩放
+          body: |
+            把所有尺寸（$L$、$W$、$t_{ox}$）和电压都除以 $\kappa$（$\kappa > 1$），掺杂乘以 $\kappa$，这叫**按比例缩小（Dennard scaling）**。结果：
+
+            - 电容 $C \propto WL/t_{ox}$ 变为 $1/\kappa$，电流 $I \propto (W/L)C_{ox}V^2$ 变为 $1/\kappa$；
+            - 延迟 $CV/I$ 变为 $1/\kappa$，频率可以提高 $\kappa$ 倍；
+            - 每个晶体管的功耗 $VI$ 变为 $1/\kappa^2$，单位面积的晶体管数变为 $\kappa^2$ 倍；
+            - 所以单位面积的功耗不变。
+      - item:
+          id: scaling-area
+          type: number
+          prompt: 按 Dennard 缩放，$\kappa = \sqrt2$（尺寸缩小到约 0.7 倍）。每个晶体管占的面积变成原来的几倍？
+          answer: 0.5
+          tolerance: 0.001
+          hint: 面积和尺寸是几次方关系？
+          explain: 面积 $\propto WL$，变成 $1/\kappa^2 = 1/2$。同样大的芯片能放两倍的晶体管，这正是“每一代工艺晶体管数翻倍”的来历。
+      - item:
+          id: scaling-delay
+          type: number
+          prompt: 按 Dennard 缩放，$\kappa = \sqrt2$。一个门的延迟变成原来的几倍？（保留三位小数）
+          answer: 0.707
+          tolerance: 0.001
+          hint: 延迟 $CV/I$ 中三个量各变成多少？
+          explain: $C$、$V$、$I$ 各变成 $1/\kappa$，延迟 $\propto CV/I$ 变成 $1/\kappa = 0.707$，频率可提高约 1.41 倍。
+      - card:
+          title: 为什么 2000 年代中期失效
+          body: |
+            电源电压降下去，阈值电压也得跟着降，否则过驱动电压太小、电流不够。可晶体管在 $V_{GS} < V_{th}$ 时并不完全关断，还有按指数变化的亚阈值电流：栅压每降低约 60 mV（室温下的理论下限，$V_T\ln10$），电流才减小 10 倍。
+
+            阈值电压每降低 0.1 V，关断时的漏电流就增加约 $10^{0.1/0.06} \approx 46$ 倍。上亿个管子的漏电加起来不能接受，阈值电压降不动，电源电压也就停在约 1 V 附近。电压不降，按尺寸缩小时单位面积的功耗就上升，频率也不能再提高，处理器转向多核。
+      - item:
+          id: leakage-increase
+          type: number
+          prompt: 一个工艺的亚阈值斜率是 80 mV/dec（栅压每变 80 mV 电流变 10 倍）。阈值电压降低 0.16 V，关断漏电流增加到原来的几倍？
+          answer: 100
+          tolerance: 0.1
+          hint: 0.16 V 是几个 80 mV？
+          explain: $160/80 = 2$，电流变化 $10^2 = 100$ 倍。实际工艺的亚阈值斜率比 60 mV/dec 的理论下限差，漏电问题更严重。
+      - item:
+          id: power-density
+          type: number
+          prompt: Dennard 缩放失效以后，尺寸按 $\kappa = \sqrt2$ 缩小，电压和频率都不变。单位面积的动态功耗变成原来的几倍？（每个管子的电容变为 $1/\kappa$，单位面积的管子数变为 $\kappa^2$ 倍。）
+          answer: 1.414
+          tolerance: 0.002
+          hint: 每个管子的 $CV^2f$ 变成多少？乘上单位面积的管子数。
+          explain: 每个管子 $CV^2f$ 变为 $1/\kappa$，管子数 $\kappa^2$，乘起来 $\kappa = 1.414$ 倍。每一代都更热，于是只能限制同时工作的电路，或降低频率。
+      - card:
+          title: 短沟道效应
+          body: |
+            沟道很短时，长沟道模型的几条假设不再成立：
+
+            - 阈值电压滚降：$L$ 变短时，源漏的耗尽区占去沟道下一部分电荷，$V_{th}$ 变小。
+            - 漏致势垒降低（DIBL）：漏极电压帮忙降低源端的势垒，$V_{DS}$ 越大 $V_{th}$ 越小，关断漏电增加。
+            - **速度饱和（velocity saturation）**：电场很强时载流子速度不再随电场增长，电流不再按平方律，而接近和 $V_{ov}$ 成正比。
+
+            为了让栅极更好地控制沟道，晶体管从平面结构改成鳍式（FinFET，栅极从三面包住沟道），再到全环绕栅（GAA）。
+      - item:
+          id: dibl
+          type: choice
+          prompt: 一个短沟道 NMOS 在 $V_{DS} = 0.05$ V 时测得 $V_{th} = 0.40$ V，在 $V_{DS} = 1.0$ V 时测得 $V_{th} = 0.32$ V。这是哪种效应？
+          options:
+            - text: 漏致势垒降低（DIBL）
+              correct: true
+            - text: 背栅效应（体效应）
+              why: 背栅效应是 $V_{SB}$ 改变阈值电压，而且 $V_{SB}$ 增大时 $V_{th}$ 升高；这里变的是 $V_{DS}$，$V_{th}$ 降低
+            - text: 沟道长度调制效应
+              why: 沟道长度调制改变的是饱和区电流随 $V_{DS}$ 的斜率，不是阈值电压
+          explain: 漏极电压从 0.05 V 升到 1.0 V，阈值电压降了 80 mV，DIBL 系数约 $0.08/0.95 = 84$ mV/V。短沟道的管子漏极离源极近，漏极的电场能伸到源端去降低势垒。
+boss:
+  items:
+    - id: b-triode
+      type: number
+      prompt: NMOS 的 $k = 3\ \text{mA/V}^2$，$V_{th} = 0.4$ V，$V_{GS} = 1.0$ V，$V_{DS} = 0.3$ V。漏极电流是多少毫安？
+      answer: 0.405
+      tolerance: 0.001
+      unit: mA
+      hint: 先判断区域。
+      explain: $V_{ov} = 0.6$ V，$V_{DS} = 0.3 < 0.6$，三极管区。$I_D = 3\times(0.6\times0.3 - 0.045) = 0.405$ mA。
+    - id: b-gm
+      type: number
+      prompt: NMOS 的 $k = 1.5\ \text{mA/V}^2$，$V_{th} = 0.45$ V，$V_{GS} = 1.05$ V，工作在饱和区。跨导是多少毫西门子？
+      answer: 0.9
+      tolerance: 0.001
+      unit: mS
+      hint: 过驱动电压是多少？
+      explain: $V_{ov} = 0.6$ V，$g_m = kV_{ov} = 1.5\times0.6 = 0.9$ mS。也可以先算 $I_D = 0.27$ mA，再用 $2I_D/V_{ov} = 0.9$ mS。
+    - id: b-dynamic-power
+      type: number
+      prompt: CMOS 反相器 $V_{DD} = 0.9$ V，负载电容 15 fF，每秒充放电 $2\times10^9$ 个来回（$f = 2$ GHz）。动态功耗是多少微瓦？
+      answer: 24.3
+      tolerance: 0.05
+      unit: μW
+      hint: 每次翻转消耗多少能量？
+      explain: $P = C_LV_{DD}^2f = 15\times10^{-15}\times0.81\times2\times10^9 = 2.43\times10^{-5}$ W $= 24.3$ μW。
+    - id: b-cs-gain
+      type: number
+      prompt: 共源放大器 $g_m = 4$ mS，$r_o = 25$ kΩ，$R_D = 10$ kΩ。电压增益是多少？
+      answer: -28.57
+      tolerance: 0.05
+      hint: $R_D$ 和 $r_o$ 并联是多少？
+      explain: $R_D\parallel r_o = 250/35 = 7.14$ kΩ，$A_v = -4\times7.14 = -28.6$。
+    - id: b-rpi
+      type: number
+      prompt: npn 管 $\beta = 120$，偏置在 $I_C = 2$ mA，$V_T = 25.9$ mV。基极的小信号输入电阻 $r_\pi$ 是多少千欧？
+      answer: 1.55
+      tolerance: 0.01
+      unit: kΩ
+      hint: 先求 $g_m$。
+      explain: $g_m = 2/25.9 = 77.2$ mS，$r_\pi = 120/0.0772 = 1.55$ kΩ。
+    - id: b-depletion-width
+      type: number
+      prompt: 硅 PN 结 $N_a = 10^{18}$、$N_d = 10^{15}\ \text{cm}^{-3}$，内建电势 0.775 V，加 5 V 反偏。耗尽区宽度是多少微米？$\varepsilon_{Si} = 1.036\times10^{-12}$ F/cm，$q = 1.602\times10^{-19}$ C。
+      answer: 2.73
+      tolerance: 0.01
+      unit: μm
+      hint: 反偏时括号里的电压是多少？两个掺杂里哪个决定宽度？
+      explain: $\phi_B - V_D = 5.775$ V，$1/N_a + 1/N_d = 1.001\times10^{-15}\ \text{cm}^3$，$W = \sqrt{2\times1.036\times10^{-12}\times5.775\times1.001\times10^{-15}/1.602\times10^{-19}} = 2.73\times10^{-4}$ cm $= 2.73$ μm，几乎全在轻掺杂的 n 侧。
+    - id: b-built-in
+      type: number
+      prompt: PN 结 $N_a = 10^{18}$、$N_d = 10^{16}\ \text{cm}^{-3}$，$n_i = 10^{10}$，300 K（$V_T = 25.9$ mV）。内建电势是多少伏？
+      answer: 0.835
+      tolerance: 0.001
+      unit: V
+      hint: $N_aN_d/n_i^2$ 是 10 的几次方？
+      explain: $\phi_B = 0.0259\times\ln10^{14} = 0.0259\times32.24 = 0.835$ V。60 mV 规则给出 $14\times60 = 840$ mV。
+    - id: b-threshold
+      type: number
+      prompt: n 型多晶硅栅、p 型衬底，$V_{FB} = -0.97$ V，$-2\phi_p = 0.84$ V，最大耗尽电荷 $Q_{d,max} = 1.67\times10^{-7}\ \text{C/cm}^2$，栅氧化层厚 5 nm（$\varepsilon_{ox} = 3.45\times10^{-13}$ F/cm）。阈值电压是多少伏？
+      answer: 0.112
+      tolerance: 0.002
+      unit: V
+      hint: 先算 $C_{ox}$，再算 $Q_{d,max}/C_{ox}$。
+      explain: $C_{ox} = 3.45\times10^{-13}/5\times10^{-7} = 6.9\times10^{-7}\ \text{F/cm}^2$，$Q_{d,max}/C_{ox} = 0.242$ V，$V_{th} = -0.97 + 0.84 + 0.242 = 0.112$ V。氧化层减薄一半，耗尽电荷那一项减半，阈值电压从 0.354 V 降到 0.112 V。
+    - id: b-scaling
+      type: number
+      prompt: 按 Dennard 缩放，尺寸和电压都除以 $\kappa = 1.4$。每个晶体管的功耗变成原来的几倍？（保留两位小数）
+      answer: 0.51
+      tolerance: 0.002
+      hint: 功耗 $VI$ 中两个量各变成多少？
+      explain: $V$ 和 $I$ 各变成 $1/1.4$，功耗变成 $1/1.96 = 0.51$。单位面积的晶体管数变成 1.96 倍，所以单位面积功耗不变。
+    - id: b-self-align
+      type: choice
+      prompt: CMOS 工艺里，源漏区为什么能自动和栅极对齐？
+      options:
+        - text: 源漏注入时用已经做好的多晶硅栅当掩模
+          correct: true
+        - text: 光刻机的对准精度足够高
+          why: 再好的对准也有偏差；自对准是让栅本身挡住注入，源漏边缘自然落在栅的两边
+        - text: 源漏是在栅之前注入的，栅后来对准它们
+          why: 顺序反了：先做栅、后注入源漏，才能用栅当掩模
+        - text: 退火时杂质会自动扩散到栅的边缘
+          why: 退火确实让杂质横向扩散一点，但那会造成栅和源漏的交叠，不是对准的原因
+      explain: 多晶硅栅挡住了它下面的区域，注入只进入栅两边的硅里，源漏的内边缘正好落在栅的边上，省去一次光刻对准，也减小了寄生交叠电容。

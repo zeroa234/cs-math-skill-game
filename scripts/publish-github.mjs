@@ -21,7 +21,7 @@ import { githubEnv } from "./lib/github-id.mjs";
 const REMOTE = "https://github.com/zeroa234/cs-math-skill-game.git";
 const PRIVATE = ["assets/cast/not-public.txt", "scripts/cast/extract-sprites.py", "scripts/promo/qc-voice.py"];
 const EXCLUDE = [...PRIVATE, "output/web", "output/apk", "output/windows"];
-const PROMO = ["data/promo", "scripts/promo", "src/promo", "docs/promo-video-v2.md", "docs/promo-video-v3.md"];
+const PROMO = ["data/promo", "scripts/promo", "src/promo", "docs/promo-video-v2.md", "docs/promo-video-v3.md", "docs/promo-video-v4.md"];
 // Words that point at where the sprites came from (the list is in assets/cast/, never published).
 const FORBIDDEN = notPublic(ROOT);
 if (!FORBIDDEN) throw new Error("assets/cast/not-public.txt missing: publish from the author's workspace");
