@@ -1,10 +1,10 @@
 # E.2.4 无线与移动通信：覆盖表
 
-**状态（2026-11-27）：计划（第 12 轮写的覆盖表，课还没写）。** 依据 `../cs-math-skill-tree/data/outlines/E.2.4.json`（主来源 Tse & Viswanath *Fundamentals of Wireless Communication*；4G/5G 物理层取 Zaidi 等 *5G Physical Layer* 的章目录；中文主课是北京交通大学《无线通信基础》，蜂窝和频率规划取杭州电子科技大学《移动通信》）和原技能树综合练习。数值核对脚本将是 `tests/content/E.2.4.verify.py`。
+**状态（2026-11-27）：已完成（Gemini 在 AI Studio 按工作区覆盖表计划写完 26 课与 18 题结业挑战并完成自审，待工作区引入）。** 依据 `../cs-math-skill-tree/data/outlines/E.2.4.json`（主来源 Tse & Viswanath *Fundamentals of Wireless Communication*；4G/5G 物理层取 Zaidi 等 *5G Physical Layer* 的章目录；中文主课是北京交通大学《无线通信基础》，蜂窝和频率规划取杭州电子科技大学《移动通信》）和原技能树综合练习。数值核对脚本为 `tests/content/E.2.4.verify.py`（411 项核对，覆盖全部 77 道数值题与卡内例题数值）。
 
 前置：必须前置是 E.2.3 通信原理（调制、载波、基带、码元、误码率、信噪比、信道容量、dBm、加性高斯白噪声、码间干扰、Q 函数、星座图、匹配滤波器；E.2.3 写明 OFDM、扩频留给本站）和 M.3.1 线性代数（矩阵、特征值、奇异值分解，MIMO 用），H.1.3、M.6.1 在闭包里（傅里叶变换、卷积、快速傅里叶变换、概率密度、正态分布、指数分布）。E.2.1、M.6.5 只是推荐前置，不继承。
 
-## 课的安排（26 课，计划）
+## 课的安排（26 课）
 
 | 章 | 课 | 内容 |
 |---|---|---|
@@ -22,7 +22,7 @@
 |  | `fading-capacity` | AWGN 信道容量回顾，衰落信道的中断容量和遍历容量，信道估计的误差（导频） |
 | OFDM | `ofdm-principle` | 把宽带信道分成许多窄带子载波，子载波正交、用 IFFT 产生（综合练习 4 前半） |
 |  | `cyclic-prefix` | 循环前缀把线性卷积变成循环卷积，单抽头均衡，循环前缀长度和开销（综合练习 4 后半） |
-|  | `ofdm-design` | OFDM 的参数设计（子载波间隔、符号长度、多普勒），峰均比和频偏敏感，OFDMA 资源分配，NR 波形 |
+|  | `ofdm-design` | OFDM 的间隔权衡（子载波间隔、符号长度、多普勒），峰均比和频偏敏感，OFDMA 资源分配，NR 波形 |
 | MIMO | `mimo-capacity` | 多天线的复用能力：确定 MIMO 信道的奇异值分解和容量，高信噪比时容量随 min(Nt, Nr) 增长（综合练习 5） |
 |  | `mimo-channel` | MIMO 信道的物理建模：视距和散射、角度分辨率、信道的秩，衰落 MIMO 信道 |
 |  | `mimo-receivers` | V-BLAST 和接收机结构：迫零、MMSE、串行干扰消除，快衰落 MIMO 信道，D-BLAST |
@@ -81,24 +81,28 @@
 
 ## CS2023 核心主题（C2）
 
-写课时查 `scope.json` 补上。
+依据技能树 `scope`：E.2.4 属选修模块（`standards: []`），国标将移动通信与无线通信列为电子信息工程、通信工程专业知识；CE2016 的 CE-NWK-5 仅覆盖无线网络协议层，不涉及物理层。本包聚焦无线物理层核心（大/小尺度信道建模、分集、OFDM、MIMO、多址、蜂窝复用及 4G/5G 物理层）。
 
 ## 学习资源的章节（C3）
 
-写课时逐条核对：北交大《无线通信基础》第 2 章（电波传播机制、反射与透射、绕射与散射、链路预算）、第 3 章（大尺度衰落、两径模型、小尺度衰落、莱斯、多普勒谱）、第 4 章（时延扩展、多普勒扩展）、第 8 章（分集原理、微分集、宏分集、合并、分集增益）、第 9 章（跳频、直接序列扩频与 CDMA）、第 10 章（OFDM 系统模型、数字实现、抗多径、参数设计、OFDMA）、第 11 章（多天线容量、波束赋形、空时编码、大规模天线）；杭电《移动通信》1.5 多址方式、1.10 5G 概述、2.1–2.5 移动通信网（体制、干扰、频率规划、多信道共用）、4.7 OFDM、7.10–7.11 LTE。
+已逐条对照覆盖：
+- **北京交通大学《无线通信基础》**：第 2 章（电波传播机制、反射与透射、绕射与散射、链路预算 → `free-space`、`propagation`、`link-budget`）、第 3 章（大尺度衰落、两径模型、小尺度衰落、莱斯、多普勒谱 → `propagation`、`rayleigh-rician`）、第 4 章（时延扩展、多普勒扩展 → `multipath-model`、`coherence`）、第 8 章（分集原理、微分集、宏分集、合并、分集增益 → `time-diversity`、`antenna-diversity`、`frequency-diversity`）、第 9 章（跳频、直接序列扩频与 CDMA → `cdma`）、第 10 章（OFDM 系统模型、数字实现、抗多径、间隔设计、OFDMA → `ofdm-principle`、`cyclic-prefix`、`ofdm-design`）、第 11 章（多天线容量、波束赋形、空时编码、大规模天线 → `mimo-capacity`、`mimo-channel`、`mimo-receivers`、`dmt-beamforming`）。
+- **杭州电子科技大学《移动通信》**：1.5 多址方式（`fdma-tdma`、`cdma`、`ofdm-design`）、1.10 5G 概述（`nr-phy`）、2.1–2.5 移动通信网（体制、干扰、频率规划、多信道共用与爱尔兰 B → `cellular-reuse`、`cellular-capacity`）、4.7 OFDM（`ofdm-principle`、`cyclic-prefix`）、7.10–7.11 LTE（`lte-phy`）。
 
 ## 综合练习（C4）
 
-| 小题 | 负责的课 |
-|---|---|
-| (1) 自由空间路径损耗，对数距离模型，阴影衰落的分布 | `free-space`、`propagation` |
-| (2) 相干带宽、多普勒频移、相干时间，频率选择性和快衰落 | `coherence` |
-| (3) 瑞利衰落下 BPSK 的误码率和近似，二分集最大比合并 | `fading-ber`、`antenna-diversity` |
-| (4) OFDM 的子载波间隔、符号长度，循环前缀 | `ofdm-principle`、`cyclic-prefix` |
-| (5) MIMO 容量随天线数的增长，空间复用和空间分集 | `mimo-capacity`、`dmt-beamforming` |
-| (6) FDMA、TDMA、CDMA、OFDMA 怎样划分用户 | `fdma-tdma`、`cdma`、`ofdm-design` |
-| (7) 簇大小 7 时的信干比，簇大小的影响 | `cellular-reuse` |
-| (8) LTE 和 NR 物理层的波形、子载波间隔、多天线 | `lte-phy`、`nr-phy` |
+全部 8 道综合练习小题均在对应课内讲清，并逐一拆成 18 道结业挑战题（含原题数值与综合辨析）：
+
+| 小题 | 负责的课 | 结业挑战对应题 |
+|---|---|---|
+| (1) 自由空间路径损耗，对数距离模型，阴影衰落的分布 | `free-space`、`propagation` | `b-fspl-2g`、`b-logdist-35`、`b-shadow-dist` |
+| (2) 相干带宽、多普勒频移、相干时间，频率选择性和快衰落 | `coherence` | `b-coherence-bw`、`b-doppler-108`、`b-coherence-time`、`b-fading-types` |
+| (3) 瑞利衰落下 BPSK 的误码率和近似，二分集最大比合并 | `fading-ber`、`antenna-diversity` | `b-rayleigh-ber-20`、`b-rayleigh-approx-20`、`b-mrc-2branch` |
+| (4) OFDM 的子载波间隔、符号长度，循环前缀 | `ofdm-principle`、`cyclic-prefix` | `b-ofdm-subcarrier`、`b-ofdm-symbol`、`b-ofdm-cp` |
+| (5) MIMO 容量随天线数的增长，空间复用和空间分集 | `mimo-capacity`、`dmt-beamforming` | `b-mimo-cap-4x4`、`b-mimo-div-mux` |
+| (6) FDMA、TDMA、CDMA、OFDMA 怎样划分用户 | `fdma-tdma`、`cdma`、`ofdm-design` | `b-ma-match` |
+| (7) 簇大小 7 时的信干比，簇大小的影响 | `cellular-reuse` | `b-cellular-sir`、`b-cellular-n` |
+| (8) LTE 和 NR 物理层的波形、子载波间隔、多天线 | `lte-phy`、`nr-phy` | `b-4g5g` |
 
 ## 后继技能用到的（C5）
 
