@@ -11,7 +11,7 @@
 | M.1.2 | ok  | 25 sections taught, 0 not taught with a reason, 25 in the outline | 530/530 claims hold (124 number items compared with the pack | 72 choices  L 31 (43%)  S 9 (13%)  M 10 (14%)  T 22 |
 | F.1.1 | ok  | 22 sections taught, 0 not taught with a reason, 22 in the outline | 145/145 claims hold | 68 choices  L 48 (71%)  S 4 (6%)  M 1 (1%)  T 15 |
 | P.2.2 | ok  | 38 sections taught, 10 not taught with a reason, 48 in the outline | 152/152 claims hold | 79 choices  L 32 (41%)  S 9 (11%)  M 20 (25%)  T 18 |
-| M.1.3 | ok  | 19 sections taught, 0 not taught with a reason, 19 in the outline | ok ¡ª verified all Riemann sums, FTC derivatives, substituti | 25 choices  L 10 (40%)  S 3 (12%)  M 10 (40%)  T 2 |
+| M.1.3 | ok  | 19 sections taught, 0 not taught with a reason, 19 in the outline | ok ï¿½ï¿½ verified all Riemann sums, FTC derivatives, substituti | 25 choices  L 10 (40%)  S 3 (12%)  M 10 (40%)  T 2 |
 | M.1.4.1 | ok  | 32 sections taught, 2 not taught with a reason, 34 in the outline | ModuleNotFoundError: No module named 'yaml' | 75 choices  L 34 (45%)  S 10 (13%)  M 8 (11%)  T 23 |
 | N.1.1 | ok  | 67 sections taught, 0 not taught with a reason, 67 in the outline | N.1.1 verify.py: all 157 checks passed (81 number answers in | 48 choices  L 18 (38%)  S 11 (23%)  M 5 (10%)  T 14 |
 | H.3.1 | ok  | 44 sections taught, 0 not taught with a reason, 44 in the outline | ok  H.3.1.verify.py: GPIO/debounce + Timer 249/499 + UART 11 | 38 choices  L 16 (42%)  S 10 (26%)  M 12 (32%)  T 0 |

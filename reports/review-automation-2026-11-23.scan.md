@@ -10,7 +10,7 @@
 | H.1.2 | ok  | 46 sections taught, 0 not taught with a reason, 46 in the outline | ok  H.1.2.verify.py: truth/CLA + Mealy 101 (len 0..7) + Frac | 60 choices  L 24 (40%)  S 14 (23%)  M 19 (32%)  T 3 |
 | M.1.2 | ok  | 25 sections taught, 0 not taught with a reason, 25 in the outline | 530/530 claims hold (124 number items compared with the pack | 72 choices  L 31 (43%)  S 9 (13%)  M 10 (14%)  T 22 |
 | P.2.2 | ok  | 38 sections taught, 10 not taught with a reason, 48 in the outline | 152/152 claims hold | 79 choices  L 32 (41%)  S 9 (11%)  M 20 (25%)  T 18 |
-| M.1.3 | ok  | 19 sections taught, 0 not taught with a reason, 19 in the outline | ok ¡ª verified all Riemann sums, FTC derivatives, substituti | 25 choices  L 10 (40%)  S 3 (12%)  M 10 (40%)  T 2 |
+| M.1.3 | ok  | 19 sections taught, 0 not taught with a reason, 19 in the outline | ok ï¿½ï¿½ verified all Riemann sums, FTC derivatives, substituti | 25 choices  L 10 (40%)  S 3 (12%)  M 10 (40%)  T 2 |
 | N.1.1 | ok  | 67 sections taught, 0 not taught with a reason, 67 in the outline | N.1.1 verify.py: all 157 checks passed (81 number answers in | 48 choices  L 18 (38%)  S 11 (23%)  M 5 (10%)  T 14 |
 | H.3.1 | ok  | 44 sections taught, 0 not taught with a reason, 44 in the outline | ok  H.3.1.verify.py: GPIO/debounce + Timer 249/499 + UART 11 | 38 choices  L 16 (42%)  S 10 (26%)  M 12 (32%)  T 0 |
 | M.2.1 | ok  | 41 sections taught, 0 not taught with a reason, 41 in the outline | M.2.1 verify.py: all 298 checks passed (71 number answers in | 50 choices  L 15 (30%)  S 2 (4%)  M 13 (26%)  T 20 |
@@ -134,7 +134,7 @@
 | H.1.2 | ok  | 46 sections taught, 0 not taught with a reason, 46 in the outline |  | 60 choices, correct longest 54 (90%), shortest 1 (2%) |
 | M.1.2 | ok  | 25 sections taught, 0 not taught with a reason, 25 in the outline | ModuleNotFoundError: No module named 'sympy' | 72 choices, correct longest 41 (57%), shortest 7 (10%) |
 | P.2.2 | ok  | 38 sections taught, 10 not taught with a reason, 48 in the outline | 150/151 claims hold | 79 choices, correct longest 46 (58%), shortest 6 (8%) |
-| M.1.3 | ok  | 19 sections taught, 0 not taught with a reason, 19 in the outline | ok ¡ª verified all Riemann sums, FTC derivatives, substituti | 25 choices, correct longest 17 (68%), shortest 1 (4%) |
+| M.1.3 | ok  | 19 sections taught, 0 not taught with a reason, 19 in the outline | ok ï¿½ï¿½ verified all Riemann sums, FTC derivatives, substituti | 25 choices, correct longest 17 (68%), shortest 1 (4%) |
 | N.1.1 | ok  | 67 sections taught, 0 not taught with a reason, 67 in the outline | N.1.1 verify.py: all 157 checks passed (81 number answers in | 48 choices, correct longest 18 (38%), shortest 12 (25%) |
 | H.3.1 | ok  | 44 sections taught, 0 not taught with a reason, 44 in the outline | ok  H.3.1.verify.py: GPIO/debounce + Timer 249/499 + UART 11 | 38 choices, correct longest 36 (95%), shortest 0 (0%) |
 | M.2.1 | ok  | 41 sections taught, 0 not taught with a reason, 41 in the outline | M.2.1 verify.py: all 284 checks passed (71 number answers in | 50 choices, correct longest 15 (30%), shortest 2 (4%) |
