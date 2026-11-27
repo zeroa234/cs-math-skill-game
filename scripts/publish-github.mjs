@@ -1,22 +1,30 @@
 // Publishes this project to github.com/zeroa234/cs-math-skill-game as a snapshot, mentors included.
 // The workspace history holds files that were never meant to be public (the replaced mentors, notes on
 // where the sprites were rendered), so the public history is one commit per publish instead of a
-// split of the workspace history.
-//  1. exports the files committed at HEAD into temp/publish/repo (a clone of the public repository),
-//     and the skill tree's data at HEAD (../cs-math-skill-tree/output) into temp/publish/tree
-//  2. drops EXCLUDE (the word list itself; the extraction script, which names its source folders) and
+// split of the workspace history. Google AI Studio (Gemini) works in this repository too
+// (docs/collaboration.md), so the snapshot also carries what AI Studio runs: server.mjs, metadata.json
+// and the dev/start scripts are workspace files; vendor/cs-math-skill-tree is written here.
+//  1. resets temp/publish/repo (a clone of the public repository) to origin/main, dropping snapshot
+//     commits an earlier run without --push left behind; lists the commits on
+//     the public repository the workspace has not taken in (AI Studio's): --push refuses while there are
+//     any, --accept <sha> says they were taken in, --status only lists them
+//  2. exports the files committed at HEAD into the clone, and the skill tree's data at HEAD
+//     (../cs-math-skill-tree/output) into temp/publish/tree and the snapshot's vendor/cs-math-skill-tree
+//     (scripts/lib/tree-dir.mjs reads it there when a clone has no sibling project, as in AI Studio)
+//  3. drops EXCLUDE (the word list itself; the extraction script, which names its source folders) and
 //     builds output/web inside the snapshot, with the snapshot's own scripts: the published game is
 //     built from HEAD alone, never from uncommitted or untracked files in the workspace
-//  3. refuses if any text still names where the sprites were rendered, or if the built game does not
+//  4. refuses if any text still names where the sprites were rendered, or if the built game does not
 //     load its mentors; commits as the author's GitHub identity (no AI attribution). --push pushes main.
-// usage: node scripts/publish-github.mjs [--game-only] [--push]          (self-written glue)
+// usage: node scripts/publish-github.mjs [--status] [--accept <sha>] [--game-only] [--push]          (self-written glue)
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { ROOT, launchEdge } from "./lib/edge.mjs";
 import { notPublic } from "./lib/not-public.mjs";
-import { githubEnv } from "./lib/github-id.mjs";
+import { GITHUB_ID, githubEnv } from "./lib/github-id.mjs";
+import { pendingCommits, describePending } from "./lib/pending-commits.mjs";
 
 const REMOTE = "https://github.com/zeroa234/cs-math-skill-game.git";
 const PRIVATE = ["assets/cast/not-public.txt", "scripts/cast/extract-sprites.py", "scripts/promo/qc-voice.py"];
@@ -37,12 +45,21 @@ const head = run("git", ["-C", ROOT, "rev-parse", "--short", "HEAD"]);
 const version = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).version;
 if (run("git", ["-C", ROOT, "status", "--porcelain", "--untracked-files=no", "."])) console.warn("note: uncommitted changes are not published (HEAD only, the built game too)");
 
-// 1. a working copy of the public repository, emptied
+// 1. a working copy of the public repository at origin/main, and what AI Studio pushed there
 if (!fs.existsSync(path.join(DIR, ".git"))) {
   fs.mkdirSync(path.dirname(DIR), { recursive: true });
   try { run("git", ["clone", "-q", REMOTE, DIR]); } catch { fs.mkdirSync(DIR, { recursive: true }); git("init", "-q", "-b", "main"); git("remote", "add", "origin", REMOTE); }
 }
-try { git("pull", "-q", "--ff-only", "origin", "main"); } catch { /* empty remote */ }
+try { git("fetch", "-q", "origin"); git("checkout", "-q", "-f", "-B", "main", "origin/main"); } catch { /* empty remote */ }
+const accepted = (() => { const i = process.argv.indexOf("--accept"); return i > 0 ? process.argv[i + 1] : null; })();
+// The workspace's own commits there: "v<version>" by the author's GitHub identity (AI Studio commits as someone else).
+const pending = pendingCommits(git, ([, email, , , s]) => email === GITHUB_ID.email && /^v\d+\.\d+\.\d+$/.test(s), accepted);
+if (pending.unseen.length || process.argv.includes("--status")) {
+  console.log(describePending(git, pending, "the public repository"));
+  if (process.argv.includes("--status")) process.exit(0);
+  // Only the push would drop them; a local snapshot (a run without --push) is harmless.
+  if (process.argv.includes("--push")) process.exit(1);
+}
 for (const e of fs.readdirSync(DIR)) if (e !== ".git") fs.rmSync(path.join(DIR, e), { recursive: true, force: true });
 const tar = path.join(path.dirname(DIR), "snapshot.tar");
 run("git", ["-C", top, "-c", "core.autocrlf=false", "archive", "--format=tar", "-o", tar, headTree(prefix)]);
@@ -56,6 +73,11 @@ const treePrefix = run("git", ["-C", treeSource, "rev-parse", "--show-prefix"]).
 run("git", ["-C", treeTop, "-c", "core.autocrlf=false", "archive", "--format=tar", "-o", tar, headTree(treePrefix), "output/skilltree.json", "output/outlines.json"]);
 run(TAR_EXE, ["-xf", tar, "-C", TREE]);
 fs.rmSync(tar);
+for (const f of ["output/skilltree.json", "output/outlines.json"]) {
+  const to = path.join(DIR, "vendor/cs-math-skill-tree", f);
+  fs.mkdirSync(path.dirname(to), { recursive: true });
+  fs.copyFileSync(path.join(TREE, f), to);
+}
 
 // 2. drop what stays private, build the game in the snapshot (node_modules: this project's, found
 //    by walking up from temp/publish/repo, as for any import)
@@ -97,7 +119,8 @@ if (leakCount) throw new Error(`the snapshot contains ${leakCount} files with pr
   if (shown !== 2 || failed.length) throw new Error(`the published game does not show its mentors (portraits shown: ${shown}; failed: ${failed.join(", ")})`);
 }
 if (git("status", "--porcelain")) {
-  run("git", ["-C", DIR, "commit", "-q", "-m", `v${version}`, "-m", `Snapshot of the author's workspace at ${head}.`], { env: githubEnv() });
+  const took = accepted ? ["-m", `Commits up to ${accepted} were taken into the workspace first.`] : [];
+  run("git", ["-C", DIR, "commit", "-q", "-m", `v${version}`, "-m", `Snapshot of the author's workspace at ${head}.`, ...took], { env: githubEnv() });
 }
 console.log(`${DIR}: commit ${git("rev-parse", "--short", "HEAD")} (v${version}), ${files.length} files checked`);
 if (process.argv.includes("--push")) { git("push", "-u", "origin", "main"); console.log("pushed to", REMOTE); }

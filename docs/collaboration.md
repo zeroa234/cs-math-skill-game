@@ -1,16 +1,16 @@
 # 两个仓库一起写课
 
-这个项目由两边的 AI 一起写课：作者电脑上的 Claude，和云端的 Gemini（Google AI Studio）。两边看到的是不同的仓库，所以动笔前都要把两个仓库都看一遍，避免重复写同一个技能，或者把对方刚写的东西覆盖掉。
+这个项目由两边的 AI 一起写课：作者电脑上的 Claude，和云端的 Gemini（Google AI Studio）。两边看到的是不同的仓库，所以动笔前都要把两边都看一遍，避免重复写同一个技能，或者把对方刚写的东西覆盖掉。
 
 | 仓库 | 谁在写 | 是什么 |
 |---|---|---|
-| 工作区（作者电脑，分支 `wip/next`）与它的公开快照 [zeroa234/cs-math-skill-game](https://github.com/zeroa234/cs-math-skill-game) | Claude | 唯一的权威版本。写完、审完的技能在这里提交，再推一份快照到公开仓库（`scripts/publish-github.mjs`） |
-| 私有协作仓库 [zeroa234/remote](https://github.com/zeroa234/remote) | Gemini | 内容和工作区同步（`scripts/sync-remote.mjs`，提交说明是 `sync: workspace at <工作区提交>`）。另外有 AI Studio 运行要用的 `server.mjs`、`metadata.json` 等文件，以及 `vendor/cs-math-skill-tree`（技能树数据，代替工作区里的同级项目） |
+| 工作区（作者电脑，分支 `wip/next`） | Claude | 唯一的权威版本。写完、审完的技能在这里提交 |
+| 公开仓库 [zeroa234/cs-math-skill-game](https://github.com/zeroa234/cs-math-skill-game) | Gemini（AI Studio 连这个仓库） | 工作区的快照（`scripts/publish-github.mjs`，提交说明是 `v<版本>`，作者 zeroa234）。快照带着 AI Studio 运行要用的文件：`server.mjs`（`npm run dev`，3000 端口的静态服务器，缺生成数据时先构建）、`metadata.json`，以及 `vendor/cs-math-skill-tree`（技能树数据，代替工作区里的同级项目）。前两个是工作区里的文件，`vendor/` 由发布脚本每次从技能树写入 |
 
 ## 写之前（两边都要做）
 
-1. 看 zeroa234/remote 最近的提交（GitHub 的 Commits 页，或 `git log`）。最新一个 `sync:` 提交之后的提交，是 Gemini 新写、工作区还没引入的。
-2. 看工作区一侧的进度：`docs/development.md` 的“课程验收状态”表，以及公开仓库 zeroa234/cs-math-skill-game 的最新提交。Claude 另外看工作区 `wip/next` 的 `git log`。
+1. 看公开仓库最近的提交（GitHub 的 Commits 页，或 `git log`）。最新一个 `v<版本>` 快照之后的提交，是 Gemini 新写、工作区还没引入的；`node scripts/publish-github.mjs --status` 会列出来。Gemini 先在 AI Studio 里从 GitHub 拉取最新的 main 再动笔，否则提交会和工作区刚推的快照冲突。
+2. 看工作区一侧的进度：`docs/development.md` 的“课程验收状态”表。Claude 另外看工作区 `wip/next` 的 `git log`。
 3. 看下面的“进行中”表。选一个没人在写的技能，先在表里登记一行（技能、谁、开始日期），提交，再动笔。同一个技能同一时间只由一方写。
 
 ## 写的时候
@@ -24,13 +24,14 @@
 
 ## 写完以后
 
-- **Gemini**：提交到 zeroa234/remote 的 `main`。提交说明写清写了什么、跑了哪些检查、哪些没跑。把“进行中”表里那一行的状态改成“待引入”。
+- **Gemini**：提交到公开仓库 zeroa234/cs-math-skill-game 的 `main`。提交说明写清写了什么、跑了哪些检查、哪些没跑。把“进行中”表里那一行的状态改成“待引入”。
 - **Claude（工作区）**：
-  1. `node scripts/sync-remote.mjs --status` 列出 remote 上还没引入的提交和它们改了哪些文件。
+  1. `node scripts/publish-github.mjs --status` 列出公开仓库上还没引入的提交和它们改了哪些文件。
   2. 只把这个技能的文件取进工作区（不要把整个仓库拉下来），连同“进行中”表的改动。
-  3. 按 content-authoring.md 审读、修改、补齐覆盖表，跑全部检查（check-pack、check-coverage、verify、`npm test`、这个包的 FULL e2e），提交到 `wip/next`，推公开仓库。
-  4. `node scripts/sync-remote.mjs --accept <引入的 remote 提交> --push` 把工作区同步回 remote。同步会用工作区的版本覆盖 remote，所以必须先引入、再同步；remote 上有没引入的提交时，脚本会拒绝同步。
-- 工作区自己写完的技能也照样同步到 remote，让 Gemini 看到最新状态。
+  3. 按 content-authoring.md 审读、修改、补齐覆盖表，跑全部检查（check-pack、check-coverage、verify、`npm test`、这个包的 FULL e2e），提交到 `wip/next`。
+  4. `node scripts/publish-github.mjs --accept <引入的最新一个提交> --game-only --push` 推快照。快照会用工作区的版本整个覆盖公开仓库的文件，所以必须先引入、再推；有没引入的提交时，脚本拒绝 `--push`（不带 `--push` 只生成本地快照，照常进行）。
+- 工作区自己写完的技能也照样推公开仓库，让 Gemini 看到最新状态。
+- Gemini 改运行环境（`server.mjs`、`metadata.json`、`package.json` 的脚本）也要引入工作区，否则下一次快照会把改动去掉。
 
 ## 进行中
 

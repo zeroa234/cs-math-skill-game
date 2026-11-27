@@ -28,8 +28,8 @@
 3. `npm run data` → `node scripts/check-pack.mjs` → `node scripts/check-coverage.mjs` → `node scripts/review-style.mjs`。B1 常见误报：jargon.yaml 按子串匹配，“指针”“广播”“循环”“变量”（含“改变量”）“内存”“地址”“参数”“模块”“可逆”都会被当成编程术语，换个说法或在卡里先讲。`text: 0` 这类纯数字选项要加引号。
 4. `tests/content/<ID>.verify.py` 照 `tests/content/N.1.2.verify.py` 写：每个数用 Python 重算，并且从 YAML 里读回所有 `answer` 逐一比对（包里有数值答案而脚本没算会报错）。本机 Python 没装 sympy，用数值方法核对积分和微分方程。答案在 .x5 边界上的题要换数，免得四舍五入有歧义。
 5. 派一个 pi 子代理（explore，web_search false）按 content-authoring.md 通读整包找问题，主代理逐条对原文核实再改；同时后台跑 `npm test`、`npm run build`、`FULL=1 E2E_PACKS=<ID> node tests/e2e.mjs`（20 多课约 8 分钟）。改完重新 build 再跑一次 FULL e2e。
-6. 更新 README、docs/development.md 的统计数字（`node temp/pack-stats.mjs <ID>` 算总数）、collaboration.md 的“进行中”和记录、覆盖表状态；提交（不加署名），`node scripts/sync-remote.mjs --push`。
-7. 不要提交 `output/web/app.js`（构建产物，sync-remote 自己从 HEAD 构建）；轮末用 `git checkout -- output/web/app.js` 还原，免得下一轮开工检查误判。
+6. 更新 README、docs/development.md 的统计数字（`node temp/pack-stats.mjs <ID>` 算总数）、collaboration.md 的“进行中”和记录、覆盖表状态；提交（不加署名），`node scripts/publish-github.mjs --game-only --push`（有 Gemini 没引入的提交时先引入，再加 `--accept`）。
+7. 不要提交 `output/web/app.js`（构建产物，publish-github 自己从 HEAD 构建）；轮末用 `git checkout -- output/web/app.js` 还原，免得下一轮开工检查误判。
 8. 第 2 轮踩到的坑：Windows 上 Python 的 `write_text` 会写成 CRLF，改文件一律 `read_bytes().decode()` / `write_bytes()`；Git Bash 的 heredoc 会吃掉反斜杠（`	imes` 变成制表符），含 LaTeX 的替换用 Write 工具写成 .py 再运行，或者用 Edit 工具。`check-coverage` 按大纲的三级小节算，写覆盖表前用 `output/outlines.json` 打出全部层级（H.4.1 的 Rawlings 1.3.x、1.4.x 第一次漏了）。review-style 的“正确项最长”压到 60% 以下后容易矫枉过正到 25% 左右，这时“选最短”可能成了提示，整条远征审读时再统一调。
 9. `tests/e2e.mjs` 里“地图返回后保持缩放和位置”这一项偶发失败（第 2 轮 6 次 FULL 里 2 次，和改动的内容包无关，重跑即过），远征开放前的总 e2e 如果遇到，重跑一次确认。
 

@@ -29,7 +29,7 @@ README 只放玩家和第一次来的人要看的东西；这里是内容明细�
 
 为了不再出现这种包，构建加了 B8（每课讲解和题量的下限）、B9（结业挑战不能靠瞎猜通过）、B10（术语定义不能是残句）和 C1 的深度下限（每个大纲小节的讲解量），见 [content-authoring.md](content-authoring.md)。重写按“重开一条远征需要的包最少”排：网络安全 4 个（C.2.2、C.3.2、C.4.2、S.2.2）→ DevOps 4 个 → 网站 5 个 → 企业 5 个 → 手机 3 个 → 嵌入式 6 个 → 人工智能 7 个（2026-11-09 按每条远征还剩的大纲小节数重排过，顺序不变）。一次一个技能，写完整包通读验收再合并。
 
-版本管理：一个技能写完、检查全过，就作为一个提交进主干 `wip/next`，再用 `node scripts/publish-github.mjs --game-only --push` 把去掉不公开文件的快照推到 GitHub 公开仓库的 main（推荐远征仍是“开发中”，写好的技能在地图上可以学），再用 `node scripts/sync-remote.mjs --push` 同步到私有协作仓库 zeroa234/remote，云端的 Gemini 在那里写课。动笔前两个仓库都要看，流程见 [collaboration.md](collaboration.md)。整条远征的站都写完后，再单独提交一次把它改成开放。进度：网络安全、DevOps、网站三条已重写开放（2.1.0）；企业与桌面应用、手机应用、嵌入式三条 2026-11-18 写完全部站点并开放（2.2.0）；人工智能的 M.1.4.1（29 课）与 M.6.1（16 课）2026-11-19 重写完，M.6.2（18 课）、M.6.2.2（13 课）、A.2.1（18 课）、A.2.3（11 课）与 A.4.1（10 课）2026-11-20 全部重写完成，八条推荐远征已全部开放。M.6.1 的初稿由云端 Gemini 写成，引入时切卡、改文风、补了覆盖表（见 `reports/coverage/M.6.1.md`）。
+版本管理：一个技能写完、检查全过，就作为一个提交进主干 `wip/next`，再用 `node scripts/publish-github.mjs --game-only --push` 把去掉不公开文件的快照推到 GitHub 公开仓库的 main（推荐远征仍是“开发中”，写好的技能在地图上可以学），云端的 Gemini（AI Studio）也在公开仓库写课。动笔前两边都要看，流程见 [collaboration.md](collaboration.md)。整条远征的站都写完后，再单独提交一次把它改成开放。进度：网络安全、DevOps、网站三条已重写开放（2.1.0）；企业与桌面应用、手机应用、嵌入式三条 2026-11-18 写完全部站点并开放（2.2.0）；人工智能的 M.1.4.1（29 课）与 M.6.1（16 课）2026-11-19 重写完，M.6.2（18 课）、M.6.2.2（13 课）、A.2.1（18 课）、A.2.3（11 课）与 A.4.1（10 课）2026-11-20 全部重写完成，八条推荐远征已全部开放。M.6.1 的初稿由云端 Gemini 写成，引入时切卡、改文风、补了覆盖表（见 `reports/coverage/M.6.1.md`）。
 
 ## 界面一览
 
@@ -63,8 +63,9 @@ README 只放玩家和第一次来的人要看的东西；这里是内容明细�
 | `src/game/sims/views/`、`src/game/ui/` | Preact 界面 |
 | `src/game/app/` | 路由（`router.js`）、存档和玩家操作（`state.js`、`actions.js`）、实验室（`lab.js`）、背景图（`art.js`）、音效和背景音乐（`sound.js`、`music.js`）、更新检查（`update.js`）、App 里才生效的部分（`native.js`） |
 | `tests/` | 见下面“测试” |
-| `scripts/publish-github.mjs`、`scripts/release-github.mjs`、`scripts/readme-images.mjs`、`.github/workflows/pages.yml`、`docs/releases/` | 发布到 GitHub：源码快照（去掉不公开词表和精灵提取脚本）、重新构建网页版并检查导师能显示、文字里没有不公开的词；建发布、附 APK 和电脑版 zip（更新说明在 `docs/releases/<版本>.md`）；README 截图；Pages 部署 `output/web`（步骤见 [android.md](android.md)“发新版本”） |
-| `scripts/sync-remote.mjs`、`docs/collaboration.md`、`AGENTS.md` | 同步到私有协作仓库 zeroa234/remote：同一份公开快照，加上技能树数据（`vendor/`），保留 AI Studio 自己的文件；remote 上有没引入的提交时拒绝同步（`--status` 列出来）。两边怎么分工见 collaboration.md（自写的胶水代码） |
+| `scripts/publish-github.mjs`、`scripts/release-github.mjs`、`scripts/readme-images.mjs`、`.github/workflows/pages.yml`、`docs/releases/` | 发布到 GitHub：源码快照（去掉不公开词表和精灵提取脚本，加上技能树数据 `vendor/`）、重新构建网页版并检查导师能显示、文字里没有不公开的词；公开仓库上有 AI Studio 没引入的提交时拒绝推送（`--status` 列出来，共用 `scripts/lib/pending-commits.mjs`）；建发布、附 APK 和电脑版 zip（更新说明在 `docs/releases/<版本>.md`）；README 截图；Pages 部署 `output/web`（步骤见 [android.md](android.md)“发新版本”） |
+| `server.mjs`、`metadata.json`、`package.json` 的 dev/start/lint | AI Studio 的运行环境（Gemini 写的，原样收进工作区）：`npm run dev` 起 3000 端口的静态服务器（只用 Node 自带模块），缺 `src/gen/` 时先跑 build-data（没有同级技能树项目时读 `vendor/`），缺 `output/web` 时先构建网页 |
+| `docs/collaboration.md`、`AGENTS.md` | 和云端 Gemini（AI Studio）分工写课：动笔前查公开仓库上没引入的提交、“进行中”表、引入步骤 |
 | `docs/promo-video-v2.md` | 宣传片方案（制作中）：第一版已删除，第二版从头做，做好后放 `data/promo/`、`scripts/promo/`、`src/promo/`，成片在 `output/promo/`（不入库） |
 | `scripts/lib/edge.mjs` | 所有要开浏览器的测试和脚本共用：找系统 Edge、把它的临时文件放进 `temp/`、构建后游戏的地址 |
 | `assets/` | 像素背景（`bg/`，来源和提示词见其 README）、导师素材（`cast/`，来源、处理和限制见其 README）、像素字体（`fonts/`，OFL）、背景音乐（`music/`，CC0，来源见其 README） |
