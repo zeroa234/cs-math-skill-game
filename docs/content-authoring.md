@@ -138,7 +138,7 @@ npm run build && npm run e2e                             # 每一课按正确答
 | type | 必填 | 玩家怎么答 | 说明 |
 |---|---|---|---|
 | choice | `options: [{text, correct?, why?}]`，多选加 `multi: true` | 点选 | 单选恰好一个 correct |
-| number | `answer`，可选 `tolerance`、`unit` | 输入数字（支持 `3/2`、`50%`、`2^10`） | 默认容差是答案的百万分之一 |
+| number | `answer`，可选 `tolerance`、`unit` | 输入数字（支持负数、`3/2`、`50%`、`2^10`；手机上弹完整键盘，这些写法都打得出） | 默认容差是答案的百万分之一 |
 | text | `answers: [...]`、`format`（B12），可选 `caseSensitive` | 输入短文本，`format` 显示在输入框下面 | 比较时忽略首尾空格、全角半角、大小写；答案外面多套一对引号也算对（Python 把字符串显示成 `'yth'`）；`[` 开头的列表答案也接受 `9,5,2`、`9 5 2`。大小写就是考点时（`upper()`、JSON 的 `true`）写 `caseSensitive: true`。只要一个数的题用 `number` |
 | order | `steps: [...]`（按正确顺序写） | 拖动/点击排序 | 游戏会打乱 |
 | match | `pairs: [[左, 右], ...]` | 连线配对 | 右侧文字不能重复 |
@@ -166,7 +166,7 @@ npm run build && npm run e2e                             # 每一课按正确答
 | plot（secant） | `{mode: secant, f: "x^2", a: 1, hMax: 1}` | `{slope: {target: 2, tol: 0.05}}` | `{h: 0.01}` |
 | plot（riemann） | `{mode: riemann, f: "x^2", a: 0, b: 1, rule: left\|right\|mid, nMax: 200}` | `{errorBelow: 0.01}` | `{n: 50}` |
 | plot（taylor） | `{mode: taylor, series: exp\|sin\|cos\|ln1p, xMax: 3}` | `{at: 1, errorBelow: 0.001}` | `{order: 5}` |
-| plot（limit） | `{mode: limit, f: "sin(x)/x", a: 0}` | `{value: 1, tol: 1e-6}` | `{guess: 1}` |
+| plot（limit） | `{mode: limit, f: "sin(x)/x", a: 0}` | `{value: 1, tol: 1e-6}` | `{guess: 1}`（玩家填的写法和 number 题一样，如 `-1/2`） |
 | matrix2d | `{start: [[1,0],[0,1]]}` | `{matrix}` / `{det: 0}` / `{maps: [[[1,0],[0,1]]]}` / `{eigvec: [1,1]}`，可加 `tol` | 2×2 数组 `[[0,-1],[1,0]]` |
 | descent | `{f: "(x-3)^2", x0: 0, lr: 0.1}`（`lr` 是滑块的初始学习率，可省），二元加 `vars: [x, y]`、`x0: [2, 1]` | `{target: 3, tol: 0.01, maxSteps: 30}` | `{lr: 0.3, steps: 20}` |
 | sampler | `{dist: coin\|die\|twoDice}` | `{samples: 1000}` | `{n: 1000}` |

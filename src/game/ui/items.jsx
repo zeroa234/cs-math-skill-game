@@ -2,6 +2,7 @@
 // response; checking happens in the lesson player through core/check.js.
 import { useMemo } from "preact/hooks";
 import { Md } from "./md.jsx";
+import { NUMBER_FIELD } from "./number-field.js";
 import { SIM_VIEWS } from "../sims/views/index.jsx";
 
 // Deterministic shuffle per item id, so a re-render never reorders options under the player's finger.
@@ -74,7 +75,7 @@ function Choice({ item, value, setValue, locked, result }) {
 function NumberIn({ item, value, setValue, locked, result }) {
   return (
     <label class={"answer-line" + (result ? (result.correct ? " is-correct" : " is-wrong") : "")}>
-      <input type="text" inputmode="decimal" value={value} disabled={locked} placeholder="输入数字，可写 3/2、50%、2^10" onInput={(e) => setValue(e.currentTarget.value)} aria-label="答案" />
+      <input {...NUMBER_FIELD} value={value} disabled={locked} placeholder="输入数字，可写 3/2、50%、2^10" onInput={(e) => setValue(e.currentTarget.value)} aria-label="答案" />
       {item.unit && <span class="unit">{item.unit}</span>}
     </label>
   );

@@ -131,6 +131,7 @@ SimView = {
 |---|---|
 | `src/game/ui/StepPlayer.jsx` | 课、结业挑战、复习共用的一题一屏播放器：`<StepPlayer kicker title closeHref flow coach itemLabel leaveText onFinish>`；`CardStep`（`reveal` 部分逐个揭示）、`ItemStep`（复习直接用它）、`useKey`。答错的计分题本轮最后再出一次。`LessonPlayer.jsx` 和 `BossView.jsx` 只负责开始前说明和结束后的结算 |
 | `src/game/ui/md.jsx` | Markdown + KaTeX；`[[术语|释义]]` 渲染成可点开的查词按钮（一次只开一个，点别处或 Esc 关闭）；比内容框宽的独立公式、表格、代码块在还能滑的一边渐隐（`more-l` / `more-r` 加 CSS 遮罩，页面变化、滚动、改窗口大小时重算），并可用键盘聚焦滚动；行内公式比一行还宽（KaTeX 找不到断点）时挪到单独一行（`katex-line`），宽度变了再重新判断 |
+| `src/game/ui/number-field.js` | `NUMBER_FIELD`：自由填数字的框（number 题、极限猜值）共用的属性。不设 `inputmode`：iOS 没有带负号的数字键盘（UIKit 不提供，WebKit bug 193825），`decimal` 小键盘打不出负数，也没有 `/ % ^`（GitHub issue #1），所以用完整键盘。矩阵格子仍是 `type="number"`（iOS 弹带负号的数字标点键盘），由 `MatrixCell` 保留打到一半的 `-` |
 | `scripts/lib/beginner.mjs` | 零基础标准：`beginnerIssues(pack, lessons, {inherited, coreChapters})` 返回 B1–B7 违规；`resolveTerms(pack, lessons, glossary)` 在构建时给题目和后面几课的卡片加查词（释义 URI 编码）。术语清单 `data/jargon.yaml`（`code` 把 for、if、def 等关键字对到术语，B1 也查代码块和题目的 `code`）；前置技能的术语由 `scripts/lib/packs.mjs` 的 `inheritedGlossary` 沿必须前置闭包收集 |
 | `src/game/ui/icons.jsx` | `<Icon name size label>`：pixelarticons 的像素图标（24 格），全游戏只用它，不用 emoji |
 | `src/game/ui/cast.jsx` | `CAST`（两位导师的名字、立绘、庆祝动作）；`<Sprite who action then scale flip cue>` 播放 `assets/cast/sprites.json` 描述的动画条（`action` 可以是动作串，最后一个循环）；所有动作画在同一个“舞台”上，脚的位置不变；`<Portrait who>` |

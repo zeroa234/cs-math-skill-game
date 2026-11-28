@@ -1,6 +1,7 @@
 // Pure logic for the math / ML sims: plot (secant, riemann, taylor, limit), matrix2d, sampler,
 // descent, neuron, mlp, kmeans. Same interface as logic/os.js.
 import { fx, compile, derivative } from "../expr.js";
+import { parseNumber } from "../../core/check.js";
 
 const ok = (correct, detail = {}) => ({ correct, detail });
 
@@ -73,7 +74,7 @@ export const plot = {
       const err = Math.abs(taylor(p.series, order, g.at) - SERIES[p.series].f(g.at));
       return ok(err <= g.errorBelow, { err, order });
     }
-    const guess = Number(r?.guess);
+    const guess = parseNumber(r?.guess);
     return ok(Math.abs(guess - g.value) <= (g.tol ?? 1e-6), { guess });
   },
 };

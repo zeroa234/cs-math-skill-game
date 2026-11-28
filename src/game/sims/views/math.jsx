@@ -4,6 +4,7 @@ import { fx, compile } from "../expr.js";
 import { plot as plotLogic, integrate, riemann, taylor, seriesFn, det, sample, descend, LOGIC, neuronAccuracy, dataset, trainMlp, kmeansRun, matrix2d as mLogic, descent as dLogic, neuron as nLogic, mlp as mlpLogic, kmeans as kLogic, sampler as sLogic } from "../logic/math.js";
 import { scales, Frame, fnPath, autoRange, fmt } from "./plot-kit.jsx";
 import { Md } from "../../ui/md.jsx";
+import { NUMBER_FIELD } from "../../ui/number-field.js";
 
 const demoOf = (View, initial) => function Demo({ params }) {
   const [v, setV] = useState(() => initial(params, {}));
@@ -114,12 +115,28 @@ function Limit({ p, value, setValue, locked, demo }) {
           </table>
         ))}
       </div>
-      {!demo && <label class="answer-line">你认为极限是 <input type="text" inputmode="decimal" value={value.guess} disabled={locked} onInput={(e) => setValue({ guess: e.currentTarget.value })} /></label>}
+      {!demo && <label class="answer-line">你认为极限是 <input {...NUMBER_FIELD} value={value.guess} disabled={locked} onInput={(e) => setValue({ guess: e.currentTarget.value })} /></label>}
     </div>
   );
 }
 
 // ---------- matrix2d ----------
+// One matrix entry. A number box reads "" while it holds "-" (not a number yet), and writing that back
+// as 0 swallowed the minus, so no negative entry could be typed. The box keeps what is typed; the matrix
+// only takes numbers, and leaving the box with no number in it shows the matrix's value again.
+function MatrixCell({ v, onNumber, ...rest }) {
+  const [d, setD] = useState({ text: String(v), num: v });
+  const text = d.num === v ? d.text : String(v); // the matrix changed from outside (a new try)
+  const onInput = (e) => {
+    const t = e.currentTarget.value, n = t === "" ? NaN : Number(t);
+    const ok = Number.isFinite(n);
+    setD({ text: t, num: ok ? n : v });
+    if (ok) onNumber(n);
+  };
+  const onBlur = () => { if (text === "" || !Number.isFinite(Number(text))) setD({ text: String(v), num: v }); };
+  return <input type="number" step="0.1" value={text} onInput={onInput} onBlur={onBlur} {...rest} />;
+}
+
 function MatrixView({ params, value, setValue, locked }) {
   const A = value;
   const set = (i, j, v) => { const B = A.map((r) => [...r]); B[i][j] = v; setValue(B); };
@@ -133,7 +150,7 @@ function MatrixView({ params, value, setValue, locked }) {
     <div class="sim sim-matrix">
       <div class="matrix-in" role="group" aria-label="2×2 矩阵">
         <span class="bracket">[</span>
-        <div class="mgrid">{[0, 1].map((i) => [0, 1].map((j) => <input type="number" step="0.1" value={A[i][j]} disabled={locked} aria-label={`第 ${i + 1} 行第 ${j + 1} 列`} onInput={(e) => set(i, j, Number(e.currentTarget.value))} />))}</div>
+        <div class="mgrid">{[0, 1].map((i) => [0, 1].map((j) => <MatrixCell v={A[i][j]} onNumber={(n) => set(i, j, n)} disabled={locked} aria-label={`第 ${i + 1} 行第 ${j + 1} 列`} />))}</div>
         <span class="bracket">]</span>
         <p class="stat">行列式 det = <b>{fmt(det(A), 4)}</b></p>
       </div>

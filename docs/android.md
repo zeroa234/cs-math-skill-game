@@ -45,6 +45,8 @@ keytool -genkeypair -keystore config/android/release.jks -storetype PKCS12 -alia
    - 推送后看一眼 Pages 工作流（`gh run list -R zeroa234/cs-math-skill-game -L 1`）。2.5.0 时部署步骤两次报“找不到 github-pages 制品”（上传其实成功了，是制品列表滞后），`gh run rerun <id>` 重跑即可。
    然后 `node scripts/windows/build-installer.mjs` 用这份快照构建出的游戏打 Windows 安装包（见下面“Windows 安装版”）。
 5. `node scripts/release-github.mjs` 建 `v<版本>` 的发布，附上 APK、电脑版 zip 和 Windows 安装包（有这个版本的安装包才附，附之前同样核对里面的游戏）（`output/web` 打包成 `cs-math-skill-game-<版本>-web.zip`，只有游戏文件，解压后双击 `index.html`）：说明取自第 3 步的文件，APK 以 `cs-math-skill-game-<版本>.apk` 上传（GitHub 会改掉文件名里的中文），中文名“计算机大学习！ <版本>（安卓）”作为显示标签；中文以 UTF-8 JSON 交给 gh，再读回来比对，上传后的 sha256 要和本地一致。
+6. 打 Toy 包（B 站 Toy 用，步骤和上传前检查见 [toy.md](toy.md)），交给作者在 Toy 管理页上传。
+7. 仓库简介里的“已有 N 个技能、N 课互动课”改成 README 里的数（`gh api -X PATCH repos/zeroa234/cs-math-skill-game --input -`，中文同样用 UTF-8 JSON，改完读回来比对）。
 
 App 每天最多自动检查一次 `https://api.github.com/repos/zeroa234/cs-math-skill-game/releases/latest`（`src/game/app/update.js`），发现新版本就在营地显示“有新版本 [下载] [以后再说]”；“我的”页最下面可以随时手动检查。下载的是发布页上的 APK，安装要本人确认（安卓不允许商店外的 App 静默更新）；同包名、同签名，覆盖安装进度还在。请求只有这一个 GET，不带任何玩家数据；GitHub 对未登录请求每个 IP 每小时限 60 次，一天一次远远够用。
 

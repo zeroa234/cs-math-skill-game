@@ -2,7 +2,7 @@
 // Moved back from archive/tests/unit/sims-archived.test.mjs on 2026-11-04 with the sims.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { sample, trainMlp, dataset, riemann, integrate, taylor, descend, kmeansRun, neuronAccuracy, LOGIC } from "../../src/game/sims/logic/math.js";
+import { sample, trainMlp, dataset, riemann, integrate, taylor, descend, kmeansRun, neuronAccuracy, LOGIC, plot } from "../../src/game/sims/logic/math.js";
 import { compile, fx } from "../../src/game/sims/expr.js";
 
 test("expr: precedence, implicit multiplication, functions", () => {
@@ -54,4 +54,12 @@ test("mlp: no hidden layer fails the circle, 6 tanh units learn it", () => {
 test("kmeans converges on three blobs", () => {
   const r = kmeansRun(dataset("blobs3"), 3);
   assert.ok(r.iterations < 50);
+});
+
+// The guess is typed like a number item (full keyboard since GitHub issue #1), so it reads the same forms.
+test("plot limit: the guess reads negatives, fractions and full-width minus; an empty box is no answer", () => {
+  const p = { mode: "limit", f: "x", a: 0 };
+  assert.ok(plot.check(p, { value: -0.5 }, { guess: "-1/2" }).correct);
+  assert.ok(plot.check(p, { value: -3 }, { guess: "－3" }).correct);
+  assert.ok(!plot.check(p, { value: 0 }, { guess: "" }).correct);
 });
